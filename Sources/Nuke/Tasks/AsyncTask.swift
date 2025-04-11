@@ -43,7 +43,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            workItem?.setPriority(priority)
+            operation?.setPriority(priority)
             dependency?.setPriority(priority)
         }
     }
@@ -58,7 +58,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    var workItem: WorkItem?
+    var operation: OperationHandle?
 
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
@@ -174,7 +174,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         isDisposed = true
 
         if reason == .cancelled {
-            workItem?.cancel()
+            operation?.cancel()
             dependency?.unsubscribe()
             onCancelled?()
         }
@@ -243,16 +243,6 @@ typealias TaskProgress = ImageTask.Progress // Using typealias for simplicity
 
 enum TaskPriority: Int, Comparable {
     case veryLow = 0, low, normal, high, veryHigh
-
-    var queuePriority: Operation.QueuePriority {
-        switch self {
-        case .veryLow: return .veryLow
-        case .low: return .low
-        case .normal: return .normal
-        case .high: return .high
-        case .veryHigh: return .veryHigh
-        }
-    }
 
     static func < (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
         lhs.rawValue < rhs.rawValue

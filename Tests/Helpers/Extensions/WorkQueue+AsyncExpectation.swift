@@ -5,8 +5,8 @@ import Testing
 @testable import Nuke
 
 extension WorkQueue {
-    func expectItemAdded() -> AsyncExpectation<WorkQueue.Item> {
-        let expectation = AsyncExpectation<WorkQueue.Item>()
+    func expectItemAdded() -> AsyncExpectation<WorkQueue.Operation> {
+        let expectation = AsyncExpectation<WorkQueue.Operation>()
         onEvent = { event in
             if case .added(let item) = event {
                 expectation.fulfill(with: item)
@@ -15,9 +15,9 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectItemAdded(count: Int) -> AsyncExpectation<[WorkQueue.Item]> {
-        let expectation = AsyncExpectation<[WorkQueue.Item]>()
-        var items: [WorkQueue.Item] = []
+    func expectItemAdded(count: Int) -> AsyncExpectation<[WorkQueue.Operation]> {
+        let expectation = AsyncExpectation<[WorkQueue.Operation]>()
+        var items: [WorkQueue.Operation] = []
         onEvent = { event in
             if case .added(let item) = event {
                 items.append(item)
@@ -31,7 +31,7 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectPriorityUpdated(for expectedItem: WorkQueue.Item) -> AsyncExpectation<TaskPriority> {
+    func expectPriorityUpdated(for expectedItem: WorkQueue.Operation) -> AsyncExpectation<TaskPriority> {
         let expectation = AsyncExpectation<TaskPriority>()
         onEvent = { event in
             if case let .priorityUpdated(item, priority) = event {
@@ -43,7 +43,7 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectItemCancelled(_ expectedItem: WorkQueue.Item) -> AsyncExpectation<Void> {
+    func expectItemCancelled(_ expectedItem: WorkQueue.Operation) -> AsyncExpectation<Void> {
         let expectation = AsyncExpectation<Void>()
         onEvent = { event in
             if case .cancelled(let item) = event {

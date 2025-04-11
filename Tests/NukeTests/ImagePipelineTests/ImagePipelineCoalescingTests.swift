@@ -280,7 +280,7 @@ import Testing
         _ = try await task2.image
     }
 
-    @Test func processingWorkItemsAreCancelledSeparately() async {
+    @Test func processingOperationsAreCancelledSeparately() async {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
@@ -317,11 +317,11 @@ import Testing
         pipeline.imageTask(with: request).resume()
 
         // Then the item is created with a low priority
-        let workItem = await expectation1.wait()
-        #expect(workItem.priority == .low)
+        let operation = await expectation1.wait()
+        #expect(operation.priority == .low)
 
         // When new operation is added with a higher priority
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
         request.priority = .high
         let task = pipeline.imageTask(with: request).resume()
         let newPriority1 = await expectation2.wait()
@@ -330,7 +330,7 @@ import Testing
         #expect(newPriority1 == .high)
 
         // When
-        let expectation3 = queue.expectPriorityUpdated(for: workItem)
+        let expectation3 = queue.expectPriorityUpdated(for: operation)
         task.priority = .low
 
         // Then priority is lowered again
@@ -349,11 +349,11 @@ import Testing
         pipeline.imageTask(with: request).resume()
 
         // Then the item is created with a low priority
-        let workItem = await expectation1.wait()
-        #expect(workItem.priority == .low)
+        let operation = await expectation1.wait()
+        #expect(operation.priority == .low)
 
         // When new operation is added with a higher priority
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
         request.priority = .high
         let task = pipeline.imageTask(with: request).resume()
         let newPriority1 = await expectation2.wait()
@@ -362,7 +362,7 @@ import Testing
         #expect(newPriority1 == .high)
 
         // When high-priority task is cancelled
-        let expectation3 = queue.expectPriorityUpdated(for: workItem)
+        let expectation3 = queue.expectPriorityUpdated(for: operation)
         task.cancel()
 
         // Then priority is lowered again

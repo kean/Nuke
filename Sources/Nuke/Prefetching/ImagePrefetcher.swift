@@ -142,7 +142,7 @@ public final class ImagePrefetcher {
         }
 
         let task = PrefetchTask(request: request, key: key)
-        task.workItem = queue.add(priority: TaskPriority(request.priority)) { [weak self, pipeline, destination] in
+        task.operation = queue.add(priority: TaskPriority(request.priority)) { [weak self, pipeline, destination] in
             let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
             task.imageTask = imageTask
             _ = try? await imageTask.response
@@ -211,7 +211,7 @@ public final class ImagePrefetcher {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
-        var workItem: WorkItem?
+        var operation: OperationHandle?
 
         init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request
@@ -221,7 +221,7 @@ public final class ImagePrefetcher {
         // When task is cancelled, it is removed from the prefetcher and can
         // never get cancelled twice.
         func cancel() {
-            workItem?.cancel()
+            operation?.cancel()
         }
     }
 }

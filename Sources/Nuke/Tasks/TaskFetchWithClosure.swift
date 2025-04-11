@@ -17,7 +17,7 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
-            workItem = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
+            operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
                 await self?.loadData()
             }
         }

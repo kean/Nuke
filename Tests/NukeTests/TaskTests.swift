@@ -218,10 +218,10 @@ import Foundation
 
 // TODO: remove or rework
 
-//    @Test func whenSubscriptionIsRemovedWorkItemIsCancelled() {
+//    @Test func whenSubscriptionIsRemovedOperationIsCancelled() {
 //        // Given
-//        let workItem = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.workItem = workItem })
+//        let operation = Foundation.Operation()
+//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
 //        let subscription = task.subscribe { _ in }
 //        #expect(!operation.isCancelled)
 //

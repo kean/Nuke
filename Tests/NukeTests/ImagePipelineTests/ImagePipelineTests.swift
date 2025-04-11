@@ -200,10 +200,10 @@ import Foundation
         let expectation1 = queue.expectItemAdded()
         let request = Test.request
         let task = pipeline.imageTask(with: request).resume()
-        let workItem = await expectation1.wait()
+        let operation = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectItemCancelled(workItem)
+        let expectation2 = queue.expectItemCancelled(operation)
         task.cancel()
 
         // Then
@@ -222,10 +222,10 @@ import Foundation
         let expectation1 = queue.expectItemAdded()
         let request = ImageRequest(url: Test.url, processors: [processor])
         let task = pipeline.imageTask(with: request).resume()
-        let workItem = await expectation1.wait()
+        let operation = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectItemCancelled(workItem)
+        let expectation2 = queue.expectItemCancelled(operation)
         task.cancel()
 
         // Then

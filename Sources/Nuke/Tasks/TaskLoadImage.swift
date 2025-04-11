@@ -69,12 +69,12 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     private func process(_ response: ImageResponse, isCompleted: Bool, processor: any ImageProcessing) {
         guard !isDisposed else { return }
         if isCompleted {
-            workItem?.cancel() // Cancel any potential pending progressive
-        } else if workItem != nil {
+            operation?.cancel() // Cancel any potential pending progressive
+        } else if operation != nil {
             return // Back pressure - already processing another progressive image
         }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
-        workItem = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
+        operation = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             let respose = await performInBackground {
                 signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
@@ -88,7 +88,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 }
             }
 
-            self.workItem = nil
+            self.operation = nil
             self.didFinishProcessing(result: respose, isCompleted: isCompleted)
         }
     }
@@ -112,18 +112,18 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         }
         guard !isDisposed else { return }
         if isCompleted {
-            workItem?.cancel() // Cancel any potential pending progressive decompression tasks
-        } else if workItem != nil {
+            operation?.cancel() // Cancel any potential pending progressive decompression tasks
+        } else if operation != nil {
             return  // Back-pressure: receiving progressive scans too fast
         }
-        workItem = pipeline.configuration.imageDecompressingQueue.add(priority: priority) { [weak self] in
+        operation = pipeline.configuration.imageDecompressingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             let response = await performInBackground {
                 signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                     self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 }
             }
-            self.workItem = nil
+            self.operation = nil
             self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
         }
     }

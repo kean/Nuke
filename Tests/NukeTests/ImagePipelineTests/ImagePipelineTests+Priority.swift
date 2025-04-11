@@ -22,17 +22,17 @@ extension ImagePipelineTests {
         Task {
             try await imageTask.response
         }
-        let workItem = await expectation.wait()
+        let operation = await expectation.wait()
 
         // Then
-        #expect(workItem.priority == .normal)
+        #expect(operation.priority == .normal)
 
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
         imageTask.priority = .high
         let newPriority = await expectation2.wait()
 
         #expect(newPriority == .high)
-        #expect(workItem.priority == .high)
+        #expect(operation.priority == .high)
     }
 
     @Test func updateDecodingPriority() async {
@@ -49,10 +49,10 @@ extension ImagePipelineTests {
 
         let expectation = queue.expectItemAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let workItem = await expectation.wait()
+        let operation = await expectation.wait()
 
         // When
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
         task.priority = .high
 
         // Then
@@ -70,10 +70,10 @@ extension ImagePipelineTests {
 
         let expectation = queue.expectItemAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let workItem = await expectation.wait()
+        let operation = await expectation.wait()
 
         // When
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
         task.priority = .high
 
         // Then

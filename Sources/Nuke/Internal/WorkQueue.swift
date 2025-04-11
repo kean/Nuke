@@ -29,48 +29,48 @@ final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> WorkItem {
-        let item = Item(priority: priority, work: work)
-        item.queue = self
+    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> OperationHandle {
+        let operation = Operation(priority: priority, work: work)
+        operation.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
-            perform(item)
+            perform(operation)
         } else {
-            let node = LinkedList<Item>.Node(item)
-            item.node = node
-            schedule.list(for: item.priority).prepend(node)
+            let node = LinkedList<Operation>.Node(operation)
+            operation.node = node
+            schedule.list(for: operation.priority).prepend(node)
         }
-        onEvent?(.added(item))
-        return WorkItem(item: item)
+        onEvent?(.added(operation))
+        return OperationHandle(operation: operation)
     }
 
-    // MARK: - Managing Scheduled Items
+    // MARK: - Managing Scheduled Operations
 
-    fileprivate func setPriority(_ newPriority: TaskPriority, for item: Item) {
-        guard let node = item.node, item.priority != newPriority else {
+    fileprivate func setPriority(_ newPriority: TaskPriority, for operation: Operation) {
+        guard let node = operation.node, operation.priority != newPriority else {
             return /* Already executing */
         }
         // Moving nodes between queues does not require new allocations
-        schedule.list(for: item.priority).remove(node)
-        item.priority = newPriority
+        schedule.list(for: operation.priority).remove(node)
+        operation.priority = newPriority
         schedule.list(for: newPriority).prepend(node)
-        onEvent?(.priorityUpdated(item, newPriority))
+        onEvent?(.priorityUpdated(operation, newPriority))
     }
 
-    fileprivate func cancel(_ item: Item) {
-        if let node = item.node {
-            schedule.list(for: item.priority).remove(node)
+    fileprivate func cancel(_ operation: Operation) {
+        if let node = operation.node {
+            schedule.list(for: operation.priority).remove(node)
         }
-        item.task?.cancel()
-        item.node = nil
-        item.task = nil
-        item.queue = nil
-        onEvent?(.cancelled(item))
+        operation.task?.cancel()
+        operation.node = nil
+        operation.task = nil
+        operation.queue = nil
+        onEvent?(.cancelled(operation))
     }
 
     // MARK: - Performing Scheduled Work
 
     /// Returns a pending task with a highest priority.
-    private func dequeueNextItem() -> Item? {
+    private func dequeueNextOperation() -> Operation? {
         for list in schedule.all {
             if let node = list.popLast() {
                 node.value.node = nil
@@ -81,8 +81,8 @@ final class WorkQueue {
     }
 
     private func performSchduledWork() {
-        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let item = dequeueNextItem() {
-            perform(item)
+        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let operation = dequeueNextOperation() {
+            perform(operation)
         }
         if activeTaskCount == 0 {
             completion?.resume()
@@ -90,12 +90,12 @@ final class WorkQueue {
         }
     }
 
-    private func perform(_ item: Item) {
+    private func perform(_ operation: Operation) {
         activeTaskCount += 1
         // TODO: remove thread hop
-        item.task = Task {
-            await item.work()
-            item.task = nil // just in case
+        operation.task = Task {
+            await operation.work()
+            operation.task = nil // just in case
             self.activeTaskCount -= 1
             self.performSchduledWork()
         }
@@ -109,10 +109,10 @@ final class WorkQueue {
 
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
-    final class Item {
+    final class Operation {
         let work: () async -> Void
         var priority: TaskPriority
-        weak var node: LinkedList<Item>.Node?
+        weak var node: LinkedList<Operation>.Node?
         var task: Task<Void, Never>?
         weak var queue: WorkQueue?
 
@@ -122,22 +122,22 @@ final class WorkQueue {
         }
     }
 
-    /// - warning: For testing purposes.
+    /// - warning: Foor testing purposes.
     @ImagePipelineActor
     enum Event {
-        case added(Item)
-        case priorityUpdated(Item, TaskPriority)
-        case cancelled(Item)
+        case added(Operation)
+        case priorityUpdated(Operation, TaskPriority)
+        case cancelled(Operation)
     }
 
     private struct ScheduledWork {
-        let veryLow = LinkedList<Item>()
-        let low = LinkedList<Item>()
-        let normal = LinkedList<Item>()
-        let high = LinkedList<Item>()
-        let veryHigh = LinkedList<Item>()
+        let veryLow = LinkedList<Operation>()
+        let low = LinkedList<Operation>()
+        let normal = LinkedList<Operation>()
+        let high = LinkedList<Operation>()
+        let veryHigh = LinkedList<Operation>()
 
-        func list(for priority: TaskPriority) -> LinkedList<Item> {
+        func list(for priority: TaskPriority) -> LinkedList<Operation> {
             switch priority {
             case .veryLow: veryLow
             case .low: low
@@ -153,14 +153,14 @@ final class WorkQueue {
 
 /// - note: You don't need to hold to it. This indirection exists purely to
 /// ensure that it never leads to retain cycles.
-@ImagePipelineActor struct WorkItem {
-    fileprivate weak var item: WorkQueue.Item?
+@ImagePipelineActor struct OperationHandle {
+    fileprivate weak var operation: WorkQueue.Operation?
 
     func setPriority(_ priority: TaskPriority) {
-        item.map { $0.queue?.setPriority(priority, for: $0) }
+        operation.map { $0.queue?.setPriority(priority, for: $0) }
     }
 
     func cancel() {
-        item.map { $0.queue?.cancel($0) }
+        operation.map { $0.queue?.cancel($0) }
     }
 }
