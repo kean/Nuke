@@ -59,7 +59,7 @@ import Testing
             dataLoader.resume()
         }
 
-        // Then two previws are recieved
+        // Then two previws are received
         #expect(previewCount == 2)
 
         // When

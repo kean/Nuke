@@ -274,7 +274,7 @@ import Testing
     }
 
     // Just make sure these initializers are still available.
-    @Test func initailizer() {
+    @Test func initializer() {
         _ = ImageProcessors.Resize(height: 10)
         _ = ImageProcessors.Resize(width: 10)
         _ = ImageProcessors.Resize(width: 10, upscale: true)

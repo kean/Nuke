@@ -40,7 +40,7 @@ import Testing
         #expect(output.image.nk_test_processorIDs == ["1", "2"])
     }
 
-    @Test func idenfitiers() {
+    @Test func identifiers() {
         // Given different processors
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "2")])
@@ -62,7 +62,7 @@ import Testing
         #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
-    @Test func idenfitiersEqualProcessors() {
+    @Test func identifiersEqualProcessors() {
         // Given processors with equal processors
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
@@ -85,7 +85,7 @@ import Testing
         #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
-    @Test func idenfitiersEmptyProcessors() {
+    @Test func identifiersEmptyProcessors() {
         // Given empty processors
         let lhs = ImageProcessors.Composition([])
         let rhs = ImageProcessors.Composition([])

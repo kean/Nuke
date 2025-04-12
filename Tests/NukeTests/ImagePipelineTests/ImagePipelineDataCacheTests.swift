@@ -62,7 +62,7 @@ import Testing
             )]
         )
 
-        // Then image is loded
+        // Then image is loaded
         _ = try await pipeline.image(for: request)
 
         do { // Check memory cache

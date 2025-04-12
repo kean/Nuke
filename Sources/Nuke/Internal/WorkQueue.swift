@@ -122,7 +122,7 @@ final class WorkQueue {
         }
     }
 
-    /// - warning: Foor testing purposes.
+    /// - warning: For testing purposes.
     @ImagePipelineActor
     enum Event {
         case added(Operation)

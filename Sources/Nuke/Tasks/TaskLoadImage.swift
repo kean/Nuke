@@ -76,7 +76,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         operation = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
-            let respose = await performInBackground {
+            let response = await performInBackground {
                 signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
                     Result {
                         var response = response
@@ -89,7 +89,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             }
 
             self.operation = nil
-            self.didFinishProcessing(result: respose, isCompleted: isCompleted)
+            self.didFinishProcessing(result: response, isCompleted: isCompleted)
         }
     }
 

@@ -47,7 +47,7 @@ import UIKit
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
 
-        // Thne
+        // Then
         #expect(performing: {
             try processor.processThrowing(input)
         }, throws: { error in
