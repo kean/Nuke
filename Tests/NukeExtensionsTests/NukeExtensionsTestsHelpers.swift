@@ -6,6 +6,7 @@ import XCTest
 @testable import Nuke
 @testable import NukeExtensions
 
+// TODO: remove
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 extension XCTestCase {
     @MainActor
@@ -30,22 +31,6 @@ extension XCTestCase {
         expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
             XCTAssertTrue(result.isSuccess)
         }
-    }
-}
-
-extension ImageLoadingOptions {
-    @MainActor
-    private static var stack = [ImageLoadingOptions]()
-
-    @MainActor
-    static func pushShared(_ shared: ImageLoadingOptions) {
-        stack.append(ImageLoadingOptions.shared)
-        ImageLoadingOptions.shared = shared
-    }
-
-    @MainActor
-    static func popShared() {
-        ImageLoadingOptions.shared = stack.removeLast()
     }
 }
 #endif
