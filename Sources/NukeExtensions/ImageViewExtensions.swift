@@ -187,12 +187,9 @@ public func loadImage(
     with url: URL?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView
-) async throws {
-    _ = try await withUnsafeThrowingContinuation { continuation in
-        loadImage(with: url, options: options, into: view) {
-            continuation.resume(with: $0)
-        }
-    }
+) async throws(ImageTask.Error) {
+    let request = url.map { ImageRequest(url: $0) }
+    try await loadImage(with: request, options: options, into: view)
 }
 
 /// Loads an image with the given request and displays it in the view.
@@ -203,11 +200,16 @@ public func loadImage(
     with request: ImageRequest?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView
-) async throws {
-    _ = try await withUnsafeThrowingContinuation { continuation in
-        loadImage(with: request, options: options, into: view) {
-            continuation.resume(with: $0)
+) async throws(ImageTask.Error) {
+    do {
+        _ = try await withUnsafeThrowingContinuation { continuation in
+            loadImage(with: request, options: options, into: view) {
+                continuation.resume(with: $0)
+            }
         }
+    } catch {
+        // swiftlint:disable:next force_cast
+        throw error as! ImageTask.Error
     }
 }
 

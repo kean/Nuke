@@ -334,7 +334,7 @@ extension ImageTask {
     public enum Error: Swift.Error, CustomStringConvertible, Sendable {
         /// The task got cancelled.
         ///
-        /// - note: This error case is used only for Async/Await APIs. The
+        /// - warning: This error case is used only for Async/Await APIs. The
         /// completion-based APIs don't report cancellation error for backward
         /// compatibility.
         case cancelled

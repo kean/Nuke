@@ -46,68 +46,68 @@ import TVUIKit
     // MARK: - Loading
 
     @Test func imageLoaded() async throws {
-        // When requesting an image with request
-        try await NukeExtensions.loadImage(with: Test.request, into: imageView)
+        // When
+        try await loadImage(with: Test.request, into: imageView)
 
         // Expect the image to be downloaded and displayed
         #expect(imageView.image != nil)
     }
 
-//#if os(tvOS)
-//    @Test func imageLoadedToTVPosterView() {
-//        // Use local instance for this tvOS specific test for simplicity
-//        let posterView = TVPosterView()
-//
-//        // When requesting an image with request
-//        expectToLoadImage(with: Test.request, into: posterView)
-//        wait()
-//
-//        // Expect the image to be downloaded and displayed
-//        #expect(posterView.image != nil)
-//    }
-//#endif
-//
-//    @Test func imageLoadedWithURL() {
-//        // When requesting an image with URL
-//        let expectation = self.expectation(description: "Image loaded")
-//        NukeExtensions.loadImage(with: Test.url, into: imageView) { _ in
-//            expectation.fulfill()
-//        }
-//        wait()
-//
-//        // Expect the image to be downloaded and displayed
-//        #expect(imageView.image != nil)
-//    }
-//
-//    @Test func loadImageWithNilRequest() {
-//        // When
-//        imageView.image = Test.image
-//
-//        let expectation = self.expectation(description: "Image loaded")
-//        let request: ImageRequest? = nil
-//        NukeExtensions.loadImage(with: request, into: imageView) {
-//            #expect($0.error == .imageRequestMissing)
-//            expectation.fulfill()
-//        }
-//        wait()
-//
-//        // Then
-//        #expect(imageView.image == nil)
-//    }
-//
-//    @Test func loadImageWithNilRequestAndPlaceholder() {
-//        // Given
-//        let failureImage = Test.image
-//
-//        // When
-//        let options = ImageLoadingOptions(failureImage: failureImage)
-//        let request: ImageRequest? = nil
-//        NukeExtensions.loadImage(with: request, options: options, into: imageView)
-//
-//        // Then failure image is displayed
-//        #expect(imageView.image === failureImage)
-//    }
-//
+#if os(tvOS)
+    @Test func imageLoadedToTVPosterView() async throws {
+        // Use local instance for this tvOS specific test for simplicity
+        let posterView = TVPosterView()
+
+        // When requesting an image with request
+        try await loadImage(with: Test.request, into: posterView)
+
+        // Expect the image to be downloaded and displayed
+        #expect(posterView.image != nil)
+    }
+#endif
+
+    @Test func imageLoadedWithURL() async throws {
+        // When requesting an image with URL
+        try await loadImage(with: Test.url, into: imageView)
+
+        // Expect the image to be downloaded and displayed
+        #expect(imageView.image != nil)
+    }
+
+    @Test func loadImageWithNilRequest() async throws {
+        // When
+        imageView.image = Test.image
+
+        let request: ImageRequest? = nil
+        do {
+            try await loadImage(with: request, into: imageView)
+            Issue.record()
+        } catch {
+            #expect(error == .imageRequestMissing)
+        }
+
+        // Then
+        #expect(imageView.image == nil)
+    }
+
+    @Test func loadImageWithNilRequestAndPlaceholder() async throws {
+        // Given
+        let failureImage = Test.image
+
+        // When
+        let options = ImageLoadingOptions(failureImage: failureImage)
+        let request: ImageRequest? = nil
+        do {
+            try await loadImage(with: request, options: options, into: imageView)
+            Issue.record()
+        } catch {
+            #expect(error == .imageRequestMissing)
+        }
+
+        // Then failure image is displayed
+        #expect(imageView.image === failureImage)
+    }
+
 //    // MARK: - Managing Tasks
 //
 //    @Test func taskReturned() {
