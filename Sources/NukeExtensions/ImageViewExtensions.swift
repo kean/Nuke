@@ -179,6 +179,38 @@ extension TVPosterView: Nuke_ImageDisplaying {
     return controller.loadImage(with: request, options: options ?? .shared, progress: progress, completion: completion)
 }
 
+/// Loads an image with the given request and displays it in the view.
+///
+/// - note: For more information, see ``loadImage(with:options:into:progress:completion:)-37z3t.``
+@MainActor
+public func loadImage(
+    with url: URL?,
+    options: ImageLoadingOptions? = nil,
+    into view: ImageDisplayingView
+) async throws {
+    _ = try await withUnsafeThrowingContinuation { continuation in
+        loadImage(with: url, options: options, into: view) {
+            continuation.resume(with: $0)
+        }
+    }
+}
+
+/// Loads an image with the given request and displays it in the view.
+///
+/// - note: For more information, see ``loadImage(with:options:into:progress:completion:)-37z3t.``
+@MainActor
+public func loadImage(
+    with request: ImageRequest?,
+    options: ImageLoadingOptions? = nil,
+    into view: ImageDisplayingView
+) async throws {
+    _ = try await withUnsafeThrowingContinuation { continuation in
+        loadImage(with: request, options: options, into: view) {
+            continuation.resume(with: $0)
+        }
+    }
+}
+
 /// Cancels an outstanding request associated with the view.
 @MainActor
 public func cancelRequest(for view: ImageDisplayingView) {
