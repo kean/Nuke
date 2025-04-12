@@ -13,9 +13,8 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
         var value: Value?
         var continuation: UnsafeContinuation<Value, Never>?
         var isInvalidated = false
+        var count = 1
     }
-
-    init() {}
 
     var value: Value {
         get async {
@@ -46,7 +45,13 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 
     func fulfill(with value: Value) {
         let continuation: UnsafeContinuation<Value, Never>? = state.withLock {
-            guard !$0.isInvalidated else { return nil }
+            guard !$0.isInvalidated else {
+                return nil
+            }
+            $0.count -= 1
+            guard $0.count == 0 else {
+                return nil
+            }
             #expect($0.value == nil, "fulfill called multiple times")
             $0.value = value
             let continuation = $0.continuation
@@ -58,6 +63,13 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 }
 
 extension AsyncExpectation where Value == Void {
+    convenience init(expectedFulfillmentCount: Int) {
+        self.init()
+        self.state.withLock {
+            $0.count = expectedFulfillmentCount
+        }
+    }
+
     func fulfill() {
         fulfill(with: ())
     }
