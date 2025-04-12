@@ -18,41 +18,6 @@ extension XCTestCase {
     }
 }
 
-// MARK: - Publishers
-
-extension XCTestCase {
-    func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
-        TestExpectationPublisher(test: self, publisher: publisher)
-    }
-
-    func record<P: Publisher>(_ publisher: P) -> TestRecordedPublisher<P> {
-        let record = TestRecordedPublisher<P>()
-        publisher.sink(receiveCompletion: {
-            record.completion = $0
-        }, receiveValue: {
-            record.values.append($0)
-        }).store(in: &cancellables)
-        return record
-    }
-
-    // Safe because it's never mutated.
-    nonisolated(unsafe) private static let cancellablesAK = malloc(1)!
-
-    fileprivate var cancellables: [AnyCancellable] {
-        get { (objc_getAssociatedObject(self, XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
-        set { objc_setAssociatedObject(self, XCTestCase.cancellablesAK, newValue, .OBJC_ASSOCIATION_RETAIN) }
-    }
-}
-
-final class TestRecordedPublisher<P: Publisher> {
-    fileprivate(set) var values = [P.Output]()
-    fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
-
-    var last: P.Output? {
-        values.last
-    }
-}
-
 // MARK: - XCTestCase (KVO)
 
 extension XCTestCase {
