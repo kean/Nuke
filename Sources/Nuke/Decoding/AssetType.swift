@@ -54,8 +54,10 @@ extension AssetType {
             }
             return zip(numbers.indices, numbers).allSatisfy { index, number in
                 guard let number else { return true }
-                guard (index + offset) < data.count else { return false }
-                return data[index + offset] == number
+                guard let index = data.index(data.startIndex, offsetBy: index + offset, limitedBy: data.endIndex) else {
+                    return false
+                }
+                return data[index] == number
             }
         }
 

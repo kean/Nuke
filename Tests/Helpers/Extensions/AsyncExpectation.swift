@@ -16,6 +16,12 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 
     init() {}
 
+    var value: Value {
+        get async {
+            await wait()
+        }
+    }
+
     @discardableResult
     func wait() async -> Value {
         await withUnsafeContinuation { continuation in

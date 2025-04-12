@@ -82,9 +82,14 @@ extension Publisher {
     func record(count: Int? = nil) -> AsyncExpectation<[Output]> {
         let expectation = AsyncExpectation<[Output]>()
         var output: [Output] = []
-        sink(receiveCompletion: { _ in
-            if count == nil {
-                expectation.fulfill(with: output)
+        sink(receiveCompletion: { result in
+            switch result {
+            case .finished:
+                if count == nil {
+                    expectation.fulfill(with: output)
+                }
+            case .failure(let failure):
+                Issue.record(failure, "Unexpected failure")
             }
         }, receiveValue: {
             output.append($0)
