@@ -40,39 +40,8 @@ public final class ImageTask: Hashable {
         nonisolatedState.withLock(\.progress)
     }
 
-    /// The download progress.
-    public struct Progress: Hashable, Sendable {
-        /// The number of bytes that the task has received.
-        public let completed: Int64
-        /// A best-guess upper bound on the number of bytes of the resource.
-        public let total: Int64
-
-        /// Returns the fraction of the completion.
-        public var fraction: Float {
-            guard total > 0 else { return 0 }
-            return min(1, Float(completed) / Float(total))
-        }
-
-        /// Initializes progress with the given status.
-        public init(completed: Int64, total: Int64) {
-            (self.completed, self.total) = (completed, total)
-        }
-    }
-
     /// The current state of the task.
     public private(set) var state: State = .suspended
-
-    /// The state of the image task.
-    public enum State: Sendable {
-        /// The initial state.
-        case suspended
-        /// The task is currently running.
-        case running
-        /// The task has received a cancel message.
-        case cancelled
-        /// The task has completed (without being canceled).
-        case completed(Result<ImageResponse, Error>)
-    }
 
     /// Returns `true` if the task cancellation is initiated.
     public nonisolated var isCancelling: Bool {
@@ -83,14 +52,14 @@ public final class ImageTask: Hashable {
 
     /// Returns the response image.
     public var image: PlatformImage {
-        get async throws {
+        get async throws(ImagePipeline.Error) {
             try await response.image
         }
     }
 
     /// Returns the image response.
     public var response: ImageResponse {
-        get async throws {
+        get async throws(ImagePipeline.Error) {
             try await perform()
         }
     }
@@ -119,21 +88,6 @@ public final class ImageTask: Hashable {
     /// The events sent by the pipeline during the task execution.
     public nonisolated var events: AsyncStream<Event> { makeStream { $0 } }
 
-    /// An event produced during the runetime of the task.
-    public enum Event: Sendable {
-        /// The download progress was updated.
-        case progress(Progress)
-        /// The pipeline generated a progressive scan of the image.
-        case preview(ImageResponse)
-        /// The task was cancelled.
-        ///
-        /// - note: You are guaranteed to receive either `.cancelled` or
-        /// `.finished`, but never both.
-        case cancelled
-        /// The task finish with the given response.
-        case finished(Result<ImageResponse, ImagePipeline.Error>)
-    }
-
     let isDataTask: Bool
     private let nonisolatedState: Mutex<ImageTaskState>
     private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
@@ -153,23 +107,28 @@ public final class ImageTask: Hashable {
         self.onEvent = onEvent
     }
 
-    private func perform() async throws -> ImageResponse {
-        try await withTaskCancellationHandler {
-            try await withUnsafeThrowingContinuation {
-                switch state {
-                case .suspended:
-                    continuations.append($0)
-                    startRunning()
-                case .running:
-                    continuations.append($0)
-                case .cancelled:
-                    $0.resume(throwing: CancellationError())
-                case .completed(let result):
-                    $0.resume(with: result)
+    private func perform() async throws(ImagePipeline.Error) -> ImageResponse {
+        do {
+            return try await withTaskCancellationHandler {
+                try await withUnsafeThrowingContinuation {
+                    switch state {
+                    case .suspended:
+                        continuations.append($0)
+                        startRunning()
+                    case .running:
+                        continuations.append($0)
+                    case .cancelled:
+                        $0.resume(throwing: ImagePipeline.Error.cancelled)
+                    case .completed(let result):
+                        $0.resume(with: result)
+                    }
                 }
+            } onCancel: {
+                cancel()
             }
-        } onCancel: {
-            cancel()
+        } catch {
+            // swiftlint:disable:next force_cast
+            throw error as! ImagePipeline.Error
         }
     }
 
@@ -245,7 +204,7 @@ public final class ImageTask: Hashable {
     private func dispatch(_ event: Event) {
         _events?.send(event)
 
-        func complete(with result: Result<ImageResponse, Error>) {
+        func complete(with result: Result<ImageResponse, ImagePipeline.Error>) {
             subscription = nil
             _events?.send(completion: .finished)
             for continuation in continuations {
@@ -256,9 +215,9 @@ public final class ImageTask: Hashable {
 
         switch event {
         case .cancelled:
-            complete(with: .failure(CancellationError()))
+            complete(with: .failure(.cancelled))
         case .finished(let result):
-            complete(with: result.mapError { $0 as Error })
+            complete(with: result)
         default:
             break
         }
@@ -322,4 +281,52 @@ private struct ImageTaskState {
     var isCancelling = false
     var priority: ImageRequest.Priority
     var progress = ImageTask.Progress(completed: 0, total: 0)
+}
+
+extension ImageTask {
+    /// The download progress.
+    public struct Progress: Hashable, Sendable {
+        /// The number of bytes that the task has received.
+        public let completed: Int64
+        /// A best-guess upper bound on the number of bytes of the resource.
+        public let total: Int64
+
+        /// Returns the fraction of the completion.
+        public var fraction: Float {
+            guard total > 0 else { return 0 }
+            return min(1, Float(completed) / Float(total))
+        }
+
+        /// Initializes progress with the given status.
+        public init(completed: Int64, total: Int64) {
+            (self.completed, self.total) = (completed, total)
+        }
+    }
+
+    /// The state of the image task.
+    public enum State: Sendable {
+        /// The initial state.
+        case suspended
+        /// The task is currently running.
+        case running
+        /// The task has received a cancel message.
+        case cancelled
+        /// The task has completed (without being canceled).
+        case completed(Result<ImageResponse, ImagePipeline.Error>)
+    }
+
+    /// An event produced during the runetime of the task.
+    public enum Event: Sendable {
+        /// The download progress was updated.
+        case progress(Progress)
+        /// The pipeline generated a progressive scan of the image.
+        case preview(ImageResponse)
+        /// The task was cancelled.
+        ///
+        /// - note: You are guaranteed to receive either `.cancelled` or
+        /// `.finished`, but never both.
+        case cancelled
+        /// The task finish with the given response.
+        case finished(Result<ImageResponse, ImagePipeline.Error>)
+    }
 }

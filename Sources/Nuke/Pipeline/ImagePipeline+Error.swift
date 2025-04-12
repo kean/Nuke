@@ -7,6 +7,12 @@ import Foundation
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
     public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+        /// The task got cancelled.
+        ///
+        /// - note: This error case is used only for Async/Await APIs. The
+        /// completion-based APIs don't report cancellation error for backward
+        /// compatibility.
+        case cancelled
         /// Returned if data not cached and ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` option is specified.
         case dataMissingInCache
         /// Data loader failed to load image data with a wrapped error.
@@ -60,6 +66,8 @@ extension ImagePipeline.Error {
             return "Load image method was called with no image request or no URL."
         case .pipelineInvalidated:
             return "Image pipeline is invalidated and no requests can be made."
+        case .cancelled:
+            return "Image task was cancelled"
         }
     }
 }

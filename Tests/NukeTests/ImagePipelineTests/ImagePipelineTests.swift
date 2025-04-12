@@ -82,7 +82,8 @@ import Foundation
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        let error = try #require(caughtError as? ImagePipeline.Error)
+        #expect(error == .cancelled)
     }
 
     @Test func cancelImmediately() async throws {
@@ -99,7 +100,8 @@ import Foundation
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        let error = try #require(caughtError as? ImagePipeline.Error)
+        #expect(error == .cancelled)
     }
 
     @Test func cancelFromProgress() async throws {
@@ -149,7 +151,8 @@ import Foundation
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        let error = try #require(caughtError as? ImagePipeline.Error)
+        #expect(error == .cancelled)
         #expect(recordedProgress == [])
     }
 
@@ -167,7 +170,8 @@ import Foundation
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        let error = try #require(caughtError as? ImagePipeline.Error)
+        #expect(error == .cancelled)
     }
 
     @Test func dataLoadingOperationCancelled() async {
@@ -260,7 +264,8 @@ import Foundation
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        let error = try #require(caughtError as? ImagePipeline.Error)
+        #expect(error == .cancelled)
     }
 
     @Test func progressUpdated() async throws {

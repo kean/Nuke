@@ -15,6 +15,7 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 
     init() {}
 
+    @discardableResult
     func wait() async -> Value {
         await withUnsafeContinuation { continuation in
             let value = state.withLock {

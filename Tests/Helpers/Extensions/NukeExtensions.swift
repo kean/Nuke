@@ -17,6 +17,7 @@ extension ImagePipeline.Error: @retroactive Equatable {
         case (.processingFailed, .processingFailed): return true
         case (.imageRequestMissing, .imageRequestMissing): return true
         case (.pipelineInvalidated, .pipelineInvalidated): return true
+        case (.cancelled, .cancelled): return true
         default: return false
         }
     }
