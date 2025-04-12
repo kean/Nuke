@@ -44,27 +44,6 @@ extension XCTestCase {
     }
 }
 
-struct TestExpectationPublisher<P: Publisher> {
-    let test: XCTestCase
-    let publisher: P
-
-    @discardableResult
-    func toPublishSingleValue() -> TestRecordedPublisher<P> {
-        let record = TestRecordedPublisher<P>()
-        let expectation = test.expectation(description: "ValueEmitted")
-        publisher.sink(receiveCompletion: { _ in
-            // Do nothing
-        }, receiveValue: {
-            guard record.values.isEmpty else {
-                return XCTFail("Already emitted value")
-            }
-            record.values.append($0)
-            expectation.fulfill()
-        }).store(in: &test.cancellables)
-        return record
-    }
-}
-
 final class TestRecordedPublisher<P: Publisher> {
     fileprivate(set) var values = [P.Output]()
     fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
