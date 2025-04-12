@@ -219,7 +219,7 @@ import UIKit
         queue.maxConcurrentOperationCount = 8
 
         @Sendable func every(_ count: Int) -> Bool {
-            rnd() % count == 0
+            Int.random(in: 0 ..< .max) % count == 0
         }
 
         @Sendable func randomRequest() -> ImageRequest {

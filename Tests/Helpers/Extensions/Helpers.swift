@@ -225,3 +225,7 @@ func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage) -> Bool {
     let encoder = ImageEncoders.ImageIO(type: .png, compressionRatio: 1)
     return encoder.encode(lhs) == encoder.encode(rhs)
 }
+
+func rnd(_ uniform: Int) -> Int {
+    return Int.random(in: 0 ..< uniform)
+}
