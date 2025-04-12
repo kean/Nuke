@@ -2,18 +2,18 @@
 //
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
-@testable import Nuke
+import Testing
+import Foundation
 import Combine
 
-class ImagePublisherTests: XCTestCase {
+@testable import Nuke
+
+@Suite class ImagePublisherTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var cancellable: AnyCancellable?
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -23,7 +23,7 @@ class ImagePublisherTests: XCTestCase {
 
     // MARK: Common Use Cases
 
-    func testLowDataMode() {
+    @Test func lowDataMode() async throws {
         // Given
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
         let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
@@ -47,24 +47,23 @@ class ImagePublisherTests: XCTestCase {
             return pipeline.imagePublisher(with: lowQualityImageURL)
         }
 
-        let expectation = self.expectation(description: "LowDataImageFetched")
-        cancellable = publisher.sink(receiveCompletion: { result in
-            switch result {
-            case .finished:
-                break // Expected result
-            case .failure:
-                XCTFail()
-            }
-        }, receiveValue: {
-            XCTAssertNotNil($0.image)
-            expectation.fulfill()
-        })
-        wait()
+        try await withUnsafeThrowingContinuation { continuation in
+            cancellable = publisher.sink(receiveCompletion: { result in
+                switch result {
+                case .finished:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }, receiveValue: {
+                #expect($0.image != nil)
+            })
+        }
     }
 
     // MARK: Basics
 
-    func testSyncCacheLookup() {
+    @Test func syncCacheLookup() {
         // Given
         let cache = MockImageCache()
         cache[Test.request] = ImageContainer(image: Test.image)
@@ -79,26 +78,26 @@ class ImagePublisherTests: XCTestCase {
             case .finished:
                 break // Expected result
             case .failure:
-                XCTFail()
+                Issue.record()
             }
         }, receiveValue: {
             image = $0.image
         })
 
         // Then image returned synchronously
-        XCTAssertNotNil(image)
+        #expect(image != nil)
     }
 
-    func testCancellation() {
+    @Test func cancellation() async {
         dataLoader.queue.isSuspended = true
 
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
         let cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-        wait() // Wait till operation is created
+        await expectation1.wait() // Wait till operation is created
 
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
         cancellable.cancel()
-        wait()
+        await expectation2.wait()
     }
 }
 
