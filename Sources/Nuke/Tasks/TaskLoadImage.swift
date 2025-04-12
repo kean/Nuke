@@ -173,7 +173,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
         pipeline.configuration.imageEncodingQueue.add(priority: priority) { [weak pipeline, request] in
             guard let pipeline else { return }
-            let encodedData = await performInBackground  {
+            let encodedData = await performInBackground {
                 signpost("EncodeImage") {
                     encoder.encode(response.container, context: context)
                 }
