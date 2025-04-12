@@ -6,7 +6,8 @@ import Testing
 
 final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
     private var state = Mutex(wrappedValue: State())
-    private var cancellables: [AnyCancellable] = []
+
+    var cancellables: [AnyCancellable] = []
 
     private struct State {
         var value: Value?
@@ -45,14 +46,5 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 extension AsyncExpectation where Value == Void {
     func fulfill() {
         fulfill(with: ())
-    }
-
-    convenience init(notification: Notification.Name, object: AnyObject) {
-        self.init()
-
-        NotificationCenter.default
-            .publisher(for: notification, object: object)
-            .sink { [weak self] _ in self?.fulfill() }
-            .store(in: &cancellables)
     }
 }

@@ -4,6 +4,17 @@ import Testing
 
 @testable import Nuke
 
+extension AsyncExpectation where Value == Void {
+    convenience init(notification: Notification.Name, object: AnyObject) {
+        self.init()
+
+        NotificationCenter.default
+            .publisher(for: notification, object: object)
+            .sink { [weak self] _ in self?.fulfill() }
+            .store(in: &cancellables)
+    }
+}
+
 extension WorkQueue {
     func expectItemAdded() -> AsyncExpectation<WorkQueue.Operation> {
         let expectation = AsyncExpectation<WorkQueue.Operation>()
@@ -52,6 +63,35 @@ extension WorkQueue {
                 }
             }
         }
+        return expectation
+    }
+}
+
+extension Publisher {
+    func expectToPublishValue() -> AsyncExpectation<Output> {
+        let expectation = AsyncExpectation<Output>()
+        sink(receiveCompletion: { _ in
+            // Do nothing
+        }, receiveValue: {
+            expectation.fulfill(with: $0)
+        }).store(in: &expectation.cancellables)
+        return expectation
+    }
+
+    // Record values until the publisher completes.
+    func record(count: Int? = nil) -> AsyncExpectation<[Output]> {
+        let expectation = AsyncExpectation<[Output]>()
+        var output: [Output] = []
+        sink(receiveCompletion: { _ in
+            if count == nil {
+                expectation.fulfill(with: output)
+            }
+        }, receiveValue: {
+            output.append($0)
+            if let count, output.count == count {
+                expectation.fulfill(with: output)
+            }
+        }).store(in: &expectation.cancellables)
         return expectation
     }
 }

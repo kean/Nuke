@@ -2,12 +2,13 @@
 //
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+
 @testable import Nuke
 @testable import NukeUI
 
 @MainActor
-class FetchImageTests: XCTestCase {
+@Suite struct FetchImageTests {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
     var dataCache: MockDataCache!
@@ -15,10 +16,7 @@ class FetchImageTests: XCTestCase {
     var pipeline: ImagePipeline!
     var image: FetchImage!
 
-    @MainActor
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         imageCache = MockImageCache()
         observer = ImagePipelineObserver()
@@ -34,34 +32,36 @@ class FetchImageTests: XCTestCase {
         image.pipeline = pipeline
     }
 
-    func testImageLoaded() throws {
-        // RECORD
-        let record = expect(image.$result.dropFirst()).toPublishSingleValue()
+    @Test func imageLoaded() async throws {
+        // Given
+        let expectation = image.$result.dropFirst()
+            .expectToPublishValue()
 
         // When
         image.load(Test.request)
-        wait()
+        let result = try #require(await expectation.wait())
 
         // Then
-        let result = try XCTUnwrap(try XCTUnwrap(record.last))
-        XCTAssertTrue(result.isSuccess)
-        XCTAssertNotNil(image.image)
+        #expect(result.isSuccess)
+        #expect(result.value != nil)
     }
 
-    func testIsLoadingUpdated() {
-        // RECORD
-        expect(image.$result.dropFirst()).toPublishSingleValue()
-        let isLoading = record(image.$isLoading)
+    @Test func isLoadingUpdated() async {
+        // Given
+        let expectation1 = image.$result.dropFirst()
+            .expectToPublishValue()
+        let expectation2 = image.$isLoading.record(count: 3)
 
         // When
         image.load(Test.request)
-        wait()
+        await expectation1.wait()
 
         // Then
-        XCTAssertEqual(isLoading.values, [false, true, false])
+        let isLoadingValues = await expectation2.wait()
+        #expect(isLoadingValues == [false, true, false])
     }
 
-    func testMemoryCacheLookup() throws {
+    @Test func memoryCacheLookup() throws {
         // Given
         pipeline.cache[Test.request] = Test.container
 
@@ -69,41 +69,54 @@ class FetchImageTests: XCTestCase {
         image.load(Test.request)
 
         // Then image loaded synchronously
-        let result = try XCTUnwrap(image.result)
-        XCTAssertTrue(result.isSuccess)
-        let response = try XCTUnwrap(result.value)
-        XCTAssertEqual(response.cacheType, .memory)
-        XCTAssertNotNil(image.image)
+        let result = try #require(image.result)
+        #expect(result.isSuccess)
+        let response = try #require(result.value)
+        #expect(response.cacheType == .memory)
+        #expect(image.image != nil)
     }
 
-    func testPriorityUpdated() {
+    @ImagePipelineActor
+    @Test func priorityUpdated() async {
+        // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        image.priority = .high
-        image.load(Test.request)
-        wait() // Wait till the operation is created.
-
-        guard let operation = observer.operations.first else {
-            return XCTFail("No operations gor registered")
+        // When
+        let expectation = queue.expectItemAdded()
+        Task { @MainActor in
+            image.priority = .high
+            image.load(Test.request)
         }
-        XCTAssertEqual(operation.queuePriority, .high)
+
+        // Then
+        let operation = await expectation.wait()
+        #expect(operation.priority == .high)
     }
 
-    func testPriorityUpdatedDynamically() {
+    @ImagePipelineActor
+    @Test func priorityUpdatedDynamically() async {
+        // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        image.load(Test.request)
-        wait() // Wait till the operation is created.
-
-        guard let operation = observer.operations.first else {
-            return XCTFail("No operations gor registered")
+        // When
+        let expectation1 = queue.expectItemAdded()
+        Task { @MainActor in
+            image.load(Test.request)
         }
-        expect(operation).toUpdatePriority()
-        image.priority = .high
-        wait()
+
+        // Then
+        let operation = await expectation1.wait()
+
+        // When
+        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        Task { @MainActor in
+            image.priority = .high
+        }
+
+        // Then
+        let priority = await expectation2.wait()
+        #expect(priority == .high)
     }
 }
