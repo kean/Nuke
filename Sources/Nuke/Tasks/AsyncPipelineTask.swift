@@ -6,7 +6,7 @@ import Foundation
 
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
-class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> {
+class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImageTask.Error> {
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
@@ -41,8 +41,8 @@ extension AsyncPipelineTask: ImageTaskSubscribers {
 extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
-    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @Sendable @escaping (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
-        @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
+    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void) {
+        @Sendable func decode() -> Result<ImageResponse, ImageTask.Error> {
             signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                 Result { try decoder.decode(context) }
                     .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }

@@ -50,7 +50,7 @@ import Testing
             Issue.record()
         } catch {
             // Then
-            if let error = error as? ImagePipeline.Error, case .dataLoadingFailed = error {
+            if case .dataLoadingFailed = error {
                 // Expected
             } else {
                 Issue.record()

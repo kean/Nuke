@@ -13,7 +13,7 @@ import Foundation
     var pipeline: ImagePipeline!
 
     private var recordedEvents: [ImageTask.Event] = []
-    private var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
+    private var recordedResult: Result<ImageResponse, ImageTask.Error>?
     private var recordedProgress: [ImageTask.Progress] = []
     private var recordedPreviews: [ImageResponse] = []
     private var pipelineDelegate = ImagePipelineObserver()
@@ -76,14 +76,11 @@ import Foundation
             task.cancel()
         }
 
-        var caughtError: Error?
         do {
             _ = try await task.value
         } catch {
-            caughtError = error
+            #expect((error as? ImageTask.Error) == .cancelled)
         }
-        let error = try #require(caughtError as? ImagePipeline.Error)
-        #expect(error == .cancelled)
     }
 
     @Test func cancelImmediately() async throws {
@@ -94,14 +91,11 @@ import Foundation
         }
         task.cancel()
 
-        var caughtError: Error?
         do {
             _ = try await task.value
         } catch {
-            caughtError = error
+            #expect((error as? ImageTask.Error) == .cancelled)
         }
-        let error = try #require(caughtError as? ImagePipeline.Error)
-        #expect(error == .cancelled)
     }
 
     @Test func cancelFromProgress() async throws {
@@ -145,14 +139,11 @@ import Foundation
 
         // Then you are able to observe `event` update because
         // this task does no get cancelled
-        var caughtError: Error?
         do {
             _ = try await (result1, result2)
         } catch {
-            caughtError = error
+            #expect((error as? ImageTask.Error) == .cancelled)
         }
-        let error = try #require(caughtError as? ImagePipeline.Error)
-        #expect(error == .cancelled)
         #expect(recordedProgress == [])
     }
 
@@ -164,14 +155,11 @@ import Foundation
             task.cancel()
         }
 
-        var caughtError: Error?
         do {
             _ = try await task.image
         } catch {
-            caughtError = error
+            #expect(error == .cancelled)
         }
-        let error = try #require(caughtError as? ImagePipeline.Error)
-        #expect(error == .cancelled)
     }
 
     @Test func dataLoadingOperationCancelled() async {
@@ -258,14 +246,11 @@ import Foundation
         }
         task.cancel()
 
-        var caughtError: Error?
         do {
             _ = try await task.value
         } catch {
-            caughtError = error
+            #expect((error as? ImageTask.Error) == .cancelled)
         }
-        let error = try #require(caughtError as? ImagePipeline.Error)
-        #expect(error == .cancelled)
     }
 
     @Test func progressUpdated() async throws {
@@ -343,7 +328,7 @@ import Foundation
             _ = try await pipeline.image(for: request)
             Issue.record()
         } catch {
-            if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
+            if case let .dataLoadingFailed(error) = error {
                 #expect((error as? URLError)?.networkUnavailableReason == .cellular)
             } else {
                 Issue.record()
@@ -374,8 +359,7 @@ import Foundation
             do {
                 return try await pipeline.image(for: request)
             } catch {
-                guard let error = (error as? ImagePipeline.Error),
-                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                     throw error
                 }
                 return try await pipeline.image(for: lowQualityImageURL)
@@ -518,7 +502,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record()
         } catch {
-            #expect(error as? ImagePipeline.Error == .pipelineInvalidated)
+            #expect(error == .pipelineInvalidated)
         }
     }
 
@@ -541,7 +525,6 @@ import Foundation
             Issue.record("Unexpected success")
         } catch {
             // Then
-            let error = try #require(error as? ImagePipeline.Error)
             #expect(error == .dataLoadingFailed(error: expectedError))
         }
     }
@@ -562,7 +545,6 @@ import Foundation
             Issue.record("Unexpected success")
         } catch {
             // Then
-            let error = try #require(error as? ImagePipeline.Error)
             #expect(error == .dataIsEmpty)
         }
     }
@@ -581,7 +563,6 @@ import Foundation
             Issue.record("Unexpected success")
         } catch {
             // Then
-            let error = try #require(error as? ImagePipeline.Error)
             guard case let .decoderNotRegistered(context) = error else {
                 Issue.record("Expected .decoderNotRegistered")
                 return
@@ -609,8 +590,6 @@ import Foundation
             Issue.record("Unexpected success")
         } catch {
             // Then
-            let error = try #require(error as? ImagePipeline.Error)
-
             if case let .decodingFailed(failedDecoder, context, error) = error {
                 #expect((failedDecoder as? MockFailingDecoder) === decoder)
 
@@ -640,10 +619,7 @@ import Foundation
             Issue.record("Unexpected success")
         } catch {
             // Then
-            let error = try #require(error as? ImagePipeline.Error)
-
             if case let .processingFailed(processor, context, error) = error {
-
                 #expect(processor is MockFailingProcessor)
 
                 #expect(context.request.url == Test.url)
@@ -659,13 +635,13 @@ import Foundation
     }
 
     @Test func errorDescription() {
-        let dataLoadingError = ImagePipeline.Error.dataLoadingFailed(error: Foundation.URLError(.unknown))
+        let dataLoadingError = ImageTask.Error.dataLoadingFailed(error: Foundation.URLError(.unknown))
         #expect(!dataLoadingError.description.isEmpty) // Just padding here
 
-        #expect(!ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding // Just padding
+        #expect(!ImageTask.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding // Just padding
 
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
-        let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
+        let error = ImageTask.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
         let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
         #expect(error.description == expected)
         #expect("\(error)" == expected)

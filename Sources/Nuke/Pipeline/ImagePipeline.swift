@@ -33,10 +33,10 @@ public final class ImagePipeline {
 
     private var tasks = Set<ImageTask>()
 
-    private let tasksLoadData: TaskPool<TaskLoadImageKey, ImageResponse, Error>
-    private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, Error>
-    private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
-    private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
+    private let tasksLoadData: TaskPool<TaskLoadImageKey, ImageResponse, ImageTask.Error>
+    private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, ImageTask.Error>
+    private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, ImageTask.Error>
+    private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), ImageTask.Error>
 
     private var isInvalidated = false
 
@@ -48,6 +48,9 @@ public final class ImagePipeline {
     // For testing purposes
     // TODO: remove
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)?
+
+    @available(*, deprecated, message: "Please use ImageTask.Error")
+    public typealias Error = ImageTask.Error
 
     deinit {
         ResumableDataStorage.shared.unregister(id)
@@ -120,12 +123,12 @@ public final class ImagePipeline {
     }
 
     /// Returns an image for the given URL.
-    public func image(for url: URL) async throws -> PlatformImage {
+    public func image(for url: URL) async throws(ImageTask.Error) -> PlatformImage {
         try await image(for: ImageRequest(url: url))
     }
 
     /// Returns an image for the given request.
-    public func image(for request: ImageRequest) async throws -> PlatformImage {
+    public func image(for request: ImageRequest) async throws(ImageTask.Error) -> PlatformImage {
         try await imageTask(with: request).image
     }
 
@@ -134,7 +137,7 @@ public final class ImagePipeline {
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
-    public func data(for request: ImageRequest) async throws -> (data: Data, response: URLResponse?) {
+    public func data(for request: ImageRequest) async throws(ImageTask.Error) -> (data: Data, response: URLResponse?) {
         let task = makeImageTask(with: request, isDataTask: true)
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
@@ -148,7 +151,7 @@ public final class ImagePipeline {
         return task
     }
 
-    func perform(_ task: ImageTask, onEvent: @escaping (AsyncTask<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> TaskSubscription? {
+    func perform(_ task: ImageTask, onEvent: @escaping (AsyncTask<ImageResponse, ImageTask.Error>.Event) -> Void) -> TaskSubscription? {
         guard !isInvalidated else {
             onEvent(.error(.pipelineInvalidated))
             return nil
@@ -190,25 +193,25 @@ public final class ImagePipeline {
     // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
     // is created. The work is split between tasks to minimize any duplicated work.
 
-    func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
         tasksLoadImage.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadImage(self, request)
         }
     }
 
-    func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
         tasksLoadData.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadData(self, request)
         }
     }
 
-    func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
         tasksFetchOriginalImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
             TaskFetchOriginalImage(self, request)
         }
     }
 
-    func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
+    func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), ImageTask.Error>.Publisher {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
             request.closure == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithClosure(self, request)
         }

@@ -12,7 +12,7 @@ extension XCTestCase {
     func expectToFinishLoadingImage(with request: ImageRequest,
                                     options: ImageLoadingOptions? = nil,
                                     into imageView: ImageDisplayingView,
-                                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
+                                    completion: ((_ result: Result<ImageResponse, ImageTask.Error>) -> Void)? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
         NukeExtensions.loadImage(
             with: request,

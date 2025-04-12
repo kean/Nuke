@@ -45,7 +45,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
         }
     }
 
-    private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImagePipeline.Error>) {
+    private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImageTask.Error>) {
         operation = nil
 
         switch result {

@@ -29,7 +29,7 @@ extension ImagePipeline {
 /// might emit more than a single value.
 struct ImagePublisher: Publisher, Sendable {
     typealias Output = ImageResponse
-    typealias Failure = ImagePipeline.Error
+    typealias Failure = ImageTask.Error
 
     let request: ImageRequest
     let pipeline: ImagePipeline
@@ -44,7 +44,7 @@ struct ImagePublisher: Publisher, Sendable {
     }
 }
 
-private final class ImageSubscription<S>: Subscription where S: Subscriber, S: Sendable, S.Input == ImageResponse, S.Failure == ImagePipeline.Error {
+private final class ImageSubscription<S>: Subscription where S: Subscriber, S: Sendable, S.Input == ImageResponse, S.Failure == ImageTask.Error {
     private var task: ImageTask?
     private let subscriber: S?
     private let request: ImageRequest

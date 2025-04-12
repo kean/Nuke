@@ -91,7 +91,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with url: URL?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+    completion: @escaping (_ result: Result<ImageResponse, ImageTask.Error>) -> Void
 ) -> ImageTask? {
     loadImage(with: url, options: options, into: view, progress: nil, completion: completion)
 }
@@ -125,7 +125,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
     progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+    completion: ((_ result: Result<ImageResponse, ImageTask.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: url.map({ ImageRequest(url: $0) }), options: options ?? .shared, progress: progress, completion: completion)
@@ -139,7 +139,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with request: ImageRequest?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+    completion: @escaping (_ result: Result<ImageResponse, ImageTask.Error>) -> Void
 ) -> ImageTask? {
     loadImage(with: request, options: options ?? .shared, into: view, progress: nil, completion: completion)
 }
@@ -173,7 +173,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
     progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+    completion: ((_ result: Result<ImageResponse, ImageTask.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: request, options: options ?? .shared, progress: progress, completion: completion)
@@ -235,7 +235,7 @@ private final class ImageViewController {
         with request: ImageRequest?,
         options: ImageLoadingOptions,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-        completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+        completion: ((_ result: Result<ImageResponse, ImageTask.Error>) -> Void)? = nil
     ) -> ImageTask? {
         cancelOutstandingTask()
 
@@ -259,7 +259,7 @@ private final class ImageViewController {
             if options.isPrepareForReuseEnabled {
                 imageView.nuke_display(image: nil, data: nil)
             }
-            let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
+            let result: Result<ImageResponse, ImageTask.Error> = .failure(.imageRequestMissing)
             handle(result: result, isFromMemory: true)
             completion?(result)
             return nil
@@ -305,7 +305,7 @@ private final class ImageViewController {
 
     // MARK: - Handling Responses
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isFromMemory: Bool) {
+    private func handle(result: Result<ImageResponse, ImageTask.Error>, isFromMemory: Bool) {
         switch result {
         case let .success(response):
             display(response.container, isFromMemory, .success)

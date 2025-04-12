@@ -83,7 +83,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                         response.container = try processor.process(response.container, context: context)
                         return response
                     }.mapError { error in
-                        ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
+                        ImageTask.Error.processingFailed(processor: processor, context: context, error: error)
                     }
                 }
             }
@@ -93,7 +93,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         }
     }
 
-    private func didFinishProcessing(result: Result<ImageResponse, ImagePipeline.Error>, isCompleted: Bool) {
+    private func didFinishProcessing(result: Result<ImageResponse, ImageTask.Error>, isCompleted: Bool) {
         switch result {
         case .success(let response):
             didReceiveImageResponse(response, isCompleted: isCompleted)

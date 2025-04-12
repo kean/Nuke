@@ -35,7 +35,7 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
         do {
             let data = try await closure()
             guard !data.isEmpty else {
-                throw ImagePipeline.Error.dataIsEmpty
+                throw ImageTask.Error.dataIsEmpty
             }
             storeDataInCacheIfNeeded(data)
             send(value: (data, nil), isCompleted: true)

@@ -25,7 +25,7 @@ import Testing
     @Test func startAndCompletedEvents() async throws {
         let result = await Task {
             try await pipeline.imageTask(with: Test.url).response
-        }.result.mapError { $0 as! ImagePipeline.Error }
+        }.result.mapError { $0 as! ImageTask.Error }
 
         // Then
         #expect(delegate.events == [
@@ -41,7 +41,7 @@ import Testing
 
         let result = await Task {
             try await pipeline.imageTask(with: Test.url).response
-        }.result.mapError { $0 as! ImagePipeline.Error }
+        }.result.mapError { $0 as! ImageTask.Error }
 
         // Then
         #expect(delegate.events == [

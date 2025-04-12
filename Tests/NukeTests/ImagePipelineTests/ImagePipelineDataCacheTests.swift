@@ -226,7 +226,7 @@ import Testing
             _ = try await pipeline.image(for: request)
             Issue.record()
         } catch {
-            #expect(error as? ImagePipeline.Error == .dataMissingInCache)
+            #expect(error == .dataMissingInCache)
         }
 
         // Then
@@ -243,7 +243,7 @@ import Testing
             _ = try await pipeline.data(for: request)
             Issue.record()
         } catch {
-            #expect(error as? ImagePipeline.Error == .dataMissingInCache)
+            #expect(error == .dataMissingInCache)
         }
 
         // Then

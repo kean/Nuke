@@ -40,7 +40,7 @@ class ImagePublisherTests: XCTestCase {
         let request = ImageRequest(urlRequest: urlRequest)
 
         // When
-        let publisher = pipeline.imagePublisher(with: request).tryCatch { error -> AnyPublisher<ImageResponse, ImagePipeline.Error> in
+        let publisher = pipeline.imagePublisher(with: request).tryCatch { error -> AnyPublisher<ImageResponse, ImageTask.Error> in
             guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                 throw error
             }

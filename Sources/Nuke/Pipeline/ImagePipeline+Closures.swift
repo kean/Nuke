@@ -15,7 +15,7 @@ extension ImagePipeline {
     ///   is finished.
     @discardableResult public nonisolated func loadImage(
         with url: URL,
-        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, ImageTask.Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: ImageRequest(url: url), progress: nil, completion: completion)
     }
@@ -30,7 +30,7 @@ extension ImagePipeline {
     ///   is finished.
     @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
-        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, ImageTask.Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: request, progress: nil, completion: completion)
     }
@@ -48,7 +48,7 @@ extension ImagePipeline {
     @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
         progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, ImageTask.Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: request, progress: {
             progress?($0, $1.completed, $1.total)
@@ -71,7 +71,7 @@ extension ImagePipeline {
     @discardableResult public nonisolated func loadData(
         with request: ImageRequest,
         progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
-        completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), ImageTask.Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: request, isDataTask: true) { _, progress in
             progressHandler?(progress.completed, progress.total)
@@ -88,7 +88,7 @@ extension ImagePipeline {
         with request: ImageRequest,
         isDataTask: Bool = false,
         progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
-        completion: @MainActor @Sendable @escaping (Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void
     ) -> ImageTask {
         makeImageTask(with: request, isDataTask: isDataTask) { event, task in
             DispatchQueue.main.async {

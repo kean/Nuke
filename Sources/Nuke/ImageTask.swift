@@ -52,14 +52,14 @@ public final class ImageTask: Hashable {
 
     /// Returns the response image.
     public var image: PlatformImage {
-        get async throws(ImagePipeline.Error) {
+        get async throws(ImageTask.Error) {
             try await response.image
         }
     }
 
     /// Returns the image response.
     public var response: ImageResponse {
-        get async throws(ImagePipeline.Error) {
+        get async throws(ImageTask.Error) {
             try await perform()
         }
     }
@@ -95,7 +95,7 @@ public final class ImageTask: Hashable {
     private var subscription: TaskSubscription?
 
     // TODO: optimize (store one inline)
-    private var continuations = ContiguousArray<UnsafeContinuation<ImageResponse, Error>>()
+    private var continuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
     private var _events: PassthroughSubject<ImageTask.Event, Never>?
 
     nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?) {
@@ -107,7 +107,7 @@ public final class ImageTask: Hashable {
         self.onEvent = onEvent
     }
 
-    private func perform() async throws(ImagePipeline.Error) -> ImageResponse {
+    private func perform() async throws(ImageTask.Error) -> ImageResponse {
         do {
             return try await withTaskCancellationHandler {
                 try await withUnsafeThrowingContinuation {
@@ -118,7 +118,7 @@ public final class ImageTask: Hashable {
                     case .running:
                         continuations.append($0)
                     case .cancelled:
-                        $0.resume(throwing: ImagePipeline.Error.cancelled)
+                        $0.resume(throwing: ImageTask.Error.cancelled)
                     case .completed(let result):
                         $0.resume(with: result)
                     }
@@ -128,7 +128,7 @@ public final class ImageTask: Hashable {
             }
         } catch {
             // swiftlint:disable:next force_cast
-            throw error as! ImagePipeline.Error
+            throw error as! ImageTask.Error
         }
     }
 
@@ -178,7 +178,7 @@ public final class ImageTask: Hashable {
     }
 
     /// Gets called when the associated task sends a new event.
-    private func process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+    private func process(_ event: AsyncTask<ImageResponse, ImageTask.Error>.Event) {
         guard case .running = state else { return }
         switch event {
         case let .value(response, isCompleted):
@@ -204,7 +204,7 @@ public final class ImageTask: Hashable {
     private func dispatch(_ event: Event) {
         _events?.send(event)
 
-        func complete(with result: Result<ImageResponse, ImagePipeline.Error>) {
+        func complete(with result: Result<ImageResponse, ImageTask.Error>) {
             subscription = nil
             _events?.send(completion: .finished)
             for continuation in continuations {
@@ -312,7 +312,7 @@ extension ImageTask {
         /// The task has received a cancel message.
         case cancelled
         /// The task has completed (without being canceled).
-        case completed(Result<ImageResponse, ImagePipeline.Error>)
+        case completed(Result<ImageResponse, ImageTask.Error>)
     }
 
     /// An event produced during the runetime of the task.
@@ -327,6 +327,72 @@ extension ImageTask {
         /// `.finished`, but never both.
         case cancelled
         /// The task finish with the given response.
-        case finished(Result<ImageResponse, ImagePipeline.Error>)
+        case finished(Result<ImageResponse, ImageTask.Error>)
+    }
+
+        /// Represents all possible image task errors.
+    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+        /// The task got cancelled.
+        ///
+        /// - note: This error case is used only for Async/Await APIs. The
+        /// completion-based APIs don't report cancellation error for backward
+        /// compatibility.
+        case cancelled
+        /// Returned if data not cached and ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` option is specified.
+        case dataMissingInCache
+        /// Data loader failed to load image data with a wrapped error.
+        case dataLoadingFailed(error: Swift.Error)
+        /// Data loader returned empty data.
+        case dataIsEmpty
+        /// No decoder registered for the given data.
+        ///
+        /// This error can only be thrown if the pipeline has custom decoders.
+        /// By default, the pipeline uses ``ImageDecoders/Default`` as a catch-all.
+        case decoderNotRegistered(context: ImageDecodingContext)
+        /// Decoder failed to produce a final image.
+        case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
+        /// Processor failed to produce a final image.
+        case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
+        /// Load image method was called with no image request.
+        case imageRequestMissing
+        /// Image pipeline is invalidated and no requests can be made.
+        case pipelineInvalidated
+    }
+}
+
+extension ImageTask.Error {
+    /// Returns underlying data loading error.
+    public var dataLoadingError: Swift.Error? {
+        switch self {
+        case .dataLoadingFailed(let error):
+            return error
+        default:
+            return nil
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .dataMissingInCache:
+            return "Failed to load data from cache and download is disabled."
+        case let .dataLoadingFailed(error):
+            return "Failed to load image data. Underlying error: \(error)."
+        case .dataIsEmpty:
+            return "Data loader returned empty data."
+        case .decoderNotRegistered:
+            return "No decoders registered for the downloaded data."
+        case let .decodingFailed(decoder, _, error):
+            let underlying = error is ImageDecodingError ? "" : " Underlying error: \(error)."
+            return "Failed to decode image data using decoder \(decoder).\(underlying)"
+        case let .processingFailed(processor, _, error):
+            let underlying = error is ImageProcessingError ? "" : " Underlying error: \(error)."
+            return "Failed to process the image using processor \(processor).\(underlying)"
+        case .imageRequestMissing:
+            return "Load image method was called with no image request or no URL."
+        case .pipelineInvalidated:
+            return "Image pipeline is invalidated and no requests can be made."
+        case .cancelled:
+            return "Image task was cancelled"
+        }
     }
 }

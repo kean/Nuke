@@ -105,7 +105,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard var request else {
-            handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
+            handle(result: .failure(ImageTask.Error.imageRequestMissing))
             return
         }
 

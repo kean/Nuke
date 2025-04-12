@@ -5,8 +5,8 @@
 import Foundation
 import Nuke
 
-extension ImagePipeline.Error: @retroactive Equatable {
-    public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
+extension ImageTask.Error: @retroactive Equatable {
+    public static func == (lhs: ImageTask.Error, rhs: ImageTask.Error) -> Bool {
         switch (lhs, rhs) {
         case (.dataMissingInCache, .dataMissingInCache): return true
         case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
