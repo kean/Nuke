@@ -2,8 +2,6 @@ import Foundation
 import Combine
 import Testing
 
-@testable import Nuke
-
 final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
     private var state = Mutex(wrappedValue: State())
 

@@ -150,6 +150,13 @@
 			);
 			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;
 		};
+		0CB25DB72DAB328B000A93A3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Extensions/AsyncExpectation+Extensions.swift",
+			);
+			target = 0C8D7BE71D9DC02B00D12EB7 /* Nuke Performance Tests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -157,7 +164,7 @@
 		0C0C819A2D99A9AC006A2138 /* NukeExtensions */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeExtensions; sourceTree = "<group>"; };
 		0C0C81A32D99A9B1006A2138 /* NukeUI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeUI; sourceTree = "<group>"; };
 		0C0C81AC2D99A9B6006A2138 /* NukeVideo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeVideo; sourceTree = "<group>"; };
-		0C0C823F2D99AA9B006A2138 /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
+		0C0C823F2D99AA9B006A2138 /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0CB25DB72DAB328B000A93A3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
 		0C0C82A12D99ABD0006A2138 /* Resources */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Resources; sourceTree = "<group>"; };
 		0C0C83322D99AC05006A2138 /* NukeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeTests; sourceTree = "<group>"; };
 		0C0C83592D99AC13006A2138 /* NukeUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeUITests; sourceTree = "<group>"; };
