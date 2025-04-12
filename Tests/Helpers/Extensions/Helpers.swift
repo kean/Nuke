@@ -5,6 +5,14 @@
 import Nuke
 import XCTest
 
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+import UIKit
+#endif
+
+#if os(macOS)
+import Cocoa
+#endif
+
 private final class BundleToken {}
 
 // Test data.
@@ -207,4 +215,13 @@ extension Result {
         defer { os_unfair_lock_unlock(lock) }
         return closure(&value)
     }
+}
+
+func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage) -> Bool {
+    guard lhs.sizeInPixels == rhs.sizeInPixels else {
+        return false
+    }
+    // Note: this will probably need more work.
+    let encoder = ImageEncoders.ImageIO(type: .png, compressionRatio: 1)
+    return encoder.encode(lhs) == encoder.encode(rhs)
 }

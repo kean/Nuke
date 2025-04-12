@@ -24,7 +24,7 @@ import UIKit
         #expect(output != nil)
 
         // TODO: The comparison doesn't work for some reason
-        // XCTAssertEqualImages(output, Test.image(named: "s-sepia.png"))
+        // #expect(isEqual(output, Test.image(named: "s-sepia.png")))
     }
 
     @Test func applySepiaWithParameters() throws {
@@ -39,7 +39,7 @@ import UIKit
         #expect(output != nil)
 
         // TODO: The comparison doesn't work for some reason
-        // XCTAssertEqualImages(output, Test.image(named: "s-sepia-less-intense.png"))
+        // #expect(isEqual(output, Test.image(named: "s-sepia-less-intense.png")))
     }
 
     @Test func applyFilterWithInvalidName() throws {
