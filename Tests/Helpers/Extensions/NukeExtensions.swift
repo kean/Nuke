@@ -37,6 +37,7 @@ extension ImagePipeline {
     }
 }
 
+// TODO: remove
 extension ImagePipeline {
     @MainActor
     private static var stack = [ImagePipeline]()

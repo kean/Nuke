@@ -12,6 +12,7 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
     private struct State {
         var value: Value?
         var continuation: UnsafeContinuation<Value, Never>?
+        var isInvalidated = false
     }
 
     init() {}
@@ -37,8 +38,15 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
         }
     }
 
+    func invalidate() {
+        state.withLock {
+            $0.isInvalidated = true
+        }
+    }
+
     func fulfill(with value: Value) {
-        let continuation = state.withLock {
+        let continuation: UnsafeContinuation<Value, Never>? = state.withLock {
+            guard !$0.isInvalidated else { return nil }
             #expect($0.value == nil, "fulfill called multiple times")
             $0.value = value
             let continuation = $0.continuation

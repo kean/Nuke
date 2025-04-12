@@ -15,6 +15,10 @@ extension AsyncExpectation where Value == Void {
     }
 }
 
+func expect(notification: Notification.Name, object : AnyObject) -> AsyncExpectation<Void> {
+    AsyncExpectation(notification: notification, object: object)
+}
+
 extension WorkQueue {
     func expectItemAdded() -> AsyncExpectation<WorkQueue.Operation> {
         let expectation = AsyncExpectation<WorkQueue.Operation>()
