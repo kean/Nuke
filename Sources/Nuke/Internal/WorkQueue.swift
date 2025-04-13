@@ -92,7 +92,6 @@ final class WorkQueue {
 
     private func perform(_ operation: Operation) {
         activeTaskCount += 1
-        // TODO: remove thread hop
         operation.task = Task {
             await operation.work()
             operation.task = nil // just in case
