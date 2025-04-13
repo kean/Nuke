@@ -33,7 +33,7 @@ import UIKit
         let image = try await pipeline.image(for: request)
 
         // Then
-        #expect(image.nk_test_processorIDs ?? [] == ["processor1"])
+        #expect(image.nk_test_processorIDs == ["processor1"])
     }
 
     // MARK: - Composing Filters
@@ -52,7 +52,7 @@ import UIKit
         let image = try await pipeline.image(for: request)
 
         // Then
-        #expect(image.nk_test_processorIDs ?? [] == ["processor1", "processor2"])
+        #expect(image.nk_test_processorIDs == ["processor1", "processor2"])
     }
 
     @Test func performingRequestWithoutProcessors() async throws {
@@ -63,7 +63,7 @@ import UIKit
         let image = try await pipeline.image(for: request)
 
         // Then
-        #expect(image.nk_test_processorIDs ?? [] == [])
+        #expect(image.nk_test_processorIDs == [])
     }
 
     // MARK: - Decompression

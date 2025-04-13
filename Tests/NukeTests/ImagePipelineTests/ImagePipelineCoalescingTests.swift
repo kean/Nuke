@@ -35,8 +35,8 @@ import Testing
         let (image1, image2) = try await (task1, task2)
 
         // Then the correct proessors are applied.
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["1"])
 
         // Then the original image is loaded once
         #expect(dataLoader.createdTaskCount == 1)
@@ -58,8 +58,8 @@ import Testing
 
         // Then the correct proessors are applied.
         // Then the correct proessors are applied.
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["2"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["2"])
 
         // Then the original image is loaded once
         #expect(dataLoader.createdTaskCount == 1)
@@ -83,8 +83,8 @@ import Testing
         let (image1, image2) = try await (task1, task2)
 
         // Then the correct proessors are applied.
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == [])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == [])
 
         // Then the original image is loaded once
         #expect(dataLoader.createdTaskCount == 1)
@@ -205,8 +205,8 @@ import Testing
         let image1 = try await task.value
 
         // Then the images is still loaded and processors is applied
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["1"])
 
         // Then the original image is loaded only once, but processors are
         // applied twice
@@ -233,14 +233,14 @@ import Testing
         let (image1, image2) = try await (task1, task2)
 
         // Then the correct processors are applied.
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["2"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["2"])
 
         // Then the images are stored in memory cache
         #expect(imageCache[request1] != nil)
-        #expect(imageCache[request1]?.image.nk_test_processorIDs ?? [] == ["1"])
+        #expect(imageCache[request1]?.image.nk_test_processorIDs == ["1"])
         #expect(imageCache[request2] != nil)
-        #expect(imageCache[request2]?.image.nk_test_processorIDs ?? [] == ["2"])
+        #expect(imageCache[request2]?.image.nk_test_processorIDs == ["2"])
     }
 
     // MARK: - Cancellation

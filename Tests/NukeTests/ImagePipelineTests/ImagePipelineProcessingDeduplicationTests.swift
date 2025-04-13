@@ -33,8 +33,8 @@ import Testing
         let (image1, image2) = try await (task1, task2)
 
         // Then
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["1", "2"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["1", "2"])
 
         // Then the processor "1" is only applied once
         #expect(processors.numberOfProcessorsApplied == 2)
@@ -120,8 +120,8 @@ import Testing
         let (image1, image2) = try await (task1, task2)
 
         // Then
-        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
-        #expect(image2.nk_test_processorIDs ?? [] == ["1", "2"])
+        #expect(image1.nk_test_processorIDs == ["1"])
+        #expect(image2.nk_test_processorIDs == ["1", "2"])
 
         // Then the processor "1" is applied twice
         #expect(processors.numberOfProcessorsApplied == 3)
