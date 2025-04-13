@@ -103,7 +103,6 @@ public final class ImageTask: Hashable {
     private weak var pipeline: ImagePipeline?
     private var subscription: TaskSubscription?
 
-    // TODO: optimize (store one inline)
     private var taskContinuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
     private var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
 
@@ -221,12 +220,12 @@ public final class ImageTask: Hashable {
             for continuation in streamContinuations {
                 continuation.finish()
             }
-            streamContinuations = []
+            streamContinuations.removeAll()
 
             for continuation in taskContinuations {
                 continuation.resume(with: result)
             }
-            taskContinuations = []
+            taskContinuations.removeAll()
         }
 
         switch event {
