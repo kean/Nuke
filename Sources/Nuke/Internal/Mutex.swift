@@ -39,6 +39,18 @@ final class Mutex<T>: @unchecked Sendable {
     }
 }
 
+extension Mutex where T: Equatable {
+    /// Sets the value to the given value and `returns` true` if
+    /// the value changed.
+    func setValue(_ newValue: T) -> Bool {
+        withLock {
+            guard $0 != newValue else { return false }
+            $0 = newValue
+            return true
+        }
+    }
+}
+
 extension Mutex where T: BinaryInteger {
     func incremented() -> T {
         withLock {

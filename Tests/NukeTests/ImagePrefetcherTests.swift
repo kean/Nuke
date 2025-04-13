@@ -6,9 +6,9 @@ import Testing
 import Combine
 @testable import Nuke
 
-/// - note: It's important that this test is no isolated to `ImagePipelineActor`
-/// as it relies on the order of `prefetcher.wait` and other calls.
-@ImagePipelineActor
+/// - warning: This test suite is no isolated to `ImagePipelineActor` because
+/// `ImagePrefetcher` is designed to be used from the main queue and not expose
+/// its internal actor-isolated APIs.
 @Suite struct ImagePrefetcherTests {
     private var prefetcher: ImagePrefetcher!
     private var pipeline: ImagePipeline!
@@ -112,6 +112,7 @@ import Combine
 
     // MARK: Priority
 
+    @ImagePipelineActor
     @Test func defaultPrioritySetToLow() async {
         // When start prefetching with URL
         dataLoader.isSuspended = true
@@ -127,6 +128,7 @@ import Combine
         prefetcher.stopPrefetching()
     }
 
+    @ImagePipelineActor
     @Test func defaultPriorityAffectsRequests() async {
         // When start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
@@ -204,5 +206,12 @@ import Combine
         }
         await functionThatLeavesScope()
         await cancelled.wait()
+    }
+}
+
+private extension ImagePrefetcher {
+    /// - warning: For testing purposes only.
+    func wait() async {
+        await impl.queue.wait()
     }
 }

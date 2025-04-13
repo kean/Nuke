@@ -20,8 +20,10 @@ public final class ImagePrefetcher {
     public nonisolated var isPaused: Bool {
         get { _isPaused.value }
         set {
-            _isPaused.value = newValue
-            Task { @ImagePipelineActor in queue.isSuspended = newValue }
+            guard _isPaused.setValue(newValue) else { return }
+            Task { @ImagePipelineActor in
+                impl.queue.isSuspended = newValue
+            }
         }
     }
 
@@ -34,13 +36,9 @@ public final class ImagePrefetcher {
     public nonisolated var priority: ImageRequest.Priority {
         get { _priority.value }
         set {
-            guard _priority.withLock({
-                guard $0 != newValue else { return false }
-                $0 = newValue
-                return true
-            }) else { return }
-            Task {
-                await didUpdatePriority(to: newValue)
+            guard _priority.setValue(newValue) else { return }
+            Task { @ImagePipelineActor in
+                impl.priority = newValue
             }
         }
     }
@@ -61,15 +59,8 @@ public final class ImagePrefetcher {
         case diskCache
     }
 
-    /// The closure that gets called when the prefetching completes for all the
-    /// scheduled requests. The closure is always called on completion,
-    /// regardless of whether the requests succeed or some fail.
-
-    private let pipeline: ImagePipeline
-    private let destination: Destination
-    private var tasks = [TaskLoadImageKey: PrefetchTask]()
-
-    nonisolated let queue: WorkQueue
+    /// An actor-isolated implementation.
+    let impl: _ImagePrefetcher
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -82,19 +73,12 @@ public final class ImagePrefetcher {
         destination: Destination = .memoryCache,
         maxConcurrentRequestCount: Int = 2
     ) {
-        self.pipeline = pipeline
-        self.destination = destination
-        self.queue = WorkQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
+        self.impl = _ImagePrefetcher(pipeline: pipeline, destination: destination, maxConcurrentRequestCount: maxConcurrentRequestCount)
     }
 
     deinit {
-        let tasks = self.tasks.values // Make sure we don't retain self
-        self.tasks.removeAll()
-
-        Task { @ImagePipelineActor in
-            for task in tasks {
-                task.cancel()
-            }
+        Task { @ImagePipelineActor [impl] in
+            impl.stopPrefetching()
         }
     }
 
@@ -102,7 +86,9 @@ public final class ImagePrefetcher {
     ///
     /// See also ``startPrefetching(with:)-718dg`` that works with ``ImageRequest``.
     public nonisolated func startPrefetching(with urls: [URL]) {
-        startPrefetching(with: urls.map { ImageRequest(url: $0) })
+        Task { @ImagePipelineActor in
+            for url in urls { impl.startPrefetching(with: url) }
+        }
     }
 
     /// Starts prefetching images for the given requests.
@@ -117,22 +103,77 @@ public final class ImagePrefetcher {
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     public nonisolated func startPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
-            self._startPrefetching(with: requests)
+            for request in requests { impl.startPrefetching(with: request) }
         }
     }
 
-    private func _startPrefetching(with requests: [ImageRequest]) {
-        let priority = _priority.value
-        for request in requests {
-            var request = request
-            if priority != request.priority {
-                request.priority = priority
+    /// Stops prefetching images for the given URLs and cancels outstanding
+    /// requests.
+    ///
+    /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
+    public nonisolated func stopPrefetching(with urls: [URL]) {
+        Task { @ImagePipelineActor in
+            for url in urls { impl.stopPrefetching(with: url) }
+        }
+    }
+
+    /// Stops prefetching images for the given requests and cancels outstanding
+    /// requests.
+    ///
+    /// You don't need to balance the number of `start` and `stop` requests.
+    /// If you have multiple screens with prefetching, create multiple instances
+    /// of ``ImagePrefetcher``.
+    ///
+    /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
+    public nonisolated func stopPrefetching(with requests: [ImageRequest]) {
+        Task { @ImagePipelineActor in
+            for request in requests { impl.stopPrefetching(with: request) }
+        }
+    }
+
+    /// Stops all prefetching tasks.
+    public nonisolated func stopPrefetching() {
+        Task { @ImagePipelineActor in
+            impl.stopPrefetching()
+        }
+    }
+}
+
+@ImagePipelineActor
+final class _ImagePrefetcher {
+    /// The closure that gets called when the prefetching completes for all the
+    /// scheduled requests. The closure is always called on completion,
+    /// regardless of whether the requests succeed or some fail.
+
+    private let pipeline: ImagePipeline
+    private let destination: ImagePrefetcher.Destination
+    private var tasks = [TaskLoadImageKey: PrefetchTask]()
+
+    nonisolated let queue: WorkQueue
+
+    var priority: ImageRequest.Priority = .low {
+        didSet {
+            for task in tasks.values {
+                task.imageTask?.priority = priority
             }
-            _startPrefetching(with: request)
         }
     }
 
-    private func _startPrefetching(with request: ImageRequest) {
+    nonisolated init(pipeline: ImagePipeline, destination: ImagePrefetcher.Destination, maxConcurrentRequestCount: Int) {
+        self.pipeline = pipeline
+        self.destination = destination
+        self.queue = WorkQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
+    }
+
+    func startPrefetching(with url: URL) {
+        startPrefetching(with: ImageRequest(url: url))
+    }
+
+    func startPrefetching(with request: ImageRequest) {
+        var request = request
+        if priority != request.priority {
+            request.priority = priority
+        }
         guard pipeline.cache[request] == nil else {
             return
         }
@@ -146,64 +187,30 @@ public final class ImagePrefetcher {
             let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
             task.imageTask = imageTask
             _ = try? await imageTask.response
-            self?._remove(task)
+            self?.remove(task)
         }
         tasks[key] = task
         return
     }
 
-    private func _remove(_ task: PrefetchTask) {
+    private func remove(_ task: PrefetchTask) {
         guard tasks[task.key] === task else { return } // Should never happen
         tasks[task.key] = nil
     }
 
-    /// Stops prefetching images for the given URLs and cancels outstanding
-    /// requests.
-    ///
-    /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
-    public nonisolated func stopPrefetching(with urls: [URL]) {
-        stopPrefetching(with: urls.map { ImageRequest(url: $0) })
+    func stopPrefetching(with url: URL) {
+        stopPrefetching(with: ImageRequest(url: url))
     }
 
-    /// Stops prefetching images for the given requests and cancels outstanding
-    /// requests.
-    ///
-    /// You don't need to balance the number of `start` and `stop` requests.
-    /// If you have multiple screens with prefetching, create multiple instances
-    /// of ``ImagePrefetcher``.
-    ///
-    /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
-    public nonisolated func stopPrefetching(with requests: [ImageRequest]) {
-        Task { @ImagePipelineActor in
-            for request in requests {
-                self._stopPrefetching(with: request)
-            }
-        }
-    }
-
-    private func _stopPrefetching(with request: ImageRequest) {
+    func stopPrefetching(with request: ImageRequest) {
         if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
             task.cancel()
         }
     }
 
-    /// Stops all prefetching tasks.
-    public nonisolated func stopPrefetching() {
-        Task { @ImagePipelineActor in
-            self.tasks.values.forEach { $0.cancel() }
-            self.tasks.removeAll()
-        }
-    }
-
-    private func didUpdatePriority(to priority: ImageRequest.Priority) {
-        for task in tasks.values {
-            task.imageTask?.priority = priority
-        }
-    }
-
-    /// - warning: For testing purposes only.
-    func wait() async {
-        await queue.wait()
+    func stopPrefetching() {
+        tasks.values.forEach { $0.cancel() }
+        tasks.removeAll()
     }
 
     @ImagePipelineActor
