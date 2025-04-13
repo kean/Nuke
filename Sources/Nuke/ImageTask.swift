@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-@preconcurrency import Combine
 
 #if canImport(UIKit)
 import UIKit
@@ -65,8 +64,8 @@ public final class ImageTask: Hashable {
     }
 
     /// The stream of progress updates.
-    public nonisolated var progress: AsyncStream<Progress> {
-        makeStream {
+    public nonisolated var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
+        events.compactMap {
             if case .progress(let value) = $0 { return value }
             return nil
         }
@@ -76,17 +75,27 @@ public final class ImageTask: Hashable {
     /// progressive decoding.
     ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
-    public nonisolated var previews: AsyncStream<ImageResponse> {
-        makeStream {
+    public nonisolated var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
+        events.compactMap {
             if case .preview(let value) = $0 { return value }
             return nil
         }
     }
 
-    // MARK: - Events
-
     /// The events sent by the pipeline during the task execution.
-    public nonisolated var events: AsyncStream<Event> { makeStream { $0 } }
+    public nonisolated var events: AsyncStream<Event> {
+        AsyncStream { continuation in
+            Task { @ImagePipelineActor in
+                if case .suspended = state {
+                    startRunning()
+                }
+                guard case .running = state else {
+                    return continuation.finish()
+                }
+                streamContinuations.append(continuation)
+            }
+        }
+    }
 
     let isDataTask: Bool
     private let nonisolatedState: Mutex<ImageTaskState>
@@ -95,8 +104,8 @@ public final class ImageTask: Hashable {
     private var subscription: TaskSubscription?
 
     // TODO: optimize (store one inline)
-    private var continuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
-    private var _events: PassthroughSubject<ImageTask.Event, Never>?
+    private var taskContinuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
+    private var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
 
     nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?) {
         self.taskId = taskId
@@ -113,10 +122,10 @@ public final class ImageTask: Hashable {
                 try await withUnsafeThrowingContinuation {
                     switch state {
                     case .suspended:
-                        continuations.append($0)
+                        taskContinuations.append($0)
                         startRunning()
                     case .running:
-                        continuations.append($0)
+                        taskContinuations.append($0)
                     case .cancelled:
                         $0.resume(throwing: ImageTask.Error.cancelled)
                     case .completed(let result):
@@ -202,15 +211,22 @@ public final class ImageTask: Hashable {
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
     private func dispatch(_ event: Event) {
-        _events?.send(event)
+        for continuation in streamContinuations {
+            continuation.yield(event)
+        }
 
         func complete(with result: Result<ImageResponse, ImageTask.Error>) {
             subscription = nil
-            _events?.send(completion: .finished)
-            for continuation in continuations {
+
+            for continuation in streamContinuations {
+                continuation.finish()
+            }
+            streamContinuations = []
+
+            for continuation in taskContinuations {
                 continuation.resume(with: result)
             }
-            continuations = []
+            taskContinuations = []
         }
 
         switch event {
@@ -234,46 +250,6 @@ public final class ImageTask: Hashable {
 
     public nonisolated static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-}
-
-// MARK: - ImageTask (Private)
-
-extension ImageTask {
-    private nonisolated func makeStream<T>(of closure: @Sendable @escaping (Event) -> T?) -> AsyncStream<T> {
-        AsyncStream { continuation in
-            Task { @ImagePipelineActor in
-                if case .suspended = state {
-                    startRunning()
-                }
-                guard case .running = state else {
-                    return continuation.finish()
-                }
-                let cancellable = makeEvents().sink { _ in
-                    continuation.finish()
-                } receiveValue: { event in
-                    if let value = closure(event) {
-                        continuation.yield(value)
-                    }
-                    switch event {
-                    case .cancelled, .finished:
-                        continuation.finish()
-                    default:
-                        break
-                    }
-                }
-                continuation.onTermination = { _ in
-                    cancellable.cancel()
-                }
-            }
-        }
-    }
-
-    private func makeEvents() -> PassthroughSubject<ImageTask.Event, Never> {
-        if _events == nil {
-            _events = PassthroughSubject()
-        }
-        return _events!
     }
 }
 
