@@ -20,25 +20,25 @@ func expect(notification: Notification.Name, object : AnyObject) -> AsyncExpecta
 }
 
 extension WorkQueue {
-    func expectItemAdded() -> AsyncExpectation<WorkQueue.Operation> {
+    func expectOperationAdded() -> AsyncExpectation<WorkQueue.Operation> {
         let expectation = AsyncExpectation<WorkQueue.Operation>()
         onEvent = { event in
-            if case .added(let item) = event {
-                expectation.fulfill(with: item)
+            if case .added(let value) = event {
+                expectation.fulfill(with: value)
             }
         }
         return expectation
     }
 
-    func expectItemAdded(count: Int) -> AsyncExpectation<[WorkQueue.Operation]> {
+    func expectOperationAdded(count: Int) -> AsyncExpectation<[WorkQueue.Operation]> {
         let expectation = AsyncExpectation<[WorkQueue.Operation]>()
-        var items: [WorkQueue.Operation] = []
+        var operations: [WorkQueue.Operation] = []
         onEvent = { event in
             if case .added(let item) = event {
-                items.append(item)
-                if items.count == count {
-                    expectation.fulfill(with: items)
-                } else if items.count > count {
+                operations.append(item)
+                if operations.count == count {
+                    expectation.fulfill(with: operations)
+                } else if operations.count > count {
                     Issue.record("Unexpectedly received more than \(count) items")
                 }
             }
@@ -46,11 +46,11 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectPriorityUpdated(for expectedItem: WorkQueue.Operation) -> AsyncExpectation<TaskPriority> {
+    func expectPriorityUpdated(for operation: WorkQueue.Operation) -> AsyncExpectation<TaskPriority> {
         let expectation = AsyncExpectation<TaskPriority>()
         onEvent = { event in
-            if case let .priorityUpdated(item, priority) = event {
-                if item === expectedItem {
+            if case let .priorityUpdated(value, priority) = event {
+                if value === operation {
                     expectation.fulfill(with: priority)
                 }
             }
@@ -58,11 +58,11 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectItemCancelled(_ expectedItem: WorkQueue.Operation) -> AsyncExpectation<Void> {
+    func expectOperationCancellation(_ operation: WorkQueue.Operation) -> AsyncExpectation<Void> {
         let expectation = AsyncExpectation<Void>()
         onEvent = { event in
-            if case .cancelled(let item) = event {
-                if item === expectedItem {
+            if case .cancelled(let value) = event {
+                if value === operation {
                     expectation.fulfill()
                 }
             }

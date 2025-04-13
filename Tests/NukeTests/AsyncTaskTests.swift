@@ -199,22 +199,25 @@ import Foundation
         #expect(task.isDisposed, "Expect task to be marked as disposed")
     }
 
-// TODO: remove or rework
+    @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
+        // Given
+        let queue = WorkQueue()
+        queue.isSuspended = true
 
-//    @Test func whenSubscriptionIsRemovedOperationIsCancelled() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription = task.subscribe { _ in }
-//        #expect(!operation.isCancelled)
-//
-//        // When
-//        subscription?.unsubscribe()
-//
-//        // Then
-//        #expect(operation.isCancelled)
-//    }
-//
+        // When
+        let operation = queue.add { }
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription = task.subscribe { _ in }
+
+        // When
+        let expectation = queue.expectOperationCancellation(operation)
+        subscription?.unsubscribe()
+
+        // Then
+        await expectation.wait()
+    }
+
+    // TODO: remove or rework
 //    @Test func whenSubscriptionIsRemovedDependencyIsCancelled() {
 //        // Given
 //        let operation = Foundation.Operation()

@@ -171,7 +171,7 @@ import Testing
         let processors = MockProcessorFactory()
 
         // When
-        let expectation = pipeline.configuration.imageProcessingQueue.expectItemAdded(count: 2)
+        let expectation = pipeline.configuration.imageProcessingQueue.expectOperationAdded(count: 2)
 
         async let task1 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
         async let task2 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "2")]))
@@ -194,7 +194,7 @@ import Testing
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
 
         // When first task is stated and processing operation is registered
-        let expectation = queue.expectItemAdded()
+        let expectation = queue.expectOperationAdded()
         let task = Task {
             try await pipeline.image(for: request1)
         }
@@ -290,16 +290,16 @@ import Testing
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
         // When
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectOperationAdded()
         pipeline.imageTask(with: request1).resume()
         _ = await expectation1.wait()
 
-        let expectation2 = queue.expectItemAdded()
+        let expectation2 = queue.expectOperationAdded()
         let task2 = pipeline.imageTask(with: request2).resume()
         let item2 = await expectation2.wait()
 
         // When
-        let expectation3 = queue.expectItemCancelled(item2)
+        let expectation3 = queue.expectOperationCancellation(item2)
         task2.cancel()
         await expectation3.wait()
     }
@@ -312,7 +312,7 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectOperationAdded()
         var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)
         pipeline.imageTask(with: request).resume()
 
@@ -344,7 +344,7 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectOperationAdded()
         var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)
         pipeline.imageTask(with: request).resume()
 

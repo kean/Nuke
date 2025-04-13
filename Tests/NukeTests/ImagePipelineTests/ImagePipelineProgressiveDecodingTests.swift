@@ -224,7 +224,7 @@ import Testing
 
         // When the first chunk is delivered
         // Then the first processing operation is enqueue
-        let expectationDecodingStarted = decodingQueue.expectItemAdded()
+        let expectationDecodingStarted = decodingQueue.expectOperationAdded()
         let expectationImageLoaded = AsyncExpectation<ImageResponse>()
 
         Task { @ImagePipelineActor in
@@ -241,7 +241,7 @@ import Testing
         // When the second chunk is delivered
         dataLoader.serveNextChunk()
 
-        let expectationPreviewDecodingCancelled = decodingQueue.expectItemCancelled(firstDecodingTask)
+        let expectationPreviewDecodingCancelled = decodingQueue.expectOperationCancellation(firstDecodingTask)
 
         // When the last chunk is delivered the
         dataLoader.serveNextChunk()
@@ -270,7 +270,7 @@ import Testing
 
         // When the first chunk is delivered
         // Then the first processing operation is enqueue
-        let expectationProcessingStarted = processingQueue.expectItemAdded()
+        let expectationProcessingStarted = processingQueue.expectOperationAdded()
         let expectationImageLoaded = AsyncExpectation<ImageResponse>()
 
         Task { @ImagePipelineActor in
@@ -287,7 +287,7 @@ import Testing
         // When the second chunk is delivered
         dataLoader.serveNextChunk()
 
-        let expectationPreviewProcessingCancelled = processingQueue.expectItemCancelled(firstProcessingItem)
+        let expectationPreviewProcessingCancelled = processingQueue.expectOperationCancellation(firstProcessingItem)
 
         // When the last chunk is delivered the
         dataLoader.serveNextChunk()

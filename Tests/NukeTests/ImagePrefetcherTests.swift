@@ -117,7 +117,7 @@ import Combine
         // When start prefetching with URL
         dataLoader.isSuspended = true
 
-        let expectation = pipeline.configuration.dataLoadingQueue.expectItemAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
         prefetcher.startPrefetching(with: [Test.url])
         let operation = await expectation.value
 
@@ -133,7 +133,7 @@ import Combine
         // When start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
 
-        let expectation = pipeline.configuration.dataLoadingQueue.expectItemAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
         let request = Test.request
         #expect(request.priority == .normal) // Default is .normal // Default is .normal
         prefetcher.startPrefetching(with: [request])

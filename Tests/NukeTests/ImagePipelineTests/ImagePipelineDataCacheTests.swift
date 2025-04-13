@@ -135,7 +135,7 @@ import Testing
         let request = Test.request
         #expect(request.priority == .normal)
 
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectOperationAdded()
         let task = pipeline.imageTask(with: request).resume()
         let operation = await expectation1.wait()
 
@@ -156,12 +156,12 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectOperationAdded()
         let task = pipeline.imageTask(with: Test.request).resume()
         let operation = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectItemCancelled(operation)
+        let expectation2 = queue.expectOperationCancellation(operation)
         task.cancel()
 
         // Then
