@@ -180,7 +180,7 @@ import Testing
         _ = try await [task1, task2, task3]
 
         // Then
-        _ = await expectation.wait()
+        await expectation.wait()
         #expect(processors.numberOfProcessorsApplied == 2)
     }
 
@@ -198,7 +198,7 @@ import Testing
         let task = Task {
             try await pipeline.image(for: request1)
         }
-        _ = await expectation.wait()
+        await expectation.wait()
         queue.isSuspended = false
 
         let image2 = try await pipeline.image(for: request2)

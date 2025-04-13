@@ -22,7 +22,7 @@ extension ImagePipelineTests {
         Task {
             try await imageTask.response
         }
-        let operation = await expectation.wait()
+        let operation = await expectation.value
 
         // Then
         #expect(operation.priority == .normal)
@@ -49,7 +49,7 @@ extension ImagePipelineTests {
 
         let expectation = queue.expectItemAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let operation = await expectation.wait()
+        let operation = await expectation.value
 
         // When
         let expectation2 = queue.expectPriorityUpdated(for: operation)
@@ -70,7 +70,7 @@ extension ImagePipelineTests {
 
         let expectation = queue.expectItemAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let operation = await expectation.wait()
+        let operation = await expectation.value
 
         // When
         let expectation2 = queue.expectPriorityUpdated(for: operation)

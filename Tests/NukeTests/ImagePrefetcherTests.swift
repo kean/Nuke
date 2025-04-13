@@ -118,7 +118,7 @@ import Combine
 
         let expectation = pipeline.configuration.dataLoadingQueue.expectItemAdded()
         prefetcher.startPrefetching(with: [Test.url])
-        let operation = await expectation.wait()
+        let operation = await expectation.value
 
         // Then priority is set to .low
         #expect(operation.priority == .low)

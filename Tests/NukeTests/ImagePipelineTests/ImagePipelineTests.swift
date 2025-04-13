@@ -433,7 +433,7 @@ import Foundation
         pipeline.imageTask(with: request).resume()
 
         // Then work item is created on an expected queue
-        _ = await expectation.wait()
+        await expectation.wait()
     }
 
 #if os(iOS) || os(visionOS)

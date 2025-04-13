@@ -39,7 +39,7 @@ import Testing
 
         // When
         image.load(Test.request)
-        let result = try #require(await expectation.wait())
+        let result = try #require(await expectation.value)
 
         // Then
         #expect(result.isSuccess)
@@ -90,7 +90,7 @@ import Testing
         }
 
         // Then
-        let operation = await expectation.wait()
+        let operation = await expectation.value
         #expect(operation.priority == .high)
     }
 
