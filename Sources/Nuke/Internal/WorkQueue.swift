@@ -6,7 +6,7 @@ import Foundation
 import Combine
 
 @ImagePipelineActor
-final class WorkQueue {
+public final class WorkQueue {
     /// Sets the maximum number of concurrently executed operations.
     public nonisolated var maxConcurrentOperationCount: Int {
         get { _maxConcurrentOperationCount.value }
