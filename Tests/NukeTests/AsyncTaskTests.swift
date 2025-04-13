@@ -6,7 +6,14 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct AsyncTaskTests {
+@ImagePipelineActor
+@Suite struct AsyncTaskTests {
+    var queue = WorkQueue()
+
+    init() {
+        queue.isSuspended = true
+    }
+
     // MARK: - Starter
 
     @Test func starterCalledOnFirstSubscription() {
@@ -200,10 +207,6 @@ import Foundation
     }
 
     @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
-        // Given
-        let queue = WorkQueue()
-        queue.isSuspended = true
-
         // When
         let operation = queue.add { }
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -217,51 +220,57 @@ import Foundation
         await expectation.wait()
     }
 
-    // TODO: remove or rework
-//    @Test func whenSubscriptionIsRemovedDependencyIsCancelled() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
-//        let subscription = task.subscribe { _ in }
-//        #expect(!operation.isCancelled)
-//
-//        // When
-//        subscription?.unsubscribe()
-//
-//        // Then
-//        #expect(operation.isCancelled)
-//    }
-//
-//    @Test func whenOneOfTwoSubscriptionsAreRemovedTaskNotCancelled() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription1 = task.subscribe { _ in }
-//        _ = task.subscribe { _ in }
-//
-//        // When
-//        subscription1?.unsubscribe()
-//
-//        // Then
-//        #expect(!operation.isCancelled)
-//    }
-//
-//    @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription1 = task.subscribe { _ in }
-//        let subscription2 = task.subscribe { _ in }
-//
-//        // When
-//        subscription1?.unsubscribe()
-//        subscription2?.unsubscribe()
-//
-//        // Then
-//        #expect(operation.isCancelled)
-//    }
-//
+    @Test func whenSubscriptionIsRemovedDependencyIsCancelled() async {
+        // Given
+        let operation = queue.add { }
+        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let subscription = task.subscribe { _ in }
+
+        // When
+        let expectation = queue.expectOperationCancellation(operation)
+        subscription?.unsubscribe()
+
+        // Then
+        await expectation.wait()
+    }
+
+    @Test func whenOneOfTwoSubscriptionsAreRemovedTaskNotCancelled() async {
+        // Given
+        let compleded = AsyncExpectation<Void>()
+        let operation = queue.add {
+            compleded.fulfill()
+        }
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription1 = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
+
+        // When
+        subscription1?.unsubscribe()
+        Task { @ImagePipelineActor in
+            queue.isSuspended = false
+        }
+
+        // Then
+        await compleded.wait()
+    }
+
+    @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() async {
+        // Given
+        let operation = queue.add { }
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription1 = task.subscribe { _ in }
+        let subscription2 = task.subscribe { _ in }
+
+        // When
+        let expectation = queue.expectOperationCancellation(operation)
+        subscription1?.unsubscribe()
+        subscription2?.unsubscribe()
+
+        // Then
+        await expectation.wait()
+    }
+
 //    // MARK: - Priority
 //
 //    @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() {
