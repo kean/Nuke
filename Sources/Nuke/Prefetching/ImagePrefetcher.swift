@@ -11,13 +11,12 @@ import Foundation
 ///
 /// All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
-@ImagePipelineActor
-public final class ImagePrefetcher {
+public final class ImagePrefetcher: Sendable {
     /// Pauses the prefetching.
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
-    public nonisolated var isPaused: Bool {
+    public var isPaused: Bool {
         get { _isPaused.value }
         set {
             guard _isPaused.setValue(newValue) else { return }
@@ -33,7 +32,7 @@ public final class ImagePrefetcher {
     ///
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
-    public nonisolated var priority: ImageRequest.Priority {
+    public var priority: ImageRequest.Priority {
         get { _priority.value }
         set {
             guard _priority.setValue(newValue) else { return }
@@ -68,7 +67,7 @@ public final class ImagePrefetcher {
     ///   - pipeline: The pipeline used for loading images.
     ///   - destination: By default load images in all cache layers.
     ///   - maxConcurrentRequestCount: 2 by default.
-    public nonisolated init(
+    public init(
         pipeline: ImagePipeline = ImagePipeline.shared,
         destination: Destination = .memoryCache,
         maxConcurrentRequestCount: Int = 2
@@ -85,7 +84,7 @@ public final class ImagePrefetcher {
     /// Starts prefetching images for the given URL.
     ///
     /// See also ``startPrefetching(with:)-718dg`` that works with ``ImageRequest``.
-    public nonisolated func startPrefetching(with urls: [URL]) {
+    public func startPrefetching(with urls: [URL]) {
         Task { @ImagePipelineActor in
             for url in urls { impl.startPrefetching(with: url) }
         }
@@ -101,7 +100,7 @@ public final class ImagePrefetcher {
     /// (`.low` by default).
     ///
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
-    public nonisolated func startPrefetching(with requests: [ImageRequest]) {
+    public func startPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
             for request in requests { impl.startPrefetching(with: request) }
         }
@@ -111,7 +110,7 @@ public final class ImagePrefetcher {
     /// requests.
     ///
     /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
-    public nonisolated func stopPrefetching(with urls: [URL]) {
+    public func stopPrefetching(with urls: [URL]) {
         Task { @ImagePipelineActor in
             for url in urls { impl.stopPrefetching(with: url) }
         }
@@ -125,14 +124,14 @@ public final class ImagePrefetcher {
     /// of ``ImagePrefetcher``.
     ///
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
-    public nonisolated func stopPrefetching(with requests: [ImageRequest]) {
+    public func stopPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
             for request in requests { impl.stopPrefetching(with: request) }
         }
     }
 
     /// Stops all prefetching tasks.
-    public nonisolated func stopPrefetching() {
+    public func stopPrefetching() {
         Task { @ImagePipelineActor in
             impl.stopPrefetching()
         }
