@@ -7,7 +7,12 @@ import Combine
 
 @ImagePipelineActor
 final class WorkQueue {
-    var maxConcurrentTaskCount: Int
+    /// Sets the maximum number of concurrently executed operations.
+    public nonisolated var maxConcurrentTaskCount: Int {
+        get { _maxConcurrentTaskCount.value }
+        set { _maxConcurrentTaskCount.value = newValue }
+    }
+    private let _maxConcurrentTaskCount: Mutex<Int>
 
     private var schedule = ScheduledWork()
     private var activeTaskCount = 0
@@ -25,7 +30,7 @@ final class WorkQueue {
     var onEvent: (@ImagePipelineActor (Event) -> Void)?
 
     nonisolated init(maxConcurrentTaskCount: Int = 1) {
-        self.maxConcurrentTaskCount = maxConcurrentTaskCount
+        self._maxConcurrentTaskCount = Mutex(maxConcurrentTaskCount)
     }
 
     @discardableResult
