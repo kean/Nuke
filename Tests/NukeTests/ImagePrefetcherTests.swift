@@ -8,6 +8,7 @@ import Combine
 
 /// - note: It's important that this test is no isolated to `ImagePipelineActor`
 /// as it relies on the order of `prefetcher.wait` and other calls.
+@ImagePipelineActor
 @Suite struct ImagePrefetcherTests {
     private var prefetcher: ImagePrefetcher!
     private var pipeline: ImagePipeline!
@@ -111,7 +112,6 @@ import Combine
 
     // MARK: Priority
 
-    @ImagePipelineActor
     @Test func defaultPrioritySetToLow() async {
         // When start prefetching with URL
         dataLoader.isSuspended = true
@@ -127,23 +127,20 @@ import Combine
         prefetcher.stopPrefetching()
     }
 
-    // TODO: reimplement
-//    @Test func defaultPriorityAffectsRequests() {
-//        // When start prefetching with ImageRequest
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-//        let request = Test.request
-//        #expect(request.priority == .normal) // Default is .normal // Default is .normal
-//        prefetcher.startPrefetching(with: [request])
-//        wait()
-//
-//        // Then priority is set to .low
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        #expect(operation.queuePriority == .low)
-//    }
-//
+    @Test func defaultPriorityAffectsRequests() async {
+        // When start prefetching with ImageRequest
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+
+        let expectation = pipeline.configuration.dataLoadingQueue.expectItemAdded()
+        let request = Test.request
+        #expect(request.priority == .normal) // Default is .normal // Default is .normal
+        prefetcher.startPrefetching(with: [request])
+        let operation = await expectation.value
+
+        // Then priority is set to .low
+        #expect(operation.priority == .low)
+    }
+
 //    @Test func lowerPriorityThanDefaultNotAffected() {
 //        // When start prefetching with ImageRequest with .veryLow priority
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
