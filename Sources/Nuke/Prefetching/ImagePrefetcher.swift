@@ -161,7 +161,7 @@ final class _ImagePrefetcher {
     nonisolated init(pipeline: ImagePipeline, destination: ImagePrefetcher.Destination, maxConcurrentRequestCount: Int) {
         self.pipeline = pipeline
         self.destination = destination
-        self.queue = WorkQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
+        self.queue = WorkQueue(maxConcurrentOperationCount: maxConcurrentRequestCount)
     }
 
     func startPrefetching(with url: URL) {

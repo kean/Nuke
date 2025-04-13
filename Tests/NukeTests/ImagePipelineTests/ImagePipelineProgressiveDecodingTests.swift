@@ -36,7 +36,7 @@ import Testing
             $0.imageCache = cache
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
+            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
     }
 

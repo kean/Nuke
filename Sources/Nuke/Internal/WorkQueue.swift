@@ -8,11 +8,11 @@ import Combine
 @ImagePipelineActor
 final class WorkQueue {
     /// Sets the maximum number of concurrently executed operations.
-    public nonisolated var maxConcurrentTaskCount: Int {
-        get { _maxConcurrentTaskCount.value }
-        set { _maxConcurrentTaskCount.value = newValue }
+    public nonisolated var maxConcurrentOperationCount: Int {
+        get { _maxConcurrentOperationCount.value }
+        set { _maxConcurrentOperationCount.value = newValue }
     }
-    private let _maxConcurrentTaskCount: Mutex<Int>
+    private let _maxConcurrentOperationCount: Mutex<Int>
 
     private var schedule = ScheduledWork()
     private var activeTaskCount = 0
@@ -29,15 +29,15 @@ final class WorkQueue {
 
     var onEvent: (@ImagePipelineActor (Event) -> Void)?
 
-    nonisolated init(maxConcurrentTaskCount: Int = 1) {
-        self._maxConcurrentTaskCount = Mutex(maxConcurrentTaskCount)
+    nonisolated init(maxConcurrentOperationCount: Int = 1) {
+        self._maxConcurrentOperationCount = Mutex(maxConcurrentOperationCount)
     }
 
     @discardableResult
     func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> Operation {
         let operation = Operation(priority: priority, work: work)
         operation.queue = self
-        if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
+        if !isSuspended && activeTaskCount < maxConcurrentOperationCount {
             perform(operation)
         } else {
             let node = LinkedList<Operation>.Node(operation)
@@ -83,7 +83,7 @@ final class WorkQueue {
     }
 
     private func performSchduledWork() {
-        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let operation = dequeueNextOperation() {
+        while !isSuspended, activeTaskCount < maxConcurrentOperationCount, let operation = dequeueNextOperation() {
             perform(operation)
         }
         if activeTaskCount == 0 {

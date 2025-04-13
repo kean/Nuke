@@ -7,11 +7,11 @@ import Foundation
 @testable import Nuke
 
 @Suite @ImagePipelineActor struct WorkQueueTests {
-    let queue = WorkQueue(maxConcurrentTaskCount: 1)
+    let queue = WorkQueue(maxConcurrentOperationCount: 1)
 
     // MARK: Basics
 
-    // Make sure that you submit N tasks where N is greater than `maxConcurrentTaskCount`,
+    // Make sure that you submit N tasks where N is greater than `maxConcurrentOperationCount`,
     // all tasks get executed.
     @Test func basics() async {
         await confirmation(expectedCount: 4) { confirmation in
