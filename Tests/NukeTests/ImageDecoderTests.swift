@@ -106,7 +106,7 @@ import Testing
         let container = try #require(try decoder.decode(data))
 
         // Then
-        #expect(container.type == nil) // TODO: update when HEIF support is added // TODO: update when HEIF support is added
+        #expect(container.type == nil) // TODO: update when HEIF support is added
         #expect(!container.isPreview)
         #expect(container.data == nil)
         #expect(container.userInfo.isEmpty)
