@@ -31,10 +31,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             return didFinishDecoding(with: nil)
         }
         decode(context, decoder: decoder) { [weak self] result in
-            guard let self else { return }
-            Task {
-                await self.didFinishDecoding(with: try? result.get())
-            }
+            self?.didFinishDecoding(with: try? result.get())
         }
     }
 

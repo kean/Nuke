@@ -38,10 +38,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             return
         }
         decode(context, decoder: decoder) { [weak self] result in
-            guard let self else { return }
-            Task {
-                await self.didFinishDecoding(context: context, result: result)
-            }
+            self?.didFinishDecoding(context: context, result: result)
         }
     }
 
