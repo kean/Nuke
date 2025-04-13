@@ -107,7 +107,6 @@ extension ImagePipeline {
 }
 
 extension ImageTask {
-    // TODO: does it need to be baseline?
     @discardableResult nonisolated func resume() -> ImageTask {
         Task { @ImagePipelineActor in
             _ = try? await response

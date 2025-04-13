@@ -199,23 +199,6 @@ import Foundation
         #expect(task.isDisposed, "Expect task to be marked as disposed")
     }
 
-    @Test func whenSubscriptionIsRemovedOnCancelIsCalled() {
-        // Given
-        let task = AsyncTask<Int, MyError>()
-        let subscription = task.subscribe { _ in }
-
-        var onCancelledIsCalled = false
-        task.onCancelled = {
-            onCancelledIsCalled = true
-        }
-
-        // When
-        subscription?.unsubscribe()
-
-        // Then
-        #expect(onCancelledIsCalled)
-    }
-
 // TODO: remove or rework
 
 //    @Test func whenSubscriptionIsRemovedOperationIsCancelled() {

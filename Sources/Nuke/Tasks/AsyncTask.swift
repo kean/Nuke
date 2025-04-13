@@ -37,9 +37,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (() -> Void)?
 
-    // TODO: do we need this?
-    var onCancelled: (() -> Void)?
-
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
@@ -176,7 +173,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if reason == .cancelled {
             operation?.cancel()
             dependency?.unsubscribe()
-            onCancelled?()
         }
         onDisposed?()
     }

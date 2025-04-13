@@ -87,13 +87,6 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             dataTaskDidFinish(error: error)
         }
         signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-
-        onCancelled = { [weak self] in
-            guard let self else { return }
-            signpost(self, "LoadImageData", .end, "Cancelled")
-            // TODO: move this to dataTaskDidFinish(error?
-            self.tryToSaveResumableData()
-        }
     }
 
     private func dataTask(didReceiveData chunk: Data, response: URLResponse) {
