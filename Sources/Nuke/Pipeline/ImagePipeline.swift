@@ -45,10 +45,6 @@ public final class ImagePipeline {
     let rateLimiter: RateLimiter?
     let id = UUID()
 
-    // For testing purposes
-    // TODO: remove
-    nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)?
-
     @available(*, deprecated, message: "Please use ImageTask.Error")
     public typealias Error = ImageTask.Error
 
@@ -157,7 +153,6 @@ public final class ImagePipeline {
             return nil
         }
         let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        defer { onTaskStarted?(task) }
         tasks.insert(task)
         return worker.subscribe(priority: TaskPriority(task.priority), subscriber: task, onEvent)
     }
