@@ -51,14 +51,14 @@ public final class ImageTask: Hashable {
 
     /// Returns the response image.
     public var image: PlatformImage {
-        get async throws(ImageTask.Error) {
-            try await response.image
+        get async throws(Error) {
+            try await perform().image
         }
     }
 
     /// Returns the image response.
     public var response: ImageResponse {
-        get async throws(ImageTask.Error) {
+        get async throws(Error) {
             try await perform()
         }
     }
