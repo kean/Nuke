@@ -40,7 +40,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            operation?.setPriority(priority)
+            operation?.priority = priority
             dependency?.setPriority(priority)
         }
     }
@@ -55,7 +55,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    var operation: OperationHandle?
+    var operation: WorkQueue.Operation?
 
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }

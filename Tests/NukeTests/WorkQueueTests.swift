@@ -76,7 +76,7 @@ import Foundation
     @Test func cancelInFlightWork() async {
         @ImagePipelineActor final class Context {
             var continuation: UnsafeContinuation<Void, Never>?
-            var item: Nuke.OperationHandle?
+            var item: WorkQueue.Operation?
         }
         let context = Context()
         context.item = queue.add(priority: .normal) {
@@ -137,7 +137,7 @@ import Foundation
         }
 
         // When item with .low priorit (1) changes priority to .high
-        item.setPriority(.high)
+        item.priority = .high
 
         // Then
         queue.isSuspended = false

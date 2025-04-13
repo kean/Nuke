@@ -29,7 +29,7 @@ final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> OperationHandle {
+    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> Operation {
         let operation = Operation(priority: priority, work: work)
         operation.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
@@ -40,18 +40,15 @@ final class WorkQueue {
             schedule.list(for: operation.priority).prepend(node)
         }
         onEvent?(.added(operation))
-        return OperationHandle(operation: operation)
+        return operation
     }
 
     // MARK: - Managing Scheduled Operations
 
-    fileprivate func setPriority(_ newPriority: TaskPriority, for operation: Operation) {
-        guard let node = operation.node, operation.priority != newPriority else {
-            return /* Already executing */
-        }
+    fileprivate func operation(_ operation: Operation, didUpdatePriority newPriority: TaskPriority, oldPriority: TaskPriority) {
+        guard let node = operation.node else { return /* Already executing */ }
         // Moving nodes between queues does not require new allocations
-        schedule.list(for: operation.priority).remove(node)
-        operation.priority = newPriority
+        schedule.list(for: oldPriority).remove(node)
         schedule.list(for: newPriority).prepend(node)
         onEvent?(.priorityUpdated(operation, newPriority))
     }
@@ -109,15 +106,25 @@ final class WorkQueue {
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
     final class Operation {
-        let work: () async -> Void
-        var priority: TaskPriority
-        weak var node: LinkedList<Operation>.Node?
-        var task: Task<Void, Never>?
-        weak var queue: WorkQueue?
+        var priority: TaskPriority {
+            didSet {
+                guard oldValue != priority else { return }
+                queue?.operation(self, didUpdatePriority: priority, oldPriority: oldValue)
+            }
+        }
 
-        init(priority: TaskPriority, work: @escaping () async -> Void) {
+        fileprivate let work: () async -> Void
+        fileprivate weak var node: LinkedList<Operation>.Node?
+        fileprivate var task: Task<Void, Never>?
+        fileprivate weak var queue: WorkQueue?
+
+        fileprivate init(priority: TaskPriority, work: @escaping () async -> Void) {
             self.priority = priority
             self.work = work
+        }
+
+        func cancel() {
+            queue?.cancel(self)
         }
     }
 
@@ -147,19 +154,5 @@ final class WorkQueue {
         }
 
         lazy var all = [veryHigh, high, normal, low, veryLow]
-    }
-}
-
-/// - note: You don't need to hold to it. This indirection exists purely to
-/// ensure that it never leads to retain cycles.
-@ImagePipelineActor struct OperationHandle {
-    fileprivate weak var operation: WorkQueue.Operation?
-
-    func setPriority(_ priority: TaskPriority) {
-        operation.map { $0.queue?.setPriority(priority, for: $0) }
-    }
-
-    func cancel() {
-        operation.map { $0.queue?.cancel($0) }
     }
 }
