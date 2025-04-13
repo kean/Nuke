@@ -37,23 +37,6 @@ extension ImagePipeline {
     }
 }
 
-// TODO: remove
-extension ImagePipeline {
-    @MainActor
-    private static var stack = [ImagePipeline]()
-
-    @MainActor
-    static func pushShared(_ shared: ImagePipeline) {
-        stack.append(ImagePipeline.shared)
-        ImagePipeline.shared = shared
-    }
-
-    @MainActor
-    static func popShared() {
-        ImagePipeline.shared = stack.removeLast()
-    }
-}
-
 extension ImageProcessing {
     /// A throwing version of a regular method.
     func processThrowing(_ image: PlatformImage) throws -> PlatformImage {
