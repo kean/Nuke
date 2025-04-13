@@ -143,54 +143,50 @@ import Combine
         #expect(operation.priority == .low)
     }
 
-//    @Test func lowerPriorityThanDefaultNotAffected() {
-//        // When start prefetching with ImageRequest with .veryLow priority
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-//        var request = Test.request
-//        request.priority = .veryLow
-//        prefetcher.startPrefetching(with: [request])
-//        wait()
-//
-//        // Then priority is set to .low (prefetcher priority)
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        #expect(operation.queuePriority == .low)
-//    }
-//
-//    @Test func changePriority() {
-//        // Given
-//        prefetcher.priority = .veryHigh
-//
-//        // When
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-//        prefetcher.startPrefetching(with: [Test.url])
-//        wait()
-//
-//        // Then
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        #expect(operation.queuePriority == .veryHigh)
-//    }
-//
-//    @Test func changePriorityOfOutstandingTasks() {
-//        // When
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-//        prefetcher.startPrefetching(with: [Test.url])
-//        wait()
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//
-//        // When/Then
-//        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
-//        prefetcher.priority = .veryLow
-//        wait()
-//    }
+    @ImagePipelineActor
+    @Test func lowerPriorityThanDefaultNotAffected() async {
+        // When start prefetching with ImageRequest with .veryLow priority
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+
+        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        var request = Test.request
+        request.priority = .veryLow
+        prefetcher.startPrefetching(with: [request])
+        let operation = await expectation.value
+
+        // Then priority is set to .low (prefetcher priority)
+        #expect(operation.priority == .low)
+    }
+
+    @ImagePipelineActor
+    @Test func changePriority() async {
+        // Given
+        prefetcher.priority = .veryHigh
+
+        // When
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        prefetcher.startPrefetching(with: [Test.url])
+        let operation = await expectation.value
+
+        // Then
+        #expect(operation.priority == .veryHigh)
+    }
+
+    @ImagePipelineActor
+    @Test func changePriorityOfOutstandingTasks() async {
+        // When
+        let dataLoadingQueue = pipeline.configuration.dataLoadingQueue
+        dataLoadingQueue.isSuspended = true
+        let expectation1 = dataLoadingQueue.expectOperationAdded()
+        prefetcher.startPrefetching(with: [Test.url])
+        let operation = await expectation1.value
+
+        // When/Then
+        let expectation2 = dataLoadingQueue.expectPriorityUpdated(for: operation)
+        prefetcher.priority = .veryLow
+        #expect(await expectation2.value == .veryLow)
+    }
 
     // MARK: Misc
 
