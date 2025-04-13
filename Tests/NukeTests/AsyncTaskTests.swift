@@ -208,7 +208,7 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
         // When
-        let operation = queue.add { }
+        let operation = queue.add {}
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription = task.subscribe { _ in }
 
@@ -222,7 +222,7 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedDependencyIsCancelled() async {
         // Given
-        let operation = queue.add { }
+        let operation = queue.add {}
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
         let subscription = task.subscribe { _ in }
@@ -257,7 +257,7 @@ import Foundation
 
     @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() async {
         // Given
-        let operation = queue.add { }
+        let operation = queue.add {}
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         let subscription2 = task.subscribe { _ in }
@@ -271,108 +271,102 @@ import Foundation
         await expectation.wait()
     }
 
-//    // MARK: - Priority
-//
-//    @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription = task.subscribe { _ in }
-//
-//        // When
-//        subscription?.setPriority(.high)
-//
-//        // Then
-//        #expect(operation.queuePriority == .high)
-//    }
-//
-//    @Test func whenTaskChangesOperationPriorityUpdated() { // Or sets operation later
-//        // Given
-//        let task = AsyncTask<Int, MyError>()
-//        let subscription = task.subscribe { _ in }
-//
-//        // When
-//        subscription?.setPriority(.high)
-//        let operation = Foundation.Operation()
-//        task.operation = operation
-//
-//        // Then
-//        #expect(operation.queuePriority == .high)
-//    }
-//
-//    @Test func priorityCanBeLowered() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription = task.subscribe { _ in }
-//
-//        // When
-//        subscription?.setPriority(.low)
-//
-//        // Then
-//        #expect(operation.queuePriority == .low)
-//    }
-//
-//    @Test func priorityEqualMaximumPriorityOfAllSubscriptions() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription1 = task.subscribe { _ in }
-//        let subscription2 = task.subscribe { _ in }
-//
-//        // When
-//        subscription1?.setPriority(.low)
-//        subscription2?.setPriority(.high)
-//
-//        // Then
-//        #expect(operation.queuePriority == .high)
-//    }
-//
-//    @Test func subscriptionIsRemovedPriorityIsUpdated() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription1 = task.subscribe { _ in }
-//        let subscription2 = task.subscribe { _ in }
-//
-//        subscription1?.setPriority(.low)
-//        subscription2?.setPriority(.high)
-//
-//        // When
-//        subscription2?.unsubscribe()
-//
-//        // Then
-//        #expect(operation.queuePriority == .low)
-//    }
-//
-//    @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriporty() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let subscription1 = task.subscribe { _ in }
-//        let subscription2 = task.subscribe { _ in }
-//
-//        // When
-//        subscription2?.setPriority(.high)
-//        subscription1?.setPriority(.low)
-//
-//        // Then order of updating sub
-//        #expect(operation.queuePriority == .high)
-//    }
-//
-//    @Test func priorityOfDependencyUpdated() {
-//        // Given
-//        let operation = Foundation.Operation()
-//        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-//        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
-//        let subscription = task.subscribe { _ in }
-//
-//        // When
-//        subscription?.setPriority(.high)
-//
-//        // Then
-//        #expect(operation.queuePriority == .high)
-//    }
+    // MARK: - Priority
+
+    @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() async {
+        // Given
+        let operation = queue.add {}
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription = task.subscribe { _ in }
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription?.setPriority(.high)
+
+        // Then
+        let priority = await expecation.value
+        #expect(priority == .high)
+    }
+
+    @Test func priorityCanBeLowered() async {
+        // Given
+        let operation = queue.add {}
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription = task.subscribe { _ in }
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription?.setPriority(.low)
+
+        // Then
+        let priority = await expecation.value
+        #expect(priority == .low)
+    }
+
+    @Test func priorityEqualMaximumPriorityOfAllSubscriptions() async {
+        // Given
+        let operation = queue.add {}
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription1 = task.subscribe { _ in }
+        let subscription2 = task.subscribe { _ in }
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription1?.setPriority(.low)
+        subscription2?.setPriority(.high)
+
+        // Then
+        #expect(await expecation.value == .high)
+    }
+
+    @Test func subscriptionIsRemovedPriorityIsUpdated() async {
+        // Given
+        let operation = queue.add {}
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription1 = task.subscribe { _ in }
+        let subscription2 = task.subscribe { _ in }
+
+        subscription1?.setPriority(.low)
+        subscription2?.setPriority(.high)
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription2?.unsubscribe()
+
+        // Then
+        #expect(await expecation.value == .low)
+    }
+
+    @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriporty() async {
+        // Given
+        let operation = queue.add {}
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription1 = task.subscribe { _ in }
+        let subscription2 = task.subscribe { _ in }
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription2?.setPriority(.high)
+        subscription1?.setPriority(.low)
+
+        // Then order of updating sub
+        #expect(await expecation.value == .high)
+    }
+
+    @Test func priorityOfDependencyUpdated() async {
+        // Given
+        let operation = queue.add {}
+        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let subscription = task.subscribe { _ in }
+
+        // When
+        let expecation = queue.expectPriorityUpdated(for: operation)
+        subscription?.setPriority(.high)
+
+        // Then
+        #expect(await expecation.value == .high)
+    }
 
     // MARK: - Dispose
 
