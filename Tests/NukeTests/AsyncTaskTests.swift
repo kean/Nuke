@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct TaskTests {
+@Suite @ImagePipelineActor struct AsyncTaskTests {
     // MARK: - Starter
 
     @Test func starterCalledOnFirstSubscription() {
