@@ -58,7 +58,7 @@ import Testing
         let data = try #require(encoder.encode(image))
 
         // Then
-        #expect(AssetType(data) == nil) // TODO: update when HEIF support is added
+        #expect(AssetType(data) == .heic)
     }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
