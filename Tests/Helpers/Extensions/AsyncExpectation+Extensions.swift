@@ -71,7 +71,7 @@ extension WorkQueue {
     }
 }
 
-extension Publisher {
+extension Publisher where Output: Sendable {
     func expectToPublishValue() -> AsyncExpectation<Output> {
         let expectation = AsyncExpectation<Output>()
         sink(receiveCompletion: { _ in
