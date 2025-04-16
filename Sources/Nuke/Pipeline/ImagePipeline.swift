@@ -111,7 +111,7 @@ public final class ImagePipeline {
     /// The task starts in a ``ImageTask/State-swift.enum/suspended`` state. It
     /// starts executing when you ask for the result or subscribe to ``ImageTask/events``.
     public nonisolated func imageTask(with url: URL) -> ImageTask {
-        imageTask(with: ImageRequest(url: url))
+        makeImageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
@@ -123,11 +123,13 @@ public final class ImagePipeline {
     }
 
     /// Returns an image for the given URL.
+    @inlinable
     public func image(for url: URL) async throws(ImageTask.Error) -> PlatformImage {
         try await image(for: ImageRequest(url: url))
     }
 
     /// Returns an image for the given request.
+    @inlinable
     public func image(for request: ImageRequest) async throws(ImageTask.Error) -> PlatformImage {
         try await imageTask(with: request).image
     }
