@@ -49,7 +49,9 @@ public final class ImagePipeline {
     public typealias Error = ImageTask.Error
 
     deinit {
-        ResumableDataStorage.shared.unregister(id)
+        Task { @ImagePipelineActor [id] in
+            ResumableDataStorage.shared.unregister(id)
+        }
     }
 
     /// Initializes the instance with the given configuration.
@@ -69,7 +71,9 @@ public final class ImagePipeline {
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
 
-        ResumableDataStorage.shared.register(id)
+        Task { @ImagePipelineActor [id] in
+            ResumableDataStorage.shared.register(id)
+        }
     }
 
     /// A convenience way to initialize the pipeline with a closure.
