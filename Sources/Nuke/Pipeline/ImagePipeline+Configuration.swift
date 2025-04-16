@@ -6,7 +6,7 @@ import Foundation
 
 extension ImagePipeline {
     /// The pipeline configuration.
-    public struct Configuration: @unchecked Sendable {
+    public struct Configuration: Sendable {
         // MARK: - Dependencies
 
         /// Data loader used by the pipeline.
@@ -65,7 +65,7 @@ extension ImagePipeline {
         /// If you use an aggressive disk cache ``DataCaching``, you can specify
         /// a cache policy with multiple available options and
         /// ``ImagePipeline/DataCachePolicy/storeOriginalData`` used by default.
-        public var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData
+        public var dataCachePolicy: ImagePipeline.DataCachePolicy = .storeOriginalData
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
         /// loading images. The work only gets cancelled when all the registered
