@@ -224,7 +224,9 @@ import Foundation
         // Given
         let operation = queue.add {}
         let dependency = SimpleJob<Int>(starter: { $0.operation = operation })
-        let job = SimpleJob<Int>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let job = SimpleJob<Int>(starter: {
+            $0.dependency = dependency.subscribe { _ in }?.subscription
+        })
         let subscription = job.subscribe { _ in }
 
         // When
@@ -296,7 +298,6 @@ import Foundation
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
-        job.priority = .low
         subscription?.setPriority(.low)
 
         // Then
@@ -324,19 +325,15 @@ import Foundation
         // Given
         let operation = queue.add {}
         let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        let subscription2 = job.subscribe { _ in }
 
-        let sub1 = AnonymousJobSubscriber {}
-        let sub2 = AnonymousJobSubscriber {}
-
-        let handle1 = job.subscribe { _ in }
-        let handle2 = job.subscribe { _ in }
-
-        handle1?.setPriority(.low)
-        handle2?.setPriority(.high)
+        subscription1?.setPriority(.low)
+        subscription2?.setPriority(.high)
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
-        handle2?.unsubscribe()
+        subscription2?.unsubscribe()
 
         // Then
         #expect(await expecation.value == .low)
@@ -362,7 +359,9 @@ import Foundation
         // Given
         let operation = queue.add {}
         let dependency = SimpleJob<Int>(starter: { $0.operation = operation })
-        let job = SimpleJob<Int>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let job = SimpleJob<Int>(starter: {
+            $0.dependency = dependency.subscribe { _ in }?.subscription
+        })
         let subscription = job.subscribe { _ in }
 
         // When
@@ -456,8 +455,28 @@ private final class SimpleJob<T>: Job<T>, @unchecked Sendable {
 }
 
 extension Job {
-    func subscribe(_ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> JobSubscription? {
-        subscribe(AnonymousJobSubscriber(closure: closure))
+    func subscribe(_ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> JobSubscriptionHandle<Value>? {
+        let subscriber = AnonymousJobSubscriber(closure: closure)
+        guard let subcription = subscribe(subscriber) else {
+            return nil
+        }
+        return JobSubscriptionHandle(subscriber: subscriber, subscription: subcription)
+    }
+}
+
+/// For convenience.
+@ImagePipelineActor
+struct JobSubscriptionHandle<Value: Sendable> {
+    let subscriber: AnonymousJobSubscriber<Value>
+    let subscription: JobSubscription
+
+    func setPriority(_ priority: JobPriority) {
+        subscriber.priority = priority
+        subscription.didChangePriority(priority)
+    }
+
+    func unsubscribe() {
+        subscription.unsubscribe()
     }
 }
 

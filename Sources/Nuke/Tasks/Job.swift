@@ -88,12 +88,12 @@ class Job<Value: Sendable>: JobProtocol {
 
         if subscriptionKey == 0 {
             inlineSubscription = Subscriber(subscriber: subscriber)
+            priority = subscriber.priority
         } else {
             if subscriptions == nil { subscriptions = [:] }
             subscriptions![subscriptionKey] = Subscriber(subscriber: subscriber)
+            updatePriority(suggestedPriority: subscriber.priority)
         }
-
-        updatePriority(suggestedPriority: priority)
 
         if !isStarted {
             isStarted = true
