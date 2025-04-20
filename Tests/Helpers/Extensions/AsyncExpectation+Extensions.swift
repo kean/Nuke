@@ -46,8 +46,8 @@ extension WorkQueue {
         return expectation
     }
 
-    func expectPriorityUpdated(for operation: WorkQueue.Operation) -> AsyncExpectation<TaskPriority> {
-        let expectation = AsyncExpectation<TaskPriority>()
+    func expectPriorityUpdated(for operation: WorkQueue.Operation) -> AsyncExpectation<JobPriority> {
+        let expectation = AsyncExpectation<JobPriority>()
         onEvent = { event in
             if case let .priorityUpdated(value, priority) = event {
                 if value === operation {

@@ -85,9 +85,9 @@ import Foundation
     @Test func whenSubscriptionAddedEventsAreForwarded() {
         // Given
         let job = SimpleJob<Int>(starter: {
-            $0.send(progress: TaskProgress(completed: 1, total: 2))
+            $0.send(progress: JobProgress(completed: 1, total: 2))
             $0.send(value: 1)
-            $0.send(progress: TaskProgress(completed: 2, total: 2))
+            $0.send(progress: JobProgress(completed: 2, total: 2))
             $0.send(value: 2, isCompleted: true)
         })
 
@@ -99,9 +99,9 @@ import Foundation
 
         // Then
         #expect(recordedEvents == [
-            .progress(TaskProgress(completed: 1, total: 2)),
+            .progress(JobProgress(completed: 1, total: 2)),
             .value(1, isCompleted: false),
-            .progress(TaskProgress(completed: 2, total: 2)),
+            .progress(JobProgress(completed: 2, total: 2)),
             .value(2, isCompleted: true)
         ])
     }
@@ -451,13 +451,13 @@ private final class SimpleJob<T>: Job<T>, @unchecked Sendable {
 }
 
 extension Job {
-    func subscribe(priority: TaskPriority = .normal, _ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> TaskSubscription? {
+    func subscribe(priority: JobPriority = .normal, _ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> TaskSubscription? {
         subscribe(priority: priority, subscriber: AnonymousJobSubscriber(closure: closure))
     }
 }
 
 final class AnonymousJobSubscriber<Value: Sendable>: JobSubscriber, Sendable {
-    var priority: TaskPriority { .normal }
+    var priority: JobPriority { .normal }
     let closure: @ImagePipelineActor @Sendable (Job<Value>.Event) -> Void
 
     init(closure: @ImagePipelineActor @Sendable @escaping (Job<Value>.Event) -> Void) {

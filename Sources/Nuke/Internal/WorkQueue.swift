@@ -34,7 +34,7 @@ public final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> Operation {
+    func add(priority: JobPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> Operation {
         let operation = Operation(priority: priority, work: work)
         operation.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentOperationCount {
@@ -50,7 +50,7 @@ public final class WorkQueue {
 
     // MARK: - Managing Scheduled Operations
 
-    fileprivate func operation(_ operation: Operation, didUpdatePriority newPriority: TaskPriority, oldPriority: TaskPriority) {
+    fileprivate func operation(_ operation: Operation, didUpdatePriority newPriority: JobPriority, oldPriority: JobPriority) {
         guard let node = operation.node else { return /* Already executing */ }
         // Moving nodes between queues does not require new allocations
         schedule.list(for: oldPriority).remove(node)
@@ -111,7 +111,7 @@ public final class WorkQueue {
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
     final class Operation {
-        var priority: TaskPriority {
+        var priority: JobPriority {
             didSet {
                 guard oldValue != priority else { return }
                 queue?.operation(self, didUpdatePriority: priority, oldPriority: oldValue)
@@ -123,7 +123,7 @@ public final class WorkQueue {
         fileprivate var task: Task<Void, Never>?
         fileprivate weak var queue: WorkQueue?
 
-        fileprivate init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
+        fileprivate init(priority: JobPriority, work: @ImagePipelineActor @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }
@@ -137,7 +137,7 @@ public final class WorkQueue {
     @ImagePipelineActor
     enum Event {
         case added(Operation)
-        case priorityUpdated(Operation, TaskPriority)
+        case priorityUpdated(Operation, JobPriority)
         case cancelled(Operation)
     }
 
@@ -148,7 +148,7 @@ public final class WorkQueue {
         let high = LinkedList<Operation>()
         let veryHigh = LinkedList<Operation>()
 
-        func list(for priority: TaskPriority) -> LinkedList<Operation> {
+        func list(for priority: JobPriority) -> LinkedList<Operation> {
             switch priority {
             case .veryLow: veryLow
             case .low: low

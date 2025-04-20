@@ -123,7 +123,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
         urlResponse = response
 
-        let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
+        let progress = JobProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
         send(progress: progress)
 
         // If the image hasn't been fully loaded yet, give decoder a change

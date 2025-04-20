@@ -19,13 +19,13 @@ protocol JobSubscriber<Value>: AnyObject {
 class Job<Value: Sendable>: JobProtocol {
     enum Event {
         case value(Value, isCompleted: Bool)
-        case progress(TaskProgress)
+        case progress(JobProgress)
         case error(ImageTask.Error)
     }
 
     private struct Subscription {
         var subscriber: any JobSubscriber<Value>
-        var priority: TaskPriority
+        var priority: JobPriority
     }
 
     // In most situations, especially for intermediate tasks, the almost almost
@@ -41,7 +41,7 @@ class Job<Value: Sendable>: JobProtocol {
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (@ImagePipelineActor @Sendable () -> Void)?
 
-    var priority: TaskPriority = .normal {
+    var priority: JobPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.priority = priority
@@ -68,23 +68,6 @@ class Job<Value: Sendable>: JobProtocol {
         return tasks
     }
 
-    func addTasks(to output: inout [ImageTask]) {
-        forEachSubscription {
-            $0.subscriber.addTasks(to: &output)
-        }
-    }
-
-    private func forEachSubscription(_ closure: (Subscription) -> Void) {
-        if let inlineSubscription {
-            closure(inlineSubscription)
-        }
-        if let subscriptions {
-            for (_, value) in subscriptions {
-                closure(value)
-            }
-        }
-    }
-
     /// Override this to start image task. Only gets called once.
     func start() {}
 
@@ -93,7 +76,7 @@ class Job<Value: Sendable>: JobProtocol {
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    func subscribe(priority: TaskPriority = .normal, subscriber: any JobSubscriber<Value>) -> TaskSubscription? {
+    func subscribe(priority: JobPriority = .normal, subscriber: any JobSubscriber<Value>) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         let subscriptionKey = nextSubscriptionKey
@@ -121,7 +104,7 @@ class Job<Value: Sendable>: JobProtocol {
 
     // MARK: - TaskSubscriptionDelegate
 
-    fileprivate func setPriority(_ priority: TaskPriority, for key: TaskSubscriptionKey) {
+    fileprivate func setPriority(_ priority: JobPriority, for key: TaskSubscriptionKey) {
         guard !isDisposed else { return }
 
         if key == 0 {
@@ -159,7 +142,7 @@ class Job<Value: Sendable>: JobProtocol {
         send(event: .error(error))
     }
 
-    func send(progress: TaskProgress) {
+    func send(progress: JobProgress) {
         send(event: .progress(progress))
     }
 
@@ -203,13 +186,13 @@ class Job<Value: Sendable>: JobProtocol {
 
     // MARK: - Priority
 
-    private func updatePriority(suggestedPriority: TaskPriority?) {
+    private func updatePriority(suggestedPriority: JobPriority?) {
         if let suggestedPriority, suggestedPriority >= priority {
             // No need to recompute, won't go higher than that
             priority = suggestedPriority
             return
         }
-        var newPriority: TaskPriority?
+        var newPriority: JobPriority?
         forEachSubscription {
             if newPriority == nil {
                 newPriority = $0.priority
@@ -219,10 +202,29 @@ class Job<Value: Sendable>: JobProtocol {
         }
         self.priority = newPriority ?? .normal
     }
+
+    // MARK: - Subscribers
+
+    func addTasks(to output: inout [ImageTask]) {
+        forEachSubscription {
+            $0.subscriber.addTasks(to: &output)
+        }
+    }
+
+    private func forEachSubscription(_ closure: (Subscription) -> Void) {
+        if let inlineSubscription {
+            closure(inlineSubscription)
+        }
+        if let subscriptions {
+            for (_, value) in subscriptions {
+                closure(value)
+            }
+        }
+    }
 }
 
-typealias TaskProgress = ImageTask.Progress
-typealias TaskPriority = ImageRequest.Priority
+typealias JobProgress = ImageTask.Progress
+typealias JobPriority = ImageRequest.Priority
 
 // MARK: - TaskSubscription
 
@@ -254,7 +256,7 @@ struct TaskSubscription {
     ///
     /// - note: The priority also automatically gets updated when the subscription
     /// is removed from the task.
-    func setPriority(_ priority: TaskPriority) {
+    func setPriority(_ priority: JobPriority) {
         task.setPriority(priority, for: key)
     }
 }
@@ -262,7 +264,7 @@ struct TaskSubscription {
 @ImagePipelineActor
 private protocol JobProtocol: AnyObject {
     func unsubscribe(key: TaskSubscriptionKey)
-    func setPriority(_ priority: TaskPriority, for observer: TaskSubscriptionKey)
+    func setPriority(_ priority: JobPriority, for observer: TaskSubscriptionKey)
 }
 
 private typealias TaskSubscriptionKey = Int
