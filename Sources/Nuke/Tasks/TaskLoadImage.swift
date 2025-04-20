@@ -56,8 +56,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, JobSubscriber {
         guard !request.options.contains(.returnCacheDataDontLoad) else {
             return send(error: .dataMissingInCache)
         }
-        dependency = pipeline.makeTaskFetchOriginalData(for: request)
-            .subscribe(priority: priority, subscriber: self)
+        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self)
     }
 
     func receive(_ event: Job<(Data, URLResponse?)>.Event) {

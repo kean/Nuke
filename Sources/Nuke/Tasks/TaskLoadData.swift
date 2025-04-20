@@ -21,8 +21,7 @@ final class TaskLoadData: AsyncPipelineTask<ImageResponse>, JobSubscriber {
             return send(error: .dataMissingInCache)
         }
         let request = request.withProcessors([])
-        dependency = pipeline.makeTaskFetchOriginalData(for: request)
-            .subscribe(priority: priority, subscriber: self)
+        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self)
     }
 
     // TODO: add default parsing for value

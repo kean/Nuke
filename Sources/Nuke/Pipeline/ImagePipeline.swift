@@ -151,7 +151,7 @@ public final class ImagePipeline {
         return task
     }
 
-    func perform(_ imageTask: ImageTask) -> TaskSubscription? {
+    func perform(_ imageTask: ImageTask) -> JobSubscription? {
         // TODO: move this
         guard !isInvalidated else {
             imageTask.receive(.error(.pipelineInvalidated))
@@ -159,7 +159,7 @@ public final class ImagePipeline {
         }
         let task = imageTask.isDataTask ? makeTaskLoadData(for: imageTask.request) : makeTaskLoadImage(for: imageTask.request)
         tasks.insert(imageTask)
-        return task.subscribe(priority: imageTask.priority, subscriber: imageTask)
+        return task.subscribe(imageTask)
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {

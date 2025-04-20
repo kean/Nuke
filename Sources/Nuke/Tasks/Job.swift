@@ -8,13 +8,15 @@ import Foundation
 protocol JobSubscriber<Value>: AnyObject {
     associatedtype Value: Sendable
 
+    var priority: JobPriority { get }
+
     func receive(_ event: Job<Value>.Event)
 
-    func addTasks(to output: inout [ImageTask])
+    func addSubscribedTasks(to output: inout [ImageTask])
 }
 
 /// Represents a unit of work performed by the image pipeline. The same unit
-/// can have multiple subscribers: image tasks or other jobs.
+/// can have multiple subscribers: image jibs or other jobs.
 @ImagePipelineActor
 class Job<Value: Sendable>: JobProtocol {
     enum Event {
@@ -23,39 +25,38 @@ class Job<Value: Sendable>: JobProtocol {
         case error(ImageTask.Error)
     }
 
-    private struct Subscription {
+    private struct Subscriber {
         var subscriber: any JobSubscriber<Value>
-        var priority: JobPriority
     }
 
-    // In most situations, especially for intermediate tasks, the almost almost
+    // In most situations, especially for intermediate jibs, the almost almost
     // only one subscription.
-    private var inlineSubscription: Subscription?
-    private var subscriptions: [TaskSubscriptionKey: Subscription]? // Create lazily
+    private var inlineSubscription: Subscriber?
+    private var subscriptions: [JobSubscriptionKey: Subscriber]? // Create lazily
     private var nextSubscriptionKey = 0
 
-    /// Returns `true` if the task was either cancelled, or was completed.
+    /// Returns `true` if the jib was either cancelled, or was completed.
     private(set) var isDisposed = false
     private var isStarted = false
 
-    /// Gets called when the task is either cancelled, or was completed.
+    /// Gets called when the jib is either cancelled, or was completed.
     var onDisposed: (@ImagePipelineActor @Sendable () -> Void)?
 
     var priority: JobPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.priority = priority
-            dependency?.setPriority(priority)
+            dependency?.didChangePriority(priority)
         }
     }
 
-    /// A task might have a dependency. The task automatically unsubscribes
+    /// A job might have a dependency. The job automatically unsubscribes
     /// from the dependency when it gets cancelled, and also updates the
     /// priority of the subscription to the dependency when its own
     /// priority is updated.
-    var dependency: TaskSubscription? {
+    var dependency: JobSubscription? {
         didSet {
-            dependency?.setPriority(priority)
+            dependency?.didChangePriority(priority)
         }
     }
 
@@ -64,7 +65,7 @@ class Job<Value: Sendable>: JobProtocol {
     /// Returns all tasks registered for the current job, directly or indirectly.
     var tasks: [ImageTask] {
         var tasks: [ImageTask] = []
-        addTasks(to: &tasks)
+        addSubscribedTasks(to: &tasks)
         return tasks
     }
 
@@ -76,18 +77,18 @@ class Job<Value: Sendable>: JobProtocol {
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    func subscribe(priority: JobPriority = .normal, subscriber: any JobSubscriber<Value>) -> TaskSubscription? {
+    func subscribe(_ subscriber: any JobSubscriber<Value>) -> JobSubscription? {
         guard !isDisposed else { return nil }
 
         let subscriptionKey = nextSubscriptionKey
         nextSubscriptionKey += 1
-        let subscription = TaskSubscription(task: self, key: subscriptionKey)
+        let subscription = JobSubscription(job: self, key: subscriptionKey)
 
         if subscriptionKey == 0 {
-            inlineSubscription = Subscription(subscriber: subscriber, priority: priority)
+            inlineSubscription = Subscriber(subscriber: subscriber)
         } else {
             if subscriptions == nil { subscriptions = [:] }
-            subscriptions![subscriptionKey] = Subscription(subscriber: subscriber, priority: priority)
+            subscriptions![subscriptionKey] = Subscriber(subscriber: subscriber)
         }
 
         updatePriority(suggestedPriority: priority)
@@ -102,20 +103,14 @@ class Job<Value: Sendable>: JobProtocol {
         return subscription
     }
 
-    // MARK: - TaskSubscriptionDelegate
+    // MARK: - JobSubscriptionDelegate
 
-    fileprivate func setPriority(_ priority: JobPriority, for key: TaskSubscriptionKey) {
+    fileprivate func didChangePriority(_ priority: JobPriority, for key: JobSubscriptionKey) {
         guard !isDisposed else { return }
-
-        if key == 0 {
-            inlineSubscription?.priority = priority
-        } else {
-            subscriptions![key]?.priority = priority
-        }
         updatePriority(suggestedPriority: priority)
     }
 
-    fileprivate func unsubscribe(key: TaskSubscriptionKey) {
+    fileprivate func unsubscribe(key: JobSubscriptionKey) {
         if key == 0 {
             guard inlineSubscription != nil else { return }
             inlineSubscription = nil
@@ -192,26 +187,22 @@ class Job<Value: Sendable>: JobProtocol {
             priority = suggestedPriority
             return
         }
-        var newPriority: JobPriority?
+        var newPriority: JobPriority = .veryLow
         forEachSubscription {
-            if newPriority == nil {
-                newPriority = $0.priority
-            } else if $0.priority > newPriority! {
-                newPriority = $0.priority
-            }
+            newPriority = max(newPriority, $0.subscriber.priority)
         }
-        self.priority = newPriority ?? .normal
+        self.priority = newPriority
     }
 
     // MARK: - Subscribers
 
-    func addTasks(to output: inout [ImageTask]) {
+    func addSubscribedTasks(to output: inout [ImageTask]) {
         forEachSubscription {
-            $0.subscriber.addTasks(to: &output)
+            $0.subscriber.addSubscribedTasks(to: &output)
         }
     }
 
-    private func forEachSubscription(_ closure: (Subscription) -> Void) {
+    private func forEachSubscription(_ closure: (Subscriber) -> Void) {
         if let inlineSubscription {
             closure(inlineSubscription)
         }
@@ -226,45 +217,45 @@ class Job<Value: Sendable>: JobProtocol {
 typealias JobProgress = ImageTask.Progress
 typealias JobPriority = ImageRequest.Priority
 
-// MARK: - TaskSubscription
+// MARK: - JobSubscription
 
-/// Represents a subscription to a task. The observer must retain a strong
+/// Represents a subscription to a job. The observer must retain a strong
 /// reference to a subscription.
 @ImagePipelineActor
-struct TaskSubscription {
-    private let task: any JobProtocol
-    private let key: TaskSubscriptionKey
+struct JobSubscription {
+    private let job: any JobProtocol
+    private let key: JobSubscriptionKey
 
-    fileprivate init(task: any JobProtocol, key: TaskSubscriptionKey) {
-        self.task = task
+    fileprivate init(job: any JobProtocol, key: JobSubscriptionKey) {
+        self.job = job
         self.key = key
     }
 
-    /// Removes the subscription from the task. The observer won't receive any
-    /// more events from the task.
+    /// Removes the subscription from the job. The observer won't receive any
+    /// more events from the job.
     ///
-    /// If there are no more subscriptions attached to the task, the task gets
-    /// cancelled along with its dependencies. The cancelled task is
+    /// If there are no more subscriptions attached to the job, the job gets
+    /// cancelled along with its dependencies. The cancelled jib is
     /// marked as disposed.
     func unsubscribe() {
-        task.unsubscribe(key: key)
+        job.unsubscribe(key: key)
     }
 
-    /// Updates the priority of the subscription. The priority of the task is
+    /// Updates the priority of the subscription. The priority of the jib is
     /// calculated as the maximum priority out of all of its subscription. When
-    /// the priority of the task is updated, the priority of a dependency also is.
+    /// the priority of the jib is updated, the priority of a dependency also is.
     ///
     /// - note: The priority also automatically gets updated when the subscription
-    /// is removed from the task.
-    func setPriority(_ priority: JobPriority) {
-        task.setPriority(priority, for: key)
+    /// is removed from the jib.
+    func didChangePriority(_ priority: JobPriority) {
+        job.didChangePriority(priority, for: key)
     }
 }
 
 @ImagePipelineActor
 private protocol JobProtocol: AnyObject {
-    func unsubscribe(key: TaskSubscriptionKey)
-    func setPriority(_ priority: JobPriority, for observer: TaskSubscriptionKey)
+    func unsubscribe(key: JobSubscriptionKey)
+    func didChangePriority(_ priority: JobPriority, for observer: JobSubscriptionKey)
 }
 
-private typealias TaskSubscriptionKey = Int
+private typealias JobSubscriptionKey = Int

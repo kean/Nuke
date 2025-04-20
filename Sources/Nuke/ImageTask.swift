@@ -101,7 +101,7 @@ public final class ImageTask: Hashable, JobSubscriber {
     private let nonisolatedState: Mutex<ImageTaskState>
     private let onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
-    private var subscription: TaskSubscription?
+    private var subscription: JobSubscription?
 
     private var taskContinuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
     private var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
@@ -167,7 +167,7 @@ public final class ImageTask: Hashable, JobSubscriber {
             return !$0.isCancelling
         }) else { return }
         Task { @ImagePipelineActor in
-            subscription?.setPriority(newValue)
+            subscription?.didChangePriority(newValue)
         }
     }
 
@@ -240,7 +240,7 @@ public final class ImageTask: Hashable, JobSubscriber {
         }
     }
 
-    func addTasks(to output: inout [ImageTask]) {
+    func addSubscribedTasks(to output: inout [ImageTask]) {
         output.append(self)
     }
 

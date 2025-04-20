@@ -56,7 +56,7 @@ import Foundation
         #expect(startCount == 1)
     }
 
-    @Test func tarterIsDeallocated() {
+    @Test func starterIsDeallocated() {
         // Given
         class Foo {
         }
@@ -296,6 +296,7 @@ import Foundation
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
+        job.priority = .low
         subscription?.setPriority(.low)
 
         // Then
@@ -323,15 +324,19 @@ import Foundation
         // Given
         let operation = queue.add {}
         let job = SimpleJob<Int>(starter: { $0.operation = operation })
-        let subscription1 = job.subscribe { _ in }
-        let subscription2 = job.subscribe { _ in }
 
-        subscription1?.setPriority(.low)
-        subscription2?.setPriority(.high)
+        let sub1 = AnonymousJobSubscriber {}
+        let sub2 = AnonymousJobSubscriber {}
+
+        let handle1 = job.subscribe { _ in }
+        let handle2 = job.subscribe { _ in }
+
+        handle1?.setPriority(.low)
+        handle2?.setPriority(.high)
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
-        subscription2?.unsubscribe()
+        handle2?.unsubscribe()
 
         // Then
         #expect(await expecation.value == .low)
@@ -451,13 +456,14 @@ private final class SimpleJob<T>: Job<T>, @unchecked Sendable {
 }
 
 extension Job {
-    func subscribe(priority: JobPriority = .normal, _ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> TaskSubscription? {
-        subscribe(priority: priority, subscriber: AnonymousJobSubscriber(closure: closure))
+    func subscribe(_ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> JobSubscription? {
+        subscribe(AnonymousJobSubscriber(closure: closure))
     }
 }
 
 final class AnonymousJobSubscriber<Value: Sendable>: JobSubscriber, Sendable {
-    var priority: JobPriority { .normal }
+    var priority: JobPriority = .normal
+
     let closure: @ImagePipelineActor @Sendable (Job<Value>.Event) -> Void
 
     init(closure: @ImagePipelineActor @Sendable @escaping (Job<Value>.Event) -> Void) {
@@ -468,7 +474,7 @@ final class AnonymousJobSubscriber<Value: Sendable>: JobSubscriber, Sendable {
         closure(event)
     }
 
-    func addTasks(to output: inout [ImageTask]) {
+    func addSubscribedTasks(to output: inout [ImageTask]) {
         // Do nothing
     }
 }
