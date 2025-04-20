@@ -303,38 +303,6 @@ import Testing
         #expect(!response.isPreview)
     }
 
-    // MARK: Memory Cache
-
-    @Test func intermediateMemoryCachedResultsAreDelivered() async {
-        // Given intermediate result stored in memory cache
-        let request = ImageRequest(url: Test.url, processors: [
-            processorsFactory.make(id: "1"),
-            processorsFactory.make(id: "2")
-        ])
-        let intermediateRequest = ImageRequest(url: Test.url, processors: [
-            processorsFactory.make(id: "1")
-        ])
-        cache[intermediateRequest] = ImageContainer(image: Test.image, isPreview: true)
-
-        pipeline.configuration.dataLoadingQueue.isSuspended = true // Make sure no data is loaded
-
-        // When/Then the pipeline find the first preview in the memory cache,
-        // applies the remaining processors and delivers it
-        let previewDelivered = AsyncExpectation<Void>()
-        pipeline.loadImage(with: request) { response, _, _ in
-            guard let response else {
-                Issue.record()
-                return
-            }
-            #expect(response.image.nk_test_processorIDs == ["2"])
-            #expect(response.container.isPreview)
-            previewDelivered.fulfill()
-        } completion: { _ in
-            // Do nothing
-        }
-        await previewDelivered.wait()
-    }
-
     // MARK: Scale
 
 #if os(iOS) || os(visionOS)

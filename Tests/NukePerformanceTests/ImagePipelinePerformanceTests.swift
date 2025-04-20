@@ -30,7 +30,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         }
     }
 
-    func testAsyncImageTaskPerformance() {
+    func testAsyncImageTaskEventsPerformance() {
         let pipeline = makePipeline()
 
         let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
@@ -41,7 +41,10 @@ class ImagePipelinePerfomanceTests: XCTestCase {
                 await withTaskGroup(of: Void.self) { group in
                     for request in requests {
                         group.addTask {
-                            _ = try? await pipeline.imageTask(with: request).image
+                            let imageTask = pipeline.imageTask(with: request)
+                            for await event in imageTask.events {
+                                _ = event
+                            }
                         }
                     }
                 }
@@ -58,6 +61,17 @@ private func makePipeline() -> ImagePipeline {
 
         func decode(_ data: Data) throws -> ImageContainer {
             MockDecoder.container
+        }
+    }
+
+    final class MockDataLoader: DataLoading {
+        let response = (Test.data, URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
+
+        func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+            AsyncThrowingStream { continuation in
+                continuation.yield(response)
+                continuation.finish()
+            }
         }
     }
 

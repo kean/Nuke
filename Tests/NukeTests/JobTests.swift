@@ -7,7 +7,7 @@ import Foundation
 @testable import Nuke
 
 @ImagePipelineActor
-@Suite struct AsyncTaskTests {
+@Suite struct JobTests {
     var queue = WorkQueue()
 
     init() {
@@ -19,7 +19,7 @@ import Foundation
     @Test func starterCalledOnFirstSubscription() {
         // Given
         var startCount = 0
-        _ = SimpleTask<Int, Error>(starter: { _ in
+        _ = SimpleJob<Int>(starter: { _ in
             startCount += 1
         })
 
@@ -30,12 +30,12 @@ import Foundation
     @Test func starterCalledWhenSubscriptionIsAdded() {
         // Given
         var startCount = 0
-        let task = SimpleTask<Int, Error>(starter: { _ in
+        let job = SimpleJob<Int>(starter: { _ in
             startCount += 1
         })
 
         // When first subscription is added
-        _ = task.subscribe { _ in }
+        _ = job.subscribe { _ in }
 
         // Then started is called
         #expect(startCount == 1)
@@ -44,13 +44,13 @@ import Foundation
     @Test func starterOnlyCalledOnce() {
         // Given
         var startCount = 0
-        let task = SimpleTask<Int, Error>(starter: { _ in
+        let job = SimpleJob<Int>(starter: { _ in
             startCount += 1
         })
 
         // When two subscriptions are added
-        _ = task.subscribe { _ in }
-        _ = task.subscribe { _ in }
+        _ = job.subscribe { _ in }
+        _ = job.subscribe { _ in }
 
         // Then started is only called once
         #expect(startCount == 1)
@@ -63,10 +63,10 @@ import Foundation
 
         weak var weakFoo: Foo?
 
-        let task: AsyncTask<Int, Error> = autoreleasepool { // Just in case
+        let job: Job<Int> = autoreleasepool { // Just in case
             let foo = Foo()
             weakFoo = foo
-            return SimpleTask<Int, Error>(starter: { _ in
+            return SimpleJob<Int>(starter: { _ in
                 _ = foo // Retain foo
             })
         }
@@ -74,7 +74,7 @@ import Foundation
         #expect(weakFoo != nil, "Foo is retained by starter")
 
         // When first subscription is added and starter is called
-        _ = task.subscribe { _ in }
+        _ = job.subscribe { _ in }
 
         // Then
         #expect(weakFoo == nil, "Started wasn't deallocated")
@@ -84,7 +84,7 @@ import Foundation
 
     @Test func whenSubscriptionAddedEventsAreForwarded() {
         // Given
-        let task = SimpleTask<Int, MyError>(starter: {
+        let job = SimpleJob<Int>(starter: {
             $0.send(progress: TaskProgress(completed: 1, total: 2))
             $0.send(value: 1)
             $0.send(progress: TaskProgress(completed: 2, total: 2))
@@ -92,8 +92,8 @@ import Foundation
         })
 
         // When
-        var recordedEvents = [AsyncTask<Int, MyError>.Event]()
-        _ = task.subscribe { event in
+        var recordedEvents = [Job<Int>.Event]()
+        _ = job.subscribe { event in
             recordedEvents.append(event)
         }
 
@@ -108,20 +108,20 @@ import Foundation
 
     @Test func bothSubscriptionsReceiveEvents() {
         // Given
-        let task = AsyncTask<Int, MyError>()
+        let job = Job<Int>()
 
         // When there are two subscriptions
         var eventCount = 0
 
-        _ = task.subscribe { event in
+        _ = job.subscribe { event in
             #expect(event == .value(1, isCompleted: false))
             eventCount += 1 }
-        _ = task.subscribe {  event in
+        _ = job.subscribe {  event in
             #expect(event == .value(1, isCompleted: false))
             eventCount += 1
         }
 
-        task.send(value: 1)
+        job.send(value: 1)
 
         // Then
         #expect(eventCount == 2)
@@ -129,49 +129,49 @@ import Foundation
 
     @Test func cantSubscribeToAlreadyCancelledTask() {
         // Given
-        let task = SimpleTask<Int, MyError>(starter: { _ in })
-        let subscription = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { _ in })
+        let subscription = job.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
 
         // Then
-        #expect(task.subscribe { _ in } == nil)
+        #expect(job.subscribe { _ in } == nil)
     }
 
     @Test func cantSubscribeToAlreadySucceededTask() {
         // Given
-        let task = AsyncTask<Int, MyError>()
-        _ = task.subscribe { _ in }
+        let job = Job<Int>()
+        _ = job.subscribe { _ in }
 
         // When
-        task.send(value: 1, isCompleted: true)
+        job.send(value: 1, isCompleted: true)
 
         // Then
-        #expect(task.subscribe { _ in } == nil)
+        #expect(job.subscribe { _ in } == nil)
     }
 
     @Test func cantSubscribeToAlreadyFailedTasks() {
         // Given
-        let task = AsyncTask<Int, MyError>()
-        _ = task.subscribe { _ in }
+        let job = Job<Int>()
+        _ = job.subscribe { _ in }
 
         // When
-        task.send(error: .init(raw: "1"))
+        job.send(error: .dataIsEmpty)
 
         // Then
-        #expect(task.subscribe { _ in } == nil)
+        #expect(job.subscribe { _ in } == nil)
     }
 
     @Test func subscribeToTaskWithSynchronousCompletionReturnsNil() async {
         // Given
-        let task = SimpleTask<Int, MyError> { (task) in
-            task.send(value: 0, isCompleted: true)
+        let job = SimpleJob<Int> { job in
+            job.send(value: 0, isCompleted: true)
         }
 
         // When/Then
         await withUnsafeContinuation { continuation in
-            let subscription = task.subscribe { _ in
+            let subscription = job.subscribe { _ in
                 continuation.resume()
             }
             #expect(subscription == nil)
@@ -182,13 +182,13 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedNoEventsAreSent() {
         // Given
-        let task = AsyncTask<Int, MyError>()
-        var recordedEvents = [AsyncTask<Int, MyError>.Event]()
-        let subscription = task.subscribe { recordedEvents.append($0) }
+        let job = Job<Int>()
+        var recordedEvents = [Job<Int>.Event]()
+        let subscription = job.subscribe { recordedEvents.append($0) }
 
         // When
         subscription?.unsubscribe()
-        task.send(value: 1)
+        job.send(value: 1)
 
         // Then
         #expect(recordedEvents.isEmpty, "Expect no events to be received by observer after subscription is removed")
@@ -196,21 +196,21 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedTaskBecomesDisposed() {
         // Given
-        let task = AsyncTask<Int, MyError>()
-        let subscription = task.subscribe { _ in }
+        let job = Job<Int>()
+        let subscription = job.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
 
         // Then
-        #expect(task.isDisposed, "Expect task to be marked as disposed")
+        #expect(job.isDisposed, "Expect job to be marked as disposed")
     }
 
     @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
         // When
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription = job.subscribe { _ in }
 
         // When
         let expectation = queue.expectOperationCancellation(operation)
@@ -223,9 +223,9 @@ import Foundation
     @Test func whenSubscriptionIsRemovedDependencyIsCancelled() async {
         // Given
         let operation = queue.add {}
-        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
-        let subscription = task.subscribe { _ in }
+        let dependency = SimpleJob<Int>(starter: { $0.operation = operation })
+        let job = SimpleJob<Int>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let subscription = job.subscribe { _ in }
 
         // When
         let expectation = queue.expectOperationCancellation(operation)
@@ -241,9 +241,9 @@ import Foundation
         let operation = queue.add {
             compleded.fulfill()
         }
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription1 = task.subscribe { _ in }
-        _ = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        _ = job.subscribe { _ in }
 
         // When
         subscription1?.unsubscribe()
@@ -258,9 +258,9 @@ import Foundation
     @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription1 = task.subscribe { _ in }
-        let subscription2 = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        let subscription2 = job.subscribe { _ in }
 
         // When
         let expectation = queue.expectOperationCancellation(operation)
@@ -276,8 +276,8 @@ import Foundation
     @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription = job.subscribe { _ in }
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
@@ -291,8 +291,8 @@ import Foundation
     @Test func priorityCanBeLowered() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription = job.subscribe { _ in }
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
@@ -306,9 +306,9 @@ import Foundation
     @Test func priorityEqualMaximumPriorityOfAllSubscriptions() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription1 = task.subscribe { _ in }
-        let subscription2 = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        let subscription2 = job.subscribe { _ in }
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
@@ -322,9 +322,9 @@ import Foundation
     @Test func subscriptionIsRemovedPriorityIsUpdated() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription1 = task.subscribe { _ in }
-        let subscription2 = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        let subscription2 = job.subscribe { _ in }
 
         subscription1?.setPriority(.low)
         subscription2?.setPriority(.high)
@@ -340,9 +340,9 @@ import Foundation
     @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriporty() async {
         // Given
         let operation = queue.add {}
-        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let subscription1 = task.subscribe { _ in }
-        let subscription2 = task.subscribe { _ in }
+        let job = SimpleJob<Int>(starter: { $0.operation = operation })
+        let subscription1 = job.subscribe { _ in }
+        let subscription2 = job.subscribe { _ in }
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
@@ -356,9 +356,9 @@ import Foundation
     @Test func priorityOfDependencyUpdated() async {
         // Given
         let operation = queue.add {}
-        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
-        let subscription = task.subscribe { _ in }
+        let dependency = SimpleJob<Int>(starter: { $0.operation = operation })
+        let job = SimpleJob<Int>(starter: { $0.dependency = dependency.subscribe { _ in } })
+        let subscription = job.subscribe { _ in }
 
         // When
         let expecation = queue.expectPriorityUpdated(for: operation)
@@ -372,79 +372,75 @@ import Foundation
 
     @Test func executingTaskIsntDisposed() {
         // Given
-        let task = AsyncTask<Int, MyError>()
+        let job = Job<Int>()
         var isDisposeCalled = false
-        task.onDisposed = { isDisposeCalled = true }
-        _ = task.subscribe { _ in }
+        job.onDisposed = { isDisposeCalled = true }
+        _ = job.subscribe { _ in }
 
         // When
-        task.send(value: 1) // Casually sending value
+        job.send(value: 1) // Casually sending value
 
         // Then
         #expect(!isDisposeCalled)
-        #expect(!task.isDisposed)
+        #expect(!job.isDisposed)
     }
 
     @Test func taskIsDisposedWhenCancelled() {
         // Given
-        let task = SimpleTask<Int, MyError>(starter: { _ in })
+        let job = SimpleJob<Int>(starter: { _ in })
         var isDisposeCalled = false
-        task.onDisposed = { isDisposeCalled = true }
-        let subscription = task.subscribe { _ in }
+        job.onDisposed = { isDisposeCalled = true }
+        let subscription = job.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
 
         // Then
         #expect(isDisposeCalled)
-        #expect(task.isDisposed)
+        #expect(job.isDisposed)
     }
 
     @Test func taskIsDisposedWhenCompletedWithSuccess() {
         // Given
-        let task = AsyncTask<Int, MyError>()
+        let job = Job<Int>()
         var isDisposeCalled = false
-        task.onDisposed = { isDisposeCalled = true }
-        _ = task.subscribe { _ in }
+        job.onDisposed = { isDisposeCalled = true }
+        _ = job.subscribe { _ in }
 
         // When
-        task.send(value: 1, isCompleted: true)
+        job.send(value: 1, isCompleted: true)
 
         // Then
         #expect(isDisposeCalled)
-        #expect(task.isDisposed)
+        #expect(job.isDisposed)
     }
 
     @Test func taskIsDisposedWhenCompletedWithFailure() {
         // Given
-        let task = AsyncTask<Int, MyError>()
+        let job = Job<Int>()
         var isDisposeCalled = false
-        task.onDisposed = { isDisposeCalled = true }
-        _ = task.subscribe { _ in }
+        job.onDisposed = { isDisposeCalled = true }
+        _ = job.subscribe { _ in }
 
         // When
-        task.send(error: .init(raw: "1"))
+        job.send(error: .cancelled)
 
         // Then
         #expect(isDisposeCalled)
-        #expect(task.isDisposed)
+        #expect(job.isDisposed)
     }
 }
 
 // MARK: - Helpers
 
-private struct MyError: Equatable {
-    let raw: String
-}
+private final class SimpleJob<T>: Job<T>, @unchecked Sendable {
+    private var starter: ((SimpleJob) -> Void)?
 
-private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
-    private var starter: ((SimpleTask) -> Void)?
-
-    /// Initializes the task with the `starter`.
+    /// Initializes the job with the `starter`.
     /// - parameter starter: The closure which gets called as soon as the first
-    /// subscription is added to the task. Only gets called once and is immediately
+    /// subscription is added to the job. Only gets called once and is immediately
     /// deallocated after it is called.
-    init(starter: ((SimpleTask) -> Void)? = nil) {
+    init(starter: ((SimpleJob) -> Void)? = nil) {
         self.starter = starter
     }
 
@@ -454,8 +450,36 @@ private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
     }
 }
 
-extension AsyncTask {
-    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-        publisher.subscribe(priority: priority, subscriber: "" as AnyObject, observer)
+extension Job {
+    func subscribe(priority: TaskPriority = .normal, _ closure: @ImagePipelineActor @Sendable @escaping (Event) -> Void) -> TaskSubscription? {
+        subscribe(priority: priority, subscriber: AnonymousJobSubscriber(closure: closure))
+    }
+}
+
+final class AnonymousJobSubscriber<Value: Sendable>: JobSubscriber, Sendable {
+    var priority: TaskPriority { .normal }
+    let closure: @ImagePipelineActor @Sendable (Job<Value>.Event) -> Void
+
+    init(closure: @ImagePipelineActor @Sendable @escaping (Job<Value>.Event) -> Void) {
+        self.closure = closure
+    }
+
+    func receive(_ event: Job<Value>.Event) {
+        closure(event)
+    }
+
+    func addTasks(to output: inout [ImageTask]) {
+        // Do nothing
+    }
+}
+
+extension Job.Event: @retroactive Equatable where Value: Equatable {
+    public static func == (lhs: Job.Event, rhs: Job.Event) -> Bool {
+        switch (lhs, rhs) {
+        case (let .value(lhs0, lhs1), let .value(rhs0, rhs1)): (lhs0, lhs1) == (rhs0, rhs1)
+        case (let .progress(lhs), let .progress(rhs)): lhs == rhs
+        case (let .error(lhs), let .error(rhs)): lhs == rhs
+        default: false
+        }
     }
 }

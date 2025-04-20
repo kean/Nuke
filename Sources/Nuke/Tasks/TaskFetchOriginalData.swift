@@ -13,13 +13,39 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var data = Data()
 
     override func start() {
-        guard let urlRequest = request.urlRequest, let url = urlRequest.url else {
-            // A malformed URL prevented a URL request from being initiated.
-            send(error: .dataLoadingFailed(error: URLError(.badURL)))
-            return
+        if let rateLimiter = pipeline.rateLimiter {
+            // Rate limiter is synchronized on pipeline's queue. Delayed work is
+            // executed asynchronously also on the same queue.
+            rateLimiter.execute { [weak self] in
+                guard let self, !self.isDisposed else {
+                    return false
+                }
+                self.actuallyStart()
+                return true
+            }
+        } else { // Start loading immediately.
+            actuallyStart()
         }
+    }
 
-        if url.isLocalResource && pipeline.configuration.isLocalResourcesSupportEnabled {
+    private func actuallyStart() {
+        switch request.resource {
+        case .url(let url):
+            guard let url else {
+                return send(error: .dataLoadingFailed(error: URLError(.badURL)))
+            }
+            start(with: URLRequest(url: url))
+        case .urlRequest(let urlRequest):
+            start(with: urlRequest)
+        case .closure(let closure, _):
+            start(with: closure)
+        }
+    }
+
+    // MARK: URLRequest
+
+    private func start(with urlRequest: URLRequest) {
+        if pipeline.configuration.isLocalResourcesSupportEnabled, let url = urlRequest.url, url.isLocalResource {
             do {
                 let data = try Data(contentsOf: url)
                 send(value: (data, nil), isCompleted: true)
@@ -29,37 +55,25 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             return
         }
 
-        if let rateLimiter = pipeline.rateLimiter {
-            // Rate limiter is synchronized on pipeline's queue. Delayed work is
-            // executed asynchronously also on the same queue.
-            rateLimiter.execute { [weak self] in
-                guard let self, !self.isDisposed else {
-                    return false
-                }
-                self.loadData(urlRequest: urlRequest)
-                return true
-            }
-        } else { // Start loading immediately.
-            loadData(urlRequest: urlRequest)
-        }
+        loadData(with: urlRequest)
     }
 
-    private func loadData(urlRequest: URLRequest) {
+    private func loadData(with urlRequest: URLRequest) {
         if request.options.contains(.skipDataLoadingQueue) {
             Task { @ImagePipelineActor in
-                await self.loadData(urlRequest: urlRequest)
+                await self.actuallyLoadData(urlRequest: urlRequest)
             }
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
             operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
-                await self?.loadData(urlRequest: urlRequest)
+                await self?.actuallyLoadData(urlRequest: urlRequest)
             }
         }
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(urlRequest: URLRequest) async {
+    private func actuallyLoadData(urlRequest: URLRequest) async {
         guard !isDisposed else { return }
 
         // Read and remove resumable data from cache (we're going to insert it
@@ -134,8 +148,6 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         // Store in data cache
-        storeDataInCacheIfNeeded(data)
-
         send(value: (data, urlResponse), isCompleted: true)
     }
 
@@ -148,48 +160,39 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, namespace: pipeline.id)
         }
     }
-}
 
-extension AsyncPipelineTask where Value == (Data, URLResponse?) {
-    func storeDataInCacheIfNeeded(_ data: Data) {
-        let request = makeSanitizedRequest()
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
+    // MARK: Closure
+
+    private func start(with closure: (@Sendable @escaping () async throws -> Data)) {
+        if request.options.contains(.skipDataLoadingQueue) {
+            Task { @ImagePipelineActor in
+                await self.loadData(with: closure)
+            }
+        } else {
+            // Wrap data request in an operation to limit the maximum number of
+            // concurrent data tasks.
+            operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
+                await self?.loadData(with: closure)
+            }
+        }
+    }
+
+    private func loadData(with closure: (@Sendable @escaping () async throws -> Data)) async {
+        guard !isDisposed else {
             return
         }
-        let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
-            guard let data = $0 else { return }
-            // Important! Storing directly ignoring `ImageRequest.Options`.
-            dataCache.storeData(data, for: key)
+        guard let closure = request.closure else {
+            send(error: .dataLoadingFailed(error: URLError(.unknown))) // This is just a placeholder error, never thrown
+            return assertionFailure("This should never happen")
         }
-    }
-
-    /// Returns a request that doesn't contain any information non-related
-    /// to data loading.
-    private func makeSanitizedRequest() -> ImageRequest {
-        var request = request
-        request.processors = []
-        request.userInfo[.thumbnailKey] = nil
-        return request
-    }
-
-    private func shouldStoreDataInDiskCache() -> Bool {
-        let imageTasks = imageTasks
-        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
-            return false
-        }
-        guard !(request.url?.isLocalResource ?? false) else {
-            return false
-        }
-        switch pipeline.configuration.dataCachePolicy {
-        case .automatic:
-            return imageTasks.contains { $0.request.processors.isEmpty }
-        case .storeOriginalData:
-            return true
-        case .storeEncodedImages:
-            return false
-        case .storeAll:
-            return true
+        do {
+            let data = try await closure()
+            guard !data.isEmpty else {
+                throw ImageTask.Error.dataIsEmpty
+            }
+            send(value: (data, nil), isCompleted: true)
+        } catch {
+            send(error: .dataLoadingFailed(error: error))
         }
     }
 }

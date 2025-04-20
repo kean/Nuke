@@ -198,6 +198,7 @@ import Testing
         }
 
         // When
+        // TODO: this should subscribe to a single task
         let pipeline = pipeline!
         async let task1 = pipeline.data(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
         async let task2 = pipeline.data(for: ImageRequest(url: Test.url))

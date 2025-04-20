@@ -68,26 +68,7 @@ extension ImagePipeline {
         public var dataCachePolicy: ImagePipeline.DataCachePolicy = .storeOriginalData
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
-        /// loading images. The work only gets cancelled when all the registered
-        /// requests are. The pipeline also automatically manages the priority of the
-        /// deduplicated work.
-        ///
-        /// Let's take these two requests for example:
-        ///
-        /// ```swift
-        /// let url = URL(string: "http://example.com/image")
-        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     .resize(size: CGSize(width: 44, height: 44)),
-        ///     .gaussianBlur(radius: 8)
-        /// ]))
-        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     .resize(size: CGSize(width: 44, height: 44))
-        /// ]))
-        /// ```
-        ///
-        /// Nuke will load the image data only once, resize the image once and
-        /// apply the blur also only once. There is no duplicated work done at
-        /// any stage.
+        /// loading images. It coalesces the identical network and image requests.
         public var isTaskCoalescingEnabled = true
 
         /// `true` by default. If `true` the pipeline will rate limit requests

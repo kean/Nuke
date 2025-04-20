@@ -6,7 +6,7 @@ import Foundation
 
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
-class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImageTask.Error> {
+class AsyncPipelineTask<Value: Sendable>: Job<Value> {
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
@@ -17,43 +17,112 @@ class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImageTask.Error> {
     }
 }
 
-// Returns all image tasks subscribed to the current pipeline task.
-// A suboptimal approach just to make the new DiskCachPolicy.automatic work.
-@ImagePipelineActor
-protocol ImageTaskSubscribers {
-    var imageTasks: [ImageTask] { get }
-}
-
-extension ImageTask: ImageTaskSubscribers {
-    var imageTasks: [ImageTask] {
-        [self]
-    }
-}
-
-extension AsyncPipelineTask: ImageTaskSubscribers {
-    var imageTasks: [ImageTask] {
-        subscribers.flatMap { subscribers -> [ImageTask] in
-            (subscribers as? ImageTaskSubscribers)?.imageTasks ?? []
-        }
-    }
-}
+// MARK: - AsyncPipelineTask (Data Caching)
 
 extension AsyncPipelineTask {
-    /// Decodes the data on the dedicated queue and calls the completion
-    /// on the pipeline's internal queue.
-    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @ImagePipelineActor @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void) {
-        @Sendable func decode() -> Result<ImageResponse, ImageTask.Error> {
-            signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                Result { try decoder.decode(context) }
-                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
+    func storeImageInCaches(_ response: ImageResponse) {
+        pipeline.cache[request] = response.container
+        if shouldStoreResponseInDataCache(response) {
+            storeImageInDataCache(response)
+        }
+    }
+
+    private func storeImageInDataCache(_ response: ImageResponse) {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline) else {
+            return
+        }
+        let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
+        let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
+        let key = pipeline.cache.makeDataCacheKey(for: request)
+
+        guard !pipeline.configuration.debugIsSyncImageEncoding else {
+            // TODO: remove some of this duplication
+            if let data = encoder.encode(response.container, context: context), !data.isEmpty {
+                pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+                    guard let data = $0, !data.isEmpty else { return }
+                    dataCache.storeData(data, for: key)
+                }
+            }
+            return
+        }
+
+        pipeline.configuration.imageEncodingQueue.add(priority: priority) { [weak pipeline, request] in
+            guard let pipeline else { return }
+            let encodedData = await performInBackground {
+                signpost("EncodeImage") {
+                    encoder.encode(response.container, context: context)
+                }
+            }
+            guard let data = encodedData, !data.isEmpty else { return }
+            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+                guard let data = $0, !data.isEmpty else { return }
+                // Important! Storing directly ignoring `ImageRequest.Options`.
+                dataCache.storeData(data, for: key) // This is instant, writes are async
             }
         }
-        guard decoder.isAsynchronous else {
-            return completion(decode())
+    }
+
+    private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
+        guard !response.container.isPreview,
+              !(response.cacheType == .disk),
+              !(request.url?.isLocalResource ?? false) else {
+            return false
         }
-        operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) {
-            let response = await performInBackground { decode() }
-            completion(response)
+        let isProcessed = !request.processors.isEmpty || request.thumbnail != nil
+        switch pipeline.configuration.dataCachePolicy {
+        case .automatic:
+            return isProcessed
+        case .storeOriginalData:
+            return false
+        case .storeEncodedImages:
+            return true
+        case .storeAll:
+            return isProcessed
+        }
+    }
+}
+
+// MARK: - AsyncPipelineTask (Data Caching)
+
+extension AsyncPipelineTask {
+    func storeDataInCacheIfNeeded(_ data: Data) {
+        let request = makeSanitizedRequest()
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
+            return
+        }
+        let key = pipeline.cache.makeDataCacheKey(for: request)
+        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
+            guard let data = $0 else { return }
+            // Important! Storing directly ignoring `ImageRequest.Options`.
+            dataCache.storeData(data, for: key)
+        }
+    }
+
+    /// Returns a request that doesn't contain any information non-related
+    /// to data loading.
+    private func makeSanitizedRequest() -> ImageRequest {
+        var request = request
+        request.processors = []
+        request.userInfo[.thumbnailKey] = nil
+        return request
+    }
+
+    private func shouldStoreDataInDiskCache() -> Bool {
+        guard !request.options.contains(.disableDiskCacheWrites) else {
+            return false
+        }
+        guard !(request.url?.isLocalResource ?? false) else {
+            return false
+        }
+        switch pipeline.configuration.dataCachePolicy {
+        case .automatic:
+            return request.processors.isEmpty
+        case .storeOriginalData:
+            return true
+        case .storeEncodedImages:
+            return false
+        case .storeAll:
+            return true
         }
     }
 }

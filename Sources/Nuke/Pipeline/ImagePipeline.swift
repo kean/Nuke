@@ -33,10 +33,9 @@ public final class ImagePipeline {
 
     private var tasks = Set<ImageTask>()
 
-    private let tasksLoadData: TaskPool<TaskLoadImageKey, ImageResponse, ImageTask.Error>
-    private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, ImageTask.Error>
-    private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, ImageTask.Error>
-    private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), ImageTask.Error>
+    private let tasksLoadData: JobPool<TaskLoadImageKey, ImageResponse>
+    private let tasksLoadImage: JobPool<TaskLoadImageKey, ImageResponse>
+    private let tasksFetchOriginalData: JobPool<TaskFetchOriginalDataKey, (Data, URLResponse?)>
 
     private var isInvalidated = false
 
@@ -66,10 +65,9 @@ public final class ImagePipeline {
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
-        self.tasksLoadData = TaskPool(isCoalescingEnabled)
-        self.tasksLoadImage = TaskPool(isCoalescingEnabled)
-        self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
-        self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
+        self.tasksLoadData = JobPool(isCoalescingEnabled)
+        self.tasksLoadImage = JobPool(isCoalescingEnabled)
+        self.tasksFetchOriginalData = JobPool(isCoalescingEnabled)
 
         Task { @ImagePipelineActor [id] in
             ResumableDataStorage.shared.register(id)
@@ -153,14 +151,15 @@ public final class ImagePipeline {
         return task
     }
 
-    func perform(_ task: ImageTask, onEvent: @escaping (AsyncTask<ImageResponse, ImageTask.Error>.Event) -> Void) -> TaskSubscription? {
+    func perform(_ imageTask: ImageTask) -> TaskSubscription? {
+        // TODO: move this
         guard !isInvalidated else {
-            onEvent(.error(.pipelineInvalidated))
+            imageTask.receive(.error(.pipelineInvalidated))
             return nil
         }
-        let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        tasks.insert(task)
-        return worker.subscribe(priority: TaskPriority(task.priority), subscriber: task, onEvent)
+        let task = imageTask.isDataTask ? makeTaskLoadData(for: imageTask.request) : makeTaskLoadImage(for: imageTask.request)
+        tasks.insert(imageTask)
+        return task.subscribe(priority: imageTask.priority, subscriber: imageTask)
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {
@@ -174,47 +173,21 @@ public final class ImagePipeline {
         }
     }
 
-    // MARK: - Task Factory (Private)
-
-    // When you request an image or image data, the pipeline creates a graph of tasks
-    // (some tasks are added to the graph on demand).
-    //
-    // `loadImage()` call is represented by TaskLoadImage:
-    //
-    // TaskLoadImage -> TaskFetchOriginalImage -> TaskFetchOriginalData
-    //
-    // `loadData()` call is represented by TaskLoadData:
-    //
-    // TaskLoadData -> TaskFetchOriginalData
-    //
-    //
-    // Each task represents a resource or a piece of work required to produce the
-    // final result. The pipeline reduces the amount of duplicated work by coalescing
-    // the tasks that represent the same work. For example, if you all `loadImage()`
-    // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
-    // is created. The work is split between tasks to minimize any duplicated work.
-
-    func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
-        tasksLoadImage.publisherForKey(TaskLoadImageKey(request)) {
+    func makeTaskLoadImage(for request: ImageRequest) -> Job<ImageResponse> {
+        tasksLoadImage.task(for: TaskLoadImageKey(request)) {
             TaskLoadImage(self, request)
         }
     }
 
-    func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
-        tasksLoadData.publisherForKey(TaskLoadImageKey(request)) {
+    func makeTaskLoadData(for request: ImageRequest) -> Job<ImageResponse> {
+        tasksLoadData.task(for: TaskLoadImageKey(request)) {
             TaskLoadData(self, request)
         }
     }
 
-    func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, ImageTask.Error>.Publisher {
-        tasksFetchOriginalImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
-            TaskFetchOriginalImage(self, request)
-        }
-    }
-
-    func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), ImageTask.Error>.Publisher {
-        tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
-            request.closure == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithClosure(self, request)
+    func makeTaskFetchOriginalData(for request: ImageRequest) -> Job<(Data, URLResponse?)> {
+        tasksFetchOriginalData.task(for: TaskFetchOriginalDataKey(request)) {
+            TaskFetchOriginalData(self, request)
         }
     }
 }

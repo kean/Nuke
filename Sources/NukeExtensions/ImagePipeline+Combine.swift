@@ -8,12 +8,12 @@ import Nuke
 
 extension ImagePipeline {
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public nonisolated func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+    public nonisolated func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, ImageTask.Error> {
         imagePublisher(with: ImageRequest(url: url))
     }
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
+    public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, ImageTask.Error> {
         ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 }

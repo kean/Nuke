@@ -9,7 +9,11 @@ import Foundation
 /// Performs all the quick cache lookups and also manages image processing.
 /// The coalescing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
-final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
+final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, JobSubscriber {
+    private var decoder: (any ImageDecoding)?
+
+    // MARK: Memory Cache
+
     override func start() {
         if let container = pipeline.cache[request] {
             let response = ImageResponse(container: container, request: request, cacheType: .memory)
@@ -18,12 +22,15 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 return // The final image is loaded
             }
         }
+        // TODO: check original image cache also!
         if let data = pipeline.cache.cachedData(for: request) {
             decodeCachedData(data)
         } else {
             fetchImage()
         }
     }
+
+    // MARK: Disk Cache
 
     private func decodeCachedData(_ data: Data) {
         let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
@@ -37,7 +44,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
     private func didFinishDecoding(with response: ImageResponse?) {
         if let response {
-            didReceiveImageResponse(response, isCompleted: true)
+            didReceiveProcessedImage(response, isCompleted: true)
         } else {
             fetchImage()
         }
@@ -49,51 +56,129 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         guard !request.options.contains(.returnCacheDataDontLoad) else {
             return send(error: .dataMissingInCache)
         }
-        if let processor = request.processors.last {
-            let request = request.withProcessors(request.processors.dropLast())
-            dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
-                self?.process($0, isCompleted: $1, processor: processor)
+        dependency = pipeline.makeTaskFetchOriginalData(for: request)
+            .subscribe(priority: priority, subscriber: self)
+    }
+
+    func receive(_ event: Job<(Data, URLResponse?)>.Event) {
+        switch event {
+        case let .value(value, isCompleted):
+            didReceiveData(value.0, urlResponse: value.1, isCompleted: isCompleted)
+        case .progress(let progress):
+            send(progress: progress)
+        case .error(let error):
+            send(error: error)
+        }
+    }
+
+    /// Receiving data from `TaskFetchOriginalData`.
+    private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
+        guard isCompleted || pipeline.configuration.isProgressiveDecodingEnabled else {
+            return
+        }
+
+        if !isCompleted && operation != nil {
+            return // Back pressure - already decoding another progressive data chunk
+        }
+
+        if isCompleted {
+            operation?.cancel() // Cancel any potential pending progressive decoding tasks
+
+            storeDataInCacheIfNeeded(data)
+        }
+
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        guard let decoder = getDecoder(for: context) else {
+            if isCompleted {
+                send(error: .decoderNotRegistered(context: context))
+            } else {
+                // Try again when more data is downloaded.
             }
-        } else {
-            dependency = pipeline.makeTaskFetchOriginalImage(for: request).subscribe(self) { [weak self] in
-                self?.didReceiveImageResponse($0, isCompleted: $1)
+            return
+        }
+        decode(context, decoder: decoder) { [weak self] result in
+            self?.didFinishDecoding(context: context, result: result)
+        }
+    }
+
+    private func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @ImagePipelineActor @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void) {
+        @Sendable func decode() -> Result<ImageResponse, ImageTask.Error> {
+            signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+                Result { try decoder.decode(context) }
+                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
+            }
+        }
+        guard decoder.isAsynchronous else {
+            return completion(decode())
+        }
+        operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) {
+            let response = await performInBackground { decode() }
+            completion(response)
+        }
+    }
+
+    private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImageTask.Error>) {
+        operation = nil
+
+        switch result {
+        case .success(let response):
+            didReceiveDecodedImage(response, isCompleted: context.isCompleted)
+        case .failure(let error):
+            if context.isCompleted {
+                send(error: error)
             }
         }
     }
 
+    // Lazily creates decoding for task
+    private func getDecoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
+        // Return the existing processor in case it has already been created.
+        if let decoder {
+            return decoder
+        }
+        let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)
+        self.decoder = decoder
+        return decoder
+    }
+
     // MARK: Processing
 
-    private func process(_ response: ImageResponse, isCompleted: Bool, processor: any ImageProcessing) {
+    private func didReceiveDecodedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard !isDisposed else { return }
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive
         } else if operation != nil {
             return // Back pressure - already processing another progressive image
         }
+        let processors = request.processors
+        guard !processors.isEmpty else {
+            return didReceiveProcessedImage(response, isCompleted: isCompleted)
+        }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         operation = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
-            let response = await performInBackground {
+            let result: Result<ImageResponse, ImageTask.Error> = await performInBackground {
                 signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
-                    Result {
-                        var response = response
-                        response.container = try processor.process(response.container, context: context)
-                        return response
-                    }.mapError { error in
-                        ImageTask.Error.processingFailed(processor: processor, context: context, error: error)
+                    var response = response
+                    for processor in processors {
+                        do {
+                            response.container = try processor.process(response.container, context: context)
+                        } catch {
+                            return .failure(.processingFailed(processor: processor, context: context, error: error))
+                        }
                     }
+                    return .success(response)
                 }
             }
-
             self.operation = nil
-            self.didFinishProcessing(result: response, isCompleted: isCompleted)
+            self.didFinishProcessing(result: result, isCompleted: isCompleted)
         }
     }
 
     private func didFinishProcessing(result: Result<ImageResponse, ImageTask.Error>, isCompleted: Bool) {
         switch result {
         case .success(let response):
-            didReceiveImageResponse(response, isCompleted: isCompleted)
+            didReceiveProcessedImage(response, isCompleted: isCompleted)
         case .failure(let error):
             if isCompleted {
                 send(error: error)
@@ -103,7 +188,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
     // MARK: Decompression
 
-    private func didReceiveImageResponse(_ response: ImageResponse, isCompleted: Bool) {
+    private func didReceiveProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
             return didReceiveDecompressedImage(response, isCompleted: isCompleted)
         }
@@ -128,85 +213,11 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         ImageDecompression.isDecompressionNeeded(for: response) &&
         !request.options.contains(.skipDecompression) &&
-        hasDirectSubscribers &&
         pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
 
     private func didReceiveDecompressedImage(_ response: ImageResponse, isCompleted: Bool) {
         storeImageInCaches(response)
         send(value: response, isCompleted: isCompleted)
-    }
-
-    // MARK: Caching
-
-    private func storeImageInCaches(_ response: ImageResponse) {
-        guard hasDirectSubscribers else {
-            return
-        }
-        pipeline.cache[request] = response.container
-        if shouldStoreResponseInDataCache(response) {
-            storeImageInDataCache(response)
-        }
-    }
-
-    private func storeImageInDataCache(_ response: ImageResponse) {
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline) else {
-            return
-        }
-        let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
-        let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
-        let key = pipeline.cache.makeDataCacheKey(for: request)
-
-        guard !pipeline.configuration.debugIsSyncImageEncoding else {
-            // TODO: remove some of this duplication
-            if let data = encoder.encode(response.container, context: context), !data.isEmpty {
-                pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-                    guard let data = $0, !data.isEmpty else { return }
-                    dataCache.storeData(data, for: key)
-                }
-            }
-            return
-        }
-
-        pipeline.configuration.imageEncodingQueue.add(priority: priority) { [weak pipeline, request] in
-            guard let pipeline else { return }
-            let encodedData = await performInBackground {
-                signpost("EncodeImage") {
-                    encoder.encode(response.container, context: context)
-                }
-            }
-            guard let data = encodedData, !data.isEmpty else { return }
-            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-                guard let data = $0, !data.isEmpty else { return }
-                // Important! Storing directly ignoring `ImageRequest.Options`.
-                dataCache.storeData(data, for: key) // This is instant, writes are async
-            }
-        }
-    }
-
-    private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
-        guard !response.container.isPreview,
-              !(response.cacheType == .disk),
-              !(request.url?.isLocalResource ?? false) else {
-            return false
-        }
-        let isProcessed = !request.processors.isEmpty || request.thumbnail != nil
-        switch pipeline.configuration.dataCachePolicy {
-        case .automatic:
-            return isProcessed
-        case .storeOriginalData:
-            return false
-        case .storeEncodedImages:
-            return true
-        case .storeAll:
-            return isProcessed
-        }
-    }
-
-    /// Returns `true` if the task has at least one image task that was directly
-    /// subscribed to it, which means that the request was initiated by the
-    /// user and not the framework.
-    private var hasDirectSubscribers: Bool {
-        subscribers.contains { $0 is ImageTask }
     }
 }

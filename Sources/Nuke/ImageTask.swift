@@ -18,7 +18,7 @@ import AppKit
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
 @ImagePipelineActor
-public final class ImageTask: Hashable {
+public final class ImageTask: Hashable, JobSubscriber {
     /// An identifier that uniquely identifies the task within a given pipeline.
     /// Unique only within that pipeline.
     public nonisolated let taskId: Int64
@@ -99,14 +99,14 @@ public final class ImageTask: Hashable {
 
     let isDataTask: Bool
     private let nonisolatedState: Mutex<ImageTaskState>
-    private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
+    private let onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
     private var subscription: TaskSubscription?
 
     private var taskContinuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
     private var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
 
-    nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?) {
+    nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
         self.nonisolatedState = Mutex(ImageTaskState(priority: request.priority))
@@ -142,9 +142,7 @@ public final class ImageTask: Hashable {
 
     private func startRunning() {
         state = .running
-        subscription = pipeline?.perform(self) { [weak self] in
-            self?.process($0)
-        }
+        subscription = pipeline?.perform(self)
     }
 
     /// Marks task as being cancelled.
@@ -169,7 +167,7 @@ public final class ImageTask: Hashable {
             return !$0.isCancelling
         }) else { return }
         Task { @ImagePipelineActor in
-            subscription?.setPriority(TaskPriority(newValue))
+            subscription?.setPriority(newValue)
         }
     }
 
@@ -183,26 +181,6 @@ public final class ImageTask: Hashable {
         subscription = nil
         state = .cancelled
         dispatch(.cancelled)
-    }
-
-    /// Gets called when the associated task sends a new event.
-    private func process(_ event: AsyncTask<ImageResponse, ImageTask.Error>.Event) {
-        guard case .running = state else { return }
-        switch event {
-        case let .value(response, isCompleted):
-            if isCompleted {
-                state = .completed(.success(response))
-                dispatch(.finished(.success(response)))
-            } else {
-                dispatch(.preview(response))
-            }
-        case let .progress(value):
-            nonisolatedState.withLock { $0.progress = value }
-            dispatch(.progress(value))
-        case let .error(error):
-            state = .completed(.failure(error))
-            dispatch(.finished(.failure(error)))
-        }
     }
 
     /// Dispatches the given event to the observers.
@@ -239,6 +217,31 @@ public final class ImageTask: Hashable {
 
         onEvent?(event, self)
         pipeline?.imageTask(self, didProcessEvent: event)
+    }
+
+    // MARK: JobSubscriber
+
+    func receive(_ event: Job<ImageResponse>.Event) {
+        guard case .running = state else { return }
+        switch event {
+        case let .value(response, isCompleted):
+            if isCompleted {
+                state = .completed(.success(response))
+                dispatch(.finished(.success(response)))
+            } else {
+                dispatch(.preview(response))
+            }
+        case let .progress(value):
+            nonisolatedState.withLock { $0.progress = value }
+            dispatch(.progress(value))
+        case let .error(error):
+            state = .completed(.failure(error))
+            dispatch(.finished(.failure(error)))
+        }
+    }
+
+    func addTasks(to output: inout [ImageTask]) {
+        output.append(self)
     }
 
     // MARK: Hashable

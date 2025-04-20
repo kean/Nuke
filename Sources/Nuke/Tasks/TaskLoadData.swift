@@ -5,7 +5,7 @@
 import Foundation
 
 /// Wrapper for tasks created by `loadData` calls.
-final class TaskLoadData: AsyncPipelineTask<ImageResponse> {
+final class TaskLoadData: AsyncPipelineTask<ImageResponse>, JobSubscriber {
     override func start() {
         if let data = pipeline.cache.cachedData(for: request) {
             let container = ImageContainer(image: .init(), data: data)
@@ -21,16 +21,24 @@ final class TaskLoadData: AsyncPipelineTask<ImageResponse> {
             return send(error: .dataMissingInCache)
         }
         let request = request.withProcessors([])
-        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
-            self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
-        }
+        dependency = pipeline.makeTaskFetchOriginalData(for: request)
+            .subscribe(priority: priority, subscriber: self)
     }
 
-    private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
-        let container = ImageContainer(image: .init(), data: data)
-        let response = ImageResponse(container: container, request: request, urlResponse: urlResponse)
-        if isCompleted {
-            send(value: response, isCompleted: isCompleted)
+    // TODO: add default parsing for value
+    func receive(_ event: Job<(Data, URLResponse?)>.Event) {
+        switch event {
+        case let .value((data, urlResponse), isCompleted):
+            let container = ImageContainer(image: .init(), data: data)
+            let response = ImageResponse(container: container, request: request, urlResponse: urlResponse)
+            if isCompleted {
+                send(value: response, isCompleted: isCompleted)
+                storeDataInCacheIfNeeded(data)
+            }
+        case .progress(let progress):
+            send(progress: progress)
+        case .error(let error):
+            send(error: error)
         }
     }
 }

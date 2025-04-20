@@ -34,7 +34,7 @@ public final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> Operation {
+    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> Operation {
         let operation = Operation(priority: priority, work: work)
         operation.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentOperationCount {
@@ -94,7 +94,7 @@ public final class WorkQueue {
 
     private func perform(_ operation: Operation) {
         activeTaskCount += 1
-        operation.task = Task {
+        operation.task = Task { @ImagePipelineActor in
             await operation.work()
             operation.task = nil // just in case
             self.activeTaskCount -= 1
@@ -118,12 +118,12 @@ public final class WorkQueue {
             }
         }
 
-        fileprivate let work: () async -> Void
+        fileprivate let work: @ImagePipelineActor () async -> Void
         fileprivate weak var node: LinkedList<Operation>.Node?
         fileprivate var task: Task<Void, Never>?
         fileprivate weak var queue: WorkQueue?
 
-        fileprivate init(priority: TaskPriority, work: @escaping () async -> Void) {
+        fileprivate init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }

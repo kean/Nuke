@@ -479,17 +479,17 @@ extension ImageRequest {
 
         var description: String {
             switch self {
-            case .url(let url): return "\(url?.absoluteString ?? "nil")"
-            case .urlRequest(let urlRequest): return "\(urlRequest)"
-            case .closure(_, let id): return id
+            case .url(let url): "\(url?.absoluteString ?? "nil")"
+            case .urlRequest(let urlRequest): "\(urlRequest)"
+            case .closure(_, let id): id
             }
         }
 
         var imageId: String? {
             switch self {
-            case .url(let url): return url?.absoluteString
-            case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
-            case .closure(_, let id): return id
+            case .url(let url): url?.absoluteString
+            case .urlRequest(let urlRequest): urlRequest.url?.absoluteString
+            case .closure(_, let id): id
             }
         }
     }

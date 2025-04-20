@@ -182,7 +182,7 @@ final class _ImagePrefetcher {
         }
 
         let task = PrefetchTask(request: request, key: key)
-        task.operation = queue.add(priority: TaskPriority(request.priority)) { [weak self, pipeline, destination] in
+        task.operation = queue.add(priority: request.priority) { [weak self, pipeline, destination] in
             let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
             task.imageTask = imageTask
             _ = try? await imageTask.response

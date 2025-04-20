@@ -22,7 +22,7 @@ final class RateLimiter {
     private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    typealias Work = () -> Bool
+    typealias Work = @ImagePipelineActor () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameters:

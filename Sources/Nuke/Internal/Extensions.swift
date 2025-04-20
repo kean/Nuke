@@ -27,19 +27,8 @@ extension String {
 
 extension URL {
     var isLocalResource: Bool {
-        scheme == "file" || scheme == "data"
-    }
-}
-
-extension TaskPriority {
-    init(_ priority: ImageRequest.Priority) {
-        switch priority {
-        case .veryLow: self = .veryLow
-        case .low: self = .low
-        case .normal: self = .normal
-        case .high: self = .high
-        case .veryHigh: self = .veryHigh
-        }
+        let scheme = self.scheme
+        return scheme == "file" || scheme == "data"
     }
 }
 
