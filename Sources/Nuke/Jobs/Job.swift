@@ -29,11 +29,7 @@ class Job<Value: Sendable>: JobProtocol {
         var subscriber: any JobSubscriber<Value>
     }
 
-    // In most situations, especially for intermediate jibs, the almost almost
-    // only one subscription.
-    private var inlineSubscription: Subscriber?
-    private var subscriptions: [JobSubscriptionKey: Subscriber]? // Create lazily
-    private var nextSubscriptionKey = 0
+    private var subscriptions = JobSubsciberSet<Subscriber>()
 
     /// Returns `true` if the jib was either cancelled, or was completed.
     private(set) var isDisposed = false
@@ -82,16 +78,11 @@ class Job<Value: Sendable>: JobProtocol {
     func subscribe(_ subscriber: any JobSubscriber<Value>) -> JobSubscription? {
         guard !isDisposed else { return nil }
 
-        let subscriptionKey = nextSubscriptionKey
-        nextSubscriptionKey += 1
-        let subscription = JobSubscription(job: self, key: subscriptionKey)
+        let index = subscriptions.add(Subscriber(subscriber: subscriber))
 
-        if subscriptionKey == 0 {
-            inlineSubscription = Subscriber(subscriber: subscriber)
+        if subscriptions.count == 1 {
             priority = subscriber.priority
         } else {
-            if subscriptions == nil { subscriptions = [:] }
-            subscriptions![subscriptionKey] = Subscriber(subscriber: subscriber)
             updatePriority(suggestedPriority: subscriber.priority)
         }
 
@@ -102,7 +93,7 @@ class Job<Value: Sendable>: JobProtocol {
 
         // The job may have been completed synchronously by `starter`.
         guard !isDisposed else { return nil }
-        return subscription
+        return JobSubscription(job: self, key: index)
     }
 
     // MARK: - JobSubscriptionDelegate
@@ -113,16 +104,10 @@ class Job<Value: Sendable>: JobProtocol {
     }
 
     fileprivate func unsubscribe(key: JobSubscriptionKey) {
-        if key == 0 {
-            guard inlineSubscription != nil else { return }
-            inlineSubscription = nil
-        } else {
-            guard subscriptions!.removeValue(forKey: key) != nil else { return }
-        }
-
+        subscriptions.remove(at: key)
         guard !isDisposed else { return }
-
-        if inlineSubscription == nil && subscriptions?.isEmpty ?? true {
+        // swiftlint:disable:next empty_count
+        if subscriptions.count == 0 {
             terminate(reason: .cancelled)
         } else {
             updatePriority(suggestedPriority: nil)
@@ -146,7 +131,7 @@ class Job<Value: Sendable>: JobProtocol {
     private func send(event: Event) {
         guard !isDisposed else { return }
 
-        forEachSubscription {
+        subscriptions.forEach {
             $0.subscriber.receive(event)
         }
 
@@ -176,8 +161,7 @@ class Job<Value: Sendable>: JobProtocol {
             operation?.cancel()
             dependency?.unsubscribe()
         }
-        inlineSubscription = nil
-        subscriptions = nil
+        subscriptions = .init()
         onDisposed?()
     }
 
@@ -190,7 +174,7 @@ class Job<Value: Sendable>: JobProtocol {
             return
         }
         var newPriority: JobPriority = .veryLow
-        forEachSubscription {
+        subscriptions.forEach {
             newPriority = max(newPriority, $0.subscriber.priority)
         }
         self.priority = newPriority
@@ -199,19 +183,8 @@ class Job<Value: Sendable>: JobProtocol {
     // MARK: - Subscribers
 
     func addSubscribedTasks(to output: inout [ImageTask]) {
-        forEachSubscription {
+        subscriptions.forEach {
             $0.subscriber.addSubscribedTasks(to: &output)
-        }
-    }
-
-    private func forEachSubscription(_ closure: (Subscriber) -> Void) {
-        if let inlineSubscription {
-            closure(inlineSubscription)
-        }
-        if let subscriptions {
-            for (_, value) in subscriptions {
-                closure(value)
-            }
         }
     }
 }
