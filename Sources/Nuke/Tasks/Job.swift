@@ -69,14 +69,16 @@ class Job<Value: Sendable>: JobProtocol {
         return tasks
     }
 
-    /// Override this to start image task. Only gets called once.
-    func start() {}
-
     init() {}
 
-    // MARK: - Managing Observers
+    // MARK: - Hooks
 
-    /// - notes: Returns `nil` if the task was disposed.
+    /// Override this to start the job. Only gets called once.
+    func start() {}
+
+    // MARK: - Subscribers
+
+    /// - notes: Returns `nil` if the job was disposed.
     func subscribe(_ subscriber: any JobSubscriber<Value>) -> JobSubscription? {
         guard !isDisposed else { return nil }
 
@@ -98,7 +100,7 @@ class Job<Value: Sendable>: JobProtocol {
             start()
         }
 
-        // The task may have been completed synchronously by `starter`.
+        // The job may have been completed synchronously by `starter`.
         guard !isDisposed else { return nil }
         return subscription
     }

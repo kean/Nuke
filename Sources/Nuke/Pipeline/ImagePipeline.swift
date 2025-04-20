@@ -175,19 +175,19 @@ public final class ImagePipeline {
 
     func makeTaskLoadImage(for request: ImageRequest) -> Job<ImageResponse> {
         tasksLoadImage.task(for: TaskLoadImageKey(request)) {
-            TaskLoadImage(self, request)
+            JobFetchImage(self, request)
         }
     }
 
     func makeTaskLoadData(for request: ImageRequest) -> Job<ImageResponse> {
         tasksLoadData.task(for: TaskLoadImageKey(request)) {
-            TaskLoadData(self, request)
+            JobFetchData(self, request)
         }
     }
 
     func makeTaskFetchOriginalData(for request: ImageRequest) -> Job<(Data, URLResponse?)> {
         tasksFetchOriginalData.task(for: TaskFetchOriginalDataKey(request)) {
-            TaskFetchOriginalData(self, request)
+            JobLoadOriginalData(self, request)
         }
     }
 }
