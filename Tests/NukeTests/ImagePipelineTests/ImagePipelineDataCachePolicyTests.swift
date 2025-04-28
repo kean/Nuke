@@ -423,6 +423,7 @@ import Testing
         #expect(dataCache.store.count == 0)
     }
 
+    // TODO: this fails because there is too few thread hops
     @Test func imagesFromData() async throws {
         // Given
         pipeline = pipeline.reconfigured {

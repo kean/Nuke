@@ -21,7 +21,7 @@ import Testing
         }
     }
 
-    // MARK: - Deduplication
+    // MARK: - Coalescing
 
     @Test func coalescingGivenSameURLDifferentSameProcessors() async throws {
         // Given requests with the same URLs and same processors
@@ -106,6 +106,29 @@ import Testing
         #expect(dataLoader.createdTaskCount == 2)
     }
 
+    // MARK: - Caching
+
+    @Test func memoryCacheLookupPerformedBeforeCoalescing() async throws {
+        // Given
+        let cache = MockImageCache()
+        let pipeline = pipeline.reconfigured {
+            $0.imageCache = cache
+        }
+
+        dataLoader.isSuspended = true
+
+        // When one request is pending
+        let exepctation = pipeline.configuration.dataLoadingQueue.expectJobAdded()
+        pipeline.imageTask(with: Test.request).resume()
+        await exepctation.wait()
+
+        // When image is added to memory cache
+        cache[Test.request] = Test.container
+
+        // Then when second request is started the image is returned immediatelly
+        _ = try await pipeline.image(for: Test.request)
+    }
+
     // MARK: - Scale
 
 #if !os(macOS)
@@ -171,7 +194,7 @@ import Testing
         let processors = MockProcessorFactory()
 
         // When
-        let expectation = pipeline.configuration.imageProcessingQueue.expectOperationAdded(count: 2)
+        let expectation = pipeline.configuration.imageProcessingQueue.expectJobsAdded(count: 2)
 
         async let task1 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
         async let task2 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "2")]))
@@ -194,7 +217,7 @@ import Testing
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
 
         // When first task is stated and processing operation is registered
-        let expectation = queue.expectOperationAdded()
+        let expectation = queue.expectJobAdded()
         let task = Task {
             try await pipeline.image(for: request1)
         }
@@ -290,16 +313,16 @@ import Testing
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
         // When
-        let expectation1 = queue.expectOperationAdded()
+        let expectation1 = queue.expectJobAdded()
         pipeline.imageTask(with: request1).resume()
         _ = await expectation1.wait()
 
-        let expectation2 = queue.expectOperationAdded()
+        let expectation2 = queue.expectJobAdded()
         let task2 = pipeline.imageTask(with: request2).resume()
         let item2 = await expectation2.wait()
 
         // When
-        let expectation3 = queue.expectOperationCancellation(item2)
+        let expectation3 = queue.expectJobCancelled(item2)
         task2.cancel()
         await expectation3.wait()
     }
@@ -312,16 +335,16 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectOperationAdded()
+        let expectation1 = queue.expectJobAdded()
         var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)
         pipeline.imageTask(with: request).resume()
 
         // Then the item is created with a low priority
-        let operation = await expectation1.wait()
-        #expect(operation.priority == .low)
+        let job = await expectation1.wait()
+        #expect(job.priority == .low)
 
         // When new operation is added with a higher priority
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         request.priority = .high
         let task = pipeline.imageTask(with: request).resume()
         let newPriority1 = await expectation2.wait()
@@ -330,7 +353,7 @@ import Testing
         #expect(newPriority1 == .high)
 
         // When
-        let expectation3 = queue.expectPriorityUpdated(for: operation)
+        let expectation3 = queue.expectPriorityUpdated(for: job)
         task.priority = .low
 
         // Then priority is lowered again
@@ -344,16 +367,16 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectOperationAdded()
+        let expectation1 = queue.expectJobAdded()
         var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)
         pipeline.imageTask(with: request).resume()
 
         // Then the item is created with a low priority
-        let operation = await expectation1.wait()
-        #expect(operation.priority == .low)
+        let job = await expectation1.wait()
+        #expect(job.priority == .low)
 
         // When new operation is added with a higher priority
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         request.priority = .high
         let task = pipeline.imageTask(with: request).resume()
         let newPriority1 = await expectation2.wait()
@@ -362,7 +385,7 @@ import Testing
         #expect(newPriority1 == .high)
 
         // When high-priority task is cancelled
-        let expectation3 = queue.expectPriorityUpdated(for: operation)
+        let expectation3 = queue.expectPriorityUpdated(for: job)
         task.cancel()
 
         // Then priority is lowered again

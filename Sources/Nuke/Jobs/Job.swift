@@ -4,21 +4,35 @@
 
 import Foundation
 
+// TODO: separate priority from addSubscribedTasks and (probably) remove priorit entirey
+/// A subscriber determines the priority of the job (together with other subscribers).
 @ImagePipelineActor
-protocol JobSubscriber<Value>: AnyObject {
-    associatedtype Value: Sendable
-
+protocol JobOwner {
     var priority: JobPriority { get }
-
-    func receive(_ event: Job<Value>.Event)
-
     func addSubscribedTasks(to output: inout [ImageTask])
 }
 
-/// Represents a unit of work performed by the image pipeline. The same unit
-/// can have multiple subscribers: image jibs or other jobs.
+/// A subscriber that also receives events emitted by the job.
 @ImagePipelineActor
-class Job<Value: Sendable>: JobProtocol {
+protocol JobSubscriber<Value>: JobOwner {
+    associatedtype Value: Sendable
+
+    func receive(_ event: Job<Value>.Event)
+}
+
+// TODO: can we remove some of these?
+@ImagePipelineActor
+protocol JobDelegate: AnyObject {
+    func jobDisposed(_ job: any JobProtocol)
+    func job(_ job: any JobProtocol, didUpdatePriority newPriority: JobPriority, from oldPriority: JobPriority)
+}
+
+/// Represents a unit of work performed by the image pipeline.
+///
+/// A single job can have many subscribers. The priority of the job is automatically
+/// set to the highest priority of its subscribers.
+@ImagePipelineActor
+class Job<Value: Sendable>: JobProtocol, JobOwner {
     enum Event {
         case value(Value, isCompleted: Bool)
         case progress(JobProgress)
@@ -31,20 +45,32 @@ class Job<Value: Sendable>: JobProtocol {
 
     private var subscriptions = JobSubsciberSet<Subscriber>()
 
-    /// Returns `true` if the jib was either cancelled, or was completed.
+    /// Returns `true` if the job was either cancelled, or was completed.
     private(set) var isDisposed = false
-    private var isStarted = false
+    private(set) var isStarted = false
+    private var isEnqueued = false
 
-    /// Gets called when the jib is either cancelled, or was completed.
+    /// Gets called when the job is either cancelled, or was completed.
     var onDisposed: (@ImagePipelineActor @Sendable () -> Void)?
 
-    var priority: JobPriority = .normal {
+    private(set) var priority: JobPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            operation?.priority = priority
+            operation?.didChangePriority(priority)
             dependency?.didChangePriority(priority)
+            delegate?.job(self, didUpdatePriority: priority, from: oldValue)
         }
     }
+
+    /// A queue on which to schedule the job.
+    ///
+    /// The job is scheduled automatically as soon as the first subscriber is added.
+    /// It ensures that if it completes synchronously, the events are still
+    /// delivered, and the job gets scheduled with the initial priority
+    /// based on the subscriber.
+    weak var queue: JobQueue?
+
+    weak var delegate: JobDelegate?
 
     /// A job might have a dependency. The job automatically unsubscribes
     /// from the dependency when it gets cancelled, and also updates the
@@ -56,7 +82,7 @@ class Job<Value: Sendable>: JobProtocol {
         }
     }
 
-    var operation: WorkQueue.Operation?
+    var operation: JobSubscription?
 
     /// Returns all tasks registered for the current job, directly or indirectly.
     var tasks: [ImageTask] {
@@ -65,12 +91,32 @@ class Job<Value: Sendable>: JobProtocol {
         return tasks
     }
 
+    private var starter: (@ImagePipelineActor @Sendable (Job<Value>) -> Void)?
+
+    init(_ starter: @ImagePipelineActor @Sendable @escaping (Job<Value>) -> Void) {
+        self.starter = starter
+    }
+
     init() {}
 
     // MARK: - Hooks
 
     /// Override this to start the job. Only gets called once.
     func start() {}
+
+    // TODO: overriding is bad
+    func onCancel() {
+        terminate(reason: .cancelled)
+    }
+
+    // MARK: - Stat
+
+    /// - warning: Do not call this directly.
+    func startIfNeeded() {
+        guard !isStarted else { return }
+        isStarted = true
+        start()
+    }
 
     // MARK: - Subscribers
 
@@ -86,9 +132,13 @@ class Job<Value: Sendable>: JobProtocol {
             updatePriority(suggestedPriority: subscriber.priority)
         }
 
-        if !isStarted {
-            isStarted = true
-            start()
+        if !isEnqueued {
+            isEnqueued = true
+            if let queue {
+                queue.enqueue(self)
+            } else {
+                startIfNeeded()
+            }
         }
 
         // The job may have been completed synchronously by `starter`.
@@ -98,17 +148,17 @@ class Job<Value: Sendable>: JobProtocol {
 
     // MARK: - JobSubscriptionDelegate
 
-    fileprivate func didChangePriority(_ priority: JobPriority, for key: JobSubscriptionKey) {
+    func didChangePriority(_ priority: JobPriority, for key: JobSubscriptionKey) {
         guard !isDisposed else { return }
         updatePriority(suggestedPriority: priority)
     }
 
-    fileprivate func unsubscribe(key: JobSubscriptionKey) {
+    func unsubscribe(key: JobSubscriptionKey) {
         subscriptions.remove(at: key)
         guard !isDisposed else { return }
         // swiftlint:disable:next empty_count
         if subscriptions.count == 0 {
-            terminate(reason: .cancelled)
+            onCancel()
         } else {
             updatePriority(suggestedPriority: nil)
         }
@@ -126,6 +176,16 @@ class Job<Value: Sendable>: JobProtocol {
 
     func send(progress: JobProgress) {
         send(event: .progress(progress))
+    }
+
+    /// A convenience method that send a terminal event depending on the result.
+    func finish(with result: Result<Value, ImageTask.Error>) {
+        switch result {
+        case .success(let value):
+            send(value: value, isCompleted: true)
+        case .failure(let error):
+            send(error: error)
+        }
     }
 
     private func send(event: Event) {
@@ -158,11 +218,12 @@ class Job<Value: Sendable>: JobProtocol {
         isDisposed = true
 
         if reason == .cancelled {
-            operation?.cancel()
+            operation?.unsubscribe()
             dependency?.unsubscribe()
         }
         subscriptions = .init()
         onDisposed?()
+        delegate?.jobDisposed(self)
     }
 
     // MARK: - Priority
@@ -210,27 +271,33 @@ struct JobSubscription {
     /// more events from the job.
     ///
     /// If there are no more subscriptions attached to the job, the job gets
-    /// cancelled along with its dependencies. The cancelled jib is
+    /// cancelled along with its dependencies. The cancelled job is
     /// marked as disposed.
     func unsubscribe() {
         job.unsubscribe(key: key)
     }
 
-    /// Updates the priority of the subscription. The priority of the jib is
+    /// Updates the priority of the subscription. The priority of the job is
     /// calculated as the maximum priority out of all of its subscription. When
-    /// the priority of the jib is updated, the priority of a dependency also is.
+    /// the priority of the job is updated, the priority of a dependency also is.
     ///
     /// - note: The priority also automatically gets updated when the subscription
-    /// is removed from the jib.
+    /// is removed from the job.
     func didChangePriority(_ priority: JobPriority) {
         job.didChangePriority(priority, for: key)
     }
 }
 
+// TODO: add separate JobSubscription.Delegate
 @ImagePipelineActor
-private protocol JobProtocol: AnyObject {
+protocol JobProtocol: AnyObject, Sendable {
+    var priority: JobPriority { get }
+    var isStarted: Bool { get }
+    var queue: JobQueue? { get set }
+
+    func startIfNeeded()
     func unsubscribe(key: JobSubscriptionKey)
-    func didChangePriority(_ priority: JobPriority, for observer: JobSubscriptionKey)
+    func didChangePriority(_ priority: JobPriority, for key: JobSubscriptionKey)
 }
 
-private typealias JobSubscriptionKey = Int
+typealias JobSubscriptionKey = Int

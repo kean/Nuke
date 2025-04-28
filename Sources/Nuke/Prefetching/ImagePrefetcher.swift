@@ -139,29 +139,23 @@ public final class ImagePrefetcher: Sendable {
 }
 
 @ImagePipelineActor
-final class _ImagePrefetcher {
+final class _ImagePrefetcher: JobSubscriber {
     /// The closure that gets called when the prefetching completes for all the
     /// scheduled requests. The closure is always called on completion,
     /// regardless of whether the requests succeed or some fail.
 
-    private let pipeline: ImagePipeline
-    private let destination: ImagePrefetcher.Destination
-    private var tasks = [TaskLoadImageKey: PrefetchTask]()
+    let pipeline: ImagePipeline
+    let destination: ImagePrefetcher.Destination
+    private var subscriptions = [TaskLoadImageKey: JobSubscription]()
 
-    nonisolated let queue: WorkQueue
+    nonisolated let queue: JobQueue
 
-    var priority: ImageRequest.Priority = .low {
-        didSet {
-            for task in tasks.values {
-                task.imageTask?.priority = priority
-            }
-        }
-    }
+    var priority: ImageRequest.Priority = .low
 
     nonisolated init(pipeline: ImagePipeline, destination: ImagePrefetcher.Destination, maxConcurrentRequestCount: Int) {
         self.pipeline = pipeline
         self.destination = destination
-        self.queue = WorkQueue(maxConcurrentOperationCount: maxConcurrentRequestCount)
+        self.queue = JobQueue(maxConcurrentJobCount: maxConcurrentRequestCount)
     }
 
     func startPrefetching(with url: URL) {
@@ -173,28 +167,22 @@ final class _ImagePrefetcher {
         if priority != request.priority {
             request.priority = priority
         }
-        guard pipeline.cache[request] == nil else {
-            return
-        }
-        let key = TaskLoadImageKey(request)
-        guard tasks[key] == nil else {
-            return
-        }
+        guard pipeline.cache[request] == nil else { return }
 
-        let task = PrefetchTask(request: request, key: key)
-        task.operation = queue.add(priority: request.priority) { [weak self, pipeline, destination] in
-            let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
-            task.imageTask = imageTask
-            _ = try? await imageTask.response
-            self?.remove(task)
+        let key = TaskLoadImageKey(request)
+        guard subscriptions[key] == nil else { return }
+
+        let job = ImagePrefetcherJob(prefetcher: self, request: request)
+        job.queue = queue
+        job.onDisposed = { [weak self] in
+            self?.remove(key)
         }
-        tasks[key] = task
+        subscriptions[key] = job.subscribe(self)
         return
     }
 
-    private func remove(_ task: PrefetchTask) {
-        guard tasks[task.key] === task else { return } // Should never happen
-        tasks[task.key] = nil
+    private func remove(_ key: TaskLoadImageKey) {
+        subscriptions[key] = nil
     }
 
     func stopPrefetching(with url: URL) {
@@ -202,32 +190,61 @@ final class _ImagePrefetcher {
     }
 
     func stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
-            task.cancel()
+        if let subscription = subscriptions.removeValue(forKey: TaskLoadImageKey(request)) {
+            subscription.unsubscribe()
         }
     }
 
     func stopPrefetching() {
-        tasks.values.forEach { $0.cancel() }
-        tasks.removeAll()
+        subscriptions.values.forEach { $0.unsubscribe() }
+        subscriptions.removeAll()
     }
 
     @ImagePipelineActor
     private final class PrefetchTask {
         let key: TaskLoadImageKey
-        let request: ImageRequest
         weak var imageTask: ImageTask?
-        var operation: WorkQueue.Operation?
+        var subscription: JobSubscription?
 
-        init(request: ImageRequest, key: TaskLoadImageKey) {
-            self.request = request
+        init(key: TaskLoadImageKey) {
             self.key = key
         }
 
         // When task is cancelled, it is removed from the prefetcher and can
         // never get cancelled twice.
         func cancel() {
-            operation?.cancel()
+            subscription?.unsubscribe()
         }
+    }
+
+    // MARK: JobSubscriber
+
+    // TODO: remove these
+    func receive(_ event: Job<Void>.Event) {}
+    func addSubscribedTasks(to output: inout [ImageTask]) {}
+}
+
+private final class ImagePrefetcherJob: Job<Void> {
+    private weak var prefetcher: _ImagePrefetcher?
+    private let request: ImageRequest
+    private var task: Task<Void, Never>?
+
+    init(prefetcher: _ImagePrefetcher, request: ImageRequest) {
+        self.prefetcher = prefetcher
+        self.request = request
+    }
+
+    override func start() {
+        task = Task { @ImagePipelineActor in
+            if let prefetcher {
+                let imageTask = prefetcher.pipeline.makeImageTask(with: request, isDataTask: prefetcher.destination == .diskCache)
+                _ = try? await imageTask.response
+            }
+            finish(with: .success(()))
+        }
+    }
+
+    override func onCancel() {
+        task?.cancel()
     }
 }

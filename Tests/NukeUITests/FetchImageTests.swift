@@ -83,15 +83,15 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation = queue.expectItemAdded()
+        let expectation = queue.expectJobAdded()
         Task { @MainActor in
             image.priority = .high
             image.load(Test.request)
         }
 
         // Then
-        let operation = await expectation.value
-        #expect(operation.priority == .high)
+        let job = await expectation.value
+        #expect(job.priority == .high)
     }
 
     @ImagePipelineActor
@@ -101,16 +101,16 @@ import Testing
         queue.isSuspended = true
 
         // When
-        let expectation1 = queue.expectItemAdded()
+        let expectation1 = queue.expectJobAdded()
         Task { @MainActor in
             image.load(Test.request)
         }
 
         // Then
-        let operation = await expectation1.wait()
+        let job = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         Task { @MainActor in
             image.priority = .high
         }

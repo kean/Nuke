@@ -189,13 +189,13 @@ import Foundation
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        let expectation1 = queue.expectOperationAdded()
+        let expectation1 = queue.expectJobAdded()
         let request = Test.request
         let task = pipeline.imageTask(with: request).resume()
-        let operation = await expectation1.wait()
+        let job = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectOperationCancellation(operation)
+        let expectation2 = queue.expectJobCancelled(job)
         task.cancel()
 
         // Then
@@ -211,13 +211,13 @@ import Foundation
             Issue.record()
             return $0
         }
-        let expectation1 = queue.expectOperationAdded()
+        let expectation1 = queue.expectJobAdded()
         let request = ImageRequest(url: Test.url, processors: [processor])
         let task = pipeline.imageTask(with: request).resume()
-        let operation = await expectation1.wait()
+        let job = await expectation1.wait()
 
         // When
-        let expectation2 = queue.expectOperationCancellation(operation)
+        let expectation2 = queue.expectJobCancelled(job)
         task.cancel()
 
         // Then
@@ -429,7 +429,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 
         // When
-        let expectation = pipeline.configuration.imageDecodingQueue.expectOperationAdded()
+        let expectation = pipeline.configuration.imageDecodingQueue.expectJobAdded()
         pipeline.imageTask(with: request).resume()
 
         // Then work item is created on an expected queue

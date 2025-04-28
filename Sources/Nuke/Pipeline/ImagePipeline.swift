@@ -33,9 +33,8 @@ public final class ImagePipeline {
 
     private var tasks = Set<ImageTask>()
 
-    private let tasksLoadData: JobPool<TaskLoadImageKey, ImageResponse>
-    private let tasksLoadImage: JobPool<TaskLoadImageKey, ImageResponse>
-    private let tasksFetchOriginalData: JobPool<TaskFetchOriginalDataKey, (Data, URLResponse?)>
+    private let jobsFetchImage: JobPool<TaskLoadImageKey, ImageResponse>
+    private let jobsFetchData: JobPool<TaskFetchOriginalDataKey, (Data, URLResponse?)>
 
     private var isInvalidated = false
 
@@ -65,9 +64,8 @@ public final class ImagePipeline {
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
-        self.tasksLoadData = JobPool(isCoalescingEnabled)
-        self.tasksLoadImage = JobPool(isCoalescingEnabled)
-        self.tasksFetchOriginalData = JobPool(isCoalescingEnabled)
+        self.jobsFetchImage = JobPool(isCoalescingEnabled)
+        self.jobsFetchData = JobPool(isCoalescingEnabled)
 
         Task { @ImagePipelineActor [id] in
             ResumableDataStorage.shared.register(id)
@@ -152,12 +150,22 @@ public final class ImagePipeline {
     }
 
     func perform(_ imageTask: ImageTask) -> JobSubscription? {
-        // TODO: move this
         guard !isInvalidated else {
             imageTask.receive(.error(.pipelineInvalidated))
             return nil
         }
-        let task = imageTask.isDataTask ? makeTaskLoadData(for: imageTask.request) : makeTaskLoadImage(for: imageTask.request)
+        return imageTask.isDataTask ? performDataTask(imageTask) : performImageTask(imageTask)
+    }
+
+    // TODO: remove duplication
+    private func performImageTask(_ imageTask: ImageTask) -> JobSubscription? {
+        let task = JobPrefixFetchImage(self, imageTask.request)
+        tasks.insert(imageTask)
+        return task.subscribe(imageTask)
+    }
+
+    private func performDataTask(_ imageTask: ImageTask) -> JobSubscription? {
+        let task = JobPrefixFetchData(self, imageTask.request)
         tasks.insert(imageTask)
         return task.subscribe(imageTask)
     }
@@ -166,28 +174,31 @@ public final class ImagePipeline {
         switch event {
         case .cancelled, .finished:
             tasks.remove(task)
-        default: break
+        default:
+            break
         }
         if !task.isDataTask {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
         }
     }
 
-    func makeTaskLoadImage(for request: ImageRequest) -> Job<ImageResponse> {
-        tasksLoadImage.task(for: TaskLoadImageKey(request)) {
+    func makeJobFetchImage(for request: ImageRequest) -> Job<ImageResponse> {
+        jobsFetchImage.task(for: TaskLoadImageKey(request)) {
             JobFetchImage(self, request)
         }
     }
 
-    func makeTaskLoadData(for request: ImageRequest) -> Job<ImageResponse> {
-        tasksLoadData.task(for: TaskLoadImageKey(request)) {
-            JobFetchData(self, request)
-        }
-    }
-
-    func makeTaskFetchOriginalData(for request: ImageRequest) -> Job<(Data, URLResponse?)> {
-        tasksFetchOriginalData.task(for: TaskFetchOriginalDataKey(request)) {
-            JobLoadOriginalData(self, request)
+    func makeJobFetchData(for request: ImageRequest) -> Job<(Data, URLResponse?)> {
+        jobsFetchData.task(for: TaskFetchOriginalDataKey(request)) {
+            let job = JobFetchData(self, request)
+            // TODO: implement skipDataLoadingQueue
+            // TODO: add separate operation for disk lookup (or no operation at all?)
+            if request.options.contains(.skipDataLoadingQueue) {
+                job.startIfNeeded()
+            } else {
+                job.queue = configuration.dataLoadingQueue
+            }
+            return job
         }
     }
 }

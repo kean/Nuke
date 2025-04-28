@@ -26,6 +26,7 @@ import Foundation
         #expect(list.isEmpty == false)
         #expect(list.first?.value == 1)
         #expect(list.last?.value == 1)
+        #expect(list.count == 1)
     }
 
     @Test func appendTwice() {
@@ -36,6 +37,7 @@ import Foundation
         // Then
         #expect(list.first?.value == 1)
         #expect(list.last?.value == 2)
+        #expect(list.count == 2)
     }
 
     // MARK: - Remove
@@ -50,6 +52,7 @@ import Foundation
         // Then
         #expect(list.first == nil)
         #expect(list.last == nil)
+        #expect(list.count == 0)
     }
 
     @Test func removeFromBeggining() {
@@ -64,6 +67,7 @@ import Foundation
         // Then
         #expect(list.first?.value == 2)
         #expect(list.last?.value == 3)
+        #expect(list.count == 2)
     }
 
     @Test func removeFromEnd() {
@@ -78,6 +82,7 @@ import Foundation
         // Then
         #expect(list.first?.value == 1)
         #expect(list.last?.value == 2)
+        #expect(list.count == 2)
     }
 
     @Test func removeFromMiddle() {
@@ -92,6 +97,7 @@ import Foundation
         // Then
         #expect(list.first?.value == 1)
         #expect(list.last?.value == 3)
+        #expect(list.count == 2)
     }
 
     @Test func removeAll() {
@@ -106,5 +112,6 @@ import Foundation
         // Then
         #expect(list.first == nil)
         #expect(list.last == nil)
+        #expect(list.count == 0)
     }
 }

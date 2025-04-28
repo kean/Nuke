@@ -17,22 +17,22 @@ extension ImagePipelineTests {
         #expect(request.priority == .normal)
 
         // When
-        let expectation = queue.expectOperationAdded()
+        let expectation = queue.expectJobAdded()
         let imageTask = pipeline.imageTask(with: request)
         Task {
             try await imageTask.response
         }
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // Then
-        #expect(operation.priority == .normal)
+        #expect(job.priority == .normal)
 
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         imageTask.priority = .high
         let newPriority = await expectation2.wait()
 
         #expect(newPriority == .high)
-        #expect(operation.priority == .high)
+        #expect(job.priority == .high)
     }
 
     @Test func updateDecodingPriority() async {
@@ -47,12 +47,12 @@ extension ImagePipelineTests {
         let request = Test.request
         #expect(request.priority == .normal)
 
-        let expectation = queue.expectOperationAdded()
+        let expectation = queue.expectJobAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // When
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         task.priority = .high
 
         // Then
@@ -68,12 +68,12 @@ extension ImagePipelineTests {
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         #expect(request.priority == .normal)
 
-        let expectation = queue.expectOperationAdded()
+        let expectation = queue.expectJobAdded()
         let task = pipeline.loadImage(with: request) { _ in }
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // When
-        let expectation2 = queue.expectPriorityUpdated(for: operation)
+        let expectation2 = queue.expectPriorityUpdated(for: job)
         task.priority = .high
 
         // Then

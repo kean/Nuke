@@ -117,12 +117,12 @@ import Combine
         // When start prefetching with URL
         dataLoader.isSuspended = true
 
-        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectJobAdded()
         prefetcher.startPrefetching(with: [Test.url])
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // Then priority is set to .low
-        #expect(operation.priority == .low)
+        #expect(job.priority == .low)
 
         // Cleanup
         prefetcher.stopPrefetching()
@@ -133,14 +133,14 @@ import Combine
         // When start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
 
-        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectJobAdded()
         let request = Test.request
         #expect(request.priority == .normal) // Default is .normal // Default is .normal
         prefetcher.startPrefetching(with: [request])
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // Then priority is set to .low
-        #expect(operation.priority == .low)
+        #expect(job.priority == .low)
     }
 
     @ImagePipelineActor
@@ -148,14 +148,14 @@ import Combine
         // When start prefetching with ImageRequest with .veryLow priority
         pipeline.configuration.dataLoadingQueue.isSuspended = true
 
-        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectJobAdded()
         var request = Test.request
         request.priority = .veryLow
         prefetcher.startPrefetching(with: [request])
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // Then priority is set to .low (prefetcher priority)
-        #expect(operation.priority == .low)
+        #expect(job.priority == .low)
     }
 
     @ImagePipelineActor
@@ -165,27 +165,12 @@ import Combine
 
         // When
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let expectation = pipeline.configuration.dataLoadingQueue.expectOperationAdded()
+        let expectation = pipeline.configuration.dataLoadingQueue.expectJobAdded()
         prefetcher.startPrefetching(with: [Test.url])
-        let operation = await expectation.value
+        let job = await expectation.value
 
         // Then
-        #expect(operation.priority == .veryHigh)
-    }
-
-    @ImagePipelineActor
-    @Test func changePriorityOfOutstandingTasks() async {
-        // When
-        let dataLoadingQueue = pipeline.configuration.dataLoadingQueue
-        dataLoadingQueue.isSuspended = true
-        let expectation1 = dataLoadingQueue.expectOperationAdded()
-        prefetcher.startPrefetching(with: [Test.url])
-        let operation = await expectation1.value
-
-        // When/Then
-        let expectation2 = dataLoadingQueue.expectPriorityUpdated(for: operation)
-        prefetcher.priority = .veryLow
-        #expect(await expectation2.value == .veryLow)
+        #expect(job.priority == .veryHigh)
     }
 
     // MARK: Misc
@@ -210,4 +195,9 @@ private extension ImagePrefetcher {
     func wait() async {
         await impl.queue.wait()
     }
+}
+
+@ImagePipelineActor
+extension JobQueue.JobHandle {
+    var priority: JobPriority { job.priority }
 }

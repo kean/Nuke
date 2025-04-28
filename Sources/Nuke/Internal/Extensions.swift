@@ -32,7 +32,7 @@ extension URL {
     }
 }
 
-// TODO: is this the optimal way to do that? Do we need to use a different TaskPriority?
+// TODO: remove
 func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
     closure()
 }

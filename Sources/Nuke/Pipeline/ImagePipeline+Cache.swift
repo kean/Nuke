@@ -226,7 +226,7 @@ extension ImagePipeline.Cache {
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return nil
         }
-        return (try? decoder.decode(context))?.container
+        return (try? decoder.decode(context).get())?.container
     }
 
     private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {

@@ -5,10 +5,13 @@
 import Foundation
 
 /// A doubly linked list.
-final class LinkedList<Element> {
+final class LinkedList<Element: Sendable> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?
+    private(set) var count = 0
+
+    var isEmpty: Bool { last == nil }
 
     deinit {
         // This way we make sure that the deallocations do no happen recursively
@@ -16,13 +19,8 @@ final class LinkedList<Element> {
         removeAllElements()
     }
 
-    var isEmpty: Bool {
-        last == nil
-    }
-
     /// Adds an element to the end of the list.
-    @discardableResult
-    func append(_ element: Element) -> Node {
+    @discardableResult func append(_ element: Element) -> Node {
         let node = Node(element)
         append(node)
         return node
@@ -38,6 +36,7 @@ final class LinkedList<Element> {
             last = node
             first = node
         }
+        count += 1
     }
 
     /// Adds a node to the beginning of the list.
@@ -50,6 +49,7 @@ final class LinkedList<Element> {
             first = node
             last = node
         }
+        count += 1
     }
 
     func popLast() -> Node? {
@@ -71,6 +71,7 @@ final class LinkedList<Element> {
         }
         node.next = nil
         node.previous = nil
+        count -= 1
     }
 
     func removeAllElements() {
@@ -83,15 +84,14 @@ final class LinkedList<Element> {
         }
         last = nil
         first = nil
+        count = 0
     }
 
     final class Node {
-        let value: Element
+        var value: Element
         fileprivate(set) var next: Node?
         fileprivate(set) var previous: Node?
 
-        init(_ value: Element) {
-            self.value = value
-        }
+        init(_ value: Element) { self.value = value }
     }
 }

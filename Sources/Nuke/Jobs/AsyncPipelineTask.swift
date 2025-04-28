@@ -4,6 +4,7 @@
 
 import Foundation
 
+// TODO: rename/remove
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
 class AsyncPipelineTask<Value: Sendable>: Job<Value> {
@@ -17,9 +18,49 @@ class AsyncPipelineTask<Value: Sendable>: Job<Value> {
     }
 }
 
-// MARK: - AsyncPipelineTask (Data Caching)
+// MARK: - AsyncPipelineTask (Helpers)
 
 extension AsyncPipelineTask {
+    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @ImagePipelineActor @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void) {
+        let operation = Operation(name: "DecodeImage") {
+            decoder.decode(context)
+        }
+        if decoder.isAsynchronous {
+            operation.queue = pipeline.configuration.imageDecodingQueue
+        }
+        self.operation = operation.receive(self, completion)
+    }
+
+    func decompress(_ response: ImageResponse, _ completion: @ImagePipelineActor @Sendable @escaping (ImageResponse) -> Void) {
+        let operation = Operation(name: "DecompressImage") {
+            let value = self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
+            return .success(value)
+        }
+        operation.queue = pipeline.configuration.imageDecompressingQueue
+        self.operation = operation.receive(self) {
+            switch $0 {
+            case let .success(value): completion(value)
+            case .failure: completion(response)
+            }
+        }
+    }
+
+    func process(_ context: ImageProcessingContext, response: ImageResponse, processors: [any ImageProcessing], _ completion: @ImagePipelineActor @Sendable @escaping (Result<ImageResponse, ImageTask.Error>) -> Void) {
+        let operation = Operation<ImageResponse>(name: "ProcessImage") {
+            var response = response
+            for processor in processors {
+                do {
+                    response.container = try processor.process(response.container, context: context)
+                } catch {
+                    return .failure(.processingFailed(processor: processor, context: context, error: error))
+                }
+            }
+            return .success(response)
+        }
+        operation.queue = pipeline.configuration.imageProcessingQueue
+        self.operation = operation.receive(self, completion)
+    }
+
     func storeImageInCaches(_ response: ImageResponse) {
         pipeline.cache[request] = response.container
         if shouldStoreResponseInDataCache(response) {
@@ -35,31 +76,21 @@ extension AsyncPipelineTask {
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
 
-        guard !pipeline.configuration.debugIsSyncImageEncoding else {
-            // TODO: remove some of this duplication
-            if let data = encoder.encode(response.container, context: context), !data.isEmpty {
-                pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+        let operation = Operation<Void>(name: "EncodeImage") {
+            let encodedData = encoder.encode(response.container, context: context)
+            if let data = encodedData, !data.isEmpty {
+                self.pipeline.delegate.willCache(data: data, image: response.container, for: self.request, pipeline: self.pipeline) {
                     guard let data = $0, !data.isEmpty else { return }
-                    dataCache.storeData(data, for: key)
+                    // Important! Storing directly ignoring `ImageRequest.Options`.
+                    dataCache.storeData(data, for: key) // This is instant, writes are async
                 }
             }
-            return
+            return .success(())
         }
-
-        pipeline.configuration.imageEncodingQueue.add(priority: priority) { [weak pipeline, request] in
-            guard let pipeline else { return }
-            let encodedData = await performInBackground {
-                signpost("EncodeImage") {
-                    encoder.encode(response.container, context: context)
-                }
-            }
-            guard let data = encodedData, !data.isEmpty else { return }
-            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-                guard let data = $0, !data.isEmpty else { return }
-                // Important! Storing directly ignoring `ImageRequest.Options`.
-                dataCache.storeData(data, for: key) // This is instant, writes are async
-            }
+        if !pipeline.configuration.debugIsSyncImageEncoding {
+            operation.queue = pipeline.configuration.imageEncodingQueue
         }
+        operation.receive { _ in } // Adding a subscriber starts a job
     }
 
     private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
@@ -78,51 +109,6 @@ extension AsyncPipelineTask {
             return true
         case .storeAll:
             return isProcessed
-        }
-    }
-}
-
-// MARK: - AsyncPipelineTask (Data Caching)
-
-extension AsyncPipelineTask {
-    func storeDataInCacheIfNeeded(_ data: Data) {
-        let request = makeSanitizedRequest()
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
-            return
-        }
-        let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
-            guard let data = $0 else { return }
-            // Important! Storing directly ignoring `ImageRequest.Options`.
-            dataCache.storeData(data, for: key)
-        }
-    }
-
-    /// Returns a request that doesn't contain any information non-related
-    /// to data loading.
-    private func makeSanitizedRequest() -> ImageRequest {
-        var request = request
-        request.processors = []
-        request.userInfo[.thumbnailKey] = nil
-        return request
-    }
-
-    private func shouldStoreDataInDiskCache() -> Bool {
-        guard !request.options.contains(.disableDiskCacheWrites) else {
-            return false
-        }
-        guard !(request.url?.isLocalResource ?? false) else {
-            return false
-        }
-        switch pipeline.configuration.dataCachePolicy {
-        case .automatic:
-            return request.processors.isEmpty
-        case .storeOriginalData:
-            return true
-        case .storeEncodedImages:
-            return false
-        case .storeAll:
-            return true
         }
     }
 }

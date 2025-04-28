@@ -36,7 +36,7 @@ import Testing
             $0.imageCache = cache
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
-            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+            $0.imageProcessingQueue.maxConcurrentJobCount = 1
         }
     }
 
@@ -224,7 +224,7 @@ import Testing
 
         // When the first chunk is delivered
         // Then the first processing operation is enqueue
-        let expectationDecodingStarted = decodingQueue.expectOperationAdded()
+        let expectationDecodingStarted = decodingQueue.expectJobAdded()
         let expectationImageLoaded = AsyncExpectation<ImageResponse>()
 
         Task { @ImagePipelineActor in
@@ -241,7 +241,7 @@ import Testing
         // When the second chunk is delivered
         dataLoader.serveNextChunk()
 
-        let expectationPreviewDecodingCancelled = decodingQueue.expectOperationCancellation(firstDecodingTask)
+        let expectationPreviewDecodingCancelled = decodingQueue.expectJobCancelled(firstDecodingTask)
 
         // When the last chunk is delivered the
         dataLoader.serveNextChunk()
@@ -270,7 +270,7 @@ import Testing
 
         // When the first chunk is delivered
         // Then the first processing operation is enqueue
-        let expectationProcessingStarted = processingQueue.expectOperationAdded()
+        let expectationProcessingStarted = processingQueue.expectJobAdded()
         let expectationImageLoaded = AsyncExpectation<ImageResponse>()
 
         Task { @ImagePipelineActor in
@@ -282,12 +282,12 @@ import Testing
             }
         }
 
-        let firstProcessingItem = await expectationProcessingStarted.wait()
+        let firstProcessingJob = await expectationProcessingStarted.wait()
 
         // When the second chunk is delivered
         dataLoader.serveNextChunk()
 
-        let expectationPreviewProcessingCancelled = processingQueue.expectOperationCancellation(firstProcessingItem)
+        let expectationPreviewProcessingCancelled = processingQueue.expectJobCancelled(firstProcessingJob)
 
         // When the last chunk is delivered the
         dataLoader.serveNextChunk()
