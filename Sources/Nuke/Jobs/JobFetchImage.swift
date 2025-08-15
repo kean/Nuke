@@ -8,7 +8,7 @@ final class JobFetchImage2 {
     private let job: Job<ImageResponse>
 
     init(_ job: Job<ImageResponse>) {
-
+        self.job = job
     }
 }
 

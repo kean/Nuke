@@ -232,6 +232,8 @@ private final class ImagePrefetcherJob: Job<Void> {
     init(prefetcher: _ImagePrefetcher, request: ImageRequest) {
         self.prefetcher = prefetcher
         self.request = request
+        
+        super.init()
     }
 
     override func start() {

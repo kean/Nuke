@@ -60,7 +60,7 @@ final class JobPrefixFetchImage: AsyncPipelineTask<ImageResponse>, JobSubscriber
 
     func receive(_ event: Job<ImageResponse>.Event) {
         switch event {
-        case let .value(value, isCompleted):
+        case let .value(value, _):
             didReceiveResponse(value)
         case .progress(let progress):
             send(progress: progress)

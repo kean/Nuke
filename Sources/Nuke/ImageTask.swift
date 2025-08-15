@@ -117,23 +117,24 @@ public final class ImageTask: Hashable, JobSubscriber {
 
     private func perform() async throws(ImageTask.Error) -> ImageResponse {
         do {
-            return try await withTaskCancellationHandler {
-                try await withUnsafeThrowingContinuation {
+//            return try await withTaskCancellationHandler {
+                return try await withUnsafeThrowingContinuation { continuation in
                     switch state {
-                    case .suspended:
-                        taskContinuations.append($0)
-                        startRunning()
-                    case .running:
-                        taskContinuations.append($0)
-                    case .cancelled:
-                        $0.resume(throwing: ImageTask.Error.cancelled)
-                    case .completed(let result):
-                        $0.resume(with: result)
+                        case .suspended:
+                            taskContinuations.append(continuation)
+                            startRunning()
+                        case .running:
+                            taskContinuations.append(continuation)
+                        case .cancelled:
+                            continuation.resume(throwing: ImageTask.Error.cancelled)
+                        case .completed(let result):
+                            continuation.resume(with: result)
                     }
                 }
-            } onCancel: {
-                cancel()
-            }
+//            } onCancel: {
+//                cancel()
+//            }
+
         } catch {
             // swiftlint:disable:next force_cast
             throw error as! ImageTask.Error

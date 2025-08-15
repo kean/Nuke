@@ -15,6 +15,8 @@ class AsyncPipelineTask<Value: Sendable>: Job<Value> {
     init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
         self.pipeline = pipeline
         self.request = request
+        
+        super.init()
     }
 }
 
