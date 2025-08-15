@@ -1,58 +1,64 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+
+import Testing
+import UIKit
 
 @testable import Nuke
-import XCTest
 
-class ThreadSafetyTests: XCTestCase {
-    func testImagePipelineThreadSafety() {
+@ImagePipelineActor
+@Suite struct ThreadSafetyTests {
+    @Test func imagePipelineThreadSafety() async {
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-        
-        _testPipelineThreadSafety(pipeline)
-        
-        wait(20) { _ in
-            _ = (dataLoader, pipeline)
-        }
+
+        let expectation = _testPipelineThreadSafety(pipeline)
+        await expectation.wait()
+
+        _ = (dataLoader, pipeline)
     }
-    
-    func testSharingConfigurationBetweenPipelines() { // Especially operation queues
+
+    @Test func sharingConfigurationBetweenPipelines() async { // Especially operation queues
         var pipelines = [ImagePipeline]()
-        
+
         var configuration = ImagePipeline.Configuration()
         configuration.dataLoader = MockDataLoader()
         configuration.imageCache = nil
-        
+
         pipelines.append(ImagePipeline(configuration: configuration))
         pipelines.append(ImagePipeline(configuration: configuration))
         pipelines.append(ImagePipeline(configuration: configuration))
-        
+
+        var expectations: [AsyncExpectation<Void>] = []
+
         for pipeline in pipelines {
-            _testPipelineThreadSafety(pipeline)
+            let expectation = _testPipelineThreadSafety(pipeline)
+            expectations.append(expectation)
         }
-        
-        wait(60) { _ in
-            _ = (pipelines)
+
+        for expectation in expectations {
+            await expectation.wait()
         }
+
+        _ = (pipelines)
     }
-    
-    func _testPipelineThreadSafety(_ pipeline: ImagePipeline) {
-        let expectation = self.expectation(description: "Finished")
-        expectation.expectedFulfillmentCount = 1000
-        
+
+    func _testPipelineThreadSafety(_ pipeline: ImagePipeline) -> AsyncExpectation<Void> {
+        let expectation = AsyncExpectation(expectedFulfillmentCount: 1000)
+
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 16
-        
+
         for _ in 0..<1000 {
             queue.addOperation {
                 let url = URL(fileURLWithPath: "\(rnd(30))")
                 let request = ImageRequest(url: url)
                 let shouldCancel = rnd(3) == 0
-                
+
                 let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
@@ -60,26 +66,28 @@ class ThreadSafetyTests: XCTestCase {
                         expectation.fulfill()
                     }
                 }
-                
+
                 if shouldCancel {
                     task.cancel()
                     expectation.fulfill()
                 }
             }
         }
+
+        return expectation
     }
-    
-    func testPrefetcherThreadSafety() {
+
+    @Test func prefetcherThreadSafety() {
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
             $0.imageCache = nil
         }
-        
+
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
-        
-        func makeRequests() -> [ImageRequest] {
+
+        @Sendable func makeRequests() -> [ImageRequest] {
             return (0...rnd(30)).map { _ in
-                return ImageRequest(url: URL(string: "http://\(rnd(15))")!)
+                ImageRequest(url: URL(string: "http://\(rnd(15))")!)
             }
         }
         let queue = OperationQueue()
@@ -92,16 +100,16 @@ class ThreadSafetyTests: XCTestCase {
         }
         queue.waitUntilAllOperationsAreFinished()
     }
-    
-    func testImageCacheThreadSafety() {
+
+    @Test func imageCacheThreadSafety() {
         let cache = ImageCache()
-        
+
         func rnd_cost() -> Int {
             return (2 + rnd(20)) * 1024 * 1024
         }
-        
+
         var ops = [() -> Void]()
-        
+
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
                 { cache[_request(index: rnd(10))] = ImageContainer(image: Test.image) },
@@ -109,12 +117,12 @@ class ThreadSafetyTests: XCTestCase {
                 { let _ = cache[_request(index: rnd(10))] }
             ]
         }
-        
+
         ops += [
             { cache.trim(toCost: rnd_cost()) },
             { cache.removeAll() }
         ]
-        
+
 #if os(iOS) || os(tvOS) || os(visionOS)
         ops.append {
             NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
@@ -123,34 +131,35 @@ class ThreadSafetyTests: XCTestCase {
             NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
         }
 #endif
-        
+
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 5
-        
+
+        let operations = ops
         for _ in 0..<10000 {
             queue.addOperation {
-                ops.randomElement()?()
+                operations.randomElement()?()
             }
         }
-        
+
         queue.waitUntilAllOperationsAreFinished()
     }
-    
+
     // MARK: - DataCache
-    
-    func testDataCacheThreadSafety() {
+
+    @Test func dataCacheThreadSafety() {
         let cache = try! DataCache(name: UUID().uuidString, filenameGenerator: { $0 })
-        
+
         let data = Data(repeating: 1, count: 256 * 1024)
-        
+
         for idx in 0..<500 {
             cache["\(idx)"] = data
         }
         cache.flush()
-        
+
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 5
-        
+
         for _ in 0..<5 {
             for idx in 0..<500 {
                 queue.addOperation {
@@ -165,15 +174,13 @@ class ThreadSafetyTests: XCTestCase {
         queue.waitUntilAllOperationsAreFinished()
     }
 
-    func testDataCacheMultipleThreadAccess() throws {
+    @Test func dataCacheMultipleThreadAccess() async throws {
         let cache = try DataCache(name: UUID().uuidString)
 
         let aURL = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageData = Test.data(name: "fixture", extension: "jpeg")
 
-        let expectSuccessFromCache = self.expectation(description: "one successful load, from cache")
-        expectSuccessFromCache.expectedFulfillmentCount = 1
-        expectSuccessFromCache.assertForOverFulfill = true
+        let expectSuccessFromCache = AsyncExpectation<Void>()
 
         let pipeline = ImagePipeline {
             $0.dataCache = cache
@@ -186,61 +193,36 @@ class ThreadSafetyTests: XCTestCase {
                 if response.cacheType == .memory || response.cacheType == .disk {
                     expectSuccessFromCache.fulfill()
                 } else {
-                    XCTFail("didn't load that just cached image data: \(response)")
+                    Issue.record("didn't load that just cached image data: \(response)")
                 }
             case .failure:
-                XCTFail("didn't load that just cached image data")
+                Issue.record("didn't load that just cached image data")
             }
         }
 
-        wait(for: [expectSuccessFromCache], timeout: 2)
+        await expectSuccessFromCache.wait()
 
         try? FileManager.default.removeItem(at: cache.path)
     }
 }
 
-final class OperationThreadSafetyTests: XCTestCase {
-    func testOperation() {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 10
-        
-        DispatchQueue.concurrentPerform(iterations: 5) { _ in
-            for index in 0..<500 {
-                let operation = Operation(starter: { finish in
-                    Thread.sleep(forTimeInterval: Double.random(in: 1...10) / 1000.0)
-                    finish()
-                })
-                if index % 3 == 0 {
-                    DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(Int.random(in: 5...10))) {
-                        operation.cancel()
-                        operation.cancel()
-                        operation.cancel()
-                    }
-                }
-                queue.addOperation(operation)
-            }
-        }
-        queue.waitUntilAllOperationsAreFinished()
-    }
-}
-
-final class RandomizedTests: XCTestCase {
-    func testImagePipeline() {
+@Suite struct RandomizedTests {
+    @Test func imagePipeline() async {
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isRateLimiterEnabled = false
         }
-        
+
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 8
-        
-        func every(_ count: Int) -> Bool {
-            return rnd() % count == 0
+
+        @Sendable func every(_ count: Int) -> Bool {
+            Int.random(in: 0 ..< .max) % count == 0
         }
-        
-        func randomRequest() -> ImageRequest {
+
+        @Sendable func randomRequest() -> ImageRequest {
             let url = URL(string: "\(Test.url)/\(rnd(50))")!
             var request = ImageRequest(url: url)
             request.priority = every(2) ? .high : .normal
@@ -250,23 +232,22 @@ final class RandomizedTests: XCTestCase {
             }
             return request
         }
-        
-        func randomSleep() {
+
+        @Sendable func randomSleep() {
             let ms = TimeInterval.random(in: 0 ..< 100) / 1000.0
             Thread.sleep(forTimeInterval: ms)
         }
-        
-        let expectation = self.expectation(description: "Finished")
-        expectation.expectedFulfillmentCount = 1000
-        
+
+        let expectation = AsyncExpectation(expectedFulfillmentCount: 1000)
+
         for _ in 0..<1000 {
             queue.addOperation {
                 randomSleep()
-                
+
                 let request = randomRequest()
-                
+
                 let shouldCancel = every(3)
-                
+
                 let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
@@ -274,7 +255,7 @@ final class RandomizedTests: XCTestCase {
                         expectation.fulfill()
                     }
                 }
-                
+
                 if shouldCancel {
                     queue.addOperation {
                         randomSleep()
@@ -282,7 +263,7 @@ final class RandomizedTests: XCTestCase {
                         expectation.fulfill()
                     }
                 }
-                
+
                 if every(10) {
                     queue.addOperation {
                         randomSleep()
@@ -292,13 +273,12 @@ final class RandomizedTests: XCTestCase {
                 }
             }
         }
-        
-        wait(100) { _ in
-            _ = pipeline
-        }
+
+        await expectation.wait()
+        _ = pipeline
     }
 }
 
 private func _request(index: Int) -> ImageRequest {
-    return ImageRequest(url: URL(string: "http://example.com/img\(index)")!)
+    ImageRequest(url: URL(string: "http://example.com/img\(index)")!)
 }

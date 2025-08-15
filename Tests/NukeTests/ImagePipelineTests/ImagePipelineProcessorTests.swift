@@ -1,21 +1,21 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
 #if !os(macOS)
 import UIKit
 #endif
 
-class ImagePipelineProcessorTests: XCTestCase {
+@Suite struct ImagePipelineProcessorTests {
     var mockDataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         mockDataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = mockDataLoader
@@ -23,28 +23,22 @@ class ImagePipelineProcessorTests: XCTestCase {
         }
     }
 
-    override func tearDown() {
-        super.tearDown()
-    }
-
     // MARK: - Applying Filters
 
-    func testThatImageIsProcessed() {
+    @Test func thatImageIsProcessed() async throws {
         // Given
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "processor1")])
 
         // When
-        expect(pipeline).toLoadImage(with: request) { result in
-            // Then
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1"])
-        }
-        wait()
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.nk_test_processorIDs == ["processor1"])
     }
 
     // MARK: - Composing Filters
 
-    func testApplyingMultipleProcessors() {
+    @Test func applyingMultipleProcessors() async throws {
         // Given
         let request = ImageRequest(
             url: Test.url,
@@ -55,42 +49,35 @@ class ImagePipelineProcessorTests: XCTestCase {
         )
 
         // When
-        expect(pipeline).toLoadImage(with: request) { result in
-            // Then
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1", "processor2"])
-        }
-        wait()
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.nk_test_processorIDs == ["processor1", "processor2"])
     }
 
-    func testPerformingRequestWithoutProcessors() {
+    @Test func performingRequestWithoutProcessors() async throws {
         // Given
         let request = ImageRequest(url: Test.url, processors: [])
 
         // When
-        expect(pipeline).toLoadImage(with: request) { result in
-            // Then
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], [])
-        }
-        wait()
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.nk_test_processorIDs == [])
     }
 
     // MARK: - Decompression
 
 #if !os(macOS)
-    func testDecompressionSkippedIfProcessorsAreApplied() {
+    @Test func decompressionSkippedIfProcessorsAreApplied() async throws {
         // Given
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { image in
-            XCTAssertTrue(ImageDecompression.isDecompressionNeeded(for: image) == true)
+            #expect(ImageDecompression.isDecompressionNeeded(for: image) == true)
             return image
         })])
 
         // When
-        expect(pipeline).toLoadImage(with: request) { result in
-            // Then
-        }
-        wait()
+        _ = try await pipeline.image(for: request)
     }
 #endif
 }

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -15,12 +15,8 @@ enum ImageDecompression {
 
     // MARK: Managing Decompression State
 
-#if swift(>=5.10)
     // Safe because it's never mutated.
     nonisolated(unsafe) static let isDecompressionNeededAK = malloc(1)!
-#else
-    static let isDecompressionNeededAK = malloc(1)!
-#endif
 
     static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: PlatformImage) {
         objc_setAssociatedObject(image, isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -13,16 +13,16 @@ import Foundation
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-final class RateLimiter: @unchecked Sendable {
+@ImagePipelineActor
+final class RateLimiter {
     // This type isn't really Sendable and requires the caller to use the same
     // queue as it does for synchronization.
 
-    private let bucket: TokenBucket
-    private let queue: DispatchQueue
+    private var bucket: TokenBucket
     private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    typealias Work = () -> Bool
+    typealias Work = @ImagePipelineActor () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameters:
@@ -30,8 +30,7 @@ final class RateLimiter: @unchecked Sendable {
     ///   - rate: Maximum number of requests per second. 80 by default.
     ///   - burst: Maximum number of requests which can be executed without any
     ///   delays when "bucket is full". 25 by default.
-    init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
-        self.queue = queue
+    nonisolated init(rate: Int = 80, burst: Int = 25) {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
@@ -56,7 +55,10 @@ final class RateLimiter: @unchecked Sendable {
         let bucketRate = 1000.0 / bucket.rate
         let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
-        queue.asyncAfter(deadline: .now() + .milliseconds(bounds)) { self.executePendingTasks() }
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(bounds) * 1_000_000)
+            self.executePendingTasks()
+        }
     }
 
     private func executePendingTasks() {
@@ -70,7 +72,7 @@ final class RateLimiter: @unchecked Sendable {
     }
 }
 
-private final class TokenBucket {
+private struct TokenBucket {
     let rate: Double
     private let burst: Double // maximum bucket size
     private var bucket: Double
@@ -86,7 +88,7 @@ private final class TokenBucket {
     }
 
     /// Returns `true` if the closure was executed, `false` if dropped.
-    func execute(_ work: () -> Bool) -> Bool {
+    mutating func execute(_ work: () -> Bool) -> Bool {
         refill()
         guard bucket >= 1.0 else {
             return false // bucket is empty
@@ -97,7 +99,7 @@ private final class TokenBucket {
         return true
     }
 
-    private func refill() {
+    private mutating func refill() {
         let now = CFAbsoluteTimeGetCurrent()
         bucket += rate * max(0, now - timestamp) // rate * (time delta)
         timestamp = now

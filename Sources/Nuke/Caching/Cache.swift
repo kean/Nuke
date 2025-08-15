@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -9,7 +9,7 @@ import UIKit.UIApplication
 #endif
 
 // Internal memory-cache implementation.
-final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {
+final class Cache<Key: Hashable, Value>: @unchecked Sendable where Key: Sendable, Value: Sendable {
     // Can't use `NSCache` because it is not LRU
 
     struct Configuration {
@@ -56,8 +56,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         self.memoryPressure.resume()
 
 #if os(iOS) || os(tvOS) || os(visionOS)
-        Task {
-            await registerForEnterBackground()
+        Task { @MainActor in
+            registerForEnterBackground()
         }
 #endif
     }
@@ -70,7 +70,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
-    @MainActor private func registerForEnterBackground() {
+    private func registerForEnterBackground() {
         notificationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
             self?.clearCacheOnEnterBackground()
         }
@@ -198,7 +198,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         return closure()
     }
 
-    private struct Entry {
+    private struct Entry: Sendable {
         let value: Value
         let key: Key
         let cost: Int

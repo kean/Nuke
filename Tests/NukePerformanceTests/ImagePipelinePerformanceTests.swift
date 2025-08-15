@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke
@@ -10,26 +10,6 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     /// data, decode, and decomperss 50+ images. It's very useful to get a
     /// broad picture about how loader options affect perofmance.
     func testLoaderOverallPerformance() {
-        let pipeline = makePipeline()
-
-        let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
-        let callbackQueue = DispatchQueue(label: "testLoaderOverallPerformance")
-        measure {
-            var finished: Int = 0
-            let semaphore = DispatchSemaphore(value: 0)
-            for request in requests {
-                pipeline.loadImage(with: request, queue: callbackQueue, progress: nil) { _ in
-                    finished += 1
-                    if finished == requests.count {
-                        semaphore.signal()
-                    }
-                }
-            }
-            semaphore.wait()
-        }
-    }
-
-    func testAsyncAwaitPerformance() {
         let pipeline = makePipeline()
 
         let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
@@ -50,7 +30,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         }
     }
 
-    func testAsyncImageTaskPerformance() {
+    func testAsyncImageTaskEventsPerformance() {
         let pipeline = makePipeline()
 
         let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
@@ -61,7 +41,10 @@ class ImagePipelinePerfomanceTests: XCTestCase {
                 await withTaskGroup(of: Void.self) { group in
                     for request in requests {
                         group.addTask {
-                            _ = try? await pipeline.imageTask(with: request).image
+                            let imageTask = pipeline.imageTask(with: request)
+                            for await event in imageTask.events {
+                                _ = event
+                            }
                         }
                     }
                 }
@@ -78,6 +61,17 @@ private func makePipeline() -> ImagePipeline {
 
         func decode(_ data: Data) throws -> ImageContainer {
             MockDecoder.container
+        }
+    }
+
+    final class MockDataLoader: DataLoading {
+        let response = (Test.data, URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
+
+        func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+            AsyncThrowingStream { continuation in
+                continuation.yield(response)
+                continuation.finish()
+            }
         }
     }
 

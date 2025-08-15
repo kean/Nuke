@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -16,7 +16,6 @@ public typealias ImageRequest = Nuke.ImageRequest
 /// can take advantage of all of its features, such as caching, prefetching,
 /// task coalescing, smart background decompression, request priorities, and more.
 @MainActor
-@available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
@@ -190,7 +189,6 @@ private struct LazyImageContext: Equatable {
 }
 
 #if DEBUG
-@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 struct LazyImage_Previews: PreviewProvider {
     static var previews: some View {
         Group {
@@ -207,7 +205,6 @@ struct LazyImage_Previews: PreviewProvider {
 }
 
 // This demonstrates that the view reacts correctly to the URL changes.
-@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 private struct LazyImageDemoView: View {
     @State var url = URL(string: "https://kean.blog/images/pulse/01.png")
     @State var isBlured = false

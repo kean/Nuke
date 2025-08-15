@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import os
@@ -24,7 +24,7 @@ func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
     return result
 }
 
-private let log = Atomic(value: OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
+private let log = Mutex(OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
 
 enum Formatter {
     static func bytes(_ count: Int) -> String {

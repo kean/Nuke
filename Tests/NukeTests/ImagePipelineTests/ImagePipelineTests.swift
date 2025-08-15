@@ -1,481 +1,581 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
-import Combine
+import Testing
+import Foundation
+
 @testable import Nuke
 
-class ImagePipelineTests: XCTestCase {
+@ImagePipelineActor
+@Suite class ImagePipelineTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
-    
-    override func setUp() {
-        super.setUp()
-        
+
+    private var recordedEvents: [ImageTask.Event] = []
+    private var recordedResult: Result<ImageResponse, ImageTask.Error>?
+    private var recordedProgress: [ImageTask.Progress] = []
+    private var recordedPreviews: [ImageResponse] = []
+    private var pipelineDelegate = ImagePipelineObserver()
+    private var imageTask: ImageTask?
+
+    init() {
         dataLoader = MockDataLoader()
-        pipeline = ImagePipeline {
+        pipeline = ImagePipeline(delegate: pipelineDelegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
     }
-    
-    // MARK: - Completion
-    
-    func testCompletionCalledAsynchronouslyOnMainThread() {
-        var isCompleted = false
-        expect(pipeline).toLoadImage(with: Test.request) { _ in
-            XCTAssert(Thread.isMainThread)
-            isCompleted = true
-        }
-        XCTAssertFalse(isCompleted)
-        wait()
-    }
-    
-    // MARK: - Progress
-    
-    func testProgressClosureIsCalled() {
-        // Given
-        let request = ImageRequest(url: Test.url)
-        
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-        
+
+    // MARK: - Basics
+
+    @Test func imageIsLoaded() async throws {
         // When
-        let expectedProgress = expectProgress([(10, 20), (20, 20)])
-        
-        pipeline.loadImage(
-            with: request,
-            progress: { _, completed, total in
-                // Then
-                XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((completed, total))
-            },
-            completion: { _ in }
-        )
-        
-        wait()
+        let image = try await pipeline.image(for: Test.request)
+
+        // Then
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
-    
-    func testTaskProgressIsUpdated() {
+
+    // MARK: - Task-based API
+
+    @Test func taskBasedImageResponse() async throws {
         // Given
-        let request = ImageRequest(url: Test.url)
-        
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-        
+        let task = pipeline.imageTask(with: Test.request)
+
         // When
-        let expectedProgress = expectProgress([(10, 20), (20, 20)])
-        
-        pipeline.loadImage(
-            with: request,
-            progress: { _, completed, total in
-                // Then
-                XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((completed, total))
-            },
-            completion: { _ in }
-        )
-        
-        wait()
+        let response = try await task.response
+
+        // Then
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
     }
-    
-    // MARK: - Callback Queues
-    
-    func testChangingCallbackQueueLoadImage() {
+
+    @Test func taskBasedImage() async throws {
         // Given
-        let queue = DispatchQueue(label: "testChangingCallbackQueue")
-        let queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-        
-        // When/Then
-        let expectation = self.expectation(description: "Image Loaded")
-        pipeline.loadImage(with: Test.request, queue: queue, progress: { _, _, _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-        }, completion: { _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-            expectation.fulfill()
-        })
-        wait()
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When
+        let image = try await task.image
+
+        // Then
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
-    
-    // MARK: - Updating Priority
-    
-    func testDataLoadingPriorityUpdated() {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-        
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-        
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-        
-        wait()
-    }
-    
-    func testDecodingPriorityUpdated() {
-        // Given
-        pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
-        }
-        
-        let queue = pipeline.configuration.imageDecodingQueue
-        queue.isSuspended = true
-        
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-        
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-        
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-        
-        wait()
-    }
-    
-    func testProcessingPriorityUpdated() {
-        // Given
-        let queue = pipeline.configuration.imageProcessingQueue
-        queue.isSuspended = true
-        
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-        XCTAssertEqual(request.priority, .normal)
-        
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-        
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-        
-        wait()
-    }
-    
+
+    private var observer: AnyObject?
+
     // MARK: - Cancellation
-    
-    func testDataLoadingOperationCancelled() {
+
+    @Test func cancellation() async throws {
         dataLoader.queue.isSuspended = true
-        
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
+
+        let task = Task {
+            try await pipeline.image(for: Test.url)
         }
-        wait() // Wait till operation is created
-        
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-        task.cancel()
-        wait()
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        do {
+            _ = try await task.value
+        } catch {
+            #expect((error as? ImageTask.Error) == .cancelled)
+        }
     }
-    
-    func testDecodingOperationCancelled() {
-        // GIVEN
+
+    @Test func cancelImmediately() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        task.cancel()
+
+        do {
+            _ = try await task.value
+        } catch {
+            #expect((error as? ImageTask.Error) == .cancelled)
+        }
+    }
+
+    @Test func cancelFromProgress() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            let task = pipeline.imageTask(with: Test.url)
+            for await value in task.progress {
+                recordedProgress.append(value)
+            }
+        }
+
+        task.cancel()
+
+        _ = await task.value
+
+        // Then nothing is recorded because the task is cancelled and
+        // stop observing the events
+        #expect(recordedProgress == [])
+    }
+
+    @Test func observeProgressAndCancelFromOtherTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+
+        let task1 = Task {
+            for await event in task.progress {
+                recordedProgress.append(event)
+            }
+        }
+
+        let task2 = Task {
+            try await task.response
+        }
+
+        task2.cancel()
+
+        async let result1: () = task1.value
+        async let result2 = task2.value
+
+        // Then you are able to observe `event` update because
+        // this task does no get cancelled
+        do {
+            _ = try await (result1, result2)
+        } catch {
+            #expect((error as? ImageTask.Error) == .cancelled)
+        }
+        #expect(recordedProgress == [])
+    }
+
+    @Test func cancelAsyncImageTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        do {
+            _ = try await task.image
+        } catch {
+            #expect(error == .cancelled)
+        }
+    }
+
+    @Test func dataLoadingOperationCancelled() async {
+        //  Given
+        dataLoader.queue.isSuspended = true
+
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.loadImage(with: Test.request) { _ in
+            Issue.record()
+        }
+        await expectation1.wait() // Wait till operation is created
+
+        // When
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
+        task.cancel()
+
+        // Then
+        await expectation2.wait()
+    }
+
+    @Test func decodingOperationCancelled() async {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
         }
-        
+
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
-        
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-        
+
+        let expectation1 = queue.expectJobAdded()
         let request = Test.request
-        
-        let task = pipeline.loadImage(with: request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
-        
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toCancel()
-        
+        let task = pipeline.imageTask(with: request).resume()
+        let job = await expectation1.wait()
+
+        // When
+        let expectation2 = queue.expectJobCancelled(job)
         task.cancel()
-        
-        wait()
+
+        // Then
+        await expectation2.wait()
     }
-    
-    func testProcessingOperationCancelled() {
+
+    @Test func processingOperationCancelled() async {
         // Given
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
-        
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-        
+
         let processor = ImageProcessors.Anonymous(id: "1") {
-            XCTFail()
+            Issue.record()
             return $0
         }
+        let expectation1 = queue.expectJobAdded()
         let request = ImageRequest(url: Test.url, processors: [processor])
-        
-        let task = pipeline.loadImage(with: request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
-        
-        // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        expect(operation!).toCancel()
-        
-        task.cancel()
-        
-        wait()
-    }
-    
-    // MARK: Decompression
-    
-#if !os(macOS)
-    
-    func testDisablingDecompression() async throws {
-        // GIVEN
-        pipeline = pipeline.reconfigured {
-            $0.isDecompressionEnabled = false
-        }
-        
-        // WHEN
-        let image = try await pipeline.image(for: Test.url)
-        
-        // THEN
-        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: image))
-    }
-    
-    func testDisablingDecompressionForIndividualRequest() async throws {
-        // GIVEN
-        let request = ImageRequest(url: Test.url, options: [.skipDecompression])
-        
-        // WHEN
-        let image = try await pipeline.image(for: request)
-        
-        // THEN
-        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: image))
-    }
-    
-    func testDecompressionPerformed() async throws {
-        // WHEN
-        let image = try await pipeline.image(for: Test.request)
-        
-        // THEN
-        XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
-    }
-    
-    func testDecompressionNotPerformedWhenProcessorWasApplied() async throws {
-        // GIVEN request with scaling processor
-        let input = Test.image
-        pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { _ in MockAnonymousImageDecoder(output: input) }
-        }
-        
-        let request = ImageRequest(url: Test.url, processors: [
-            .resize(size: CGSize(width: 40, height: 40))
-        ])
-        
-        // WHEN
-        _ = try await pipeline.image(for: request)
-        
-        // THEN
-        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: input))
-    }
-    
-    func testDecompressionPerformedWhenProcessorIsAppliedButDoesNothing() {
-        // Given request with scaling processor
-        let request = ImageRequest(url: Test.url, processors: [MockEmptyImageProcessor()])
-        
-        expect(pipeline).toLoadImage(with: request) { result in
-            guard let image = result.value?.image else {
-                return XCTFail("Expected image to be loaded")
-            }
-            
-            // Expect decompression to be performed (processor was applied but it did nothing)
-            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
-        }
-        wait()
-    }
-    
-#endif
-    
-    // MARK: - Thumbnail
+        let task = pipeline.imageTask(with: request).resume()
+        let job = await expectation1.wait()
 
-    func testThatThumbnailIsGenerated() {
-        // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        
-        // WHEN
-        expect(pipeline).toLoadImage(with: request) { result in
-            // THEN
-            guard let image = result.value?.image else {
-                return XCTFail()
-            }
-            XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
+        // When
+        let expectation2 = queue.expectJobCancelled(job)
+        task.cancel()
+
+        // Then
+        await expectation2.wait()
+    }
+
+    // MARK: - Load Data
+
+    @Test func loadData() async throws {
+        // Given
+        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+
+        // When
+        let (data, response) = try await pipeline.data(for: Test.request)
+
+        // Then
+        #expect(data.count == 22788)
+        #expect(response?.url == Test.url)
+    }
+
+    @Test func loadDataCancelImmediately() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            try await pipeline.data(for: Test.request)
         }
-        wait()
+        task.cancel()
+
+        do {
+            _ = try await task.value
+        } catch {
+            #expect((error as? ImageTask.Error) == .cancelled)
+        }
     }
-    
-    func testThumbnailIsGeneratedOnDecodingQueue() {
-        // GIVEN
+
+    @Test func progressUpdated() async throws {
+        // Given
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        do {
+            let task = pipeline.imageTask(with: Test.url)
+            for await progress in task.progress {
+                recordedProgress.append(progress)
+            }
+            _ = try await task.image
+        } catch {
+            // Do nothing
+        }
+
+        // Then
+        #expect(recordedProgress == [
+            ImageTask.Progress(completed: 10, total: 20),
+            ImageTask.Progress(completed: 20, total: 20)
+        ])
+    }
+
+    @Test func progressivePreviews() async throws {
+        // Given
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // When
+        let task = pipeline.imageTask(with: Test.url)
+        Task {
+            for try await preview in task.previews {
+                recordedPreviews.append(preview)
+                dataLoader.resume()
+            }
+        }
+        _ = try await task.image
+
+        // Then
+        #expect(recordedPreviews.count == 2)
+        #expect(recordedPreviews.allSatisfy { $0.container.isPreview })
+    }
+
+    // MARK: - ImageRequest
+
+    @Test func imageRequestWithAsyncAwaitSuccess() async throws {
+        // Given
+        let localURL = Test.url(forResource: "fixture", extension: "jpeg")
+
+        // When
+        let request = ImageRequest(id: "test", data: {
+            let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
+            return data
+        })
+
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func imageRequestWithAsyncAwaitFailure() async throws {
+        // When
+        let request = ImageRequest(id: "test", data: {
+            throw URLError(networkUnavailableReason: .cellular)
+        })
+        
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record()
+        } catch {
+            if case let .dataLoadingFailed(error) = error {
+                #expect((error as? URLError)?.networkUnavailableReason == .cellular)
+            } else {
+                Issue.record()
+            }
+        }
+    }
+
+    // MARK: Common Use Cases
+
+    @Test func lowDataMode() async throws {
+        // Given
+        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
+        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
+
+        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
+        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
+
+        // When
+        let pipeline = self.pipeline!
+
+        // Create the default request to fetch the high quality image.
+        var urlRequest = URLRequest(url: highQualityImageURL)
+        urlRequest.allowsConstrainedNetworkAccess = false
+        let request = ImageRequest(urlRequest: urlRequest)
+
+        // When
+        @Sendable func loadImage() async throws -> PlatformImage {
+            do {
+                return try await pipeline.image(for: request)
+            } catch {
+                guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                    throw error
+                }
+                return try await pipeline.image(for: lowQualityImageURL)
+            }
+        }
+
+        _ = try await loadImage()
+    }
+
+    // MARK: - ImageTask Integration
+
+    @Test func imageTaskEvents() async throws {
+        // Given
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // When
+        let task = pipeline.loadImage(with: Test.request) { _ in }
+        for await event in task.events {
+            switch event {
+            case .preview(let response):
+                recordedPreviews.append(response)
+                dataLoader.resume()
+            case .finished(let result):
+                recordedResult = result
+            default:
+                break
+            }
+            recordedEvents.append(event)
+        }
+
+        // Then
+        try #require(recordedPreviews.count == 2)
+
+        let result = try #require(recordedResult)
+
+        #expect(recordedEvents.filter {
+            if case .progress = $0 {
+                return false // There is guarantee if all will arrive
+            }
+            return true
+        } == [
+            .preview(recordedPreviews[0]),
+            .preview(recordedPreviews[1]),
+            .finished(result)
+        ])
+    }
+
+    // MARK: - Thumbnails
+
+    @Test func thatThumbnailIsGenerated() async throws {
+        // Given
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        
-        // WHEN/THEN
-        expect(pipeline.configuration.imageDecodingQueue).toEnqueueOperationsWithCount(1)
-        expect(pipeline).toLoadImage(with: request)
-        wait()
+
+        // When
+        let image = try await pipeline.image(for: request)
+        #expect(image.sizeInPixels == CGSize(width: 400, height: 300))
     }
-    
+
+    @Test func thumbnailIsGeneratedOnDecodingQueue() async {
+        // Given
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+
+        // When
+        let expectation = pipeline.configuration.imageDecodingQueue.expectJobAdded()
+        pipeline.imageTask(with: request).resume()
+
+        // Then work item is created on an expected queue
+        await expectation.wait()
+    }
+
 #if os(iOS) || os(visionOS)
-    func testThumnbailIsntDecompressed() {
+    @Test func thumnbailIsntDecompressed() async throws {
+        // Given a suspended queue so no work can be performed
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
-        
-        // GIVEN
+
+        // When
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        
-        // WHEN/THEN
-        expect(pipeline).toLoadImage(with: request)
-        wait()
+
+        // Then image is loaded without decompression
+        _ = try await pipeline.image(for: request)
     }
 #endif
-    
+
     // MARK: - CacheKey
-    
-    func testCacheKeyForRequest() {
+
+    @Test func cacheKeyForRequest() {
         let request = Test.request
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpeg")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg")
     }
-    
-    func testCacheKeyForRequestWithProcessors() {
+
+    @Test func cacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpeg1")
-    }
-    
-    func testCacheKeyForRequestWithThumbnail() {
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg1")
     }
 
-    func testCacheKeyForRequestWithThumbnailFlexibleSize() {
+    @Test func cacheKeyForRequestWithThumbnail() {
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
+    }
+
+    @Test func cacheKeyForRequestWithThumbnailFlexibleSize() {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
     }
-    
+
     // MARK: - Invalidate
-    
-    func testWhenInvalidatedTasksAreCancelled() {
+
+    @Test func whenInvalidatedTasksAreCancelled() async {
+        // Given
         dataLoader.queue.isSuspended = true
-        
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
-        
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        pipeline.imageTask(with: Test.request).resume()
+        await expectation1.wait()
+
+        // When
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
         pipeline.invalidate()
-        wait()
+
+        // Then
+        await expectation2.wait()
     }
-    
-    func testThatInvalidatedTasksFailWithError() async throws {
-        // WHEN
+
+    @Test func thatInvalidatedTasksFailWithError() async throws {
+        // When
         pipeline.invalidate()
-        
-        // THEN
+
+        // Then
         do {
             _ = try await pipeline.image(for: Test.request)
-            XCTFail()
+            Issue.record()
         } catch {
-            XCTAssertEqual(error as? ImagePipeline.Error, .pipelineInvalidated)
+            #expect(error == .pipelineInvalidated)
         }
     }
-    
-    // MARK: Error Handling
-    
-    func testDataLoadingFailedErrorReturned() {
+
+    // MARK: - Error Handling
+
+    @Test func dataLoadingFailedErrorReturned() async throws {
         // Given
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-        
+
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
         dataLoader.results[Test.url] = .failure(expectedError)
-        
-        // When/Then
-        expect(pipeline).toFailRequest(Test.request, with: .dataLoadingFailed(error: expectedError))
-        wait()
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            #expect(error == .dataLoadingFailed(error: expectedError))
+        }
     }
-    
-    func testDataLoaderReturnsEmptyData() {
+
+    @Test func dataLoaderReturnsEmptyData() async throws {
         // Given
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-        
+
         dataLoader.results[Test.url] = .success((Data(), Test.urlResponse))
-        
-        // When/Then
-        expect(pipeline).toFailRequest(Test.request, with: .dataIsEmpty)
-        wait()
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            #expect(error == .dataIsEmpty)
+        }
     }
-    
-    func testDecoderNotRegistered() {
+
+    @Test func decoderNotRegistered() async throws {
         // Given
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.makeImageDecoder = { _ in
-                nil
-            }
+            $0.makeImageDecoder = { _ in nil }
             $0.imageCache = nil
         }
-        
-        expect(pipeline).toFailRequest(Test.request) { result in
-            guard let error = result.error else {
-                return XCTFail("Expected error")
-            }
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
             guard case let .decoderNotRegistered(context) = error else {
-                return XCTFail("Expected .decoderNotRegistered")
+                Issue.record("Expected .decoderNotRegistered")
+                return
             }
-            XCTAssertEqual(context.request.url, Test.request.url)
-            XCTAssertEqual(context.data.count, 22789)
-            XCTAssertTrue(context.isCompleted)
-            XCTAssertEqual(context.urlResponse?.url, Test.url)
+
+            #expect(context.request.url == Test.request.url)
+            #expect(context.data.count == 22789)
+            #expect(context.isCompleted)
+            #expect(context.urlResponse?.url == Test.url)
         }
-        wait()
     }
-    
-    func testDecodingFailedErrorReturned() async {
+
+    @Test func decodingFailedErrorReturned() async throws {
         // Given
         let decoder = MockFailingDecoder()
         let pipeline = ImagePipeline {
@@ -483,151 +583,150 @@ class ImagePipelineTests: XCTestCase {
             $0.makeImageDecoder = { _ in decoder }
             $0.imageCache = nil
         }
-        
-        // When/Then
+
+        // When
         do {
             _ = try await pipeline.image(for: Test.request)
-            XCTFail("Expected failure")
+            Issue.record("Unexpected success")
         } catch {
-            if case let .decodingFailed(failedDecoder, context, error) = error as? ImagePipeline.Error {
-                XCTAssertTrue((failedDecoder as? MockFailingDecoder) === decoder)
-                
-                XCTAssertEqual(context.request.url, Test.request.url)
-                XCTAssertEqual(context.data, Test.data)
-                XCTAssertTrue(context.isCompleted)
-                XCTAssertEqual(context.urlResponse?.url, Test.url)
-                
-                XCTAssertEqual(error as? MockError, MockError(description: "decoder-failed"))
+            // Then
+            if case let .decodingFailed(failedDecoder, context, error) = error {
+                #expect((failedDecoder as? MockFailingDecoder) === decoder)
+
+                #expect(context.request.url == Test.request.url)
+                #expect(context.data == Test.data)
+                #expect(context.isCompleted)
+                #expect(context.urlResponse?.url == Test.url)
+
+                #expect(error as? MockError == MockError(description: "decoder-failed"))
             } else {
-                XCTFail("Unexpected error: \(error)")
+                Issue.record("Unexpected error: \(error)")
             }
         }
     }
-    
-    func testProcessingFailedErrorReturned() {
-        // GIVEN
+
+    @Test func processingFailedErrorReturned() async throws {
+        // Given
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
         }
-        
+
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
-        
-        // WHEN/THEN
-        expect(pipeline).toFailRequest(request) { result in
-            guard case .failure(let error) = result,
-                  case let .processingFailed(processor, context, error) = error else {
-                return XCTFail()
+
+        // When/Then
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            if case let .processingFailed(processor, context, error) = error {
+                #expect(processor is MockFailingProcessor)
+
+                #expect(context.request.url == Test.url)
+                #expect(context.response.container.image.sizeInPixels == CGSize(width: 640, height: 480))
+                #expect(context.response.cacheType == nil)
+                #expect(context.isCompleted == true)
+
+                #expect(error as? ImageProcessingError == .unknown)
+            } else {
+                Issue.record("Unexpected error: \(error)")
             }
-            
-            XCTAssertTrue(processor is MockFailingProcessor)
-            
-            XCTAssertEqual(context.request.url, Test.url)
-            XCTAssertEqual(context.response.container.image.sizeInPixels, CGSize(width: 640, height: 480))
-            XCTAssertEqual(context.response.cacheType, nil)
-            XCTAssertEqual(context.isCompleted, true)
-            
-            XCTAssertEqual(error as? ImageProcessingError, .unknown)
         }
-        wait()
     }
-    
-    func testImageContainerUserInfo() { // Just to make sure we have 100% coverage
-        // WHEN
-        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
-        
-        // THEN
-        XCTAssertEqual(container.userInfo["a"] as? Int, 1)
-    }
-    
-    func testErrorDescription() {
-        XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(error: URLError(.unknown)).description.isEmpty) // Just padding here
-        
-        XCTAssertFalse(ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding
-        
+
+    @Test func errorDescription() {
+        let dataLoadingError = ImageTask.Error.dataLoadingFailed(error: Foundation.URLError(.unknown))
+        #expect(!dataLoadingError.description.isEmpty) // Just padding here
+
+        #expect(!ImageTask.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding // Just padding
+
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
-        let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
+        let error = ImageTask.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
         let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
-        XCTAssertEqual(error.description, expected)
-        XCTAssertEqual("\(error)", expected)
-        
-        XCTAssertNil(error.dataLoadingError)
+        #expect(error.description == expected)
+        #expect("\(error)" == expected)
+
+        #expect(error.dataLoadingError == nil)
     }
-    
-    // MARK: Skip Data Loading Queue Option
-    
-    func testSkipDataLoadingQueuePerRequestWithURL() throws {
+
+    // MARK: - Misc
+
+    @Test func imageContainerUserInfo() { // Just to make sure we have 100% coverage
+        // When
+        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
+
+        // Then
+        #expect(container.userInfo["a"] as? Int == 1)
+    }
+
+    @Test func skipDataLoadingQueuePerRequestWithURL() async throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        
+
         let request = ImageRequest(url: Test.url, options: [
             .skipDataLoadingQueue
         ])
-        
+
         // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
-    
-    func testSkipDataLoadingQueuePerRequestWithPublisher() throws {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data), options: [
-            .skipDataLoadingQueue
-        ])
-        
-        // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
-    
-    // MARK: Misc
-    
-    func testLoadWithStringLiteral() async throws {
-        let image = try await pipeline.image(for: "https://example.com/image.jpeg")
-        XCTAssertNotEqual(image.size, .zero)
+        _ = try await pipeline.image(for: request)
     }
 
-    func testLoadWithInvalidURL() throws {
-        // GIVEN
+    @Test func loadWithStringLiteral() async throws {
+        let image = try await pipeline.image(for: "https://example.com/image.jpeg")
+        #expect(image.size != .zero)
+    }
+
+    @Test func loadWithInvalidURL() async throws {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.dataLoader = DataLoader()
         }
-        
-        // WHEN
+
+        // When
         for _ in 0...10 {
-            expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "")))
-            wait()
+            do {
+                _ = try await pipeline.image(for: ImageRequest(url: URL(string: "")))
+                Issue.record("Unexpected success")
+            } catch {
+                // Expected
+            }
         }
     }
-    
+
 #if !os(macOS)
-    func testOverridingImageScale() throws {
-        // GIVEN
+    @Test func overridingImageScale() async throws {
+        // Given
         let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7])
-        
-        // WHEN
-        let record = expect(pipeline).toLoadImage(with: request)
-        wait()
-        
-        // THEN
-        let image = try XCTUnwrap(record.image)
-        XCTAssertEqual(image.scale, 7)
+
+        // When
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.scale == 7)
     }
-    
-    func testOverridingImageScaleWithFloat() throws {
-        // GIVEN
+
+    @Test func overridingImageScaleWithFloat() async throws {
+        // Given
         let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
-        
-        // WHEN
-        let record = expect(pipeline).toLoadImage(with: request)
-        wait()
-        
-        // THEN
-        let image = try XCTUnwrap(record.image)
-        XCTAssertEqual(image.scale, 7)
+
+        // When
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.scale == 7)
     }
 #endif
+}
+
+/// We have to mock it because there is no way to construct native `URLError`
+/// with a `networkUnavailableReason`.
+private struct URLError: Swift.Error {
+    var networkUnavailableReason: NetworkUnavailableReason?
+
+    enum NetworkUnavailableReason {
+        case cellular
+        case expensive
+        case constrained
+    }
 }

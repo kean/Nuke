@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -35,42 +35,35 @@ final class MemoryCacheKey: Hashable, Sendable {
 
 /// Uniquely identifies a task of retrieving the processed image.
 final class TaskLoadImageKey: Hashable, Sendable {
-    private let loadKey: TaskFetchOriginalImageKey
+    private let loadKey: TaskFetchOriginalDataKey
+    private let scale: Float
+    private let thumbnail: ImageRequest.ThumbnailOptions?
     private let options: ImageRequest.Options
     private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
-        self.loadKey = TaskFetchOriginalImageKey(request)
+        self.loadKey = TaskFetchOriginalDataKey(request)
+        self.scale = request.scale ?? 1
+        self.thumbnail = request.thumbnail
         self.options = request.options
         self.processors = request.processors
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(loadKey.hashValue)
+        hasher.combine(scale.hashValue)
+        hasher.combine(thumbnail.hashValue)
         hasher.combine(options.hashValue)
         hasher.combine(processors.count)
     }
 
     static func == (lhs: TaskLoadImageKey, rhs: TaskLoadImageKey) -> Bool {
-        lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors
-    }
-}
-
-/// Uniquely identifies a task of retrieving the original image.
-struct TaskFetchOriginalImageKey: Hashable {
-    private let dataLoadKey: TaskFetchOriginalDataKey
-    private let scale: Float
-    private let thumbnail: ImageRequest.ThumbnailOptions?
-
-    init(_ request: ImageRequest) {
-        self.dataLoadKey = TaskFetchOriginalDataKey(request)
-        self.scale = request.scale ?? 1
-        self.thumbnail = request.thumbnail
+        lhs.loadKey == rhs.loadKey && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.options == rhs.options && lhs.processors == rhs.processors
     }
 }
 
 /// Uniquely identifies a task of retrieving the original image data.
-struct TaskFetchOriginalDataKey: Hashable {
+struct TaskFetchOriginalDataKey: Hashable, Sendable {
     private let imageId: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool
@@ -78,7 +71,7 @@ struct TaskFetchOriginalDataKey: Hashable {
     init(_ request: ImageRequest) {
         self.imageId = request.imageId
         switch request.resource {
-        case .url, .publisher:
+        case .url, .closure:
             self.cachePolicy = .useProtocolCachePolicy
             self.allowsCellularAccess = true
         case let .urlRequest(urlRequest):

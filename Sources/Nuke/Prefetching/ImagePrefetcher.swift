@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -11,25 +11,38 @@ import Foundation
 ///
 /// All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
-public final class ImagePrefetcher: @unchecked Sendable {
+public final class ImagePrefetcher: Sendable {
     /// Pauses the prefetching.
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
-    public var isPaused: Bool = false {
-        didSet { queue.isSuspended = isPaused }
+    public var isPaused: Bool {
+        get { _isPaused.value }
+        set {
+            guard _isPaused.setValue(newValue) else { return }
+            Task { @ImagePipelineActor in
+                impl.queue.isSuspended = newValue
+            }
+        }
     }
+
+    private let _isPaused = Mutex(false)
 
     /// The priority of the requests. By default, ``ImageRequest/Priority-swift.enum/low``.
     ///
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
-    public var priority: ImageRequest.Priority = .low {
-        didSet {
-            let newValue = priority
-            pipeline.queue.async { self.didUpdatePriority(to: newValue) }
+    public var priority: ImageRequest.Priority {
+        get { _priority.value }
+        set {
+            guard _priority.setValue(newValue) else { return }
+            Task { @ImagePipelineActor in
+                impl.priority = newValue
+            }
         }
     }
+
+    private let _priority = Mutex(ImageRequest.Priority.low)
 
     /// Prefetching destination.
     public enum Destination: Sendable {
@@ -45,18 +58,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
         case diskCache
     }
 
-    /// The closure that gets called when the prefetching completes for all the
-    /// scheduled requests. The closure is always called on completion,
-    /// regardless of whether the requests succeed or some fail.
-    ///
-    /// - note: The closure is called on the main queue.
-    public var didComplete: (@MainActor @Sendable () -> Void)?
-
-    private let pipeline: ImagePipeline
-    private var tasks = [TaskLoadImageKey: Task]()
-    private let destination: Destination
-    private var _priority: ImageRequest.Priority = .low
-    let queue = OperationQueue() // internal for testing
+    /// An actor-isolated implementation.
+    let impl: _ImagePrefetcher
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -64,23 +67,17 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///   - pipeline: The pipeline used for loading images.
     ///   - destination: By default load images in all cache layers.
     ///   - maxConcurrentRequestCount: 2 by default.
-    public init(pipeline: ImagePipeline = ImagePipeline.shared,
-                destination: Destination = .memoryCache,
-                maxConcurrentRequestCount: Int = 2) {
-        self.pipeline = pipeline
-        self.destination = destination
-        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
-        self.queue.underlyingQueue = pipeline.queue
+    public init(
+        pipeline: ImagePipeline = ImagePipeline.shared,
+        destination: Destination = .memoryCache,
+        maxConcurrentRequestCount: Int = 2
+    ) {
+        self.impl = _ImagePrefetcher(pipeline: pipeline, destination: destination, maxConcurrentRequestCount: maxConcurrentRequestCount)
     }
 
     deinit {
-        let tasks = self.tasks.values // Make sure we don't retain self
-        self.tasks.removeAll()
-
-        pipeline.queue.async {
-            for task in tasks {
-                task.cancel()
-            }
+        Task { @ImagePipelineActor [impl] in
+            impl.stopPrefetching()
         }
     }
 
@@ -88,7 +85,9 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// See also ``startPrefetching(with:)-718dg`` that works with ``ImageRequest``.
     public func startPrefetching(with urls: [URL]) {
-        startPrefetching(with: urls.map { ImageRequest(url: $0) })
+        Task { @ImagePipelineActor in
+            for url in urls { impl.startPrefetching(with: url) }
+        }
     }
 
     /// Starts prefetching images for the given requests.
@@ -102,58 +101,9 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     public func startPrefetching(with requests: [ImageRequest]) {
-        pipeline.queue.async {
-            self._startPrefetching(with: requests)
+        Task { @ImagePipelineActor in
+            for request in requests { impl.startPrefetching(with: request) }
         }
-    }
-
-    public func _startPrefetching(with requests: [ImageRequest]) {
-        for request in requests {
-            var request = request
-            if _priority != request.priority {
-                request.priority = _priority
-            }
-            _startPrefetching(with: request)
-        }
-        sendCompletionIfNeeded()
-    }
-
-    private func _startPrefetching(with request: ImageRequest) {
-        guard pipeline.cache[request] == nil else {
-            return
-        }
-        let key = TaskLoadImageKey(request)
-        guard tasks[key] == nil else {
-            return
-        }
-        let task = Task(request: request, key: key)
-        task.operation = queue.add { [weak self] finish in
-            guard let self else { return finish() }
-            self.loadImage(task: task, finish: finish)
-        }
-        tasks[key] = task
-        return
-    }
-
-    private func loadImage(task: Task, finish: @escaping () -> Void) {
-        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
-            self?._remove(task)
-            finish()
-        }
-        task.onCancelled = finish
-    }
-
-    private func _remove(_ task: Task) {
-        guard tasks[task.key] === task else { return } // Should never happen
-        tasks[task.key] = nil
-        sendCompletionIfNeeded()
-    }
-
-    private func sendCompletionIfNeeded() {
-        guard tasks.isEmpty, let callback = didComplete else {
-            return
-        }
-        DispatchQueue.main.async(execute: callback)
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding
@@ -161,7 +111,9 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
     public func stopPrefetching(with urls: [URL]) {
-        stopPrefetching(with: urls.map { ImageRequest(url: $0) })
+        Task { @ImagePipelineActor in
+            for url in urls { impl.stopPrefetching(with: url) }
+        }
     }
 
     /// Stops prefetching images for the given requests and cancels outstanding
@@ -173,53 +125,126 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
     public func stopPrefetching(with requests: [ImageRequest]) {
-        pipeline.queue.async {
-            for request in requests {
-                self._stopPrefetching(with: request)
-            }
-        }
-    }
-
-    private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
-            task.cancel()
+        Task { @ImagePipelineActor in
+            for request in requests { impl.stopPrefetching(with: request) }
         }
     }
 
     /// Stops all prefetching tasks.
     public func stopPrefetching() {
-        pipeline.queue.async {
-            self.tasks.values.forEach { $0.cancel() }
-            self.tasks.removeAll()
+        Task { @ImagePipelineActor in
+            impl.stopPrefetching()
+        }
+    }
+}
+
+@ImagePipelineActor
+final class _ImagePrefetcher: JobSubscriber {
+    /// The closure that gets called when the prefetching completes for all the
+    /// scheduled requests. The closure is always called on completion,
+    /// regardless of whether the requests succeed or some fail.
+
+    let pipeline: ImagePipeline
+    let destination: ImagePrefetcher.Destination
+    private var subscriptions = [TaskLoadImageKey: JobSubscription]()
+
+    nonisolated let queue: JobQueue
+
+    var priority: ImageRequest.Priority = .low
+
+    nonisolated init(pipeline: ImagePipeline, destination: ImagePrefetcher.Destination, maxConcurrentRequestCount: Int) {
+        self.pipeline = pipeline
+        self.destination = destination
+        self.queue = JobQueue(maxConcurrentJobCount: maxConcurrentRequestCount)
+    }
+
+    func startPrefetching(with url: URL) {
+        startPrefetching(with: ImageRequest(url: url))
+    }
+
+    func startPrefetching(with request: ImageRequest) {
+        var request = request
+        if priority != request.priority {
+            request.priority = priority
+        }
+        guard pipeline.cache[request] == nil else { return }
+
+        let key = TaskLoadImageKey(request)
+        guard subscriptions[key] == nil else { return }
+
+        let job = ImagePrefetcherJob(prefetcher: self, request: request)
+        job.queue = queue
+        job.onDisposed = { [weak self] in
+            self?.remove(key)
+        }
+        subscriptions[key] = job.subscribe(self)
+        return
+    }
+
+    private func remove(_ key: TaskLoadImageKey) {
+        subscriptions[key] = nil
+    }
+
+    func stopPrefetching(with url: URL) {
+        stopPrefetching(with: ImageRequest(url: url))
+    }
+
+    func stopPrefetching(with request: ImageRequest) {
+        if let subscription = subscriptions.removeValue(forKey: TaskLoadImageKey(request)) {
+            subscription.unsubscribe()
         }
     }
 
-    private func didUpdatePriority(to priority: ImageRequest.Priority) {
-        guard _priority != priority else { return }
-        _priority = priority
-        for task in tasks.values {
-            task.imageTask?.priority = priority
-        }
+    func stopPrefetching() {
+        subscriptions.values.forEach { $0.unsubscribe() }
+        subscriptions.removeAll()
     }
 
-    private final class Task: @unchecked Sendable {
+    @ImagePipelineActor
+    private final class PrefetchTask {
         let key: TaskLoadImageKey
-        let request: ImageRequest
         weak var imageTask: ImageTask?
-        weak var operation: Operation?
-        var onCancelled: (() -> Void)?
+        var subscription: JobSubscription?
 
-        init(request: ImageRequest, key: TaskLoadImageKey) {
-            self.request = request
+        init(key: TaskLoadImageKey) {
             self.key = key
         }
 
         // When task is cancelled, it is removed from the prefetcher and can
         // never get cancelled twice.
         func cancel() {
-            operation?.cancel()
-            imageTask?.cancel()
-            onCancelled?()
+            subscription?.unsubscribe()
         }
+    }
+
+    // MARK: JobSubscriber
+
+    // TODO: remove these
+    func receive(_ event: Job<Void>.Event) {}
+    func addSubscribedTasks(to output: inout [ImageTask]) {}
+}
+
+private final class ImagePrefetcherJob: Job<Void> {
+    private weak var prefetcher: _ImagePrefetcher?
+    private let request: ImageRequest
+    private var task: Task<Void, Never>?
+
+    init(prefetcher: _ImagePrefetcher, request: ImageRequest) {
+        self.prefetcher = prefetcher
+        self.request = request
+    }
+
+    override func start() {
+        task = Task { @ImagePipelineActor in
+            if let prefetcher {
+                let imageTask = prefetcher.pipeline.makeImageTask(with: request, isDataTask: prefetcher.destination == .diskCache)
+                _ = try? await imageTask.response
+            }
+            finish(with: .success(()))
+        }
+    }
+
+    override func onCancel() {
+        task?.cancel()
     }
 }

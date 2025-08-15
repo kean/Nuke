@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import CoreGraphics
@@ -30,7 +30,7 @@ extension ImageEncoders {
             self.compressionRatio = compressionRatio
         }
 
-        private static let availability = Atomic<[AssetType: Bool]>(value: [:])
+        private static let availability = Mutex<[AssetType: Bool]>([:])
 
         /// Returns `true` if the encoding is available for the given format on
         /// the current hardware. Some of the most recent formats might not be

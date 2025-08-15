@@ -1,44 +1,48 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+
 @testable import Nuke
 
-class LinkedListTests: XCTestCase {
+@Suite struct LinkedListTests {
     let list = LinkedList<Int>()
 
-    func testEmptyWhenCreated() {
-        XCTAssertNil(list.first)
-        XCTAssertNil(list.last)
-        XCTAssertTrue(list.isEmpty)
+    @Test func emptyWhenCreated() {
+        #expect(list.first == nil)
+        #expect(list.last == nil)
+        #expect(list.isEmpty)
     }
 
     // MARK: - Append
 
-    func testAppendOnce() {
+    @Test func appendOnce() {
         // When
         list.append(1)
 
         // Then
-        XCTAssertFalse(list.isEmpty)
-        XCTAssertEqual(list.first?.value, 1)
-        XCTAssertEqual(list.last?.value, 1)
+        #expect(list.isEmpty == false)
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 1)
+        #expect(list.count == 1)
     }
 
-    func testAppendTwice() {
+    @Test func appendTwice() {
         // When
         list.append(1)
         list.append(2)
 
         // Then
-        XCTAssertEqual(list.first?.value, 1)
-        XCTAssertEqual(list.last?.value, 2)
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 2)
+        #expect(list.count == 2)
     }
 
     // MARK: - Remove
 
-    func testRemoveSingle() {
+    @Test func removeSingle() {
         // Given
         let node = list.append(1)
 
@@ -46,11 +50,12 @@ class LinkedListTests: XCTestCase {
         list.remove(node)
 
         // Then
-        XCTAssertNil(list.first)
-        XCTAssertNil(list.last)
+        #expect(list.first == nil)
+        #expect(list.last == nil)
+        #expect(list.count == 0)
     }
 
-    func testRemoveFromBeggining() {
+    @Test func removeFromBeggining() {
         // Given
         let node = list.append(1)
         list.append(2)
@@ -60,11 +65,12 @@ class LinkedListTests: XCTestCase {
         list.remove(node)
 
         // Then
-        XCTAssertEqual(list.first?.value, 2)
-        XCTAssertEqual(list.last?.value, 3)
+        #expect(list.first?.value == 2)
+        #expect(list.last?.value == 3)
+        #expect(list.count == 2)
     }
 
-    func testRemoveFromEnd() {
+    @Test func removeFromEnd() {
         // Given
         list.append(1)
         list.append(2)
@@ -74,11 +80,12 @@ class LinkedListTests: XCTestCase {
         list.remove(node)
 
         // Then
-        XCTAssertEqual(list.first?.value, 1)
-        XCTAssertEqual(list.last?.value, 2)
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 2)
+        #expect(list.count == 2)
     }
 
-    func testRemoveFromMiddle() {
+    @Test func removeFromMiddle() {
         // Given
         list.append(1)
         let node = list.append(2)
@@ -88,11 +95,12 @@ class LinkedListTests: XCTestCase {
         list.remove(node)
 
         // Then
-        XCTAssertEqual(list.first?.value, 1)
-        XCTAssertEqual(list.last?.value, 3)
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 3)
+        #expect(list.count == 2)
     }
 
-    func testRemoveAll() {
+    @Test func removeAll() {
         // Given
         list.append(1)
         list.append(2)
@@ -102,7 +110,8 @@ class LinkedListTests: XCTestCase {
         list.removeAllElements()
 
         // Then
-        XCTAssertNil(list.first)
-        XCTAssertNil(list.last)
+        #expect(list.first == nil)
+        #expect(list.last == nil)
+        #expect(list.count == 0)
     }
 }

@@ -1,12 +1,12 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-struct ResumableData: @unchecked Sendable {
+struct ResumableData: Sendable {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
@@ -63,71 +63,55 @@ struct ResumableData: @unchecked Sendable {
 }
 
 /// Shared cache, uses the same memory pool across multiple pipelines.
-final class ResumableDataStorage: @unchecked Sendable {
+@ImagePipelineActor
+final class ResumableDataStorage {
     static let shared = ResumableDataStorage()
 
-    private let lock = NSLock()
-    private var registeredPipelines = Set<UUID>()
-
+    private var namespaces = Set<UUID>()
     private var cache: Cache<Key, ResumableData>?
 
     // MARK: Registration
 
-    func register(_ pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        if registeredPipelines.isEmpty {
+    func register(_ namespace: UUID) {
+        if namespaces.isEmpty {
             // 32 MB
             cache = Cache(costLimit: 32000000, countLimit: 100)
         }
-        registeredPipelines.insert(pipeline.id)
+        namespaces.insert(namespace)
     }
 
-    func unregister(_ pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        registeredPipelines.remove(pipeline.id)
-        if registeredPipelines.isEmpty {
+    func unregister(_ namespace: UUID) {
+        namespaces.remove(namespace)
+        if namespaces.isEmpty {
             cache = nil // Deallocate storage
         }
     }
 
     func removeAllResponses() {
-        lock.lock()
-        defer { lock.unlock() }
-
         cache?.removeAllCachedValues()
     }
 
     // MARK: Storage
 
-    func removeResumableData(for request: ImageRequest, pipeline: ImagePipeline) -> ResumableData? {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+    func removeResumableData(for request: ImageRequest, namespace: UUID) -> ResumableData? {
+        guard let key = Key(request: request, namespace: namespace) else { return nil }
         return cache?.removeValue(forKey: key)
     }
 
-    func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard let key = Key(request: request, pipeline: pipeline) else { return }
+    func storeResumableData(_ data: ResumableData, for request: ImageRequest, namespace: UUID) {
+        guard let key = Key(request: request, namespace: namespace) else { return }
         cache?.set(data, forKey: key, cost: data.data.count)
     }
 
     private struct Key: Hashable {
-        let pipelineId: UUID
+        let namespace: UUID
         let imageId: String
 
-        init?(request: ImageRequest, pipeline: ImagePipeline) {
+        init?(request: ImageRequest, namespace: UUID) {
             guard let imageId = request.imageId else {
                 return nil
             }
-            self.pipelineId = pipeline.id
+            self.namespace = namespace
             self.imageId = imageId
         }
     }

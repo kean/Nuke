@@ -2267,7 +2267,7 @@ This is a pre-1.0 version, first major release which is going to be available so
 
 *Sep 22, 2015*
 
-#10 Fix Carthage build
+- #10 Fix Carthage build
 
 
 ## Nuke 0.3

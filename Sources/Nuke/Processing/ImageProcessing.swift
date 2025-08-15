@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -68,7 +68,7 @@ extension ImageProcessing {
         return container
     }
 
-    /// The default impleemntation simply returns `var identifier: String`.
+    /// The default implementation simply returns `var identifier: String`.
     public var hashableIdentifier: AnyHashable { identifier }
 }
 

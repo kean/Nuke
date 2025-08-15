@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -117,7 +117,7 @@ private func checkAccessCachedImages07() {
     _ = pipeline.cache.makeDataCacheKey(for: request)
 }
 
-private final class CheckAccessCachedImages08: ImagePipelineDelegate {
+private final class CheckAccessCachedImages08: ImagePipeline.Delegate {
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
         request.userInfo["imageId"] as? String
     }

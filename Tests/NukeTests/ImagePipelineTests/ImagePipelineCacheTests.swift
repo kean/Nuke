@@ -1,20 +1,20 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+
 @testable import Nuke
 
-class ImagePipelineCacheTests: XCTestCase {
+@Suite class ImagePipelineCacheTests {
     var memoryCache: MockImageCache!
     var diskCache: MockDataCache!
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var cache: ImagePipeline.Cache { pipeline.cache }
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         diskCache = MockDataCache()
         memoryCache = MockImageCache()
@@ -28,469 +28,469 @@ class ImagePipelineCacheTests: XCTestCase {
 
     // MARK: Subscripts
 
-    func testSubscript() {
-        // GIVEN
+    @Test func subscriptSimple() {
+        // Given
         cache[Test.request] = Test.container
 
-        // THEN
-        XCTAssertNotNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] != nil)
     }
 
-    func testDisableMemoryCacheRead() {
-        // GIVEN
+    @Test func disableMemoryCacheRead() {
+        // Given
         cache[Test.request] = Test.container
         let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheReads])
 
-        // THEN
-        XCTAssertNil(cache[request])
+        // Then
+        #expect(cache[request] == nil)
     }
 
-    func testDisableMemoryCacheWrite() {
-        // GIVEN
+    @Test func disableMemoryCacheWrite() {
+        // Given
         let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheWrites])
         cache[request] = Test.container
 
-        // THEN
-        XCTAssertNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] == nil)
     }
 
-    func testSubscriptRemove() {
-        // GIVEN
+    @Test func subscriptRemove() {
+        // Given
         cache[Test.request] = Test.container
 
-        // WHEN
+        // When
         cache[Test.request] = nil
 
-        // THEN
-        XCTAssertNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] == nil)
     }
 
-    func testSubscriptStoringPreviewWhenDisabled() {
-        // GIVEN
+    @Test func subscriptStoringPreviewWhenDisabled() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.isStoringPreviewsInMemoryCache = false
         }
 
-        // WHEN
+        // When
         cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
 
-        // THEN
-        XCTAssertNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] == nil)
     }
 
-    func testSubscriptStoringPreviewWhenEnabled() throws {
-        // GIVEN
+    @Test func subscriptStoringPreviewWhenEnabled() throws {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.isStoringPreviewsInMemoryCache = true
         }
 
-        // WHEN
+        // When
         cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
 
-        // THEN
-        let response = try XCTUnwrap(cache[Test.request])
-        XCTAssertTrue(response.isPreview)
+        // Then
+        let response = try #require(cache[Test.request])
+        #expect(response.isPreview)
     }
 
-    func testSubscriptWhenNoImageCache() {
-        // GIVEN
+    @Test func subscriptWhenNoImageCache() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.imageCache = nil
         }
         cache[Test.request] = Test.container
 
-        // THEN
-        XCTAssertNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] == nil)
     }
 
-    func testSubscriptWithRealImageCache() {
-        // GIVEN
+    @Test func subscriptWithRealImageCache() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.imageCache = ImageCache()
         }
         cache[Test.request] = Test.container
 
-        // THEN
-        XCTAssertNotNil(cache[Test.request])
+        // Then
+        #expect(cache[Test.request] != nil)
     }
 
     // MARK: Cached Image
 
-    func testGetCachedImageDefaultFromMemoryCache() {
-        // GIVEN
+    @Test func getCachedImageDefaultFromMemoryCache() {
+        // Given
         let request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request)
 
-        // THEN
-        XCTAssertNotNil(image)
+        // Then
+        #expect(image != nil)
     }
 
-    func testGetCachedImageDefaultFromDiskCache() {
-        // GIVEN
+    @Test func getCachedImageDefaultFromDiskCache() {
+        // Given
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request)
 
-        // THEN
-        XCTAssertNotNil(image)
+        // Then
+        #expect(image != nil)
     }
 
-    func testGetCachedImageDefaultFromDiskCacheWhenOptionEnabled() {
-        // GIVEN
+    @Test func getCachedImageDefaultFromDiskCacheWhenOptionEnabled() {
+        // Given
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request, caches: [.disk])
 
-        // THEN returns nil because queries only memory cache by default
-        XCTAssertNotNil(image)
+        // Then returns nil because queries only memory cache by default
+        #expect(image != nil)
     }
 
-    func testGetCachedImageDefaultNotStored() {
-        // GIVEN
+    @Test func getCachedImageDefaultNotStored() {
+        // Given
         let request = Test.request
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request)
 
-        // THEN
-        XCTAssertNil(image)
+        // Then
+        #expect(image == nil)
     }
 
-    func testGetCachedImageDefaultFromMemoryCacheWhenCachePolicyPreventsLookup() {
-        // GIVEN
+    @Test func getCachedImageDefaultFromMemoryCacheWhenCachePolicyPreventsLookup() {
+        // Given
         var request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
-        // WHEN
+        // When
         request.options = [.reloadIgnoringCachedData]
         let image = cache.cachedImage(for: request)
 
-        // THEN
-        XCTAssertNil(image)
+        // Then
+        #expect(image == nil)
     }
 
-    func testGetCachedImageDefaultFromDiskCacheWhenCachePolicyPreventsLookup() {
-        // GIVEN
+    @Test func getCachedImageDefaultFromDiskCacheWhenCachePolicyPreventsLookup() {
+        // Given
         var request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
-        // WHEN
+        // When
         request.options = [.reloadIgnoringCachedData]
         let image = cache.cachedImage(for: request, caches: [.disk])
 
-        // THEN
-        XCTAssertNil(image)
+        // Then
+        #expect(image == nil)
     }
 
-    func testGetCachedImageOnlyFromMemoryStoredInMemory() {
-        // GIVEN
+    @Test func getCachedImageOnlyFromMemoryStoredInMemory() {
+        // Given
         let request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request, caches: [.memory])
 
-        // THEN
-        XCTAssertNotNil(image)
+        // Then
+        #expect(image != nil)
     }
 
-    func testGetCachedImageOnlyFromMemoryStoredOnDisk() {
-        // GIVEN
+    @Test func getCachedImageOnlyFromMemoryStoredOnDisk() {
+        // Given
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
-        // WHEN
+        // When
         let image = cache.cachedImage(for: request, caches: [.memory])
 
-        // THEN
-        XCTAssertNil(image)
+        // Then
+        #expect(image == nil)
     }
 
-    func testDisableDiskCacheReads() {
-        // GIVEN
+    @Test func disableDiskCacheReads() {
+        // Given
         cache.storeCachedData(Test.data, for: Test.request)
         let request = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
 
-        // THEN
-        XCTAssertNil(cache.cachedData(for: request))
+        // Then
+        #expect(cache.cachedData(for: request) == nil)
     }
 
-    func testDisableDiskCacheWrites() {
-        // GIVEN
+    @Test func disableDiskCacheWrites() {
+        // Given
         let request = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
         cache.storeCachedData(Test.data, for: request)
 
-        // THEN
-        XCTAssertNil(cache.cachedData(for: Test.request))
+        // Then
+        #expect(cache.cachedData(for: Test.request) == nil)
     }
 
     // MARK: Store Cached Image
 
-    func testStoreCachedImageMemoryCache() {
-        // WHEN
+    @Test func storeCachedImageMemoryCache() {
+        // When
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
 
-        // THEN
-        XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNotNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) != nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
-        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    func testStoreCachedImageInDiskCache() {
-        // WHEN
+    @Test func storeCachedImageInDiskCache() {
+        // When
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.disk])
 
-        // THEN
-        XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) != nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    func testStoreCachedImageInBothLayers() {
-        // WHEN
+    @Test func storeCachedImageInBothLayers() {
+        // When
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
 
-        // THEN
-        XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNotNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) != nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
-        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
     // MARK: Cached Data
 
-    func testStoreCachedData() {
-        // WHEN
+    @Test func storeCachedData() {
+        // When
         let request = Test.request
         cache.storeCachedData(Test.data, for: request)
 
-        // THEN
-        XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) != nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    func testStoreCacheImageWhenMemoryCacheWriteDisabled() {
-        // WHEN
+    @Test func storeCacheImageWhenMemoryCacheWriteDisabled() {
+        // When
         var request = Test.request
         request.options.insert(.disableMemoryCacheWrites)
         cache.storeCachedImage(Test.container, for: request, caches: [.memory])
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    func testStoreCacheDataWhenNoDataCache() {
-        // GIVEN
+    @Test func storeCacheDataWhenNoDataCache() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.dataCache = nil
         }
 
-        // WHEN
+        // When
         cache.storeCachedData(Test.data, for: Test.request)
 
-        // THEN just make sure it doesn't do anything weird
-        XCTAssertNil(cache.cachedData(for: Test.request))
+        // Then just make sure it doesn't do anything weird
+        #expect(cache.cachedData(for: Test.request) == nil)
     }
 
-    func testGetCachedDataWhenNoDataCache() {
-        // GIVEN
+    @Test func getCachedDataWhenNoDataCache() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.dataCache = nil
         }
 
-        // THEN just make sure it doesn't do anything weird
-        XCTAssertNil(cache.cachedData(for: Test.request))
+        // Then just make sure it doesn't do anything weird
+        #expect(cache.cachedData(for: Test.request) == nil)
         cache.removeCachedData(for: Test.request)
     }
 
     // MARK: Contains
 
-    func testContainsWhenStoredInMemoryCache() {
-        // GIVEN
+    @Test func containsWhenStoredInMemoryCache() {
+        // Given
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.memory])
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        XCTAssertFalse(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        // When/THEN
+        #expect(cache.containsCachedImage(for: Test.request))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(!cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    func testContainsWhenStoredInDiskCache() {
-        // GIVEN
+    @Test func containsWhenStoredInDiskCache() {
+        // Given
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        XCTAssertFalse(cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        // When/THEN
+        #expect(cache.containsCachedImage(for: Test.request))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(!cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    func testsContainsStoredInBoth() {
-        // GIVEN
+    @Test func sContainsStoredInBoth() {
+        // Given
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.all])
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        // When/THEN
+        #expect(cache.containsCachedImage(for: Test.request))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    func testContainsData() {
-        // GIVEN
+    @Test func containsData() {
+        // Given
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsData(for: Test.request))
+        // When/THEN
+        #expect(cache.containsData(for: Test.request))
     }
 
-    func testContainsDataWithNoDataCache() {
-        // GIVEN
+    @Test func containsDataWithNoDataCache() {
+        // Given
         pipeline = pipeline.reconfigured {
             $0.dataCache = nil
         }
 
-        // WHEN/THEN
-        XCTAssertFalse(cache.containsData(for: Test.request))
+        // When/THEN
+        #expect(!cache.containsData(for: Test.request))
     }
 
     // MARK: Remove
 
-    func testRemoveFromMemoryCache() {
-        // GIVEN
+    @Test func removeFromMemoryCache() {
+        // Given
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
 
-        // WHEN
+        // When
         cache.removeCachedImage(for: request)
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
     }
 
-    func testRemoveFromDiskCache() {
-        // GIVEN
+    @Test func removeFromDiskCache() {
+        // Given
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.disk])
 
-        // WHEN
+        // When
         cache.removeCachedImage(for: request, caches: [.disk])
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        // Then
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    func testRemoveFromAllCaches() {
-        // GIVEN
+    @Test func removeFromAllCaches() {
+        // Given
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
 
-        // WHEN
+        // When
         cache.removeCachedImage(for: request, caches: [.memory, .disk])
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
     // MARK: Remove All
 
-    func testRemoveAll() {
-        // GIVEN
+    @Test func removeAll() {
+        // Given
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
 
-        // WHEN
+        // When
         cache.removeAll()
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    func testRemoveAllWithAllStatic() {
-        // GIVEN
+    @Test func removeAllWithAllStatic() {
+        // Given
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.all])
 
-        // WHEN
+        // When
         cache.removeAll()
 
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        // Then
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
     // MARK: - Image Orientation
 
 #if canImport(UIKit)
-    func testThatImageOrientationIsPreserved() throws {
-        // GIVEN opaque jpeg with orientation
+    @Test func thatImageOrientationIsPreserved() throws {
+        // Given opaque jpeg with orientation
         let image = Test.image(named: "right-orientation", extension: "jpeg")
-        XCTAssertTrue(image.cgImage!.isOpaque)
-        XCTAssertEqual(image.imageOrientation, .right)
-        
-        // WHEN
+        #expect(image.cgImage!.isOpaque)
+        #expect(image.imageOrientation == .right)
+
+        // When
         let pipeline = ImagePipeline(configuration: .withDataCache)
         pipeline.cache.storeCachedImage(ImageContainer(image: image), for: Test.request, caches: [.disk])
         let cached = pipeline.cache.cachedImage(for: Test.request, caches: [.disk])!.image
-        
-        // THEN orientation is preserved
-        XCTAssertTrue(cached.cgImage!.isOpaque)
-        XCTAssertEqual(cached.imageOrientation, .right)
+
+        // Then orientation is preserved
+        #expect(cached.cgImage!.isOpaque)
+        #expect(cached.imageOrientation == .right)
     }
-    
-    func testThatImageOrientationIsPreservedForProcessedImages() throws {
-        // GIVEN opaque jpeg with orientation
+
+    @Test func thatImageOrientationIsPreservedForProcessedImages() throws {
+        // Given opaque jpeg with orientation
         let image = Test.image(named: "right-orientation", extension: "jpeg")
-        XCTAssertTrue(image.cgImage!.isOpaque)
-        XCTAssertEqual(image.imageOrientation, .right)
-        
-        let resized = try XCTUnwrap(ImageProcessors.Resize(width: 100).process(image))
-        
-        // WHEN
+        #expect(image.cgImage!.isOpaque)
+        #expect(image.imageOrientation == .right)
+
+        let resized = try #require(ImageProcessors.Resize(width: 100).process(image))
+
+        // When
         let pipeline = ImagePipeline(configuration: .withDataCache)
         pipeline.cache.storeCachedImage(ImageContainer(image: resized), for: Test.request, caches: [.disk])
         let cached = pipeline.cache.cachedImage(for: Test.request, caches: [.disk])!.image
-        
-        // THEN orientation is preserved
-        XCTAssertTrue(cached.cgImage!.isOpaque)
-        XCTAssertEqual(cached.imageOrientation, .right)
+
+        // Then orientation is preserved
+        #expect(cached.cgImage!.isOpaque)
+        #expect(cached.imageOrientation == .right)
     }
 #endif
 }

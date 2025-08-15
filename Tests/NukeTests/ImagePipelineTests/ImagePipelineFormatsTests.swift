@@ -1,17 +1,17 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-class ImagePipelineFormatsTests: XCTestCase {
+@Suite struct ImagePipelineFormatsTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -19,46 +19,36 @@ class ImagePipelineFormatsTests: XCTestCase {
         }
     }
 
-    func testExtendedColorSpaceSupport() throws {
+    @Test func extendedColorSpaceSupport() async throws {
         // Given
         dataLoader.results[Test.url] = .success(
             (Test.data(name: "image-p3", extension: "jpg"), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
         // When
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toLoadImage(with: Test.request) {
-            result = $0
-        }
-        wait()
+        let image = try await pipeline.image(for: Test.request)
 
         // Then
-        let image = try XCTUnwrap(result?.value?.image)
-        let cgImage = try XCTUnwrap(image.cgImage)
-        let colorSpace = try XCTUnwrap(cgImage.colorSpace)
+        let cgImage = try #require(image.cgImage)
+        let colorSpace = try #require(cgImage.colorSpace)
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-        XCTAssertTrue(colorSpace.isWideGamutRGB)
+        #expect(colorSpace.isWideGamutRGB)
 #elseif os(watchOS)
-        XCTAssertFalse(colorSpace.isWideGamutRGB)
+        #expect(!colorSpace.isWideGamutRGB)
 #endif
     }
 
-    func testGrayscaleSupport() throws {
+    @Test func grayscaleSupport() async throws {
         // Given
         dataLoader.results[Test.url] = .success(
             (Test.data(name: "grayscale", extension: "jpeg"), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
         // When
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toLoadImage(with: Test.request) {
-            result = $0
-        }
-        wait()
+        let image = try await pipeline.image(for: Test.request)
 
         // Then
-        let image = try XCTUnwrap(result?.value?.image)
-        let cgImage = try XCTUnwrap(image.cgImage)
-        XCTAssertEqual(cgImage.bitsPerComponent, 8)
+        let cgImage = try #require(image.cgImage)
+        #expect(cgImage.bitsPerComponent == 8)
     }
 }

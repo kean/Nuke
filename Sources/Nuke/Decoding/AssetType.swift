@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -54,8 +54,10 @@ extension AssetType {
             }
             return zip(numbers.indices, numbers).allSatisfy { index, number in
                 guard let number else { return true }
-                guard (index + offset) < data.count else { return false }
-                return data[index + offset] == number
+                guard let index = data.index(data.startIndex, offsetBy: index + offset, limitedBy: data.endIndex) else {
+                    return false
+                }
+                return data[index] == number
             }
         }
 
@@ -70,6 +72,8 @@ extension AssetType {
 
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
+
+        if _match([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], offset: 4) { return .heic }
 
         // see https://stackoverflow.com/questions/21879981/avfoundation-avplayer-supported-formats-no-vob-or-mpg-containers
         // https://en.wikipedia.org/wiki/List_of_file_signatures

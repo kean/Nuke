@@ -1,108 +1,110 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
-import Nuke
+import Foundation
+import Testing
 
-class ImageProcessorsProtocolExtensionsTests: XCTestCase {
-    
-    func testPassingProcessorsUsingProtocolExtensionsResize() throws {
+@testable import Nuke
+
+@Suite struct ImageProcessorsProtocolExtensionsTests {
+
+    @Test func passingProcessorsUsingProtocolExtensionsResize() throws {
         let size = CGSize(width: 100, height: 100)
         let processor = ImageProcessors.Resize(size: size)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.resize(size: size)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.resize(size: size)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsResizeWidthOnly() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsResizeWidthOnly() throws {
         let processor = ImageProcessors.Resize(width: 100)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.resize(width: 100)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.resize(width: 100)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsResizeHeightOnly() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsResizeHeightOnly() throws {
         let processor = ImageProcessors.Resize(height: 100)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.resize(height: 100)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.resize(height: 100)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsCircleEmpty() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsCircleEmpty() throws {
         let processor = ImageProcessors.Circle()
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle()]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.circle()]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsCircle() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsCircle() throws {
         let border = ImageProcessingOptions.Border.init(color: .red)
         let processor = ImageProcessors.Circle(border: border)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle(border: border)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.circle(border: border)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsRoundedCorners() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsRoundedCorners() throws {
         let radius: CGFloat = 10
         let processor = ImageProcessors.RoundedCorners(radius: radius)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.roundedCorners(radius: radius)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.roundedCorners(radius: radius)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsAnonymous() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsAnonymous() throws {
         let id = UUID().uuidString
         let closure: (@Sendable (PlatformImage) -> PlatformImage?) = { _ in nil }
         let processor = ImageProcessors.Anonymous(id: id, closure)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.process(id: id, closure)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.process(id: id, closure)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
+
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-    func testPassingProcessorsUsingProtocolExtensionsCoreImageFilterWithNameOnly() throws {
+    @Test func passingProcessorsUsingProtocolExtensionsCoreImageFilterWithNameOnly() throws {
         let name = "CISepiaTone"
         let processor = ImageProcessors.CoreImageFilter(name: name)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.coreImageFilter(name: name)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsCoreImageFilter() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsCoreImageFilter() throws {
         let name = "CISepiaTone"
         let id = UUID().uuidString
         let processor = ImageProcessors.CoreImageFilter(name: name, parameters: [:], identifier: id)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name, parameters: [:], identifier: id)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.coreImageFilter(name: name, parameters: [:], identifier: id)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsGaussianBlurEmpty() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsGaussianBlurEmpty() throws {
         let processor = ImageProcessors.GaussianBlur()
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur()]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.gaussianBlur()]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
-    
-    func testPassingProcessorsUsingProtocolExtensionsGaussianBlur() throws {
+
+    @Test func passingProcessorsUsingProtocolExtensionsGaussianBlur() throws {
         let radius = 10
         let processor = ImageProcessors.GaussianBlur(radius: radius)
-        
-        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur(radius: radius)]))
-        
-        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.gaussianBlur(radius: radius)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
     }
 #endif
 }

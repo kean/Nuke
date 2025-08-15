@@ -1,20 +1,21 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+
 @testable import Nuke
 @testable import NukeExtensions
 
-class ImagePipelineProgressiveDecodingTests: XCTestCase {
+@ImagePipelineActor
+@Suite struct ImagePipelineProgressiveDecodingTests {
     private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!
     private var cache: MockImageCache!
     private var processorsFactory: MockProcessorFactory!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockProgressiveDataLoader()
         ResumableDataStorage.shared.removeAllResponses()
 
@@ -43,73 +44,71 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
     @MainActor
-    func testParitalImagesAreDisplayed() {
+    @Test func paritalImagesAreDisplayed() async {
         // Given
         ImagePipeline.pushShared(pipeline)
 
         let imageView = _ImageView()
+        var previewCount = 0
 
-        let expectPartialImageProduced = self.expectation(description: "Partial Image Produced")
-        // We expect two partial images (at 5 scans, and 9 scans marks).
-        expectPartialImageProduced.expectedFulfillmentCount = 2
-
-        let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
-
-        // When/Then
-        NukeExtensions.loadImage(
-            with: Test.request,
-            into: imageView,
-            progress: { response, _, _ in
-                if let image = response?.image {
-                    XCTAssertTrue(imageView.image === image)
-                    expectPartialImageProduced.fulfill()
-                    self.dataLoader.resume()
+        // When
+        await withUnsafeContinuation { continuation in
+            NukeExtensions.loadImage(
+                with: Test.request,
+                into: imageView,
+                progress: { response, _, _ in
+                    if let image = response?.image {
+                        previewCount += 1
+                        #expect(imageView.image === image)
+                        self.dataLoader.resume()
+                    }
+                },
+                completion: { result in
+                    #expect(imageView.image === result.value?.image)
+                    continuation.resume()
                 }
-            },
-            completion: { result in
-                XCTAssertTrue(imageView.image === result.value?.image)
-                expectedFinalLoaded.fulfill()
-            }
-        )
-        wait()
+            )
+        }
+
+        // Then we expect two partial images (at 5 scans, and 9 scans marks).
+        #expect(previewCount == 2)
 
         ImagePipeline.popShared()
     }
 
     @MainActor
-    func testDisablingProgressiveRendering() {
+    @Test func disablingProgressiveRendering() async {
         // Given
         ImagePipeline.pushShared(pipeline)
 
         let imageView = _ImageView()
+        var previewCount = 0
 
         var options = ImageLoadingOptions()
         options.isProgressiveRenderingEnabled = false
 
-        let expectPartialImageProduced = self.expectation(description: "Partial Image Produced")
-        // We expect two partial images (at 5 scans, and 9 scans marks).
-        expectPartialImageProduced.expectedFulfillmentCount = 2
-
-        let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
-
-        // When/Then
-        NukeExtensions.loadImage(
-            with: Test.request,
-            options: options,
-            into: imageView,
-            progress: { response, _, _ in
-                if response?.image != nil {
-                    XCTAssertNil(imageView.image)
-                    expectPartialImageProduced.fulfill()
-                    self.dataLoader.resume()
+        // When
+        await withUnsafeContinuation { continuation in
+            NukeExtensions.loadImage(
+                with: Test.request,
+                options: options,
+                into: imageView,
+                progress: { response, _, _ in
+                    if response?.image != nil {
+                        #expect(imageView.image == nil)
+                        previewCount += 1
+                        self.dataLoader.resume()
+                    }
+                },
+                completion: { result in
+                    #expect(imageView.image === result.value?.image)
+                    continuation.resume()
                 }
-            },
-            completion: { result in
-                XCTAssertTrue(imageView.image === result.value?.image)
-                expectedFinalLoaded.fulfill()
-            }
-        )
-        wait()
+            )
+        }
+
+        // Then we expect two partial images (at 5 scans, and 9 scans marks).
+        #expect(previewCount == 2)
 
         ImagePipeline.popShared()
     }

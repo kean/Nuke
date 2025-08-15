@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
@@ -83,7 +83,7 @@ extension ImageProcessors {
             set { _context.value = newValue }
         }
 
-        private static let _context = Atomic(value: CIContext(options: [.priorityRequestLow: true]))
+        private static let _context = Mutex(CIContext(options: [.priorityRequestLow: true]))
 
         static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
             guard let filter = CIFilter(name: name, parameters: parameters) else {

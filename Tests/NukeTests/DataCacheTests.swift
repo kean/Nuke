@@ -1,96 +1,91 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 import Security
+
 @testable import Nuke
 
-let blob = "123".data(using: .utf8)
-let otherBlob = "456".data(using: .utf8)
-
-class DataCacheTests: XCTestCase {
+@Suite class DataCacheTests {
     var cache: DataCache!
 
-    override func setUp() {
-        super.setUp()
-
+    init() throws {
         // Make sure that file names are different from the keys so that we
         // could know for sure that keyEncoder works as expected.
-        cache = try! DataCache(
+        cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
     }
 
-    override func tearDown() {
-        super.tearDown()
-
+    deinit {
         try? FileManager.default.removeItem(at: cache.path)
     }
 
     // MARK: Init
 
-    func testInitWithName() {
+    @Test func initWithName() throws {
         // Given
         let name = UUID().uuidString
 
         // When
-        let cache = try! DataCache(name: name, filenameGenerator: { $0 })
+        let cache = try DataCache(name: name, filenameGenerator: { $0 })
 
         // Then
-        XCTAssertEqual(cache.path.lastPathComponent, name)
-        XCTAssertNotNil(FileManager.default.fileExists(atPath: cache.path.absoluteString))
+        #expect(cache.path.lastPathComponent == name)
+        #expect(FileManager.default.fileExists(atPath: cache.path.absoluteString) != nil)
     }
 
-    func testInitWithPath() {
+    @Test func initWithPath() throws {
         // Given
         let name = UUID().uuidString
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.appendingPathComponent(name)
 
         // When
-        let cache = try! DataCache(path: path, filenameGenerator: { $0 })
+        let cache = try DataCache(path: path, filenameGenerator: { $0 })
 
         // Then
-        XCTAssertEqual(cache.path, path)
-        XCTAssertNotNil(FileManager.default.fileExists(atPath: path.absoluteString))
+        #expect(cache.path == path)
+        #expect(FileManager.default.fileExists(atPath: path.absoluteString) != nil)
     }
 
     // MARK: Default Key Encoder
 
-    func testDefaultKeyEncoder() {
-        let cache = try! DataCache(name: UUID().uuidString)
+    @Test func defaultKeyEncoder() throws {
+        let cache = try DataCache(name: UUID().uuidString)
         let filename = cache.filename(for: "http://test.com")
-        XCTAssertEqual(filename, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+        #expect(filename == "50334ee0b51600df6397ce93ceed4728c37fee4e")
     }
 
-    func testSHA1() {
-        XCTAssertEqual("http://test.com".sha1, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+    @Test func sHA1() {
+        #expect("http://test.com".sha1 == "50334ee0b51600df6397ce93ceed4728c37fee4e")
     }
 
     // MARK: Add
 
-    func testAdd() {
+    @Test func add() {
         cache.withSuspendedIO {
             // When
             cache["key"] = blob
 
             // Then
-            XCTAssertEqual(cache["key"], blob)
+            #expect(cache["key"] == blob)
         }
     }
 
-    func testWhenAddContentNotFlushedImmediately() {
+    @Test func whenAddContentNotFlushedImmediately() {
         cache.withSuspendedIO {
             // When
             cache["key"] = blob
 
             // Then
-            XCTAssertEqual(cache.contents.count, 0)
+            #expect(cache.contents.count == 0)
         }
     }
 
-    func testAddAndFlush() {
+    @Test func addAndFlush() throws {
         // Given
         cache.withSuspendedIO {
             cache["key"] = blob
@@ -100,12 +95,12 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache.contents.count, 1)
-        XCTAssertEqual(cache["key"], blob)
-        XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
+        #expect(cache.contents.count == 1)
+        #expect(cache["key"] == blob)
+        #expect(try Data(contentsOf: cache.contents.first!) == blob)
     }
 
-    func testReplace() {
+    @Test func replace() {
         cache.withSuspendedIO {
             // Given
             cache["key"] = blob
@@ -114,100 +109,100 @@ class DataCacheTests: XCTestCase {
             cache["key"] = otherBlob
 
             // Then
-            XCTAssertEqual(cache["key"], otherBlob)
+            #expect(cache["key"] == otherBlob)
         }
     }
 
-    func testReplaceFlushed() {
+    @Test func replaceFlushed() throws {
         // Given
         cache["key"] = blob
         cache.flush()
 
-        cache.withSuspendedIO {
+        try cache.withSuspendedIO {
             cache["key"] = otherBlob
-            XCTAssertEqual(cache.contents.count, 1)
+            #expect(cache.contents.count == 1)
             // Test that before flush we still have the old blob on disk,
             // but new blob in staging
-            XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
-            XCTAssertEqual(cache["key"], otherBlob)
+            try #expect(Data(contentsOf: cache.contents.first!) == blob)
+            #expect(cache["key"] == otherBlob)
         }
 
         // Flush and test that data on disk was updated.
         cache.flush()
-        XCTAssertEqual(cache.contents.count, 1)
-        XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), otherBlob)
-        XCTAssertEqual(cache["key"], otherBlob)
+        #expect(cache.contents.count == 1)
+        #expect(try Data(contentsOf: cache.contents.first!) == otherBlob)
+        #expect(cache["key"] == otherBlob)
     }
 
     // MARK: Removal
 
-    func testRemoveNonExistent() {
+    @Test func removeNonExistent() {
         cache["key"] = nil
         cache.flush()
     }
 
     // - Remove + write (new) staged -> remove from staging
-    func testRemoveFromStaging() {
+    @Test func removeFromStaging() {
         cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = nil
-            XCTAssertNil(cache["key"])
+            #expect(cache["key"] == nil)
         }
         cache.flush()
-        XCTAssertNil(cache["key"])
+        #expect(cache["key"] == nil)
     }
 
     // - Remove + write (new) staged -> remove from staging
-    func testRemoveReplaced() {
+    @Test func removeReplaced() {
         cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = otherBlob
             cache["key"] = nil
         }
         cache.flush()
-        XCTAssertNil(cache["key"])
-        XCTAssertEqual(cache.contents.count, 0)
+        #expect(cache["key"] == nil)
+        #expect(cache.contents.count == 0)
     }
 
     // - Remove + write (replace) staged -> schedule removal
-    func testRemoveReplacedFlushed() {
+    @Test func removeReplacedFlushed() throws {
         cache["key"] = blob
         cache.flush()
 
-        cache.withSuspendedIO {
+        try cache.withSuspendedIO {
             cache["key"] = otherBlob
             cache["key"] = nil
-            XCTAssertNil(cache["key"])
-            XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
+            #expect(cache["key"] == nil)
+            try #expect(Data(contentsOf: cache.contents.first!) == blob)
         }
 
         cache.flush() // Should still perform deletion of "blob"
-        XCTAssertEqual(cache.contents.count, 0)
+        #expect(cache.contents.count == 0)
     }
 
     // - Remove + flushed -> schedule removal
-    func testRemoveFlushed() {
+    @Test func removeFlushed() throws {
         // Given
         cache["key"] = blob
         cache.flush()
 
-        cache.withSuspendedIO {
+        try cache.withSuspendedIO {
             cache["key"] = nil
-            XCTAssertNil(cache["key"])
+            #expect(cache["key"] == nil)
             // Still have data in cache
-            XCTAssertEqual(cache.contents.count, 1)
-            XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
+            #expect(cache.contents.count == 1)
+            try #expect(Data(contentsOf: cache.contents.first!) == blob)
         }
         cache.flush()
 
-        XCTAssertNil(cache["key"])
+        #expect(cache["key"] == nil)
 
         // IO performed
-        XCTAssertEqual(cache.contents.count, 0)
+        #expect(cache.contents.count == 0)
     }
 
     // - Remove + removal staged -> noop
-    func testRemoveWhenRemovalAlreadyScheduled() {
+    @Test func removeWhenRemovalAlreadyScheduled() {
         // Given
         cache["key"] = blob
         cache.flush()
@@ -218,10 +213,10 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache.contents.count, 0)
+        #expect(cache.contents.count == 0)
     }
 
-    func testRemoveAndThenReplace() {
+    @Test func removeAndThenReplace() throws {
         // Given
         cache["key"] = blob
         cache.flush()
@@ -232,14 +227,14 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache["key"], blob)
-        XCTAssertEqual(cache.contents.count, 1)
-        XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
+        #expect(cache["key"] == blob)
+        #expect(cache.contents.count == 1)
+        #expect(try Data(contentsOf: cache.contents.first!) == blob)
     }
 
     // MARK: Remove All
 
-    func testRemoveAll() {
+    @Test func removeAll() {
         cache.withSuspendedIO {
             // Given
             cache["key"] = blob
@@ -248,11 +243,11 @@ class DataCacheTests: XCTestCase {
             cache.removeAll()
 
             // Then
-            XCTAssertNil(cache["key"])
+            #expect(cache["key"] == nil)
         }
     }
 
-    func testRemoveAllFlushed() {
+    @Test func removeAllFlushed() {
         // Given
         cache["key"] = blob
         cache.flush()
@@ -260,11 +255,11 @@ class DataCacheTests: XCTestCase {
         // When
         cache.withSuspendedIO {
             cache.removeAll()
-            XCTAssertNil(cache["key"])
+            #expect(cache["key"] == nil)
         }
     }
 
-    func testRemoveAllFlushedAndFlush() {
+    @Test func removeAllFlushedAndFlush() {
         // Given
         cache["key"] = blob
         cache.flush()
@@ -274,13 +269,13 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertNil(cache["key"])
-        XCTAssertEqual(cache.contents.count, 0)
+        #expect(cache["key"] == nil)
+        #expect(cache.contents.count == 0)
     }
 
-    func testRemoveAllAndAdd() {
-        // Given
+    @Test func removeAllAndAdd() {
         cache.withSuspendedIO {
+            // Given
             cache["key"] = blob
 
             // When
@@ -288,13 +283,13 @@ class DataCacheTests: XCTestCase {
             cache["key"] = blob
 
             // Then
-            XCTAssertEqual(cache["key"], blob)
+            #expect(cache["key"] == blob)
         }
     }
 
-    func testRemoveAllTwice() {
-        // Given
+    @Test func removeAllTwice() {
         cache.withSuspendedIO {
+            // Given
             cache["key"] = blob
 
             // When
@@ -303,13 +298,13 @@ class DataCacheTests: XCTestCase {
             cache.removeAll()
 
             // Then
-            XCTAssertNil(cache["key"])
+            #expect(cache["key"] == nil)
         }
     }
 
     // MARK: DataCaching
 
-    func testGetCachedDataHitFromStaging() {
+    @Test func getCachedDataHitFromStaging() {
         // Given
         cache.flush() // Index is loaded
 
@@ -319,23 +314,23 @@ class DataCacheTests: XCTestCase {
 
             // When/Then
             let data = cache.cachedData(for: "key")
-            XCTAssertEqual(data, blob)
+            #expect(data == blob)
         }
     }
 
-    func testGetCachedData() {
+    @Test func getCachedData() {
         // Given
         cache["key"] = blob
         cache.flush()
 
         // When/Then
         let data = cache.cachedData(for: "key")
-        XCTAssertEqual(data, blob)
+        #expect(data == blob)
     }
 
     // MARK: Flush
 
-    func testFlush() {
+    @Test func flush() {
         // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
@@ -344,10 +339,10 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache.contents, [cache.url(for: "key")].compactMap { $0 })
+        #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
-    func testFlushForKey() {
+    @Test func flushForKey() {
         // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
@@ -356,10 +351,10 @@ class DataCacheTests: XCTestCase {
         cache.flush(for: "key")
 
         // Then
-        XCTAssertEqual(cache.contents, [cache.url(for: "key")].compactMap { $0 })
+        #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
-    func testFlushForKey2() {
+    @Test func flushForKey2() {
         // Given
         cache.flushInterval = .seconds(20)
         cache["key1"] = blob
@@ -369,13 +364,13 @@ class DataCacheTests: XCTestCase {
         cache.flush(for: "key1")
 
         // Then only flushes content for the specific key
-        XCTAssertEqual(cache.contents, [cache.url(for: "key1")].compactMap { $0 })
+        #expect(cache.contents == [cache.url(for: "key1")].compactMap { $0 })
     }
 
     // MARK: Sweep
 
-    func testSweep() {
-        // GIVEN
+    @Test func sweep() {
+        // Given
         let mb = 1024 * 1024 // allocated size is usually about 4 KB on APFS, so use 1 MB just to be sure
         cache.sizeLimit = mb * 3
         cache["key1"] = Data(repeating: 1, count: mb)
@@ -384,107 +379,100 @@ class DataCacheTests: XCTestCase {
         cache["key4"] = Data(repeating: 1, count: mb)
         cache.flush()
 
-        // WHEN
+        // When
         cache.sweep()
 
-        // THEN
-        XCTAssertEqual(cache.totalSize, mb * 2)
+        // Then
+        #expect(cache.totalSize == mb * 2)
     }
 
     // MARK: Inspection
 
-    func testContainsData() {
-        // GIVEN
+    @Test func containsData() {
+        // Given
         cache["key"] = blob
         cache.flush(for: "key")
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsData(for: "key"))
+        // When/Then
+        #expect(cache.containsData(for: "key"))
     }
 
-    func testContainsDataInStaging() {
-        // GIVEN
+    @Test func containsDataInStaging() {
+        // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
 
-        // WHEN/THEN
-        XCTAssertTrue(cache.containsData(for: "key"))
+        // When/Then
+        #expect(cache.containsData(for: "key"))
     }
 
-    func testContainsDataAfterRemoval() {
-        // GIVEN
+    @Test func containsDataAfterRemoval() {
+        // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
         cache.flush(for: "key")
         cache["key"] = nil
 
-        // WHEN/THEN
-        XCTAssertFalse(cache.containsData(for: "key"))
+        // When/Then
+        #expect(!cache.containsData(for: "key"))
     }
 
-    func testTotalCount() {
-        XCTAssertEqual(cache.totalCount, 0)
+    @Test func totalCount() {
+        #expect(cache.totalCount == 0)
 
         cache["1"] = "1".data(using: .utf8)
         cache.flush()
 
-        XCTAssertEqual(cache.totalCount, 1)
+        #expect(cache.totalCount == 1)
     }
 
-    func testTotalSize() {
-        XCTAssertEqual(cache.totalSize, 0)
+    @Test func totalSize() {
+        #expect(cache.totalSize == 0)
 
         cache["1"] = "1".data(using: .utf8)
         cache.flush()
 
-        XCTAssertTrue(cache.totalSize > 0)
+        #expect(cache.totalSize > 0)
     }
 
-    func testTotalAllocatedSize() {
-        XCTAssertEqual(cache.totalAllocatedSize, 0)
+    @Test func totalAllocatedSize() {
+        #expect(cache.totalAllocatedSize == 0)
 
         cache["1"] = "1".data(using: .utf8)
         cache.flush()
 
         // Depends on the file system.
-        XCTAssertTrue(cache.totalAllocatedSize > 0)
+        #expect(cache.totalAllocatedSize > 0)
     }
 
     // MARK: Resilience
 
-    func testWhenDirectoryDeletedCacheAutomaticallyRecreatesIt() {
+    @Test func whenDirectoryDeletedCacheAutomaticallyRecreatesIt() throws {
         cache["1"] = "2".data(using: .utf8)
         cache.flush()
 
-        do {
-            try FileManager.default.removeItem(at: cache.path)
-        } catch {
-            XCTFail("Fail to remove cache directory")
-        }
+        try FileManager.default.removeItem(at: cache.path)
 
         cache["1"] = "2".data(using: .utf8)
         cache.flush()
 
-        do {
-            guard let url = cache.url(for: "1") else {
-                return XCTFail("Failed to create URL")
-            }
-            let data = try Data(contentsOf: url)
-            XCTAssertEqual(String(data: data, encoding: .utf8), "2")
-        } catch {
-            XCTFail("Failed to read data")
-        }
+        let url = try #require(cache.url(for: "1"))
+        let data = try Data(contentsOf: url)
+        #expect(String(data: data, encoding: .utf8) == "2")
     }
 }
 
 extension DataCache {
     var contents: [URL] {
-        return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+        try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
     }
 
-    func withSuspendedIO(_ closure: () -> Void) {
+    func withSuspendedIO(_ closure: () throws -> Void) rethrows {
         queue.suspend()
-        closure()
+        try closure()
         queue.resume()
     }
 }
+
+private let blob = "123".data(using: .utf8)
+private let otherBlob = "456".data(using: .utf8)

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -226,7 +226,7 @@ extension ImagePipeline.Cache {
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return nil
         }
-        return (try? decoder.decode(context))?.container
+        return (try? decoder.decode(context).get())?.container
     }
 
     private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {

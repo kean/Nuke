@@ -1,12 +1,12 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
 extension ImagePipeline {
     /// The pipeline configuration.
-    public struct Configuration: @unchecked Sendable {
+    public struct Configuration: Sendable {
         // MARK: - Dependencies
 
         /// Data loader used by the pipeline.
@@ -65,29 +65,10 @@ extension ImagePipeline {
         /// If you use an aggressive disk cache ``DataCaching``, you can specify
         /// a cache policy with multiple available options and
         /// ``ImagePipeline/DataCachePolicy/storeOriginalData`` used by default.
-        public var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData
+        public var dataCachePolicy: ImagePipeline.DataCachePolicy = .storeOriginalData
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
-        /// loading images. The work only gets cancelled when all the registered
-        /// requests are. The pipeline also automatically manages the priority of the
-        /// deduplicated work.
-        ///
-        /// Let's take these two requests for example:
-        ///
-        /// ```swift
-        /// let url = URL(string: "http://example.com/image")
-        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     .resize(size: CGSize(width: 44, height: 44)),
-        ///     .gaussianBlur(radius: 8)
-        /// ]))
-        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     .resize(size: CGSize(width: 44, height: 44))
-        /// ]))
-        /// ```
-        ///
-        /// Nuke will load the image data only once, resize the image once and
-        /// apply the blur also only once. There is no duplicated work done at
-        /// any stage.
+        /// loading images. It coalesces the identical network and image requests.
         public var isTaskCoalescingEnabled = true
 
         /// `true` by default. If `true` the pipeline will rate limit requests
@@ -118,16 +99,6 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        /// A queue on which all callbacks, like `progress` and `completion`
-        /// callbacks are called. `.main` by default.
-        @available(*, deprecated, message: "`ImagePipeline` no longer supports changing the callback queue")
-        public var callbackQueue: DispatchQueue {
-            get { _callbackQueue }
-            set { _callbackQueue = newValue }
-        }
-
-        var _callbackQueue = DispatchQueue.main
-
         // MARK: - Options (Shared)
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
@@ -140,32 +111,28 @@ extension ImagePipeline {
             set { _isSignpostLoggingEnabled.value = newValue }
         }
 
-        private static let _isSignpostLoggingEnabled = Atomic(value: false)
+        private static let _isSignpostLoggingEnabled = Mutex(false)
 
         private var isCustomImageCacheProvided = false
 
         var debugIsSyncImageEncoding = false
 
-        // MARK: - Operation Queues
+        // MARK: - Work Queues
 
         /// Data loading queue. Default maximum concurrent task count is 6.
-        public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
-
-        // Deprecated in Nuke 12.6
-        @available(*, deprecated, message: "The pipeline now performs cache lookup on the internal queue, reducing the amount of context switching")
-        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
+        public let dataLoadingQueue = JobQueue(maxConcurrentJobCount: 6)
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
+        public let imageDecodingQueue = JobQueue(maxConcurrentJobCount: 1)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.
-        public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
+        public let imageEncodingQueue = JobQueue(maxConcurrentJobCount: 1)
 
         /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
+        public let imageProcessingQueue = JobQueue(maxConcurrentJobCount: 2)
 
         /// Image decompressing queue. Default maximum concurrent task count is 2.
-        public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
+        public let imageDecompressingQueue = JobQueue(maxConcurrentJobCount: 2)
 
         // MARK: - Initializer
 

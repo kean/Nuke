@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -47,14 +47,6 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     /// The time interval between cache sweeps. The default value is 1 hour.
     public var sweepInterval: TimeInterval = 3600
-
-    // Deprecated in Nuke 12.2
-    @available(*, deprecated, message: "It's not recommended to use compression with the popular image formats that already compress the data")
-    public var isCompressionEnabled: Bool {
-        get { _isCompressionEnabled }
-        set { _isCompressionEnabled = newValue }
-    }
-    var _isCompressionEnabled = false
 
     // Staging
 
@@ -143,7 +135,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         guard let url = url(for: key) else {
             return nil
         }
-        return try? decompressed(Data(contentsOf: url))
+        return try? Data(contentsOf: url)
     }
 
     /// Returns `true` if the cache contains the data for the given key.
@@ -322,31 +314,15 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         switch change.type {
         case let .add(data):
             do {
-                try compressed(data).write(to: url)
+                try data.write(to: url)
             } catch let error as NSError {
                 guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                try? compressed(data).write(to: url) // re-create a directory and try again
+                try? data.write(to: url) // re-create a directory and try again
             }
         case .remove:
             try? FileManager.default.removeItem(at: url)
         }
-    }
-
-    // MARK: Compression
-
-    private func compressed(_ data: Data) throws -> Data {
-        guard _isCompressionEnabled else {
-            return data
-        }
-        return try (data as NSData).compressed(using: .lzfse) as Data
-    }
-
-    private func decompressed(_ data: Data) throws -> Data {
-        guard _isCompressionEnabled else {
-            return data
-        }
-        return try (data as NSData).decompressed(using: .lzfse) as Data
     }
 
     // MARK: Sweep

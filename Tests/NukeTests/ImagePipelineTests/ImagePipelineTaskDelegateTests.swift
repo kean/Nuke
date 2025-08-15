@@ -1,18 +1,18 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-class ImagePipelineTaskDelegateTests: XCTestCase {
+@Suite struct ImagePipelineTaskDelegateTests {
     private var dataLoader: MockDataLoader!
     private var pipeline: ImagePipeline!
     private var delegate: ImagePipelineObserver!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         delegate = ImagePipelineObserver()
 
@@ -22,57 +22,49 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         }
     }
 
-    func testStartAndCompletedEvents() throws {
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toLoadImage(with: Test.request) { result = $0 }
-        wait()
+    @Test func startAndCompletedEvents() async throws {
+        let result = await Task {
+            try await pipeline.imageTask(with: Test.url).response
+        }.result.mapError { $0 as! ImageTask.Error }
 
         // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
-            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-            .completed(result: try XCTUnwrap(result))
+        #expect(delegate.events == [
+            .progress(.init(completed: 22789, total: 22789)),
+            .finished(result)
         ])
     }
 
-    func testProgressUpdateEvents() throws {
-        let request = ImageRequest(url: Test.url)
+    @Test func progressUpdateEvents() async throws {
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toFailRequest(request) { result = $0 }
-        wait()
+        let result = await Task {
+            try await pipeline.imageTask(with: Test.url).response
+        }.result.mapError { $0 as! ImageTask.Error }
 
         // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
-            .progressUpdated(completedUnitCount: 10, totalUnitCount: 20),
-            .progressUpdated(completedUnitCount: 20, totalUnitCount: 20),
-            .completed(result: try XCTUnwrap(result))
+        #expect(delegate.events == [
+            .progress(.init(completed: 10, total: 20)),
+            .progress(.init(completed: 20, total: 20)),
+            .finished(result)
         ])
     }
 
-    func testCancellationEvents() {
+    @Test func cancellationEvents() async throws {
         dataLoader.queue.isSuspended = true
 
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.imageTask(with: Test.request).resume()
+        await expectation1.wait()
 
-        expectNotification(ImagePipelineObserver.didCancelTask, object: delegate)
+        // When
+        let expectation2 = AsyncExpectation(notification: ImagePipelineObserver.didCancelTask, object: delegate)
         task.cancel()
-        wait()
+        await expectation2.wait()
 
         // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
+        #expect(delegate.events == [
             .cancelled
         ])
     }

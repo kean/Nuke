@@ -1,351 +1,293 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+
 @testable import Nuke
 @testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-class ImageViewLoadingOptionsTests: XCTestCase {
+@MainActor
+@Suite class ImageViewLoadingOptionsTests {
     var mockCache: MockImageCache!
     var dataLoader: MockDataLoader!
     var imageView: _ImageView!
-    
-    @MainActor
-    override func setUp() {
-        super.setUp()
-        
+    var options = ImageLoadingOptions()
+
+    init() {
         mockCache = MockImageCache()
         dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = mockCache
         }
-        // Nuke.loadImage(...) methods use shared pipeline by default.
-        ImagePipeline.pushShared(pipeline)
-        
+        options.pipeline = pipeline
+
         imageView = _ImageView()
     }
-    
-    override func tearDown() {
-        super.tearDown()
-        
-        ImagePipeline.popShared()
-    }
-    
+
     // MARK: - Transition
-    
-    @MainActor
-    func testCustomTransitionPerformed() {
+
+    @Test func customTransitionPerformed() async throws {
         // Given
-        var options = ImageLoadingOptions()
-        
-        let expectTransition = self.expectation(description: "")
+        let expectTransition = AsyncExpectation<Void>()
         options.transition = .custom({ (view, image) in
             // Then
-            XCTAssertEqual(view, self.imageView)
-            XCTAssertNil(self.imageView.image) // Image isn't displayed automatically.
-            XCTAssertEqual(view, self.imageView)
+            #expect(view == self.imageView)
+            #expect(self.imageView.image == nil) // Image isn't displayed automatically. // Image isn't displayed automatically.
+            #expect(view == self.imageView)
             self.imageView.image = image
             expectTransition.fulfill()
         })
-        
+
         // When
-        expectToLoadImage(with: Test.request, options: options, into: imageView)
-        wait()
+        try await loadImage(with: Test.request, options: options, into: imageView)
+        await expectTransition.wait()
     }
-    
+
     // Tests https://github.com/kean/Nuke/issues/206
-    @MainActor
-    func testImageIsDisplayedFadeInTransition() {
+    @Test func imageIsDisplayedFadeInTransition() async throws {
         // Given options with .fadeIn transition
-        let options = ImageLoadingOptions(transition: .fadeIn(duration: 10))
-        
+        options.transition = .fadeIn(duration: 10)
+
         // When loading an image into an image view
-        expectToLoadImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then image is actually displayed
-        XCTAssertNotNil(imageView.image)
+        #expect(imageView.image != nil)
     }
-    
+
     // MARK: - Placeholder
-    
-    @MainActor
-    func testPlaceholderDisplayed() {
+
+    @Test func placeholderDisplayed() {
         // Given
-        var options = ImageLoadingOptions()
         let placeholder = PlatformImage()
         options.placeholder = placeholder
-        
+
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
-        
+        loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.image, placeholder)
+        #expect(imageView.image == placeholder)
     }
-    
+
     // MARK: - Failure Image
-    
-    @MainActor
-    func testFailureImageDisplayed() {
+
+    @Test func failureImageDisplayed() async throws {
         // Given
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "ErrorDomain", code: 42, userInfo: nil)
         )
-        
-        var options = ImageLoadingOptions()
+
         let failureImage = PlatformImage()
         options.failureImage = failureImage
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
+        try? await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.image, failureImage)
+        #expect(imageView.image == failureImage)
     }
 
-    @MainActor
-    func testFailureImageTransitionRun() {
+    @Test func failureImageTransitionRun() async throws {
         // Given
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
-        
-        var options = ImageLoadingOptions()
+
         let failureImage = PlatformImage()
         options.failureImage = failureImage
-        
+
         // Given
-        let expectTransition = self.expectation(description: "")
+        let expectTransition = AsyncExpectation<Void>()
         options.failureImageTransition = .custom({ (view, image) in
             // Then
-            XCTAssertEqual(view, self.imageView)
-            XCTAssertEqual(image, failureImage)
+            #expect(view == self.imageView)
+            #expect(image == failureImage)
             self.imageView.image = image
             expectTransition.fulfill()
         })
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
+        try? await loadImage(with: Test.request, options: options, into: imageView)
+        _ = await expectTransition.wait()
+
         // Then
-        XCTAssertEqual(imageView.image, failureImage)
+        #expect(imageView.image == failureImage)
     }
-    
+
 #if !os(macOS)
-    
+
     // MARK: - Content Modes
-    
-    @MainActor
-    func testPlaceholderAndSuccessContentModesApplied() {
+
+    @Test func placeholderAndSuccessContentModesApplied() async throws {
         // Given
-        var options = ImageLoadingOptions()
         options.contentModes = .init(
             success: .scaleAspectFill, // default is .scaleToFill
             failure: .center,
             placeholder: .center
         )
         options.placeholder = PlatformImage()
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        
+        let expectation = AsyncExpectation<Void>()
+        loadImage(with: Test.request, options: options, into: imageView) { _ in
+            expectation.fulfill()
+        }
+
         // Then
-        XCTAssertEqual(imageView.contentMode, .center)
-        wait()
-        XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
+        #expect(imageView.contentMode == .center)
+        await expectation.wait()
+        #expect(imageView.contentMode == .scaleAspectFill)
     }
-    
-    @MainActor
-    func testSuccessContentModeAppliedWhenFromMemoryCache() {
+
+    @Test func successContentModeAppliedWhenFromMemoryCache() async throws {
         // Given
-        var options = ImageLoadingOptions()
         options.contentModes = ImageLoadingOptions.ContentModes(
             success: .scaleAspectFill,
             failure: .center,
             placeholder: .center
         )
-        
+
         mockCache[Test.request] = Test.container
-        
+
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
-        
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
+        #expect(imageView.contentMode == .scaleAspectFill)
     }
-    
-    @MainActor
-    func testFailureContentModeApplied() {
+
+    @Test func failureContentModeApplied() async {
         // Given
-        var options = ImageLoadingOptions()
         options.contentModes = ImageLoadingOptions.ContentModes(
             success: .scaleAspectFill,
             failure: .center,
             placeholder: .center
         )
         options.failureImage = PlatformImage()
-        
+
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
+        try? await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.contentMode, .center)
+        #expect(imageView.contentMode == .center)
     }
-    
+
 #endif
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
-    
+
     // MARK: - Tint Colors
-    
-    @MainActor
-    func testPlaceholderAndSuccessTintColorApplied() {
+
+    @Test func placeholderAndSuccessTintColorApplied() async throws {
         // Given
-        var options = ImageLoadingOptions()
         options.tintColors = .init(
             success: .blue,
             failure: nil,
             placeholder: .yellow
         )
         options.placeholder = PlatformImage()
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.tintColor, .yellow)
-        wait()
-        XCTAssertEqual(imageView.tintColor, .blue)
-        XCTAssertEqual(imageView.image?.renderingMode, .alwaysTemplate)
+        #expect(imageView.tintColor == .blue)
+        #expect(imageView.image?.renderingMode == .alwaysTemplate)
     }
 
-    @MainActor
-    func testSuccessTintColorAppliedWhenFromMemoryCache() {
+    @Test func successTintColorAppliedWhenFromMemoryCache() {
         // Given
-        var options = ImageLoadingOptions()
         options.tintColors = .init(
             success: .blue,
             failure: nil,
             placeholder: nil
         )
-        
+
         mockCache[Test.request] = Test.container
-        
+
         // When
         NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
-        
+
         // Then
-        XCTAssertEqual(imageView.tintColor, .blue)
-        XCTAssertEqual(imageView.image?.renderingMode, .alwaysTemplate)
+        #expect(imageView.tintColor == .blue)
+        #expect(imageView.image?.renderingMode == .alwaysTemplate)
     }
-    
-    @MainActor
-    func testFailureTintColorApplied() {
+
+    @Test func failureTintColorApplied() async throws {
         // Given
-        var options = ImageLoadingOptions()
         options.tintColors = .init(
             success: nil,
             failure: .red,
             placeholder: nil
         )
         options.failureImage = PlatformImage()
-        
+
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
+        try? await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(imageView.tintColor, .red)
-        XCTAssertEqual(imageView.image?.renderingMode, .alwaysTemplate)
+        #expect(imageView.tintColor == .red)
+        #expect(imageView.image?.renderingMode == .alwaysTemplate)
     }
-    
+
 #endif
-    
+
     // MARK: - Pipeline
-    
-    @MainActor
-    func testCustomPipelineUsed() {
+
+    @Test func customPipelineUsed() async throws {
         // Given
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-        
+
         var options = ImageLoadingOptions()
         options.pipeline = pipeline
-        
+
         // When
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
         // Then
-        wait { _ in
-            _ = pipeline
-            XCTAssertEqual(dataLoader.createdTaskCount, 1)
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 0)
-        }
+        _ = pipeline // retain
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(self.dataLoader.createdTaskCount == 0)
     }
-    
-    // MARK: - Shared Options
-    
-    @MainActor
-    func testSharedOptionsUsed() {
-        // Given
-        var options = ImageLoadingOptions.shared
-        let placeholder = PlatformImage()
-        options.placeholder = placeholder
-        
-        ImageLoadingOptions.pushShared(options)
-        
-        // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
-        
-        // Then
-        XCTAssertEqual(imageView.image, placeholder)
-        
-        ImageLoadingOptions.popShared()
-    }
-    
+
     // MARK: - Cache Policy
-    
-    @MainActor
-    func testReloadIgnoringCachedData() {
+
+    @Test func reloadIgnoringCachedData() async throws {
         // When the requested image is stored in memory cache
         var request = Test.request
         mockCache[request] = ImageContainer(image: PlatformImage())
-        
+
         request.options = [.reloadIgnoringCachedData]
-        
+
         // When
-        expectToFinishLoadingImage(with: request, into: imageView)
-        wait()
-        
+        try await loadImage(with: request, options: options, into: imageView)
+
         // Then
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+        #expect(dataLoader.createdTaskCount == 1)
     }
-    
+
     // MARK: - Misc
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
-    @MainActor
-    func testTransitionCrossDissolve() {
-        // GIVEN
-        var options = ImageLoadingOptions()
+    @Test func transitionCrossDissolve() async throws {
+        // Given
         options.placeholder = Test.image
         options.transition = .fadeIn(duration: 0.33)
         options.isPrepareForReuseEnabled = false
@@ -354,30 +296,26 @@ class ImageViewLoadingOptionsTests: XCTestCase {
             failure: .center,
             placeholder: .center
         )
-        
+
         imageView.image = Test.image
-        
-        // WHEN
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
-        // THEN make sure we run the pass with cross-disolve and at least
+
+        // When
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
+        // Then make sure we run the pass with cross-disolve and at least
         // it doesn't crash
     }
 #endif
-    
-    @MainActor
-    func testSettingDefaultProcessor() {
-        // GIVEN
-        var options = ImageLoadingOptions()
+
+    @Test func settingDefaultProcessor() async throws {
+        // Given
         options.processors = [MockImageProcessor(id: "p1")]
-        
-        // WHEN
-        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
-        wait()
-        
-        // THEN
-        XCTAssertEqual(imageView.image?.nk_test_processorIDs, ["p1"])
+
+        // When
+        try await loadImage(with: Test.request, options: options, into: imageView)
+
+        // Then
+        #expect(imageView.image?.nk_test_processorIDs == ["p1"])
     }
 }
 

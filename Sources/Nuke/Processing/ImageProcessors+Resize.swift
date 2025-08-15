@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import CoreGraphics
@@ -18,10 +18,6 @@ extension ImageProcessors {
         private let contentMode: ImageProcessingOptions.ContentMode
         private let crop: Bool
         private let upscale: Bool
-
-        // Deprecated in Nuke 12.0
-        @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.ContentMode")
-        public typealias ContentMode = ImageProcessingOptions.ContentMode
 
         /// Initializes the processor with the given size.
         ///

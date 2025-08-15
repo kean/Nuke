@@ -1,295 +1,280 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-#if !os(macOS)
-import UIKit
-#endif
+@Suite struct ImageProcessorsResizeTests {
 
-class ImageProcessorsResizeTests: XCTestCase {
-    
-    func testThatImageIsResizedToFill() throws {
+    @Test func thatImageIsResizedToFill() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 533, height: 400))
+        #expect(output.sizeInPixels == CGSize(width: 533, height: 400))
     }
-    
-    func testThatImageIsntUpscaledByDefault() throws {
+
+    @Test func thatImageIsntUpscaledByDefault() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 640, height: 480))
+        #expect(output.sizeInPixels == CGSize(width: 640, height: 480))
     }
-    
-    func testResizeToFitHeight() throws {
+
+    @Test func resizeToFitHeight() throws {
         // Given
         let processor = ImageProcessors.Resize(height: 300, unit: .pixels)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 300))
     }
-    
-    func testResizeToFitWidth() throws {
+
+    @Test func resizeToFitWidth() throws {
         // Given
         let processor = ImageProcessors.Resize(width: 400, unit: .pixels)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 300))
     }
-    
-    func testThatImageIsUpscaledIfOptionIsEnabled() throws {
+
+    @Test func thatImageIsUpscaledIfOptionIsEnabled() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 1280, height: 960))
+        #expect(output.sizeInPixels == CGSize(width: 1280, height: 960))
     }
-    
-    func testThatContentModeCanBeChangeToAspectFit() throws {
+
+    @Test func thatContentModeCanBeChangeToAspectFit() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 360))
+        #expect(output.sizeInPixels == CGSize(width: 480, height: 360))
     }
-    
-    func testThatImageIsCropped() throws {
+
+    @Test func thatImageIsCropped() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, crop: true)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 400))
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 400))
     }
-    
-    func testThatImageIsntCroppedWithAspectFitMode() throws {
+
+    @Test func thatImageIsntCroppedWithAspectFitMode() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then image is resized but isn't cropped
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 360))
+        #expect(output.sizeInPixels == CGSize(width: 480, height: 360))
     }
-    
-    func testExtendedColorSpaceSupport() throws {
+
+    @Test func extendedColorSpaceSupport() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
-        
+
         // When
-        let output = try XCTUnwrap(processor.process(Test.image(named: "image-p3", extension: "jpg")), "Failed to process an image")
-        
+        let output = try #require(processor.process(Test.image(named: "image-p3", extension: "jpg")), "Failed to process an image")
+
         // Then image is resized but isn't cropped
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 320))
-        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        #expect(output.sizeInPixels == CGSize(width: 480, height: 320))
+        let colorSpace = try #require(output.cgImage?.colorSpace)
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-        XCTAssertTrue(colorSpace.isWideGamutRGB)
+        #expect(colorSpace.isWideGamutRGB)
 #elseif os(watchOS)
-        XCTAssertFalse(colorSpace.isWideGamutRGB)
+        #expect(!colorSpace.isWideGamutRGB)
 #endif
     }
-    
+
 #if os(macOS)
+    @Test
     @MainActor
-    func testResizeImageWithOrientationLeft() throws {
+    func resizeImageWithOrientationLeft() throws {
         // Given an image with `left` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px. macOS, however, automatically
         // changes image orientaiton to `up` so that you don't have to worry about it
-        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
-        
+        let input = try #require(Test.image(named: "right-orientation.jpeg"))
+
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
         let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
-        
+        let output = try #require(processor.process(input), "Failed to process an image")
+
         // Then the image orientation is still `.left`
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
-        
+        #expect(output.sizeInPixels == CGSize(width: 320, height: 240))
+
         // Then the image is resized according to orientation
-        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
+        #expect(output.size == CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
     }
 #endif
-    
+
 #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
-    func testResizeImageWithOrientationLeft() throws {
+    @Test func resizeImageWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
-        XCTAssertEqual(input.imageOrientation, .right)
-        
+        let input = try #require(Test.image(named: "right-orientation.jpeg"))
+        #expect(input.imageOrientation == .right)
+
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
         let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
-        
+        let output = try #require(processor.process(input), "Failed to process an image")
+
         // Then the image orientation is still `.right`
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 240, height: 320))
-        XCTAssertEqual(output.imageOrientation, .right)
+        #expect(output.sizeInPixels == CGSize(width: 240, height: 320))
+        #expect(output.imageOrientation == .right)
         // Then the image is resized according to orientation
-        XCTAssertEqual(output.size, CGSize(width: 320, height: 240))
+        #expect(output.size == CGSize(width: 320, height: 240))
     }
 
-    func testResizeAndCropWithOrientationLeft() throws {
+    @Test func resizeAndCropWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
-        XCTAssertEqual(input.imageOrientation, .right)
-        
+        let input = try #require(Test.image(named: "right-orientation.jpeg"))
+        #expect(input.imageOrientation == .right)
+
         // When
         let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 80), unit: .pixels, contentMode: .aspectFill, crop: true)
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
-        
+        let output = try #require(processor.process(input), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 80, height: 320))
-        XCTAssertEqual(output.imageOrientation, .right)
+        #expect(output.sizeInPixels == CGSize(width: 80, height: 320))
+        #expect(output.imageOrientation == .right)
         // Then
-        XCTAssertEqual(output.size, CGSize(width: 320, height: 80))
+        #expect(output.size == CGSize(width: 320, height: 80))
     }
 #endif
-    
+
 #if os(macOS)
-    
+
 #endif
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
-    func testThatScalePreserved() throws {
+    @Test func thatScalePreserved() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
-        
+
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        
+        let image = try #require(processor.process(Test.image), "Failed to process an image")
+
         // Then
-        XCTAssertEqual(image.scale, Test.image.scale)
+        #expect(image.scale == Test.image.scale)
     }
 #endif
-    
+
+    @Test
+
     @MainActor
-    func testThatIdentifiersAreEqualWithSameParameters() {
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
+    func thatIdentifiersAreEqualWithSameParameters() {
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).identifier == ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier
         )
     }
-    
-    func testThatIdentifiersAreNotEqualWithDifferentParameters() {
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).identifier
+
+    @Test func thatIdentifiersAreNotEqualWithDifferentParameters() {
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).identifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).identifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).identifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).identifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).identifier
         )
     }
-    
+
+    @Test
+
     @MainActor
-    func testThatHashableIdentifiersAreEqualWithSameParameters() {
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
+    func thatHashableIdentifiersAreEqualWithSameParameters() {
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).hashableIdentifier == ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier == ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier
         )
     }
-    
-    func testThatHashableIdentifiersAreNotEqualWithDifferentParameters() {
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).hashableIdentifier
+
+    @Test func thatHashableIdentifiersAreNotEqualWithDifferentParameters() {
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).hashableIdentifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).hashableIdentifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).hashableIdentifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).hashableIdentifier
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier != ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).hashableIdentifier
         )
     }
-    
-    func testDescription() {
+
+    @Test func description() {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels, contentMode: .aspectFit)
-        
+
         // Then
-        XCTAssertEqual(processor.description, "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
+        #expect(processor.description == "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
     }
-    
+
     // Just make sure these initializers are still available.
-    func testInitailizer() {
+    @Test func initializer() {
         _ = ImageProcessors.Resize(height: 10)
         _ = ImageProcessors.Resize(width: 10)
         _ = ImageProcessors.Resize(width: 10, upscale: true)
@@ -297,69 +282,65 @@ class ImageProcessorsResizeTests: XCTestCase {
     }
 }
 
-class CoreGraphicsExtensionsTests: XCTestCase {
-    func testScaleToFill() {
-        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(1, CGSize(width: 20, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(1, CGSize(width: 10, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.5, CGSize(width: 30, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.5, CGSize(width: 20, height: 30).scaleToFill(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(2, CGSize(width: 5, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 10, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 5, height: 8).scaleToFill(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 8, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(2, CGSize(width: 30, height: 10).scaleToFill(CGSize(width: 10, height: 20)))
-        XCTAssertEqual(2, CGSize(width: 10, height: 30).scaleToFill(CGSize(width: 20, height: 10)))
+@Suite
+
+struct CoreGraphicsExtensionsTests {
+    @Test func scaleToFill() {
+        #expect(1 == CGSize(width: 10, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(0.5 == CGSize(width: 20, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 5, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        #expect(1 == CGSize(width: 20, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(1 == CGSize(width: 10, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(0.5 == CGSize(width: 30, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(0.5 == CGSize(width: 20, height: 30).scaleToFill(CGSize(width: 10, height: 10)))
+
+        #expect(2 == CGSize(width: 5, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 10, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 5, height: 8).scaleToFill(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 8, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        #expect(2 == CGSize(width: 30, height: 10).scaleToFill(CGSize(width: 10, height: 20)))
+        #expect(2 == CGSize(width: 10, height: 30).scaleToFill(CGSize(width: 20, height: 10)))
     }
-    
-    func testScaleToFit() {
-        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(0.5, CGSize(width: 20, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.5, CGSize(width: 10, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.25, CGSize(width: 40, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(0.25, CGSize(width: 20, height: 40).scaleToFit(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(1, CGSize(width: 5, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(1, CGSize(width: 10, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 2, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
-        XCTAssertEqual(2, CGSize(width: 5, height: 2).scaleToFit(CGSize(width: 10, height: 10)))
-        
-        XCTAssertEqual(0.25, CGSize(width: 40, height: 10).scaleToFit(CGSize(width: 10, height: 20)))
-        XCTAssertEqual(0.25, CGSize(width: 10, height: 40).scaleToFit(CGSize(width: 20, height: 10)))
+
+    @Test func scaleToFit() {
+        #expect(1 == CGSize(width: 10, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(0.5 == CGSize(width: 20, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 5, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+
+        #expect(0.5 == CGSize(width: 20, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(0.5 == CGSize(width: 10, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(0.25 == CGSize(width: 40, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(0.25 == CGSize(width: 20, height: 40).scaleToFit(CGSize(width: 10, height: 10)))
+
+        #expect(1 == CGSize(width: 5, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(1 == CGSize(width: 10, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 2, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        #expect(2 == CGSize(width: 5, height: 2).scaleToFit(CGSize(width: 10, height: 10)))
+
+        #expect(0.25 == CGSize(width: 40, height: 10).scaleToFit(CGSize(width: 10, height: 20)))
+        #expect(0.25 == CGSize(width: 10, height: 40).scaleToFit(CGSize(width: 20, height: 10)))
     }
-    
-    func testCenteredInRectWithSize() {
-        XCTAssertEqual(
-            CGSize(width: 10, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
-            CGRect(x: 0, y: 0, width: 10, height: 10)
+
+    @Test func centeredInRectWithSize() {
+        #expect(
+            CGSize(width: 10, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)) == CGRect(x: 0, y: 0, width: 10, height: 10)
         )
-        XCTAssertEqual(
-            CGSize(width: 20, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
-            CGRect(x: -5, y: -5, width: 20, height: 20)
+        #expect(
+            CGSize(width: 20, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)) == CGRect(x: -5, y: -5, width: 20, height: 20)
         )
-        XCTAssertEqual(
-            CGSize(width: 20, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
-            CGRect(x: -5, y: 0, width: 20, height: 10)
+        #expect(
+            CGSize(width: 20, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)) == CGRect(x: -5, y: 0, width: 20, height: 10)
         )
-        XCTAssertEqual(
-            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
-            CGRect(x: 0, y: -5, width: 10, height: 20)
+        #expect(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)) == CGRect(x: 0, y: -5, width: 10, height: 20)
         )
-        XCTAssertEqual(
-            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 20)),
-            CGRect(x: 0, y: 0, width: 10, height: 20)
+        #expect(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 20)) == CGRect(x: 0, y: 0, width: 10, height: 20)
         )
-        XCTAssertEqual(
-            CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)),
-            CGRect(x: 0, y: -10, width: 10, height: 40)
+        #expect(
+            CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)) == CGRect(x: 0, y: -10, width: 10, height: 40)
         )
     }
 }
@@ -368,7 +349,7 @@ private extension CGSize {
     func scaleToFill(_ targetSize: CGSize) -> CGFloat {
         getScale(targetSize: targetSize, contentMode: .aspectFill)
     }
-    
+
     func scaleToFit(_ targetSize: CGSize) -> CGFloat {
         getScale(targetSize: targetSize, contentMode: .aspectFit)
     }

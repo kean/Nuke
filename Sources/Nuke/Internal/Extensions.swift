@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import CryptoKit
@@ -27,37 +27,12 @@ extension String {
 
 extension URL {
     var isLocalResource: Bool {
-        scheme == "file" || scheme == "data"
+        let scheme = self.scheme
+        return scheme == "file" || scheme == "data"
     }
 }
 
-extension OperationQueue {
-    convenience init(maxConcurrentCount: Int) {
-        self.init()
-        self.maxConcurrentOperationCount = maxConcurrentCount
-    }
-}
-
-extension ImageRequest.Priority {
-    var taskPriority: TaskPriority {
-        switch self {
-        case .veryLow: return .veryLow
-        case .low: return .low
-        case .normal: return .normal
-        case .high: return .high
-        case .veryHigh: return .veryHigh
-        }
-    }
-}
-
-final class AnonymousCancellable: Cancellable {
-    let onCancel: @Sendable () -> Void
-
-    init(_ onCancel: @Sendable @escaping () -> Void) {
-        self.onCancel = onCancel
-    }
-
-    func cancel() {
-        onCancel()
-    }
+// TODO: remove
+func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
+    closure()
 }

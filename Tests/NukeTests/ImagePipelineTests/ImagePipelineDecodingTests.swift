@@ -1,17 +1,18 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+
 @testable import Nuke
 
-class ImagePipelineDecodingTests: XCTestCase {
+@ImagePipelineActor
+@Suite class ImagePipelineDecodingTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -19,7 +20,7 @@ class ImagePipelineDecodingTests: XCTestCase {
         }
     }
 
-    func testExperimentalDecoder() throws {
+    @Test func experimentalDecoder() async throws {
         // Given
         let decoder = MockExperimentalDecoder()
 
@@ -34,17 +35,13 @@ class ImagePipelineDecodingTests: XCTestCase {
         }
 
         // When
-        var response: ImageResponse?
-        expect(pipeline).toLoadImage(with: Test.request, completion: {
-            response = $0.value
-        })
-        wait()
+        let response = try await pipeline.imageTask(with: Test.request).response
 
         // Then
-        let container = try XCTUnwrap(response?.container)
-        XCTAssertNotNil(container.image)
-        XCTAssertEqual(container.data, dummyData)
-        XCTAssertEqual(container.userInfo["a"] as? Int, 1)
+        let container = response.container
+        #expect(container.image != nil)
+        #expect(container.data == dummyData)
+        #expect(container.userInfo["a"] as? Int == 1)
     }
 }
 

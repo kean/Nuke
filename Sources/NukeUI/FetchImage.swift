@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import SwiftUI
 import Combine
@@ -105,7 +105,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard var request else {
-            handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
+            handle(result: .failure(ImageTask.Error.imageRequestMissing))
             return
         }
 
@@ -194,11 +194,8 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: Load (Combine)
 
-    /// Loads an image with the given publisher.
-    ///
-    /// - important: Some `FetchImage` features, such as progress reporting and
-    /// dynamically changing the request priority, are not available when
-    /// working with a publisher.
+    // Deprecated in Nuke 13.0
+    @available(*, deprecated, message: "Please use Async/Await instead")
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
         reset()
 

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 #if !os(watchOS)
 import AVKit
@@ -19,7 +19,7 @@ public typealias PlatformImage = NSImage
 #endif
 
 /// An image container with an image and associated metadata.
-public struct ImageContainer: @unchecked Sendable {
+public struct ImageContainer: Sendable {
 #if os(macOS)
     /// A fetched image.
     public var image: NSImage {

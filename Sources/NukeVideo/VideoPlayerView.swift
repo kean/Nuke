@@ -1,13 +1,8 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-#if swift(>=6.0)
 import AVKit
-#else
-@preconcurrency import AVKit
-#endif
-
 import Foundation
 
 #if os(macOS)

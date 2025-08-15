@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -266,7 +266,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         guard var request else {
-            handle(result: .failure(ImagePipeline.Error.imageRequestMissing), isSync: true)
+            handle(result: .failure(ImageTask.Error.imageRequestMissing), isSync: true)
             return
         }
 
@@ -290,22 +290,18 @@ public final class LazyImageView: _PlatformBaseView {
 
         setPlaceholderViewHidden(false)
 
-        let task = pipeline.loadImage(
-            with: request,
-            queue: .main,
-            progress: { [weak self] response, completed, total in
-                guard let self else { return }
-                let progress = ImageTask.Progress(completed: completed, total: total)
-                if let response {
-                    self.handle(preview: response)
-                    self.onPreview?(response)
-                } else {
-                    self.onProgress?(progress)
-                }
-            },
-            completion: { [weak self] result in
-                self?.handle(result: result.mapError { $0 }, isSync: false)
+        let task = pipeline.loadImage(with: request, progress: { [weak self] response, completed, total in
+            guard let self else { return }
+            let progress = ImageTask.Progress(completed: completed, total: total)
+            if let response {
+                self.handle(preview: response)
+                self.onPreview?(response)
+            } else {
+                self.onProgress?(progress)
             }
+        }, completion: { [weak self] result in
+            self?.handle(result: result.mapError { $0 }, isSync: false)
+        }
         )
         imageTask = task
         onStart?(task)

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -90,13 +90,25 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 #endif
     }()
 
-    public func loadData(with request: URLRequest,
-                         didReceiveData: @escaping (Data, URLResponse) -> Void,
-                         completion: @escaping (Swift.Error?) -> Void) -> any Cancellable {
-        let task = session.dataTask(with: request)
-        if #available(iOS 14.5, tvOS 14.5, watchOS 7.4, macOS 11.3, *) {
-            task.prefersIncrementalDelivery = prefersIncrementalDelivery
+    public func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), Swift.Error> {
+        AsyncThrowingStream { continuation in
+            let task = loadData(with: request) { data, response in
+                continuation.yield((data, response))
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            continuation.onTermination = { reason in
+                switch reason {
+                case .cancelled: task.cancel()
+                default: break
+                }
+            }
         }
+    }
+
+    private func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Swift.Error?) -> Void) -> URLSessionTask {
+        let task = session.dataTask(with: request)
+        task.prefersIncrementalDelivery = prefersIncrementalDelivery
         return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
@@ -130,13 +142,13 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     func loadData(with task: URLSessionDataTask,
                   session: URLSession,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> any Cancellable {
+                  completion: @escaping (Error?) -> Void) -> URLSessionTask {
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
         task.resume()
-        return AnonymousCancellable { task.cancel() }
+        return task
     }
 
     // MARK: URLSessionDelegate
@@ -223,6 +235,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     private final class _Handler: @unchecked Sendable {
         let didReceiveData: (Data, URLResponse) -> Void
         let completion: (Error?) -> Void
+        var resumableData: Data?
 
         init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
             self.didReceiveData = didReceiveData

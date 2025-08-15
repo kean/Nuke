@@ -1,19 +1,19 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-class ImagePipelineDelegateTests: XCTestCase {
+@Suite class ImagePipelineDelegateTests {
     private var dataLoader: MockDataLoader!
     private var dataCache: MockDataCache!
     private var pipeline: ImagePipeline!
     private var delegate: MockImagePipelineDelegate!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         dataCache = MockDataCache()
         delegate = MockImagePipelineDelegate()
@@ -27,9 +27,10 @@ class ImagePipelineDelegateTests: XCTestCase {
         }
     }
 
+
     @MainActor
-    func testCustomizingDataCacheKey() throws {
-        // GIVEN
+    @Test func customizingDataCacheKey() async throws {
+        // Given
         let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageURLMedium = URL(string: "https://example.com/image-01-medium.jpeg")!
 
@@ -37,59 +38,51 @@ class ImagePipelineDelegateTests: XCTestCase {
             (Test.data, URLResponse(url: imageURLMedium, mimeType: "jpeg", expectedContentLength: Test.data.count, textEncodingName: nil))
         )
 
-        // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
+        // Given image is loaded from medium size URL and saved in cache using imageId "image-01-small"
         let requestA = ImageRequest(
             url: imageURLMedium,
             processors: [.resize(width: 44)],
             userInfo: ["imageId": "image-01-small"]
         )
-        expect(pipeline).toLoadImage(with: requestA)
-        wait()
+        _ = try await pipeline.image(for: requestA)
 
-        let data = try XCTUnwrap(dataCache.cachedData(for: "image-01-small"))
-        let image = try XCTUnwrap(PlatformImage(data: data))
-        XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
+        let data = try #require(dataCache.cachedData(for: "image-01-small"))
+        let image = try #require(PlatformImage(data: data))
+        #expect(image.sizeInPixels.width == 44 * Screen.scale)
 
-        // GIVEN a request for a small image
+        // Given a request for a small image
         let requestB = ImageRequest(
             url: imageURLSmall,
             userInfo: ["imageId": "image-01-small"]
         )
 
-        // WHEN/THEN the image is returned from the disk cache
-        expect(pipeline).toLoadImage(with: requestB, completion: { result in
-            guard let image = result.value?.image else {
-                return XCTFail()
-            }
-            XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
-        })
-        wait()
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+        // When
+        let image2 = try await pipeline.image(for: requestB)
+
+        // Then the image is returned from the disk cache
+        #expect(image2.sizeInPixels.width == 44 * Screen.scale)
+        #expect(dataLoader.createdTaskCount == 1)
     }
 
-    func testDataIsStoredInCache() {
-        // WHEN
-        expect(pipeline).toLoadImage(with: Test.request)
+    @Test func dataIsStoredInCache() async throws {
+        // When
+        _ = try await pipeline.image(for: Test.request)
 
-        // THEN
-        wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
-        }
+        // Then
+            #expect(!dataCache.store.isEmpty)
     }
 
-    func testDataIsStoredInCacheWhenCacheDisabled() {
-        // WHEN
+    @Test func dataIsStoredInCacheWhenCacheDisabled() async throws {
+        // When
         delegate.isCacheEnabled = false
-        expect(pipeline).toLoadImage(with: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
-        // THEN
-        wait { _ in
-            XCTAssertTrue(self.dataCache.store.isEmpty)
-        }
+        // Then
+        #expect(dataCache.store.isEmpty)
     }
 }
 
-private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked Sendable {
+private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     var isCacheEnabled = true
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {

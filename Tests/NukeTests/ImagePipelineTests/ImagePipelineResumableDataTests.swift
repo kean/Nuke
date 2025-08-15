@@ -1,17 +1,18 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-class ImagePipelineResumableDataTests: XCTestCase {
+@ImagePipelineActor
+@Suite struct ImagePipelineResumableDataTests {
     private var dataLoader: _MockResumableDataLoader!
     private var pipeline: ImagePipeline!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = _MockResumableDataLoader()
         ResumableDataStorage.shared.removeAllResponses()
         pipeline = ImagePipeline {
@@ -20,45 +21,68 @@ class ImagePipelineResumableDataTests: XCTestCase {
         }
     }
 
-    func testThatProgressIsReported() {
+    @Test func thatProgressIsReported() async throws {
         // Given an initial request failed mid download
+        var recorded: [ImageTask.Progress] = []
+        let request = Test.request
 
-        // Expect the progress for the first part of the download to be reported.
-        let expectedProgressInitial = expectProgress(
-            [(3799, 22789), (7598, 22789), (11397, 22789)]
-        )
-        expect(pipeline).toFailRequest(Test.request, progress: { _, completed, total in
-            expectedProgressInitial.received((completed, total))
-        })
-        wait()
+        // When
+        for await progress in pipeline.imageTask(with: request).progress {
+            recorded.append(progress)
+        }
 
-        // Expect progress closure to continue reporting the progress of the
-        // entire download
-        let expectedProgersRemaining = expectProgress(
-            [(15196, 22789), (18995, 22789), (22789, 22789)]
-        )
-        expect(pipeline).toLoadImage(with: Test.request, progress: { _, completed, total in
-            expectedProgersRemaining.received((completed, total))
-        })
-        wait()
-    }
+        // Then
+        #expect(recorded == [
+            ImageTask.Progress(completed: 3799, total: 22789),
+            ImageTask.Progress(completed: 7598, total: 22789),
+            ImageTask.Progress(completed: 11397, total: 22789)
+        ])
 
-    func testThatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() {
+        // When restarting the request
+        recorded = []
+        for await progress in pipeline.imageTask(with: request).progress {
+            recorded.append(progress)
+        }
 
+        // Then remaining progress is reported
+        #expect(recorded == [
+            ImageTask.Progress(completed: 15196, total: 22789),
+            ImageTask.Progress(completed: 18995, total: 22789),
+            ImageTask.Progress(completed: 22789, total: 22789)
+        ])
     }
 }
 
-private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
+private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked Sendable {
     private let queue = DispatchQueue(label: "_MockResumableDataLoader")
 
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(for request: ImageRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+        AsyncThrowingStream { continuation in
+            guard let urlRequest = request.urlRequest else {
+                return continuation.finish(throwing: URLError(.badURL))
+            }
+            let task = loadData(with: urlRequest) { data, response in
+                continuation.yield((data, response))
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            continuation.onTermination = { reason in
+                switch reason {
+                case .cancelled: task.cancel()
+                default: break
+                }
+            }
+        }
+    }
+
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let headers = request.allHTTPHeaderFields
 
-        let completion = UncheckedSendableBox(value: completion)
-        let didReceiveData = UncheckedSendableBox(value: didReceiveData)
+        let completion = completion
+        let didReceiveData = didReceiveData
 
         func sendChunks(_ chunks: [Data], of data: Data, statusCode: Int) {
             @Sendable func sendChunk(_ chunk: Data) {
@@ -74,7 +98,7 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
                     ]
                 )!
 
-                didReceiveData.value(chunk, response)
+                didReceiveData(chunk, response)
             }
 
             var chunks = chunks
@@ -89,9 +113,9 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
         // Check if the client already has some resumable data available.
         if let range = headers?["Range"], let validator = headers?["If-Range"] {
             let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
-            XCTAssertNotNil(offset)
+            #expect(offset != nil)
 
-            XCTAssertEqual(validator, eTag, "Expected validator to be equal to ETag")
+            #expect(validator == eTag, "Expected validator to be equal to ETag")
             guard validator == eTag else { // Expected ETag
                 return _Task()
             }
@@ -102,7 +126,7 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
 
             sendChunks(chunks, of: remainingData, statusCode: 206)
             queue.async {
-                completion.value(nil)
+                completion(nil)
             }
         } else {
             // Send half of chunks.
@@ -111,14 +135,14 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
 
             sendChunks(chunks, of: data, statusCode: 200)
             queue.async {
-                completion.value(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
+                completion(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
             }
         }
 
         return _Task()
     }
 
-    private class _Task: Cancellable, @unchecked Sendable {
+    private class _Task: MockDataTaskProtocol, @unchecked Sendable {
         func cancel() { }
     }
 }

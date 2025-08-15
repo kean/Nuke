@@ -1,14 +1,17 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
 /// A doubly linked list.
-final class LinkedList<Element> {
+final class LinkedList<Element: Sendable> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?
+    private(set) var count = 0
+
+    var isEmpty: Bool { last == nil }
 
     deinit {
         // This way we make sure that the deallocations do no happen recursively
@@ -16,14 +19,9 @@ final class LinkedList<Element> {
         removeAllElements()
     }
 
-    var isEmpty: Bool {
-        last == nil
-    }
-
     /// Adds an element to the end of the list.
-    @discardableResult
-    func append(_ element: Element) -> Node {
-        let node = Node(value: element)
+    @discardableResult func append(_ element: Element) -> Node {
+        let node = Node(element)
         append(node)
         return node
     }
@@ -38,6 +36,28 @@ final class LinkedList<Element> {
             last = node
             first = node
         }
+        count += 1
+    }
+
+    /// Adds a node to the beginning of the list.
+    func prepend(_ node: Node) {
+        if let first {
+            node.next = first
+            first.previous = node
+            self.first = node
+        } else {
+            first = node
+            last = node
+        }
+        count += 1
+    }
+
+    func popLast() -> Node? {
+        guard let last else {
+            return nil
+        }
+        remove(last)
+        return last
     }
 
     func remove(_ node: Node) {
@@ -51,6 +71,7 @@ final class LinkedList<Element> {
         }
         node.next = nil
         node.previous = nil
+        count -= 1
     }
 
     func removeAllElements() {
@@ -63,15 +84,14 @@ final class LinkedList<Element> {
         }
         last = nil
         first = nil
+        count = 0
     }
 
     final class Node {
-        let value: Element
-        fileprivate var next: Node?
-        fileprivate var previous: Node?
+        var value: Element
+        fileprivate(set) var next: Node?
+        fileprivate(set) var previous: Node?
 
-        init(value: Element) {
-            self.value = value
-        }
+        init(_ value: Element) { self.value = value }
     }
 }

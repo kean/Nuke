@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -43,22 +43,26 @@ public enum ImageDecodingError: Error, CustomStringConvertible, Sendable {
 }
 
 extension ImageDecoding {
-    func decode(_ context: ImageDecodingContext) throws -> ImageResponse {
-        let container: ImageContainer = try autoreleasepool {
+    func decode(_ context: ImageDecodingContext) -> Result<ImageResponse, ImageTask.Error> {
+        let container: ImageContainer
+        do {
             if context.isCompleted {
-                return try decode(context.data)
+                container = try decode(context.data)
             } else {
                 if let preview = decodePartiallyDownloadedData(context.data) {
-                    return preview
+                    container = preview
+                } else {
+                    throw ImageDecodingError.unknown
                 }
-                throw ImageDecodingError.unknown
             }
+        } catch {
+            return .failure(.decodingFailed(decoder: self, context: context, error: error))
         }
 #if !os(macOS)
         if container.userInfo[.isThumbnailKey] == nil {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
 #endif
-        return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
+        return .success(ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType))
     }
 }

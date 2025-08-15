@@ -1,96 +1,96 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
-final class ImageEncoderTests: XCTestCase {
-    func testEncodeImage() throws {
+@Suite struct ImageEncoderTests {
+    @Test func encodeImage() throws {
         // Given
         let image = Test.image
         let encoder = ImageEncoders.Default()
-        
+
         // When
-        let data = try XCTUnwrap(encoder.encode(image))
-        
+        let data = try #require(encoder.encode(image))
+
         // Then
-        XCTAssertEqual(AssetType(data), .jpeg)
+        #expect(AssetType(data) == .jpeg)
     }
-    
-    func testEncodeImagePNGOpaque() throws {
+
+    @Test func encodeImagePNGOpaque() throws {
         // Given
         let image = Test.image(named: "fixture", extension: "png")
         let encoder = ImageEncoders.Default()
-        
+
         // When
-        let data = try XCTUnwrap(encoder.encode(image))
-        
+        let data = try #require(encoder.encode(image))
+
         // Then
 #if os(macOS)
         // It seems that on macOS, NSImage created from png has an alpha
         // component regardless of whether the input image has it.
-        XCTAssertEqual(AssetType(data), .png)
+        #expect(AssetType(data) == .png)
 #else
-        XCTAssertEqual(AssetType(data), .jpeg)
+        #expect(AssetType(data) == .jpeg)
 #endif
     }
-    
-    func testEncodeImagePNGTransparent() throws {
+
+    @Test func encodeImagePNGTransparent() throws {
         // Given
         let image = Test.image(named: "swift", extension: "png")
         let encoder = ImageEncoders.Default()
-        
+
         // When
-        let data = try XCTUnwrap(encoder.encode(image))
-        
+        let data = try #require(encoder.encode(image))
+
         // Then
-        XCTAssertEqual(AssetType(data), .png)
+        #expect(AssetType(data) == .png)
     }
-    
-    func testPrefersHEIF() throws {
+
+    @Test func prefersHEIF() throws {
         // Given
         let image = Test.image
         var encoder = ImageEncoders.Default()
         encoder.isHEIFPreferred = true
-        
+
         // When
-        let data = try XCTUnwrap(encoder.encode(image))
-        
+        let data = try #require(encoder.encode(image))
+
         // Then
-        XCTAssertNil(AssetType(data)) // TODO: update when HEIF support is added
+        #expect(AssetType(data) == .heic)
     }
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
-    
-    func testEncodeCoreImageBackedImage() throws {
+
+    @Test func encodeCoreImageBackedImage() throws {
         // Given
         let image = try ImageProcessors.GaussianBlur().processThrowing(Test.image)
         let encoder = ImageEncoders.Default()
-        
+
         // When
-        let data = try XCTUnwrap(encoder.encode(image))
-        
+        let data = try #require(encoder.encode(image))
+
         // Then encoded as PNG because GaussianBlur produces
         // images with alpha channel
-        XCTAssertEqual(AssetType(data), .png)
+        #expect(AssetType(data) == .png)
     }
-    
+
 #endif
-    
+
     // MARK: - Misc
-    
-    func testIsOpaqueWithOpaquePNG() {
+
+    @Test func isOpaqueWithOpaquePNG() {
         let image = Test.image(named: "fixture", extension: "png")
 #if os(macOS)
-        XCTAssertFalse(image.cgImage!.isOpaque)
+        #expect(!image.cgImage!.isOpaque)
 #else
-        XCTAssertTrue(image.cgImage!.isOpaque)
+        #expect(image.cgImage!.isOpaque)
 #endif
     }
-    
-    func testIsOpaqueWithTransparentPNG() {
+
+    @Test func isOpaqueWithTransparentPNG() {
         let image = Test.image(named: "swift", extension: "png")
-        XCTAssertFalse(image.cgImage!.isOpaque)
+        #expect(!image.cgImage!.isOpaque)
     }
 }

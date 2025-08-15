@@ -1,107 +1,47 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
-class RateLimiterTests: XCTestCase {
-    var queue: DispatchQueue!
-    var queueKey: DispatchSpecificKey<Void>!
-    var rateLimiter: RateLimiter!
+@Suite @ImagePipelineActor struct RateLimiterTests {
+    let rateLimiter = RateLimiter(rate: 10, burst: 2)
 
-    override func setUp() {
-        super.setUp()
-
-        queue = DispatchQueue(label: "com.github.kean.rate-limiter-tests")
-
-        queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-
-        // Note: we set very short rate to avoid bucket form being refilled too quickly
-        rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
-    }
-
-    func testThatBurstIsExecutedimmediately() {
-        // Given
+    @Test func burstIsExecutedImmediately() {
         var isExecuted = Array(repeating: false, count: 4)
-
-        // When
         for i in isExecuted.indices {
-            queue.sync {
-                rateLimiter.execute {
-                    isExecuted[i] = true
-                    return true
-                }
+            rateLimiter.execute {
+                isExecuted[i] = true
+                return true
             }
         }
-
-        // Then
-        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, false, false], "Expect first 2 items to be executed immediately")
     }
 
-    func testThatNotExecutedItemDoesntExtractFromBucket() {
-        // Given
+    @Test func posponedItemsDoNotExtractFromBucket() {
         var isExecuted = Array(repeating: false, count: 4)
-
-        // When
         for i in isExecuted.indices {
-            queue.sync {
-                rateLimiter.execute {
-                    isExecuted[i] = true
-                    return i != 1 // important!
-                }
+            rateLimiter.execute {
+                isExecuted[i] = true
+                return i != 1 // important!
             }
         }
-
-        // Then
-        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, true, false], "Expect first 2 items to be executed immediately")
     }
 
-    func testOverflow() {
-        // Given
-        var isExecuted = Array(repeating: false, count: 3)
-
-        // When
-        let expectation = self.expectation(description: "All work executed")
-        expectation.expectedFulfillmentCount = isExecuted.count
-
-        queue.sync {
-            for i in isExecuted.indices {
-                rateLimiter.execute {
-                    isExecuted[i] = true
-                    expectation.fulfill()
-                    return true
+    @Test func overflow() async {
+        let count = 3
+        await confirmation(expectedCount: count) { done in
+            for _ in 0..<count {
+                await withUnsafeContinuation { continuation in
+                    rateLimiter.execute {
+                        done()
+                        continuation.resume(returning: ())
+                        return true
+                    }
                 }
             }
         }
-
-        // When time is passed
-        wait()
-
-        // Then
-        queue.sync {
-            XCTAssertEqual(isExecuted, [true, true, true], "Expect 3rd item to be executed after a short delay")
-        }
-    }
-
-    func testOverflowItemsExecutedOnSpecificQueue() {
-        // Given
-        let isExecuted = Array(repeating: false, count: 3)
-
-        let expectation = self.expectation(description: "All work executed")
-        expectation.expectedFulfillmentCount = isExecuted.count
-
-        queue.sync {
-            for _ in isExecuted.indices {
-                rateLimiter.execute {
-                    expectation.fulfill()
-                    // Then delayed task also executed on queue
-                    XCTAssertNotNil(DispatchQueue.getSpecific(key: self.queueKey))
-                    return true
-                }
-            }
-        }
-        wait()
     }
 }
