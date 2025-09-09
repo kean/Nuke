@@ -61,11 +61,11 @@ class DataCacheTests: XCTestCase {
     func testDefaultKeyEncoder() {
         let cache = try! DataCache(name: UUID().uuidString)
         let filename = cache.filename(for: "http://test.com")
-        XCTAssertEqual(filename, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+        XCTAssertEqual(filename, "8b408a0c7163fdfff06ced3e80d7d2b3acd9db900905c4783c28295b8c996165")
     }
 
-    func testSHA1() {
-        XCTAssertEqual("http://test.com".sha1, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+    func testSHA256() {
+        XCTAssertEqual("http://test.com".sha256, "8b408a0c7163fdfff06ced3e80d7d2b3acd9db900905c4783c28295b8c996165")
     }
 
     // MARK: Add

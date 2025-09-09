@@ -73,7 +73,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", qos: .utility)
 
     /// A function which generates a filename for the given key. A good candidate
-    /// for a filename generator is a _cryptographic_ hash function like SHA1.
+    /// for a filename generator is a _cryptographic_ hash function like SHA256.
     ///
     /// The reason why filename needs to be generated in the first place is
     /// that filesystems have a size limit for filenames (e.g. 255 UTF-8 characters
@@ -85,7 +85,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
-    /// The default implementation generates a filename using SHA1 hash function.
+    /// The default implementation generates a filename using SHA256 hash function.
     public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         // This should be replaced with URL.cachesDirectory on iOS 16, which never fails
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
@@ -96,17 +96,17 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     /// Creates a cache instance with a given path.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
-    /// The default implementation generates a filename using SHA1 hash function.
+    /// The default implementation generates a filename using SHA256 hash function.
     public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         self.path = path
         self.filenameGenerator = filenameGenerator
         try self.didInit()
     }
 
-    /// A `FilenameGenerator` implementation which uses SHA1 hash function to
+    /// A `FilenameGenerator` implementation which uses SHA256 hash function to
     /// generate a filename from the given key.
     public static func filename(for key: String) -> String? {
-        key.isEmpty ? nil : key.sha1
+        key.isEmpty ? nil : key.sha256
     }
 
     private func didInit() throws {
