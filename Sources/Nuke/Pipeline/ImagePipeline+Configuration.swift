@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -120,19 +120,19 @@ extension ImagePipeline {
         // MARK: - Work Queues
 
         /// Data loading queue. Default maximum concurrent task count is 6.
-        public let dataLoadingQueue = JobQueue(maxConcurrentJobCount: 6)
+        public var dataLoadingQueue = JobQueue(maxConcurrentJobCount: 6)
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
-        public let imageDecodingQueue = JobQueue(maxConcurrentJobCount: 1)
+        public var imageDecodingQueue = JobQueue(maxConcurrentJobCount: 1)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.
-        public let imageEncodingQueue = JobQueue(maxConcurrentJobCount: 1)
+        public var imageEncodingQueue = JobQueue(maxConcurrentJobCount: 1)
 
         /// Image processing queue. Default maximum concurrent task count is 2.
-        public let imageProcessingQueue = JobQueue(maxConcurrentJobCount: 2)
+        public var imageProcessingQueue = JobQueue(maxConcurrentJobCount: 2)
 
         /// Image decompressing queue. Default maximum concurrent task count is 2.
-        public let imageDecompressingQueue = JobQueue(maxConcurrentJobCount: 2)
+        public var imageDecompressingQueue = JobQueue(maxConcurrentJobCount: 2)
 
         // MARK: - Initializer
 

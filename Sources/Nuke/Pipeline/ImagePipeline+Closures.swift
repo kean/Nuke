@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -93,24 +93,14 @@ extension ImagePipeline {
         makeImageTask(with: request, isDataTask: isDataTask) { event, task in
             DispatchQueue.main.async {
                 // The callback-based API guarantees that after cancellation no
-                // event are called on the callback queue.
-                guard !task.isCancelling else { return }
+                // events are called on the callback queue.
+                guard !task.isCancelled else { return }
                 switch event {
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
-                case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result): completion(result)
                 }
             }
-        }.resume()
-    }
-}
-
-extension ImageTask {
-    @discardableResult nonisolated func resume() -> ImageTask {
-        Task { @ImagePipelineActor in
-            _ = try? await response
         }
-        return self
     }
 }

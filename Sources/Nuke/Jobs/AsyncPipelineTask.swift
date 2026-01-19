@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -15,6 +15,7 @@ class AsyncPipelineTask<Value: Sendable>: Job<Value> {
     init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
         self.pipeline = pipeline
         self.request = request
+        super.init()
     }
 }
 

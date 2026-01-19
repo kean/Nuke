@@ -2,7 +2,7 @@ import Foundation
 
 /// Optimized for a scenario when there is only one subscriber (or two in the
 /// case of prefetching).
-struct JobSubsciberSet<Element> {
+struct JobSubscriberSet<Element> {
     private var inline: (Element?, Element?)
     private var more: [Int: Element]?
     private var nextIndex = 2

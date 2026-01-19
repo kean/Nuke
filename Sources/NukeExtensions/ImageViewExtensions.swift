@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -15,7 +15,7 @@ import AppKit.NSImage
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 /// Displays images. Add the conformance to this protocol to your views to make
-/// them compatible with Nuke image loading extensions.
+/// Then compatible with Nuke image loading extensions.
 ///
 /// The protocol is defined as `@objc` to make it possible to override its
 /// methods in extensions (e.g. you can override `nuke_display(image:data:)` in

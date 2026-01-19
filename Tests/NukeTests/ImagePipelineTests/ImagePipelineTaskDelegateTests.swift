@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Testing
@@ -55,7 +55,7 @@ import Testing
         dataLoader.queue.isSuspended = true
 
         let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.imageTask(with: Test.request).resume()
+        let task = pipeline.imageTask(with: Test.request)
         await expectation1.wait()
 
         // When
@@ -65,7 +65,7 @@ import Testing
 
         // Then
         #expect(delegate.events == [
-            .cancelled
+            .finished(.failure(.cancelled))
         ])
     }
 }

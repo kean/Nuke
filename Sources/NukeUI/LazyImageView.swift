@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -255,8 +255,6 @@ public final class LazyImageView: _PlatformBaseView {
 
     /// Loads an image with the given request.
     private func load(_ request: ImageRequest?) {
-        assert(Thread.isMainThread, "Must be called from the main thread")
-
         cancel()
 
         if isResetEnabled {

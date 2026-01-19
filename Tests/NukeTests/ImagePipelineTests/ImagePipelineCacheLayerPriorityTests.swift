@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Testing
@@ -109,7 +109,6 @@ import Testing
 
         // Then
         #expect(response.cacheType == .disk)
-        #expect(response.image != nil)
 
         // Then
         #expect(imageCache.readCount == 1)
@@ -129,7 +128,6 @@ import Testing
 
         // Then
         #expect(response.cacheType == .disk)
-        #expect(response.image != nil)
 
         // Then
         #expect(imageCache.readCount == 1)
@@ -148,7 +146,7 @@ import Testing
         // When
         let response = try await pipeline.imageTask(with: request).response
 
-        // Them
+        // Then
         #expect(response.image.nk_test_processorIDs == ["1", "2"])
         #expect(response.cacheType == .memory)
 

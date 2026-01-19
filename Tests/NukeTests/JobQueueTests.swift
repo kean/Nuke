@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
 import Foundation
@@ -144,13 +144,41 @@ import Foundation
             completed.append(3)
         }.subscribe(priority: .normal, { _ in })
 
-        // When item with .low priority (1) changes priority to .high
+        // When item with .low priority (1) changes priority to .high (raising)
         subscriber1?.setPriority(.high)
 
-        // Then
+        // Then item 1 is prepended to high priority queue and executes after item 2
         queue.isSuspended = false
         await queue.wait()
         #expect(completed == [2, 1, 3])
+    }
+
+    @Test func loweringPriorityAppendsToQueue() async {
+        // Given a queue with high priority items [1, 2] and normal priority [3]
+        queue.isSuspended = true
+
+        var completed: [Int] = []
+
+        queue.add {
+            completed.append(1)
+        }.subscribe(priority: .high) { _ in }
+
+        queue.add {
+            completed.append(2)
+        }.subscribe(priority: .normal) { _ in }
+
+        let subscriber3 = queue.add {
+            completed.append(3)
+        }.subscribe(priority: .high) { _ in }
+
+        // When item 3's priority is lowered from .high to .normal
+        subscriber3?.setPriority(.normal)
+
+        // Then item 3 is prepended to normal priority queue since it
+        // started with a higher priority
+        queue.isSuspended = false
+        await queue.wait()
+        #expect(completed == [1, 3, 2])
     }
 }
 

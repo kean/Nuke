@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
 import Foundation
@@ -67,7 +67,7 @@ extension ImagePipelineTests {
         // When
         let image = try await pipeline.image(for: request)
 
-        // Them decompression to be performed (processor is applied but it did nothing)
+        // Then decompression to be performed (processor is applied but it did nothing)
         #expect(ImageDecompression.isDecompressionNeeded(for: image) == nil)
     }
 }

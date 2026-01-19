@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -44,7 +44,8 @@ public final class JobQueue {
         self._maxConcurrentJobCount = Mutex(maxConcurrentJobCount)
     }
 
-    /// - warning; Do not call this directly.
+    /// - warning: Do not call this directly.
+    @discardableResult
     func enqueue<Value>(_ job: Job<Value>) -> JobHandle {
         let handle = JobHandle(job)
         job.delegate = handle
@@ -82,9 +83,16 @@ public final class JobQueue {
 
     func job(_ handle: JobHandle, didUpdatePriority newPriority: JobPriority, from oldPriority: JobPriority) {
         guard !handle.job.isStarted else { return }
-        // TODO: if we lower the priority, should it be prepended or appended? +typos
         scheduledJobs(for: oldPriority).remove(handle)
-        scheduledJobs(for: newPriority).prepend(handle)
+
+        // When raising priority, prepend to execute sooner.
+        // When lowering priority, append to avoid unfair queue jumping.
+        if newPriority > oldPriority {
+            scheduledJobs(for: newPriority).prepend(handle)
+        } else {
+            scheduledJobs(for: newPriority).append(handle)
+        }
+
         onEvent?(.priorityUpdated(handle, newPriority))
     }
 

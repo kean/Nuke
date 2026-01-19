@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -225,13 +225,14 @@ final class _ImagePrefetcher: JobSubscriber {
 }
 
 private final class ImagePrefetcherJob: Job<Void> {
-    private weak var prefetcher: _ImagePrefetcher?
+    private weak let prefetcher: _ImagePrefetcher?
     private let request: ImageRequest
     private var task: Task<Void, Never>?
 
     init(prefetcher: _ImagePrefetcher, request: ImageRequest) {
         self.prefetcher = prefetcher
         self.request = request
+        super.init()
     }
 
     override func start() {

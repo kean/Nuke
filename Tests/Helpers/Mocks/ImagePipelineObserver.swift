@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke
@@ -37,11 +37,13 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
 
         switch event {
         case .finished(let result):
-            completedTaskCount += 1
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
-        case .cancelled:
-            cancelledTaskCount += 1
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+            if case .failure(.cancelled) = result {
+                cancelledTaskCount += 1
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+            } else {
+                completedTaskCount += 1
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+            }
         default:
             break
         }
@@ -54,7 +56,6 @@ extension ImageTask.Event: @retroactive Equatable {
         case let (.progress(lhs), .progress(rhs)): lhs == rhs
         case let (.preview(lhs), .preview(rhs)): lhs == rhs
         case let (.finished(lhs), .finished(rhs)): lhs == rhs
-        case (.cancelled, .cancelled): true
         default: false
         }
     }

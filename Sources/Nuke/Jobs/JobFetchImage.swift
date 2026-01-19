@@ -1,16 +1,8 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-
-final class JobFetchImage2 {
-    private let job: Job<ImageResponse>
-
-    init(_ job: Job<ImageResponse>) {
-
-    }
-}
 
 /// Wrapper for tasks created by `loadImage` calls.
 ///

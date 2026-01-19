@@ -1,22 +1,24 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
-// TODO: separate priority from addSubscribedTasks and (probably) remove priorit entirey
+// TODO: separate priority from addSubscribedTasks and (probably) remove priority entirely
 /// A subscriber determines the priority of the job (together with other subscribers).
-@ImagePipelineActor
 protocol JobOwner {
+    @ImagePipelineActor
     var priority: JobPriority { get }
+
+    @ImagePipelineActor
     func addSubscribedTasks(to output: inout [ImageTask])
 }
 
 /// A subscriber that also receives events emitted by the job.
-@ImagePipelineActor
 protocol JobSubscriber<Value>: JobOwner {
     associatedtype Value: Sendable
 
+    @ImagePipelineActor
     func receive(_ event: Job<Value>.Event)
 }
 
@@ -43,7 +45,7 @@ class Job<Value: Sendable>: JobProtocol, JobOwner {
         var subscriber: any JobSubscriber<Value>
     }
 
-    private var subscriptions = JobSubsciberSet<Subscriber>()
+    private var subscriptions = JobSubscriberSet<Subscriber>()
 
     /// Returns `true` if the job was either cancelled, or was completed.
     private(set) var isDisposed = false

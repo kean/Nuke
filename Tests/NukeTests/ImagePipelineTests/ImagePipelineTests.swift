@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
 import Foundation
@@ -79,7 +79,7 @@ import Foundation
         do {
             _ = try await task.value
         } catch {
-            #expect((error as? ImageTask.Error) == .cancelled)
+            #expect(error as? ImageTask.Error == .cancelled)
         }
     }
 
@@ -94,7 +94,7 @@ import Foundation
         do {
             _ = try await task.value
         } catch {
-            #expect((error as? ImageTask.Error) == .cancelled)
+            #expect(error as? ImageTask.Error == .cancelled)
         }
     }
 
@@ -142,7 +142,7 @@ import Foundation
         do {
             _ = try await (result1, result2)
         } catch {
-            #expect((error as? ImageTask.Error) == .cancelled)
+            #expect(error as? ImageTask.Error == .cancelled)
         }
         #expect(recordedProgress == [])
     }
@@ -191,7 +191,7 @@ import Foundation
 
         let expectation1 = queue.expectJobAdded()
         let request = Test.request
-        let task = pipeline.imageTask(with: request).resume()
+        let task = pipeline.imageTask(with: request)
         let job = await expectation1.wait()
 
         // When
@@ -213,7 +213,7 @@ import Foundation
         }
         let expectation1 = queue.expectJobAdded()
         let request = ImageRequest(url: Test.url, processors: [processor])
-        let task = pipeline.imageTask(with: request).resume()
+        let task = pipeline.imageTask(with: request)
         let job = await expectation1.wait()
 
         // When
@@ -249,7 +249,7 @@ import Foundation
         do {
             _ = try await task.value
         } catch {
-            #expect((error as? ImageTask.Error) == .cancelled)
+            #expect(error as? ImageTask.Error == .cancelled)
         }
     }
 
@@ -359,7 +359,8 @@ import Foundation
             do {
                 return try await pipeline.image(for: request)
             } catch {
-                guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                guard let urlError = error.dataLoadingError as? URLError,
+                      urlError.networkUnavailableReason == .constrained else {
                     throw error
                 }
                 return try await pipeline.image(for: lowQualityImageURL)
@@ -430,7 +431,7 @@ import Foundation
 
         // When
         let expectation = pipeline.configuration.imageDecodingQueue.expectJobAdded()
-        pipeline.imageTask(with: request).resume()
+        _ = pipeline.imageTask(with: request)
 
         // Then work item is created on an expected queue
         await expectation.wait()
@@ -482,7 +483,7 @@ import Foundation
         dataLoader.queue.isSuspended = true
 
         let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
-        pipeline.imageTask(with: Test.request).resume()
+        pipeline.imageTask(with: Test.request)
         await expectation1.wait()
 
         // When
@@ -502,7 +503,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record()
         } catch {
-            #expect(error == .pipelineInvalidated)
+            #expect(error  == .pipelineInvalidated)
         }
     }
 

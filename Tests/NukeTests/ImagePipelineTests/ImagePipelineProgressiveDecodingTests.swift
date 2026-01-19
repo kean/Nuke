@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Testing
@@ -101,9 +101,10 @@ import Testing
                 dataLoader.resume()
             case .preview:
                 Issue.record("Expected partial images to never be produced")
-            case .cancelled:
-                Issue.record()
             case .finished(let result):
+                if case .failure(.cancelled) = result {
+                    Issue.record("Task was unexpectedly cancelled")
+                }
                 #expect(result.isSuccess, "Expected the final image to be produced")
             }
         }
@@ -134,8 +135,6 @@ import Testing
                 #expect(response.isPreview)
                 #expect(response.image.cgImage?.width == 45)
                 #expect(response.image.cgImage?.height == 30)
-            case .cancelled:
-                Issue.record()
             case .finished(let result):
                 switch result {
                 case .success(let response):
@@ -143,6 +142,8 @@ import Testing
                     #expect(!response.isPreview)
                     #expect(response.image.cgImage?.width == 45)
                     #expect(response.image.cgImage?.height == 30)
+                case .failure(.cancelled):
+                    Issue.record("Task was unexpectedly cancelled")
                 case .failure:
                     Issue.record()
                 }
@@ -168,14 +169,14 @@ import Testing
                 // Then previews are resized
                 #expect(response.isPreview)
                 #expect(response.image.nk_test_processorIDs == ["_image_processor"])
-            case .cancelled:
-                Issue.record()
             case .finished(let result):
                 switch result {
                 case .success(let response):
                     // Then the final image is also resized
                     #expect(!response.isPreview)
                     #expect(response.image.nk_test_processorIDs == ["_image_processor"])
+                case .failure(.cancelled):
+                    Issue.record("Task was unexpectedly cancelled")
                 case .failure:
                     Issue.record()
                 }
@@ -197,13 +198,13 @@ import Testing
                 dataLoader.resume()
             case .preview:
                 Issue.record("No previwes should be produced")
-            case .cancelled:
-                Issue.record()
             case .finished(let result):
                 switch result {
                 case .success(let response):
                     // Then the final image is also resized
                     #expect(!response.isPreview)
+                case .failure(.cancelled):
+                    Issue.record("Task was unexpectedly cancelled")
                 case .failure:
                     Issue.record()
                 }

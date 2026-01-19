@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
 import Foundation
@@ -448,6 +448,7 @@ private final class SimpleJob<T>: Job<T>, @unchecked Sendable {
     /// deallocated after it is called.
     init(starter: ((SimpleJob) -> Void)? = nil) {
         self.starter = starter
+        super.init()
     }
 
     override func start() {

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import SwiftUI
 import Combine
@@ -100,8 +100,6 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Loads an image with the given request.
     public func load(_ request: ImageRequest?) {
-        assert(Thread.isMainThread, "Must be called from the main thread")
-
         reset()
 
         guard var request else {

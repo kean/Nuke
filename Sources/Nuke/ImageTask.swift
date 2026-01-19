@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -14,37 +14,60 @@ import AppKit
 
 /// A task performed by the ``ImagePipeline``.
 ///
-/// The pipeline maintains a strong reference to the task until the request
-/// finishes or fails; you do not need to maintain a reference to the task unless
-/// it is useful for your app.
-@ImagePipelineActor
-public final class ImageTask: Hashable, JobSubscriber {
+/// The pipeline maintains a strong reference to the task until it completes.
+/// You do not need to maintain your own reference unless it is useful for your app.
+///
+/// ## Thread Safety
+///
+/// All public properties can be safely accessed from any thread. The task's
+/// state, priority, and cancellation status provide immediate, thread-safe snapshots.
+public final class ImageTask: Hashable, JobSubscriber, Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
-    /// Unique only within that pipeline.
-    public nonisolated let taskId: Int64
+    public let taskId: Int64
 
-    /// The original request that the task was created with.
-    public nonisolated let request: ImageRequest
+    /// The original request used to create this task.
+    public let request: ImageRequest
 
-    /// The priority of the task. The priority can be updated dynamically even
-    /// for a task that is already running.
-    public nonisolated var priority: ImageRequest.Priority {
+    // TODO: fix this being on ImagePipelineActor right now
+    /// The task priority. Can be updated dynamically, even while the task is running.
+    public var priority: ImageRequest.Priority {
         get { nonisolatedState.withLock(\.priority) }
         set { setPriority(newValue) }
     }
 
-    /// Returns the current download progress. Returns zeros before the download
-    /// is started and the expected size of the resource is known.
-    public nonisolated var currentProgress: Progress {
+    /// A snapshot of the current download progress.
+    ///
+    /// - note: The `total` value is zero when the resource size is unknown or
+    /// the server doesn't provide a `Content-Length` header. The `fraction`
+    /// property handles this by returning 0.
+    ///
+    /// - seealso: ``ImageTask/progress`` for receiving progress updates.
+    public var currentProgress: Progress {
         nonisolatedState.withLock(\.progress)
     }
 
     /// The current state of the task.
-    public private(set) var state: State = .suspended
+    ///
+    /// - seealso:
+    ///   - ``isCancelled`` to check if cancellation was initiated
+    ///   - ``events`` to observe state transitions in real-time
+    public var state: State {
+        nonisolatedState.withLock(\.state)
+    }
 
-    /// Returns `true` if the task cancellation is initiated.
-    public nonisolated var isCancelling: Bool {
-        nonisolatedState.withLock(\.isCancelling)
+    /// Returns `true` if the task was cancelled.
+    ///
+    /// - seealso:
+    ///   - ``cancel()`` to cancel the task
+    ///   - ``state`` for the final outcome
+    ///   - ``ImageTask/Error/cancelled`` error case
+    public var isCancelled: Bool {
+        nonisolatedState.withLock(\.isCancelled)
+    }
+
+    var isTerminated: Bool {
+        guard case .running = state else { return true }
+        return false
     }
 
     // MARK: - Async/Await
@@ -52,19 +75,27 @@ public final class ImageTask: Hashable, JobSubscriber {
     /// Returns the response image.
     public var image: PlatformImage {
         get async throws(ImageTask.Error) {
-            try await perform().image
+            try await response.image
         }
     }
 
     /// Returns the image response.
     public var response: ImageResponse {
         get async throws(ImageTask.Error) {
-            try await perform()
+            do {
+                return try await withTaskCancellationHandler {
+                    try await task.value
+                } onCancel: {
+                    cancel()
+                }
+            } catch {
+                throw error as! ImageTask.Error
+            }
         }
     }
 
-    /// The stream of progress updates.
-    public nonisolated var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
+    /// A stream of progress updates during the download.
+    public var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
         events.compactMap {
             if case .progress(let value) = $0 { return value }
             return nil
@@ -74,100 +105,139 @@ public final class ImageTask: Hashable, JobSubscriber {
     /// The stream of image previews generated for images that support
     /// progressive decoding.
     ///
+    /// Progressive decoding allows you to display low-resolution previews
+    /// while the full image is still downloading, improving perceived performance.
+    ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
-    public nonisolated var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
+    public var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
         events.compactMap {
             if case .preview(let value) = $0 { return value }
             return nil
         }
     }
 
-    /// The events sent by the pipeline during the task execution.
-    public nonisolated var events: AsyncStream<Event> {
+    /// A stream of events during task execution.
+    ///
+    /// Events are yielded in the following order:
+    /// 1. Zero or more `.progress` events as data downloads
+    /// 2. Zero or more `.preview` events for progressive images (if enabled)
+    /// 3. Exactly one `.finished` event with the final result
+    ///
+    /// The stream completes after the `.finished` event is sent.
+    ///
+    /// ## Example
+    /// ```swift
+    /// for await event in task.events {
+    ///     switch event {
+    ///     case .progress(let progress):
+    ///         progressBar.progress = progress.fraction
+    ///     case .preview(let response):
+    ///         imageView.image = response.image // Show progressive scan
+    ///     case .finished(.success(let response)):
+    ///         imageView.image = response.image // Show final image
+    ///     case .finished(.failure(let error)):
+    ///         handleError(error)
+    ///     }
+    /// }
+    /// ```
+    public var events: AsyncStream<Event> {
         AsyncStream { continuation in
-            Task { @ImagePipelineActor in
-                if case .suspended = state {
-                    startRunning()
-                }
-                guard case .running = state else {
+            Task { @ImagePipelineActor [weak self] in
+                guard let self, !self.isTerminated else {
                     return continuation.finish()
                 }
-                streamContinuations.append(continuation)
+                self._state.streamContinuations.append(continuation)
             }
         }
+    }
+
+    private let nonisolatedState: Mutex<NonisolatedState>
+
+    /// The state that can be accessed synchronously by the users of the task.
+    private struct NonisolatedState {
+        var isCancelled = false
+        var state: ImageTask.State = .running
+        var priority: ImageRequest.Priority
+        var progress = ImageTask.Progress(completed: 0, total: 0)
+    }
+
+    @ImagePipelineActor
+    private var _state = IsolatedState()
+
+    /// The part of the task that manages background jobs.
+    @ImagePipelineActor
+    private struct IsolatedState {
+        var pipeline: ImagePipeline?
+        var subscription: JobSubscription?
+        var continuation: UnsafeContinuation<ImageResponse, Swift.Error>?
+        var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
     }
 
     let isDataTask: Bool
-    private let nonisolatedState: Mutex<ImageTaskState>
+    private nonisolated(unsafe) var task: Task<ImageResponse, Swift.Error>!
     private let onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?
-    private weak var pipeline: ImagePipeline?
-    private var subscription: JobSubscription?
 
-    private var taskContinuations = ContiguousArray<UnsafeContinuation<ImageResponse, Swift.Error>>()
-    private var streamContinuations = ContiguousArray<AsyncStream<ImageTask.Event>.Continuation>()
-
-    nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?) {
+    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@ImagePipelineActor @Sendable (Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.nonisolatedState = Mutex(ImageTaskState(priority: request.priority))
+        self.nonisolatedState = Mutex(NonisolatedState(priority: request.priority))
         self.isDataTask = isDataTask
-        self.pipeline = pipeline
+        self._state.pipeline = pipeline
         self.onEvent = onEvent
-    }
-
-    private func perform() async throws(ImageTask.Error) -> ImageResponse {
-        do {
-            return try await withTaskCancellationHandler {
-                try await withUnsafeThrowingContinuation {
-                    switch state {
-                    case .suspended:
-                        taskContinuations.append($0)
-                        startRunning()
-                    case .running:
-                        taskContinuations.append($0)
-                    case .cancelled:
-                        $0.resume(throwing: ImageTask.Error.cancelled)
-                    case .completed(let result):
-                        $0.resume(with: result)
-                    }
-                }
-            } onCancel: {
-                cancel()
-            }
-        } catch {
-            // swiftlint:disable:next force_cast
-            throw error as! ImageTask.Error
+        self.task = Task { @ImagePipelineActor in
+            try await perform()
         }
     }
 
-    private func startRunning() {
-        state = .running
-        subscription = pipeline?.perform(self)
+    @ImagePipelineActor
+    private func perform() async throws -> ImageResponse {
+        // In case the task gets cancelled immediately after creation.
+        guard !isCancelled, !isTerminated, let pipeline = _state.pipeline else {
+            throw ImageTask.Error.cancelled
+        }
+        return try await withUnsafeThrowingContinuation { continuation in
+            _state.continuation = continuation
+            if let subscription = pipeline.perform(self) {
+                _state.subscription = subscription
+            } else {
+                process(.finished(.failure(.pipelineInvalidated)))
+            }
+        }
     }
 
-    /// Marks task as being cancelled.
+    /// Cancels the task.
     ///
-    /// The pipeline will immediately cancel any work associated with a task
-    /// unless there is an equivalent outstanding task running.
-    public nonisolated func cancel() {
-        guard nonisolatedState.withLock({
-            guard !$0.isCancelling else { return false }
-            $0.isCancelling = true
+    /// The ``isCancelled`` property is set to `true` immediately. The pipeline
+    /// then asynchronously attempts to stop the underlying work unless an equivalent
+    /// task is running or the request has already completed.
+    ///
+    /// Calling this method multiple times has no effect.
+    ///
+    /// - note: Cancellation does not guarantee the task will stop. The task may
+    /// complete successfully or fail if the work finishes before cancellation is processed.
+    public func cancel() {
+        let shouldCancel = nonisolatedState.withLock {
+            guard !$0.isCancelled else { return false }
+            $0.isCancelled = true
             return true
-        }) else { return }
+        }
+        guard shouldCancel else { return }
+
         Task { @ImagePipelineActor in
             _cancel()
         }
     }
 
-    private nonisolated func setPriority(_ newValue: ImageRequest.Priority) {
-        guard nonisolatedState.withLock({
+    private func setPriority(_ newValue: ImageRequest.Priority) {
+        let shouldChangePriority = nonisolatedState.withLock {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
-            return !$0.isCancelling
-        }) else { return }
+            return !$0.isCancelled
+        }
+        guard shouldChangePriority else { return }
+
         Task { @ImagePipelineActor in
-            subscription?.didChangePriority(newValue)
+            _state.subscription?.didChangePriority(newValue)
         }
     }
 
@@ -175,90 +245,87 @@ public final class ImageTask: Hashable, JobSubscriber {
 
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
+    @ImagePipelineActor
     func _cancel() {
-        guard case .running = state else { return }
-        subscription?.unsubscribe()
-        subscription = nil
-        state = .cancelled
-        dispatch(.cancelled)
+        process(.finished(.failure(.cancelled)))
     }
 
-    /// Dispatches the given event to the observers.
-    ///
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
-    private func dispatch(_ event: Event) {
-        for continuation in streamContinuations {
+    @ImagePipelineActor
+    private func process(_ event: Event) {
+        guard !isTerminated else { return }
+
+        let state = _state // Important to avoid cleanup from affecting it
+
+        for continuation in state.streamContinuations {
             continuation.yield(event)
         }
 
-        func complete(with result: Result<ImageResponse, ImageTask.Error>) {
-            subscription = nil
-
-            for continuation in streamContinuations {
-                continuation.finish()
-            }
-            streamContinuations.removeAll()
-
-            for continuation in taskContinuations {
-                continuation.resume(with: result)
-            }
-            taskContinuations.removeAll()
-        }
-
         switch event {
-        case .cancelled:
-            complete(with: .failure(.cancelled))
         case .finished(let result):
+            if case .failure(.cancelled) = result {
+                state.subscription?.unsubscribe()
+            }
             complete(with: result)
+        case .progress(let progress):
+            nonisolatedState.withLock { $0.progress = progress }
         default:
             break
         }
 
         onEvent?(event, self)
-        pipeline?.imageTask(self, didProcessEvent: event)
+        state.pipeline?.imageTask(self, didProcessEvent: event)
+    }
+
+    @ImagePipelineActor
+    private func complete(with result: Result<ImageResponse, ImageTask.Error>) {
+        nonisolatedState.withLock { $0.state = .finished(result) }
+
+        _state.pipeline = nil
+        _state.subscription = nil
+
+        for continuation in _state.streamContinuations {
+            continuation.finish()
+        }
+        _state.streamContinuations.removeAll()
+
+        _state.continuation?.resume(with: result)
+        _state.continuation = nil
     }
 
     // MARK: JobSubscriber
 
+    @ImagePipelineActor
     func receive(_ event: Job<ImageResponse>.Event) {
-        guard case .running = state else { return }
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
-                state = .completed(.success(response))
-                dispatch(.finished(.success(response)))
+                process(.finished(.success(response)))
             } else {
-                dispatch(.preview(response))
+                process(.preview(response))
             }
         case let .progress(value):
-            nonisolatedState.withLock { $0.progress = value }
-            dispatch(.progress(value))
+            process(.progress(value))
         case let .error(error):
-            state = .completed(.failure(error))
-            dispatch(.finished(.failure(error)))
+            process(.finished(.failure(error)))
         }
     }
 
+    @ImagePipelineActor
     func addSubscribedTasks(to output: inout [ImageTask]) {
         output.append(self)
     }
 
     // MARK: Hashable
 
-    public nonisolated func hash(into hasher: inout Hasher) {
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(self).hashValue)
     }
 
-    public nonisolated static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
+    public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
-}
-
-private struct ImageTaskState {
-    var isCancelling = false
-    var priority: ImageRequest.Priority
-    var progress = ImageTask.Progress(completed: 0, total: 0)
 }
 
 extension ImageTask {
@@ -282,33 +349,34 @@ extension ImageTask {
     }
 
     /// The state of the image task.
+    ///
+    /// Tasks always begin in the `.running` state and transition to `.finished`
+    /// exactly once when the request completes, fails, or is cancelled.
+    ///
+    /// - note: Cancellation (``ImageTask/cancel()``) doesn't immediately change
+    /// the state. The task transitions to `.finished` with a ``.cancelled`` error
+    /// when cancellation is processed by the pipeline.
     public enum State: Sendable {
-        /// The initial state.
-        case suspended
         /// The task is currently running.
         case running
-        /// The task has received a cancel message.
-        case cancelled
-        /// The task has completed (without being canceled).
-        case completed(Result<ImageResponse, ImageTask.Error>)
+        /// The task has completed.
+        case finished(Result<ImageResponse, ImageTask.Error>)
     }
 
-    /// An event produced during the runetime of the task.
+    /// An event produced during the runtime of the task.
     public enum Event: Sendable {
         /// The download progress was updated.
         case progress(Progress)
         /// The pipeline generated a progressive scan of the image.
         case preview(ImageResponse)
-        /// The task was cancelled.
+        /// The task finished with the given result.
         ///
-        /// - note: You are guaranteed to receive either `.cancelled` or
-        /// `.finished`, but never both.
-        case cancelled
-        /// The task finish with the given response.
+        /// - note: If the task was cancelled, the result will contain the
+        /// respective error: ``ImageTask/Error/cancelled``.
         case finished(Result<ImageResponse, ImageTask.Error>)
     }
 
-        /// Represents all possible image task errors.
+    /// Represents all possible image task errors.
     public enum Error: Swift.Error, CustomStringConvertible, Sendable {
         /// The task got cancelled.
         ///

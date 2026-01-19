@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -38,7 +38,7 @@ public final class ImagePipeline {
 
     private var isInvalidated = false
 
-    private nonisolated let nextTaskId = Mutex<Int64>(0)
+    private nonisolated let nexttaskId = Mutex<Int64>(0)
 
     let rateLimiter: RateLimiter?
     let id = UUID()
@@ -104,16 +104,27 @@ public final class ImagePipeline {
 
     /// Creates a task with the given URL.
     ///
-    /// The task starts in a ``ImageTask/State-swift.enum/suspended`` state. It
-    /// starts executing when you ask for the result or subscribe to ``ImageTask/events``.
+    /// ## Example
+    /// ```swift
+    /// let task = pipeline.imageTask(with: url)
+    /// do {
+    ///     let image = try await task.image
+    ///     ...
+    /// } catch ImageTask.Error.cancelled {
+    ///     print("Task was cancelled")
+    /// } catch {
+    ///     print("Failed to load image: \(error)")
+    /// }
+    /// ```
+    ///
+    /// - note: The task starts executing the moment it is created.
     public nonisolated func imageTask(with url: URL) -> ImageTask {
         makeImageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
     ///
-    /// The task starts in a ``ImageTask/State-swift.enum/suspended`` state. It
-    /// starts executing when you ask for the result or subscribe to ``ImageTask/events``.
+    /// The task starts executing the moment it is created.
     public nonisolated func imageTask(with request: ImageRequest) -> ImageTask {
         makeImageTask(with: request)
     }
@@ -144,35 +155,23 @@ public final class ImagePipeline {
     // MARK: - ImageTask (Internal)
 
     nonisolated func makeImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
+        let task = ImageTask(taskId: nexttaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         delegate.imageTaskCreated(task, pipeline: self)
         return task
     }
 
     func perform(_ imageTask: ImageTask) -> JobSubscription? {
         guard !isInvalidated else {
-            imageTask.receive(.error(.pipelineInvalidated))
             return nil
         }
-        return imageTask.isDataTask ? performDataTask(imageTask) : performImageTask(imageTask)
-    }
-
-    // TODO: remove duplication
-    private func performImageTask(_ imageTask: ImageTask) -> JobSubscription? {
-        let task = JobPrefixFetchImage(self, imageTask.request)
+        let job = imageTask.isDataTask ? JobPrefixFetchData(self, imageTask.request) : JobPrefixFetchImage(self, imageTask.request)
         tasks.insert(imageTask)
-        return task.subscribe(imageTask)
-    }
-
-    private func performDataTask(_ imageTask: ImageTask) -> JobSubscription? {
-        let task = JobPrefixFetchData(self, imageTask.request)
-        tasks.insert(imageTask)
-        return task.subscribe(imageTask)
+        return job.subscribe(imageTask)
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {
         switch event {
-        case .cancelled, .finished:
+        case .finished:
             tasks.remove(task)
         default:
             break

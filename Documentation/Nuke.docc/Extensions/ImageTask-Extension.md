@@ -2,21 +2,34 @@
 
 ## Topics
 
-### Controlling the Task State
+### Loading Images with Async/Await
 
-- ``cancel()``
+- ``image``
+- ``response``
+- ``Error-swift.enum``
+
+### Observing Task Events
+
+- ``events``
+- ``previews-swift.property``
+- ``progress-swift.property``
+- ``Event-swift.enum``
+
+### Monitoring Task State
+
 - ``state-swift.property``
 - ``State-swift.enum``
+- ``isCancelled``
+- ``currentProgress``
+- ``Progress-swift.struct``
+
+### Controlling the Task
+
+- ``cancel()``
 - ``priority``
 - ``ImageRequest/Priority-swift.enum``
 
-### Task Progress
-
-- ``progress-swift.property``
-- ``Progress-swift.struct``
-
-### General Task Information
+### Task Information
 
 - ``request``
 - ``taskId``
-- ``description``
