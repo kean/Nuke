@@ -69,7 +69,13 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
     public init(configuration: Configuration = Configuration(), delegate: (any ImagePipelineDelegate)? = nil) {
         self.configuration = configuration
-        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
+        self.rateLimiter = configuration.isRateLimiterEnabled ?
+            RateLimiter(
+                queue: queue,
+                rate: configuration.rateLimiterConfig.rate,
+                burst: configuration.rateLimiterConfig.burst
+            ) : nil
+        
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 

@@ -95,6 +95,8 @@ extension ImagePipeline {
         /// The rate limiter only comes into play when the requests are started
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
         public var isRateLimiterEnabled = true
+        
+        public var rateLimiterConfig: RateLimiterConfig = .init()
 
         /// `false` by default. If `true` the pipeline will try to produce a new
         /// image each time it receives a new portion of data from data loader.
@@ -262,5 +264,13 @@ extension ImagePipeline {
         /// - note: If the resource is local (has file:// or data:// scheme),
         /// only the processed images are stored.
         case storeAll
+    }
+    
+    ///   - rate: Maximum number of requests per second. 80 by default.
+    ///   - burst: Maximum number of requests which can be executed without any
+    ///   delays when "bucket is full". 25 by default.
+    public struct RateLimiterConfig {
+        let rate: Int = 80
+        let burst: Int = 25
     }
 }
