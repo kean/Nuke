@@ -21,18 +21,18 @@ final class RateLimiter: @unchecked Sendable {
     private let queue: DispatchQueue
     private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
+    
 
     typealias Work = () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameters:
     ///   - queue: Queue on which to execute pending tasks.
-    ///   - rate: Maximum number of requests per second.
-    ///   - burst: Maximum number of requests which can be executed without any
-    ///   delays when "bucket is full".
-    init(queue: DispatchQueue, rate: Int, burst: Int) {
+    ///   - interval: The time interval to rate limit (now - interval) as a sliding window
+    ///   - maxRequestCount: Maximum number of requests which can be executed during the interval.
+    init(queue: DispatchQueue, interval: Double, maxRequestCount: Double) {
         self.queue = queue
-        self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
+        self.bucket = TokenBucket(interval: interval, maxRequestCount: maxRequestCount)
     }
 
     /// - parameter closure: Returns `true` if the close was executed, `false`
@@ -72,17 +72,20 @@ final class RateLimiter: @unchecked Sendable {
 
 private final class TokenBucket {
     let rate: Double
-    private let burst: Double // maximum bucket size
     private var bucket: Double
-    private var timestamp: TimeInterval // last refill timestamp
-
+    private var lastRefillTimestamp: TimeInterval // last refill timestamp
+    private let interval: TimeInterval
+    private let maxRequestCount: Double // aka burst
+    private var intervalTimestamps = LinkedList<TimeInterval>()
+    
     /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
     /// - parameter burst: Bucket size (maximum number of tokens).
-    init(rate: Double, burst: Double) {
-        self.rate = rate
-        self.burst = burst
-        self.bucket = burst
-        self.timestamp = CFAbsoluteTimeGetCurrent()
+    init(interval: Double, maxRequestCount: Double) {
+        self.interval = interval
+        self.maxRequestCount = maxRequestCount
+        self.rate = maxRequestCount / interval
+        self.bucket = maxRequestCount
+        self.lastRefillTimestamp = CFAbsoluteTimeGetCurrent()
     }
 
     /// Returns `true` if the closure was executed, `false` if dropped.
@@ -91,18 +94,34 @@ private final class TokenBucket {
         guard bucket >= 1.0 else {
             return false // bucket is empty
         }
+        
+        guard Double(requestCount(in: interval)) < maxRequestCount else {
+            return false // exceeding max requests in sliding time interval
+        }
+        intervalTimestamps.append(CFAbsoluteTimeGetCurrent())
         if work() {
             bucket -= 1.0 // work was cancelled, no need to reduce the bucket
         }
         return true
     }
+    
+    private func pruneSlidingWindow(now: TimeInterval, maxAge: TimeInterval = 10) {
+        while let first = intervalTimestamps.first, (now - first.value) >= maxAge {
+            intervalTimestamps.remove(first)
+        }
+    }
+    
+    private func requestCount(in timeInterval: TimeInterval) -> Int {
+        pruneSlidingWindow(now: CFAbsoluteTimeGetCurrent(), maxAge: timeInterval)
+        return intervalTimestamps.count
+    }
 
     private func refill() {
         let now = CFAbsoluteTimeGetCurrent()
-        bucket += rate * max(0, now - timestamp) // rate * (time delta)
-        timestamp = now
-        if bucket > burst { // prevent bucket overflow
-            bucket = burst
+        bucket += rate * max(0, now - lastRefillTimestamp) // rate * (time delta)
+        lastRefillTimestamp = now
+        if bucket > maxRequestCount { // prevent bucket overflow
+            bucket = maxRequestCount
         }
     }
 }

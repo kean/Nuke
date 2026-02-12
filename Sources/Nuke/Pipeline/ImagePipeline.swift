@@ -72,8 +72,8 @@ public final class ImagePipeline: @unchecked Sendable {
         self.rateLimiter = configuration.isRateLimiterEnabled ?
             RateLimiter(
                 queue: queue,
-                rate: configuration.rateLimiterConfig.rate,
-                burst: configuration.rateLimiterConfig.burst
+                interval: configuration.rateLimiterConfig.interval,
+                maxRequestCount: configuration.rateLimiterConfig.maxRequestCount
             ) : nil
         
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()

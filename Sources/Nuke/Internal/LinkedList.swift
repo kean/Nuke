@@ -9,6 +9,7 @@ final class LinkedList<Element> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?
+    var count: Int = 0
 
     deinit {
         // This way we make sure that the deallocations do no happen recursively
@@ -38,6 +39,7 @@ final class LinkedList<Element> {
             last = node
             first = node
         }
+        count += 1
     }
 
     func remove(_ node: Node) {
@@ -51,6 +53,7 @@ final class LinkedList<Element> {
         }
         node.next = nil
         node.previous = nil
+        count -= 1
     }
 
     func removeAllElements() {
@@ -63,6 +66,7 @@ final class LinkedList<Element> {
         }
         last = nil
         first = nil
+        count == 0
     }
 
     final class Node {

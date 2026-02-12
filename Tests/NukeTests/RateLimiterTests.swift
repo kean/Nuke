@@ -18,8 +18,8 @@ class RateLimiterTests: XCTestCase {
         queueKey = DispatchSpecificKey<Void>()
         queue.setSpecific(key: queueKey, value: ())
 
-        // Note: we set very short rate to avoid bucket form being refilled too quickly
-        rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
+        // max 2 req/second, so the first 2 requests should be executed immediate, but more than 2 should be queued up
+        rateLimiter = RateLimiter(queue: queue, interval: 1, maxRequestCount: 2)
     }
 
     func testThatBurstIsExecutedimmediately() {
@@ -55,7 +55,7 @@ class RateLimiterTests: XCTestCase {
         }
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediately")
+        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediately")
     }
 
     func testOverflow() {
