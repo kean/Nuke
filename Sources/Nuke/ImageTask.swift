@@ -117,7 +117,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The events sent by the pipeline during the task execution.
     public var events: AsyncStream<Event> { makeStream { $0 } }
 
-    /// An event produced during the runetime of the task.
+    /// An event produced during the runtime of the task.
     public enum Event: Sendable {
         /// The download progress was updated.
         case progress(Progress)
@@ -128,7 +128,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         /// - note: You are guaranteed to receive either `.cancelled` or
         /// `.finished`, but never both.
         case cancelled
-        /// The task finish with the given response.
+        /// The task finished with the given response.
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 

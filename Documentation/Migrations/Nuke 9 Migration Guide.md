@@ -12,7 +12,7 @@ This guide is provided in order to ease the transition of existing applications 
 
 ## Overview
 
-Nuke 9 contains a ton of new features, refinements, and performance improvements. There are some breaking changes and deprecated which the compiler is going to guide you through as you update.
+Nuke 9 contains a ton of new features, refinements, and performance improvements. There are some breaking changes and deprecations which the compiler is going to guide you through as you update.
 
 ## ImageProcessing
 

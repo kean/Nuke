@@ -23,7 +23,7 @@ extension ImageEncoders {
         public let compressionRatio: Float
 
         /// - parameter format: The output format. Make sure that the format is
-        /// supported on the current hardware.s
+        /// supported on the current hardware.
         /// - parameter compressionRatio: 0.8 by default.
         public init(type: AssetType, compressionRatio: Float = 0.8) {
             self.type = type

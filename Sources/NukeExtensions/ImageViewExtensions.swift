@@ -19,10 +19,10 @@ import AppKit.NSImage
 ///
 /// The protocol is defined as `@objc` to make it possible to override its
 /// methods in extensions (e.g. you can override `nuke_display(image:data:)` in
-/// `UIImageView` subclass like `Gifu.ImageView).
+/// a `UIImageView` subclass like `Gifu.ImageView`).
 ///
 /// The protocol and its methods have prefixes to make sure they don't clash
-/// with other similar methods and protocol in Objective-C runtime.
+/// with other similar methods and protocols in the Objective-C runtime.
 @MainActor
 @objc public protocol Nuke_ImageDisplaying {
     /// Display a given image.
@@ -47,7 +47,7 @@ extension Nuke_ImageDisplaying {
 
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
-/// A `UIView` that implements `ImageDisplaying` protocol.
+/// A `UIView` that implements the `ImageDisplaying` protocol.
 public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
 
 extension UIImageView: Nuke_ImageDisplaying {
@@ -58,7 +58,7 @@ extension UIImageView: Nuke_ImageDisplaying {
 }
 #elseif os(macOS)
 import Cocoa
-/// An `NSObject` that implements `ImageDisplaying`  and `Animating` protocols.
+/// An `NSObject` that implements the `ImageDisplaying` protocol.
 /// Can support `NSView` and `NSCell`. The latter can return nil for layer.
 public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying
 

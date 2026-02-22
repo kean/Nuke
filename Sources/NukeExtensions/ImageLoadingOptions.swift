@@ -55,8 +55,8 @@ public struct ImageLoadingOptions {
     /// If `true`, every progressively generated preview produced by the pipeline
     /// is going to be displayed. `true` by default.
     ///
-    /// - note: To enable progressive decoding, see `ImagePipeline.Configuration`,
-    /// `isProgressiveDecodingEnabled` option.
+    /// - note: To enable progressive decoding, see the `isProgressiveDecodingEnabled`
+    /// option in `ImagePipeline.Configuration`.
     public var isProgressiveRenderingEnabled = true
 
     /// Custom pipeline to be used. `nil` by default.
@@ -69,7 +69,7 @@ public struct ImageLoadingOptions {
 #if os(iOS) || os(tvOS) || os(visionOS)
 
     /// Content modes to be used for each image type (placeholder, success,
-    /// failure). `nil`  by default (don't change content mode).
+    /// failure). `nil` by default (don't change content mode).
     public var contentModes: ContentModes?
 
     /// Custom content modes to be used for each image type (placeholder, success,
@@ -100,7 +100,7 @@ public struct ImageLoadingOptions {
     }
 
     /// Tint colors to be used for each image type (placeholder, success,
-    /// failure). `nil`  by default (don't change tint color or rendering mode).
+    /// failure). `nil` by default (don't change tint color or rendering mode).
     public var tintColors: TintColors?
 
     /// Custom tint color to be used for each image type (placeholder, success,
@@ -139,11 +139,11 @@ public struct ImageLoadingOptions {
     ///   - transition: The image transition animation performed when
     ///   displaying a loaded image. Only runs when the image was not found in
     ///   memory cache.
-    ///   - failureImage: Image to be displayed when request fails.
+    ///   - failureImage: Image to be displayed when the request fails.
     ///   - failureImageTransition: The image transition animation
     ///   performed when displaying a failure image.
-    ///  - contentModes: Content modes to be used for each image type
-    ///  (placeholder, success, failure).
+    ///   - contentModes: Content modes to be used for each image type
+    ///   (placeholder, success, failure).
     public init(placeholder: UIImage? = nil, transition: Transition? = nil, failureImage: UIImage? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil, tintColors: TintColors? = nil) {
         self.placeholder = placeholder
         self.transition = transition

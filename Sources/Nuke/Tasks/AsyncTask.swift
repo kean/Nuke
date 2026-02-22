@@ -78,7 +78,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     // MARK: - Managing Observers
 
-    /// - notes: Returns `nil` if the task was disposed.
+    /// - note: Returns `nil` if the task was disposed.
     private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
@@ -222,14 +222,14 @@ extension AsyncTask {
         fileprivate let task: AsyncTask
 
         /// Attaches the subscriber to the task.
-        /// - notes: Returns `nil` if the task is already disposed.
+        /// - note: Returns `nil` if the task is already disposed.
         func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
             task.subscribe(priority: priority, subscriber: subscriber, closure)
         }
 
         /// Attaches the subscriber to the task. Automatically forwards progress
         /// and error events to the given task.
-        /// - notes: Returns `nil` if the task is already disposed.
+        /// - note: Returns `nil` if the task is already disposed.
         func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
             subscribe(subscriber: task) { [weak task] event in
                 guard let task else { return }

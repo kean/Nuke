@@ -34,7 +34,7 @@ Nuke is also supported by:
     </td>
     <td valign="center" align="center">
       <a href="https://backspace.travel">
-        <img src="https://avatars.githubusercontent.com/u/175125884?s=200&v=4" height="50px", alt="Backspace Travel"/>
+        <img src="https://avatars.githubusercontent.com/u/175125884?s=200&v=4" height="50px" alt="Backspace Travel"/>
         <p>Backspace Travel</p>
       </a>
     </td>

@@ -18,7 +18,7 @@ public enum ImageProcessors {}
 extension ImageProcessing where Self == ImageProcessors.Resize {
     /// Scales an image to a specified size.
     ///
-    /// - parameters
+    /// - parameters:
     ///   - size: The target size.
     ///   - unit: Unit of the target size. By default, `.points`.
     ///   - contentMode: Target content mode.

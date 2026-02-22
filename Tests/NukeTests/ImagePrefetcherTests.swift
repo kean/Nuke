@@ -36,7 +36,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     // MARK: Basics
 
-    /// Start prefetching for the request and then request an image separarely.
+    /// Start prefetching for the request and then request an image separately.
     func testBasicScenario() {
         dataLoader.isSuspended = true
 

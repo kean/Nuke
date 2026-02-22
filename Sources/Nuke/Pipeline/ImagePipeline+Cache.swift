@@ -41,7 +41,7 @@ extension ImagePipeline.Cache {
 
     // MARK: Cached Images
 
-    /// Returns a cached image any of the caches.
+    /// Returns a cached image from any of the caches.
     ///
     /// - note: Respects request options such as its cache policy.
     ///
@@ -168,7 +168,7 @@ extension ImagePipeline.Cache {
         dataCache.storeData(data, for: key)
     }
 
-    /// Returns true if the data cache contains data for the given image
+    /// Returns `true` if the data cache contains data for the given image.
     public func containsData(for request: ImageRequest) -> Bool {
         guard let dataCache = dataCache(for: request) else {
             return false
@@ -205,7 +205,7 @@ extension ImagePipeline.Cache {
 
     // MARK: Misc
 
-    /// Removes both images and data from all cache layes.
+    /// Removes both images and data from all cache layers.
     ///
     /// - important: It clears only caches set in the pipeline configuration. If
     /// you implement ``ImagePipelineDelegate`` that uses different caches for

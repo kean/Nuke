@@ -8,7 +8,7 @@ import Foundation
 /// bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm.
 ///
 /// The main use case for rate limiter is to support large (infinite) collections
-/// of images by preventing trashing of underlying systems, primary URLSession.
+/// of images by preventing thrashing of underlying systems, primarily URLSession.
 ///
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
@@ -35,7 +35,7 @@ final class RateLimiter: @unchecked Sendable {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    /// - parameter closure: Returns `true` if the close was executed, `false`
+    /// - parameter closure: Returns `true` if the closure was executed, `false`
     /// if the work was cancelled.
     func execute( _ work: @escaping Work) {
         if !pending.isEmpty || !bucket.execute(work) {

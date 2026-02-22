@@ -11,7 +11,7 @@ public protocol ImageCaching: AnyObject, Sendable {
     /// Access the image cached for the given request.
     subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 
-    /// Removes all caches items.
+    /// Removes all cached items.
     func removeAll()
 }
 

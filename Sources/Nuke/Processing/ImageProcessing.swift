@@ -30,13 +30,13 @@ import AppKit
 public protocol ImageProcessing: Sendable {
     /// Returns a processed image. By default, returns `nil`.
     ///
-    /// - note: Gets called a background queue managed by the pipeline.
+    /// - note: Gets called on a background queue managed by the pipeline.
     func process(_ image: PlatformImage) -> PlatformImage?
 
     /// Optional method. Returns a processed image. By default, this calls the
     /// basic `process(image:)` method.
     ///
-    /// - note: Gets called a background queue managed by the pipeline.
+    /// - note: Gets called on a background queue managed by the pipeline.
     func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 
     /// Returns a string that uniquely identifies the processor.

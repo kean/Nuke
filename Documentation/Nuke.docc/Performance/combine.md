@@ -34,7 +34,7 @@ image.load(publisher)
 
  ### Low Resolution to High
 
- Let's say you want to show a user a high-resolution image that takes a while to loads. You can show a spinner while the high-resolution image is downloaded, but you can improve the user experience by quickly downloading and displaying a thumbnail.
+ Let's say you want to show a user a high-resolution image that takes a while to load. You can show a spinner while the high-resolution image is downloaded, but you can improve the user experience by quickly downloading and displaying a thumbnail.
 
  > As an alternative, Nuke also supports progressive JPEG. It is enabled by default.
 
@@ -49,7 +49,7 @@ cancellable = lowResImage.append(highResImage)
           receiveValue: { imageView.image = $0.image })
 ```
 
- > `orEmpty` is a custom property which catches the errors and immediately completes the publishes instead.
+ > `orEmpty` is a custom property which catches the errors and immediately completes the publisher instead.
 
 ```swift
 public extension Publisher {

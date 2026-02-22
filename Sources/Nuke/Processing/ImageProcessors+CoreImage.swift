@@ -49,7 +49,7 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        /// Initialize the processor with the given `CIFilter`.
+        /// Initializes the processor with the given `CIFilter`.
         ///
         /// - parameter identifier: Uniquely identifies the processor.
         public init(_ filter: CIFilter, identifier: String) {

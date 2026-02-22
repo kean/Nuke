@@ -20,17 +20,17 @@ public typealias _PlatformBaseView = UIView
 public final class VideoPlayerView: _PlatformBaseView {
     // MARK: Configuration
 
-    /// `.resizeAspectFill` by default.
+    /// The video gravity. `.resizeAspectFill` by default.
     public var videoGravity: AVLayerVideoGravity = .resizeAspectFill {
         didSet {
             _playerLayer?.videoGravity = videoGravity
         }
     }
 
-    /// `true` by default. If disabled, the video will resize with the frame without animations
+    /// `true` by default. If disabled, the video will resize with the frame without animations.
     public var animatesFrameChanges = true
 
-    /// `true` by default. If disabled, will only play a video once.
+    /// `true` by default. If disabled, the player will only play the video once.
     public var isLooping = true {
         didSet {
             guard isLooping != oldValue else { return }
@@ -41,7 +41,7 @@ public final class VideoPlayerView: _PlatformBaseView {
         }
     }
 
-    /// Add if you want to do something at the end of the video
+    /// A closure called when the video finishes playing.
     public var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization

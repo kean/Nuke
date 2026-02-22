@@ -23,7 +23,7 @@ If the image is stored in the memory cache, it is displayed immediately with no 
 Before loading a new image, the view is prepared for reuse by canceling any outstanding requests and removing a previously displayed image, making it perfect for table views.
 
 ```swift
-func tableView(_ tableView: UITableView, cellForItemAt indexPath: IndexPaths) -> UITableViewCell {
+func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     // ...
 NukeExtensions.loadImage(with: url, into: cell.imageView)
 }
@@ -68,14 +68,14 @@ option.failureImage = UIImage(named: "oopsie")
 The image transition animation performed when displaying a loaded image. Only runs when the image was not found in the memory cache (use ``ImageLoadingOptions/alwaysTransition``) to always run the animation). `nil` by default.
 
 ```swift
-options.transition = .fadeIn(duration: 0.33))
+options.transition = .fadeIn(duration: 0.33)
 ```
 
-For a complete list of available transitions see ``ImageLoadingOptions/Transition-swift.struct``. Use ``ImageLoadingOptions/failureImageTransition`` to failure image.
+For a complete list of available transitions see ``ImageLoadingOptions/Transition-swift.struct``. Use ``ImageLoadingOptions/failureImageTransition`` for the failure image.
 
 ### Content Modes
 
-You can change content mode for each of the image types: placeholder, success, failure. This is useful when a placeholder image needs to be displas with `.center`, but image with `.scaleAspectFill`. By default, `nil` – don't change the content mode.
+You can change content mode for each of the image types: placeholder, success, failure. This is useful when a placeholder image needs to be displayed with `.center`, but image with `.scaleAspectFill`. By default, `nil` – don't change the content mode.
 
 ```swift
 options.contentModes = .init(success: .scaleAspectFill, failure: .center, placeholder: .center)
@@ -83,7 +83,7 @@ options.contentModes = .init(success: .scaleAspectFill, failure: .center, placeh
 
 ### Tint Colors
 
-You can also specify a custom content modes to be used for each image type: placeholder, success, failure.
+You can also specify custom tint colors to be used for each image type: placeholder, success, failure.
 
 ```swift
 options.tintColors = .init(success: .green, failure: .red, placeholder: .yellow)
@@ -94,7 +94,7 @@ options.tintColors = .init(success: .green, failure: .red, placeholder: .yellow)
 If you want to modify the default options, set ``ImageLoadingOptions/shared``.
 
 ```swift
-ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33))
+ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33)
 ```
 
 ### Other Options

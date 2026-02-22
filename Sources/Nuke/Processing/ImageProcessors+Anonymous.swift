@@ -11,7 +11,7 @@ import AppKit
 #endif
 
 extension ImageProcessors {
-    /// Processed an image using a specified closure.
+    /// Processes an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
         private let closure: @Sendable (PlatformImage) -> PlatformImage?

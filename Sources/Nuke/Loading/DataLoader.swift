@@ -79,7 +79,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     }()
 #endif
 
-    /// Shared url cached used by a default ``DataLoader``. The cache is
+    /// Shared URL cache used by a default ``DataLoader``. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache: URLCache = {
         let diskCapacity = 150 * 1048576 // 150 MB

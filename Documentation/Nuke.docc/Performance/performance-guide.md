@@ -42,7 +42,7 @@ If your server uses unique URLs for images for which the contents never change, 
 
 Prefetching means downloading data ahead of time in anticipation of its use. It creates an illusion that the images are simply available the moment you want to see them – no networking involved. It's very effective. See <doc:prefetching> to learn more about how to enable it.
 
-> Important: If you apply processors when displaying final images, make sure to use the same processors for prefetching. Otherwise, Nuke will end-up populating the memory cache with the versions of the images you are never going to need for display.
+> Important: If you apply processors when displaying final images, make sure to use the same processors for prefetching. Otherwise, Nuke will end up populating the memory cache with the versions of the images you are never going to need for display.
 
 ## Decompression
 
@@ -100,7 +100,7 @@ Nuke supports progressive JPEG out of the box. You’ll first see a blurry versi
 
 ## Request Priorities
 
-Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributed its work on [operation queues](https://developer.apple.com/documentation/foundation/operationqueue) dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible.
+Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributes its work on [operation queues](https://developer.apple.com/documentation/foundation/operationqueue) dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible.
 
 Nuke allows you to set the request priority and update it for outstanding tasks. It uses priorities for prefetching: the requests created by the prefetcher all have `.low` priority to make sure they don't interfere with the "regular" requests. See <doc:prefetching> to learn more.
 

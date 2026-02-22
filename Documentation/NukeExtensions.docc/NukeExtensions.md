@@ -1,6 +1,6 @@
 # ``NukeExtensions``
 
-Nuke provides convenience extension for image views with multiple display options.
+Nuke provides convenience extensions for image views with multiple display options.
 
 ## Overview
 

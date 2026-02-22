@@ -59,7 +59,7 @@ public struct ImageContainer: @unchecked Sendable {
         set { mutate { $0.data = newValue } }
     }
 
-    /// An metadata provided by the user.
+    /// Metadata provided by the user.
     public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo }
         set { mutate { $0.userInfo = newValue } }
@@ -78,7 +78,7 @@ public struct ImageContainer: @unchecked Sendable {
         return copy
     }
 
-    /// A key use in ``userInfo``.
+    /// A key used in ``userInfo``.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 

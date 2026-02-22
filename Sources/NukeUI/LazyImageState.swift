@@ -7,7 +7,7 @@ import Nuke
 import SwiftUI
 import Combine
 
-/// Describes current image state.
+/// Describes the current image state.
 @MainActor
 public protocol LazyImageState {
     /// Returns the current fetch result.
@@ -15,7 +15,7 @@ public protocol LazyImageState {
 
     /// Returns the fetched image.
     ///
-    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
+    /// - note: In case the pipeline has the `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     var imageContainer: ImageContainer? { get }

@@ -36,7 +36,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Changes to the size limit will take effect when the next LRU sweep is run.
     public var sizeLimit: Int = 1024 * 1024 * 150
 
-    /// When performing a sweep, the cache will remote entries until the size of
+    /// When performing a sweep, the cache will remove entries until the size of
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
     /// the total count is lower than or equal to `countLimit * trimRatio`. `0.7`
     /// by default.
@@ -234,7 +234,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     // MARK: Managing URLs
 
-    /// Uses the the filename generator that the cache was initialized with to
+    /// Uses the filename generator that the cache was initialized with to
     /// generate and return a filename for the given key.
     public func filename(for key: String) -> String? {
         filenameGenerator(key)
@@ -440,7 +440,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The total file size of items written on disk.
     ///
     /// Uses `URLResourceKey.fileSizeKey` to calculate the size of each entry.
-    /// The total allocated size (see `totalAllocatedSize`. on disk might
+    /// The total allocated size (see ``totalAllocatedSize``) on disk might
     /// actually be bigger.
     ///
     /// - important: Requires disk IO, avoid using from the main thread.

@@ -7,8 +7,8 @@ import Nuke
 
 class ImagePipelinePerfomanceTests: XCTestCase {
     /// A very broad test that establishes how long in general it takes to load
-    /// data, decode, and decomperss 50+ images. It's very useful to get a
-    /// broad picture about how loader options affect perofmance.
+    /// data, decode, and decompress 50+ images. It's very useful to get a
+    /// broad picture about how loader options affect performance.
     func testLoaderOverallPerformance() {
         let pipeline = makePipeline()
 
