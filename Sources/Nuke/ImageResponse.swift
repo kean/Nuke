@@ -13,7 +13,7 @@ import AppKit
 #endif
 
 /// An image response that contains a fetched image and some metadata.
-public struct ImageResponse: @unchecked Sendable {
+public struct ImageResponse: Sendable {
     /// An image container with an image and associated metadata.
     public var container: ImageContainer
 

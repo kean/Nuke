@@ -68,7 +68,7 @@ extension ImageProcessing {
         return container
     }
 
-    /// The default impleemntation simply returns `var identifier: String`.
+    /// The default implementation simply returns `var identifier: String`.
     public var hashableIdentifier: AnyHashable { identifier }
 }
 

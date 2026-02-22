@@ -6,7 +6,7 @@ import Foundation
 
 extension ImagePipeline {
     /// The pipeline configuration.
-    public struct Configuration: @unchecked Sendable {
+    public struct Configuration: Sendable {
         // MARK: - Dependencies
 
         /// Data loader used by the pipeline.
