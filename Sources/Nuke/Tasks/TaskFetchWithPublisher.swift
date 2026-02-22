@@ -27,7 +27,7 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(finish: @escaping () -> Void) {
+    private func loadData(finish: @escaping @Sendable () -> Void) {
         guard !isDisposed else {
             return finish()
         }
