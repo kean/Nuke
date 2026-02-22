@@ -53,14 +53,14 @@ final class ImageEncoderTests: XCTestCase {
         let image = Test.image
         var encoder = ImageEncoders.Default()
         encoder.isHEIFPreferred = true
-        
+
         // When
         let data = try XCTUnwrap(encoder.encode(image))
-        
+
         // Then
-        XCTAssertNil(AssetType(data)) // TODO: update when HEIF support is added
+        XCTAssertEqual(AssetType(data), AssetType.heic)
     }
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
     
     func testEncodeCoreImageBackedImage() throws {
