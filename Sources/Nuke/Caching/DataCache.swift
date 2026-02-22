@@ -143,7 +143,11 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         guard let url = url(for: key) else {
             return nil
         }
-        return try? decompressed(Data(contentsOf: url))
+        guard let data = try? decompressed(Data(contentsOf: url)) else {
+            return nil
+        }
+        try? (url as NSURL).setResourceValue(Date(), forKey: .contentAccessDateKey)
+        return data
     }
 
     /// Returns `true` if the cache contains the data for the given key.
