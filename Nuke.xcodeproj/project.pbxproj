@@ -563,16 +563,6 @@
 		};
 /* End PBXGroup section */
 
-/* Begin PBXHeadersBuildPhase section */
-		0C55FCF828567875000FD2C9 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXHeadersBuildPhase section */
-
 /* Begin PBXNativeTarget section */
 		0C38DAA128568FAE0027F9FF /* NukeUI */ = {
 			isa = PBXNativeTarget;
@@ -640,7 +630,6 @@
 			buildConfigurationList = 0C55FD1228567875000FD2C9 /* Build configuration list for PBXNativeTarget "NukeExtensions" */;
 			buildPhases = (
 				0CC04A952C4BD3BB00F1164D /* Lint */,
-				0C55FCF828567875000FD2C9 /* Headers */,
 				0C55FCF928567875000FD2C9 /* Sources */,
 				0C55FCFA28567875000FD2C9 /* Frameworks */,
 				0C55FCFB28567875000FD2C9 /* Resources */,
