@@ -92,8 +92,9 @@ private final class TokenBucket {
             return false // bucket is empty
         }
         if work() {
-            bucket -= 1.0 // work was cancelled, no need to reduce the bucket
+            bucket -= 1.0
         }
+        // If work was cancelled (returned false), don't reduce the bucket
         return true
     }
 

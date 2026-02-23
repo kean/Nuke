@@ -107,7 +107,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         }
     }
 
-    public func _startPrefetching(with requests: [ImageRequest]) {
+    private func _startPrefetching(with requests: [ImageRequest]) {
         for request in requests {
             var request = request
             if _priority != request.priority {
