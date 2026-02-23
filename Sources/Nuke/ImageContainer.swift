@@ -12,10 +12,14 @@ import Foundation
 import UIKit.UIImage
 /// Alias for `UIImage`.
 public typealias PlatformImage = UIImage
+/// Alias for `UIColor`.
+public typealias PlatformColor = UIColor
 #else
 import AppKit.NSImage
 /// Alias for `NSImage`.
 public typealias PlatformImage = NSImage
+/// Alias for `NSColor`.
+public typealias PlatformColor = NSColor
 #endif
 
 /// An image container with an image and associated metadata.
