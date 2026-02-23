@@ -174,8 +174,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
 
     private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
         guard !response.container.isPreview,
-              !(response.cacheType == .disk),
-              !(request.url?.isLocalResource ?? false) else {
+              !(response.cacheType == .disk) else {
             return false
         }
         let isProcessed = !request.processors.isEmpty || request.thumbnail != nil
