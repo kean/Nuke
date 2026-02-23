@@ -646,7 +646,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 0)
     }
     
-    func testProcessedImagesFromLocalStorageAreNotCached() {
+    func testProcessedImagesFromLocalStorageAreCached() {
         // GIVEN
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .automatic
@@ -659,10 +659,10 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         expect(pipeline).toLoadImage(with: request)
         wait()
         
-        // THEN original image data is stored in disk cache
-        XCTAssertEqual(encoder.encodeCount, 0)
-        XCTAssertEqual(dataCache.writeCount, 0)
-        XCTAssertEqual(dataCache.store.count, 0)
+        // THEN processed image is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 1)
+        XCTAssertEqual(dataCache.writeCount, 1)
+        XCTAssertEqual(dataCache.store.count, 1)
     }
     
     func testImagesFromMemoryNotCached() {
