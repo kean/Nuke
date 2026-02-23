@@ -46,8 +46,8 @@ final class TaskLoadImageKey: Hashable, Sendable {
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(loadKey.hashValue)
-        hasher.combine(options.hashValue)
+        hasher.combine(loadKey)
+        hasher.combine(options)
         hasher.combine(processors.count)
     }
 

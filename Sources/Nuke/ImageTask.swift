@@ -270,7 +270,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: Hashable
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self).hashValue)
+        hasher.combine(ObjectIdentifier(self))
     }
 
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
