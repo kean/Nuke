@@ -102,7 +102,7 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
 }
 ```
 
-To display animated image, use one of the GIF rendering frameworks, such as [Gifu](https://github.com/kaishin/Gifu), directly:
+To display an animated image, use one of the GIF rendering frameworks, such as [Gifu](https://github.com/kaishin/Gifu), directly:
 
 ```swift
 // After (Nuke 12)
@@ -119,7 +119,7 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
 
 The same approach applies to videos, but you can use the built-in `NukeVideo` module to render them.
 
-The way you enable animations have also been updated and matches `AsyncImage`:
+The way you enable animations has also been updated and matches `AsyncImage`:
 
 ```swift
 // Before (Nuke 11)

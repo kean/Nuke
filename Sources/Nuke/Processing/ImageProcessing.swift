@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -30,13 +30,13 @@ import AppKit
 public protocol ImageProcessing: Sendable {
     /// Returns a processed image. By default, returns `nil`.
     ///
-    /// - note: Gets called a background queue managed by the pipeline.
+    /// - note: Gets called on a background queue managed by the pipeline.
     func process(_ image: PlatformImage) -> PlatformImage?
 
     /// Optional method. Returns a processed image. By default, this calls the
     /// basic `process(image:)` method.
     ///
-    /// - note: Gets called a background queue managed by the pipeline.
+    /// - note: Gets called on a background queue managed by the pipeline.
     func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 
     /// Returns a string that uniquely identifies the processor.
@@ -68,7 +68,7 @@ extension ImageProcessing {
         return container
     }
 
-    /// The default impleemntation simply returns `var identifier: String`.
+    /// The default implementation simply returns `var identifier: String`.
     public var hashableIdentifier: AnyHashable { identifier }
 }
 

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -27,7 +27,7 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(finish: @escaping () -> Void) {
+    private func loadData(finish: @escaping @Sendable () -> Void) {
         guard !isDisposed else {
             return finish()
         }

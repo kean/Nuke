@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import SwiftUI
 import Combine
@@ -23,7 +23,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Returns the fetched image.
     ///
-    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
+    /// - note: In case the pipeline has the `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     @Published public private(set) var imageContainer: ImageContainer?
@@ -33,7 +33,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Animations to be used when displaying the loaded images. By default, `nil`.
     ///
-    /// - note: Animation isn't used when image is available in memory cache.
+    /// - note: Animation isn't used when the image is available in the memory cache.
     public var transaction = Transaction(animation: nil)
 
     /// The progress of the current image download.
@@ -62,7 +62,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     /// Updates the priority of the task, even if the task is already running.
-    /// `nil` by default
+    /// `nil` by default.
     public var priority: ImageRequest.Priority? {
         didSet { priority.map { imageTask?.priority = $0 } }
     }
@@ -173,7 +173,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Loads and displays an image using the given async function.
     ///
-    /// - parameter action: Fetched the image.
+    /// - parameter action: Fetches the image.
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
         isLoading = true

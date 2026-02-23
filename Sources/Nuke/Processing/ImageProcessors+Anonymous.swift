@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -11,7 +11,7 @@ import AppKit
 #endif
 
 extension ImageProcessors {
-    /// Processed an image using a specified closure.
+    /// Processes an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
         private let closure: @Sendable (PlatformImage) -> PlatformImage?

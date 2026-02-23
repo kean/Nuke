@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -40,7 +40,7 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
     /// The implementation must call the completion closure passing `non-nil` data
     /// to enable caching or `nil` to prevent it.
     ///
-    /// This method calls only if the request parameters and data caching policy
+    /// This method is called only if the request parameters and data caching policy
     /// of the pipeline already allow caching.
     ///
     /// - parameters:

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -105,7 +105,8 @@ class ImageDecoderTests: XCTestCase {
         let container = try XCTUnwrap(decoder.decode(data))
         
         // Then
-        XCTAssertNil(container.type) // TODO: update when HEIF support is added
+        XCTAssertEqual(container.type, AssetType.heic)
+        
         XCTAssertFalse(container.isPreview)
         XCTAssertNil(container.data)
         XCTAssertTrue(container.userInfo.isEmpty)

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -15,10 +15,10 @@ extension ImageDecoders {
 
         /// Initializes the decoder.
         ///
-        /// - Parameters:
+        /// - parameters:
         ///   - type: Image type to be associated with an image container.
         ///   `nil` by default.
-        ///   - isProgressive: If `false`, returns nil for every progressive
+        ///   - isProgressive: If `false`, returns `nil` for every progressive
         ///   scan. `false` by default.
         public init(assetType: AssetType? = nil, isProgressive: Bool = false) {
             self.assetType = assetType

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -9,7 +9,7 @@ import UIKit.UIApplication
 #endif
 
 // Internal memory-cache implementation.
-final class Cache<Key: Hashable, Value>: @unchecked Sendable {
+final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {
     // Can't use `NSCache` because it is not LRU
 
     struct Configuration {

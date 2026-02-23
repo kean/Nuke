@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -36,7 +36,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     // MARK: Basics
 
-    /// Start prefetching for the request and then request an image separarely.
+    /// Start prefetching for the request and then request an image separately.
     func testBasicScenario() {
         dataLoader.isSuspended = true
 

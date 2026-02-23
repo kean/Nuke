@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
@@ -49,7 +49,7 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        /// Initialize the processor with the given `CIFilter`.
+        /// Initializes the processor with the given `CIFilter`.
         ///
         /// - parameter identifier: Uniquely identifies the processor.
         public init(_ filter: CIFilter, identifier: String) {

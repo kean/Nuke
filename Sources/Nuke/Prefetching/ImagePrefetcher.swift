@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -107,7 +107,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         }
     }
 
-    public func _startPrefetching(with requests: [ImageRequest]) {
+    private func _startPrefetching(with requests: [ImageRequest]) {
         for request in requests {
             var request = request
             if _priority != request.priority {

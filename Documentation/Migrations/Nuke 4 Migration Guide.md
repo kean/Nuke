@@ -22,7 +22,7 @@ Here's a few design principles adopted in Nuke 4:
 
 - **Protocol-Oriented Programming.** Nuke 3 promised a lot of customization by providing a set of protocols for loading, caching, transforming images, etc. However, those protocols were vaguely defined and hard to implement in practice. Protocols in Nuke 4 are simple and precise, often consisting of a single method.
 - **Single Responsibility Principle.** For example, instead of implementing preheating and deduplicating of equivalent requests in a single vague `ImageManager` class, those features were moved to separate classes (`Preheater`, `Deduplicator`). This makes core classes much easier to reason about.
-- **Principle of Least Astonishment**. Nuke 3 had a several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageManagerConfiguration` just to name a few). Those features are much easier to use now.
+- **Principle of Least Astonishment**. Nuke 3 had several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageManagerConfiguration` just to name a few). Those features are much easier to use now.
 - **Simpler Async**. Image loading involves a lot of asynchronous code, managing it was a chore. Nuke 4 adopts two design patterns ([**Promise**](https://github.com/kean/Promise) and **CancellationToken**) that solve most of those problems.
 
 The adoption of those design principles resulted in a simpler, more testable, and more concise code base (which is now under 900 slocs, compared to AlamofireImage's 1426, and Kingfisher's whopping 2357).
@@ -49,7 +49,7 @@ Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-P
 
 ## Changes in Nuke 4
 
-Almost every API in Nuke has been modified in some way. It's impossible to document every single changes, so here's a list of some of the major and mostly user-visible changes.
+Almost every API in Nuke has been modified in some way. It's impossible to document every single change, so here's a list of some of the major and mostly user-visible changes.
 
 ### Basics
 
@@ -215,7 +215,7 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 
 // Nuke 4
 let cache = Cache.shared
-let request = Request(url: URL(string: "")!))
+let request = Request(url: URL(string: "")!)
 cache[request] = UIImage()
 let image = cache[request]
 ```
@@ -283,11 +283,11 @@ Adopt `AnyHashable` instead of `ImageRequestKey` (which was renamed to `Request.
 
 ### Request Priority
 
-Priority was removed temporary from `Request` because it wasn't performing as good as expected. There should be a better way to implement it.
+Priority was removed temporarily from `Request` because it wasn't performing as well as expected. There should be a better way to implement it.
 
 ### Progress Handler
 
-Progress handler was temporary removed from `Request`. I'm still on the fence whether this feature should be included in the framework itself. It might be better handled by notification implemented in a specific `DataLoader`. 
+Progress handler was temporarily removed from `Request`. I'm still on the fence whether this feature should be included in the framework itself. It might be better handled by notification implemented in a specific `DataLoader`. 
 
 You can always just display an activity indicator instead:
 

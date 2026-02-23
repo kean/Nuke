@@ -12,7 +12,7 @@ This migration guide is still work in progress, the finished version is going to
 
 ## Overview
 
-Nuke 7 is the biggest release yet. It contains more features and refinements that all of the previous releases combined. There are a lot of new APIs in Nuke 7, fortunately, it's almost completely source-compatible with Nuke 6. 
+Nuke 7 is the biggest release yet. It contains more features and refinements than all of the previous releases combined. There are a lot of new APIs in Nuke 7, fortunately, it's almost completely source-compatible with Nuke 6. 
 
 > Source-compatibility was removed in [Nuke 7.5](https://github.com/kean/Nuke/releases/tag/7.5). The latest source-compatible release is [Nuke 7.4.2](https://github.com/kean/Nuke/releases/tag/7.4.2). The best way to migrate would be to either upgrade to Nuke 7.4.2 first, or to drop this [Deprecated.swift](https://gist.github.com/kean/a14ca485ce72bef0e50cbb2f36ec7d91) into your project and follow the instructions from the warnings.
 

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -18,7 +18,7 @@ public enum ImageProcessors {}
 extension ImageProcessing where Self == ImageProcessors.Resize {
     /// Scales an image to a specified size.
     ///
-    /// - parameters
+    /// - parameters:
     ///   - size: The target size.
     ///   - unit: Unit of the target size. By default, `.points`.
     ///   - contentMode: Target content mode.

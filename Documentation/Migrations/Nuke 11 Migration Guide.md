@@ -58,7 +58,7 @@ extension ImageProcessors {
     public struct Resize: ImageProcessing, Hashable {
         private let size: CGSize
         
-        var hashableIdentiifer: AnyHashable { self }
+        var hashableIdentifier: AnyHashable { self }
     }
 }
 
@@ -77,7 +77,7 @@ If you invalidate the pipeline, any new requests will immediately fail with `Ima
 
 ## ImageRequestConvertible
 
-`ImageRequestConvertible` was originally introduced in [Nuke 9.2](https://github.com/kean/Nuke/releases/tag/9.2.0) to reduce number of `loadImage(:)` APIs in code completion, but it's no longer an issue with the new async/await APIs.
+`ImageRequestConvertible` was originally introduced in [Nuke 9.2](https://github.com/kean/Nuke/releases/tag/9.2.0) to reduce the number of `loadImage(:)` APIs in code completion, but it's no longer an issue with the new async/await APIs.
 
 `ImageRequestConvertible` is soft-deprecated in Nuke 11. The other soft-deprecated APIs, such as a closure-based `ImagePipeline/loadImage(:)` will continue working with it. The new APIs, such as async/await `ImagePipeline/image(for:)` will work with `URL` and `ImageRequest` which is better for discoverability and performance.
 

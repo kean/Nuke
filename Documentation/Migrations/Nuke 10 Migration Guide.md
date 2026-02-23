@@ -12,7 +12,7 @@ This guide eases the transition of the existing apps that use Nuke 9.x to the la
 
 ## Overview
 
-Nuke 10 contains a ton of new features, refinements, and performance improvements. There are some breaking changes and deprecation that the compiler will guide you through as you update. Most users are not going to need this guide.
+Nuke 10 contains a ton of new features, refinements, and performance improvements. There are some breaking changes and deprecations that the compiler will guide you through as you update. Most users are not going to need this guide.
 
 ## loadImage() Signature
 
@@ -58,11 +58,11 @@ configuration.dataCachePolicy = .storeAll
 
 Or use a new [`.automatic`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration_DataCachePolicy/#imagepipeline.configuration.datacachepolicy.automatic) policy if it best fits your needs: for requests with processors, encode and store processed images; for requests with no processors, store original image data. 
 
-> Learn more about the policies and other caching changes in ["Caching: Cacheke Policy."](https://kean.blog/nuke/guides/caching#cache-policy)
+> Learn more about the policies and other caching changes in ["Caching: Cache Policy."](https://kean.blog/nuke/guides/caching#cache-policy)
 
 ## Disk Cache Configuration
 
-Nuke 10 simplifies disk cache configuration by introducing two built-in configuration: [`ImagePipeline.Configuration.withDataCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withdatacache) (aggressive disk cache enabled) and [`withURLCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withurlcache) (HTTP disk cache enabled)
+Nuke 10 simplifies disk cache configuration by introducing two built-in configurations: [`ImagePipeline.Configuration.withDataCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withdatacache) (aggressive disk cache enabled) and [`withURLCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withurlcache) (HTTP disk cache enabled)
 
 ```swift
 // Before (Nuke 9)

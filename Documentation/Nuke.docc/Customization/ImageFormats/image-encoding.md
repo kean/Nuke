@@ -8,7 +8,7 @@ public protocol ImageEncoding {
 }
 ```
 
-There is currently no dedicated image encoder registry. Use the pipeline configuration to register custom decoders using ``ImagePipeline/Configuration-swift.struct/makeImageDecoder``.
+There is currently no dedicated image encoder registry. Use the pipeline configuration to register custom encoders using ``ImagePipeline/Configuration-swift.struct/makeImageEncoder``.
 
 ## Built-In Image Encoders
 

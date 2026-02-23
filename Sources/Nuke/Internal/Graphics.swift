@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -144,7 +144,7 @@ extension PlatformImage {
         return PlatformImage.make(cgImage: outputCGImage, source: self)
     }
 
-    /// Decompresses the input image by drawing in the the `CGContext`.
+    /// Decompresses the input image by drawing in the `CGContext`.
     func decompressed(isUsingPrepareForDisplay: Bool) -> PlatformImage? {
 #if os(iOS) || os(tvOS) || os(visionOS)
         if isUsingPrepareForDisplay, #available(iOS 15.0, tvOS 15.0, *) {

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Foundation
@@ -83,7 +83,7 @@ extension XCTestCase {
     /// A replacement for keyValueObservingExpectation which used Swift key paths.
     /// - warning: Keep in mind that `changeHandler` will continue to get called
     /// even after expectation is fulfilled. The method itself can't reliably stop
-    /// observing KVO in case its multithreaded.
+    /// observing KVO in case it's multithreaded.
     func expectation<Object: NSObject, Value>(description: String = "", for object: Object, keyPath: KeyPath<Object, Value>, options: NSKeyValueObservingOptions = .new, _ changeHandler: @escaping (Object, NSKeyValueObservedChange<Value>, XCTestExpectation) -> Void) {
         let expectation = self.expectation(description: description)
         let observation = object.observe(keyPath, options: options) { (object, change) in

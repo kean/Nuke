@@ -20,7 +20,7 @@ Upgrading from the previous version? Use a [Migration Guide](https://github.com/
 
 Looking for UI components? See [NukeUI](https://kean-docs.github.io/nukeui/documentation/nukeui/) and [NukeExtensions](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/) documentation.
 
-To install Nuke, use Swift Packager Manager.
+To install Nuke, use Swift Package Manager.
 
 ## Extensions
 
