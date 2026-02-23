@@ -1,5 +1,19 @@
 # Nuke 12
 
+## Nuke 12.9.0
+
+*Feb 22, 2026*
+
+- Enable Swift 6 and fix remaining concurrency warnings
+- Optimize `ImageTask` `AsyncStream` APIs and remove the Combine dependency. It now essentially has no overhead.
+- Updating misleading SVG support by @realmtai in https://github.com/kean/Nuke/pull/839
+- Fix deprecation warning typo by @cameronmcefee in https://github.com/kean/Nuke/pull/861
+- Mark `DataLoading` closures as `@Sendable` by @plu in https://github.com/kean/Nuke/pull/862
+- `.storeAll` now stores processed images for locals too, as it should be by @HyperfocusDisordered in https://github.com/kean/Nuke/pull/810
+- Add `.heic` support to `AssetType/init` so it can detect it based on the input `Data`
+- Remove some `@unchecked` markers from `Sendable` types for better Data Race Safety checking
+- Fix an issue with `DataCache` not touching `.contentAccessDate` when accessing files
+
 ## Nuke 12.8.0
 
 *Jul 13, 2024*
@@ -72,7 +86,7 @@ This release contains major improvements to the Structured Concurrency support a
 - Fix Xcode 15.3 concurrency warnings when using `Screen.scale` by @jszumski in https://github.com/kean/Nuke/pull/766
 - Add `showPlaceholderOnFailure` parameter to show placeholder in case of image loading failure by @mlight3 in https://github.com/kean/Nuke/pull/764
 - Fix image loading test on iOS 17 by @woxtu in https://github.com/kean/Nuke/pull/768
-- Update thumbnail key value for `ImageRequest`` by @woxtu in https://github.com/kean/Nuke/pull/769
+- Update thumbnail key value for `ImageRequest` by @woxtu in https://github.com/kean/Nuke/pull/769
 - Remove trailing whitespaces by @woxtu in https://github.com/kean/Nuke/pull/767
 - Apply `if let` shorthand syntax by @mlight3 in https://github.com/kean/Nuke/pull/762
 
@@ -255,7 +269,7 @@ There is now less code that you need to include in your project, which means fas
 
 *Dec 25, 2022*
 
-- Fix `ImagePipeline.shared` warning with Strit Concurrency Checking set to Complete
+- Fix `ImagePipeline.shared` warning with Strict Concurrency Checking set to Complete
 - Fix an issue where `ImagePrefetcher/didComplete` wasn't called in some scenarios
 - `ImagePrefetcher/didComplete` is now called on the main queue
 
@@ -540,8 +554,8 @@ This release added async/await, but the change was [reverted](https://github.com
 
 *Oct 23, 2021*
 
-- Improve image decompressiong performance on iOS 15 and tvOS 15 by using [preparingForDisplay()](https://developer.apple.com/documentation/uikit/uiimage/3750834-preparingfordisplay?language=o_5) (requires Xcode 13) - [#512](https://github.com/kean/Nuke/pull/512)
-- On iOS 15, tvOS 15, image decompressiong now preserves 8 bits per pixel for grayscale images - [#512](https://github.com/kean/Nuke/pull/512)
+- Improve image decompression performance on iOS 15 and tvOS 15 by using [preparingForDisplay()](https://developer.apple.com/documentation/uikit/uiimage/3750834-preparingfordisplay?language=o_5) (requires Xcode 13) - [#512](https://github.com/kean/Nuke/pull/512)
+- On iOS 15, tvOS 15, image decompression now preserves 8 bits per pixel for grayscale images - [#512](https://github.com/kean/Nuke/pull/512)
 - Adopt extended static member lookup ([SE-0299](https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md)) (requires Xcode 13) - [#513](https://github.com/kean/Nuke/pull/513)
 
 ```swift
@@ -565,7 +579,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Aug 28, 2021*
 
-- Add an API for efficiently image thumbnails or retrieving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
+- Add an API for efficiently creating image thumbnails or retrieving existing ones - [#503](https://github.com/kean/Nuke/pull/503)
 - Fix an issue with scale (`ImageRequest.UserInfoKey.scaleKey`) not being applied to progressively decoded images
 
 ## Nuke 10.3.4
