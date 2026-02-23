@@ -36,7 +36,6 @@ private final class ImageSubscription<S>: Subscription where S: Subscriber, S: S
     private let subscriber: S?
     private let request: ImageRequest
     private let pipeline: ImagePipeline
-    private var isStarted = false
 
     init(request: ImageRequest, pipeline: ImagePipeline, subscriber: S) {
         self.pipeline = pipeline
