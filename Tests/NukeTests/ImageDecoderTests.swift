@@ -149,7 +149,8 @@ class ImageDecoderTests: XCTestCase {
             let data = Test.data(name: "baseline", extension: "webp")
             let container = try ImageDecoders.Default().decode(data)
             XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 550, height: 368))
-            XCTAssertNil(container.data)
+            XCTAssertEqual(container.type, .webp)
+            XCTAssertNotNil(container.data)
         }
     }
 #endif
