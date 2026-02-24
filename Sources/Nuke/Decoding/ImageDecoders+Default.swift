@@ -64,7 +64,7 @@ extension ImageDecoders {
             let type = AssetType(data)
             var container = ImageContainer(image: image)
             container.type = type
-            if type == .gif {
+            if type == .gif || type == .webp {
                 container.data = data
             }
             if numberOfScans > 0 {

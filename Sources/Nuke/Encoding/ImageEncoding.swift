@@ -25,7 +25,7 @@ public protocol ImageEncoding: Sendable {
 
 extension ImageEncoding {
     public func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
-        if container.type == .gif {
+        if container.type == .gif || container.type == .webp {
             return container.data
         }
         return self.encode(container.image)
