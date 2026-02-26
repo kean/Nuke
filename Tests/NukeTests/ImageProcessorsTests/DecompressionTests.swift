@@ -2,12 +2,12 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
-class ImageDecompressionTests: XCTestCase {
+@Suite struct ImageDecompressionTests {
 
-    func testDecompressionNotNeededFlagSet() throws {
+    @Test func decompressionNotNeededFlagSet() throws {
         // Given
         let input = Test.image
         ImageDecompression.setDecompressionNeeded(true, for: input)
@@ -16,33 +16,20 @@ class ImageDecompressionTests: XCTestCase {
         let output = ImageDecompression.decompress(image: input)
 
         // Then
-        XCTAssertFalse(ImageDecompression.isDecompressionNeeded(for: output) ?? false)
+        #expect(ImageDecompression.isDecompressionNeeded(for: output) != true)
     }
 
-    func testGrayscalePreserved() throws {
+    @Test func grayscalePreserved() throws {
         // Given
         let input = Test.image(named: "grayscale", extension: "jpeg")
-        XCTAssertEqual(input.cgImage?.bitsPerComponent, 8)
-        XCTAssertEqual(input.cgImage?.bitsPerPixel, 8)
+        #expect(input.cgImage?.bitsPerComponent == 8)
+        #expect(input.cgImage?.bitsPerPixel == 8)
 
         // When
         let output = ImageDecompression.decompress(image: input, isUsingPrepareForDisplay: true)
 
         // Then
-        // The original image doesn't have an alpha channel (kCGImageAlphaNone),
-        // but this parameter combination (8 bbc and kCGImageAlphaNone) is not
-        // supported by CGContext. Thus we are switching to a different format.
-#if os(iOS) || os(tvOS) || os(visionOS)
-        if #available(iOS 15.0, tvOS 15.0, *) {
-            XCTAssertEqual(output.cgImage?.bitsPerPixel, 8) // Yay, preparingForDisplay supports it
-            XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
-        } else {
-            XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
-            XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
-        }
-#else
-        XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
-        XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
-#endif
+        #expect(output.cgImage?.bitsPerPixel == 8)
+        #expect(output.cgImage?.bitsPerComponent == 8)
     }
 }

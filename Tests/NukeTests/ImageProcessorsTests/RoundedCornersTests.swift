@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Testing
 import XCTest
 @testable import Nuke
 
@@ -9,152 +10,148 @@ import XCTest
     import UIKit
 #endif
 
-class ImageProcessorsRoundedCornersTests: XCTestCase {
+@Suite struct ImageProcessorsRoundedCornersTests {
 
-    func _testThatCornerRadiusIsAdded() throws {
+    @Test(.disabled()) func thatCornerRadiusIsAdded() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)
 
         // When
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+        let output = try #require(processor.process(input), "Failed to process an image")
 
         // Then
         let expected = Test.image(named: "s-rounded-corners.png")
         XCTAssertEqualImages(output, expected)
-        XCTAssertEqual(output.sizeInPixels, CGSize(width: 200, height: 150))
+        #expect(output.sizeInPixels == CGSize(width: 200, height: 150))
     }
 
-    func _testThatBorderIsAdded() throws {
+    @Test(.disabled()) func thatBorderIsAdded() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
         let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels, border: border)
 
         // When
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+        let output = try #require(processor.process(input), "Failed to process an image")
 
         // Then
         let expected = Test.image(named: "s-rounded-corners-border.png")
         XCTAssertEqualImages(output, expected)
     }
 
-    func testExtendedColorSpaceSupport() throws {
+    @Test func extendedColorSpaceSupport() throws {
         // Given
         let input = Test.image(named: "image-p3", extension: "jpg")
         let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)
 
         // When
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+        let output = try #require(processor.process(input), "Failed to process an image")
 
         // Then image is resized but isn't cropped
-        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        let colorSpace = try #require(output.cgImage?.colorSpace)
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-        XCTAssertTrue(colorSpace.isWideGamutRGB)
+        #expect(colorSpace.isWideGamutRGB)
 #elseif os(watchOS)
-        XCTAssertFalse(colorSpace.isWideGamutRGB)
+        #expect(!colorSpace.isWideGamutRGB)
 #endif
     }
 
-    @MainActor
-    func testEqualIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16).identifier,
+    @Test @MainActor func equalIdentifiers() {
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16).identifier ==
             ImageProcessors.RoundedCorners(radius: 16).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).identifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).identifier ==
             ImageProcessors.RoundedCorners(radius: 16 / Screen.scale, unit: .points).identifier
         )
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier ==
             ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier
         )
     }
 
-    @MainActor
-    func testNotEqualIdentifiers() {
-        XCTAssertNotEqual(
-            ImageProcessors.RoundedCorners(radius: 16).identifier,
+    @Test @MainActor func notEqualIdentifiers() {
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16).identifier !=
             ImageProcessors.RoundedCorners(radius: 8).identifier
         )
         if Screen.scale == 1 {
-            XCTAssertEqual(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier ==
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
             )
-            XCTAssertNotEqual(
-                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).identifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).identifier !=
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
             )
         } else {
-            XCTAssertNotEqual(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier !=
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
             )
         }
-        XCTAssertNotEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier !=
             ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .blue)).identifier
         )
     }
 
-    @MainActor
-    func testEqualHashableIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier,
+    @Test @MainActor func equalHashableIdentifiers() {
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier ==
             ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).hashableIdentifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).hashableIdentifier ==
             ImageProcessors.RoundedCorners(radius: 16 / Screen.scale, unit: .points).hashableIdentifier
         )
-        XCTAssertEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier ==
             ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier
         )
     }
 
-    @MainActor
-    func testNotEqualHashableIdentifiers() {
-        XCTAssertNotEqual(
-            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier,
+    @Test @MainActor func notEqualHashableIdentifiers() {
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier !=
             ImageProcessors.RoundedCorners(radius: 8).hashableIdentifier
         )
         if Screen.scale == 1 {
-            XCTAssertEqual(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier ==
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
             )
-            XCTAssertNotEqual(
-                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).hashableIdentifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
             )
         } else {
-            XCTAssertNotEqual(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier,
+            #expect(
+                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
                 ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
             )
         }
-        XCTAssertNotEqual(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier,
+        #expect(
+            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
             ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .blue)).hashableIdentifier
         )
     }
 
-    func testDescription() {
+    @Test func description() {
         // Given
         let processor = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels)
 
         // Then
-        XCTAssertEqual(processor.description, "RoundedCorners(radius: 16.0 pixels, border: nil)")
+        #expect(processor.description == "RoundedCorners(radius: 16.0 pixels, border: nil)")
     }
 
-    func testDescriptionWithBorder() {
+    @Test func descriptionWithBorder() {
         // Given
         let processor = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red, width: 2, unit: .pixels))
 
         // Then
-        XCTAssertEqual(processor.description, "RoundedCorners(radius: 16.0 pixels, border: Border(color: #FF0000, width: 2.0 pixels))")
+        #expect(processor.description == "RoundedCorners(radius: 16.0 pixels, border: Border(color: #FF0000, width: 2.0 pixels))")
     }
 }
