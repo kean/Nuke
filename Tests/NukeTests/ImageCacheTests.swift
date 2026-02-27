@@ -16,7 +16,7 @@ private let request1 = _request(index: 1)
 private let request2 = _request(index: 2)
 private let request3 = _request(index: 3)
 
-@Suite @MainActor struct ImageCacheTests {
+@Suite struct ImageCacheTests {
     let cache: ImageCache
 
     init() {
@@ -310,6 +310,7 @@ private let request3 = _request(index: 3)
     }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
+    @MainActor
     @Test func someImagesAreRemovedOnDidEnterBackground() async {
         // GIVEN
         cache.costLimit = Int.max
@@ -328,6 +329,7 @@ private let request3 = _request(index: 3)
         #expect(cache.totalCount == 1)
     }
 
+    @MainActor
     @Test func someImagesAreRemovedBasedOnCostOnDidEnterBackground() async {
         // GIVEN
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -350,7 +352,7 @@ private let request3 = _request(index: 3)
 #endif
 }
 
-@Suite @MainActor struct InternalCacheTTLTests {
+@Suite struct InternalCacheTTLTests {
     let cache = Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
 
     // MARK: TTL

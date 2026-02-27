@@ -55,8 +55,7 @@ import Foundation
                 case .failure:
                     Issue.record("Expected success")
                 }
-            }, receiveValue: {
-                #expect($0.image != nil)
+            }, receiveValue: { _ in
                 continuation.resume()
             })
         }
@@ -97,22 +96,12 @@ import Foundation
         var cancellable: AnyCancellable?
 
         // Wait for start notification
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var observer: NSObjectProtocol?
-            observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: nil) { _ in
-                if let observer { NotificationCenter.default.removeObserver(observer) }
-                continuation.resume()
-            }
+        await notification(MockDataLoader.DidStartTask, object: dataLoader) {
             cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
         }
 
         // Wait for cancel notification
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var observer: NSObjectProtocol?
-            observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidCancelTask, object: dataLoader, queue: nil) { _ in
-                if let observer { NotificationCenter.default.removeObserver(observer) }
-                continuation.resume()
-            }
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
             cancellable?.cancel()
         }
         _ = cancellable

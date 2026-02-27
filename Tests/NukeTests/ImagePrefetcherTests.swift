@@ -119,22 +119,12 @@ import Foundation
         let url = Test.url
 
         // Wait for start notification
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var obs: NSObjectProtocol?
-            obs = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didStartTask, object: observer, queue: nil) { _ in
-                if let obs { NotificationCenter.default.removeObserver(obs) }
-                continuation.resume()
-            }
+        await notification(ImagePipelineObserver.didStartTask, object: observer) {
             prefetcher.startPrefetching(with: [url])
         }
 
         // Wait for cancel notification
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var obs: NSObjectProtocol?
-            obs = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didCancelTask, object: observer, queue: nil) { _ in
-                if let obs { NotificationCenter.default.removeObserver(obs) }
-                continuation.resume()
-            }
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
             prefetcher.stopPrefetching(with: [url])
         }
     }
@@ -349,22 +339,12 @@ import Foundation
         let request = Test.request
 
         // Wait for start notification
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var obs: NSObjectProtocol?
-            obs = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didStartTask, object: observer, queue: nil) { _ in
-                if let obs { NotificationCenter.default.removeObserver(obs) }
-                continuation.resume()
-            }
+        await notification(ImagePipelineObserver.didStartTask, object: observer) {
             localPrefetcher?.startPrefetching(with: [request])
         }
 
         // Wait for cancel notification when prefetcher is deallocated
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            var obs: NSObjectProtocol?
-            obs = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didCancelTask, object: observer, queue: nil) { _ in
-                if let obs { NotificationCenter.default.removeObserver(obs) }
-                continuation.resume()
-            }
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
             autoreleasepool {
                 localPrefetcher = nil
             }
