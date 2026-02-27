@@ -10,15 +10,16 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES">
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      enableThreadSanitizer = "YES">
       <Testables>
          <TestableReference
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C55FD0328567875000FD2C9"
-               BuildableName = "NukeExtensions Unit Tests.xctest"
-               BlueprintName = "NukeExtensions Unit Tests"
+               BlueprintIdentifier = "0C4F8FDE22E4B6ED0070ECFD"
+               BuildableName = "NukeThreadSafetyTests.xctest"
+               BlueprintName = "NukeThreadSafetyTests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -28,6 +29,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      enableThreadSanitizer = "YES"
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
       ignoresPersistentStateOnLaunch = "NO"

@@ -7,7 +7,7 @@
       buildImplicitDependencies = "YES">
    </BuildAction>
    <TestAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
@@ -16,9 +16,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C38DAE428568FE20027F9FF"
-               BuildableName = "NukeUI Unit Tests.xctest"
-               BlueprintName = "NukeUI Unit Tests"
+               BlueprintIdentifier = "0C8D7BE71D9DC02B00D12EB7"
+               BuildableName = "NukePerformanceTests.xctest"
+               BlueprintName = "NukePerformanceTests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>

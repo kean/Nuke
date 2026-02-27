@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C8D7BCF1D9DBF1600D12EB7"
-               BuildableName = "Nuke Tests Host.app"
-               BlueprintName = "Nuke Tests Host"
+               BuildableName = "NukeTestsHost.app"
+               BlueprintName = "NukeTestsHost"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -33,8 +33,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C55FD0328567875000FD2C9"
-               BuildableName = "NukeExtensions Unit Tests.xctest"
-               BlueprintName = "NukeExtensions Unit Tests"
+               BuildableName = "NukeExtensionsTests.xctest"
+               BlueprintName = "NukeExtensionsTests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -55,8 +55,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C8D7BCF1D9DBF1600D12EB7"
-            BuildableName = "Nuke Tests Host.app"
-            BlueprintName = "Nuke Tests Host"
+            BuildableName = "NukeTestsHost.app"
+            BlueprintName = "NukeTestsHost"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -72,8 +72,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C8D7BCF1D9DBF1600D12EB7"
-            BuildableName = "Nuke Tests Host.app"
-            BlueprintName = "Nuke Tests Host"
+            BuildableName = "NukeTestsHost.app"
+            BlueprintName = "NukeTestsHost"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

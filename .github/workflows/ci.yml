@@ -58,7 +58,7 @@ jobs:
 #        run: |
 #          .scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          .scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-#          .scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+#          .scripts/test.sh -s "NukeExtensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 
 #  Nuke 13.0 supports only the latest version of Xcode (16).
 #
@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: .scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=26.2,name=iPhone 17 Pro"
+        run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.2,name=iPhone 17 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-13
@@ -91,7 +91,7 @@ jobs:
 #    steps:
 #      - uses: actions/checkout@v2
 #      - name: Run Tests
-#        run: .scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.4,name=iPhone 12 Pro"
+#        run: .scripts/test.sh -s "NukeMemoryManagementTests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
     name: Performance Tests
     runs-on: macOS-26
@@ -100,7 +100,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: .scripts/test.sh -s "Nuke Performance Tests" -d "OS=26.2,name=iPhone 17 Pro"
+        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.2,name=iPhone 17 Pro"
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-26
