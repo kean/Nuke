@@ -2,31 +2,32 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 import Combine
 @testable import Nuke
 
-internal final class DataPublisherTests: XCTestCase {
-
-    private var cancellable: (any Nuke.Cancellable)?
-
-    func testInitNotStartsExecutionRightAway() {
+@Suite struct DataPublisherTests {
+    @Test func initNotStartsExecutionRightAway() async {
         let operation = MockOperation()
         let publisher = DataPublisher(id: UUID().uuidString) {
             await operation.execute()
         }
 
-        XCTAssertEqual(0, operation.executeCalls)
+        #expect(operation.executeCalls == 0)
 
-        let expOp = expectation(description: "Waits for MockOperation to complete execution")
-        cancellable = publisher.sink { completion in expOp.fulfill() } receiveValue: { _ in }
-        wait(for: [expOp], timeout: 0.2)
+        var cancellable: (any Nuke.Cancellable)?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            cancellable = publisher.sink { _ in
+                continuation.resume()
+            } receiveValue: { _ in }
+        }
+        _ = cancellable
 
-        XCTAssertEqual(1, operation.executeCalls)
+        #expect(operation.executeCalls == 1)
     }
 
     private final class MockOperation: @unchecked Sendable {
-
         private(set) var executeCalls = 0
 
         func execute() async -> Data {
@@ -34,7 +35,5 @@ internal final class DataPublisherTests: XCTestCase {
             await Task.yield()
             return Data()
         }
-
     }
-
 }
