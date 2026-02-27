@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Foundation
 @testable import Nuke
 
 #if !os(macOS)

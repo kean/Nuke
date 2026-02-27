@@ -7,6 +7,8 @@ import Testing
 
 #if !os(macOS)
 import UIKit
+#else
+import CoreImage
 #endif
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)

@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Foundation
 @testable import Nuke
 
 #if !os(macOS)
@@ -122,7 +123,7 @@ import UIKit
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px. macOS, however, automatically
         // changes image orientaiton to `up` so that you don't have to worry about it
-        let input = try #require(Test.image(named: "right-orientation.jpeg"))
+        let input = Test.image(named: "right-orientation.jpeg")
 
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
