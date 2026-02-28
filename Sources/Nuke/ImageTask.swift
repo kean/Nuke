@@ -284,8 +284,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
-@available(*, deprecated, renamed: "ImageTask", message: "Async/Await support was added directly to the existing `ImageTask` type")
-public typealias AsyncImageTask = ImageTask
 
 // MARK: - ImageTask (Private)
 

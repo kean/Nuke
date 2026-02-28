@@ -124,14 +124,6 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        /// A queue on which all callbacks, like `progress` and `completion`
-        /// callbacks are called. `.main` by default.
-        @available(*, deprecated, message: "`ImagePipeline` no longer supports changing the callback queue")
-        public var callbackQueue: DispatchQueue {
-            get { _callbackQueue }
-            set { _callbackQueue = newValue }
-        }
-
         var _callbackQueue = DispatchQueue.main
 
         // MARK: - Options (Shared)
@@ -156,10 +148,6 @@ extension ImagePipeline {
 
         /// Data loading queue. Default maximum concurrent task count is 6.
         public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
-
-        // Deprecated in Nuke 12.6
-        @available(*, deprecated, message: "The pipeline now performs cache lookup on the internal queue, reducing the amount of context switching")
-        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
         public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
