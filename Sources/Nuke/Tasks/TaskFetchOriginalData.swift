@@ -29,6 +29,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
             return
         }
 
+        if let data = pipeline.cache.cachedData(for: makeSanitizedRequest()) {
+            send(value: (data, nil), isCompleted: true)
+        }
+
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.
@@ -183,7 +187,7 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
 
     /// Returns a request that doesn't contain any information non-related
     /// to data loading.
-    private func makeSanitizedRequest() -> ImageRequest {
+    fileprivate func makeSanitizedRequest() -> ImageRequest {
         var request = request
         request.processors = []
         request.userInfo[.thumbnailKey] = nil
