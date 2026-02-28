@@ -408,6 +408,7 @@
 				0CF5456A25B39A0E00B45F1E /* right-orientation.jpeg */,
 				0C4B34112572E233000FDDBA /* grayscale.jpeg */,
 				0C70D96F2089016700A49DAC /* progressive.jpeg */,
+				145908242D7A793D00B88452 /* tricky_progressive.jpeg */,
 				0C95FD532571B278008D4FC2 /* baseline.webp */,
 				0C09B1651FE9A65600E8FE3B /* fixture.jpeg */,
 				0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */,
@@ -869,6 +870,7 @@
 				0C38DB2C28568FE20027F9FF /* right-orientation.jpeg in Resources */,
 				0C38DB2D28568FE20027F9FF /* s-rounded-corners.png in Resources */,
 				0C38DB2E28568FE20027F9FF /* video.mp4 in Resources */,
+				145908262D7A793D00B88452 /* tricky_progressive.jpeg in Resources */,
 				0C38DB2F28568FE20027F9FF /* progressive.jpeg in Resources */,
 				0C38DB3028568FE20027F9FF /* s-rounded-corners-border.png in Resources */,
 			);
@@ -900,6 +902,7 @@
 				0CB644C12856807F00916267 /* baseline.webp in Resources */,
 				0CB644C32856807F00916267 /* fixture.png in Resources */,
 				0CB644CA2856807F00916267 /* swift.png in Resources */,
+				145908252D7A793D00B88452 /* tricky_progressive.jpeg in Resources */,
 				0CB644C02856807F00916267 /* progressive.jpeg in Resources */,
 				0CB644C82856807F00916267 /* img_751.heic in Resources */,
 				0CB644C42856807F00916267 /* grayscale.jpeg in Resources */,
@@ -934,6 +937,7 @@
 				0CF5456B25B39A0E00B45F1E /* right-orientation.jpeg in Resources */,
 				0C7CE28B243933550018C8C3 /* s-rounded-corners.png in Resources */,
 				0CA4ECA426E67ED500BAC8E5 /* video.mp4 in Resources */,
+				145908272D7A793D00B88452 /* tricky_progressive.jpeg in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 				0C7CE28D2439342C0018C8C3 /* s-rounded-corners-border.png in Resources */,
 			);
