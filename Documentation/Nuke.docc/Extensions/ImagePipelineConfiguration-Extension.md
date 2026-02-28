@@ -34,6 +34,7 @@ To learn more about caching, see <doc:caching>.
 - ``isTaskCoalescingEnabled``
 - ``isRateLimiterEnabled``
 - ``isProgressiveDecodingEnabled``
+- ``progressiveDecodingInterval``
 - ``isResumableDataEnabled``
 - ``callbackQueue``
 

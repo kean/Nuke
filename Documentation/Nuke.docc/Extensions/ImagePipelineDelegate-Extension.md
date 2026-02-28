@@ -10,6 +10,7 @@
 
 - ``imageDecoder(for:pipeline:)-2rbkl``
 - ``imageEncoder(for:pipeline:)-6uxsr``
+- ``previewPolicy(for:pipeline:)``
 
 ### Caching
 

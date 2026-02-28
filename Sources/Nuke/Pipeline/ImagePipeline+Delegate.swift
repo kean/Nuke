@@ -20,6 +20,9 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
     /// Returns image encoder for the given context.
     func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
 
+    /// Returns the preview policy for progressive decoding of the given request.
+    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
+
     // MARK: Caching
 
     /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
@@ -104,6 +107,10 @@ extension ImagePipelineDelegate {
 
     public func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
         pipeline.configuration.makeImageEncoder(context)
+    }
+
+    public func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
+        ImagePipeline.PreviewPolicy.default(for: context.data)
     }
 
     public func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {

@@ -35,6 +35,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             $0.imageCache = cache
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
+            $0.progressiveDecodingInterval = 0
             $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
     }

@@ -1,4 +1,14 @@
-# Nuke 12
+# Nuke 13
+
+## Nuke 13.0 (WIP)
+
+*WIP*
+
+- Add `ImagePipeline.PreviewPolicy` (`.incremental`, `.thumbnail`, `.disabled`) to control how progressive previews are generated per-request
+- Add `ImagePipelineDelegate.previewPolicy(for:pipeline:)` for customizing the policy dynamically. Default policy: `.incremental` for progressive JPEGs and GIFs, `.disabled` for everything else (baseline JPEGs, PNGs, etc.) — restoring the original behavior before `CGImageSourceCreateIncremental` was adopted
+- Add `ImagePipeline.Configuration.progressiveDecodingInterval` (default: 0.5s) to throttle progressive decoding attempts when data arrives faster than the interval
+- Refactor `ImageDecoders.Default` to fully delegate incremental decoding to Image I/O via `CGImageSourceCreateIncremental`
+- Fix progressive JPEGs with large EXIF headers not producing previews — `CGImageSourceCreateIncremental` fails to recognize these files until fully downloaded. The decoder now falls back to generating a thumbnail from a non-incremental source. The issue was raised by and the initial fix provided by @theop-luma in https://github.com/kean/Nuke/pull/835
 
 ## Nuke 12.9.0
 

@@ -84,7 +84,7 @@ You can find all of the built-in decoders in the ``ImageDecoders`` namespace.
 
 ``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
-The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
+The default ``ImageDecoders/Default`` also supports progressive decoding via `CGImageSourceCreateIncremental`. It produces previews as data arrives, gated by ``ImagePipeline/PreviewPolicy`` (`.incremental` for progressive JPEGs and GIFs by default, `.disabled` for other formats).
 
 ### ImageDecoders.Video 
 

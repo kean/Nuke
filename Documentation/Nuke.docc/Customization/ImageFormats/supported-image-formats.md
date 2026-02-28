@@ -14,7 +14,11 @@ You can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage` to render t
 
 **Decoding**
 
-``ImageDecoders/Default`` supports progressive JPEG. The decoder automatically detects when there are new scans available and produces new previews.
+``ImageDecoders/Default`` supports progressive JPEG via `CGImageSourceCreateIncremental`. When ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is `true`, the pipeline produces previews as data arrives.
+
+By default, progressive previews are only enabled for progressive JPEGs and GIFs (``ImagePipeline/PreviewPolicy``). Baseline JPEGs, PNGs, and other formats produce no previews unless explicitly configured via ``ImagePipelineDelegate/previewPolicy(for:pipeline:)``.
+
+For progressive JPEGs with large EXIF headers where `CGImageSourceCreateIncremental` fails to produce incremental previews, the decoder automatically falls back to generating a thumbnail from the available data.
 
 **Encoding**
 
@@ -22,9 +26,7 @@ None.
 
 **Rendering**
 
-To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also support displaying progressive scans. 
-
-
+To render progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also support displaying progressive previews.
 
 ### HEIF
 
