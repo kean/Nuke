@@ -41,26 +41,15 @@ import Foundation
         let data = Test.data(name: "progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
 
-        // Just before the Start Of Frame
+        // Not enough data for progressive detection (SOF2 not yet reached)
         #expect(decoder.decodePartiallyDownloadedData(data[0...358]) == nil)
         #expect(decoder.numberOfScans == 0)
 
-        // Right after the Start Of Frame
-        #expect(decoder.decodePartiallyDownloadedData(data[0...359]) == nil)
-        #expect(decoder.numberOfScans == 0) // still haven't finished the first scan
-
-        // Just before the first Start Of Scan
-        #expect(decoder.decodePartiallyDownloadedData(data[0...438]) == nil)
-        #expect(decoder.numberOfScans == 0) // still haven't finished the first scan
-
-        // Found the first Start Of Scan
-        #expect(decoder.decodePartiallyDownloadedData(data[0...439]) == nil)
-        #expect(decoder.numberOfScans == 1)
-
-        // Found the second Start of Scan
-        let scan1 = decoder.decodePartiallyDownloadedData(data[0...2952])
+        // After SOF2 marker, CGImageSource produces previews immediately
+        let scan1 = decoder.decodePartiallyDownloadedData(data[0...500])
         #expect(scan1 != nil)
         #expect(scan1?.isPreview == true)
+        #expect(decoder.numberOfScans == 1)
         if let image = scan1?.image {
 #if os(macOS)
             #expect(image.size.width == 450)
@@ -70,39 +59,79 @@ import Foundation
             #expect(image.size.height * image.scale == 300)
 #endif
         }
-        #expect(decoder.numberOfScans == 2)
-        #expect(scan1?.userInfo[.scanNumberKey] as? Int == 2)
+        #expect(scan1?.userInfo[.scanNumberKey] as? Int == 1)
 
-        // Feed all data and see how many scans are there
-        #expect(decoder.decodePartiallyDownloadedData(data) != nil)
-        #expect(decoder.numberOfScans == 10)
+        // More data produces additional previews
+        let scan2 = decoder.decodePartiallyDownloadedData(data[0...5000])
+        #expect(scan2 != nil)
+        #expect(scan2?.isPreview == true)
+        #expect(decoder.numberOfScans == 2)
+
+        // Feed all data
+        let final = decoder.decodePartiallyDownloadedData(data)
+        #expect(final != nil)
+        #expect(decoder.numberOfScans == 3)
     }
 
-    @Test func decodingTrickyProgressiveJPEG() {
+    @Test func decodingBaselineJPEG() throws {
+        let data = Test.data(name: "baseline", extension: "jpeg")
+        let decoder = ImageDecoders.Default()
+
+        // Image I/O produces partial top-down renders for baseline JPEGs
+        let partial = decoder.decodePartiallyDownloadedData(data[0...(data.count / 2)])
+        #expect(partial != nil)
+        #expect(partial?.isPreview == true)
+
+        // Full decode always works after feeding partial data
+        let container = try decoder.decode(data)
+        #expect(container.type == .jpeg)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decodingPNGPartialData() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+        let decoder = ImageDecoders.Default()
+
+        // Standard PNG is not a progressive format — Image I/O typically
+        // does not produce intermediate images for partial data
+        #expect(decoder.decodePartiallyDownloadedData(data[0...100]) == nil)
+
+        // Full decode still works after feeding partial data
+        let container = try decoder.decode(data)
+        #expect(container.type == .png)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decoderAlwaysCreatedFromContext() throws {
+        // The decoder should always initialize, regardless of image format.
+        // Image I/O decides what to do with partial data.
+        let jpegData = Test.data(name: "baseline", extension: "jpeg")
+        let jpegContext = ImageDecodingContext.mock(data: jpegData)
+        #expect(ImageDecoders.Default(context: jpegContext) != nil)
+
+        let pngData = Test.data(name: "fixture", extension: "png")
+        let pngContext = ImageDecodingContext.mock(data: pngData)
+        #expect(ImageDecoders.Default(context: pngContext) != nil)
+
+        let progressiveData = Test.data(name: "progressive", extension: "jpeg")
+        let progressiveContext = ImageDecodingContext.mock(data: progressiveData)
+        #expect(ImageDecoders.Default(context: progressiveContext) != nil)
+    }
+
+    @Test func decodingTrickyProgressiveJPEG() throws {
         let data = Test.data(name: "tricky_progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
 
-        // Data includes the false 0xFF 0xDA in EXIF at byte 885 — must not count as a scan
+        // CGImageSourceCreateIncremental does not produce intermediate images
+        // for this JPEG with large EXIF data, so no progressive previews are
+        // generated. Verify that it still decodes correctly as a full image.
         #expect(decoder.decodePartiallyDownloadedData(data[0...886]) == nil)
+        #expect(decoder.decodePartiallyDownloadedData(data) == nil)
         #expect(decoder.numberOfScans == 0)
 
-        // Just before SOF2 marker
-        #expect(decoder.decodePartiallyDownloadedData(data[0...12173]) == nil)
-        #expect(decoder.numberOfScans == 0)
-
-        // After first real SOS (offset 12249) — 1 scan, not enough for preview
-        #expect(decoder.decodePartiallyDownloadedData(data[0...12250]) == nil)
-        #expect(decoder.numberOfScans == 1)
-
-        // After second real SOS (offset 14422) — first preview available
-        let scan1 = decoder.decodePartiallyDownloadedData(data[0...14423])
-        #expect(scan1 != nil)
-        #expect(scan1?.isPreview == true)
-        #expect(decoder.numberOfScans == 2)
-
-        // Full data — 9 real scans
-        #expect(decoder.decodePartiallyDownloadedData(data) != nil)
-        #expect(decoder.numberOfScans == 9)
+        // Full decode still works
+        let container = try decoder.decode(data)
+        #expect(container.image.sizeInPixels == CGSize(width: 352, height: 198))
     }
 
     @Test func decodeGIF() throws {
@@ -228,35 +257,5 @@ import Foundation
         #expect(AssetType(data[0..<2]) == nil)
         #expect(AssetType(data[0..<12]) == .webp)
         #expect(AssetType(data) == .webp)
-    }
-}
-
-@Suite struct ImagePropertiesTests {
-    // MARK: JPEG
-
-    @Test func detectBaselineJPEG() {
-        let data = Test.data(name: "baseline", extension: "jpeg")
-        #expect(ImageProperties.JPEG(data[0..<1]) == nil)
-        #expect(ImageProperties.JPEG(data[0..<2]) == nil)
-        #expect(ImageProperties.JPEG(data[0..<3]) == nil)
-        #expect(ImageProperties.JPEG(data)?.isProgressive == false)
-    }
-
-    @Test func detectProgressiveJPEG() {
-        let data = Test.data(name: "progressive", extension: "jpeg")
-        // Not enough data
-        #expect(ImageProperties.JPEG(Data()) == nil)
-        #expect(ImageProperties.JPEG(data[0..<2]) == nil)
-
-        // Enough to determine image format
-        #expect(ImageProperties.JPEG(data[0..<3]) == nil)
-        #expect(ImageProperties.JPEG(data[0...30]) == nil)
-
-        // Just before the first scan
-        #expect(ImageProperties.JPEG(data[0...358]) == nil)
-        #expect(ImageProperties.JPEG(data[0...359])?.isProgressive == true)
-
-        // Full image
-        #expect(ImageProperties.JPEG(data[0...359])?.isProgressive == true)
     }
 }
