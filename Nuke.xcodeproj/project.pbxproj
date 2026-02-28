@@ -1226,6 +1226,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
+				SWIFT_EXPLICIT_MODULES = NO;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NukeTestsHost.app/NukeTestsHost";
 			};
 			name = Release;
