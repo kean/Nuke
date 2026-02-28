@@ -127,10 +127,12 @@ public final class ImagePrefetcher: @unchecked Sendable {
             return
         }
         let task = Task(request: request, key: key)
-        task.operation = queue.add { [weak self] finish in
+        let operation = queue.add { [weak self] finish in
             guard let self else { return finish() }
             self.loadImage(task: task, finish: finish)
         }
+        operation.queuePriority = request.priority.taskPriority.queuePriority
+        task.operation = operation
         tasks[key] = task
         return
     }
@@ -197,8 +199,10 @@ public final class ImagePrefetcher: @unchecked Sendable {
     private func didUpdatePriority(to priority: ImageRequest.Priority) {
         guard _priority != priority else { return }
         _priority = priority
+        let queuePriority = priority.taskPriority.queuePriority
         for task in tasks.values {
             task.imageTask?.priority = priority
+            task.operation?.queuePriority = queuePriority
         }
     }
 
