@@ -312,39 +312,35 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     // MARK: - ImageRequest with Async/Await
 
     func testImageRequestWithAsyncAwaitSuccess() async throws {
-        if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
-            // GIVEN
-            let localURL = Test.url(forResource: "fixture", extension: "jpeg")
+        // GIVEN
+        let localURL = Test.url(forResource: "fixture", extension: "jpeg")
 
-            // WHEN
-            let request = ImageRequest(id: "test", data: {
-                let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
-                return data
-            })
+        // WHEN
+        let request = ImageRequest(id: "test", data: {
+            let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
+            return data
+        })
 
-            let image = try await pipeline.image(for: request)
+        let image = try await pipeline.image(for: request)
 
-            // THEN
-            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
-        }
+        // THEN
+        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     func testImageRequestWithAsyncAwaitFailure() async throws {
-        if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
-            // WHEN
-            let request = ImageRequest(id: "test", data: {
-                throw URLError(networkUnavailableReason: .cellular)
-            })
-
-            do {
-                _ = try await pipeline.image(for: request)
+        // WHEN
+        let request = ImageRequest(id: "test", data: {
+            throw URLError(networkUnavailableReason: .cellular)
+        })
+        
+        do {
+            _ = try await pipeline.image(for: request)
+            XCTFail()
+        } catch {
+            if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
+                XCTAssertEqual((error as? URLError)?.networkUnavailableReason, .cellular)
+            } else {
                 XCTFail()
-            } catch {
-                if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
-                    XCTAssertEqual((error as? URLError)?.networkUnavailableReason, .cellular)
-                } else {
-                    XCTFail()
-                }
             }
         }
     }

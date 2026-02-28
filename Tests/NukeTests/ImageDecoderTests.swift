@@ -139,14 +139,12 @@ import Foundation
         #expect(container.data == nil)
     }
 
-#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+#if os(iOS) || os(macOS) || os(visionOS)
     @Test func decodeBaselineWebP() throws {
-        if #available(OSX 11.0, iOS 14.0, watchOS 7.0, tvOS 999.0, *) {
-            let data = Test.data(name: "baseline", extension: "webp")
-            let container = try ImageDecoders.Default().decode(data)
-            #expect(container.image.sizeInPixels == CGSize(width: 550, height: 368))
-            #expect(container.data == nil)
-        }
+        let data = Test.data(name: "baseline", extension: "webp")
+        let container = try ImageDecoders.Default().decode(data)
+        #expect(container.image.sizeInPixels == CGSize(width: 550, height: 368))
+        #expect(container.data == nil)
     }
 #endif
 }

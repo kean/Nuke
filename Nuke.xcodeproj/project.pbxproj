@@ -238,16 +238,16 @@
 		0C222DE2294E2DEA00012288 /* NukeUI.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeUI.docc; sourceTree = "<group>"; };
 		0C222DE4294E2E0200012288 /* NukeExtensions.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeExtensions.docc; sourceTree = "<group>"; };
 		0C38DAE028568FAE0027F9FF /* NukeUI.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeUI.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C38DB3428568FE20027F9FF /* NukeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C38DB3428568FE20027F9FF /* NukeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C3EE97829A862CA0014F5D5 /* Nuke 12 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 12 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4326262424338200799446 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Nuke.swift"; sourceTree = "<group>"; };
 		0C4B34112572E233000FDDBA /* grayscale.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grayscale.jpeg; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
-		0C4F8FDF22E4B6ED0070ECFD /* NukeThreadSafetyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeThreadSafetyTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C4F8FDF22E4B6ED0070ECFD /* NukeThreadSafetyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeThreadSafetyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.md"; sourceTree = "<group>"; };
 		0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeExtensions.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C55FD0428567875000FD2C9 /* NukeExtensionsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeExtensionsTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C55FD0428567875000FD2C9 /* NukeExtensionsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeExtensionsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C64F73C243836B5001983C6 /* img_751.heic */ = {isa = PBXFileReference; lastKnownFileType = file; path = img_751.heic; sourceTree = "<group>"; };
 		0C64F73E243838BF001983C6 /* swift.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = swift.png; sourceTree = "<group>"; };
 		0C6784DC24341207005B8CF5 /* Nuke 9 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 9 Migration Guide.md"; sourceTree = "<group>"; };
@@ -259,7 +259,7 @@
 		0C70D9702089016800A49DAC /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
 		0C70D97B2089042400A49DAC /* fixture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fixture.png; sourceTree = "<group>"; };
 		0C7584AA29A151FF00F985F8 /* NukeVideo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeVideo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C7C06771BCA882A00089D7F /* NukeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C7C06771BCA882A00089D7F /* NukeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06891BCA888800089D7F /* MockImageCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageCache.swift; sourceTree = "<group>"; };
 		0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageProcessor.swift; sourceTree = "<group>"; };
 		0C7C068C1BCA888800089D7F /* MockDataLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockDataLoader.swift; sourceTree = "<group>"; };
@@ -271,14 +271,14 @@
 		0C7CE298243940290018C8C3 /* s-circle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "s-circle.png"; sourceTree = "<group>"; };
 		0C7CE29A2439417C0018C8C3 /* s-sepia.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "s-sepia.png"; sourceTree = "<group>"; };
 		0C7CE29C243941A20018C8C3 /* s-sepia-less-intense.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "s-sepia-less-intense.png"; sourceTree = "<group>"; };
-		0C8D7BD01D9DBF1600D12EB7 /* NukeTestsHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "NukeTestsHost.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C8D7BD01D9DBF1600D12EB7 /* NukeTestsHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NukeTestsHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		0C8D7BD71D9DBF1600D12EB7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		0C8D7BD91D9DBF1600D12EB7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0C8D7BDC1D9DBF1600D12EB7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		0C8D7BDE1D9DBF1600D12EB7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0C8D7BE81D9DC02B00D12EB7 /* NukePerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukePerformanceTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C8D7BE81D9DC02B00D12EB7 /* NukePerformanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukePerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C8DC722209B842600084AA6 /* cat.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = cat.gif; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "fixture-tiny.jpeg"; sourceTree = "<group>"; };
@@ -607,7 +607,7 @@
 			fileSystemSynchronizedGroups = (
 				0C8ECEF62F4BAF2F00C9F423 /* NukeUITests */,
 			);
-			name = "NukeUITests";
+			name = NukeUITests;
 			productName = "Nuke Tests";
 			productReference = 0C38DB3428568FE20027F9FF /* NukeUITests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -627,8 +627,8 @@
 			fileSystemSynchronizedGroups = (
 				0C8ECF042F4BAF5100C9F423 /* NukeThreadSafetyTests */,
 			);
-			name = "NukeThreadSafetyTests";
-			productName = "NukeThreadSafetyTests";
+			name = NukeThreadSafetyTests;
+			productName = NukeThreadSafetyTests;
 			productReference = 0C4F8FDF22E4B6ED0070ECFD /* NukeThreadSafetyTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -669,7 +669,7 @@
 			fileSystemSynchronizedGroups = (
 				0C8ECEFD2F4BAF3C00C9F423 /* NukeExtensionsTests */,
 			);
-			name = "NukeExtensionsTests";
+			name = NukeExtensionsTests;
 			productName = NukeExtensionsTests;
 			productReference = 0C55FD0428567875000FD2C9 /* NukeExtensionsTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -709,7 +709,7 @@
 			fileSystemSynchronizedGroups = (
 				0C8ECECB2F4BAF1200C9F423 /* NukeTests */,
 			);
-			name = "NukeTests";
+			name = NukeTests;
 			productName = "Nuke Tests";
 			productReference = 0C7C06771BCA882A00089D7F /* NukeTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -729,7 +729,7 @@
 				0C55FD0F28567875000FD2C9 /* PBXTargetDependency */,
 				0C1C202029ABBF19004B38FD /* PBXTargetDependency */,
 			);
-			name = "NukeTestsHost";
+			name = NukeTestsHost;
 			productName = "Nuke iOS Tests Host";
 			productReference = 0C8D7BD01D9DBF1600D12EB7 /* NukeTestsHost.app */;
 			productType = "com.apple.product-type.application";
@@ -753,7 +753,7 @@
 			fileSystemSynchronizedGroups = (
 				0C8ECF0C2F4BAF5E00C9F423 /* NukePerformanceTests */,
 			);
-			name = "NukePerformanceTests";
+			name = NukePerformanceTests;
 			productName = "Nuke iOS Performance Tests";
 			productReference = 0C8D7BE81D9DC02B00D12EB7 /* NukePerformanceTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -1635,8 +1635,8 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 12.8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
@@ -1644,10 +1644,11 @@
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
-				TVOS_DEPLOYMENT_TARGET = 13.0;
+				TVOS_DEPLOYMENT_TARGET = 15.6;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
-				WATCHOS_DEPLOYMENT_TARGET = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+				XROS_DEPLOYMENT_TARGET = 1.3;
 			};
 			name = Debug;
 		};
@@ -1694,18 +1695,19 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 12.8.0;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_VERSION = 5.0;
-				TVOS_DEPLOYMENT_TARGET = 13.0;
+				TVOS_DEPLOYMENT_TARGET = 15.6;
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
-				WATCHOS_DEPLOYMENT_TARGET = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+				XROS_DEPLOYMENT_TARGET = 1.3;
 			};
 			name = Release;
 		};
