@@ -216,6 +216,7 @@ public final class ImagePipeline: @unchecked Sendable {
                 // event are called on the callback queue.
                 guard task.state != .cancelled else { return }
                 switch event {
+                case .started: break
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
@@ -342,7 +343,9 @@ public final class ImagePipeline: @unchecked Sendable {
         tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?._process($0)
         }
-        delegate.imageTaskDidStart(task, pipeline: self)
+        if !isDataTask {
+            delegate.imageTask(task, didReceiveEvent: .started, pipeline: self)
+        }
         onTaskStarted?(task)
     }
 
@@ -372,16 +375,6 @@ public final class ImagePipeline: @unchecked Sendable {
 
         if !isDataTask {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
-            switch event {
-            case .progress(let progress):
-                delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
-            case .preview(let response):
-                delegate.imageTask(task, didReceivePreview: response, pipeline: self)
-            case .cancelled:
-                delegate.imageTaskDidCancel(task, pipeline: self)
-            case .finished(let result):
-                delegate.imageTask(task, didCompleteWithResult: result, pipeline: self)
-            }
         }
     }
 

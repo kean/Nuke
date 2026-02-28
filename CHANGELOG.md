@@ -10,6 +10,7 @@
 - Refactor `ImageDecoders.Default` to fully delegate incremental decoding to Image I/O via `CGImageSourceCreateIncremental`
 - Fix progressive JPEGs with large EXIF headers not producing previews — `CGImageSourceCreateIncremental` fails to recognize these files until fully downloaded. The decoder now falls back to generating a thumbnail from a non-incremental source. The issue was raised by and the initial fix provided by @theop-luma in https://github.com/kean/Nuke/pull/835
 - Remove previously deprecated APIs: `DataCache.isCompressionEnabled`, `ImageProcessors.Resize.ContentMode` typealias, `AsyncImageTask` typealias, `ImagePipeline.Configuration.callbackQueue`, `ImagePipeline.Configuration.dataCachingQueue`, `ImagePipeline.loadData(with: URL)`, and `ImagePipeline.data(for: URL)`
+- Remove soft-deprecated per-event `ImagePipelineDelegate` methods (`imageTaskDidStart`, `didUpdateProgress`, `didReceivePreview`, `imageTaskDidCancel`, `didCompleteWithResult`). Use `imageTask(_:didReceiveEvent:pipeline:)` instead. Add `ImageTask.Event.started`
 
 ## Nuke 12.9.0
 

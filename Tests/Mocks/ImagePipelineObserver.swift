@@ -34,32 +34,25 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         append(.created)
     }
 
-    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
-        startedTaskCount += 1
-        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
-        append(.started)
-    }
-
-    func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline) {
-        append(.cancelled)
-
-        cancelledTaskCount += 1
-        NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline) {
-        append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline) {
-        append(.intermediateResponseReceived(response: response))
-    }
-
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline) {
-        append(.completed(result: result))
-
-        completedTaskCount += 1
-        NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        switch event {
+        case .started:
+            startedTaskCount += 1
+            NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+            append(.started)
+        case .progress(let progress):
+            append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
+        case .preview(let response):
+            append(.intermediateResponseReceived(response: response))
+        case .cancelled:
+            cancelledTaskCount += 1
+            NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+            append(.cancelled)
+        case .finished(let result):
+            completedTaskCount += 1
+            NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+            append(.completed(result: result))
+        }
     }
 }
 
