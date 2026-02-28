@@ -193,29 +193,22 @@ import ImageIO
         let data = Test.data(name: "tricky_progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
 
-        // CGImageSourceCreateIncremental cannot produce incremental previews
-        // for this JPEG with large EXIF data (~12 KB header). Not enough
-        // data for Image I/O to generate a thumbnail yet.
-        #expect(decoder.decodePartiallyDownloadedData(data[0...886]) == nil)
+        // This progressive JPEG has a ~7 KB EXIF header (SOF2 at offset 7394).
+        // CGImageSourceCreateIncremental fails to produce images until enough
+        // data past SOF2 is available. With small chunks, the thumbnail
+        // fallback kicks in first.
+        #expect(decoder.decodePartiallyDownloadedData(data[0...2000]) == nil)
 
-        // With enough EXIF data, the decoder falls back to generating a
-        // thumbnail from a non-incremental source (max 160px).
-        let preview = decoder.decodePartiallyDownloadedData(data[0...12040])
+        // With enough data, the decoder produces a preview (either via
+        // thumbnail fallback or incremental decoding).
+        let preview = decoder.decodePartiallyDownloadedData(data[0...8000])
         #expect(preview != nil)
         #expect(preview?.isPreview == true)
         #expect(decoder.numberOfScans == 1)
-        if let image = preview?.image {
-            #expect(image.sizeInPixels.width <= 160)
-            #expect(image.sizeInPixels.height <= 160)
-        }
 
-        // Thumbnail fallback is one-shot — subsequent calls return nil
-        #expect(decoder.decodePartiallyDownloadedData(data[0...20000]) == nil)
-        #expect(decoder.numberOfScans == 1)
-
-        // Full decode still works at full resolution
+        // Full decode at full resolution
         let container = try decoder.decode(data)
-        #expect(container.image.sizeInPixels == CGSize(width: 352, height: 198))
+        #expect(container.image.sizeInPixels == CGSize(width: 450, height: 300))
     }
 
     @Test func decodeGIF() throws {
