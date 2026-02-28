@@ -197,7 +197,6 @@ extension ImageDecoders.Default {
 
 enum ImageProperties {}
 
-
 // Keeping this private for now, not sure neither about the API, not the implementation.
 extension ImageProperties {
     struct JPEG {
@@ -216,27 +215,7 @@ extension ImageProperties {
             self.startOfFrameOffset = startOfFrameOffset
         }
         
-        // This is the most accurate way to determine whether this is a progressive JPEG, but sometimes can come back nil for baseline JPEGs
-        private static func isProgressive_io(_ data: Data) -> Bool? {
-            guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
-                  CGImageSourceGetCount(imageSource) > 0 else {
-                return nil
-            }
-            
-            // Get the properties for the first image
-            let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any]
-            let jfifProperties = properties?[kCGImagePropertyJFIFDictionary] as? [CFString: Any]
-            
-            // this property might be missing for baseline JPEGs so we can't depend on this completely
-            if let isProgressive = jfifProperties?[kCGImagePropertyJFIFIsProgressive] as? Bool {
-                return isProgressive
-            }
-            
-            return nil
-        }
-        
-        // Manually walk through JPEG header
-        static func parseHeader(_ data: Data) -> JPEG? {
+        private static func parseHeader(_ data: Data) -> JPEG? {
             // JPEG starts with SOI marker (FF D8)
             guard data.count >= 2, data[0] == 0xFF, data[1] == 0xD8 else {
                 return nil
@@ -249,7 +228,7 @@ extension ImageProperties {
             while let nextMarker = data[searchRange].firstIndex(of: 0xFF),
                   nextMarker < data.count - 1 {
                 
-                // Skip Padding
+                // Skip padding (consecutive 0xFF bytes)
                 var controlIndex = nextMarker + 1
                 while data[controlIndex] == 0xFF {
                     controlIndex += 1
@@ -257,7 +236,9 @@ extension ImageProperties {
                         break
                     }
                 }
-                
+
+                guard controlIndex < data.count else { break }
+
                 // The byte coming after 0xFF gives us the information
                 let marker = data[controlIndex]
                 
@@ -302,7 +283,7 @@ extension ImageProperties {
                 let length = UInt16(data[lengthIndex]) << 8 | UInt16(data[lengthIndex + 1])
                 
                 // Skip this segment (length includes the 2 length bytes, so should be at least 2)
-                guard length > 2 else {
+                guard length >= 2 else {
                     // Invalid length, corrupted JPEG
                     break
                 }

@@ -78,6 +78,33 @@ import Foundation
         #expect(decoder.numberOfScans == 10)
     }
 
+    @Test func decodingTrickyProgressiveJPEG() {
+        let data = Test.data(name: "tricky_progressive", extension: "jpeg")
+        let decoder = ImageDecoders.Default()
+
+        // Data includes the false 0xFF 0xDA in EXIF at byte 885 — must not count as a scan
+        #expect(decoder.decodePartiallyDownloadedData(data[0...886]) == nil)
+        #expect(decoder.numberOfScans == 0)
+
+        // Just before SOF2 marker
+        #expect(decoder.decodePartiallyDownloadedData(data[0...12173]) == nil)
+        #expect(decoder.numberOfScans == 0)
+
+        // After first real SOS (offset 12249) — 1 scan, not enough for preview
+        #expect(decoder.decodePartiallyDownloadedData(data[0...12250]) == nil)
+        #expect(decoder.numberOfScans == 1)
+
+        // After second real SOS (offset 14422) — first preview available
+        let scan1 = decoder.decodePartiallyDownloadedData(data[0...14423])
+        #expect(scan1 != nil)
+        #expect(scan1?.isPreview == true)
+        #expect(decoder.numberOfScans == 2)
+
+        // Full data — 9 real scans
+        #expect(decoder.decodePartiallyDownloadedData(data) != nil)
+        #expect(decoder.numberOfScans == 9)
+    }
+
     @Test func decodeGIF() throws {
         // Given
         let data = Test.data(name: "cat", extension: "gif")
