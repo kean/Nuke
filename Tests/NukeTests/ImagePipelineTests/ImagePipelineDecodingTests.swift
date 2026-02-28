@@ -34,7 +34,7 @@ class ImagePipelineDecodingTests: XCTestCase {
         }
 
         // When
-        var response: ImageResponse?
+        nonisolated(unsafe) var response: ImageResponse?
         expect(pipeline).toLoadImage(with: Test.request, completion: {
             response = $0.value
         })

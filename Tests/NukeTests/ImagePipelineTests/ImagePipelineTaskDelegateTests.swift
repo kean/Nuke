@@ -23,7 +23,7 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
     }
 
     func testStartAndCompletedEvents() throws {
-        var result: Result<ImageResponse, ImagePipeline.Error>?
+        nonisolated(unsafe) var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toLoadImage(with: Test.request) { result = $0 }
         wait()
 
@@ -42,7 +42,7 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        var result: Result<ImageResponse, ImagePipeline.Error>?
+        nonisolated(unsafe) var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toFailRequest(request) { result = $0 }
         wait()
 

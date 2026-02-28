@@ -26,7 +26,7 @@ class ImagePipelineFormatsTests: XCTestCase {
         )
 
         // When
-        var result: Result<ImageResponse, ImagePipeline.Error>?
+        nonisolated(unsafe) var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toLoadImage(with: Test.request) {
             result = $0
         }
@@ -50,7 +50,7 @@ class ImagePipelineFormatsTests: XCTestCase {
         )
 
         // When
-        var result: Result<ImageResponse, ImagePipeline.Error>?
+        nonisolated(unsafe) var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toLoadImage(with: Test.request) {
             result = $0
         }

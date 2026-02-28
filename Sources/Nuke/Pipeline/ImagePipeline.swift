@@ -152,128 +152,6 @@ public final class ImagePipeline: @unchecked Sendable {
         return (response.container.data ?? Data(), response.urlResponse)
     }
 
-    // MARK: - Loading Images (Closures)
-
-    /// Loads an image for the given request.
-    ///
-    /// - warning: Soft-deprecated in Nuke 12.9.
-    ///
-    /// - parameters:
-    ///   - request: An image request.
-    ///   - completion: A closure to be called on the main thread when the request
-    ///   is finished.
-    @discardableResult public func loadImage(
-        with url: URL,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: ImageRequest(url: url), progress: nil, completion: completion)
-    }
-
-    /// Loads an image for the given request.
-    ///
-    /// - parameters:
-    ///   - request: An image request.
-    ///   - completion: A closure to be called on the main thread when the request
-    ///   is finished.
-    @discardableResult public func loadImage(
-        with request: ImageRequest,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, progress: nil, completion: completion)
-    }
-
-    /// Loads an image for the given request.
-    ///
-    /// - warning: Soft-deprecated in Nuke 12.9.
-    ///
-    /// - parameters:
-    ///   - request: An image request.
-    ///   - progress: A closure to be called periodically on the main thread when
-    ///   the progress is updated.
-    ///   - completion: A closure to be called on the main thread when the request
-    ///   is finished.
-    @discardableResult public func loadImage(
-        with request: ImageRequest,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, progress: {
-            progress?($0, $1.completed, $1.total)
-        }, completion: completion)
-    }
-
-    func _loadImage(
-        with request: ImageRequest,
-        isDataTask: Bool = false,
-        progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
-        completion: @escaping (Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        makeStartedImageTask(with: request, isDataTask: isDataTask) { event, task in
-            Self.dispatchToMainQueue {
-                // The callback-based API guarantees that after cancellation no
-                // events are called on the callback queue.
-                guard task.state != .cancelled else { return }
-                switch event {
-                case .started: break
-                case .progress(let value): progress?(nil, value)
-                case .preview(let response): progress?(response, task.currentProgress)
-                case .cancelled: break // The legacy APIs do not send cancellation events
-                case .finished(let result):
-                    _ = task._setState(.completed) // Important to do it on the callback queue
-                    completion(result)
-                }
-            }
-        }
-    }
-
-    private static func dispatchToMainQueue(_ closure: @escaping () -> Void) {
-        let box = UncheckedSendableBox(value: closure)
-        DispatchQueue.main.async {
-            box.value()
-        }
-    }
-
-    // MARK: - Loading Data (Closures)
-
-    /// Loads image data for the given request. The data doesn't get decoded
-    /// or processed in any other way.
-    ///
-    /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, progress: nil) { result in
-            let result = result.map { response in
-                (data: response.container.data ?? Data(), response: response.urlResponse)
-            }
-            completion(result)
-        }
-    }
-
-    /// Loads the image data for the given request. The data doesn't get decoded
-    /// or processed in any other way.
-    ///
-    /// You can call ``loadImage(with:completion:)-43osv`` for the request at any point after calling
-    /// ``loadData(with:completion:)-6cwk3``, the pipeline will use the same operation to load the data,
-    /// no duplicated work will be performed.
-    ///
-    /// - parameters:
-    ///   - request: An image request.
-    ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
-    ///   - completion: A closure to be called on the main thread when the request is finished.
-    @discardableResult public func loadData(
-        with request: ImageRequest,
-        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true) { _, progress in
-            progressHandler?(progress.completed, progress.total)
-        } completion: { result in
-            let result = result.map { response in
-                (data: response.container.data ?? Data(), response: response.urlResponse)
-            }
-            completion(result)
-        }
-    }
-
     // MARK: - Loading Images (Combine)
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
@@ -288,7 +166,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - ImageTask (Internal)
 
-    private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+    func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         // Important to call it before `imageTaskStartCalled`
         if !isDataTask {

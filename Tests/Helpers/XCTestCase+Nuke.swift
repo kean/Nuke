@@ -25,14 +25,14 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
+    func toLoadImage(with request: ImageRequest, completion: @escaping @MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
     func toLoadImage(with request: ImageRequest,
-                     progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                     completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
+                     progress: (@MainActor @Sendable (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                     completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()
         let expectation = test.expectation(description: "Image loaded for \(request)")
         record._task = pipeline.loadImage(with: request, progress: progress) { result in
@@ -46,14 +46,14 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+    func toFailRequest(_ request: ImageRequest, completion: @escaping @MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void) -> ImageTask {
         toFailRequest(request, progress: nil, completion: completion)
     }
 
     @discardableResult
     func toFailRequest(_ request: ImageRequest,
-                       progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                       completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
+                       progress: (@MainActor @Sendable (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                       completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
         return pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
@@ -83,7 +83,7 @@ struct TestExpectationImagePipeline {
     }
 }
 
-final class TestRecordedImageRequest {
+final class TestRecordedImageRequest: @unchecked Sendable {
     var task: ImageTask {
         _task
     }
@@ -100,7 +100,7 @@ final class TestRecordedImageRequest {
     }
 }
 
-final class TestRecorededDataTask {
+final class TestRecorededDataTask: @unchecked Sendable {
     var task: ImageTask {
         _task
     }
@@ -130,8 +130,8 @@ struct TestExpectationProgressivePipeline {
     // We expect two partial images (at 5 scans, and 9 scans marks).
     func toProducePartialImages(for request: ImageRequest = Test.request,
                                 withCount count: Int = 2,
-                                progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                                completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
+                                progress: (@MainActor @Sendable (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                                completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectPartialImageProduced = test.expectation(description: "Partial Image Is Produced")
         expectPartialImageProduced.expectedFulfillmentCount = count
 

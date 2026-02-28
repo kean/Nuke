@@ -23,7 +23,7 @@ class ImagePipelineTests: XCTestCase {
     // MARK: - Completion
     
     func testCompletionCalledAsynchronouslyOnMainThread() {
-        var isCompleted = false
+        nonisolated(unsafe) var isCompleted = false
         expect(pipeline).toLoadImage(with: Test.request) { _ in
             XCTAssert(Thread.isMainThread)
             isCompleted = true
