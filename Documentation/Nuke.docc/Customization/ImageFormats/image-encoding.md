@@ -3,8 +3,12 @@
 To encode images, use types conforming to the ``ImageEncoding`` protocol:
 
 ```swift
-public protocol ImageEncoding {
-    func encode(image: UIImage) -> Data?
+public protocol ImageEncoding: Sendable {
+    /// Encodes the given image.
+    func encode(_ image: PlatformImage) -> Data?
+
+    /// An optional method which encodes the given image container.
+    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data?
 }
 ```
 
