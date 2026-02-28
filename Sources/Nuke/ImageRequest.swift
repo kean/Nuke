@@ -257,7 +257,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     // MARK: Nested Types
 
     /// The priority affecting the order in which the requests are performed.
-    public enum Priority: Int, Comparable, Sendable {
+    @frozen public enum Priority: Int, Comparable, Sendable {
         case veryLow = 0, low, normal, high, veryHigh
 
         public static func < (lhs: Priority, rhs: Priority) -> Bool {

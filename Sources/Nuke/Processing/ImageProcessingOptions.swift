@@ -15,7 +15,7 @@ import AppKit
 /// A namespace with shared image processing options.
 public enum ImageProcessingOptions: Sendable {
 
-    public enum Unit: CustomStringConvertible, Sendable {
+    @frozen public enum Unit: CustomStringConvertible, Sendable {
         case points
         case pixels
 
@@ -67,7 +67,7 @@ public enum ImageProcessingOptions: Sendable {
     }
 
     /// An option for how to resize the image.
-    public enum ContentMode: CustomStringConvertible, Sendable {
+    @frozen public enum ContentMode: CustomStringConvertible, Sendable {
         /// Scales the image so that it completely fills the target area.
         /// Maintains the aspect ratio of the original image.
         case aspectFill

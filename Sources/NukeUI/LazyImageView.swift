@@ -91,7 +91,7 @@ public final class LazyImageView: _PlatformBaseView {
     public var transition: Transition?
 
     /// An animated transition.
-    public enum Transition {
+    @frozen public enum Transition {
         /// Fade-in transition.
         case fadeIn(duration: TimeInterval)
         /// A custom image view transition.
@@ -451,7 +451,7 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Misc
 
-    public enum SubviewPosition {
+    @frozen public enum SubviewPosition {
         /// Center in the superview.
         case center
 

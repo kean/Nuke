@@ -63,7 +63,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     /// The state of the image task.
-    public enum State {
+    @frozen public enum State {
         /// The task is currently running.
         case running
         /// The task has received a cancel message.

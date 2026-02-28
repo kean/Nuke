@@ -32,7 +32,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     /// Prefetching destination.
-    public enum Destination: Sendable {
+    @frozen public enum Destination: Sendable {
         /// Prefetches the image and stores it in both the memory and the disk
         /// cache (make sure to enable it).
         case memoryCache

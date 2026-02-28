@@ -101,7 +101,7 @@ public struct LazyImage<Content: View>: View {
         map { $0.pipeline = pipeline }
     }
 
-    public enum DisappearBehavior {
+    @frozen public enum DisappearBehavior {
         /// Cancels the current request but keeps the presentation state of
         /// the already displayed image.
         case cancel

@@ -219,7 +219,7 @@ extension ImagePipeline {
     }
 
     /// Determines what images are stored in the disk cache.
-    public enum DataCachePolicy: Sendable {
+    @frozen public enum DataCachePolicy: Sendable {
         /// Store original image data for requests with no processors. Store
         /// _only_ processed images for requests with processors.
         ///
@@ -258,7 +258,7 @@ extension ImagePipeline {
 
     /// Determines how progressive (partial) image previews are generated during
     /// downloads.
-    public enum PreviewPolicy: Sendable, Equatable {
+    @frozen public enum PreviewPolicy: Sendable, Equatable {
         /// Use Image I/O incremental decoding to produce progressive previews.
         case incremental
         /// Extract the embedded EXIF thumbnail if available, then stop.

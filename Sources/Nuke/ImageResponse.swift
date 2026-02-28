@@ -48,7 +48,7 @@ public struct ImageResponse: Sendable {
     }
 
     /// A cache type.
-    public enum CacheType: Sendable {
+    @frozen public enum CacheType: Sendable {
         /// Memory cache (see ``ImageCaching``).
         case memory
         /// Disk cache (see ``DataCaching``).
