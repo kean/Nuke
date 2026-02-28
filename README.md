@@ -92,13 +92,10 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
-| Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
-|------------|--------------|-------------|------------|-----------------------------------------------|
-| Nuke 12.0  | Mar 4, 2023  | Swift 5.7   | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
-| Nuke 11.0  | Jul 20, 2022 | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
-| Nuke 10.0  | Jun 1, 2021  | Swift 5.3   | Xcode 12.0 | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
-
-> Starting with version 12.3, Nuke also ships with visionOS support (in beta)
+| Nuke       | Date         | Swift       | Xcode      | Platforms                                        |
+|------------|--------------|-------------|------------|--------------------------------------------------|
+| Nuke 13.0  | TBD          | Swift 6.0   | Xcode 26.0 | iOS 15, watchOS 8, macOS 12, tvOS 13, visionOS 1 |
+| Nuke 12.0  | Mar 4, 2023  | Swift 5.7   | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0    |
 
 ## License
 
