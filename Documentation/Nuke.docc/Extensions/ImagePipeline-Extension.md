@@ -79,11 +79,18 @@ Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTa
 
 ## Progressive Decoding
 
-If progressive decoding is enabled, the pipeline attempts to produce a preview of any image every time a new chunk of data is loaded. See it in action in the [demo project](https://github.com/kean/NukeDemo).
+If progressive decoding is enabled, the pipeline attempts to produce previews as data arrives. The behavior is controlled by ``ImagePipeline/PreviewPolicy``, which the pipeline resolves via ``ImagePipelineDelegate/previewPolicy(for:pipeline:)``.
 
-When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return `nil` if not enough data is downloaded.
+**Default policy:** `.incremental` for progressive JPEGs and GIFs, `.disabled` for all other formats (baseline JPEGs, PNGs, etc.). This means only formats that benefit from incremental rendering produce previews by default.
 
-Every image preview goes through the same processing and decompression phases as the final images. The main difference is the introduction of backpressure. If one of the stages can't process the input fast enough, the pipeline waits until the current operation is finished, and only then the next one starts. All outstanding progressive operations are canceled to save processing time when the data is fully downloaded.
+**Available policies:**
+- `.incremental` — Uses `CGImageSourceCreateIncremental` to produce a new preview as more data arrives. For JPEGs with large EXIF headers where incremental decoding fails, the decoder automatically falls back to generating a thumbnail.
+- `.thumbnail` — Extracts the embedded EXIF thumbnail (if any), then stops.
+- `.disabled` — No previews.
+
+**Throttling:** The pipeline throttles progressive decoding attempts using ``ImagePipeline/Configuration-swift.struct/progressiveDecodingInterval`` (default: 0.5s). When data arrives faster than this interval, intermediate chunks are skipped. This prevents excessive decoding work on fast connections.
+
+**Backpressure:** Every preview goes through the same processing and decompression phases as the final image. If a stage can't keep up, the pipeline waits for the current operation to finish before starting the next one. All outstanding progressive operations are canceled when the data is fully downloaded.
 
 ## Topics
 

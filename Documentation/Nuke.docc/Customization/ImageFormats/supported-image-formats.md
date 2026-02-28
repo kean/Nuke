@@ -6,7 +6,7 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
 
 ### Common Image Formats
 
-All images format [natively supported](https://developer.apple.com/library/archive/documentation/2DDrawing/Conceptual/DrawingPrintingiOS/LoadingImages/LoadingImages.html#//apple_ref/doc/uid/TP40010156-CH17-SW7) by the platform are also supported by Nuke, including `PNG`, `TIFF`, `JPEG`, `GIF`, `BMP`, `ICO`, `CUR`, and `XBM`.
+All image formats natively supported by the platform are also supported by Nuke, including `PNG`, `TIFF`, `JPEG`, `GIF`, `BMP`, `ICO`, `CUR`, `XBM`, `HEIF`, and `WebP` (iOS 14+).
 
 You can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage` to render the images of any of the natively supported formats.
 
@@ -14,7 +14,11 @@ You can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage` to render t
 
 **Decoding**
 
-``ImageDecoders/Default`` supports progressive JPEG. The decoder automatically detects when there are new scans available and produces new previews.
+``ImageDecoders/Default`` supports progressive JPEG via `CGImageSourceCreateIncremental`. When ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is `true`, the pipeline produces previews as data arrives.
+
+By default, progressive previews are only enabled for progressive JPEGs and GIFs (``ImagePipeline/PreviewPolicy``). Baseline JPEGs, PNGs, and other formats produce no previews unless explicitly configured via ``ImagePipelineDelegate/previewPolicy(for:pipeline:)``.
+
+For progressive JPEGs with large EXIF headers where `CGImageSourceCreateIncremental` fails to produce incremental previews, the decoder automatically falls back to generating a thumbnail from the available data.
 
 **Encoding**
 
@@ -22,9 +26,7 @@ None.
 
 **Rendering**
 
-To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also support displaying progressive scans. 
-
-
+To render progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also support displaying progressive previews.
 
 ### HEIF
 
@@ -156,10 +158,4 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 
 ### WebP
 
-#### Third-party Support
-
-[WebP](https://developers.google.com/speed/webp) support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
-
-#### Native Support (macOS 11, iOS 14, watchOS 7)
-
-WebP is now supported natively. Nuke currently only supports baseline WebP (no progressive WebP support).
+[WebP](https://developers.google.com/speed/webp) is supported natively on macOS 11+, iOS 14+, and watchOS 7+ via Image I/O. No additional plugins are required.

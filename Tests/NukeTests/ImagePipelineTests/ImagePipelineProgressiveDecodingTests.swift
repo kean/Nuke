@@ -35,6 +35,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             $0.imageCache = cache
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
+            $0.progressiveDecodingInterval = 0
             $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
     }
@@ -47,14 +48,14 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // Given
         // - An image which supports progressive decoding
         // - A pipeline with progressive decoding enabled
-        
+
         // Then two scans are produced
         let expectPartialImageProduced = self.expectation(description: "Partial Image Is Produced")
         expectPartialImageProduced.expectedFulfillmentCount = 2
-        
+
         // Then the final image is produced
         let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")
-        
+
         // When
         pipeline.loadImage(
             with: Test.request,
@@ -63,13 +64,13 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                 if let container = response?.container {
                     // Then image previews are produced
                     XCTAssertTrue(container.isPreview)
-                    
+
                     // Then the preview is stored in memory cache
                     let cached = self.cache[Test.request]
                     XCTAssertNotNil(cached)
                     XCTAssertTrue(cached?.isPreview ?? false)
                     XCTAssertEqual(cached?.image, container.image)
-                    
+
                     expectPartialImageProduced.fulfill()
                     self.dataLoader.resume()
                 }
@@ -82,17 +83,17 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                 case .failure:
                     XCTFail("Unexpected failure")
                 }
-                
+
                 // Then the preview is overwritted with the final image in memory cache
                 let cached = self.cache[Test.request]
                 XCTAssertNotNil(cached)
                 XCTAssertFalse(cached?.isPreview ?? false)
                 XCTAssertEqual(cached?.image, result.value?.image)
-                
+
                 expectFinalImageProduced.fulfill()
             }
         )
-        
+
         wait()
     }
     

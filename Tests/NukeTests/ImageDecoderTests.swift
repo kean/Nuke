@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import ImageIO
 @testable import Nuke
 
 @Suite struct ImageDecoderTests {
@@ -41,26 +42,15 @@ import Foundation
         let data = Test.data(name: "progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
 
-        // Just before the Start Of Frame
+        // Not enough data for progressive detection (SOF2 not yet reached)
         #expect(decoder.decodePartiallyDownloadedData(data[0...358]) == nil)
         #expect(decoder.numberOfScans == 0)
 
-        // Right after the Start Of Frame
-        #expect(decoder.decodePartiallyDownloadedData(data[0...359]) == nil)
-        #expect(decoder.numberOfScans == 0) // still haven't finished the first scan
-
-        // Just before the first Start Of Scan
-        #expect(decoder.decodePartiallyDownloadedData(data[0...438]) == nil)
-        #expect(decoder.numberOfScans == 0) // still haven't finished the first scan
-
-        // Found the first Start Of Scan
-        #expect(decoder.decodePartiallyDownloadedData(data[0...439]) == nil)
-        #expect(decoder.numberOfScans == 1)
-
-        // Found the second Start of Scan
-        let scan1 = decoder.decodePartiallyDownloadedData(data[0...2952])
+        // After SOF2 marker, CGImageSource produces previews immediately
+        let scan1 = decoder.decodePartiallyDownloadedData(data[0...500])
         #expect(scan1 != nil)
         #expect(scan1?.isPreview == true)
+        #expect(decoder.numberOfScans == 1)
         if let image = scan1?.image {
 #if os(macOS)
             #expect(image.size.width == 450)
@@ -70,12 +60,162 @@ import Foundation
             #expect(image.size.height * image.scale == 300)
 #endif
         }
-        #expect(decoder.numberOfScans == 2)
-        #expect(scan1?.userInfo[.scanNumberKey] as? Int == 2)
+        #expect(scan1?.userInfo[.scanNumberKey] as? Int == 1)
 
-        // Feed all data and see how many scans are there
-        #expect(decoder.decodePartiallyDownloadedData(data) != nil)
-        #expect(decoder.numberOfScans == 10)
+        // More data produces additional previews
+        let scan2 = decoder.decodePartiallyDownloadedData(data[0...5000])
+        #expect(scan2 != nil)
+        #expect(scan2?.isPreview == true)
+        #expect(decoder.numberOfScans == 2)
+
+        // Feed all data
+        let final = decoder.decodePartiallyDownloadedData(data)
+        #expect(final != nil)
+        #expect(decoder.numberOfScans == 3)
+    }
+
+
+    @Test func decodingBaselineJPEG() throws {
+        let data = Test.data(name: "baseline", extension: "jpeg")
+
+        // Default policy for baseline JPEG is .disabled — no previews
+        var context = ImageDecodingContext.mock(data: data)
+        context.previewPolicy = .default(for: data)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let partial = decoder.decodePartiallyDownloadedData(data[0...(data.count / 2)])
+        #expect(partial == nil)
+
+        // Full decode always works
+        let container = try decoder.decode(data)
+        #expect(container.type == .jpeg)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decodingBaselineJPEGWithIncrementalPolicy() throws {
+        let data = Test.data(name: "baseline", extension: "jpeg")
+
+        // With .incremental policy, Image I/O produces partial top-down renders
+        var context = ImageDecodingContext.mock(data: data)
+        context.previewPolicy = .incremental
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let partial = decoder.decodePartiallyDownloadedData(data[0...(data.count / 2)])
+        #expect(partial != nil)
+        #expect(partial?.isPreview == true)
+
+        let container = try decoder.decode(data)
+        #expect(container.type == .jpeg)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decodingBaselineJPEGWithThumbnailPolicy() throws {
+        let data = Test.data(name: "baseline", extension: "jpeg")
+
+        var context = ImageDecodingContext.mock(data: data)
+        context.previewPolicy = .thumbnail
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        // Baseline JPEG typically has no embedded EXIF thumbnail
+        _ = decoder.decodePartiallyDownloadedData(data)
+        // Whether this returns an image depends on the specific file;
+        // either way, subsequent calls should return nil
+        #expect(decoder.decodePartiallyDownloadedData(data) == nil)
+    }
+
+    @Test func decodingProgressiveJPEGWithDisabledPolicy() throws {
+        let data = Test.data(name: "progressive", extension: "jpeg")
+
+        var context = ImageDecodingContext.mock(data: data)
+        context.previewPolicy = .disabled
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        // No previews with .disabled policy
+        #expect(decoder.decodePartiallyDownloadedData(data[0...500]) == nil)
+        #expect(decoder.decodePartiallyDownloadedData(data[0...5000]) == nil)
+        #expect(decoder.numberOfScans == 0)
+
+        // Full decode still works
+        let container = try decoder.decode(data)
+        #expect(container.type == .jpeg)
+    }
+
+    @Test func decodingPNGPartialData() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+
+        // Default policy for PNG is .disabled — no previews
+        var context = ImageDecodingContext.mock(data: data)
+        context.previewPolicy = .default(for: data)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        #expect(decoder.decodePartiallyDownloadedData(data[0...100]) == nil)
+
+        // Full decode still works
+        let container = try decoder.decode(data)
+        #expect(container.type == .png)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decoderAlwaysCreatedFromContext() throws {
+        // The decoder should always initialize, regardless of image format.
+        let jpegData = Test.data(name: "baseline", extension: "jpeg")
+        let jpegContext = ImageDecodingContext.mock(data: jpegData)
+        #expect(ImageDecoders.Default(context: jpegContext) != nil)
+
+        let pngData = Test.data(name: "fixture", extension: "png")
+        let pngContext = ImageDecodingContext.mock(data: pngData)
+        #expect(ImageDecoders.Default(context: pngContext) != nil)
+
+        let progressiveData = Test.data(name: "progressive", extension: "jpeg")
+        let progressiveContext = ImageDecodingContext.mock(data: progressiveData)
+        #expect(ImageDecoders.Default(context: progressiveContext) != nil)
+    }
+
+    @Test func defaultPreviewPolicy() {
+        // Progressive JPEG → .incremental
+        let progressiveData = Test.data(name: "progressive", extension: "jpeg")
+        #expect(ImagePipeline.PreviewPolicy.default(for: progressiveData) == .incremental)
+
+        // Baseline JPEG → .disabled
+        let baselineData = Test.data(name: "baseline", extension: "jpeg")
+        #expect(ImagePipeline.PreviewPolicy.default(for: baselineData) == .disabled)
+
+        // PNG → .disabled
+        let pngData = Test.data(name: "fixture", extension: "png")
+        #expect(ImagePipeline.PreviewPolicy.default(for: pngData) == .disabled)
+
+        // GIF → .incremental
+        let gifData = Test.data(name: "cat", extension: "gif")
+        #expect(ImagePipeline.PreviewPolicy.default(for: gifData) == .incremental)
+    }
+
+    @Test func decodingTrickyProgressiveJPEG() throws {
+        let data = Test.data(name: "tricky_progressive", extension: "jpeg")
+        let decoder = ImageDecoders.Default()
+
+        // CGImageSourceCreateIncremental cannot produce incremental previews
+        // for this JPEG with large EXIF data (~12 KB header). Not enough
+        // data for Image I/O to generate a thumbnail yet.
+        #expect(decoder.decodePartiallyDownloadedData(data[0...886]) == nil)
+
+        // With enough EXIF data, the decoder falls back to generating a
+        // thumbnail from a non-incremental source (max 160px).
+        let preview = decoder.decodePartiallyDownloadedData(data[0...12040])
+        #expect(preview != nil)
+        #expect(preview?.isPreview == true)
+        #expect(decoder.numberOfScans == 1)
+        if let image = preview?.image {
+            #expect(image.sizeInPixels.width <= 160)
+            #expect(image.sizeInPixels.height <= 160)
+        }
+
+        // Thumbnail fallback is one-shot — subsequent calls return nil
+        #expect(decoder.decodePartiallyDownloadedData(data[0...20000]) == nil)
+        #expect(decoder.numberOfScans == 1)
+
+        // Full decode still works at full resolution
+        let container = try decoder.decode(data)
+        #expect(container.image.sizeInPixels == CGSize(width: 352, height: 198))
     }
 
     @Test func decodeGIF() throws {
@@ -199,35 +339,5 @@ import Foundation
         #expect(AssetType(data[0..<2]) == nil)
         #expect(AssetType(data[0..<12]) == .webp)
         #expect(AssetType(data) == .webp)
-    }
-}
-
-@Suite struct ImagePropertiesTests {
-    // MARK: JPEG
-
-    @Test func detectBaselineJPEG() {
-        let data = Test.data(name: "baseline", extension: "jpeg")
-        #expect(ImageProperties.JPEG(data[0..<1]) == nil)
-        #expect(ImageProperties.JPEG(data[0..<2]) == nil)
-        #expect(ImageProperties.JPEG(data[0..<3]) == nil)
-        #expect(ImageProperties.JPEG(data)?.isProgressive == false)
-    }
-
-    @Test func detectProgressiveJPEG() {
-        let data = Test.data(name: "progressive", extension: "jpeg")
-        // Not enough data
-        #expect(ImageProperties.JPEG(Data()) == nil)
-        #expect(ImageProperties.JPEG(data[0..<2]) == nil)
-
-        // Enough to determine image format
-        #expect(ImageProperties.JPEG(data[0..<3]) == nil)
-        #expect(ImageProperties.JPEG(data[0...30]) == nil)
-
-        // Just before the first scan
-        #expect(ImageProperties.JPEG(data[0...358]) == nil)
-        #expect(ImageProperties.JPEG(data[0...359])?.isProgressive == true)
-
-        // Full image
-        #expect(ImageProperties.JPEG(data[0...359])?.isProgressive == true)
     }
 }

@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import ImageIO
 
 extension ImagePipeline {
     /// The pipeline configuration.
@@ -102,6 +103,11 @@ extension ImagePipeline {
         /// to produce a partial image or not. The default image decoder
         /// ``ImageDecoders/Default`` supports progressive JPEG decoding.
         public var isProgressiveDecodingEnabled = false
+
+        /// The minimum interval between progressive decoding attempts, in
+        /// seconds. When data arrives faster than this interval, intermediate
+        /// chunks are skipped. `0.5` by default.
+        public var progressiveDecodingInterval: TimeInterval = 0.5
 
         /// `true` by default. If `true`, the pipeline will store all of the
         /// progressively generated previews in the memory cache. All of the
@@ -262,5 +268,39 @@ extension ImagePipeline {
         /// - note: If the resource is local (has file:// or data:// scheme),
         /// only the processed images are stored.
         case storeAll
+    }
+
+    /// Determines how progressive (partial) image previews are generated during
+    /// downloads.
+    public enum PreviewPolicy: Sendable, Equatable {
+        /// Use Image I/O incremental decoding to produce progressive previews.
+        case incremental
+        /// Extract the embedded EXIF thumbnail if available, then stop.
+        case thumbnail
+        /// No previews are generated for partially downloaded data.
+        case disabled
+
+        /// Returns the default policy for the given data: `.incremental` for
+        /// progressive JPEGs and GIFs, `.disabled` for everything else.
+        public static func `default`(for data: Data) -> PreviewPolicy {
+            let type = AssetType(data)
+            if type == .gif {
+                return .incremental
+            }
+            if type == .jpeg && _isProgressiveJPEG(data) {
+                return .incremental
+            }
+            return .disabled
+        }
+
+        private static func _isProgressiveJPEG(_ data: Data) -> Bool {
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let jfif = properties[kCGImagePropertyJFIFDictionary] as? [CFString: Any],
+                  let isProgressive = jfif[kCGImagePropertyJFIFIsProgressive] as? Bool else {
+                return false
+            }
+            return isProgressive
+        }
     }
 }

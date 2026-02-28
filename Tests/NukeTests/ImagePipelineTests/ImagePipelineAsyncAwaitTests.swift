@@ -265,6 +265,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
         }
 
         // WHEN
@@ -388,6 +389,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
         }
 
         // WHEN

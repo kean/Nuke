@@ -117,6 +117,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
             $0.imageCache = imageCache
             $0.isResumableDataEnabled = false
             $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
             $0.isStoringPreviewsInMemoryCache = true
         }
     }

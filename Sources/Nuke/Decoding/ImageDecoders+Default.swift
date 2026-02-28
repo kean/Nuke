@@ -8,6 +8,8 @@ import UIKit
 import Cocoa
 #endif
 
+import ImageIO
+
 /// A namespace with all available decoders.
 public enum ImageDecoders {}
 
@@ -21,29 +23,24 @@ extension ImageDecoders {
     /// - note: The default decoder supports progressive JPEG. It produces a new
     /// preview every time it encounters a new full frame.
     public final class Default: ImageDecoding, @unchecked Sendable {
-        // Number of scans that the decoder has found so far. The last scan might be
-        // incomplete at this point.
-        var numberOfScans: Int { scanner.numberOfScans }
-        private var scanner = ProgressiveJPEGScanner()
+        private(set) var numberOfScans = 0
+        private var incrementalSource: CGImageSource?
 
         private var isPreviewForGIFGenerated = false
+        private var didAttemptThumbnailFallback = false
         private var scale: CGFloat = 1.0
         private var thumbnail: ImageRequest.ThumbnailOptions?
+        private(set) var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
         private let lock = NSLock()
 
         public var isAsynchronous: Bool { thumbnail != nil }
 
         public init() { }
 
-        /// Returns `nil` if progressive decoding is not allowed for the given
-        /// content.
         public init?(context: ImageDecodingContext) {
             self.scale = context.request.scale.map { CGFloat($0) } ?? self.scale
             self.thumbnail = context.request.thumbnail
-
-            if !context.isCompleted && !isProgressiveDecodingAllowed(for: context.data) {
-                return nil // Progressive decoding not allowed for this image
-            }
+            self.previewPolicy = context.previewPolicy
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
@@ -52,9 +49,7 @@ extension ImageDecoders {
 
             func makeImage() -> PlatformImage? {
                 if let thumbnail {
-                    return makeThumbnail(data: data,
-                                         options: thumbnail,
-                                         scale: scale)
+                    return makeThumbnail(data: data, options: thumbnail, scale: scale)
                 }
                 return ImageDecoders.Default._decode(data, scale: scale)
             }
@@ -81,7 +76,9 @@ extension ImageDecoders {
             defer { lock.unlock() }
 
             let assetType = AssetType(data)
-            if assetType == .gif { // Special handling for GIF
+
+            // GIF preview is always allowed regardless of policy
+            if assetType == .gif {
                 if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data, scale: scale) {
                     isPreviewForGIFGenerated = true
                     return ImageContainer(image: image, type: .gif, isPreview: true, userInfo: [:])
@@ -89,81 +86,86 @@ extension ImageDecoders {
                 return nil
             }
 
-            guard let endOfScan = scanner.scan(data), endOfScan > 0 else {
+            switch previewPolicy {
+            case .disabled:
                 return nil
-            }
-            guard let image = ImageDecoders.Default._decode(data[0...endOfScan], scale: scale) else {
-                return nil
-            }
-            return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
-        }
-    }
-}
 
-private func isProgressiveDecodingAllowed(for data: Data) -> Bool {
-   let assetType = AssetType(data)
-
-   // Determined whether the image supports progressive decoding or not
-   // (only proressive JPEG is allowed for now, but you can add support
-   // for other formats by implementing your own decoder).
-   if assetType == .jpeg, ImageProperties.JPEG(data)?.isProgressive == true {
-       return true
-   }
-
-   // Generate one preview for GIF.
-   if assetType == .gif {
-       return true
-   }
-
-   return false
-}
-
-private struct ProgressiveJPEGScanner: Sendable {
-    // Number of scans that the decoder has found so far. The last scan might be
-    // incomplete at this point.
-    private(set) var numberOfScans = 0
-    private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
-    private var scannedIndex: Int = -1 // Index at which previous scan was finished
-
-    /// Scans the given data. If finds new scans, returns the last index of the
-    /// last available scan.
-    mutating func scan(_ data: Data) -> Int? {
-        // Check if there is more data to scan.
-        guard (scannedIndex + 1) < data.count else {
-            return nil
-        }
-
-        // Start scanning from the where it left off previous time.
-        var index = (scannedIndex + 1)
-        var numberOfScans = self.numberOfScans
-        while index < (data.count - 1) {
-            scannedIndex = index
-            // 0xFF, 0xDA - Start Of Scan
-            if data[index] == 0xFF, data[index + 1] == 0xDA {
-                lastStartOfScan = index
+            case .thumbnail:
+                if numberOfScans > 0 { return nil } // Already generated
+                guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+                      let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                          kCGImageSourceCreateThumbnailFromImageAlways: false,
+                          kCGImageSourceCreateThumbnailFromImageIfAbsent: false
+                      ] as CFDictionary) else {
+                    return nil
+                }
                 numberOfScans += 1
+                let image = ImageDecoders.Default._make(thumb, scale: scale)
+                return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+
+            case .incremental:
+                if incrementalSource == nil {
+                    incrementalSource = CGImageSourceCreateIncremental(nil)
+                }
+
+                let source = incrementalSource!
+                CGImageSourceUpdateData(source, data as CFData, false)
+
+                // Check that Image I/O has parsed the image dimensions before
+                // attempting to create a (potentially expensive) CGImage.
+                guard _hasImageDimensions(source) else {
+                    // Fallback: for JPEGs with large EXIF headers, the
+                    // incremental source may never produce dimensions. Try
+                    // generating a thumbnail from a non-incremental source once.
+                    return _thumbnailFallback(data: data, assetType: assetType)
+                }
+
+                guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                    return nil
+                }
+
+                numberOfScans += 1
+
+                let image = ImageDecoders.Default._make(cgImage, scale: scale)
+                return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
             }
-            index += 1
         }
-
-        // Found more scans this the previous time
-        guard numberOfScans > self.numberOfScans else {
-            return nil
-        }
-        self.numberOfScans = numberOfScans
-
-        // `> 1` checks that we've received a first scan (SOS) and then received
-        // and also received a second scan (SOS). This way we know that we have
-        // at least one full scan available.
-        guard numberOfScans > 1 && lastStartOfScan > 0 else {
-            return nil
-        }
-
-        return lastStartOfScan - 1
     }
 }
 
 extension ImageDecoders.Default {
+    /// Attempts to generate a thumbnail from a non-incremental source when
+    /// `CGImageSourceCreateIncremental` can't parse the image (e.g. JPEGs
+    /// with large EXIF headers). Only tried once per decoder instance.
+    private func _thumbnailFallback(data: Data, assetType: AssetType?) -> ImageContainer? {
+        guard !didAttemptThumbnailFallback else { return nil }
+
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
+                  kCGImageSourceThumbnailMaxPixelSize: 160
+              ] as CFDictionary) else {
+            return nil
+        }
+        didAttemptThumbnailFallback = true
+        numberOfScans += 1
+        let image = ImageDecoders.Default._make(cgImage, scale: scale)
+        return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+    }
+
+    /// Returns `true` if Image I/O has parsed non-zero pixel dimensions for the
+    /// first image in the source. Checking this before calling
+    /// `CGImageSourceCreateImageAtIndex` avoids an expensive no-op when the
+    /// source doesn't have enough data yet.
+    private func _hasImageDimensions(_ source: CGImageSource) -> Bool {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
+            return false
+        }
+        let width = properties[kCGImagePropertyPixelWidth] as? Int ?? 0
+        let height = properties[kCGImagePropertyPixelHeight] as? Int ?? 0
+        return width > 0 && height > 0
+    }
+
     private static func _decode(_ data: Data, scale: CGFloat) -> PlatformImage? {
 #if os(macOS)
         return NSImage(data: data)
@@ -171,47 +173,12 @@ extension ImageDecoders.Default {
         return UIImage(data: data, scale: scale)
 #endif
     }
-}
 
-enum ImageProperties {}
-
-// Keeping this private for now, not sure neither about the API, not the implementation.
-extension ImageProperties {
-    struct JPEG {
-        var isProgressive: Bool
-
-        init?(_ data: Data) {
-            guard let isProgressive = ImageProperties.JPEG.isProgressive(data) else {
-                return nil
-            }
-            self.isProgressive = isProgressive
-        }
-
-        private static func isProgressive(_ data: Data) -> Bool? {
-            var index = 3 // start scanning right after magic numbers
-            while index < (data.count - 1) {
-                // A example of first few bytes of progressive jpeg image:
-                // FF D8 FF E0 00 10 4A 46 49 46 00 01 01 00 00 48 00 ...
-                //
-                // 0xFF, 0xC0 - Start Of Frame (baseline DCT)
-                // 0xFF, 0xC2 - Start Of Frame (progressive DCT)
-                // https://en.wikipedia.org/wiki/JPEG
-                //
-                // As an alternative, Image I/O provides facilities to parse
-                // JPEG metadata via CGImageSourceCopyPropertiesAtIndex. It is a
-                // bit too convoluted to use and most likely slightly less
-                // efficient that checking this one special bit directly.
-                if data[index] == 0xFF {
-                    if data[index + 1] == 0xC2 {
-                        return true
-                    }
-                    if data[index + 1] == 0xC0 {
-                        return false // baseline
-                    }
-                }
-                index += 1
-            }
-            return nil
-        }
+    private static func _make(_ cgImage: CGImage, scale: CGFloat) -> PlatformImage {
+#if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+#else
+        return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+#endif
     }
 }

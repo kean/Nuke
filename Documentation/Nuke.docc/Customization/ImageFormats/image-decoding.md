@@ -5,13 +5,18 @@
 At the core of the decoding infrastructure is the ``ImageDecoding`` protocol.
 
 ```swift
-public protocol ImageDecoding {
+public protocol ImageDecoding: Sendable {
+    /// Returns `true` if you want the decoding to be performed on the
+    /// decoding queue. If `false`, decoding is performed synchronously
+    /// on the pipeline operation queue. By default, `true`.
+    var isAsynchronous: Bool { get }
+
     /// Produces an image from the given image data.
-    func decode(_ data: Data) -> ImageContainer?
+    func decode(_ data: Data) throws -> ImageContainer
 
     /// Produces an image from the given partially downloaded image data.
     /// This method might be called multiple times during a single decoding
-    /// session. When the image download is complete, `decode(data:)` method is called.
+    /// session. When the image download is complete, ``decode(_:)`` is called.
     ///
     /// - returns: nil by default.
     func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
@@ -22,10 +27,16 @@ public protocol ImageDecoding {
 
 ```swift
 public struct ImageContainer {
-    // Either `UIImage` or `NSImage`, depending on the platform.
-    public let image: UIImage
-    public let data: Data?
-    public let userInfo: [AnyHashable: Any]
+    /// Either `UIImage` or `NSImage`, depending on the platform.
+    public var image: PlatformImage
+    /// An image type.
+    public var type: AssetType?
+    /// Returns `true` if the image is a preview (progressive scan, thumbnail).
+    public var isPreview: Bool
+    /// Contains the original image data, but only if the decoder attaches it.
+    public var data: Data?
+    /// Metadata provided by the user.
+    public var userInfo: [UserInfoKey: Any]
 }
 ```
 
@@ -84,7 +95,7 @@ You can find all of the built-in decoders in the ``ImageDecoders`` namespace.
 
 ``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
-The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
+The default ``ImageDecoders/Default`` also supports progressive decoding via `CGImageSourceCreateIncremental`. It produces previews as data arrives, gated by ``ImagePipeline/PreviewPolicy`` (`.incremental` for progressive JPEGs and GIFs by default, `.disabled` for other formats).
 
 ### ImageDecoders.Video 
 

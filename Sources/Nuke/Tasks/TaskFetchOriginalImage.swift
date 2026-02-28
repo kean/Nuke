@@ -7,6 +7,7 @@ import Foundation
 /// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
 final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable {
     private var decoder: (any ImageDecoding)?
+    private var lastPreviewTime: CFAbsoluteTime?
 
     override func start() {
         dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
@@ -24,11 +25,22 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
             return // Back pressure - already decoding another progressive data chunk
         }
 
+        if !isCompleted, let last = lastPreviewTime {
+            let interval = pipeline.configuration.progressiveDecodingInterval
+            if interval > 0 && CFAbsoluteTimeGetCurrent() - last < interval {
+                return
+            }
+        }
+
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
         }
 
-        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        var decodingContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        if !isCompleted {
+            decodingContext.previewPolicy = pipeline.delegate.previewPolicy(for: decodingContext, pipeline: pipeline)
+        }
+        let context = decodingContext
         guard let decoder = getDecoder(for: context) else {
             if isCompleted {
                 send(error: .decoderNotRegistered(context: context))
@@ -48,6 +60,9 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
 
         switch result {
         case .success(let response):
+            if !context.isCompleted {
+                lastPreviewTime = CFAbsoluteTimeGetCurrent()
+            }
             send(value: response, isCompleted: context.isCompleted)
         case .failure(let error):
             if context.isCompleted {

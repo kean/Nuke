@@ -1,4 +1,14 @@
-# Nuke 12
+# Nuke 13
+
+## Nuke 13.0 (WIP)
+
+*WIP*
+
+- Add `ImagePipeline.PreviewPolicy` (`.incremental`, `.thumbnail`, `.disabled`) to control how progressive previews are generated per-request
+- Add `ImagePipelineDelegate.previewPolicy(for:pipeline:)` for customizing the policy dynamically. Default policy: `.incremental` for progressive JPEGs and GIFs, `.disabled` for everything else (baseline JPEGs, PNGs, etc.) — restoring the original behavior before `CGImageSourceCreateIncremental` was adopted
+- Add `ImagePipeline.Configuration.progressiveDecodingInterval` (default: 0.5s) to throttle progressive decoding attempts when data arrives faster than the interval
+- Refactor `ImageDecoders.Default` to fully delegate incremental decoding to Image I/O via `CGImageSourceCreateIncremental`
+- Fix progressive JPEGs with large EXIF headers not producing previews — `CGImageSourceCreateIncremental` fails to recognize these files until fully downloaded. The decoder now falls back to generating a thumbnail from a non-incremental source. The issue was raised by and the initial fix provided by @theop-luma in https://github.com/kean/Nuke/pull/835
 
 ## Nuke 12.9.0
 
@@ -171,7 +181,7 @@ Nuke 12 enhances the two main APIs introduced in the previous release: `LazyImag
 
 > The [migration guide](https://github.com/kean/Nuke/blob/nuke-12/Documentation/Migrations/Nuke%2012%20Migration%20Guide.md) is available to help with the update. The minimum requirements are unchanged from Nuke 11.
 
-## Concurrency
+### Concurrency
 
 Redesign the concurrency APIs making them more ergonomic and fully `Sendable` compliant.
 
@@ -190,7 +200,7 @@ let image = try await task.image
 - Remove the `delegate` parameter from `ImagePipeline/image(for:)` method to address the upcoming concurrency warnings in Xcode 14.3
 - Remove `ImageTaskDelegate` and move its methods to `ImagePipelineDelegate` and add the `pipeline` parameter
 
-## NukeUI 2.0
+### NukeUI 2.0
 
 NukeUI started as a separate [repo](https://github.com/kean/NukeUI), but the initial production version was released as part of [Nuke 11](https://github.com/kean/Nuke/releases/tag/11.0.0). Let's call it NukeUI 1.0. The framework was designed before the [`AsyncImage`](https://developer.apple.com/documentation/swiftui/asyncimage) announcement and had a few discrepancies that made it harder to migrate from `AsyncImage`. This release addresses the shortcomings of the original design and features a couple of performance improvements.
 
@@ -205,7 +215,7 @@ NukeUI started as a separate [repo](https://github.com/kean/NukeUI), but the ini
 - `FetchImage/image` now returns `Image` instead of `UIImage`
 - Make `_PlatformImageView` internal (was public) and remove more typealiases
 
-## Nuke
+### Nuke
 
 - Add a new initializer to `ImageRequest.ThumbnailOptions` that accepts the target size, unit, and content mode - [#677](https://github.com/kean/Nuke/pull/677)
 - ImageCache uses 20% of available RAM which is quite aggressive. It's an OK default on iOS because it clears 90% of the used RAM when entering the background to be a good citizen. But it's not a good default on a Mac. Starting with Nuke 12, the default size is now strictly limited to 512 MB.
@@ -213,7 +223,7 @@ NukeUI started as a separate [repo](https://github.com/kean/NukeUI), but the ini
 - Removes APIs deprecated in the previous versions
 - Update the [Performance Guide](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide)
 
-## NukeVideo
+### NukeVideo
 
 Video playback can be significantly [more efficient](https://web.dev/replace-gifs-with-videos/) than playing animated GIFs. This is why the initial version of NukeUI provided support for basic video playback. But it is not something that the majority of the users need, so this feature was extracted to a separate module called `NukeVideo`.
 
