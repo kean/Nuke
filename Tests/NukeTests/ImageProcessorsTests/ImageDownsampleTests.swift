@@ -72,7 +72,7 @@ import Foundation
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try #require(Test.data(name: "right-orientation", extension: "jpeg"))
+        let input = Test.data(name: "right-orientation", extension: "jpeg")
         #expect(PlatformImage(data: input)?.imageOrientation == .right)
 
         // When we resize the image to fit 320x480px frame, we expect the processor
@@ -88,7 +88,7 @@ import Foundation
     }
 
     @Test func resizeImageWithOrientationUp() throws {
-        let input = try #require(Test.data(name: "baseline", extension: "jpeg"))
+        let input = Test.data(name: "baseline", extension: "jpeg")
         #expect(PlatformImage(data: input)?.imageOrientation == .up)
 
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 300)

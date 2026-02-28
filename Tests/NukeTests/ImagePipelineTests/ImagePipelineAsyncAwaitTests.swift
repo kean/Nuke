@@ -15,8 +15,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     private var recordedPreviews: [ImageResponse] = []
     private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
-    private let callbackQueue = DispatchQueue(label: "testChangingCallbackQueue")
-    private let callbackQueueKey = DispatchSpecificKey<Void>()
 
     override func setUp() {
         super.setUp()
@@ -25,10 +23,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         pipeline = ImagePipeline(delegate: pipelineDelegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0._callbackQueue = callbackQueue
         }
-
-        callbackQueue.setSpecific(key: callbackQueueKey, value: ())
     }
 
     // MARK: - Basics

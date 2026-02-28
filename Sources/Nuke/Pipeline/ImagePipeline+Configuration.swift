@@ -124,8 +124,6 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        var _callbackQueue = DispatchQueue.main
-
         // MARK: - Options (Shared)
 
         /// `false` by default. If `true`, enables `os_signpost` logging for

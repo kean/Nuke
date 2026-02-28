@@ -13,12 +13,11 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         let pipeline = makePipeline()
 
         let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
-        let callbackQueue = DispatchQueue(label: "testLoaderOverallPerformance")
         measure {
             var finished: Int = 0
             let semaphore = DispatchSemaphore(value: 0)
             for request in requests {
-                pipeline.loadImage(with: request, queue: callbackQueue, progress: nil) { _ in
+                pipeline.loadImage(with: request, progress: nil) { _ in
                     finished += 1
                     if finished == requests.count {
                         semaphore.signal()

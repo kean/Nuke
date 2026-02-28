@@ -194,11 +194,10 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   is finished.
     @discardableResult public func loadImage(
         with request: ImageRequest,
-        queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, queue: queue, progress: {
+        _loadImage(with: request, progress: {
             progress?($0, $1.completed, $1.total)
         }, completion: completion)
     }
@@ -206,14 +205,13 @@ public final class ImagePipeline: @unchecked Sendable {
     func _loadImage(
         with request: ImageRequest,
         isDataTask: Bool = false,
-        queue callbackQueue: DispatchQueue? = nil,
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        makeStartedImageTask(with: request, isDataTask: isDataTask) { [weak self] event, task in
-            self?.dispatchCallback(to: callbackQueue) {
+        makeStartedImageTask(with: request, isDataTask: isDataTask) { event, task in
+            Self.dispatchToMainQueue {
                 // The callback-based API guarantees that after cancellation no
-                // event are called on the callback queue.
+                // events are called on the callback queue.
                 guard task.state != .cancelled else { return }
                 switch event {
                 case .started: break
@@ -228,15 +226,10 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    // nuke-13: requires callbacks to be @MainActor @Sendable or deprecate this entire API
-    private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
+    private static func dispatchToMainQueue(_ closure: @escaping () -> Void) {
         let box = UncheckedSendableBox(value: closure)
-        if callbackQueue === self.queue {
-            closure()
-        } else {
-            (callbackQueue ?? self.configuration._callbackQueue).async {
-                box.value()
-            }
+        DispatchQueue.main.async {
+            box.value()
         }
     }
 
@@ -247,20 +240,8 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - warning: Soft-deprecated in Nuke 12.9.
     @discardableResult public func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        _loadData(with: request, queue: nil, progress: nil, completion: completion)
-    }
-
-    private func _loadData(
-        with request: ImageRequest,
-        queue: DispatchQueue?,
-        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
-            progressHandler?(progress.completed, progress.total)
-        } completion: { result in
+        _loadImage(with: request, isDataTask: true, progress: nil) { result in
             let result = result.map { response in
-                // Data should never be empty
                 (data: response.container.data ?? Data(), response: response.urlResponse)
             }
             completion(result)
@@ -276,21 +257,17 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - parameters:
     ///   - request: An image request.
-    ///   - queue: A queue on which to execute `progress` and `completion`
-    ///   callbacks. By default, the pipeline uses `.main` queue.
     ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
     ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public func loadData(
         with request: ImageRequest,
-        queue: DispatchQueue? = nil,
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
+        _loadImage(with: request, isDataTask: true) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in
             let result = result.map { response in
-                // Data should never be empty
                 (data: response.container.data ?? Data(), response: response.urlResponse)
             }
             completion(result)

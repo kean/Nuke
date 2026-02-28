@@ -117,7 +117,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public var events: AsyncStream<Event> { makeStream() }
 
     /// An event produced during the runtime of the task.
-    public enum Event: Sendable {
+    @frozen public enum Event: Sendable {
         /// The task was started by the pipeline.
         case started
         /// The download progress was updated.

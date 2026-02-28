@@ -137,10 +137,13 @@ public final class ImagePrefetcher: @unchecked Sendable {
         return
     }
 
-    private func loadImage(task: Task, finish: @escaping () -> Void) {
-        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
-            self?._remove(task)
-            finish()
+    private func loadImage(task: Task, finish: @escaping @Sendable () -> Void) {
+        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, progress: nil) { [weak self] _ in
+            guard let self else { return finish() }
+            self.pipeline.queue.async {
+                self._remove(task)
+                finish()
+            }
         }
         task.onCancelled = finish
     }
