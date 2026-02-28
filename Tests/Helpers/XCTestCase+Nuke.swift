@@ -4,7 +4,7 @@
 
 import XCTest
 import Foundation
-@testable import Nuke
+import Nuke
 
 #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
 import UIKit
