@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -13,7 +13,7 @@ import AppKit
 #endif
 
 /// An image response that contains a fetched image and some metadata.
-public struct ImageResponse: @unchecked Sendable {
+public struct ImageResponse: Sendable {
     /// An image container with an image and associated metadata.
     public var container: ImageContainer
 
@@ -49,9 +49,9 @@ public struct ImageResponse: @unchecked Sendable {
 
     /// A cache type.
     public enum CacheType: Sendable {
-        /// Memory cache (see ``ImageCaching``)
+        /// Memory cache (see ``ImageCaching``).
         case memory
-        /// Disk cache (see ``DataCaching``)
+        /// Disk cache (see ``DataCaching``).
         case disk
     }
 }

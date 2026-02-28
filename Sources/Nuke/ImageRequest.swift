@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Combine
@@ -40,7 +40,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.priority = newValue } }
     }
 
-    /// Processor to be applied to the image. Empty by default.
+    /// Processors to be applied to the image. Empty by default.
     ///
     /// See <doc:image-processing> to learn more.
     public var processors: [any ImageProcessing] {
@@ -104,7 +104,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///
     /// - parameters:
     ///   - url: The request URL.
-    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
     ///   - userInfo: Custom info passed alongside the request.
@@ -136,7 +136,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///
     /// - parameters:
     ///   - urlRequest: The URLRequest describing the image request.
-    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
     ///   - userInfo: Custom info passed alongside the request.
@@ -186,7 +186,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// - parameters:
     ///   - id: Uniquely identifies the fetched image.
     ///   - data: An async function to be used to fetch image data.
-    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
     ///   - userInfo: Custom info passed alongside the request.
@@ -230,7 +230,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// - parameters:
     ///   - id: Uniquely identifies the fetched image.
     ///   - data: A data publisher to be used for fetching image data.
-    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
     ///   - options: Image loading options.
     ///   - userInfo: Custom info passed alongside the request.
@@ -279,7 +279,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// Returns a raw value.
         public let rawValue: UInt16
 
-        /// Initializes options with a given raw values.
+        /// Initializes options with a given raw value.
         public init(rawValue: UInt16) {
             self.rawValue = rawValue
         }
@@ -304,9 +304,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
         /// The image should be loaded only from the originating source.
         ///
-        /// This option only works ``ImageCaching`` and ``DataCaching``, but not
+        /// This option only works with ``ImageCaching`` and ``DataCaching``, but not
         /// `URLCache`. If you want to ignore `URLCache`, initialize the request
-        /// with `URLRequest` with the respective policy
+        /// with `URLRequest` with the respective policy.
         public static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]
 
         /// Use existing cache data and fail if no cached data is available.

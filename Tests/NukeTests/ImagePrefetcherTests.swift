@@ -1,93 +1,103 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 
-final class ImagePrefetcherTests: XCTestCase {
-    private var pipeline: ImagePipeline!
-    private var dataLoader: MockDataLoader!
-    private var dataCache: MockDataCache!
-    private var imageCache: MockImageCache!
-    private var observer: ImagePipelineObserver!
-    private var prefetcher: ImagePrefetcher!
+@Suite struct ImagePrefetcherTests {
+    private let pipeline: ImagePipeline
+    private let dataLoader: MockDataLoader
+    private let dataCache: MockDataCache
+    private let imageCache: MockImageCache
+    private let observer: ImagePipelineObserver
+    private let prefetcher: ImagePrefetcher
 
-    override func setUp() {
-        super.setUp()
-
-        dataLoader = MockDataLoader()
-        dataCache = MockDataCache()
-        imageCache = MockImageCache()
-        observer = ImagePipelineObserver()
-        pipeline = ImagePipeline(delegate: observer) {
+    init() {
+        let dataLoader = MockDataLoader()
+        let dataCache = MockDataCache()
+        let imageCache = MockImageCache()
+        let observer = ImagePipelineObserver()
+        self.dataLoader = dataLoader
+        self.dataCache = dataCache
+        self.imageCache = imageCache
+        self.observer = observer
+        let pipeline = ImagePipeline(delegate: observer) {
             $0.dataLoader = dataLoader
             $0.imageCache = imageCache
             $0.dataCache = dataCache
         }
+        self.pipeline = pipeline
         prefetcher = ImagePrefetcher(pipeline: pipeline)
-    }
-
-    override func tearDown() {
-        super.tearDown()
-
-        observer = nil
     }
 
     // MARK: Basics
 
-    /// Start prefetching for the request and then request an image separarely.
-    func testBasicScenario() {
+    /// Start prefetching for the request and then request an image separately.
+    @Test func basicScenario() async {
         dataLoader.isSuspended = true
 
-        expect(prefetcher.queue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.request])
-        wait()
-
-        expect(pipeline).toLoadImage(with: Test.request)
-        pipeline.queue.async { [dataLoader] in
-            dataLoader?.isSuspended = false
+        let queueObserver = OperationQueueObserver(queue: prefetcher.queue)
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [Test.request])
         }
-        wait()
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            pipeline.loadImage(with: Test.request, progress: nil) { _ in
+                continuation.resume()
+            }
+            pipeline.queue.async {
+                dataLoader.isSuspended = false
+            }
+        }
 
         // THEN
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertEqual(observer.startedTaskCount, 2)
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(observer.startedTaskCount == 2)
     }
 
     // MARK: Start Prefetching
 
-    func testStartPrefetching() {
-        expectPrefetcherToComplete()
-
-        // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-
-        wait()
+    @Test func startPrefetching() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN image saved in both caches
-        XCTAssertNotNil(pipeline.cache[Test.request])
-        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.request))
+        #expect(pipeline.cache[Test.request] != nil)
+        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
     }
 
-    func testStartPrefetchingWithTwoEquivalentURLs() {
+    @Test func startPrefetchingWithTwoEquivalentURLs() async {
         dataLoader.isSuspended = true
-        expectPrefetcherToComplete()
 
-        // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-        prefetcher.startPrefetching(with: [Test.url])
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+            prefetcher.startPrefetching(with: [Test.url])
 
-        pipeline.queue.async { [dataLoader] in
-            dataLoader?.isSuspended = false
+            pipeline.queue.async {
+                dataLoader.isSuspended = false
+            }
         }
-        wait()
 
         // THEN only one task is started
-        XCTAssertEqual(observer.startedTaskCount, 1)
+        #expect(observer.startedTaskCount == 1)
     }
 
-    func testWhenImageIsInMemoryCacheNoTaskStarted() {
+    @Test func whenImageIsInMemoryCacheNoTaskStarted() {
         dataLoader.isSuspended = true
 
         // GIVEN
@@ -98,195 +108,246 @@ final class ImagePrefetcherTests: XCTestCase {
         pipeline.queue.sync {}
 
         // THEN
-        XCTAssertEqual(observer.startedTaskCount, 0)
+        #expect(observer.startedTaskCount == 0)
     }
 
     // MARK: Stop Prefetching
 
-    func testStopPrefetching() {
+    @Test func stopPrefetching() async {
         dataLoader.isSuspended = true
 
-        // WHEN
         let url = Test.url
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
-        prefetcher.startPrefetching(with: [url])
-        wait()
 
-        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-        prefetcher.stopPrefetching(with: [url])
-        wait()
+        // Wait for start notification
+        await notification(ImagePipelineObserver.didStartTask, object: observer) {
+            prefetcher.startPrefetching(with: [url])
+        }
+
+        // Wait for cancel notification
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
+            prefetcher.stopPrefetching(with: [url])
+        }
     }
 
     // MARK: Destination
 
-    func testStartPrefetchingDestinationDisk() {
+    @Test func startPrefetchingDestinationDisk() async {
         // GIVEN
-        pipeline = pipeline.reconfigured {
+        let localPipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in
-                XCTFail("Expect image not to be decoded")
+                Issue.record("Expect image not to be decoded")
                 return nil
             }
         }
-        prefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
+        let localPrefetcher = ImagePrefetcher(pipeline: localPipeline, destination: .diskCache)
 
-        expectPrefetcherToComplete()
-
-        // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-
-        wait()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            localPrefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            localPrefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN image saved in both caches
-        XCTAssertNil(pipeline.cache[Test.request])
-        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.request))
+        #expect(localPipeline.cache[Test.request] == nil)
+        #expect(localPipeline.cache.cachedData(for: Test.request) != nil)
     }
 
     // MARK: Pause
 
-    func testPausingPrefetcher() {
+    @Test func pausingPrefetcher() async {
         // WHEN
         prefetcher.isPaused = true
         prefetcher.startPrefetching(with: [Test.url])
 
-        let expectation = self.expectation(description: "TimePassed")
-        pipeline.queue.asyncAfter(deadline: .now() + .milliseconds(10)) {
-            expectation.fulfill()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            pipeline.queue.asyncAfter(deadline: .now() + .milliseconds(10)) {
+                continuation.resume()
+            }
         }
-        wait()
 
         // THEN
-        XCTAssertEqual(observer.startedTaskCount, 0)
+        #expect(observer.startedTaskCount == 0)
     }
 
     // MARK: Priority
 
-    func testDefaultPrioritySetToLow() {
+    @Test func defaultPrioritySetToLow() async {
         // WHEN start prefetching with URL
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
+        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN priority is set to .low
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+        guard let operation = queueObserver.operations.first else {
+            Issue.record("Failed to find operation")
+            return
         }
-        XCTAssertEqual(operation.queuePriority, .low)
+        #expect(operation.queuePriority == .low)
 
         // Cleanup
         prefetcher.stopPrefetching()
     }
 
-    func testDefaultPriorityAffectsRequests() {
+    @Test func defaultPriorityAffectsRequests() async {
         // WHEN start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
         let request = Test.request
-        XCTAssertEqual(request.priority, .normal) // Default is .normal
-        prefetcher.startPrefetching(with: [request])
-        wait()
+        #expect(request.priority == .normal) // Default is .normal
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [request])
+        }
 
         // THEN priority is set to .low
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+        guard let operation = queueObserver.operations.first else {
+            Issue.record("Failed to find operation")
+            return
         }
-        XCTAssertEqual(operation.queuePriority, .low)
+        #expect(operation.queuePriority == .low)
     }
 
-    func testLowerPriorityThanDefaultNotAffected() {
+    @Test func lowerPriorityThanDefaultNotAffected() async {
         // WHEN start prefetching with ImageRequest with .veryLow priority
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
         var request = Test.request
         request.priority = .veryLow
-        prefetcher.startPrefetching(with: [request])
-        wait()
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [request])
+        }
 
         // THEN priority is set to .low (prefetcher priority)
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+        guard let operation = queueObserver.operations.first else {
+            Issue.record("Failed to find operation")
+            return
         }
-        XCTAssertEqual(operation.queuePriority, .low)
+        #expect(operation.queuePriority == .low)
     }
 
-    func testChangePriority() {
+    @Test func changePriority() async {
         // GIVEN
         prefetcher.priority = .veryHigh
 
         // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
+        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+        guard let operation = queueObserver.operations.first else {
+            Issue.record("Failed to find operation")
+            return
         }
-        XCTAssertEqual(operation.queuePriority, .veryHigh)
+        #expect(operation.queuePriority == .veryHigh)
     }
 
-    func testChangePriorityOfOutstandingTasks() {
+    @Test func changePriorityOfOutstandingTasks() async {
         // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
+
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            queueObserver.didAddOperation = { _ in
+                if queueObserver.operations.count == 1 {
+                    queueObserver.didAddOperation = nil
+                    continuation.resume()
+                }
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        guard let operation = queueObserver.operations.first else {
+            Issue.record("Failed to find operation")
+            return
         }
 
         // WHEN/THEN
-        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
-        prefetcher.priority = .veryLow
-        wait()
+        #expect(operation.queuePriority == .low)
+
+        var kvoObservation: NSKeyValueObservation?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            kvoObservation = operation.observe(\.queuePriority, options: [.new]) { op, _ in
+                #expect(op.queuePriority == .veryLow)
+                continuation.resume()
+            }
+            prefetcher.priority = .veryLow
+        }
+        _ = kvoObservation
     }
 
     // MARK: DidComplete
 
-    func testDidCompleteIsCalled() {
-        let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
-            expectation.fulfill()
+    @Test func didCompleteIsCalled() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
         }
-
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
     }
 
-    func testDidCompleteIsCalledWhenImageCached() {
-        let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
-            expectation.fulfill()
-        }
-
+    @Test func didCompleteIsCalledWhenImageCached() async {
         imageCache[Test.request] = Test.container
 
-        prefetcher.startPrefetching(with: [Test.request])
-        wait()
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.request])
+        }
     }
 
     // MARK: Misc
 
-    func testThatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
+    @Test func allPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() async {
         pipeline.configuration.dataLoadingQueue.isSuspended = true
 
+        var localPrefetcher: ImagePrefetcher? = ImagePrefetcher(pipeline: pipeline)
         let request = Test.request
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
-        prefetcher.startPrefetching(with: [request])
-        wait()
 
-        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-        autoreleasepool {
-            prefetcher = nil
+        // Wait for start notification
+        await notification(ImagePipelineObserver.didStartTask, object: observer) {
+            localPrefetcher?.startPrefetching(with: [request])
         }
-        wait()
-    }
 
-    func expectPrefetcherToComplete() {
-        let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
-            expectation.fulfill()
+        // Wait for cancel notification when prefetcher is deallocated
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
+            autoreleasepool {
+                localPrefetcher = nil
+            }
         }
     }
 }

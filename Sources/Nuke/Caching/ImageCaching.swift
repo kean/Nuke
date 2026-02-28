@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -11,7 +11,7 @@ public protocol ImageCaching: AnyObject, Sendable {
     /// Access the image cached for the given request.
     subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 
-    /// Removes all caches items.
+    /// Removes all cached items.
     func removeAll()
 }
 

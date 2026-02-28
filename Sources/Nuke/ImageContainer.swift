@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 #if !os(watchOS)
 import AVKit
@@ -12,10 +12,14 @@ import Foundation
 import UIKit.UIImage
 /// Alias for `UIImage`.
 public typealias PlatformImage = UIImage
+/// Alias for `UIColor`.
+public typealias PlatformColor = UIColor
 #else
 import AppKit.NSImage
 /// Alias for `NSImage`.
 public typealias PlatformImage = NSImage
+/// Alias for `NSColor`.
+public typealias PlatformColor = NSColor
 #endif
 
 /// An image container with an image and associated metadata.
@@ -59,7 +63,7 @@ public struct ImageContainer: @unchecked Sendable {
         set { mutate { $0.data = newValue } }
     }
 
-    /// An metadata provided by the user.
+    /// Metadata provided by the user.
     public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo }
         set { mutate { $0.userInfo = newValue } }
@@ -78,7 +82,7 @@ public struct ImageContainer: @unchecked Sendable {
         return copy
     }
 
-    /// A key use in ``userInfo``.
+    /// A key used in ``userInfo``.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 

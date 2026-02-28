@@ -8,7 +8,7 @@ The pipeline performs cache lookup automatically when you request an image, but 
 
 ### Fetching From Cache
 
-If you want to perform cache lookup without download the image from the network, use ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` option.
+If you want to perform cache lookup without downloading the image from the network, use ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` option.
 
 ```swift
 let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
@@ -58,7 +58,7 @@ let url = URL(string: "https://example.com/image.jpeg")!
 pipeline.cache[url] = ImageContainer(image: image)
 
 // Returns `nil` because memory cache reads are disabled
-let request = ImageRequest(url: url, options: [.disableMemoryCacheWrites])
+let request = ImageRequest(url: url, options: [.disableMemoryCacheReads])
 let image = pipeline.cache[request]
 ```
 

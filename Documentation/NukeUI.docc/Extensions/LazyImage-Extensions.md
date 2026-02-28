@@ -20,7 +20,7 @@ Until the image loads, the view displays a standard placeholder that fills the a
 
 ![nukeui demo](nukeui-preview)
 
-To gain more control over the loading process and how the image is displayed, ``LazyImage/init(url:transaction:content:)``, which takes a `content` closure that receives a ``LazyImageState``.
+To gain more control over the loading process and how the image is displayed, use ``LazyImage/init(url:transaction:content:)``, which takes a `content` closure that receives a ``LazyImageState``.
 
 ```swift
 LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -79,7 +79,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     }()
 #endif
 
-    /// Shared url cached used by a default ``DataLoader``. The cache is
+    /// Shared URL cache used by a default ``DataLoader``. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache: URLCache = {
         let diskCapacity = 150 * 1048576 // 150 MB
@@ -91,8 +91,8 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     }()
 
     public func loadData(with request: URLRequest,
-                         didReceiveData: @escaping (Data, URLResponse) -> Void,
-                         completion: @escaping (Swift.Error?) -> Void) -> any Cancellable {
+                         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                         completion: @escaping @Sendable (Swift.Error?) -> Void) -> any Cancellable {
         let task = session.dataTask(with: request)
         if #available(iOS 14.5, tvOS 14.5, watchOS 7.4, macOS 11.3, *) {
             task.prefersIncrementalDelivery = prefersIncrementalDelivery

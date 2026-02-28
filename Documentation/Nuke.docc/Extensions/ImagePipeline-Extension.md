@@ -37,7 +37,7 @@ final class AsyncImageView: UIImageView {
 }
 ```
 
-> Tip: The recommended way to load images ``ImagePipeline`` is by using Async/Await API. But the pipeline also has API that works with closures and Combine publishers.
+> Tip: The recommended way to load images with ``ImagePipeline`` is by using Async/Await API. But the pipeline also has API that works with closures and Combine publishers.
 
 ## Caching
 

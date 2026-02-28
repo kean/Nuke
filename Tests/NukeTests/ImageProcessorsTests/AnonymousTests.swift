@@ -1,39 +1,39 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
 #if !os(macOS)
     import UIKit
 #endif
 
-class ImageProcessorsAnonymousTests: XCTestCase {
+@Suite struct ImageProcessorsAnonymousTests {
 
-    func testAnonymousProcessorsHaveDifferentIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.Anonymous(id: "1", { $0 }).identifier,
+    @Test func anonymousProcessorsHaveDifferentIdentifiers() {
+        #expect(
+            ImageProcessors.Anonymous(id: "1", { $0 }).identifier ==
             ImageProcessors.Anonymous(id: "1", { $0 }).identifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Anonymous(id: "1", { $0 }).identifier,
+        #expect(
+            ImageProcessors.Anonymous(id: "1", { $0 }).identifier !=
             ImageProcessors.Anonymous(id: "2", { $0 }).identifier
         )
     }
 
-    func testAnonymousProcessorsHaveDifferentHashableIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier,
+    @Test func anonymousProcessorsHaveDifferentHashableIdentifiers() {
+        #expect(
+            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier ==
             ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier
         )
-        XCTAssertNotEqual(
-            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier,
+        #expect(
+            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier !=
             ImageProcessors.Anonymous(id: "2", { $0 }).hashableIdentifier
         )
     }
 
-    func testAnonymousProcessorIsApplied() throws {
+    @Test func anonymousProcessorIsApplied() throws {
         // Given
         let processor = ImageProcessors.Anonymous(id: "1") {
             $0.nk_test_processorIDs = ["1"]
@@ -41,9 +41,9 @@ class ImageProcessorsAnonymousTests: XCTestCase {
         }
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image))
+        let image = try #require(processor.process(Test.image))
 
         // Then
-        XCTAssertEqual(image.nk_test_processorIDs, ["1"])
+        #expect(image.nk_test_processorIDs == ["1"])
     }
 }

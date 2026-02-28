@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -25,7 +25,7 @@ import UIKit
 /// imageView.onCompletion = { _ in print("Request completed") }
 ///
 /// imageView.url = URL(string: "https://example.com/image.jpeg")
-/// ````
+/// ```
 @MainActor
 public final class LazyImageView: _PlatformBaseView {
 
@@ -71,7 +71,7 @@ public final class LazyImageView: _PlatformBaseView {
         didSet { setFailureView(oldValue, failureView) }
     }
 
-    /// The position of the failure vuew. `.fill` by default.
+    /// The position of the failure view. `.fill` by default.
     ///
     /// It also affects `failureImage` because it gets converted to a view.
     public var failureViewPosition: SubviewPosition = .fill {
@@ -86,8 +86,8 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Transition
 
-    /// A animated transition to be performed when displaying a loaded image
-    /// By default, `.fadeIn(duration: 0.33)`.
+    /// An animated transition to be performed when displaying a loaded image.
+    /// `.fadeIn(duration: 0.33)` by default.
     public var transition: Transition?
 
     /// An animated transition.
@@ -121,11 +121,11 @@ public final class LazyImageView: _PlatformBaseView {
 
     /// Processors to be applied to the image. `nil` by default.
     ///
-    /// If you pass an image requests with a non-empty list of processors as
+    /// If you pass an image request with a non-empty list of processors as
     /// a source, your processors will be applied instead.
     public var processors: [any ImageProcessing]?
 
-    /// Sets the priority of the image task. The priorit can be changed
+    /// Sets the priority of the image task. The priority can be changed
     /// dynamically. `nil` by default.
     public var priority: ImageRequest.Priority? {
         didSet {
@@ -152,10 +152,10 @@ public final class LazyImageView: _PlatformBaseView {
     /// Gets called when the request progress is updated.
     public var onProgress: ((ImageTask.Progress) -> Void)?
 
-    /// Gets called when the requests finished successfully.
+    /// Gets called when the request finishes successfully.
     public var onSuccess: ((ImageResponse) -> Void)?
 
-    /// Gets called when the requests fails.
+    /// Gets called when the request fails.
     public var onFailure: ((Error) -> Void)?
 
     /// Gets called when the request is completed.

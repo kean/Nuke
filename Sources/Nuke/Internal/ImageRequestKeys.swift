@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -46,8 +46,8 @@ final class TaskLoadImageKey: Hashable, Sendable {
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(loadKey.hashValue)
-        hasher.combine(options.hashValue)
+        hasher.combine(loadKey)
+        hasher.combine(options)
         hasher.combine(processors.count)
     }
 

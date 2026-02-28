@@ -1,20 +1,19 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 import Combine
+import Foundation
 
-class ImagePublisherTests: XCTestCase {
-    var dataLoader: MockDataLoader!
-    var pipeline: ImagePipeline!
-    var cancellable: AnyCancellable?
+@Suite struct ImagePublisherTests {
+    private let dataLoader: MockDataLoader
+    private let pipeline: ImagePipeline
 
-    override func setUp() {
-        super.setUp()
-
-        dataLoader = MockDataLoader()
+    init() {
+        let dataLoader = MockDataLoader()
+        self.dataLoader = dataLoader
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
@@ -23,7 +22,7 @@ class ImagePublisherTests: XCTestCase {
 
     // MARK: Common Use Cases
 
-    func testLowDataMode() {
+    @Test func lowDataMode() async {
         // GIVEN
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
         let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
@@ -32,10 +31,10 @@ class ImagePublisherTests: XCTestCase {
         dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
 
         // WHEN
-        let pipeline = self.pipeline!
+        let pipeline = self.pipeline
 
         // Create the default request to fetch the high quality image.
-        var urlRequest = URLRequest(url: highQualityImageURL)
+        var urlRequest = Foundation.URLRequest(url: highQualityImageURL)
         urlRequest.allowsConstrainedNetworkAccess = false
         let request = ImageRequest(urlRequest: urlRequest)
 
@@ -47,58 +46,65 @@ class ImagePublisherTests: XCTestCase {
             return pipeline.imagePublisher(with: lowQualityImageURL)
         }
 
-        let expectation = self.expectation(description: "LowDataImageFetched")
-        cancellable = publisher.sink(receiveCompletion: { result in
-            switch result {
-            case .finished:
-                break // Expected result
-            case .failure:
-                XCTFail()
-            }
-        }, receiveValue: {
-            XCTAssertNotNil($0.image)
-            expectation.fulfill()
-        })
-        wait()
+        var cancellable: AnyCancellable?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            cancellable = publisher.sink(receiveCompletion: { result in
+                switch result {
+                case .finished:
+                    break // Expected result
+                case .failure:
+                    Issue.record("Expected success")
+                }
+            }, receiveValue: { _ in
+                continuation.resume()
+            })
+        }
+        _ = cancellable
     }
 
     // MARK: Basics
 
-    func testSyncCacheLookup() {
+    @Test func syncCacheLookup() {
         // GIVEN
         let cache = MockImageCache()
         cache[Test.request] = ImageContainer(image: Test.image)
-        pipeline = pipeline.reconfigured {
+        let pipeline = pipeline.reconfigured {
             $0.imageCache = cache
         }
 
         // WHEN
         var image: PlatformImage?
-        cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { result in
+        let cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { result in
             switch result {
             case .finished:
                 break // Expected result
             case .failure:
-                XCTFail()
+                Issue.record("Expected success")
             }
         }, receiveValue: {
             image = $0.image
         })
+        _ = cancellable
 
         // THEN image returned synchronously
-        XCTAssertNotNil(image)
+        #expect(image != nil)
     }
 
-    func testCancellation() {
+    @Test func cancellation() async {
         dataLoader.queue.isSuspended = true
 
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-        wait() // Wait till operation is created
+        var cancellable: AnyCancellable?
 
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-        cancellable.cancel()
-        wait()
+        // Wait for start notification
+        await notification(MockDataLoader.DidStartTask, object: dataLoader) {
+            cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+        }
+
+        // Wait for cancel notification
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
+            cancellable?.cancel()
+        }
+        _ = cancellable
     }
 }
 

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -11,8 +11,8 @@ public protocol DataLoading: Sendable {
     /// - parameter completion: Must be called once after all (or none in case
     /// of an error) `didReceiveData` closures have been called.
     func loadData(with request: URLRequest,
-                  didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> any Cancellable
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable
 }
 
 /// A unit of work that can be cancelled.

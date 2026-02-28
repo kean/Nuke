@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -457,7 +457,7 @@ extension ImageTask.Event: @retroactive Equatable {
     }
 }
 #else
-extension ImageTask.Event: Equatable {
+extension ImageTask.Event: @retroactive Equatable {
     public static func == (lhs: ImageTask.Event, rhs: ImageTask.Event) -> Bool {
         switch (lhs, rhs) {
         case let (.progress(lhs), .progress(rhs)):

@@ -12,7 +12,7 @@ This guide is provided in order to ease the transition of existing applications 
 
 Nuke 5 is a relatively small release which removes some of the complexity from the framework. Hopefully it will make *contributing* to Nuke easier.
 
-One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downsides of promises are compelex memory management, extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
+One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downsides of promises are complex memory management, extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems than they were solving. 
 
 Chances are that changes made in Nuke 5 are not going to affect your code.
 
@@ -37,8 +37,8 @@ Chances are that changes made in Nuke 5 are not going to affect your code.
 > - `Manager` now has new methods to load images w/o target (Nuke 5.0.1)
 
 - If you're not constructing a custom `Loader` and you're not using it directly this change doesn't affect you
-- If you're using custom `Loader` directly and rely on its memory caching please new `Manager` APIs that load images w/o target
-- If you're constructing a custom `Loader` but don't use it directly then simply update to a new initializer which not longer requires you to pass memory cache in
+- If you're using custom `Loader` directly and rely on its memory caching, please use the new `Manager` APIs that load images w/o target
+- If you're constructing a custom `Loader` but don't use it directly then simply update to a new initializer which no longer requires you to pass memory cache in
 
 ### Removed `DataCaching` and `CachingDataLoader`
 

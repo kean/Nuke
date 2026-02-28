@@ -1,14 +1,15 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 
 // Test ResumableData directly to make sure it makes the right decisions based
 // on HTTP flows.
-class ResumableDataTests: XCTestCase {
-    func testResumingRequest() {
+@Suite struct ResumableDataTests {
+    @Test func resumingRequest() {
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "Content-Length": "2000",
@@ -19,22 +20,22 @@ class ResumableDataTests: XCTestCase {
         data.resume(request: &request)
 
         // Check that we've set both required "range" filed
-        XCTAssertEqual(request.allHTTPHeaderFields?["Range"], "bytes=1000-")
-        XCTAssertEqual(request.allHTTPHeaderFields?["If-Range"], "1234")
+        #expect(request.allHTTPHeaderFields?["Range"] == "bytes=1000-")
+        #expect(request.allHTTPHeaderFields?["If-Range"] == "1234")
     }
 
-    func testCheckingResumedResponse() {
-        XCTAssertTrue(ResumableData.isResumedResponse(_makeResponse(statusCode: 206)))
+    @Test func checkingResumedResponse() {
+        #expect(ResumableData.isResumedResponse(_makeResponse(statusCode: 206)))
 
         // Need to load new data
-        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 200)))
+        #expect(!ResumableData.isResumedResponse(_makeResponse(statusCode: 200)))
 
-        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 404)))
+        #expect(!ResumableData.isResumedResponse(_makeResponse(statusCode: 404)))
     }
 
     // MARK: - Creation (Positive)
 
-    func testCreateWithETag() {
+    @Test func createWithETag() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -44,12 +45,12 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNotNil(data)
-        XCTAssertEqual(data?.data.count, 1000)
-        XCTAssertEqual(data?.validator, "1234")
+        #expect(data != nil)
+        #expect(data?.data.count == 1000)
+        #expect(data?.validator == "1234")
     }
 
-    func testCreateWithETagSpelledIncorrectly() {
+    @Test func createWithETagSpelledIncorrectly() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -59,12 +60,12 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNotNil(data)
-        XCTAssertEqual(data?.data.count, 1000)
-        XCTAssertEqual(data?.validator, "1234")
+        #expect(data != nil)
+        #expect(data?.data.count == 1000)
+        #expect(data?.validator == "1234")
     }
 
-    func testCreateWithLastModified() {
+    @Test func createWithLastModified() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -74,12 +75,12 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNotNil(data)
-        XCTAssertEqual(data?.data.count, 1000)
-        XCTAssertEqual(data?.validator, "Wed, 21 Oct 2015 07:28:00 GMT")
+        #expect(data != nil)
+        #expect(data?.data.count == 1000)
+        #expect(data?.validator == "Wed, 21 Oct 2015 07:28:00 GMT")
     }
 
-    func testCreateWithBothValidators() {
+    @Test func createWithBothValidators() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -90,14 +91,14 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNotNil(data)
-        XCTAssertEqual(data?.data.count, 1000)
-        XCTAssertEqual(data?.validator, "1234")
+        #expect(data != nil)
+        #expect(data?.data.count == 1000)
+        #expect(data?.validator == "1234")
     }
 
-    // We should store resumable data not just for statuc code "200 OK", but also
+    // We should store resumable data not just for status code "200 OK", but also
     // for "206 Partial Content" in case the resumed download fails.
-    func testCreateWithStatusCodePartialContent() {
+    @Test func createWithStatusCodePartialContent() {
         // Given
         let response = _makeResponse(statusCode: 206, headers: [
             "Accept-Ranges": "bytes",
@@ -107,14 +108,14 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNotNil(data)
-        XCTAssertEqual(data?.data.count, 1000)
-        XCTAssertEqual(data?.validator, "1234")
+        #expect(data != nil)
+        #expect(data?.data.count == 1000)
+        #expect(data?.validator == "1234")
     }
 
     // MARK: - Creation (Negative)
 
-    func testCreateWithEmptyData() {
+    @Test func createWithEmptyData() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -124,19 +125,19 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: Data())
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWithNotHTTPResponse() {
+    @Test func createWithNotHTTPResponse() {
         // Given
         let response = URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 10000, textEncodingName: nil)
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWithInvalidStatusCode() {
+    @Test func createWithInvalidStatusCode() {
         // Given
         let response = _makeResponse(statusCode: 304, headers: [
             "Accept-Ranges": "bytes",
@@ -146,10 +147,10 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWithMissingValidator() {
+    @Test func createWithMissingValidator() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -158,10 +159,10 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWithMissingAcceptRanges() {
+    @Test func createWithMissingAcceptRanges() {
         // Given
         let response = _makeResponse(headers: [
             "ETag": "1234",
@@ -170,10 +171,10 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWithAcceptRangesNone() {
+    @Test func createWithAcceptRangesNone() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "none",
@@ -183,10 +184,10 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 
-    func testCreateWhenFullDataIsLoaded() {
+    @Test func createWhenFullDataIsLoaded() {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "none",
@@ -196,7 +197,7 @@ class ResumableDataTests: XCTestCase {
         let data = ResumableData(response: response, data: _data)
 
         // Then
-        XCTAssertNil(data)
+        #expect(data == nil)
     }
 }
 

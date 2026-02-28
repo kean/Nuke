@@ -1,8 +1,8 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
 #if !os(macOS)
@@ -11,9 +11,9 @@ import XCTest
 
 // MARK: - ImageProcessors.Composition
 
-class ImageProcessorsCompositionTest: XCTestCase {
+@Suite struct ImageProcessorsCompositionTests {
 
-    func testAppliesAllProcessors() throws {
+    @Test func appliesAllProcessors() throws {
         // GIVEN
         let processor = ImageProcessors.Composition([
             MockImageProcessor(id: "1"),
@@ -21,13 +21,13 @@ class ImageProcessorsCompositionTest: XCTestCase {
         )
 
         // WHEN
-        let image = try XCTUnwrap(processor.process(Test.image))
+        let image = try #require(processor.process(Test.image))
 
         // THEN
-        XCTAssertEqual(image.nk_test_processorIDs, ["1", "2"])
+        #expect(image.nk_test_processorIDs == ["1", "2"])
     }
 
-    func testAppliesAllProcessorsWithContext() throws {
+    @Test func appliesAllProcessorsWithContext() throws {
         // GIVEN
         let processor = ImageProcessors.Composition([
             MockImageProcessor(id: "1"),
@@ -39,67 +39,67 @@ class ImageProcessorsCompositionTest: XCTestCase {
         let output = try processor.process(Test.container, context: context)
 
         // THEN
-        XCTAssertEqual(output.image.nk_test_processorIDs, ["1", "2"])
+        #expect(output.image.nk_test_processorIDs == ["1", "2"])
     }
 
-    func testIdenfitiers() {
-        // Given different processors
+    @Test func identifiers() {
+        // GIVEN different processors
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "2")])
 
-        // Then
-        XCTAssertNotEqual(lhs, rhs)
-        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
-        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+        // THEN
+        #expect(lhs != rhs)
+        #expect(lhs.identifier != rhs.identifier)
+        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
-    func testIdentifiersDifferentProcessorCount() {
-        // Given processors with different processor count
+    @Test func identifiersDifferentProcessorCount() {
+        // GIVEN processors with different processor count
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
-        // Then
-        XCTAssertNotEqual(lhs, rhs)
-        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
-        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+        // THEN
+        #expect(lhs != rhs)
+        #expect(lhs.identifier != rhs.identifier)
+        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
-    func testIdenfitiersEqualProcessors() {
-        // Given processors with equal processors
+    @Test func identifiersEqualProcessors() {
+        // GIVEN processors with equal processors
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
-        // Then
-        XCTAssertEqual(lhs, rhs)
-        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
-        XCTAssertEqual(lhs.identifier, rhs.identifier)
-        XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+        // THEN
+        #expect(lhs == rhs)
+        #expect(lhs.hashValue == rhs.hashValue)
+        #expect(lhs.identifier == rhs.identifier)
+        #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
     }
 
-    func testIdentifiersWithSameProcessorsButInDifferentOrder() {
-        // Given processors with equal processors but in different order
+    @Test func identifiersWithSameProcessorsButInDifferentOrder() {
+        // GIVEN processors with equal processors but in different order
         let lhs = ImageProcessors.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
-        // Then
-        XCTAssertNotEqual(lhs, rhs)
-        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
-        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+        // THEN
+        #expect(lhs != rhs)
+        #expect(lhs.identifier != rhs.identifier)
+        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
-    func testIdenfitiersEmptyProcessors() {
-        // Given empty processors
+    @Test func identifiersEmptyProcessors() {
+        // GIVEN empty processors
         let lhs = ImageProcessors.Composition([])
         let rhs = ImageProcessors.Composition([])
 
-        // Then
-        XCTAssertEqual(lhs, rhs)
-        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
-        XCTAssertEqual(lhs.identifier, rhs.identifier)
-        XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+        // THEN
+        #expect(lhs == rhs)
+        #expect(lhs.hashValue == rhs.hashValue)
+        #expect(lhs.identifier == rhs.identifier)
+        #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
     }
 
-    func testThatIdentifiesAreFlattened() {
+    @Test func thatIdentifiesAreFlattened() {
         let lhs = ImageProcessors.Composition([
             ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),
             ImageProcessors.Composition([MockImageProcessor(id: "3"), MockImageProcessor(id: "4")])]
@@ -109,17 +109,17 @@ class ImageProcessorsCompositionTest: XCTestCase {
             MockImageProcessor(id: "3"), MockImageProcessor(id: "4")]
         )
 
-        // Then
-        XCTAssertEqual(lhs.identifier, rhs.identifier)
+        // THEN
+        #expect(lhs.identifier == rhs.identifier)
     }
 
-    func testDescription() {
+    @Test func description() {
         // GIVEN
         let processor = ImageProcessors.Composition([
             ImageProcessors.Circle()
         ])
 
         // THEN
-        XCTAssertEqual("\(processor)", "Composition(processors: [Circle(border: nil)])")
+        #expect("\(processor)" == "Composition(processors: [Circle(border: nil)])")
     }
 }

@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -174,8 +174,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
 
     private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
         guard !response.container.isPreview,
-              !(response.cacheType == .disk),
-              !(request.url?.isLocalResource ?? false) else {
+              !(response.cacheType == .disk) else {
             return false
         }
         let isProcessed = !request.processors.isEmpty || request.thumbnail != nil

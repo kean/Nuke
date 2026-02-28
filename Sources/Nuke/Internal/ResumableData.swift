@@ -1,12 +1,12 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-struct ResumableData: @unchecked Sendable {
+struct ResumableData: Sendable {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 

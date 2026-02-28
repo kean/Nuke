@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 #if !os(watchOS) && !os(visionOS)
 
@@ -55,7 +55,7 @@ extension ImageDecoders {
 }
 
 extension ImageContainer.UserInfoKey {
-    /// A key for a video asset (`AVAsset`)
+    /// A key for a video asset (`AVAsset`).
     public static let videoAssetKey: ImageContainer.UserInfoKey = "com.github/kean/nuke/video-asset"
 }
 

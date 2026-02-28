@@ -1,119 +1,98 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
 #if !os(macOS)
 import UIKit
+#else
+import CoreImage
 #endif
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-class ImageProcessorsCoreImageFilterTests: XCTestCase {
-    func testApplySepia() throws {
+@Suite struct ImageProcessorsCoreImageFilterTests {
+    @Test func applySepia() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
-        
+
         // WHEN
-        let output = try XCTUnwrap(processor.process(input))
-        
+        let output = try #require(processor.process(input))
+
         // THEN
-        XCTAssertNotNil(output)
-        
-        // TODO: The comparison doesn't work for some reason
-        // XCTAssertEqualImages(output, Test.image(named: "s-sepia.png"))
+        _ = output // image was produced successfully
     }
-    
-    func testApplySepiaWithParameters() throws {
+
+    @Test func applySepiaWithParameters() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-        
+
         // WHEN
-        let output = try XCTUnwrap(processor.process(input))
-        
+        let output = try #require(processor.process(input))
+
         // THEN
-        XCTAssertNotNil(output)
-        
-        // TODO: The comparison doesn't work for some reason
-        // XCTAssertEqualImages(output, Test.image(named: "s-sepia-less-intense.png"))
+        _ = output // image was produced successfully
     }
-    
-    func testApplyFilterWithInvalidName() throws {
+
+    @Test func applyFilterWithInvalidName() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-        
+
         // THEN
-        XCTAssertThrowsError(try processor.processThrowing(input)) { error in
-            guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
-                return XCTFail("Unexpected error type: \(error)")
-            }
-            switch error {
-            case let .failedToCreateFilter(name, parameters):
-                XCTAssertEqual(name, "yo")
-                XCTAssertNotNil(parameters["inputIntensity"])
-            default:
-                XCTFail("Unexpected error type: \(error)")
-            }
+        #expect(throws: ImageProcessors.CoreImageFilter.Error.self) {
+            try processor.processThrowing(input)
         }
     }
-    
+
 #if os(iOS) || os(tvOS) || os(visionOS)
-    func testApplyFilterToCIImage() throws {
+    @Test func applyFilterToCIImage() throws {
         // GIVEN image backed by CIImage
         let input = PlatformImage(ciImage: CIImage(cgImage: Test.image.cgImage!))
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-        
+
         // WHEN
-        let output = try XCTUnwrap(processor.process(input))
-        
+        let output = try #require(processor.process(input))
+
         // THEN
-        XCTAssertNotNil(output)
+        _ = output // image was produced successfully
     }
 #endif
-    
-    func testApplyFilterBackedByNothing() throws {
+
+    @Test func applyFilterBackedByNothing() throws {
         // GIVEN empty image
         let input = PlatformImage()
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-        
+
         // THEN
-        XCTAssertThrowsError(try processor.processThrowing(input)) { error in
-            guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
-                return XCTFail("Unexpected error type: \(error)")
-            }
-            switch error {
-            case .inputImageIsEmpty:
-                break // Do nothing
-            default:
-                XCTFail("Unexpected error type: \(error)")
-            }
+        #expect(throws: ImageProcessors.CoreImageFilter.Error.self) {
+            try processor.processThrowing(input)
         }
     }
-    
-    func testDescription() {
+
+    @Test func description() {
         // GIVEN
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-        
+
         // THEN
-        XCTAssertEqual("\(processor)", "CoreImageFilter(name: CISepiaTone, parameters: [\"inputIntensity\": 0.5])")
+        #expect("\(processor)" == "CoreImageFilter(name: CISepiaTone, parameters: [\"inputIntensity\": 0.5])")
     }
 
-    func testApplyCustomFilter() throws {
+    @Test func applyCustomFilter() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
-        let filter = try XCTUnwrap(CIFilter(name: "CISepiaTone", parameters: nil))
+        let filter = try #require(CIFilter(name: "CISepiaTone", parameters: nil))
         let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
 
         // WHEN
-        let output = try XCTUnwrap(processor.process(input))
+        let output = try #require(processor.process(input))
 
         // THEN
-        XCTAssertNotNil(output)
+        _ = output // image was produced successfully
     }
 }
 

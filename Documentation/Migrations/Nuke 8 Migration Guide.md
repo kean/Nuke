@@ -87,7 +87,7 @@ public protocol ImageProcessing {
 }
 ```
 
-An example of migrating a custom processors.
+An example of migrating a custom processor.
 
 **Before:**
 
@@ -128,7 +128,7 @@ struct GaussianBlur: ImageProcessing, Hashable {
 
 > **Affects you if you are using `ImageDisplaying` protocol directly.**
 
-`ImageDisplaying` protocol was a pure @objc protocol which didn't have any prefixes which meant that it could result in collisions with other methods/protocols in ObjC runtime. In order to reduce the change of collision, the `Nuke_` prefixes were added in Nuke 8.
+`ImageDisplaying` protocol was a pure @objc protocol which didn't have any prefixes which meant that it could result in collisions with other methods/protocols in ObjC runtime. In order to reduce the chance of collision, the `Nuke_` prefixes were added in Nuke 8.
 
 **Before:**
 
@@ -146,6 +146,6 @@ struct GaussianBlur: ImageProcessing, Hashable {
 }
 ```
 
-You need to update these protocols and method to the new methods.
+You need to update these protocols and methods to the new ones.
 
 

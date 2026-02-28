@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -47,7 +47,7 @@ public struct LazyImage<Content: View>: View {
         self.transaction = Transaction(animation: nil)
     }
 
-    /// Loads an images and displays custom content for each state.
+    /// Loads an image and displays custom content for each state.
     ///
     /// See also ``init(request:transaction:content:)``
     public init(url: URL?,
@@ -56,7 +56,7 @@ public struct LazyImage<Content: View>: View {
         self.init(request: url.map { ImageRequest(url: $0) }, transaction: transaction, content: content)
     }
 
-    /// Loads an images and displays custom content for each state.
+    /// Loads an image and displays custom content for each state.
     ///
     /// - Parameters:
     ///   - request: The image request.
@@ -85,7 +85,7 @@ public struct LazyImage<Content: View>: View {
 
     /// Sets processors to be applied to the image.
     ///
-    /// If you pass an image requests with a non-empty list of processors as
+    /// If you pass an image request with a non-empty list of processors as
     /// a source, your processors will be applied instead.
     public func processors(_ processors: [any ImageProcessing]?) -> Self {
         map { $0.context?.request.processors = processors ?? [] }
@@ -105,7 +105,7 @@ public struct LazyImage<Content: View>: View {
         /// Cancels the current request but keeps the presentation state of
         /// the already displayed image.
         case cancel
-        /// Lowers the request's priority to very low
+        /// Lowers the request's priority to very low.
         case lowerPriority
     }
 

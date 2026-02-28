@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 #if canImport(UIKit)
 import UIKit
@@ -33,7 +33,7 @@ extension ImageEncoding {
 }
 
 /// Image encoding context used when selecting which encoder to use.
-public struct ImageEncodingContext: @unchecked Sendable {
+public struct ImageEncodingContext: Sendable {
     public let request: ImageRequest
     public let image: PlatformImage
     public let urlResponse: URLResponse?

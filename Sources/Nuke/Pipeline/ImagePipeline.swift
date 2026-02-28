@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Combine
@@ -156,6 +156,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads an image for the given request.
     ///
+    /// - warning: Soft-deprecated in Nuke 12.9.
+    ///
     /// - parameters:
     ///   - request: An image request.
     ///   - completion: A closure to be called on the main thread when the request
@@ -181,6 +183,8 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     /// Loads an image for the given request.
+    ///
+    /// - warning: Soft-deprecated in Nuke 12.9.
     ///
     /// - parameters:
     ///   - request: An image request.
@@ -239,6 +243,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
+    ///
+    /// - warning: Soft-deprecated in Nuke 12.9.
     @discardableResult public func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         _loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
@@ -426,13 +432,13 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Deprecated
 
     // Deprecated in Nuke 12.7
-    @available(*, deprecated, message: "Please the variant variant that accepts `ImageRequest` as a parameter")
+    @available(*, deprecated, message: "Please use the variant that accepts `ImageRequest` as a parameter")
     @discardableResult public func loadData(with url: URL, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
     }
 
     // Deprecated in Nuke 12.7
-    @available(*, deprecated, message: "Please the variant that accepts `ImageRequest` as a parameter")
+    @available(*, deprecated, message: "Please use the that accepts `ImageRequest` as a parameter")
     @discardableResult public func data(for url: URL) async throws -> (Data, URLResponse?) {
         try await data(for: ImageRequest(url: url))
     }

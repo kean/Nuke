@@ -1,28 +1,24 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 
-class RateLimiterTests: XCTestCase {
-    var queue: DispatchQueue!
-    var queueKey: DispatchSpecificKey<Void>!
-    var rateLimiter: RateLimiter!
+@Suite struct RateLimiterTests {
+    private let queue: DispatchQueue
+    private let queueKey: DispatchSpecificKey<Void>
+    private let rateLimiter: RateLimiter
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         queue = DispatchQueue(label: "com.github.kean.rate-limiter-tests")
-
         queueKey = DispatchSpecificKey<Void>()
         queue.setSpecific(key: queueKey, value: ())
-
-        // Note: we set very short rate to avoid bucket form being refilled too quickly
         rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
     }
 
-    func testThatBurstIsExecutedimmediately() {
+    @Test func burstIsExecutedImmediately() {
         // Given
         var isExecuted = Array(repeating: false, count: 4)
 
@@ -37,10 +33,10 @@ class RateLimiterTests: XCTestCase {
         }
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, false, false])
     }
 
-    func testThatNotExecutedItemDoesntExtractFromBucket() {
+    @Test func notExecutedItemDoesntExtractFromBucket() {
         // Given
         var isExecuted = Array(repeating: false, count: 4)
 
@@ -49,59 +45,61 @@ class RateLimiterTests: XCTestCase {
             queue.sync {
                 rateLimiter.execute {
                     isExecuted[i] = true
-                    return i != 1 // important!
+                    return i != 1
                 }
             }
         }
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, true, false])
     }
 
-    func testOverflow() {
+    @Test func overflow() async {
         // Given
         var isExecuted = Array(repeating: false, count: 3)
 
         // When
-        let expectation = self.expectation(description: "All work executed")
-        expectation.expectedFulfillmentCount = isExecuted.count
-
-        queue.sync {
-            for i in isExecuted.indices {
-                rateLimiter.execute {
-                    isExecuted[i] = true
-                    expectation.fulfill()
-                    return true
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            var remaining = 3
+            queue.sync {
+                for i in 0..<3 {
+                    rateLimiter.execute {
+                        isExecuted[i] = true
+                        remaining -= 1
+                        if remaining == 0 {
+                            continuation.resume()
+                        }
+                        return true
+                    }
                 }
             }
         }
-
-        // When time is passed
-        wait()
 
         // Then
         queue.sync {
-            XCTAssertEqual(isExecuted, [true, true, true], "Expect 3rd item to be executed after a short delay")
+            #expect(isExecuted == [true, true, true])
         }
     }
 
-    func testOverflowItemsExecutedOnSpecificQueue() {
+    @Test func overflowItemsExecutedOnSpecificQueue() async {
         // Given
-        let isExecuted = Array(repeating: false, count: 3)
+        let queueKey = self.queueKey
 
-        let expectation = self.expectation(description: "All work executed")
-        expectation.expectedFulfillmentCount = isExecuted.count
-
-        queue.sync {
-            for _ in isExecuted.indices {
-                rateLimiter.execute {
-                    expectation.fulfill()
-                    // Then delayed task also executed on queue
-                    XCTAssertNotNil(DispatchQueue.getSpecific(key: self.queueKey))
-                    return true
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            var remaining = 3
+            queue.sync {
+                for _ in 0..<3 {
+                    rateLimiter.execute {
+                        // Then delayed task also executed on queue
+                        #expect(DispatchQueue.getSpecific(key: queueKey) != nil)
+                        remaining -= 1
+                        if remaining == 0 {
+                            continuation.resume()
+                        }
+                        return true
+                    }
                 }
             }
         }
-        wait()
     }
 }

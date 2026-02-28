@@ -1,8 +1,8 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
 @testable import Nuke
 
 #if !os(macOS)
@@ -11,62 +11,62 @@ import XCTest
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-class ImageProcessorsGaussianBlurTest: XCTestCase {
-    func testApplyBlur() {
+@Suite struct ImageProcessorsGaussianBlurTests {
+    @Test func applyBlur() {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
-        XCTAssertFalse(processor.description.isEmpty) // Bumping that test coverage
+        #expect(!processor.description.isEmpty)
 
         // When
-        XCTAssertNotNil(processor.process(image))
+        #expect(processor.process(image) != nil)
     }
 
-    func testApplyBlurProducesImagesBackedByCoreGraphics() {
+    @Test func applyBlurProducesImagesBackedByCoreGraphics() {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        XCTAssertNotNil(processor.process(image))
+        #expect(processor.process(image) != nil)
     }
 
-    func testApplyBlurProducesTransparentImages() throws {
+    @Test func applyBlurProducesTransparentImages() throws {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        let processed = try XCTUnwrap(processor.process(image))
+        let processed = try #require(processor.process(image))
 
         // Then
-        XCTAssertEqual(processed.cgImage?.isOpaque, false)
+        #expect(processed.cgImage?.isOpaque == false)
     }
 
-    func testImagesWithSameRadiusHasSameIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.GaussianBlur(radius: 2).identifier,
+    @Test func imagesWithSameRadiusHasSameIdentifiers() {
+        #expect(
+            ImageProcessors.GaussianBlur(radius: 2).identifier ==
             ImageProcessors.GaussianBlur(radius: 2).identifier
         )
     }
 
-    func testImagesWithDifferentRadiusHasDifferentIdentifiers() {
-        XCTAssertNotEqual(
-            ImageProcessors.GaussianBlur(radius: 2).identifier,
+    @Test func imagesWithDifferentRadiusHasDifferentIdentifiers() {
+        #expect(
+            ImageProcessors.GaussianBlur(radius: 2).identifier !=
             ImageProcessors.GaussianBlur(radius: 3).identifier
         )
     }
 
-    func testImagesWithSameRadiusHasSameHashableIdentifiers() {
-        XCTAssertEqual(
-            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier,
+    @Test func imagesWithSameRadiusHasSameHashableIdentifiers() {
+        #expect(
+            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier ==
             ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier
         )
     }
 
-    func testImagesWithDifferentRadiusHasDifferentHashableIdentifiers() {
-        XCTAssertNotEqual(
-            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier,
+    @Test func imagesWithDifferentRadiusHasDifferentHashableIdentifiers() {
+        #expect(
+            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier !=
             ImageProcessors.GaussianBlur(radius: 3).hashableIdentifier
         )
     }

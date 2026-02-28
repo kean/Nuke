@@ -1,12 +1,12 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
 extension ImagePipeline {
     /// The pipeline configuration.
-    public struct Configuration: @unchecked Sendable {
+    public struct Configuration: Sendable {
         // MARK: - Dependencies
 
         /// Data loader used by the pipeline.
@@ -91,7 +91,7 @@ extension ImagePipeline {
         public var isTaskCoalescingEnabled = true
 
         /// `true` by default. If `true` the pipeline will rate limit requests
-        /// to prevent trashing of the underlying systems (e.g. `URLSession`).
+        /// to prevent thrashing of the underlying systems (e.g. `URLSession`).
         /// The rate limiter only comes into play when the requests are started
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
         public var isRateLimiterEnabled = true
@@ -182,14 +182,14 @@ extension ImagePipeline {
         /// of 150 MB. This is a default configuration.
         ///
         /// Also uses ``ImageCache/shared`` for in-memory caching with the size
-        /// that adjusts bsed on the amount of device memory.
+        /// that adjusts based on the amount of device memory.
         public static var withURLCache: Configuration { Configuration() }
 
         /// A configuration with an aggressive disk cache (``DataCache``) with a
         /// size limit of 150 MB. An HTTP cache (`URLCache`) is disabled.
         ///
         /// Also uses ``ImageCache/shared`` for in-memory caching with the size
-        /// that adjusts bsed on the amount of device memory.
+        /// that adjusts based on the amount of device memory.
         public static var withDataCache: Configuration {
             withDataCache()
         }
@@ -198,7 +198,7 @@ extension ImagePipeline {
         /// size limit of 150 MB by default. An HTTP cache (`URLCache`) is disabled.
         ///
         /// Also uses ``ImageCache/shared`` for in-memory caching with the size
-        /// that adjusts bsed on the amount of device memory.
+        /// that adjusts based on the amount of device memory.
         ///
         /// - parameters:
         ///   - name: Data cache name.
