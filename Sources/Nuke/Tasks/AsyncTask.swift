@@ -231,7 +231,7 @@ extension AsyncTask {
         /// and error events to the given task.
         /// - note: Returns `nil` if the task is already disposed.
         func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
-            subscribe(subscriber: task) { [weak task] event in
+            subscribe(priority: task.priority, subscriber: task) { [weak task] event in
                 guard let task else { return }
                 switch event {
                 case let .value(value, isCompleted):

@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
     var startedTaskCount = 0

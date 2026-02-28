@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-@testable import Nuke
+import Nuke
 
 class MockImageCache: ImageCaching, @unchecked Sendable {
     let queue = DispatchQueue(label: "com.github.Nuke.MockCache")

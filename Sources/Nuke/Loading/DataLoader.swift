@@ -94,9 +94,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
                          didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
                          completion: @escaping @Sendable (Swift.Error?) -> Void) -> any Cancellable {
         let task = session.dataTask(with: request)
-        if #available(iOS 14.5, tvOS 14.5, watchOS 7.4, macOS 11.3, *) {
-            task.prefersIncrementalDelivery = prefersIncrementalDelivery
-        }
+        task.prefersIncrementalDelivery = prefersIncrementalDelivery
         return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
