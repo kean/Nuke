@@ -64,10 +64,10 @@ class DataCachePeformanceTests: XCTestCase {
 
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 2
-        measure {
+        measure { [cache] in
             for idx in 0..<count {
                 queue.addOperation {
-                    _ = self.cache["\(idx)"]
+                    _ = cache?["\(idx)"]
                 }
             }
             queue.waitUntilAllOperationsAreFinished()

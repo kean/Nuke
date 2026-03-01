@@ -53,14 +53,13 @@ import Combine
         let request = Test.request
         #expect(request.priority == .normal)
 
-        var imageTask: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            imageTask = pipeline.imageTask(with: request)
-            Task.detached { try await imageTask.response }
-        }
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: request)
+        Task.detached { try await imageTask.response }
+        await expectation.wait()
 
         // When/Then
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
@@ -78,14 +77,13 @@ import Combine
         let request = Test.request
         #expect(request.priority == .normal)
 
-        var imageTask: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            imageTask = pipeline.imageTask(with: request)
-            Task.detached { try await imageTask.response }
-        }
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: request)
+        Task.detached { try await imageTask.response }
+        await expectation.wait()
 
         // When/Then
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
@@ -99,14 +97,13 @@ import Combine
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         #expect(request.priority == .normal)
 
-        var imageTask: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            imageTask = pipeline.imageTask(with: request)
-            Task.detached { try await imageTask.response }
-        }
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: request)
+        Task.detached { try await imageTask.response }
+        await expectation.wait()
 
         // When/Then
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
@@ -136,14 +133,13 @@ import Combine
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        var task: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            task = pipeline.imageTask(with: Test.request)
-            Task.detached { try? await task.response }
-        }
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: Test.request)
+        Task.detached { try? await task.response }
+        await expectation.wait()
 
         // When/Then
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForCancellation(of: operation) {
             task.cancel()
         }
@@ -155,14 +151,14 @@ import Combine
         queue.isSuspended = true
 
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-        var task: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            task = pipeline.imageTask(with: request)
-            Task.detached { try? await task.response }
-        }
+
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: request)
+        Task.detached { try? await task.response }
+        await expectation.wait()
 
         // When/Then
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForCancellation(of: operation) {
             task.cancel()
         }

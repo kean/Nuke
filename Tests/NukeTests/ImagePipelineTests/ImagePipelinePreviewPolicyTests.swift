@@ -147,7 +147,7 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
         )!
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> Cancellable {
         let chunks = Array(_createChunks(for: data, size: data.count / 3))
         let response = urlResponse
         DispatchQueue.main.async {

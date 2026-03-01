@@ -59,22 +59,22 @@ import Foundation
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        nonisolated(unsafe) var progressValues: [(Int64, Int64)] = []
+        let progressValues = Ref<[(Int64, Int64)]>([])
         dataLoader.isSuspended = true
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             pipeline.loadImage(
                 with: Test.request,
                 progress: { _, completed, total in
                     #expect(Thread.isMainThread)
-                    progressValues.append((completed, total))
+                    progressValues.value.append((completed, total))
                 },
                 completion: { _ in continuation.resume() }
             )
             dataLoader.isSuspended = false
         }
-        #expect(progressValues.count == 2)
-        #expect(progressValues[0] == (10, 20))
-        #expect(progressValues[1] == (20, 20))
+        #expect(progressValues.value.count == 2)
+        #expect(progressValues.value[0] == (10, 20))
+        #expect(progressValues.value[1] == (20, 20))
     }
 
     @Test func loadImageCancellation() async {
@@ -119,21 +119,21 @@ import Foundation
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        nonisolated(unsafe) var progressValues: [(Int64, Int64)] = []
+        let progressValues = Ref<[(Int64, Int64)]>([])
         dataLoader.isSuspended = true
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             pipeline.loadData(
                 with: Test.request,
                 progress: { completed, total in
                     #expect(Thread.isMainThread)
-                    progressValues.append((completed, total))
+                    progressValues.value.append((completed, total))
                 },
                 completion: { _ in continuation.resume() }
             )
             dataLoader.isSuspended = false
         }
-        #expect(progressValues.count == 2)
-        #expect(progressValues[0] == (10, 20))
-        #expect(progressValues[1] == (20, 20))
+        #expect(progressValues.value.count == 2)
+        #expect(progressValues.value[0] == (10, 20))
+        #expect(progressValues.value[1] == (20, 20))
     }
 }

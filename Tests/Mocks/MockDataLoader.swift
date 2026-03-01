@@ -26,7 +26,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         set { queue.isSuspended = newValue }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)

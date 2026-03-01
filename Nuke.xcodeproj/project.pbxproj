@@ -889,8 +889,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Debug;
 		};
@@ -908,8 +906,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Release;
 		};
@@ -982,8 +978,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.nuke-extensions";
 				PRODUCT_NAME = NukeExtensions;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Debug;
 		};
@@ -1001,8 +995,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.nuke-extensions";
 				PRODUCT_NAME = NukeExtensions;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Release;
 		};
@@ -1058,8 +1050,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukevideo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Debug;
 		};
@@ -1077,8 +1067,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukevideo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Release;
 		};
@@ -1177,7 +1165,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				SWIFT_EXPLICIT_MODULES = NO;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NukeTestsHost.app/NukeTestsHost";
 			};
 			name = Release;
@@ -1233,13 +1220,13 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 12.8.0;
+				MARKETING_VERSION = 13.0.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
 				SUPPORTS_MACCATALYST = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TVOS_DEPLOYMENT_TARGET = 15.6;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -1293,11 +1280,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
-				MARKETING_VERSION = 12.8.0;
+				MARKETING_VERSION = 13.0.0;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
 				SUPPORTS_MACCATALYST = YES;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TVOS_DEPLOYMENT_TARGET = 15.6;
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1322,8 +1309,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Debug;
 		};
@@ -1341,8 +1326,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_VERSION = 6;
 			};
 			name = Release;
 		};

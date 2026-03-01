@@ -49,7 +49,7 @@ import UIKit
 
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
-        func makeRequests() -> [ImageRequest] {
+        @Sendable func makeRequests() -> [ImageRequest] {
             return (0...Int.random(in: 0..<30)).map { _ in
                 return ImageRequest(url: URL(string: "http://\(Int.random(in: 0..<15))")!)
             }
@@ -68,11 +68,11 @@ import UIKit
     @Test func imageCacheThreadSafety() {
         let cache = ImageCache()
 
-        func rnd_cost() -> Int {
+        @Sendable func rnd_cost() -> Int {
             return (2 + Int.random(in: 0..<20)) * 1024 * 1024
         }
 
-        var ops = [() -> Void]()
+        var ops = [@Sendable () -> Void]()
 
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
@@ -96,12 +96,13 @@ import UIKit
         }
 #endif
 
+        let finalOps = ops
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 5
 
         for _ in 0..<10000 {
             queue.addOperation {
-                ops.randomElement()?()
+                finalOps.randomElement()?()
             }
         }
 
@@ -206,11 +207,11 @@ import UIKit
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 8
 
-        func every(_ count: Int) -> Bool {
+        @Sendable func every(_ count: Int) -> Bool {
             return Int.random(in: 0..<Int.max) % count == 0
         }
 
-        func randomRequest() -> ImageRequest {
+        @Sendable func randomRequest() -> ImageRequest {
             let url = URL(string: "\(Test.url)/\(Int.random(in: 0..<50))")!
             var request = ImageRequest(url: url)
             request.priority = every(2) ? .high : .normal
@@ -221,7 +222,7 @@ import UIKit
             return request
         }
 
-        func randomSleep() {
+        @Sendable func randomSleep() {
             let ms = TimeInterval.random(in: 0 ..< 100) / 1000.0
             Thread.sleep(forTimeInterval: ms)
         }

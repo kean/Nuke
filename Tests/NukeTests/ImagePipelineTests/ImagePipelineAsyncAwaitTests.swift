@@ -122,7 +122,7 @@ import Foundation
 
         nonisolated(unsafe) var recordedProgress: [ImageTask.Progress] = []
         let pipeline = self.pipeline
-        let task = Task {
+        let task = Task { @Sendable in
             let task = pipeline.imageTask(with: Test.url)
             for await value in task.progress {
                 recordedProgress.append(value)
@@ -144,7 +144,7 @@ import Foundation
         nonisolated(unsafe) var recordedProgress: [ImageTask.Progress] = []
         let task = pipeline.imageTask(with: Test.url)
 
-        let task1 = Task {
+        let task1 = Task { @Sendable in
             for await event in task.progress {
                 recordedProgress.append(event)
             }
@@ -294,14 +294,13 @@ import Foundation
         let request = Test.request
         #expect(request.priority == .normal)
 
-        var imageTask: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
-            imageTask = pipeline.imageTask(with: request)
-            Task.detached { try await imageTask.response }
-        }
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: request)
+        Task.detached { try await imageTask.response }
+        await expectation.wait()
 
         // WHEN/THEN
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }

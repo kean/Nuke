@@ -214,24 +214,23 @@ import Foundation
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        // When
-        var task: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 2) {
-            task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })]))
-            Task {
-                for try await _ in task.previews {
-                    dataLoader.resume()
-                }
-            }
-            Task {
-                for await _ in task.progress {
-                    dataLoader.resume()
-                }
+        let dataLoader = dataLoader
+        let expectation = TestExpectation(queue: queue, count: 2)
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })]))
+        Task {
+            for try await _ in task.previews {
+                dataLoader.resume()
             }
         }
+        Task {
+            for await _ in task.progress {
+                dataLoader.resume()
+            }
+        }
+        await expectation.wait()
 
         // Then only 2 operations: 1 partial, 1 final
-        #expect(operations.count == 2)
+        #expect(expectation.operations.count == 2)
 
         queue.isSuspended = false
         let response = try await task.response

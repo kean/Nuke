@@ -49,7 +49,7 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     }
 
     // Serves the next chunk.
-    func resume(_ completed: @escaping () -> Void = {}) {
+    func resume(_ completed: @escaping @Sendable () -> Void = {}) {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()

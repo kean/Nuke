@@ -71,7 +71,7 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
         queue.maxConcurrentOperationCount = 1
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> Cancellable {
         let headers = request.allHTTPHeaderFields
         let data = self.data
         let eTag = self.eTag
