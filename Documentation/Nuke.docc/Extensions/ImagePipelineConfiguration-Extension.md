@@ -36,7 +36,6 @@ To learn more about caching, see <doc:caching>.
 - ``isProgressiveDecodingEnabled``
 - ``progressiveDecodingInterval``
 - ``isResumableDataEnabled``
-- ``callbackQueue``
 
 ### Global Options
 
@@ -45,7 +44,6 @@ To learn more about caching, see <doc:caching>.
 ### Operation Queues
 
 - ``dataLoadingQueue``
-- ``dataCachingQueue``
 - ``imageProcessingQueue``
 - ``imageDecompressingQueue``
 - ``imageDecodingQueue``
