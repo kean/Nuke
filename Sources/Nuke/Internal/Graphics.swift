@@ -34,7 +34,7 @@ struct ImageProcessingExtensions {
             return nil
         }
 #if canImport(UIKit)
-        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        let targetSize = targetSize.rotatedForOrientation(CGImagePropertyOrientation(image.imageOrientation))
 #endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
@@ -51,7 +51,7 @@ struct ImageProcessingExtensions {
             return nil
         }
 #if canImport(UIKit)
-        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        let targetSize = targetSize.rotatedForOrientation(CGImagePropertyOrientation(image.imageOrientation))
 #endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         let scaledSize = cgImage.size.scaled(by: scale)
@@ -270,16 +270,6 @@ private extension CGSize {
         }
     }
 
-    func rotatedForOrientation(_ imageOrientation: UIImage.Orientation) -> CGSize {
-        switch imageOrientation {
-        case .left, .leftMirrored, .right, .rightMirrored:
-            return CGSize(width: height, height: width) // Rotate 90 degrees
-        case .up, .upMirrored, .down, .downMirrored:
-            return self
-        @unknown default:
-            return self
-        }
-    }
 }
 #endif
 
