@@ -2,7 +2,8 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 #if os(tvOS)
 import TVUIKit
 #endif
@@ -11,313 +12,244 @@ import TVUIKit
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-class ImageViewExtensionsTests: XCTestCase {
-    var imageView: _ImageView!
-    var observer: ImagePipelineObserver!
-    var imageCache: MockImageCache!
-    var dataLoader: MockDataLoader!
-    var pipeline: ImagePipeline!
-    
-    @MainActor
-    override func setUp() {
-        super.setUp()
-        
-        imageCache = MockImageCache()
-        dataLoader = MockDataLoader()
-        observer = ImagePipelineObserver()
-        pipeline = ImagePipeline(delegate: observer) {
+@Suite @MainActor struct ImageViewExtensionsTests {
+    let imageView: _ImageView
+    let observer: ImagePipelineObserver
+    let imageCache: MockImageCache
+    let dataLoader: MockDataLoader
+    let pipeline: ImagePipeline
+    let options: ImageLoadingOptions
+
+    init() {
+        let imageCache = MockImageCache()
+        let dataLoader = MockDataLoader()
+        let observer = ImagePipelineObserver()
+        self.imageCache = imageCache
+        self.dataLoader = dataLoader
+        self.observer = observer
+        self.pipeline = ImagePipeline(delegate: observer) {
             $0.dataLoader = dataLoader
             $0.imageCache = imageCache
         }
-        
-        // Nuke.loadImage(...) methods use shared pipeline by default.
-        ImagePipeline.pushShared(pipeline)
-        
-        imageView = _ImageView()
+        self.imageView = _ImageView()
+        var options = ImageLoadingOptions()
+        options.pipeline = pipeline
+        self.options = options
     }
-    
-    override func tearDown() {
-        super.tearDown()
-        
-        ImagePipeline.popShared()
-    }
-    
+
     // MARK: - Loading
 
-    @MainActor
-    func testImageLoaded() {
-        // When requesting an image with request
-        expectToLoadImage(with: Test.request, into: imageView)
-        wait()
-        
-        // Expect the image to be downloaded and displayed
-        XCTAssertNotNil(imageView.image)
+    @Test func imageLoaded() async {
+        await loadImageExpectingSuccess(with: Test.request, options: options, into: imageView)
+        #expect(imageView.image != nil)
     }
-    
+
 #if os(tvOS)
-    @MainActor
-    func testImageLoadedToTVPosterView() {
-        // Use local instance for this tvOS specific test for simplicity
+    @Test func imageLoadedToTVPosterView() async {
         let posterView = TVPosterView()
-        
-        // When requesting an image with request
-        expectToLoadImage(with: Test.request, into: posterView)
-        wait()
-        
-        // Expect the image to be downloaded and displayed
-        XCTAssertNotNil(posterView.image)
+        await loadImageExpectingSuccess(with: Test.request, options: options, into: posterView)
+        #expect(posterView.image != nil)
     }
 #endif
-    
-    @MainActor
-    func testImageLoadedWithURL() {
-        // When requesting an image with URL
-        let expectation = self.expectation(description: "Image loaded")
-        NukeExtensions.loadImage(with: Test.url, into: imageView) { _ in
+
+    @Test func imageLoadedWithURL() async {
+        let expectation = TestExpectation()
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
-        wait()
-        
-        // Expect the image to be downloaded and displayed
-        XCTAssertNotNil(imageView.image)
+        await expectation.wait()
+        #expect(imageView.image != nil)
     }
-    
-    @MainActor
-    func testLoadImageWithNilRequest() {
-        // WHEN
+
+    @Test func loadImageWithNilRequest() async {
         imageView.image = Test.image
-        
-        let expectation = self.expectation(description: "Image loaded")
+
+        let expectation = TestExpectation()
         let request: ImageRequest? = nil
-        NukeExtensions.loadImage(with: request, into: imageView) {
-            XCTAssertEqual($0.error, .imageRequestMissing)
+        NukeExtensions.loadImage(with: request, options: options, into: imageView) {
+            #expect($0.error == .imageRequestMissing)
             expectation.fulfill()
         }
-        wait()
-        
-        // THEN
-        XCTAssertNil(imageView.image)
+        await expectation.wait()
+        #expect(imageView.image == nil)
     }
-    
-    @MainActor
-    func testLoadImageWithNilRequestAndPlaceholder() {
-        // GIVEN
+
+    @Test func loadImageWithNilRequestAndPlaceholder() {
         let failureImage = Test.image
-        
-        // WHEN
-        let options = ImageLoadingOptions(failureImage: failureImage)
+        var options = options
+        options.failureImage = failureImage
         let request: ImageRequest? = nil
         NukeExtensions.loadImage(with: request, options: options, into: imageView)
-        
-        // THEN failure image is displayed
-        XCTAssertTrue(imageView.image === failureImage)
+        #expect(imageView.image === failureImage)
     }
-    
+
     // MARK: - Managing Tasks
-    
-    @MainActor
-    func testTaskReturned() {
-        // When requesting an image
-        let task = NukeExtensions.loadImage(with: Test.request, into: imageView)
-        
-        // Expect Nuke to return a task
-        XCTAssertNotNil(task)
-        
-        // Expect the task's request to be equivalent to the one provided
-        XCTAssertEqual(task?.request.urlRequest, Test.request.urlRequest)
+
+    @Test func taskReturned() {
+        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        #expect(task != nil)
+        #expect(task?.request.urlRequest == Test.request.urlRequest)
     }
-    
-    @MainActor
-    func testTaskIsNilWhenImageInMemoryCache() {
-        // When the requested image is stored in memory cache
+
+    @Test func taskIsNilWhenImageInMemoryCache() {
         let request = Test.request
         imageCache[request] = ImageContainer(image: PlatformImage())
-        
-        // When requesting an image
-        let task = NukeExtensions.loadImage(with: request, into: imageView)
-        
-        // Expect Nuke to not return any tasks
-        XCTAssertNil(task)
+        let task = NukeExtensions.loadImage(with: request, options: options, into: imageView)
+        #expect(task == nil)
     }
-    
+
     // MARK: - Prepare For Reuse
-    
-    @MainActor
-    func testViewPreparedForReuse() {
-        // Given an image view displaying an image
+
+    @Test func viewPreparedForReuse() {
         imageView.image = Test.image
-        
-        // When requesting the new image
-        NukeExtensions.loadImage(with: Test.request, into: imageView)
-        
-        // Then
-        XCTAssertNil(imageView.image)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        #expect(imageView.image == nil)
     }
-    
-    @MainActor
-    func testViewPreparedForReuseDisabled() {
-        // Given an image view displaying an image
+
+    @Test func viewPreparedForReuseDisabled() {
         let image = Test.image
         imageView.image = image
-        
-        // When requesting the new image with prepare for reuse disabled
-        var options = ImageLoadingOptions()
+        var options = options
         options.isPrepareForReuseEnabled = false
         NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
-        
-        // Expect the original image to still be displayed
-        XCTAssertEqual(imageView.image, image)
+        #expect(imageView.image == image)
     }
-    
+
     // MARK: - Memory Cache
-    
-    @MainActor
-    func testMemoryCacheUsed() {
-        // Given the requested image stored in memory cache
+
+    @Test func memoryCacheUsed() {
         let image = Test.image
         imageCache[Test.request] = ImageContainer(image: image)
-        
-        // When requesting the new image
-        NukeExtensions.loadImage(with: Test.request, into: imageView)
-        
-        // Expect image to be displayed immediately
-        XCTAssertEqual(imageView.image, image)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        #expect(imageView.image == image)
     }
-    
-    @MainActor
-    func testMemoryCacheDisabled() {
-        // Given the requested image stored in memory cache
+
+    @Test func memoryCacheDisabled() {
         imageCache[Test.request] = Test.container
-        
-        // When requesting the image with memory cache read disabled
         var request = Test.request
         request.options.insert(.disableMemoryCacheReads)
-        NukeExtensions.loadImage(with: request, into: imageView)
-        
-        // Expect image to not be displayed, loaded asyncrounously instead
-        XCTAssertNil(imageView.image)
+        NukeExtensions.loadImage(with: request, options: options, into: imageView)
+        #expect(imageView.image == nil)
     }
-    
+
     // MARK: - Completion and Progress Closures
-    
-    @MainActor
-    func testCompletionCalled() {
-        var didCallCompletion = false
-        let expectation = self.expectation(description: "Image loaded")
+
+    @Test func completionCalled() async {
+        nonisolated(unsafe) var didCallCompletion = false
+        let expectation = TestExpectation()
         NukeExtensions.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { result in
-                // Expect completion to be called  on the main thread
-                XCTAssertTrue(Thread.isMainThread)
-                XCTAssertTrue(result.isSuccess)
+                #expect(Thread.isMainThread)
+                #expect(result.isSuccess)
                 didCallCompletion = true
                 expectation.fulfill()
             }
         )
-        
+
         // Expect completion to be called asynchronously
-        XCTAssertFalse(didCallCompletion)
-        wait()
+        #expect(!didCallCompletion)
+        await expectation.wait()
     }
-    
-    @MainActor
-    func testCompletionCalledImageFromCache() {
+
+    @Test func completionCalledImageFromCache() {
         // GIVEN the requested image stored in memory cache
         imageCache[Test.request] = Test.container
-        
+
         var didCallCompletion = false
         NukeExtensions.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { result in
                 // Expect completion to be called synchronously on the main thread
-                XCTAssertTrue(Thread.isMainThread)
-                XCTAssertTrue(result.isSuccess)
+                #expect(Thread.isMainThread)
+                #expect(result.isSuccess)
                 didCallCompletion = true
             }
         )
-        XCTAssertTrue(didCallCompletion)
+        #expect(didCallCompletion)
     }
-    
-    @MainActor
-    func testProgressHandlerCalled() {
+
+    @Test func progressHandlerCalled() async {
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
-        
-        let expectedProgress = expectProgress([(10, 20), (20, 20)])
-        
+
+        nonisolated(unsafe) var progressValues: [(Int64, Int64)] = []
+        let expectation = TestExpectation()
+
         // WHEN loading an image into a view
         NukeExtensions.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             progress: { _, completed, total in
                 // Expect progress to be reported, on the main thread
-                XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((completed, total))
+                #expect(Thread.isMainThread)
+                progressValues.append((completed, total))
+            },
+            completion: { _ in
+                expectation.fulfill()
             }
         )
-        
-        wait()
+
+        await expectation.wait()
+        #expect(progressValues.count == 2)
+        #expect(progressValues[0] == (10, 20))
+        #expect(progressValues[1] == (20, 20))
     }
-    
+
     // MARK: - Cancellation
-    
-    @MainActor
-    func testRequestCancelled() {
+
+    @Test func requestCancelled() async {
         dataLoader.isSuspended = true
-        
+
         // Given an image view with an associated image task
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, into: imageView)
-        wait()
-        
+        let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        await startExpectation.wait()
+
         // Expect the task to get cancelled
-        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-        
         // When asking Nuke to cancel the request for the view
-        NukeExtensions.cancelRequest(for: imageView)
-        wait()
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
+            NukeExtensions.cancelRequest(for: imageView)
+        }
     }
-    
-    @MainActor
-    func testRequestCancelledWhenNewRequestStarted() {
+
+    @Test func requestCancelledWhenNewRequestStarted() async {
         dataLoader.isSuspended = true
-        
+
         // Given an image view with an associated image task
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, into: imageView)
-        wait()
-        
+        let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        await startExpectation.wait()
+
         // When starting loading a new image
         // Expect previous task to get cancelled
-        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, into: imageView)
-        wait()
+        let cancelExpectation = TestExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        await cancelExpectation.wait()
     }
-    
-    @MainActor
-    func testRequestCancelledWhenTargetGetsDeallocated() {
+
+    @Test func requestCancelledWhenTargetGetsDeallocated() async {
         dataLoader.isSuspended = true
-        
+
         // Wrap everything in autorelease pool to make sure that imageView
         // gets deallocated immediately.
-        autoreleasepool {
-            // Given an image view with an associated image task
-            var imageView: _ImageView! = _ImageView()
-            expectNotification(ImagePipelineObserver.didStartTask, object: observer)
-            NukeExtensions.loadImage(with: Test.url, into: imageView)
-            wait()
-            
-            // Expect the task to be cancelled automatically
-            expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-            
-            // When the view is deallocated
-            imageView = nil
+        var localImageView: _ImageView? = _ImageView()
+        let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
+        NukeExtensions.loadImage(with: Test.url, options: options, into: localImageView!)
+        await startExpectation.wait()
+
+        // Expect the task to be cancelled automatically
+        // When the view is deallocated
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
+            localImageView = nil
         }
-        wait()
     }
 }
 

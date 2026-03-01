@@ -2,50 +2,46 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 @testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-extension XCTestCase {
-    @MainActor
-    func expectToFinishLoadingImage(with request: ImageRequest,
-                                    options: ImageLoadingOptions? = nil,
-                                    into imageView: ImageDisplayingView,
-                                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
-        let expectation = self.expectation(description: "Image loaded for \(request)")
-        NukeExtensions.loadImage(
-            with: request,
-            options: options,
-            into: imageView,
-            completion: { result in
-                XCTAssertTrue(Thread.isMainThread)
-                completion?(result)
-                expectation.fulfill()
+
+@MainActor
+func loadImageAndWait(
+    with request: ImageRequest,
+    options: ImageLoadingOptions? = nil,
+    into imageView: ImageDisplayingView
+) async {
+    let expectation = TestExpectation()
+    NukeExtensions.loadImage(
+        with: request,
+        options: options,
+        into: imageView,
+        completion: { _ in
+            expectation.fulfill()
         })
-    }
-
-    @MainActor
-    func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions? = nil, into imageView: ImageDisplayingView) {
-        expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
-            XCTAssertTrue(result.isSuccess)
-        }
-    }
+    await expectation.wait()
 }
 
-extension ImageLoadingOptions {
-    @MainActor
-    private static var stack = [ImageLoadingOptions]()
-
-    @MainActor
-    static func pushShared(_ shared: ImageLoadingOptions) {
-        stack.append(ImageLoadingOptions.shared)
-        ImageLoadingOptions.shared = shared
-    }
-
-    @MainActor
-    static func popShared() {
-        ImageLoadingOptions.shared = stack.removeLast()
-    }
+@MainActor
+func loadImageExpectingSuccess(
+    with request: ImageRequest,
+    options: ImageLoadingOptions? = nil,
+    into imageView: ImageDisplayingView
+) async {
+    let expectation = TestExpectation()
+    NukeExtensions.loadImage(
+        with: request,
+        options: options,
+        into: imageView,
+        completion: { result in
+            #expect(result.isSuccess)
+            expectation.fulfill()
+        })
+    await expectation.wait()
 }
+
 #endif

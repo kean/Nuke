@@ -2,159 +2,137 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+#if os(iOS) || os(tvOS) || os(visionOS)
+import UIKit
+#endif
 @testable import Nuke
 @testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-class ImageViewIntegrationTests: XCTestCase {
-    var imageView: _ImageView!
-    var pipeline: ImagePipeline!
-    
-    @MainActor
-    override func setUp() {
-        super.setUp()
-        
-        pipeline = ImagePipeline {
+@Suite @MainActor struct ImageViewIntegrationTests {
+    let imageView: _ImageView
+    let pipeline: ImagePipeline
+    let options: ImageLoadingOptions
+
+    init() {
+        self.pipeline = ImagePipeline {
             $0.dataLoader = DataLoader()
             $0.imageCache = MockImageCache()
         }
-        
-        // Nuke.loadImage(...) methods use shared pipeline by default.
-        ImagePipeline.pushShared(pipeline)
-        
-        imageView = _ImageView()
+        self.imageView = _ImageView()
+        var options = ImageLoadingOptions()
+        options.pipeline = pipeline
+        self.options = options
     }
-    
-    override func tearDown() {
-        super.tearDown()
-        
-        ImagePipeline.popShared()
-    }
-    
+
     var url: URL {
         Test.url(forResource: "fixture", extension: "jpeg")
     }
-    
+
     var request: ImageRequest {
         ImageRequest(url: url)
     }
-    
+
     // MARK: - Loading
-    
-    @MainActor
-    func testImageLoaded() {
-        // When
-        expectToLoadImage(with: request, into: imageView)
-        wait()
-        
-        // Then
-        XCTAssertNotNil(imageView.image)
+
+    @Test func imageLoaded() async {
+        await loadImageExpectingSuccess(with: request, options: options, into: imageView)
+        #expect(imageView.image != nil)
     }
 
-    @MainActor
-    func testImageLoadedWithURL() {
-        // When
-        let expectation = self.expectation(description: "Image loaded")
-        NukeExtensions.loadImage(with: url, into: imageView) { _ in
+    @Test func imageLoadedWithURL() async {
+        let expectation = TestExpectation()
+        NukeExtensions.loadImage(with: url, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
-        wait()
-        
-        // Then
-        XCTAssertNotNil(imageView.image)
+        await expectation.wait()
+        #expect(imageView.image != nil)
     }
-    
+
     // MARK: - Loading with Invalid URL
-    
-    @MainActor
-    func testLoadImageWithInvalidURLString() {
-        // WHEN
-        let expectation = self.expectation(description: "Image loaded")
-        NukeExtensions.loadImage(with: URL(string: ""), into: imageView) { result in
-            XCTAssertEqual(result.error, .imageRequestMissing)
+
+    @Test func loadImageWithInvalidURLString() async {
+        let expectation = TestExpectation()
+        NukeExtensions.loadImage(with: URL(string: ""), options: options, into: imageView) { result in
+            #expect(result.error == .imageRequestMissing)
             expectation.fulfill()
         }
-        wait()
-        
-        // THEN
-        XCTAssertNil(imageView.image)
+        await expectation.wait()
+        #expect(imageView.image == nil)
     }
-    
-    @MainActor
-    func testLoadingWithNilURL() {
+
+    @Test func loadingWithNilURL() async {
         // GIVEN
         var urlRequest = URLRequest(url: Test.url)
         urlRequest.url = nil // Not sure why this is even possible
-        
+
         // WHEN
-        let expectation = self.expectation(description: "Image loaded")
-        NukeExtensions.loadImage(with: ImageRequest(urlRequest: urlRequest), into: imageView) { result in
+        let expectation = TestExpectation()
+        NukeExtensions.loadImage(with: ImageRequest(urlRequest: urlRequest), options: options, into: imageView) { result in
             // THEN
-            XCTAssertNotNil(result.error?.dataLoadingError)
+            #expect(result.error?.dataLoadingError != nil)
             expectation.fulfill()
         }
-        wait()
-        
-        // THEN
-        XCTAssertNil(imageView.image)
+        await expectation.wait()
+        #expect(imageView.image == nil)
     }
-    
-    func testLoadingWithRequestWithNilURL() {
+
+    @Test func loadingWithRequestWithNilURL() async {
         // GIVEN
         let input = ImageRequest(url: nil)
-        
+
         // WHEN/THEN
-        let expectation = self.expectation(description: "ImageLoaded")
+        let expectation = TestExpectation()
         pipeline.loadImage(with: input) {
-            XCTAssertTrue($0.isFailure)
-            XCTAssertNoThrow($0.error?.dataLoadingError)
+            #expect($0.isFailure)
             expectation.fulfill()
         }
-        wait()
+        await expectation.wait()
     }
-    
+
     // MARK: - Data Passed
-    
+
 #if os(iOS) || os(visionOS)
     private final class MockView: UIView, Nuke_ImageDisplaying {
         func nuke_display(image: PlatformImage?, data: Data?) {
             recordedData.append(data)
         }
-        
+
         var recordedData = [Data?]()
     }
-    
-    @MainActor
-    func _testThatAttachedDataIsPassed() throws {
+
+    // Disabled test
+    func _testThatAttachedDataIsPassed() async throws {
         // GIVEN
-        pipeline = pipeline.reconfigured {
+        let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in
                 ImageDecoders.Empty()
             }
         }
-        
+
         let imageView = MockView()
-        
+
         var options = ImageLoadingOptions()
         options.pipeline = pipeline
         options.isPrepareForReuseEnabled = false
-        
+
         // WHEN
-        let expectation = self.expectation(description: "Image loaded")
+        let expectation = TestExpectation()
         NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { result in
-            XCTAssertNotNil(result.value)
-            XCTAssertNotNil(result.value?.container.data)
+            #expect(result.value != nil)
+            #expect(result.value?.container.data != nil)
             expectation.fulfill()
         }
-        wait()
-        
+        await expectation.wait()
+
         // THEN
-        let data = try XCTUnwrap(imageView.recordedData.first)
-        XCTAssertNotNil(data)
+        let data = try #require(imageView.recordedData.first)
+        #expect(data != nil)
     }
-    
+
 #endif
 }
 
