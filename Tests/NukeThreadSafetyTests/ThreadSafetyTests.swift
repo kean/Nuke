@@ -50,8 +50,8 @@ import UIKit
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
         func makeRequests() -> [ImageRequest] {
-            return (0...rnd(30)).map { _ in
-                return ImageRequest(url: URL(string: "http://\(rnd(15))")!)
+            return (0...Int.random(in: 0..<30)).map { _ in
+                return ImageRequest(url: URL(string: "http://\(Int.random(in: 0..<15))")!)
             }
         }
         let queue = OperationQueue()
@@ -69,16 +69,16 @@ import UIKit
         let cache = ImageCache()
 
         func rnd_cost() -> Int {
-            return (2 + rnd(20)) * 1024 * 1024
+            return (2 + Int.random(in: 0..<20)) * 1024 * 1024
         }
 
         var ops = [() -> Void]()
 
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
-                { cache[_request(index: rnd(10))] = ImageContainer(image: Test.image) },
-                { cache[_request(index: rnd(10))] = nil },
-                { let _ = cache[_request(index: rnd(10))] }
+                { cache[_request(index: Int.random(in: 0..<10))] = ImageContainer(image: Test.image) },
+                { cache[_request(index: Int.random(in: 0..<10))] = nil },
+                { let _ = cache[_request(index: Int.random(in: 0..<10))] }
             ]
         }
 
@@ -207,11 +207,11 @@ import UIKit
         queue.maxConcurrentOperationCount = 8
 
         func every(_ count: Int) -> Bool {
-            return rnd() % count == 0
+            return Int.random(in: 0..<Int.max) % count == 0
         }
 
         func randomRequest() -> ImageRequest {
-            let url = URL(string: "\(Test.url)/\(rnd(50))")!
+            let url = URL(string: "\(Test.url)/\(Int.random(in: 0..<50))")!
             var request = ImageRequest(url: url)
             request.priority = every(2) ? .high : .normal
             if every(3) {
@@ -278,9 +278,9 @@ private func performPipelineThreadSafetyTest(_ pipeline: ImagePipeline) async {
     for _ in 0..<1000 {
         group.enter()
         queue.addOperation {
-            let url = URL(fileURLWithPath: "\(rnd(30))")
+            let url = URL(fileURLWithPath: "\(Int.random(in: 0..<30))")
             let request = ImageRequest(url: url)
-            let shouldCancel = rnd(3) == 0
+            let shouldCancel = Int.random(in: 0..<3) == 0
 
             let task = pipeline.loadImage(with: request) { _ in
                 if shouldCancel {

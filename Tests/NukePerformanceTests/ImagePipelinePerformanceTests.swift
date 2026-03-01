@@ -14,17 +14,14 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 
         let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
         measure {
-            var finished: Int = 0
-            let semaphore = DispatchSemaphore(value: 0)
+            let group = DispatchGroup()
             for request in requests {
+                group.enter()
                 pipeline.loadImage(with: request, progress: nil) { _ in
-                    finished += 1
-                    if finished == requests.count {
-                        semaphore.signal()
-                    }
+                    group.leave()
                 }
             }
-            semaphore.wait()
+            group.wait()
         }
     }
 
