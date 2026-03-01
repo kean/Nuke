@@ -294,16 +294,14 @@ import Foundation
         let request = Test.request
         #expect(request.priority == .normal)
 
-        let observer = OperationQueueObserver(queue: queue)
-        let imageTask = pipeline.imageTask(with: request)
-
-        Task.detached {
-            try await imageTask.response
+        var imageTask: ImageTask!
+        let operations = await waitForOperations(on: queue, count: 1) {
+            imageTask = pipeline.imageTask(with: request)
+            Task.detached { try await imageTask.response }
         }
-        await waitForOperations(on: observer, count: 1)
 
         // WHEN/THEN
-        let operation = try #require(observer.operations.first)
+        let operation = try #require(operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }

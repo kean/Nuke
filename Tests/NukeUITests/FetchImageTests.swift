@@ -66,25 +66,24 @@ import Combine
     @Test func priorityUpdated() async throws {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let observer = OperationQueueObserver(queue: queue)
+        let operations = await waitForOperations(on: queue, count: 1) {
+            image.priority = .high
+            image.load(Test.request)
+        }
 
-        image.priority = .high
-        image.load(Test.request)
-        await waitForOperations(on: observer, count: 1)
-
-        let operation = try #require(observer.operations.first)
+        let operation = try #require(operations.first)
         #expect(operation.queuePriority == .high)
     }
 
     @Test func priorityUpdatedDynamically() async throws {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let observer = OperationQueueObserver(queue: queue)
 
-        image.load(Test.request)
-        await waitForOperations(on: observer, count: 1)
+        let operations = await waitForOperations(on: queue, count: 1) {
+            image.load(Test.request)
+        }
 
-        let operation = try #require(observer.operations.first)
+        let operation = try #require(operations.first)
 
         let expectation = TestExpectation()
         let kvoObserver = operation.observe(\.queuePriority, options: [.new]) { op, _ in

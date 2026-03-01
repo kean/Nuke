@@ -38,14 +38,7 @@ import Foundation
     @Test func basicScenario() async {
         dataLoader.isSuspended = true
 
-        let queueObserver = OperationQueueObserver(queue: prefetcher.queue)
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        _ = await waitForOperations(on: prefetcher.queue, count: 1) {
             prefetcher.startPrefetching(with: [Test.request])
         }
 
@@ -175,20 +168,13 @@ import Foundation
     @Test func defaultPrioritySetToLow() async {
         // WHEN start prefetching with URL
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [Test.url])
         }
 
         // THEN priority is set to .low
-        guard let operation = queueObserver.operations.first else {
+        guard let operation = operations.first else {
             Issue.record("Failed to find operation")
             return
         }
@@ -201,22 +187,15 @@ import Foundation
     @Test func defaultPriorityAffectsRequests() async {
         // WHEN start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
         let request = Test.request
         #expect(request.priority == .normal) // Default is .normal
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [request])
         }
 
         // THEN priority is set to .low
-        guard let operation = queueObserver.operations.first else {
+        guard let operation = operations.first else {
             Issue.record("Failed to find operation")
             return
         }
@@ -226,22 +205,15 @@ import Foundation
     @Test func lowerPriorityThanDefaultNotAffected() async {
         // WHEN start prefetching with ImageRequest with .veryLow priority
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
         var request = Test.request
         request.priority = .veryLow
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [request])
         }
 
         // THEN priority is set to .low (prefetcher priority)
-        guard let operation = queueObserver.operations.first else {
+        guard let operation = operations.first else {
             Issue.record("Failed to find operation")
             return
         }
@@ -254,20 +226,13 @@ import Foundation
 
         // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [Test.url])
         }
 
         // THEN
-        guard let operation = queueObserver.operations.first else {
+        guard let operation = operations.first else {
             Issue.record("Failed to find operation")
             return
         }
@@ -277,19 +242,12 @@ import Foundation
     @Test func changePriorityOfOutstandingTasks() async {
         // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.dataLoadingQueue)
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            queueObserver.didAddOperation = { _ in
-                if queueObserver.operations.count == 1 {
-                    queueObserver.didAddOperation = nil
-                    continuation.resume()
-                }
-            }
+        let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [Test.url])
         }
 
-        guard let operation = queueObserver.operations.first else {
+        guard let operation = operations.first else {
             Issue.record("Failed to find operation")
             return
         }

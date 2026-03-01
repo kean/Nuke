@@ -117,12 +117,13 @@ import Foundation
         let request = Test.request
         #expect(request.priority == .normal)
 
-        let observer = OperationQueueObserver(queue: queue)
-        let task = pipeline.imageTask(with: request)
-        await waitForOperations(on: observer, count: 1)
+        var task: ImageTask!
+        let operations = await waitForOperations(on: queue, count: 1) {
+            task = pipeline.imageTask(with: request)
+        }
 
         // When/Then
-        let operation = try #require(observer.operations.first)
+        let operation = try #require(operations.first)
         await waitForPriorityChange(of: operation, to: .high) {
             task.priority = .high
         }
@@ -134,12 +135,13 @@ import Foundation
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let observer = OperationQueueObserver(queue: queue)
-        let task = pipeline.imageTask(with: Test.request)
-        await waitForOperations(on: observer, count: 1)
+        var task: ImageTask!
+        let operations = await waitForOperations(on: queue, count: 1) {
+            task = pipeline.imageTask(with: Test.request)
+        }
 
         // When/Then
-        let operation = try #require(observer.operations.first)
+        let operation = try #require(operations.first)
         await waitForCancellation(of: operation) {
             task.cancel()
         }
