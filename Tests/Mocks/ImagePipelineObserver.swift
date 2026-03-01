@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
 import Nuke
 
 final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {

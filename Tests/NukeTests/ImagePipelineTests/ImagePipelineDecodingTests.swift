@@ -38,7 +38,6 @@ import Foundation
 
         // Then
         let container = response.container
-        #expect(container.image != nil)
         #expect(container.data == dummyData)
         #expect(container.userInfo["a"] as? Int == 1)
     }

@@ -13,6 +13,8 @@
 		0C1C201E29ABBF19004B38FD /* Nuke.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C222DE3294E2DEA00012288 /* NukeUI.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C222DE2294E2DEA00012288 /* NukeUI.docc */; };
 		0C222DE5294E2E0300012288 /* NukeExtensions.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C222DE4294E2E0200012288 /* NukeExtensions.docc */; };
+		0C27B34B2F5462D100F96DB1 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
+		0C27B34C2F5462D100F96DB1 /* NukeExtensions.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C38DB1C28568FE20027F9FF /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C4F900322E4C4FB0070ECFD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
@@ -25,7 +27,6 @@
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -100,6 +101,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */,
+				0C27B34C2F5462D100F96DB1 /* NukeExtensions.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,10 +139,20 @@
 		0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 7 Migration Guide.md"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0C27B34D2F54632F00F96DB1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TestHelpers.swift,
+			);
+			target = 0C8D7BE71D9DC02B00D12EB7 /* NukePerformanceTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0C2782062F5299D600F96DB1 /* Mocks */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Mocks; path = Tests/Mocks; sourceTree = SOURCE_ROOT; };
 		0C27822C2F529A5F00F96DB1 /* Resources */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Resources; sourceTree = "<group>"; };
-		0C27829C2F529ABD00F96DB1 /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
+		0C27829C2F529ABD00F96DB1 /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0C27B34D2F54632F00F96DB1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
 		0C8ECECB2F4BAF1200C9F423 /* NukeTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeTests; sourceTree = "<group>"; };
 		0C8ECEF62F4BAF2F00C9F423 /* NukeUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeUITests; sourceTree = "<group>"; };
 		0C8ECEFD2F4BAF3C00C9F423 /* NukeExtensionsTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeExtensionsTests; sourceTree = "<group>"; };
@@ -224,7 +236,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */,
-				0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */,
+				0C27B34B2F5462D100F96DB1 /* NukeExtensions.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

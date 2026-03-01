@@ -18,7 +18,7 @@ import Foundation
         }
 
         // When/Then
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
     }
 
     // MARK: DataCache

@@ -3,7 +3,16 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Nuke
-import XCTest
+import Foundation
+import CoreGraphics
+
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+import UIKit
+#endif
+
+#if os(macOS)
+import AppKit
+#endif
 
 private final class BundleToken {}
 

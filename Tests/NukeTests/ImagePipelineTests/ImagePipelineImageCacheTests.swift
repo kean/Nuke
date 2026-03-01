@@ -24,14 +24,14 @@ import Foundation
     }
 
     @Test func thatImageIsLoaded() async throws {
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
     }
 
     // MARK: Caching
 
     @Test func cacheWrite() async throws {
         // When
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 1)
@@ -43,7 +43,7 @@ import Foundation
         cache[Test.request] = ImageContainer(image: Test.image)
 
         // When
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 0)
@@ -56,7 +56,7 @@ import Foundation
         request.options.insert(.disableMemoryCacheWrites)
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 1)
@@ -71,7 +71,7 @@ import Foundation
         request.options.insert(.disableMemoryCacheReads)
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 1)
@@ -86,7 +86,7 @@ import Foundation
         request.options.insert(.reloadIgnoringCachedData)
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 1)
@@ -96,7 +96,7 @@ import Foundation
     @Test func generatedThumbnailDataIsStoredInCache() async throws {
         // When
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         let container = try #require(pipeline.cache[request])
@@ -204,7 +204,6 @@ import Foundation
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
-        #expect(response.image != nil)
         #expect(response.cacheType == .disk)
 
         // THEN
@@ -222,7 +221,6 @@ import Foundation
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
-        #expect(response.image != nil)
         #expect(response.cacheType == .disk)
 
         // THEN
@@ -325,7 +323,6 @@ import Foundation
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
-        #expect(response.image != nil)
         #expect(response.cacheType == .disk)
 
         // THEN

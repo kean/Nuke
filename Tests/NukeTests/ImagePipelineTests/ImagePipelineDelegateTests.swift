@@ -43,7 +43,7 @@ import Foundation
             processors: [.resize(width: 44)],
             userInfo: ["imageId": "image-01-small"]
         )
-        try await pipeline.image(for: requestA)
+        _ = try await pipeline.image(for: requestA)
 
         let data = try #require(dataCache.cachedData(for: "image-01-small"))
         let image = try #require(PlatformImage(data: data))
@@ -63,7 +63,7 @@ import Foundation
 
     @Test func dataIsStoredInCache() async throws {
         // WHEN
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // THEN
         #expect(!dataCache.store.isEmpty)
@@ -72,7 +72,7 @@ import Foundation
     @Test func dataIsStoredInCacheWhenCacheDisabled() async throws {
         // WHEN
         delegate.isCacheEnabled = false
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // THEN
         #expect(dataCache.store.isEmpty)

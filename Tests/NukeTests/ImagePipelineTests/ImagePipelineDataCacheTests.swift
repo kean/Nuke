@@ -31,12 +31,12 @@ import Foundation
         dataCache.store[Test.url.absoluteString] = Test.data
 
         // When/Then
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
     }
 
     @Test func dataIsStoredInCache() async throws {
         // When
-        try await pipeline.image(for: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // Then
         #expect(!dataCache.store.isEmpty)
@@ -52,7 +52,7 @@ import Foundation
 
         // WHEN
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN
         do { // Check memory cache
@@ -84,7 +84,7 @@ import Foundation
 
         // WHEN
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN
         do { // Check memory cache
@@ -155,7 +155,7 @@ import Foundation
         request.options = [.reloadIgnoringCachedData]
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 1)
@@ -169,7 +169,7 @@ import Foundation
         request.options = [.returnCacheDataDontLoad]
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 0)
@@ -187,7 +187,7 @@ import Foundation
         request.options = [.returnCacheDataDontLoad]
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(dataLoader.createdTaskCount == 0)
@@ -200,7 +200,7 @@ import Foundation
 
         // WHEN/THEN
         await #expect {
-            try await pipeline.image(for: request)
+            _ = try await pipeline.image(for: request)
         } throws: {
             ($0 as? ImagePipeline.Error) == .dataMissingInCache
         }
@@ -257,7 +257,7 @@ import Foundation
         dataCache.store[Test.url.absoluteString + "1"] = Test.data
 
         // When/Then
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(processorFactory.numberOfProcessorsApplied == 0)
@@ -285,7 +285,7 @@ import Foundation
         dataCache.store[Test.url.absoluteString + "1"] = Test.data
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then decompressed image is stored in disk cache
         let container = cache[request]
@@ -325,7 +325,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
@@ -344,7 +344,7 @@ import Foundation
         let request = ImageRequest(url: Test.url)
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -360,8 +360,8 @@ import Foundation
         }
 
         // WHEN
-        try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        try await pipeline.image(for: ImageRequest(url: Test.url))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url))
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -383,7 +383,7 @@ import Foundation
         imageCache[ImageRequest(url: Test.url)] = Test.container
 
         // WHEN
-        try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -406,7 +406,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
@@ -425,7 +425,7 @@ import Foundation
         let request = ImageRequest(url: Test.url)
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN
         #expect(encoder.encodeCount == 1)
@@ -441,8 +441,8 @@ import Foundation
         }
 
         // WHEN
-        try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        try await pipeline.image(for: ImageRequest(url: Test.url))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url))
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -466,7 +466,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -485,7 +485,7 @@ import Foundation
         let request = ImageRequest(url: Test.url)
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -529,7 +529,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN encoded processed image is stored in disk cache and
         // original image data stored in disk cache
@@ -550,7 +550,7 @@ import Foundation
         let request = ImageRequest(url: Test.url)
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -566,8 +566,8 @@ import Foundation
         }
 
         // WHEN
-        try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        try await pipeline.image(for: ImageRequest(url: Test.url))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url))
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -591,7 +591,7 @@ import Foundation
         let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"))
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -609,7 +609,7 @@ import Foundation
         let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"), processors: [.resize(width: 100)])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
@@ -627,7 +627,7 @@ import Foundation
         let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"))
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -647,7 +647,7 @@ import Foundation
         let request = ImageRequest(url: url)
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
@@ -681,7 +681,7 @@ import Foundation
         }
 
         // When
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
         #expect(isCustomEncoderCalled)
@@ -696,7 +696,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 
         // WHEN
-        try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN
         #expect(dataCache.containsData(for: "http://test.com/example.jpeg"))

@@ -95,7 +95,6 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
             // Check if the client already has some resumable data available.
             if let range = headers?["Range"], let validator = headers?["If-Range"] {
                 let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
-                #expect(offset != nil)
 
                 #expect(validator == eTag, "Expected validator to be equal to ETag")
                 guard validator == eTag else { return }
