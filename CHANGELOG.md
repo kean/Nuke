@@ -15,6 +15,7 @@
 - Remove `queue` parameter from completion-based `loadImage`/`loadData` methods — callbacks now always run on the main queue
 - Add `@MainActor @Sendable` to completion-based `loadImage`/`loadData` closure parameters
 - Mark all public enums as `@frozen` (except error enums and empty namespaces)
+- Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 
 ## Nuke 12.9.0
 
