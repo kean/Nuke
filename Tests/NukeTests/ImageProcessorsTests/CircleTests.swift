@@ -23,7 +23,7 @@ import Foundation
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 150, height: 150))
-        XCTAssertEqualImages(output, Test.image(named: "s-circle.png"))
+        #expect(isEqualImages(output, Test.image(named: "s-circle.png")))
     }
 
     @Test(.disabled()) func thatBorderIsAdded() throws {
@@ -37,7 +37,7 @@ import Foundation
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 150, height: 150))
-        XCTAssertEqualImages(output, Test.image(named: "s-circle-border.png"))
+        #expect(isEqualImages(output, Test.image(named: "s-circle-border.png")))
     }
 
     @Test func extendedColorSpaceSupport() throws {

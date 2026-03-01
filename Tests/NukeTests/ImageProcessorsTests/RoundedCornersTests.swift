@@ -22,7 +22,7 @@ import Foundation
 
         // Then
         let expected = Test.image(named: "s-rounded-corners.png")
-        XCTAssertEqualImages(output, expected)
+        #expect(isEqualImages(output, expected))
         #expect(output.sizeInPixels == CGSize(width: 200, height: 150))
     }
 
@@ -37,7 +37,7 @@ import Foundation
 
         // Then
         let expected = Test.image(named: "s-rounded-corners-border.png")
-        XCTAssertEqualImages(output, expected)
+        #expect(isEqualImages(output, expected))
     }
 
     @Test func extendedColorSpaceSupport() throws {
