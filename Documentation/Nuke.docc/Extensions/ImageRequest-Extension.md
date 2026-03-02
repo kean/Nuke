@@ -17,7 +17,6 @@ request.processors = [.resize(width: 320)]
 - ``init(url:processors:priority:options:userInfo:)``
 - ``init(urlRequest:processors:priority:options:userInfo:)``
 - ``init(id:data:processors:priority:options:userInfo:)``
-- ``init(id:dataPublisher:processors:priority:options:userInfo:)``
 - ``init(stringLiteral:)``
 
 ### Options

@@ -4,7 +4,6 @@
 
 import Testing
 import Foundation
-import Combine
 @testable import Nuke
 
 @Suite struct ImagePipelinePublisherTests {
@@ -32,7 +31,7 @@ import Combine
 
     @Test func loadWithPublisher() async throws {
         // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
+        let request = ImageRequest(id: "a", data: { Test.data })
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
@@ -43,7 +42,7 @@ import Combine
 
     @Test func loadWithPublisherAndApplyProcessor() async throws {
         // GIVEN
-        var request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
+        var request = ImageRequest(id: "a", data: { Test.data })
         request.processors = [MockImageProcessor(id: "1")]
 
         // WHEN
@@ -56,7 +55,7 @@ import Combine
 
     @Test func imageRequestWithPublisher() {
         // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
+        let request = ImageRequest(id: "a", data: { Test.data })
 
         // THEN
         #expect(request.urlRequest == nil)
@@ -79,7 +78,7 @@ import Combine
 
     @Test func dataIsStoredInDataCache() async throws {
         // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
+        let request = ImageRequest(id: "a", data: { Test.data })
 
         // WHEN
         _ = try await pipeline.image(for: request)

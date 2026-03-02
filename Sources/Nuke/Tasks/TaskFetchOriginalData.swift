@@ -13,6 +13,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
     private var data = Data()
 
     override func start() {
+        if let fetch = request.dataFetchClosure {
+            loadAsyncData(fetch)
+            return
+        }
+
         guard let urlRequest = request.urlRequest, let url = urlRequest.url else {
             // A malformed URL prevented a URL request from being initiated.
             send(error: .dataLoadingFailed(error: URLError(.badURL)))
@@ -154,6 +159,54 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
+    }
+
+    // MARK: Async Data Loading
+
+    private func loadAsyncData(_ fetch: @Sendable @escaping () async throws -> Data) {
+        if request.options.contains(.skipDataLoadingQueue) {
+            performAsyncDataLoad(fetch, finish: {})
+        } else {
+            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
+                guard let self else { return finish() }
+                Task { @ImagePipelineActor in
+                    self.performAsyncDataLoad(fetch, finish: finish)
+                }
+            }
+        }
+    }
+
+    private func performAsyncDataLoad(_ fetch: @Sendable @escaping () async throws -> Data, finish: @escaping @Sendable () -> Void) {
+        guard !isDisposed else { return finish() }
+        let task = Task { [weak self] in
+            do {
+                let data = try await fetch()
+                finish()
+                guard let self, !self.isDisposed else { return }
+                self.asyncDataDidFinish(data)
+            } catch {
+                finish()
+                guard let self, !self.isDisposed else { return }
+                self.asyncDataDidFail(error)
+            }
+        }
+        onCancelled = {
+            finish()
+            task.cancel()
+        }
+    }
+
+    private func asyncDataDidFinish(_ data: Data) {
+        guard !data.isEmpty else {
+            send(error: .dataIsEmpty)
+            return
+        }
+        storeDataInCacheIfNeeded(data)
+        send(value: (data, nil), isCompleted: true)
+    }
+
+    private func asyncDataDidFail(_ error: Error) {
+        send(error: .dataLoadingFailed(error: error))
     }
 
     private func tryToSaveResumableData() {

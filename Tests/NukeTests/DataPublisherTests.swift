@@ -4,25 +4,22 @@
 
 import Testing
 import Foundation
-import Combine
 @testable import Nuke
 
-@Suite struct DataPublisherTests {
-    @Test func initNotStartsExecutionRightAway() async {
+@Suite struct DataRequestTests {
+    @Test func initDoesNotStartExecutionRightAway() async throws {
         let operation = MockOperation()
-        let publisher = DataPublisher(id: UUID().uuidString) {
+        let pipeline = ImagePipeline()
+
+        // Creating the request should NOT trigger the closure
+        let request = ImageRequest(id: UUID().uuidString, data: {
             await operation.execute()
-        }
+        })
 
         #expect(operation.executeCalls == 0)
 
-        var cancellable: (any Nuke.Cancellable)?
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            cancellable = publisher.sink { _ in
-                continuation.resume()
-            } receiveValue: { _ in }
-        }
-        _ = cancellable
+        // Loading the image should trigger the closure
+        _ = try await pipeline.image(for: request)
 
         #expect(operation.executeCalls == 1)
     }
@@ -33,7 +30,7 @@ import Combine
         func execute() async -> Data {
             executeCalls += 1
             await Task.yield()
-            return Data()
+            return Test.data
         }
     }
 }

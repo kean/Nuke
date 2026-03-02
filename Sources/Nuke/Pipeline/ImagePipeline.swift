@@ -260,7 +260,7 @@ public final class ImagePipeline: Sendable {
 
     func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
-            request.publisher == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithPublisher(self, request)
+            TaskFetchOriginalData(self, request)
         }
     }
 

@@ -4,7 +4,6 @@
 
 import Testing
 import Foundation
-import Combine
 @testable import Nuke
 
 @Suite struct ImagePipelineTests {
@@ -467,7 +466,7 @@ import Combine
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
 
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data), options: [
+        let request = ImageRequest(id: "a", data: { Test.data }, options: [
             .skipDataLoadingQueue
         ])
 
