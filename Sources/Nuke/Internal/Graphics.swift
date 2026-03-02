@@ -158,7 +158,7 @@ extension PlatformImage {
     }
 }
 
-private extension CGContext {
+extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
         if let ctx = CGContext.make(image, size: size, alphaInfo: alphaInfo, colorSpace: image.colorSpace ?? CGColorSpaceCreateDeviceRGB()) {
             return ctx

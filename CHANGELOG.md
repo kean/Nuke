@@ -18,6 +18,7 @@
 - Replace the internal serial `DispatchQueue` with a `@globalActor` (`ImagePipelineActor`) for pipeline synchronization, making thread-safety compiler-enforced. The actor is public so that custom `ImagePipelineDelegate` implementations can use it when needed to reduce thread hops
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead
 - Remove `ImageRequest.init(id:dataPublisher:)` and internal `TaskFetchWithPublisher`. Use `ImageRequest.init(id:data:)` (async closure) instead — it is now handled directly by `TaskFetchOriginalData`
+- Rewrite `ImageProcessors.GaussianBlur` to use Accelerate (`vImageBoxConvolve`) instead of Core Image, fixing gray border artifacts and improving performance ~5.8x — https://github.com/kean/Nuke/issues/308
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 
 ## Nuke 12.9.0
