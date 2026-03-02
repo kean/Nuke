@@ -82,7 +82,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
                     ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                 }
             }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.operation = nil
                 self.didFinishProcessing(result: result, isCompleted: isCompleted)
             }
@@ -117,7 +117,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
             let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.operation = nil
                 self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
             }

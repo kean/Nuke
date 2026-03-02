@@ -20,7 +20,7 @@ import AppKit
 public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     /// Unique only within that pipeline.
-    public let taskId: Int64
+    public let taskId: UInt64
 
     /// The original request that the task was created with.
     public let request: ImageRequest
@@ -137,27 +137,25 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
     private let lock: os_unfair_lock_t
-    private let queue: DispatchQueue
     private weak var pipeline: ImagePipeline?
 
-    // State synchronized on `pipeline.queue`.
-    var _task: Task<ImageResponse, Error>!
-    var _continuation: UnsafeContinuation<ImageResponse, Error>?
-    var _state: State = .running
-    var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+    // Set once during creation, then read-only from `response` getter.
+    nonisolated(unsafe) var _task: Task<ImageResponse, Error>!
+    @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, Error>?
+    @ImagePipelineActor var _state: State = .running
+    @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
 
     deinit {
         lock.deinitialize(count: 1)
         lock.deallocate()
     }
 
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
+    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
         self.publicState = PublicState(priority: request.priority)
         self.isDataTask = isDataTask
         self.pipeline = pipeline
-        self.queue = pipeline.queue
         self.onEvent = onEvent
 
         lock = .allocate(capacity: 1)
@@ -175,7 +173,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             return true
         }
         guard didChange else { return } // Make sure it gets called once (expensive)
-        pipeline?.imageTaskCancelCalled(self)
+        Task { @ImagePipelineActor in
+            self.pipeline?.imageTaskCancelCalled(self)
+        }
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
@@ -185,24 +185,28 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             return $0.state == .running
         }
         guard didChange else { return }
-        pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
+        Task { @ImagePipelineActor in
+            self.pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
+        }
     }
 
     // MARK: Internals
 
+    /// Cancels the task directly from an actor-isolated context, bypassing
+    /// the lock and the actor hop used by the public `cancel()` method.
+    @ImagePipelineActor func _cancelTask() {
+        pipeline?.imageTaskCancelCalled(self)
+    }
+
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
-    ///
-    /// synchronized on `pipeline.queue`.
-    func _cancel() {
+    @ImagePipelineActor func _cancel() {
         guard _setState(.cancelled) else { return }
         _dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
-    ///
-    /// synchronized on `pipeline.queue`.
-    func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+    @ImagePipelineActor func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
@@ -218,14 +222,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    /// Synchronized on `pipeline.queue`.
-    private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
+    @ImagePipelineActor private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
         guard _setState(.completed) else { return }
         _dispatch(.finished(result))
     }
 
-    /// Synchronized on `pipeline.queue`.
-    func _setState(_ state: State) -> Bool {
+    @ImagePipelineActor func _setState(_ state: State) -> Bool {
         guard _state == .running else { return false }
         _state = state
         if onEvent == nil {
@@ -234,13 +236,17 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         return true
     }
 
+    /// Updates the public state (lock-protected) without touching actor-isolated `_state`.
+    /// Used by the deprecated callback API on `@MainActor`.
+    func _setPublicState(_ state: State) {
+        withLock { $0.state = state }
+    }
+
     /// Dispatches the given event to the observers.
     ///
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
-    ///
-    /// synchronized on `pipeline.queue`.
-    func _dispatch(_ event: Event) {
+    @ImagePipelineActor func _dispatch(_ event: Event) {
         guard _continuation != nil else {
             return // Task isn't fully wired yet
         }
@@ -292,7 +298,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 extension ImageTask {
     private func makeStream() -> AsyncStream<Event> {
         AsyncStream { continuation in
-            self.queue.async {
+            Task { @ImagePipelineActor in
                 guard self._state == .running else {
                     return continuation.finish()
                 }

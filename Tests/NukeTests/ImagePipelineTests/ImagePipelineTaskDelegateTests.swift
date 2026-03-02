@@ -24,6 +24,7 @@ import Foundation
 
     @Test func startAndCompletedEvents() async throws {
         let response = try await pipeline.imageTask(with: Test.request).response
+        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to deliver delegate events
 
         // Then
         #expect(delegate.events == [
@@ -48,6 +49,8 @@ import Foundation
             result = .failure(error as! ImagePipeline.Error)
         }
 
+        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to deliver delegate events
+
         // Then
         #expect(delegate.events == [
             ImageTaskEvent.created,
@@ -69,6 +72,7 @@ import Foundation
         await notification(ImagePipelineObserver.didCancelTask, object: delegate) {
             task.cancel()
         }
+        await Task.yield()
 
         // Then
         #expect(delegate.events == [

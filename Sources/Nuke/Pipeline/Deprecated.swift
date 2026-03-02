@@ -8,23 +8,23 @@ extension ImagePipeline {
     // MARK: - Loading Images (Closures)
 
     /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadImage(with url: URL, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
+    @discardableResult nonisolated public func loadImage(with url: URL, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
         _loadImage(with: ImageRequest(url: url), progress: nil, completion: completion)
     }
 
     /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
+    @discardableResult nonisolated public func loadImage(with request: ImageRequest, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
         _loadImage(with: request, progress: nil, completion: completion)
     }
 
     /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadImage(with request: ImageRequest, progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
+    @discardableResult nonisolated public func loadImage(with request: ImageRequest, progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?, completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
         _loadImage(with: request, progress: {
             progress?($0, $1.completed, $1.total)
         }, completion: completion)
     }
 
-    func _loadImage(
+    nonisolated func _loadImage(
         with request: ImageRequest,
         isDataTask: Bool = false,
         progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
@@ -41,7 +41,7 @@ extension ImagePipeline {
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result):
-                    _ = task._setState(.completed) // Important to do it on the callback queue
+                    task._setPublicState(.completed) // Important to do it on the callback queue
                     completion(result)
                 }
             }
@@ -52,7 +52,7 @@ extension ImagePipeline {
     // MARK: - Loading Data (Closures)
 
     /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadData(with request: ImageRequest, completion: @escaping @MainActor @Sendable (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
+    @discardableResult nonisolated public func loadData(with request: ImageRequest, completion: @escaping @MainActor @Sendable (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         _loadImage(with: request, isDataTask: true, progress: nil) { result in
             let result = result.map { response in
                 (data: response.container.data ?? Data(), response: response.urlResponse)
@@ -62,7 +62,7 @@ extension ImagePipeline {
     }
 
     /// - warning: Soft-deprecated in Nuke 12.9.
-    @discardableResult public func loadData(with request: ImageRequest, progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?, completion: @escaping @MainActor @Sendable (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
+    @discardableResult nonisolated public func loadData(with request: ImageRequest, progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?, completion: @escaping @MainActor @Sendable (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         _loadImage(with: request, isDataTask: true) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in

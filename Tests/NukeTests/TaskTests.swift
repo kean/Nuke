@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct TaskTests {
+@Suite @ImagePipelineActor struct TaskTests {
     // MARK: - Starter
 
     @Test func starterCalledOnFirstSubscription() {
@@ -120,13 +120,14 @@ import Foundation
         #expect(eventCount == 2)
     }
 
-    @Test func cantSubscribeToAlreadyCancelledTask() {
+    @Test func cantSubscribeToAlreadyCancelledTask() async {
         // Given
         let task = SimpleTask<Int, MyError>(starter: { _ in })
         let subscription = task.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(task.subscribe { _ in } == nil)
@@ -175,7 +176,7 @@ import Foundation
 
     // MARK: - Unsubscribe
 
-    @Test func whenSubscriptionIsRemovedNoEventsAreSent() {
+    @Test func whenSubscriptionIsRemovedNoEventsAreSent() async {
         // Given
         let task = AsyncTask<Int, MyError>()
         var recordedEvents = [AsyncTask<Int, MyError>.Event]()
@@ -183,25 +184,27 @@ import Foundation
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
         task.send(value: 1)
 
         // Then
         #expect(recordedEvents.isEmpty, "Expect no events to be received by observer after subscription is removed")
     }
 
-    @Test func whenSubscriptionIsRemovedTaskBecomesDisposed() {
+    @Test func whenSubscriptionIsRemovedTaskBecomesDisposed() async {
         // Given
         let task = AsyncTask<Int, MyError>()
         let subscription = task.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(task.isDisposed, "Expect task to be marked as disposed")
     }
 
-    @Test func whenSubscriptionIsRemovedOnCancelIsCalled() {
+    @Test func whenSubscriptionIsRemovedOnCancelIsCalled() async {
         // Given
         let task = AsyncTask<Int, MyError>()
         let subscription = task.subscribe { _ in }
@@ -213,12 +216,13 @@ import Foundation
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(onCancelledIsCalled)
     }
 
-    @Test func whenSubscriptionIsRemovedOperationIsCancelled() {
+    @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -227,12 +231,13 @@ import Foundation
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(operation.isCancelled)
     }
 
-    @Test func whenSubscriptionIsRemovedDependencyIsCancelled() {
+    @Test func whenSubscriptionIsRemovedDependencyIsCancelled() async {
         // Given
         let operation = Foundation.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -241,13 +246,15 @@ import Foundation
         #expect(!operation.isCancelled)
 
         // When
-        subscription?.unsubscribe()
+        await waitForCancellation(of: operation) {
+            subscription?.unsubscribe()
+        }
 
         // Then
         #expect(operation.isCancelled)
     }
 
-    @Test func whenOneOfTwoSubscriptionsAreRemovedTaskNotCancelled() {
+    @Test func whenOneOfTwoSubscriptionsAreRemovedTaskNotCancelled() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -256,12 +263,13 @@ import Foundation
 
         // When
         subscription1?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(!operation.isCancelled)
     }
 
-    @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() {
+    @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -271,6 +279,7 @@ import Foundation
         // When
         subscription1?.unsubscribe()
         subscription2?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(operation.isCancelled)
@@ -278,7 +287,7 @@ import Foundation
 
     // MARK: - Priority
 
-    @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() {
+    @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -286,18 +295,20 @@ import Foundation
 
         // When
         subscription?.setPriority(.high)
+        await Task.yield()
 
         // Then
         #expect(operation.queuePriority == .high)
     }
 
-    @Test func whenTaskChangesOperationPriorityUpdated() { // Or sets operation later
+    @Test func whenTaskChangesOperationPriorityUpdated() async {
         // Given
         let task = AsyncTask<Int, MyError>()
         let subscription = task.subscribe { _ in }
 
         // When
         subscription?.setPriority(.high)
+        await Task.yield()
         let operation = Foundation.Operation()
         task.operation = operation
 
@@ -305,7 +316,7 @@ import Foundation
         #expect(operation.queuePriority == .high)
     }
 
-    @Test func thatPriorityCanBeLowered() {
+    @Test func thatPriorityCanBeLowered() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -313,12 +324,13 @@ import Foundation
 
         // When
         subscription?.setPriority(.low)
+        await Task.yield()
 
         // Then
         #expect(operation.queuePriority == .low)
     }
 
-    @Test func thatPriorityEqualMaximumPriorityOfAllSubscriptions() {
+    @Test func thatPriorityEqualMaximumPriorityOfAllSubscriptions() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -328,12 +340,13 @@ import Foundation
         // When
         subscription1?.setPriority(.low)
         subscription2?.setPriority(.high)
+        await Task.yield()
 
         // Then
         #expect(operation.queuePriority == .high)
     }
 
-    @Test func whenSubscriptionIsRemovedPriorityIsUpdated() {
+    @Test func whenSubscriptionIsRemovedPriorityIsUpdated() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -342,15 +355,17 @@ import Foundation
 
         subscription1?.setPriority(.low)
         subscription2?.setPriority(.high)
+        await Task.yield()
 
         // When
         subscription2?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(operation.queuePriority == .low)
     }
 
-    @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriority() {
+    @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriority() async {
         // Given
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -360,12 +375,13 @@ import Foundation
         // When
         subscription2?.setPriority(.high)
         subscription1?.setPriority(.low)
+        await Task.yield()
 
         // Then order of updating sub
         #expect(operation.queuePriority == .high)
     }
 
-    @Test func priorityOfDependencyUpdated() {
+    @Test func priorityOfDependencyUpdated() async {
         // Given
         let operation = Foundation.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
@@ -373,7 +389,9 @@ import Foundation
         let subscription = task.subscribe { _ in }
 
         // When
-        subscription?.setPriority(.high)
+        await waitForPriorityChange(of: operation, to: .high) {
+            subscription?.setPriority(.high)
+        }
 
         // Then
         #expect(operation.queuePriority == .high)
@@ -396,7 +414,7 @@ import Foundation
         #expect(!task.isDisposed)
     }
 
-    @Test func thatTaskIsDisposedWhenCancelled() {
+    @Test func thatTaskIsDisposedWhenCancelled() async {
         // Given
         let task = SimpleTask<Int, MyError>(starter: { _ in })
         var isDisposeCalled = false
@@ -405,6 +423,7 @@ import Foundation
 
         // When
         subscription?.unsubscribe()
+        await Task.yield()
 
         // Then
         #expect(isDisposeCalled)
@@ -448,6 +467,7 @@ private struct MyError: Equatable {
     let raw: String
 }
 
+@ImagePipelineActor
 private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
     private var starter: ((SimpleTask) -> Void)?
 
@@ -465,6 +485,7 @@ private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
     }
 }
 
+@ImagePipelineActor
 extension AsyncTask {
     func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         publisher.subscribe(priority: priority, subscriber: "" as AnyObject, observer)

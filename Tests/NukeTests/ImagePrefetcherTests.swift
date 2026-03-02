@@ -46,7 +46,7 @@ import Foundation
             pipeline.loadImage(with: Test.request, progress: nil) { _ in
                 continuation.resume()
             }
-            pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 dataLoader.isSuspended = false
             }
         }
@@ -81,7 +81,7 @@ import Foundation
             prefetcher.startPrefetching(with: [Test.url])
             prefetcher.startPrefetching(with: [Test.url])
 
-            pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 dataLoader.isSuspended = false
             }
         }
@@ -90,7 +90,7 @@ import Foundation
         #expect(observer.startedTaskCount == 1)
     }
 
-    @Test func whenImageIsInMemoryCacheNoTaskStarted() {
+    @Test func whenImageIsInMemoryCacheNoTaskStarted() async {
         dataLoader.isSuspended = true
 
         // GIVEN
@@ -98,7 +98,7 @@ import Foundation
 
         // WHEN
         prefetcher.startPrefetching(with: [Test.url])
-        pipeline.queue.sync {}
+        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to process
 
         // THEN
         #expect(observer.startedTaskCount == 0)
@@ -153,11 +153,7 @@ import Foundation
         prefetcher.isPaused = true
         prefetcher.startPrefetching(with: [Test.url])
 
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            pipeline.queue.asyncAfter(deadline: .now() + .milliseconds(10)) {
-                continuation.resume()
-            }
-        }
+        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to process
 
         // THEN
         #expect(observer.startedTaskCount == 0)
@@ -211,6 +207,7 @@ import Foundation
         let operations = await waitForOperations(on: pipeline.configuration.dataLoadingQueue, count: 1) {
             prefetcher.startPrefetching(with: [request])
         }
+        await Task.yield()
 
         // THEN priority is set to .low (prefetcher priority)
         guard let operation = operations.first else {

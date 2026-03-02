@@ -174,12 +174,11 @@ import Foundation
     @Test func cancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
-        pipeline.queue.suspend()
         let task = pipeline.imageTask(with: Test.url)
         let observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
             task.cancel()
         }
-        pipeline.queue.resume()
+        dataLoader.queue.isSuspended = false
 
         var caughtError: Error?
         do {

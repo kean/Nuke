@@ -83,7 +83,7 @@ import Foundation
             let task = pipeline.loadImage(with: Test.request) { _ in
                 Issue.record("Should not be called")
             }
-            pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 task.cancel()
                 continuation.resume()
             }
