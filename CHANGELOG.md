@@ -19,6 +19,7 @@
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead
 - Remove `ImageRequest.init(id:dataPublisher:)` and internal `TaskFetchWithPublisher`. Use `ImageRequest.init(id:data:)` (async closure) instead — it is now handled directly by `TaskFetchOriginalData`
 - Rewrite `ImageProcessors.GaussianBlur` to use Accelerate (`vImageBoxConvolve`) instead of Core Image, fixing gray border artifacts and improving performance ~5.8x — https://github.com/kean/Nuke/issues/308
+- Add `ImagePipeline.Configuration.maximumResponseDataSize` — downloads that exceed this limit are automatically cancelled. The default limit is based on the device's physical memory. Set to `nil` to disable — https://github.com/kean/Nuke/issues/738
 - Optimize data downloading by pre-allocating the buffer using the expected content size from the HTTP response, reducing memory reallocations during image downloads — https://github.com/kean/Nuke/issues/738
 - Add `ImagePipeline.Configuration.maximumDecodedImageSize` — images whose decoded bitmap would exceed this limit are automatically downscaled during decoding. The default limit is calculated dynamically based on the device's physical memory. Set to `nil` to disable
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests

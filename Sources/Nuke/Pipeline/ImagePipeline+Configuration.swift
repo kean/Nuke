@@ -135,6 +135,17 @@ extension ImagePipeline {
             return Int(limit)
         }()
 
+        /// The maximum response data size in bytes allowed before the download
+        /// is automatically cancelled. Downloads that exceed this limit fail
+        /// with ``ImagePipeline/Error/dataDownloadExceededMaximumSize``. `nil`
+        /// disables the check. The default value is 10% of physical memory,
+        /// capped at 200 MB.
+        public var maximumResponseDataSize: Int? = {
+            let physicalMemory = ProcessInfo.processInfo.physicalMemory
+            let limit = min(209_715_200 /* 200 MB */, physicalMemory / 10)
+            return Int(limit)
+        }()
+
         // MARK: - Options (Shared)
 
         /// `false` by default. If `true`, enables `os_signpost` logging for

@@ -73,6 +73,24 @@ import Foundation
         }
     }
 
+    @Test func downloadExceedingMaximumResponseDataSize() async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.maximumResponseDataSize = 1024
+        }
+
+        // WHEN/THEN
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
+        } catch let error as ImagePipeline.Error {
+            guard case .dataDownloadExceededMaximumSize = error else {
+                Issue.record("Unexpected error: \(error)")
+                return
+            }
+        }
+    }
+
     // MARK: - ImageRequest.CachePolicy
 
     @Test func cacheLookupWithDefaultPolicyImageStored() async throws {

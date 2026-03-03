@@ -11,6 +11,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private var data = Data()
+    private var dataTaskCancellable: (any Cancellable)?
 
     override func start() {
         if let fetch = request.dataFetchClosure {
@@ -99,6 +100,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
                 self.dataTaskDidFinish(error: error)
             }
         })
+        self.dataTaskCancellable = dataTask
 
         onCancelled = { [weak self] in
             guard let self else { return }
@@ -127,6 +129,17 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
             resumableData = nil // Get rid of resumable data
         }
 
+        // Check the expected size early to avoid a large `reserveCapacity`
+        // allocation when the server reports a content length above the limit.
+        if let maximumResponseDataSize = pipeline.configuration.maximumResponseDataSize {
+            let expectedSize = response.expectedContentLength + resumedDataCount
+            if expectedSize > 0, expectedSize > maximumResponseDataSize {
+                dataTaskCancellable?.cancel()
+                send(error: .dataDownloadExceededMaximumSize)
+                return
+            }
+        }
+
         // Append data and save response
         if data.isEmpty {
             data = chunk
@@ -137,6 +150,13 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
             data.append(chunk)
         }
         urlResponse = response
+
+        if let maximumResponseDataSize = pipeline.configuration.maximumResponseDataSize,
+           data.count > maximumResponseDataSize {
+            dataTaskCancellable?.cancel()
+            send(error: .dataDownloadExceededMaximumSize)
+            return
+        }
 
         let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
         send(progress: progress)
