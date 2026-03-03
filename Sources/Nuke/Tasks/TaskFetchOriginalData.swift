@@ -118,6 +118,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
             if let resumableData, ResumableData.isResumedResponse(response) {
                 data = resumableData.data
                 resumedDataCount = Int64(resumableData.data.count)
+                let expectedSize = response.expectedContentLength + resumedDataCount
+                if expectedSize > 0, expectedSize <= Int.max {
+                    data.reserveCapacity(Int(expectedSize))
+                }
                 signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
             }
             resumableData = nil // Get rid of resumable data
@@ -126,6 +130,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         // Append data and save response
         if data.isEmpty {
             data = chunk
+            if response.expectedContentLength > 0, response.expectedContentLength <= Int.max {
+                data.reserveCapacity(Int(response.expectedContentLength))
+            }
         } else {
             data.append(chunk)
         }
