@@ -37,6 +37,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
         }
 
         var decodingContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        decodingContext.maximumDecodedImageSize = pipeline.configuration.maximumDecodedImageSize
         if !isCompleted {
             decodingContext.previewPolicy = pipeline.delegate.previewPolicy(for: decodingContext, pipeline: pipeline)
         }

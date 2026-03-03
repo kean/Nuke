@@ -372,7 +372,12 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CG
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
+    return makeImage(from: image, source: source, scale: scale)
+}
 
+/// Creates a `PlatformImage` from a `CGImage` produced by a `CGImageSource`,
+/// reading EXIF orientation from the source properties.
+func makeImage(from cgImage: CGImage, source: CGImageSource, scale: CGFloat = 1.0) -> PlatformImage {
 #if canImport(UIKit)
     var orientation: UIImage.Orientation = .up
     if let imageProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [AnyHashable: Any],
@@ -380,9 +385,9 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CG
        let cgOrientation = CGImagePropertyOrientation(rawValue: orientationValue) {
         orientation = UIImage.Orientation(cgOrientation)
     }
-    return PlatformImage(cgImage: image, scale: scale, orientation: orientation)
+    return PlatformImage(cgImage: cgImage, scale: scale, orientation: orientation)
 #else
-    return PlatformImage(cgImage: image)
+    return PlatformImage(cgImage: cgImage)
 #endif
 }
 

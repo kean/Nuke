@@ -124,6 +124,17 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
+        /// The maximum decoded image size in bytes allowed before automatic
+        /// downscaling. Images whose decoded bitmap would exceed this limit are
+        /// decoded at a reduced resolution. `nil` disables the check. The
+        /// default value is calculated based on the device's physical memory.
+        public var maximumDecodedImageSize: Int? = {
+            let physicalMemory = ProcessInfo.processInfo.physicalMemory
+            let ratio = physicalMemory <= (536_870_912 /* 512 MB */) ? 0.02 : 0.04
+            let limit = min(67_108_864 /* 64 MB */, physicalMemory / UInt64(1 / ratio))
+            return Int(limit)
+        }()
+
         // MARK: - Options (Shared)
 
         /// `false` by default. If `true`, enables `os_signpost` logging for

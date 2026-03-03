@@ -64,6 +64,9 @@ public struct ImageDecodingContext: Sendable {
     /// The preview policy for progressive decoding. Set by the pipeline
     /// delegate for partial data; defaults to `.incremental`.
     public var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
+    /// The maximum decoded image size in bytes before automatic downscaling.
+    /// `nil` disables the check. Set by the pipeline from its configuration.
+    public var maximumDecodedImageSize: Int?
 
     public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil) {
         self.request = request

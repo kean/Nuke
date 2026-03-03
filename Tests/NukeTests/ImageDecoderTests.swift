@@ -280,6 +280,61 @@ import ImageIO
         #expect(container.data == nil)
     }
 #endif
+
+    // MARK: - Downscaling
+
+    @Test func downscalingWhenOverLimit() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+
+        // 640×360 = 230,400 pixels × 4 = 921,600 bytes decoded.
+        // Set a limit well below that to force downscaling.
+        var context = ImageDecodingContext.mock(data: data)
+        context.maximumDecodedImageSize = 40_000 // ~10,000 pixels
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+        let size = container.image.sizeInPixels
+        #expect(size.width < 640)
+        #expect(size.height < 360)
+    }
+
+    @Test func downscalingSkippedWhenUnderLimit() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+
+        // Set a limit above the decoded size (640×360×4 = 921,600 bytes)
+        var context = ImageDecodingContext.mock(data: data)
+        context.maximumDecodedImageSize = 2_000_000
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+        #expect(container.image.sizeInPixels == CGSize(width: 640, height: 360))
+    }
+
+    @Test func downscalingDisabledWhenNil() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+
+        var context = ImageDecodingContext.mock(data: data)
+        context.maximumDecodedImageSize = nil
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+        #expect(container.image.sizeInPixels == CGSize(width: 640, height: 360))
+    }
+
+    @Test func downscalingSkippedWhenThumbnailSet() throws {
+        let data = Test.data(name: "fixture", extension: "png")
+
+        var context = ImageDecodingContext.mock(data: data)
+        context.maximumDecodedImageSize = 40_000
+        context.request.userInfo[.thumbnailKey] = ImageRequest.ThumbnailOptions(size: CGSize(width: 100, height: 100), unit: .pixels, contentMode: .aspectFit)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        // Thumbnail options take priority — downscaling is not applied
+        let container = try decoder.decode(data)
+        let size = container.image.sizeInPixels
+        #expect(size.width <= 100)
+        #expect(size.height <= 100)
+    }
 }
 
 @Suite struct ImageTypeTests {
