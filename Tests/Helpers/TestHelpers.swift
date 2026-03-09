@@ -12,7 +12,7 @@ import CoreGraphics
 func withSuspendedDataLoading<T>(
     for pipeline: ImagePipeline,
     expectedCount: Int,
-    _ body: () -> T
+    _ body: @Sendable () -> T
 ) async -> T {
     let dataLoader = pipeline.configuration.dataLoader as! MockDataLoader
     dataLoader.isSuspended = true

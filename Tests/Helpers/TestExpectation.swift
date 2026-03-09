@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Nuke
+@testable import Nuke
 
 final class TestExpectation: @unchecked Sendable {
     private let lock = NSLock()
@@ -61,46 +61,38 @@ extension TestExpectation {
         }
     }
 
-    convenience init(queue: OperationQueue, count: Int) {
+    /// Creates a test expectation that waits for a given number of operations
+    /// to be enqueued on the given `TaskQueue`.
+    @ImagePipelineActor convenience init(queue: TaskQueue, count: Int) {
         self.init()
-        let recorder = OperationRecorder()
+        let recorder = TaskQueueOperationRecorder()
         self.recorder = recorder
-        recorder.observer = queue.observe(\.operations) { [weak self] queue, _ in
-            var shouldFulfill = false
-            for operation in queue.operations {
-                if recorder.record(operation) {
-                    if recorder.operations.count >= count {
-                        shouldFulfill = true
-                    }
+        queue.onEvent = { [weak self] event in
+            if case .enqueued(let op) = event {
+                recorder.record(op)
+                if recorder.operations.count >= count {
+                    self?.fulfill()
                 }
-            }
-            if shouldFulfill {
-                self?.fulfill()
             }
         }
     }
 
-    var operations: [Foundation.Operation] {
-        (recorder as? OperationRecorder)?.operations ?? []
+    var operations: [TaskQueue.Operation] {
+        (recorder as? TaskQueueOperationRecorder)?.operations ?? []
     }
 }
 
-private final class OperationRecorder: @unchecked Sendable {
+private final class TaskQueueOperationRecorder: @unchecked Sendable {
     private let lock = NSLock()
-    private var seen = Set<Foundation.Operation>()
-    private var _operations = [Foundation.Operation]()
-    var observer: NSKeyValueObservation?
+    private var _operations = [TaskQueue.Operation]()
 
-    var operations: [Foundation.Operation] {
+    var operations: [TaskQueue.Operation] {
         lock.withLock { _operations }
     }
 
-    func record(_ operation: Foundation.Operation) -> Bool {
+    func record(_ operation: TaskQueue.Operation) {
         lock.withLock {
-            guard !seen.contains(operation) else { return false }
-            seen.insert(operation)
             _operations.append(operation)
-            return true
         }
     }
 }
@@ -115,43 +107,66 @@ func notification(_ name: Notification.Name, object: AnyObject? = nil, isolation
     await expectation.wait()
 }
 
-// MARK: - Operation Queue Helpers
+// MARK: - TaskQueue Helpers
 
-/// Waits for the specified number of operations to be enqueued on the queue.
-/// The action closure is called after the KVO observation is set up.
-func waitForOperations(on queue: OperationQueue, count: Int, isolation: isolated (any Actor)? = #isolation, while action: () -> Void) async -> [Foundation.Operation] {
-    let expectation = TestExpectation(queue: queue, count: count)
-    action()
-    await expectation.wait()
-    return expectation.operations
+extension TaskQueue {
+    var operationCount: Int { pendingCount + runningCount }
+
+    /// Waits for the specified number of operations to be enqueued.
+    func waitForOperations(count: Int, while action: () -> Void) async -> [TaskQueue.Operation] {
+        let expectation = TestExpectation(queue: self, count: count)
+        action()
+        await expectation.wait()
+        return expectation.operations
+    }
+
+    /// Waits for a priority change on a TaskQueue.Operation managed by this queue.
+    func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
+        if operation.priority == target { action(); return }
+        let expectation = TestExpectation()
+        let previous = onEvent
+        onEvent = { event in
+            previous?(event)
+            if case .priorityChanged(let op) = event, op === operation, op.priority == target {
+                expectation.fulfill()
+            }
+        }
+        action()
+        await expectation.wait()
+        onEvent = previous
+    }
+
+    /// Waits for an operation managed by this queue to be cancelled.
+    func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
+        if operation.isCancelled { action(); return }
+        let expectation = TestExpectation()
+        let previous = onEvent
+        onEvent = { event in
+            previous?(event)
+            if case .cancelled(let op) = event, op === operation {
+                expectation.fulfill()
+            }
+        }
+        action()
+        await expectation.wait()
+        onEvent = previous
+    }
 }
 
-/// Waits for a priority change on an operation using KVO.
-/// The action closure is called after the KVO observation is set up.
-func waitForPriorityChange(of operation: Foundation.Operation, to: Foundation.Operation.QueuePriority = .high, isolation: isolated (any Actor)? = #isolation, while action: () -> Void) async {
-    let expectation = TestExpectation()
-    let observer = operation.observe(\.queuePriority, options: [.new, .initial]) { operation, _ in
-        if operation.queuePriority == to {
-            expectation.fulfill()
-        }
-    }
+/// Waits for a priority change on a standalone TaskQueue.Operation (not in a queue).
+@ImagePipelineActor
+func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
+    if operation.priority == target { action(); return }
     action()
-    await expectation.wait()
-    withExtendedLifetime(observer) {}
+    while operation.priority != target { await Task.yield() }
 }
 
-/// Waits for an operation to be cancelled using KVO.
-/// The action closure is called after the KVO observation is set up.
-func waitForCancellation(of operation: Foundation.Operation, isolation: isolated (any Actor)? = #isolation, while action: () -> Void) async {
-    let expectation = TestExpectation()
-    let observer = operation.observe(\.isCancelled, options: [.new, .initial]) { operation, _ in
-        if operation.isCancelled {
-            expectation.fulfill()
-        }
-    }
+/// Waits for a standalone TaskQueue.Operation to be cancelled (not in a queue).
+@ImagePipelineActor
+func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
+    if operation.isCancelled { action(); return }
     action()
-    await expectation.wait()
-    withExtendedLifetime(observer) {}
+    while !operation.isCancelled { await Task.yield() }
 }
 
 /// A simple mutable reference wrapper for use in test closures.
@@ -160,28 +175,34 @@ final class Ref<T>: @unchecked Sendable {
     init(_ value: T) { self.value = value }
 }
 
-/// Passively records operations added to a queue via KVO.
-/// Use only when you need to observe operations during execution without waiting.
-final class OperationQueueObserver: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _operations = [Foundation.Operation]()
-    private var seen = Set<Foundation.Operation>()
-    private var observer: NSKeyValueObservation?
-
-    var operations: [Foundation.Operation] {
-        lock.withLock { _operations }
+extension TaskQueue {
+    /// Waits until all enqueued operations have finished executing.
+    /// Modeled after `OperationQueue.waitUntilAllOperationsAreFinished()`.
+    func waitUntilAllOperationsAreFinished() async {
+        guard operationCount > 0 else { return }
+        let expectation = TestExpectation()
+        let previous = onEvent
+        onEvent = { [weak self] event in
+            previous?(event)
+            if case .finished = event, let self, self.operationCount == 0 {
+                expectation.fulfill()
+            }
+        }
+        await expectation.wait()
+        onEvent = previous
     }
+}
 
-    init(queue: OperationQueue) {
-        observer = queue.observe(\.operations) { [weak self] queue, _ in
-            guard let self else { return }
-            lock.withLock {
-                for operation in queue.operations {
-                    if !seen.contains(operation) {
-                        seen.insert(operation)
-                        _operations.append(operation)
-                    }
-                }
+/// Passively records operations enqueued on a TaskQueue.
+/// Use only when you need to observe operations during execution without waiting.
+@ImagePipelineActor
+final class TaskQueueObserver: Sendable {
+    private(set) var operations = [TaskQueue.Operation]()
+
+    init(queue: TaskQueue) {
+        queue.onEvent = { [weak self] event in
+            if case .enqueued(let op) = event {
+                self?.operations.append(op)
             }
         }
     }

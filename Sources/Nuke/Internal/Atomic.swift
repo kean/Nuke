@@ -38,3 +38,16 @@ final class Atomic<T>: @unchecked Sendable {
         return closure(&_value)
     }
 }
+
+extension Atomic where T: Equatable {
+    /// Atomically sets the value if it differs from the current one.
+    /// Returns `true` if the value was changed.
+    @discardableResult
+    func testAndSet(_ newValue: T) -> Bool {
+        withLock {
+            guard $0 != newValue else { return false }
+            $0 = newValue
+            return true
+        }
+    }
+}

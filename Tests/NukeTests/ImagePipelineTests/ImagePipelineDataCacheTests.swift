@@ -47,7 +47,6 @@ import Foundation
         let pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeOriginalData
             $0.imageCache = MockImageCache()
-            $0.debugIsSyncImageEncoding = true
         }
 
         // WHEN
@@ -118,13 +117,13 @@ import Foundation
         #expect(request.priority == .normal)
 
         var task: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
+        let operations = await queue.waitForOperations(count: 1) {
             task = pipeline.imageTask(with: request)
         }
 
         // When/Then
         let operation = try #require(operations.first)
-        await waitForPriorityChange(of: operation, to: .high) {
+        await queue.waitForPriorityChange(of: operation, to: .high) {
             task.priority = .high
         }
     }
@@ -136,13 +135,13 @@ import Foundation
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         var task: ImageTask!
-        let operations = await waitForOperations(on: queue, count: 1) {
+        let operations = await queue.waitForOperations(count: 1) {
             task = pipeline.imageTask(with: Test.request)
         }
 
         // When/Then
         let operation = try #require(operations.first)
-        await waitForCancellation(of: operation) {
+        await queue.waitForCancellation(of: operation) {
             task.cancel()
         }
     }

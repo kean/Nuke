@@ -51,12 +51,8 @@ extension AsyncPipelineTask {
         guard decoder.isAsynchronous else {
             return completion(decode())
         }
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-            guard self != nil else { return }
-            let response = decode()
-            Task { @ImagePipelineActor in
-                completion(response)
-            }
+        operation = pipeline.configuration.imageDecodingQueue.add {
+            completion(await performInBackground(decode))
         }
     }
 }

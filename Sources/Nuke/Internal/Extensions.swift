@@ -31,13 +31,6 @@ extension URL {
     }
 }
 
-extension OperationQueue {
-    convenience init(maxConcurrentCount: Int) {
-        self.init()
-        self.maxConcurrentOperationCount = maxConcurrentCount
-    }
-}
-
 extension ImageRequest.Priority {
     var taskPriority: TaskPriority {
         switch self {
@@ -60,4 +53,8 @@ final class AnonymousCancellable: Cancellable {
     func cancel() {
         onCancel()
     }
+}
+
+@concurrent func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
+    closure()
 }

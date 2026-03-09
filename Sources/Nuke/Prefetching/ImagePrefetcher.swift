@@ -58,7 +58,7 @@ public final class ImagePrefetcher: Sendable {
     private let pipeline: ImagePipeline
     private let destination: Destination
     private var tasks = [TaskLoadImageKey: PrefetchTask]()
-    let queue = OperationQueue() // internal for testing
+    let queue: TaskQueue // internal for testing
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -73,7 +73,7 @@ public final class ImagePrefetcher: Sendable {
     ) {
         self.pipeline = pipeline
         self.destination = destination
-        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
+        self.queue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     nonisolated deinit {
@@ -129,28 +129,17 @@ public final class ImagePrefetcher: Sendable {
             return
         }
         let task = PrefetchTask(request: request, key: key)
-        let operation = Operation(starter: { [weak self] finish in
-            guard let self else { return finish() }
-            Task { @ImagePipelineActor in
-                self.loadImage(task: task, finish: finish)
-            }
-        })
-        operation.queuePriority = request.priority.taskPriority.queuePriority
-        queue.addOperation(operation)
+        let pipeline = self.pipeline
+        let isDataTask = destination == .diskCache
+        let operation = queue.add { [weak self] in
+            let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: isDataTask)
+            task.imageTask = imageTask
+            _ = try? await imageTask.response
+            self?._remove(task)
+        }
+        operation.priority = request.priority.taskPriority
         task.operation = operation
         tasks[key] = task
-    }
-
-    private func loadImage(task: PrefetchTask, finish: @escaping @Sendable () -> Void) {
-        let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: destination == .diskCache)
-        task.imageTask = imageTask
-        task.onCancelled = finish
-        Task { @ImagePipelineActor [weak self] in
-            _ = try? await imageTask.response
-            guard let self else { return finish() }
-            self._remove(task)
-            finish()
-        }
     }
 
     private func _remove(_ task: PrefetchTask) {
@@ -205,19 +194,19 @@ public final class ImagePrefetcher: Sendable {
     }
 
     private func didUpdatePriority(to priority: ImageRequest.Priority) {
-        let queuePriority = priority.taskPriority.queuePriority
+        let taskPriority = priority.taskPriority
         for task in tasks.values {
             task.imageTask?.priority = priority
-            task.operation?.queuePriority = queuePriority
+            task.operation?.priority = taskPriority
         }
     }
 
-    @ImagePipelineActor private final class PrefetchTask: Sendable {
+    @ImagePipelineActor
+    private final class PrefetchTask: Sendable {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
-        weak var operation: Operation?
-        var onCancelled: (() -> Void)?
+        weak var operation: TaskQueue.Operation?
 
         init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request
@@ -229,7 +218,6 @@ public final class ImagePrefetcher: Sendable {
         func cancel() {
             operation?.cancel()
             imageTask?._cancelTask()
-            onCancelled?()
         }
     }
 }

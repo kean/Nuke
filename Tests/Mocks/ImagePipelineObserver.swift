@@ -38,20 +38,20 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         switch event {
         case .started:
             startedTaskCount += 1
-            NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
             append(.started)
+            NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         case .progress(let progress):
             append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
         case .preview(let response):
             append(.intermediateResponseReceived(response: response))
         case .cancelled:
             cancelledTaskCount += 1
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
             append(.cancelled)
+            NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         case .finished(let result):
             completedTaskCount += 1
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
             append(.completed(result: result))
+            NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
         }
     }
 }

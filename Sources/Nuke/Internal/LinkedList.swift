@@ -28,6 +28,18 @@ final class LinkedList<Element> {
         return node
     }
 
+    /// Adds a node to the beginning of the list.
+    func prepend(_ node: Node) {
+        if let first {
+            first.previous = node
+            node.next = first
+            self.first = node
+        } else {
+            first = node
+            last = node
+        }
+    }
+
     /// Adds a node to the end of the list.
     func append(_ node: Node) {
         if let last {

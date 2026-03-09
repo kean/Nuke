@@ -131,10 +131,10 @@ import Foundation
 
     // MARK: - Processing
 
-    @Test func processorsAreDeduplicated() async throws {
+    @Test @ImagePipelineActor func processorsAreDeduplicated() async throws {
         // Given
         let processors = MockProcessorFactory()
-        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.imageProcessingQueue)
+        let queueObserver = TaskQueueObserver(queue: pipeline.configuration.imageProcessingQueue)
 
         // When
         let (task1, task2, task3) = await withSuspendedDataLoading(for: pipeline, expectedCount: 3) {
@@ -392,7 +392,7 @@ import Foundation
         }
 
         // When - One request reloading cache data, another one not
-        func makeRequest(options: ImageRequest.Options) -> ImageRequest {
+        @Sendable func makeRequest(options: ImageRequest.Options) -> ImageRequest {
             ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
         }
 

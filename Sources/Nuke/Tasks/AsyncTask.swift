@@ -40,14 +40,14 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     private var isStarted = false
 
     /// Gets called when the task is either cancelled, or was completed.
-    var onDisposed: (() -> Void)?
+    var onDisposed: (@ImagePipelineActor @Sendable() -> Void)?
 
-    var onCancelled: (() -> Void)?
+    var onCancelled: (@ImagePipelineActor @Sendable () -> Void)?
 
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            operation?.queuePriority = priority.queuePriority
+            operation?.priority = priority
             dependency?.setPriority(priority)
         }
     }
@@ -62,10 +62,10 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    weak var operation: Foundation.Operation? {
+    weak var operation: TaskQueue.Operation? {
         didSet {
             guard priority != .normal else { return }
-            operation?.queuePriority = priority.queuePriority
+            operation?.priority = priority
         }
     }
 
@@ -247,18 +247,8 @@ extension AsyncTask {
 
 typealias TaskProgress = ImageTask.Progress // Using typealias for simplicity
 
-enum TaskPriority: Int, Comparable {
+enum TaskPriority: Int, Comparable, CaseIterable {
     case veryLow = 0, low, normal, high, veryHigh
-
-    var queuePriority: Operation.QueuePriority {
-        switch self {
-        case .veryLow: return .veryLow
-        case .low: return .low
-        case .normal: return .normal
-        case .high: return .high
-        case .veryHigh: return .veryHigh
-        }
-    }
 
     static func < (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
         lhs.rawValue < rhs.rawValue

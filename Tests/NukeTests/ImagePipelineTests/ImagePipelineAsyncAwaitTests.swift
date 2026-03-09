@@ -285,7 +285,7 @@ import Foundation
 
     // MARK: - Update Priority
 
-    @Test func updatePriority() async throws {
+    @Test @ImagePipelineActor func updatePriority() async throws {
         // GIVEN
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -300,7 +300,7 @@ import Foundation
 
         // WHEN/THEN
         let operation = try #require(expectation.operations.first)
-        await waitForPriorityChange(of: operation, to: .high) {
+        await queue.waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
     }

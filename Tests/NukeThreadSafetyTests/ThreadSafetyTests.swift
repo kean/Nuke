@@ -170,31 +170,6 @@ import UIKit
     }
 }
 
-@Suite struct OperationThreadSafetyTests {
-    @Test func operation() {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 10
-
-        DispatchQueue.concurrentPerform(iterations: 5) { _ in
-            for index in 0..<500 {
-                let operation = Operation(starter: { finish in
-                    Thread.sleep(forTimeInterval: Double.random(in: 1...10) / 1000.0)
-                    finish()
-                })
-                if index % 3 == 0 {
-                    DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(Int.random(in: 5...10))) {
-                        operation.cancel()
-                        operation.cancel()
-                        operation.cancel()
-                    }
-                }
-                queue.addOperation(operation)
-            }
-        }
-        queue.waitUntilAllOperationsAreFinished()
-    }
-}
-
 @Suite struct RandomizedTests {
     @Test func imagePipeline() async {
         let dataLoader = MockDataLoader()

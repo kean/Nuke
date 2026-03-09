@@ -164,22 +164,22 @@ extension ImagePipeline {
 
         var debugIsSyncImageEncoding = false
 
-        // MARK: - Operation Queues
+        // MARK: - Task Queues
 
         /// Data loading queue. Default maximum concurrent task count is 6.
-        public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
+        public var dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6)
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
+        public var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.
-        public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
+        public var imageEncodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
 
         /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
+        public var imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 2)
 
         /// Image decompressing queue. Default maximum concurrent task count is 2.
-        public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
+        public var imageDecompressingQueue = TaskQueue(maxConcurrentTaskCount: 2)
 
         // MARK: - Initializer
 

@@ -44,7 +44,7 @@ import Foundation
 
     // MARK: - Updating Priority
 
-    @Test func dataLoadingPriorityUpdated() async throws {
+    @Test @ImagePipelineActor func dataLoadingPriorityUpdated() async throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -59,12 +59,12 @@ import Foundation
 
         // When/Then
         let operation = try #require(expectation.operations.first)
-        await waitForPriorityChange(of: operation, to: .high) {
+        await queue.waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
     }
 
-    @Test func decodingPriorityUpdated() async throws {
+    @Test @ImagePipelineActor func decodingPriorityUpdated() async throws {
         // Given
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
@@ -83,12 +83,12 @@ import Foundation
 
         // When/Then
         let operation = try #require(expectation.operations.first)
-        await waitForPriorityChange(of: operation, to: .high) {
+        await queue.waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
     }
 
-    @Test func processingPriorityUpdated() async throws {
+    @Test @ImagePipelineActor func processingPriorityUpdated() async throws {
         // Given
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
@@ -103,7 +103,7 @@ import Foundation
 
         // When/Then
         let operation = try #require(expectation.operations.first)
-        await waitForPriorityChange(of: operation, to: .high) {
+        await queue.waitForPriorityChange(of: operation, to: .high) {
             imageTask.priority = .high
         }
     }
@@ -123,7 +123,7 @@ import Foundation
         }
     }
 
-    @Test func decodingOperationCancelled() async throws {
+    @Test @ImagePipelineActor func decodingOperationCancelled() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
@@ -139,12 +139,12 @@ import Foundation
 
         // When/Then
         let operation = try #require(expectation.operations.first)
-        await waitForCancellation(of: operation) {
+        await queue.waitForCancellation(of: operation) {
             task.cancel()
         }
     }
 
-    @Test func processingOperationCancelled() async throws {
+    @Test @ImagePipelineActor func processingOperationCancelled() async throws {
         // Given
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
@@ -158,7 +158,7 @@ import Foundation
 
         // When/Then
         let operation = try #require(expectation.operations.first)
-        await waitForCancellation(of: operation) {
+        await queue.waitForCancellation(of: operation) {
             task.cancel()
         }
     }
@@ -244,11 +244,11 @@ import Foundation
         #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
     }
 
-    @Test func thumbnailIsGeneratedOnDecodingQueue() async throws {
+    @Test @ImagePipelineActor func thumbnailIsGeneratedOnDecodingQueue() async throws {
         // GIVEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        let observer = OperationQueueObserver(queue: pipeline.configuration.imageDecodingQueue)
+        let observer = TaskQueueObserver(queue: pipeline.configuration.imageDecodingQueue)
 
         // WHEN
         _ = try await pipeline.image(for: request)
@@ -258,7 +258,7 @@ import Foundation
     }
 
 #if os(iOS) || os(visionOS)
-    @Test func thumbnailIsntDecompressed() async throws {
+    @Test @ImagePipelineActor func thumbnailIsntDecompressed() async throws {
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
 
         // GIVEN
@@ -448,7 +448,7 @@ import Foundation
 
     // MARK: Skip Data Loading Queue Option
 
-    @Test func skipDataLoadingQueuePerRequestWithURL() async throws {
+    @Test @ImagePipelineActor func skipDataLoadingQueuePerRequestWithURL() async throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -461,7 +461,7 @@ import Foundation
         _ = try await pipeline.image(for: request)
     }
 
-    @Test func skipDataLoadingQueuePerRequestWithPublisher() async throws {
+    @Test @ImagePipelineActor func skipDataLoadingQueuePerRequestWithPublisher() async throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true

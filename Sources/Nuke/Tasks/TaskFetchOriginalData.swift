@@ -10,6 +10,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
+    private var continuation: UnsafeContinuation<Void, Never>?
     private var data = Data()
     private var dataTaskCancellable: (any Cancellable)?
 
@@ -52,25 +53,28 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
 
     private func loadData(urlRequest: URLRequest) {
         if request.options.contains(.skipDataLoadingQueue) {
-            loadData(urlRequest: urlRequest, finish: { /* do nothing */ })
+            startDataLoad(urlRequest: urlRequest)
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-                guard let self else {
-                    return finish()
-                }
-                Task { @ImagePipelineActor in
-                    self.loadData(urlRequest: urlRequest, finish: finish)
-                }
+            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+                guard let self else { return }
+                await self.waitForDataLoad(urlRequest: urlRequest)
             }
         }
     }
 
-    // This methods gets called inside data loading operation (Operation).
-    private func loadData(urlRequest: URLRequest, finish: @escaping @Sendable () -> Void) {
+    private func waitForDataLoad(urlRequest: URLRequest) async {
+        await withUnsafeContinuation { continuation in
+            self.continuation = continuation
+            self.startDataLoad(urlRequest: urlRequest)
+        }
+    }
+
+    private func startDataLoad(urlRequest: URLRequest) {
         guard !isDisposed else {
-            return finish()
+            continuation?.resume()
+            return
         }
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
@@ -93,9 +97,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
                 self.dataTask(didReceiveData: data, response: response)
             }
         }, completion: { [weak self] error in
-            finish() // Finish the operation!
             guard let self else { return }
             Task { @ImagePipelineActor in
+                continuation?.resume()
+                continuation = nil
                 signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                 self.dataTaskDidFinish(error: error)
             }
@@ -107,7 +112,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
 
             signpost(self, "LoadImageData", .end, "Cancelled")
             dataTask.cancel()
-            finish() // Finish the operation!
+
+            continuation?.resume()
+            continuation = nil
 
             self.tryToSaveResumableData()
         }
@@ -192,34 +199,21 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
 
     private func loadAsyncData(_ fetch: @Sendable @escaping () async throws -> Data) {
         if request.options.contains(.skipDataLoadingQueue) {
-            performAsyncDataLoad(fetch, finish: {})
+            Task { await self.performAsyncDataLoad(fetch) }
         } else {
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-                guard let self else { return finish() }
-                Task { @ImagePipelineActor in
-                    self.performAsyncDataLoad(fetch, finish: finish)
-                }
+            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+                await self?.performAsyncDataLoad(fetch)
             }
         }
     }
 
-    private func performAsyncDataLoad(_ fetch: @Sendable @escaping () async throws -> Data, finish: @escaping @Sendable () -> Void) {
-        guard !isDisposed else { return finish() }
-        let task = Task { [weak self] in
-            do {
-                let data = try await fetch()
-                finish()
-                guard let self, !self.isDisposed else { return }
-                self.asyncDataDidFinish(data)
-            } catch {
-                finish()
-                guard let self, !self.isDisposed else { return }
-                self.asyncDataDidFail(error)
-            }
-        }
-        onCancelled = {
-            finish()
-            task.cancel()
+    private func performAsyncDataLoad(_ fetch: @Sendable @escaping () async throws -> Data) async {
+        guard !isDisposed else { return }
+        do {
+            let data = try await fetch()
+            asyncDataDidFinish(data)
+        } catch {
+            send(error: .dataLoadingFailed(error: error))
         }
     }
 

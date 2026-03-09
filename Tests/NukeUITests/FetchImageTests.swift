@@ -66,34 +66,34 @@ import Combine
     @Test func priorityUpdated() async throws {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        let operations = await waitForOperations(on: queue, count: 1) {
-            image.priority = .high
-            image.load(Test.request)
-        }
 
-        let operation = try #require(operations.first)
-        #expect(operation.queuePriority == .high)
+        let expectation = await TestExpectation(queue: queue, count: 1)
+
+        image.priority = .high
+        image.load(Test.request)
+
+        await expectation.wait()
+
+        let operation = try #require(expectation.operations.first)
+        let priority = await operation.priority
+        #expect(priority == .high)
     }
 
     @Test func priorityUpdatedDynamically() async throws {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
 
-        let operations = await waitForOperations(on: queue, count: 1) {
-            image.load(Test.request)
-        }
+        let expectation = await TestExpectation(queue: queue, count: 1)
+        image.load(Test.request)
+        await expectation.wait()
 
-        let operation = try #require(operations.first)
+        let operation = try #require(expectation.operations.first)
 
-        let expectation = TestExpectation()
-        let kvoObserver = operation.observe(\.queuePriority, options: [.new]) { op, _ in
-            if op.queuePriority == .high {
-                expectation.fulfill()
+        await queue.waitForPriorityChange(of: operation, to: .high) { @Sendable in
+            Task { @MainActor in
+                image.priority = .high
             }
         }
-        image.priority = .high
-        await expectation.wait()
-        withExtendedLifetime(kvoObserver) {}
     }
 
     // MARK: - Publisher

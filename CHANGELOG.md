@@ -22,6 +22,7 @@
 - Add `ImagePipeline.Configuration.maximumResponseDataSize` — downloads that exceed this limit are automatically cancelled. The default limit is based on the device's physical memory. Set to `nil` to disable — https://github.com/kean/Nuke/issues/738
 - Optimize data downloading by pre-allocating the buffer using the expected content size from the HTTP response, reducing memory reallocations during image downloads — https://github.com/kean/Nuke/issues/738
 - Add `ImagePipeline.Configuration.maximumDecodedImageSize` — images whose decoded bitmap would exceed this limit are automatically downscaled during decoding. The default limit is calculated dynamically based on the device's physical memory. Set to `nil` to disable
+- Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 
 ## Nuke 12.9.0

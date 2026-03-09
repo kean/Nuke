@@ -38,7 +38,7 @@ import Foundation
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
             $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+            $0.imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 1)
         }
     }
 
@@ -205,7 +205,7 @@ import Foundation
 
     // MARK: Back Pressure
 
-    @Test func backpressureImageDecoding() async throws {
+    @Test @ImagePipelineActor func backpressureImageDecoding() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in MockImageDecoder(name: "a") }

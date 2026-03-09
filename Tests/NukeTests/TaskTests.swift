@@ -224,7 +224,7 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedOperationIsCancelled() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription = task.subscribe { _ in }
         #expect(!operation.isCancelled)
@@ -239,7 +239,7 @@ import Foundation
 
     @Test func whenSubscriptionIsRemovedDependencyIsCancelled() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
         let subscription = task.subscribe { _ in }
@@ -256,7 +256,7 @@ import Foundation
 
     @Test func whenOneOfTwoSubscriptionsAreRemovedTaskNotCancelled() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         _ = task.subscribe { _ in }
@@ -271,7 +271,7 @@ import Foundation
 
     @Test func whenTwoOfTwoSubscriptionsAreRemovedTaskIsCancelled() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         let subscription2 = task.subscribe { _ in }
@@ -289,7 +289,7 @@ import Foundation
 
     @Test func whenPriorityIsUpdatedOperationPriorityAlsoUpdated() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription = task.subscribe { _ in }
 
@@ -298,7 +298,7 @@ import Foundation
         await Task.yield()
 
         // Then
-        #expect(operation.queuePriority == .high)
+        #expect(operation.priority == .high)
     }
 
     @Test func whenTaskChangesOperationPriorityUpdated() async {
@@ -309,16 +309,16 @@ import Foundation
         // When
         subscription?.setPriority(.high)
         await Task.yield()
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         task.operation = operation
 
         // Then
-        #expect(operation.queuePriority == .high)
+        #expect(operation.priority == .high)
     }
 
     @Test func thatPriorityCanBeLowered() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription = task.subscribe { _ in }
 
@@ -327,12 +327,12 @@ import Foundation
         await Task.yield()
 
         // Then
-        #expect(operation.queuePriority == .low)
+        #expect(operation.priority == .low)
     }
 
     @Test func thatPriorityEqualMaximumPriorityOfAllSubscriptions() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         let subscription2 = task.subscribe { _ in }
@@ -343,12 +343,12 @@ import Foundation
         await Task.yield()
 
         // Then
-        #expect(operation.queuePriority == .high)
+        #expect(operation.priority == .high)
     }
 
     @Test func whenSubscriptionIsRemovedPriorityIsUpdated() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         let subscription2 = task.subscribe { _ in }
@@ -362,12 +362,12 @@ import Foundation
         await Task.yield()
 
         // Then
-        #expect(operation.queuePriority == .low)
+        #expect(operation.priority == .low)
     }
 
     @Test func whenSubscriptionLowersPriorityButExistingSubscriptionHasHigherPriority() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
         let subscription2 = task.subscribe { _ in }
@@ -378,12 +378,12 @@ import Foundation
         await Task.yield()
 
         // Then order of updating sub
-        #expect(operation.queuePriority == .high)
+        #expect(operation.priority == .high)
     }
 
     @Test func priorityOfDependencyUpdated() async {
         // Given
-        let operation = Foundation.Operation()
+        let operation = TaskQueue.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
         let subscription = task.subscribe { _ in }
@@ -394,7 +394,7 @@ import Foundation
         }
 
         // Then
-        #expect(operation.queuePriority == .high)
+        #expect(operation.priority == .high)
     }
 
     // MARK: - Dispose
