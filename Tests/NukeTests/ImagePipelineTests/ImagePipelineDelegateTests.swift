@@ -24,7 +24,6 @@ import Foundation
             $0.dataCache = dataCache
             $0.dataCachePolicy = .automatic
             $0.imageCache = nil
-            $0.debugIsSyncImageEncoding = true
         }
     }
 
@@ -44,6 +43,7 @@ import Foundation
             userInfo: ["imageId": "image-01-small"]
         )
         _ = try await pipeline.image(for: requestA)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         let data = try #require(dataCache.cachedData(for: "image-01-small"))
         let image = try #require(PlatformImage(data: data))
@@ -64,6 +64,7 @@ import Foundation
     @Test func dataIsStoredInCache() async throws {
         // WHEN
         _ = try await pipeline.image(for: Test.request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         #expect(!dataCache.store.isEmpty)
@@ -73,6 +74,7 @@ import Foundation
         // WHEN
         delegate.isCacheEnabled = false
         _ = try await pipeline.image(for: Test.request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         #expect(dataCache.store.isEmpty)

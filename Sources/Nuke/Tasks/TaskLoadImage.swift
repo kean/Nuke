@@ -155,34 +155,19 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        if pipeline.configuration.debugIsSyncImageEncoding {
-            _encodeAndStore(encoder: encoder, response: response, context: context, key: key, dataCache: dataCache)
-        } else {
-            pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
-                guard let pipeline else { return }
-                await performInBackground {
-                    let encodedData = signpost("EncodeImage") {
-                        encoder.encode(response.container, context: context)
-                    }
-                    guard let data = encodedData, !data.isEmpty else { return }
-                    pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-                        guard let data = $0, !data.isEmpty else { return }
-                        // Important! Storing directly ignoring `ImageRequest.Options`.
-                        dataCache.storeData(data, for: key) // This is instant, writes are async
-                    }
+        pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
+            guard let pipeline else { return }
+            let data = await performInBackground {
+                signpost("EncodeImage") {
+                    encoder.encode(response.container, context: context)
                 }
             }
-        }
-    }
-
-    private func _encodeAndStore(encoder: any ImageEncoding, response: ImageResponse, context: ImageEncodingContext, key: String, dataCache: any DataCaching) {
-        let encodedData = signpost("EncodeImage") {
-            encoder.encode(response.container, context: context)
-        }
-        guard let data = encodedData, !data.isEmpty else { return }
-        pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-            guard let data = $0, !data.isEmpty else { return }
-            dataCache.storeData(data, for: key)
+            guard let data, !data.isEmpty else { return }
+            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+                guard let data = $0, !data.isEmpty else { return }
+                // Important! Storing directly ignoring `ImageRequest.Options`.
+                dataCache.storeData(data, for: key) // This is instant, writes are async
+            }
         }
     }
 

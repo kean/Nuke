@@ -78,12 +78,12 @@ import Foundation
         let pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeAll
             $0.imageCache = MockImageCache()
-            $0.debugIsSyncImageEncoding = true
         }
 
         // WHEN
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         do { // Check memory cache
@@ -245,7 +245,6 @@ import Foundation
             $0.dataCache = dataCache
             $0.imageCache = nil
             $0.makeImageEncoder = { _ in encoder }
-            $0.debugIsSyncImageEncoding = true
         }
         self.request = ImageRequest(url: Test.url, processors: [processorFactory.make(id: "1")])
     }
@@ -327,6 +326,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
@@ -363,6 +363,7 @@ import Foundation
         // WHEN
         _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
         _ = try await pipeline.image(for: ImageRequest(url: Test.url))
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -385,6 +386,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -408,6 +410,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
@@ -427,6 +430,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         #expect(encoder.encodeCount == 1)
@@ -444,6 +448,7 @@ import Foundation
         // WHEN
         _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
         _ = try await pipeline.image(for: ImageRequest(url: Test.url))
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -531,6 +536,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN encoded processed image is stored in disk cache and
         // original image data stored in disk cache
@@ -569,6 +575,7 @@ import Foundation
         // WHEN
         _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
         _ = try await pipeline.image(for: ImageRequest(url: Test.url))
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
         // encoded processed image is stored in disk cache
@@ -611,6 +618,7 @@ import Foundation
 
         // WHEN
         _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)

@@ -24,7 +24,6 @@ import Foundation
             $0.dataCache = dataCache
             $0.imageCache = nil
             $0.makeImageEncoder = { _ in encoder }
-            $0.debugIsSyncImageEncoding = true
         }
     }
 

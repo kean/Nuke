@@ -135,7 +135,6 @@ import Foundation
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
             $0.imageCache = imageCache
-            $0.debugIsSyncImageEncoding = true
         }
 
         self.request = ImageRequest(url: Test.url, processors: [
@@ -343,6 +342,7 @@ import Foundation
         var request = request
         request.options.insert(.disableDiskCacheReads)
         let response = try await pipeline.imageTask(with: request).response
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
         #expect(response.image.nk_test_processorIDs == ["1", "2"])
         #expect(response.cacheType == nil)
 

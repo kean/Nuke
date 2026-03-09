@@ -162,8 +162,6 @@ extension ImagePipeline {
 
         private var isCustomImageCacheProvided = false
 
-        var debugIsSyncImageEncoding = false
-
         // MARK: - Task Queues
 
         /// Data loading queue. Default maximum concurrent task count is 6.
