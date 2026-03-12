@@ -204,10 +204,12 @@ struct DataLoaderTests {
 
     @Test func taskCancellationThrows() async throws {
         let url = mockURL("cancel")
+        let started = TestExpectation()
         // Handler that never completes — the task will be cancelled before it finishes
         MockURLProtocol.handlers[url] = .init { _, client, proto in
             let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)!
             client.urlProtocol(proto, didReceive: response, cacheStoragePolicy: .notAllowed)
+            started.fulfill()
             // Don't send data or finish — simulate a slow response
         }
 
@@ -217,8 +219,8 @@ struct DataLoaderTests {
             for try await _ in stream {}
         }
 
-        // Give the task a moment to start, then cancel
-        try await Task.sleep(nanoseconds: 50_000_000)
+        // Wait for the request to actually start, then cancel
+        await started.wait()
         task.cancel()
 
         do {

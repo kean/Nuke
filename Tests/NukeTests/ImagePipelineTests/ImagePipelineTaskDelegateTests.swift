@@ -23,8 +23,9 @@ import Foundation
     }
 
     @Test func startAndCompletedEvents() async throws {
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
         let response = try await pipeline.imageTask(with: Test.request).response
-        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to deliver delegate events
+        await completed.wait()
 
         // Then
         #expect(delegate.events == [
@@ -41,6 +42,7 @@ import Foundation
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
         var result: Result<ImageResponse, ImagePipeline.Error>?
         do {
             let response = try await pipeline.imageTask(with: request).response
@@ -48,8 +50,7 @@ import Foundation
         } catch {
             result = .failure(error as! ImagePipeline.Error)
         }
-
-        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to deliver delegate events
+        await completed.wait()
 
         // Then
         #expect(delegate.events == [

@@ -91,14 +91,16 @@ import Foundation
     }
 
     @Test func whenImageIsInMemoryCacheNoTaskStarted() async {
-        dataLoader.isSuspended = true
-
         // GIVEN
         pipeline.cache[Test.request] = Test.container
 
         // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to process
+        await withCheckedContinuation { continuation in
+            prefetcher.didComplete = {
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN
         #expect(observer.startedTaskCount == 0)
@@ -148,12 +150,13 @@ import Foundation
 
     // MARK: Pause
 
-    @Test func pausingPrefetcher() async {
+    @Test @ImagePipelineActor func pausingPrefetcher() async {
         // WHEN
         prefetcher.isPaused = true
-        prefetcher.startPrefetching(with: [Test.url])
 
-        try? await Task.sleep(nanoseconds: 50_000_000) // Give actor time to process
+        _ = await prefetcher.queue.waitForOperations(count: 1) {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN
         #expect(observer.startedTaskCount == 0)
