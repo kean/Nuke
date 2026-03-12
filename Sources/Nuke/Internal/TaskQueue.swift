@@ -48,8 +48,8 @@ public final class TaskQueue: Sendable {
         }
     }
 
-    nonisolated private let _maxConcurrentTaskCount: Atomic<Int>
-    nonisolated private let _isSuspended = Atomic(value: false)
+    nonisolated private let _maxConcurrentTaskCount: Mutex<Int>
+    nonisolated private let _isSuspended = Mutex(value: false)
 
     /// Events emitted by the queue for observation (testing only).
     enum Event {
@@ -64,7 +64,7 @@ public final class TaskQueue: Sendable {
 
     /// Initializes the queue.
     nonisolated public init(maxConcurrentTaskCount: Int = ProcessInfo.processInfo.processorCount) {
-        self._maxConcurrentTaskCount = Atomic(value: maxConcurrentTaskCount)
+        self._maxConcurrentTaskCount = Mutex(value: maxConcurrentTaskCount)
     }
 
     /// Adds work to the queue. The closure runs `@ImagePipelineActor`. The

@@ -22,7 +22,7 @@ public final class ImagePipeline: Sendable {
         set { _shared.value = newValue }
     }
 
-    private nonisolated static let _shared = Atomic(value: ImagePipeline(configuration: .withURLCache))
+    private nonisolated static let _shared = Mutex(value: ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
     nonisolated public let configuration: Configuration
@@ -47,7 +47,7 @@ public final class ImagePipeline: Sendable {
             return value
         }
     }
-    private nonisolated let _nextTaskId = Atomic<UInt64>(value: 0)
+    private nonisolated let _nextTaskId = Mutex<UInt64>(value: 0)
 
     let rateLimiter: RateLimiter?
     nonisolated let id = UUID()

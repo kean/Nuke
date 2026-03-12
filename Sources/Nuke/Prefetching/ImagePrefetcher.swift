@@ -34,7 +34,7 @@ public final class ImagePrefetcher: Sendable {
             Task { @ImagePipelineActor in self.didUpdatePriority(to: newValue) }
         }
     }
-    private nonisolated let _priority = Atomic(value: ImageRequest.Priority.low)
+    private nonisolated let _priority = Mutex(value: ImageRequest.Priority.low)
 
     /// Prefetching destination.
     @frozen public enum Destination: Sendable {

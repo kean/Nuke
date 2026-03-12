@@ -4,7 +4,7 @@
 
 import Foundation
 
-final class Atomic<T>: @unchecked Sendable {
+final class Mutex<T>: @unchecked Sendable {
     private var _value: T
     private let lock: os_unfair_lock_t
 
@@ -39,7 +39,7 @@ final class Atomic<T>: @unchecked Sendable {
     }
 }
 
-extension Atomic where T: Equatable {
+extension Mutex where T: Equatable {
     /// Atomically sets the value if it differs from the current one.
     /// Returns `true` if the value was changed.
     @discardableResult
