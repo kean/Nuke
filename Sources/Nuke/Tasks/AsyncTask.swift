@@ -62,7 +62,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    weak var operation: TaskQueue.Operation? {
+    var operation: TaskQueue.Operation? {
         didSet {
             guard priority != .normal else { return }
             operation?.priority = priority

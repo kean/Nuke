@@ -147,20 +147,18 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
         )!
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
         let chunks = Array(_createChunks(for: data, size: data.count / 3))
         let response = urlResponse
-        DispatchQueue.main.async {
-            for chunk in chunks {
-                didReceiveData(chunk, response)
+        let stream = AsyncThrowingStream<Data, Error> { continuation in
+            DispatchQueue.main.async {
+                for chunk in chunks {
+                    continuation.yield(chunk)
+                }
+                continuation.finish()
             }
-            completion(nil)
         }
-        return _Task()
-    }
-
-    private class _Task: Cancellable, @unchecked Sendable {
-        func cancel() {}
+        return (stream, response)
     }
 }
 
@@ -170,8 +168,7 @@ private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
     var chunks: [Data]
     let data = Test.data(name: "baseline", extension: "jpeg")
 
-    private var didReceiveData: (Data, URLResponse) -> Void = { _, _ in }
-    private var completion: (Error?) -> Void = { _ in }
+    private var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
 
     init() {
         self.urlResponse = HTTPURLResponse(
@@ -183,26 +180,26 @@ private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
-        self.didReceiveData = didReceiveData
-        self.completion = completion
-        self.resume()
-        return _Task()
+    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+        let stream = AsyncThrowingStream<Data, Error> { continuation in
+            self.streamContinuation = continuation
+        }
+        // Serve the first chunk immediately
+        DispatchQueue.main.async {
+            self.resume()
+        }
+        return (stream, urlResponse)
     }
 
     func resume() {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
-                self.didReceiveData(chunk, self.urlResponse)
+                self.streamContinuation?.yield(chunk)
                 if self.chunks.isEmpty {
-                    self.completion(nil)
+                    self.streamContinuation?.finish()
                 }
             }
         }
-    }
-
-    private class _Task: Cancellable, @unchecked Sendable {
-        func cancel() {}
     }
 }

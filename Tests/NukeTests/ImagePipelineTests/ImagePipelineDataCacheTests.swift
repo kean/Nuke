@@ -692,6 +692,8 @@ import Foundation
         // When
         _ = try await pipeline.image(for: request)
 
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
         // Then
         #expect(isCustomEncoderCalled)
         #expect(dataCache.cachedData(for: Test.url.absoluteString + "1") == nil)

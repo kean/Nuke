@@ -57,21 +57,36 @@ public class AlamofireDataLoader: Nuke.DataLoading {
     // MARK: DataLoading
 
     /// Loads data using Alamofire.SessionManager.
-    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    public func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
         let task = self.session.streamRequest(request)
-        task.responseStream { [weak task] stream in
-            switch stream.event {
-            case let .stream(result):
-                switch result {
-                case let .success(data):
-                    guard let response = task?.response else { return } // Never nil
-                    didReceiveData(data, response)
-                }
-            case let .complete(response):
-                completion(response.error)
+
+        let response = try await withCheckedThrowingContinuation { continuation in
+            task.onHTTPResponse { response in
+                continuation.resume(returning: response)
             }
         }
-        return AnyCancellable { task.cancel() }
+
+        let stream = AsyncThrowingStream<Data, Error> { streamContinuation in
+            streamContinuation.onTermination = { @Sendable _ in
+                task.cancel()
+            }
+            task.responseStream { stream in
+                switch stream.event {
+                case let .stream(result):
+                    switch result {
+                    case let .success(data):
+                        streamContinuation.yield(data)
+                    }
+                case let .complete(completion):
+                    if let error = completion.error {
+                        streamContinuation.finish(throwing: error)
+                    } else {
+                        streamContinuation.finish()
+                    }
+                }
+            }
+        }
+        return (stream, response)
     }
 }
 ```
@@ -82,4 +97,3 @@ public class AlamofireDataLoader: Nuke.DataLoading {
 
 - ``DataLoading``
 - ``DataLoader``
-- ``Cancellable``

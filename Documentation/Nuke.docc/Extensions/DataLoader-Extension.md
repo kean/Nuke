@@ -9,7 +9,7 @@
 
 ### Loading Data
 
-- ``loadData(with:didReceiveData:completion:)``
+- ``loadData(with:)``
 
 ### Observing Events
 

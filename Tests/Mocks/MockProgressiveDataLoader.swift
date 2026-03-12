@@ -12,25 +12,22 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
-    class _MockTask: Cancellable, @unchecked Sendable {
-        func cancel() {
-            // Do nothing
-        }
-    }
-
-    private var didReceiveData: (Data, URLResponse) -> Void = { _, _ in }
-    private var completion: (Error?) -> Void = { _ in }
+    private var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
 
     init() {
         self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
-        self.didReceiveData = didReceiveData
-        self.completion = completion
-        self.resume()
-        return _MockTask()
+    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+        let stream = AsyncThrowingStream<Data, Error> { continuation in
+            self.streamContinuation = continuation
+        }
+        // Serve the first chunk immediately
+        DispatchQueue.main.async {
+            self.serveNextChunk()
+        }
+        return (stream, urlResponse)
     }
 
     func resumeServingChunks(_ count: Int) {
@@ -42,9 +39,9 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     func serveNextChunk() {
         guard let chunk = chunks.first else { return }
         chunks.removeFirst()
-        didReceiveData(chunk, urlResponse)
+        streamContinuation?.yield(chunk)
         if chunks.isEmpty {
-            completion(nil)
+            streamContinuation?.finish()
         }
     }
 
@@ -53,9 +50,9 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
-                self.didReceiveData(chunk, self.urlResponse)
+                self.streamContinuation?.yield(chunk)
                 if self.chunks.isEmpty {
-                    self.completion(nil)
+                    self.streamContinuation?.finish()
                     completed()
                 }
             }

@@ -198,7 +198,17 @@ extension Result {
         set { setValue(newValue) }
     }
 
-     private func getValue() -> T {
+    var projectedValue: Atomic<T> {
+        self
+    }
+
+    func withLock<U>(_ closure: (inout T) -> U) -> U {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return closure(&value)
+    }
+
+    private func getValue() -> T {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         return value
