@@ -91,7 +91,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with url: URL?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+    completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 ) -> ImageTask? {
     loadImage(with: url, options: options, into: view, progress: nil, completion: completion)
 }
@@ -124,8 +124,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with url: URL?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+    progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+    completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: url.map({ ImageRequest(url: $0) }), options: options ?? .shared, progress: progress, completion: completion)
@@ -139,7 +139,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with request: ImageRequest?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+    completion: @escaping @MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 ) -> ImageTask? {
     loadImage(with: request, options: options ?? .shared, into: view, progress: nil, completion: completion)
 }
@@ -172,8 +172,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
     with request: ImageRequest?,
     options: ImageLoadingOptions? = nil,
     into view: ImageDisplayingView,
-    progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+    progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+    completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: request, options: options ?? .shared, progress: progress, completion: completion)
@@ -234,8 +234,8 @@ private final class ImageViewController {
     func loadImage(
         with request: ImageRequest?,
         options: ImageLoadingOptions,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-        completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+        progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+        completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
     ) -> ImageTask? {
         cancelOutstandingTask()
 

@@ -135,7 +135,7 @@ import TVUIKit
     // MARK: - Completion and Progress Closures
 
     @Test func completionCalled() async {
-        nonisolated(unsafe) var didCallCompletion = false
+        var didCallCompletion = false
         let expectation = TestExpectation()
         NukeExtensions.loadImage(
             with: Test.request,
@@ -179,7 +179,7 @@ import TVUIKit
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        nonisolated(unsafe) var progressValues: [(Int64, Int64)] = []
+        var progressValues: [(Int64, Int64)] = []
         let expectation = TestExpectation()
 
         // WHEN loading an image into a view
