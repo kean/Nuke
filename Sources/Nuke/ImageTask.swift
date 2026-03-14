@@ -19,7 +19,6 @@ import AppKit
 /// it is useful for your app.
 public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
-    /// Unique only within that pipeline.
     public let taskId: UInt64
 
     /// The original request that the task was created with.
@@ -32,8 +31,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         set { setPriority(newValue) }
     }
 
-    /// Returns the current download progress. Returns zeros before the download
-    /// is started and the expected size of the resource is known.
+    /// Returns the current download progress. Returns zeros until the download
+    /// starts and the total resource size is known.
     public var currentProgress: Progress {
         withLock { $0.progress }
     }
@@ -51,7 +50,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             return min(1, Float(completed) / Float(total))
         }
 
-        /// Initializes progress with the given status.
+        /// Initializes progress with the given byte counts.
         public init(completed: Int64, total: Int64) {
             (self.completed, self.total) = (completed, total)
         }

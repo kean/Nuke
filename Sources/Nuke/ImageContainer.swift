@@ -24,27 +24,28 @@ public typealias PlatformColor = NSColor
 
 /// An image container with an image and associated metadata.
 public struct ImageContainer: @unchecked Sendable {
+    /// The fetched image.
 #if os(macOS)
-    /// A fetched image.
     public var image: NSImage {
         get { ref.image }
         set { mutate { $0.image = newValue } }
     }
 #else
-    /// A fetched image.
     public var image: UIImage {
         get { ref.image }
         set { mutate { $0.image = newValue } }
     }
 #endif
 
-    /// An image type.
+    /// The detected format of the image data, such as JPEG, PNG, or GIF.
+    /// `nil` if the format is unknown or not relevant.
     public var type: AssetType? {
         get { ref.type }
         set { mutate { $0.type = newValue } }
     }
 
-    /// Returns `true` if the image in the container is a preview of the image.
+    /// Returns `true` if the image is a progressive preview rather than the
+    /// final decoded image.
     public var isPreview: Bool {
         get { ref.isPreview }
         set { mutate { $0.isPreview = newValue } }

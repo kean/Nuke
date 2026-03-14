@@ -83,8 +83,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         }
     }
 
-    /// Returns the ID of the underlying image. For URL-based requests, it's an
-    /// image URL. For an async function – a custom ID provided in initializer.
+    /// Returns the ID of the underlying image. For URL-based requests, returns
+    /// the absolute URL string. For async data requests, returns the custom ID
+    /// provided in the initializer.
     public var imageId: String? { ref.originalImageId }
 
     /// Returns a debug request description.
@@ -175,9 +176,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// )
     /// ```
     ///
-    /// - important: If you are using a pipeline with a custom configuration that
-    /// enables aggressive disk cache, fetched data will be stored in this cache.
-    /// You can use ``Options-swift.struct/disableDiskCache`` to disable it.
+    /// - important: If the pipeline uses a ``DataCaching`` disk cache, the
+    /// fetched data will be stored in it. Use ``Options-swift.struct/disableDiskCache``
+    /// to prevent this.
     ///
     /// - note: If the resource is identifiable with a `URL`, consider
     /// implementing a custom data loader instead. See <doc:loading-data>.
@@ -222,7 +223,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// By default, the pipeline makes full use of all of its caching layers. You can change this behavior using options. For example, you can ignore local caches using ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData`` option.
     ///
     /// ```swift
-    ///     request.options = [.reloadIgnoringCachedData]
+    /// request.options = [.reloadIgnoringCachedData]
     /// ```
     ///
     /// Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad``

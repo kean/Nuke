@@ -84,8 +84,8 @@ public struct LazyImage<Content: View>: View {
 
     /// Sets processors to be applied to the image.
     ///
-    /// If you pass an image request with a non-empty list of processors as
-    /// a source, your processors will be applied instead.
+    /// Processors are only applied if the request does not already define its
+    /// own processors. The request's processors always take priority.
     public func processors(_ processors: [any ImageProcessing]?) -> Self {
         map { $0.context?.request.processors = processors ?? [] }
     }

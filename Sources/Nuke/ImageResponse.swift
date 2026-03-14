@@ -17,15 +17,15 @@ public struct ImageResponse: Sendable {
     /// An image container with an image and associated metadata.
     public var container: ImageContainer
 
+    /// The image from the response container.
 #if os(macOS)
-    /// A convenience computed property that returns an image from the container.
     public var image: NSImage { container.image }
 #else
-    /// A convenience computed property that returns an image from the container.
     public var image: UIImage { container.image }
 #endif
 
-    /// Returns `true` if the image in the container is a preview of the image.
+    /// Returns `true` if the image is a progressive preview rather than the
+    /// final decoded image.
     public var isPreview: Bool { container.isPreview }
 
     /// The request for which the response was created.

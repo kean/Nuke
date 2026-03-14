@@ -15,8 +15,11 @@ import AppKit
 /// A namespace with shared image processing options.
 public enum ImageProcessingOptions: Sendable {
 
+    /// A unit for size and radius values used in image processors.
     @frozen public enum Unit: CustomStringConvertible, Sendable {
+        /// Points, automatically scaled to the screen's pixel density.
         case points
+        /// Pixels, used as-is without any scaling.
         case pixels
 
         public var description: String {

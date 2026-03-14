@@ -61,8 +61,9 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
     }
 
-    /// Updates the priority of the task, even if the task is already running.
-    /// `nil` by default.
+    /// Overrides the priority of the current and future requests. When `nil`
+    /// (the default), the request's own priority is used. Can be updated while
+    /// a task is already running.
     public var priority: ImageRequest.Priority? {
         didSet { priority.map { imageTask?.priority = $0 } }
     }

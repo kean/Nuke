@@ -26,8 +26,8 @@ extension ImageProcessors {
         ///   - size: The target size.
         ///   - unit: Unit of the target size.
         ///   - contentMode: A target content mode.
-        ///   - crop: If `true` will crop the image to match the target size.
-        ///   Does nothing with content mode .aspectFill.
+        ///   - crop: If `true`, crops the image to exactly match the target size.
+        ///   Has no effect when `contentMode` is `.aspectFill`.
         ///   - upscale: By default, upscaling is not allowed.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = ImageTargetSize(size: size, unit: unit)

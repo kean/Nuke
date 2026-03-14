@@ -63,17 +63,16 @@ extension ImagePipeline {
         var _isDecompressionEnabled = true
 #endif
 
-        /// If you use an aggressive disk cache ``DataCaching``, you can specify
-        /// a cache policy with multiple available options and
-        /// ``ImagePipeline/DataCachePolicy/storeOriginalData`` used by default.
+        /// Determines what images are stored in the disk cache (``DataCaching``).
+        /// ``ImagePipeline/DataCachePolicy/storeOriginalData`` by default.
         public var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData
 
-        /// `true` by default. If `true` the pipeline avoids duplicated work when
-        /// loading images. The work only gets cancelled when all the registered
-        /// requests are. The pipeline also automatically manages the priority of the
-        /// deduplicated work.
+        /// Enables task coalescing. When enabled, the pipeline avoids duplicated
+        /// work when loading images. A task is only cancelled when all requests
+        /// associated with it are cancelled. The pipeline also automatically
+        /// manages the priority of the deduplicated work. `true` by default.
         ///
-        /// Let's take these two requests for example:
+        /// For example, given these two requests:
         ///
         /// ```swift
         /// let url = URL(string: "http://example.com/image")
@@ -86,22 +85,20 @@ extension ImagePipeline {
         /// ]))
         /// ```
         ///
-        /// Nuke will load the image data only once, resize the image once and
-        /// apply the blur also only once. There is no duplicated work done at
-        /// any stage.
+        /// Nuke loads the image data once, resizes once, and applies the blur
+        /// once — no duplicated work at any stage.
         public var isTaskCoalescingEnabled = true
 
-        /// `true` by default. If `true` the pipeline will rate limit requests
-        /// to prevent thrashing of the underlying systems (e.g. `URLSession`).
-        /// The rate limiter only comes into play when the requests are started
-        /// and cancelled at a high rate (e.g. scrolling through a collection view).
+        /// Enables the rate limiter. When enabled, the pipeline throttles requests
+        /// to prevent thrashing the underlying systems (e.g. `URLSession`). The
+        /// rate limiter only activates when requests are started and cancelled at
+        /// a high rate, such as during fast scrolling. `true` by default.
         public var isRateLimiterEnabled = true
 
-        /// `false` by default. If `true` the pipeline will try to produce a new
-        /// image each time it receives a new portion of data from data loader.
-        /// The decoder used by the image loading session determines whether
-        /// to produce a partial image or not. The default image decoder
-        /// ``ImageDecoders/Default`` supports progressive JPEG decoding.
+        /// Enables progressive decoding. When enabled, the pipeline produces a
+        /// new image preview each time it receives a new chunk of data. Whether
+        /// a preview is produced depends on the decoder — ``ImageDecoders/Default``
+        /// supports progressive JPEG. `false` by default.
         public var isProgressiveDecodingEnabled = false
 
         /// The minimum interval between progressive decoding attempts, in
@@ -109,9 +106,9 @@ extension ImagePipeline {
         /// chunks are skipped. `0.5` by default.
         public var progressiveDecodingInterval: TimeInterval = 0.5
 
-        /// `true` by default. If `true`, the pipeline will store all of the
-        /// progressively generated previews in the memory cache. All of the
-        /// previews have ``ImageContainer/isPreview`` flag set to `true`.
+        /// Stores progressively generated previews in the memory cache. All
+        /// previews have ``ImageContainer/isPreview`` set to `true`. `true` by
+        /// default.
         public var isStoringPreviewsInMemoryCache = true
 
         /// If the data task is terminated (either because of a failure or a
@@ -148,11 +145,12 @@ extension ImagePipeline {
 
         // MARK: - Options (Shared)
 
-        /// `false` by default. If `true`, enables `os_signpost` logging for
-        /// measuring performance. You can visually see all the performance
-        /// metrics in `os_signpost` Instrument. For more information see
-        /// https://developer.apple.com/documentation/os/logging and
-        /// https://developer.apple.com/videos/play/wwdc2018/405/.
+        /// Enables `os_signpost` logging for measuring performance. When enabled,
+        /// all performance metrics are visible in the Instruments app. `false`
+        /// by default.
+        ///
+        /// For more information, see the [Logging](https://developer.apple.com/documentation/os/logging)
+        /// documentation and [WWDC 2018 Session 405](https://developer.apple.com/videos/play/wwdc2018/405/).
         public static var isSignpostLoggingEnabled: Bool {
             get { _isSignpostLoggingEnabled.value }
             set { _isSignpostLoggingEnabled.value = newValue }

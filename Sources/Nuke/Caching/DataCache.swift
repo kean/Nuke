@@ -31,7 +31,7 @@ import Foundation
 /// - important: It's possible to have more than one instance of ``DataCache`` with
 /// the same path but it is not recommended.
 public final class DataCache: DataCaching, @unchecked Sendable {
-    /// Size limit in bytes. `150 Mb` by default.
+    /// Size limit in bytes. `150 MB` by default.
     ///
     /// Changes to the size limit will take effect when the next LRU sweep is run.
     public var sizeLimit: Int = 1024 * 1024 * 150
@@ -63,15 +63,15 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         var lastSweepDate: Date?
     }
 
-    /// A queue which is used for disk I/O.
+    /// The queue used for disk I/O.
     public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", qos: .utility)
 
-    /// A function which generates a filename for the given key. A good candidate
-    /// for a filename generator is a _cryptographic_ hash function like SHA1.
+    /// A function that generates a filename for the given key. A good candidate
+    /// is a hash function with low collision probability, such as SHA1.
     ///
-    /// The reason why filename needs to be generated in the first place is
-    /// that filesystems have a size limit for filenames (e.g. 255 UTF-8 characters
-    /// in AFPS) and do not allow certain characters to be used in filenames.
+    /// The reason filenames need to be generated is that filesystems have a
+    /// size limit for filenames (e.g. 255 UTF-8 characters in APFS) and do not
+    /// allow certain characters.
     public typealias FilenameGenerator = (_ key: String) -> String?
 
     private let filenameGenerator: FilenameGenerator
@@ -113,8 +113,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         try self.didInit()
     }
 
-    /// A `FilenameGenerator` implementation which uses SHA1 hash function to
-    /// generate a filename from the given key.
+    /// A ``FilenameGenerator`` implementation that uses SHA1 to generate a
+    /// filename from the given key.
     public static func filename(for key: String) -> String? {
         key.isEmpty ? nil : key.sha1
     }
@@ -210,26 +210,10 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     /// Accesses the data associated with the given key for reading and writing.
     ///
-    /// When you assign a new data for a key and the key already exists, the cache
-    /// overwrites the existing data.
-    ///
-    /// When assigning or removing data, the subscript adds a requested operation
-    /// in a staging area and returns immediately. The staging area allows for
-    /// reading and writing data in parallel.
-    ///
-    /// ```swift
-    /// // Schedules data to be written asynchronously and returns immediately
-    /// cache[key] = data
-    ///
-    /// // The data is returned from the staging area
-    /// let data = cache[key]
-    ///
-    /// // Schedules data to be removed asynchronously and returns immediately
-    /// cache[key] = nil
-    ///
-    /// // Data is nil
-    /// let data = cache[key]
-    /// ```
+    /// When you assign data for a key that already exists, the cache overwrites
+    /// the existing entry. Reads and writes are backed by a staging area, so
+    /// they can occur in parallel without blocking. All writes are flushed to
+    /// disk asynchronously.
     public subscript(key: String) -> Data? {
         get {
             cachedData(for: key)
@@ -348,8 +332,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     // MARK: Sweep
 
-    /// Synchronously performs a cache sweep and removes the least recently items
-    /// which no longer fit in cache.
+    /// Synchronously performs a cache sweep and removes the least recently used
+    /// items that no longer fit in the cache.
     public func sweep() {
         queue.sync { self.performSweep() }
     }

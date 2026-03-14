@@ -34,6 +34,9 @@ extension ImageDecoders {
         private var maximumDecodedImageSize: Int?
         private let lock = NSLock()
 
+        /// Returns `true` when thumbnail decoding is requested, because
+        /// thumbnail generation requires reading image dimensions from disk and
+        /// must run on the decoding queue rather than blocking the pipeline queue.
         public var isAsynchronous: Bool { thumbnail != nil }
 
         public init() { }

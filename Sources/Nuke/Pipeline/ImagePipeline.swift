@@ -13,7 +13,19 @@ import UIKit
 import AppKit
 #endif
 
-/// The pipeline downloads and caches images, and prepares them for display.
+/// Downloads, decodes, processes, and caches images.
+///
+/// The pipeline is the central component of Nuke. It orchestrates a graph of
+/// tasks - fetching data, decoding, processing, and decompressing images -
+/// while automatically coalescing duplicate work, respecting priorities, and
+/// managing multiple cache layers.
+///
+/// ```swift
+/// let image = try await ImagePipeline.shared.image(for: url)
+/// ```
+///
+/// Use ``ImagePipeline/Configuration-swift.struct`` to customize behavior, or
+/// ``ImagePipeline/shared`` to use the default pipeline.
 @ImagePipelineActor
 public final class ImagePipeline: Sendable {
     /// Returns the shared image pipeline.

@@ -10,7 +10,7 @@ import UIKit
 import AppKit
 #endif
 
-/// Performs image processing.
+/// Transforms an image as part of the pipeline processing step.
 ///
 /// For basic processing needs, implement the following method:
 ///
@@ -76,7 +76,11 @@ extension ImageProcessing where Self: Hashable {
     public var hashableIdentifier: AnyHashable { self }
 }
 
-/// Image processing context used when selecting which processor to use.
+/// Context passed to an ``ImageProcessing`` implementation.
+///
+/// Provides access to the originating request, the current response, and
+/// whether the response is the final (fully downloaded) image or a progressive
+/// preview.
 public struct ImageProcessingContext: Sendable {
     public var request: ImageRequest
     public var response: ImageResponse
@@ -89,7 +93,9 @@ public struct ImageProcessingContext: Sendable {
     }
 }
 
+/// An error thrown by an ``ImageProcessing`` implementation.
 public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
+    /// The processor failed for an unspecified reason.
     case unknown
 
     public var description: String { "Unknown" }

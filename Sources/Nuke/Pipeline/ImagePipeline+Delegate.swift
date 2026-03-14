@@ -59,8 +59,14 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
 
     // MARK: Decompression
 
+    /// Returns `true` if the pipeline should decompress the given response.
+    ///
+    /// Called on a background queue managed by the pipeline.
     func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
 
+    /// Decompresses the given image response.
+    ///
+    /// Called on a background queue managed by the pipeline.
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
 
     // MARK: ImageTask

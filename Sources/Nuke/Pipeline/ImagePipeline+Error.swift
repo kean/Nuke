@@ -22,7 +22,7 @@ extension ImagePipeline {
         case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
         /// Processor failed to produce a final image.
         case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
-        /// Load image method was called with no image request.
+        /// Load image method was called with no image request or no URL.
         case imageRequestMissing
         /// Image pipeline is invalidated and no requests can be made.
         case pipelineInvalidated

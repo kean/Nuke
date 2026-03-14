@@ -54,12 +54,12 @@ public final class ImageCache: ImageCaching {
     /// The total cost of items in the cache.
     public var totalCost: Int { impl.totalCost }
 
-    /// Shared `Cache` instance.
+    /// The shared ``ImageCache`` instance.
     public static let shared = ImageCache()
 
-    /// Initializes `Cache`.
-    /// - parameter costLimit: Default value represents a number of bytes and is
-    /// calculated based on the amount of the physical memory available on the device.
+    /// Initializes an ``ImageCache`` instance.
+    /// - parameter costLimit: The cost limit in bytes. Defaults to a value
+    /// calculated based on the amount of physical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
@@ -89,6 +89,7 @@ public final class ImageCache: ImageCaching {
     public func removeAll() {
         impl.removeAllCachedValues()
     }
+
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
