@@ -8,7 +8,7 @@ import Foundation
 ///
 /// ``DataCache`` uses LRU cleanup policy (least recently used items are removed
 /// first). The elements stored in the cache are automatically discarded if
-/// either *cost* or *count* limit is reached. The sweeps are performed periodically.
+/// the size limit is reached. The sweeps are performed periodically.
 ///
 /// DataCache always writes and removes data asynchronously. It also allows for
 /// reading and writing data in parallel. It is implemented using a staging
@@ -37,8 +37,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     public var sizeLimit: Int = 1024 * 1024 * 150
 
     /// When performing a sweep, the cache will remove entries until the size of
-    /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
-    /// the total count is lower than or equal to `countLimit * trimRatio`. `0.7`
+    /// the remaining items is lower than or equal to `sizeLimit * trimRatio`. `0.7`
     /// by default.
     var trimRatio = 0.7
 
@@ -152,13 +151,15 @@ public final class DataCache: DataCaching, @unchecked Sendable {
                 return nil
             }
         }
-        guard let url = url(for: key) else {
+        guard var url = url(for: key) else {
             return nil
         }
         guard let data = try? Data(contentsOf: url) else {
             return nil
         }
-        try? (url as NSURL).setResourceValue(Date(), forKey: .contentAccessDateKey)
+        var values = URLResourceValues()
+        values.contentAccessDate = Date()
+        try? url.setResourceValues(values)
         return data
     }
 
