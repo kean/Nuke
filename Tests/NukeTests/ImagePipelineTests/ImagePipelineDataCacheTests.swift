@@ -712,4 +712,20 @@ import Foundation
         // THEN
         #expect(dataCache.containsData(for: "http://test.com/example.jpeg"))
     }
+
+    // MARK: - Thumbnail + Original Data Reuse
+
+    @Test func thumbnailRequestReusesOriginalDataFromDiskCache() async throws {
+        // GIVEN original image is loaded (no thumbnail), caching original data to disk
+        _ = try await pipeline.image(for: Test.request)
+        #expect(dataCache.containsData(for: Test.url.absoluteString))
+
+        // WHEN a thumbnail of the same URL is requested
+        let thumbnailRequest = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        _ = try await pipeline.image(for: thumbnailRequest)
+
+        // THEN no additional network request is made — the original data from
+        // the disk cache should be reused to generate the thumbnail locally
+        #expect(dataLoader.createdTaskCount == 1)
+    }
 }

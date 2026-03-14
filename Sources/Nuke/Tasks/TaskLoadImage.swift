@@ -20,6 +20,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
         }
         if let data = pipeline.cache.cachedData(for: request) {
             decodeCachedData(data)
+        } else if request.thumbnail != nil, request.processors.isEmpty,
+                  let data = pipeline.cache.cachedData(for: request.withoutThumbnail()) {
+            decodeCachedData(data)
         } else {
             fetchImage()
         }

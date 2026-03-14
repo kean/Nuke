@@ -408,6 +408,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         return request
     }
 
+    func withoutThumbnail() -> ImageRequest {
+        var request = self
+        request.userInfo[.thumbnailKey] = nil
+        return request
+    }
+
     var preferredImageId: String {
         if let imageId = ref.userInfo?[.imageIdKey] as? String {
             return imageId
