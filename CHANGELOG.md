@@ -18,6 +18,7 @@
 - Remove `queue` parameter from completion-based `loadImage`/`loadData` methods — callbacks now always run on the main queue
 - Add `@MainActor @Sendable` to completion-based `loadImage`/`loadData` closure parameters
 - Add `@MainActor @Sendable` to `progress` and `completion` closures in `NukeExtensions` `loadImage` functions
+- Add `@MainActor @Sendable` to all callback closures in `NukeUI`: `FetchImage.onStart`/`onCompletion`, `LazyImage.onStart`/`onCompletion` modifiers, `LazyImageView.onStart`/`onPreview`/`onProgress`/`onSuccess`/`onFailure`/`onCompletion`
 - Add typed throws (`throws(ImagePipeline.Error)`) to `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)`. Add `ImagePipeline.Error.cancelled` case — cancellation now throws this instead of `CancellationError`
 - Remove `ImageTask.Event.cancelled` in favor of `.finished(.failure(.cancelled))` — cancellation is now uniformly represented as a failure result
 - Mark all public enums as `@frozen` (except error enums and empty namespaces)

@@ -144,22 +144,22 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Callbacks
 
     /// Gets called when the request is started.
-    public var onStart: ((ImageTask) -> Void)?
+    public var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
 
     /// Gets called when a progressive image preview is produced.
-    public var onPreview: ((ImageResponse) -> Void)?
+    public var onPreview: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request progress is updated.
-    public var onProgress: ((ImageTask.Progress) -> Void)?
+    public var onProgress: (@MainActor @Sendable (ImageTask.Progress) -> Void)?
 
     /// Gets called when the request finishes successfully.
-    public var onSuccess: ((ImageResponse) -> Void)?
+    public var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request fails.
-    public var onFailure: ((Error) -> Void)?
+    public var onFailure: (@MainActor @Sendable (Error) -> Void)?
 
     /// Gets called when the request is completed.
-    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
 
     // MARK: Other Options
 

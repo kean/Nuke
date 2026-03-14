@@ -76,10 +76,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var processors: [any ImageProcessing] = []
 
     /// Gets called when the request is started.
-    public var onStart: ((ImageTask) -> Void)?
+    public var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
 
     /// Gets called when the current request is completed.
-    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
 
     private var imageTask: ImageTask?
     private var lastResponse: ImageResponse?
