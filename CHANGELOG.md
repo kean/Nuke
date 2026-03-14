@@ -4,6 +4,7 @@
 
 *WIP*
 
+- Update `ImageCache.defaultCostLimit` to 15% of physical memory with no hard cap (previously 20% capped at 512 MB). The cache uses a custom LRU policy that enforces limits precisely, so 15% is effectively more generous than the previous capped value on modern devices
 - Add `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)` — an async, throwing hook that intercepts the `URLRequest` just before data loading begins. Use it to inject auth tokens, sign requests, or perform any async pre-flight work. Throw to cancel with a meaningful error (e.g., when a token refresh fails). Default implementation returns the request unchanged
 - Rename `ImagePipelineDelegate` to `ImagePipeline.Delegate`. A deprecated `ImagePipelineDelegate` typealias is provided for backward compatibility
 - Set deployment targets to iOS 15, tvOS 15, macOS 12, watchOS 8, visionOS 1
