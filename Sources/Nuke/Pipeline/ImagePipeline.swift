@@ -139,12 +139,12 @@ public final class ImagePipeline: Sendable {
     }
 
     /// Returns an image for the given URL.
-    nonisolated public func image(for url: URL) async throws -> PlatformImage {
+    nonisolated public func image(for url: URL) async throws(ImagePipeline.Error) -> PlatformImage {
         try await image(for: ImageRequest(url: url))
     }
 
     /// Returns an image for the given request.
-    nonisolated public func image(for request: ImageRequest) async throws -> PlatformImage {
+    nonisolated public func image(for request: ImageRequest) async throws(ImagePipeline.Error) -> PlatformImage {
         try await imageTask(with: request).image
     }
 
@@ -153,7 +153,7 @@ public final class ImagePipeline: Sendable {
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
-    nonisolated public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
+    nonisolated public func data(for request: ImageRequest) async throws(ImagePipeline.Error) -> (Data, URLResponse?) {
         let task = makeStartedImageTask(with: request, isDataTask: true)
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
@@ -162,12 +162,12 @@ public final class ImagePipeline: Sendable {
     // MARK: - Loading Images (Combine)
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    nonisolated public func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+    nonisolated public func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, ImagePipeline.Error> {
         imagePublisher(with: ImageRequest(url: url))
     }
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    nonisolated public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
+    nonisolated public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, ImagePipeline.Error> {
         ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 

@@ -14,6 +14,7 @@
 - Remove soft-deprecated per-event `ImagePipelineDelegate` methods (`imageTaskDidStart`, `didUpdateProgress`, `didReceivePreview`, `imageTaskDidCancel`, `didCompleteWithResult`). Use `imageTask(_:didReceiveEvent:pipeline:)` instead. Add `ImageTask.Event.started`
 - Remove `queue` parameter from completion-based `loadImage`/`loadData` methods — callbacks now always run on the main queue
 - Add `@MainActor @Sendable` to completion-based `loadImage`/`loadData` closure parameters
+- Add typed throws (`throws(ImagePipeline.Error)`) to `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)`. Add `ImagePipeline.Error.cancelled` case — cancellation now throws this instead of `CancellationError`. Add `Equatable` conformance to `ImagePipeline.Error`
 - Mark all public enums as `@frozen` (except error enums and empty namespaces)
 - Replace the internal serial `DispatchQueue` with a `@globalActor` (`ImagePipelineActor`) for pipeline synchronization, making thread-safety compiler-enforced. The actor is public so that custom `ImagePipelineDelegate` implementations can use it when needed to reduce thread hops
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead

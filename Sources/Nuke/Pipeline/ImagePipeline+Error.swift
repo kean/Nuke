@@ -28,6 +28,8 @@ extension ImagePipeline {
         case pipelineInvalidated
         /// The downloaded data exceeded ``ImagePipeline/Configuration/maximumResponseDataSize``.
         case dataDownloadExceededMaximumSize
+        /// The image task was cancelled.
+        case cancelled
     }
 }
 
@@ -64,6 +66,8 @@ extension ImagePipeline.Error {
             return "Image pipeline is invalidated and no requests can be made."
         case .dataDownloadExceededMaximumSize:
             return "The downloaded data exceeded the maximum allowed size."
+        case .cancelled:
+            return "The image task was cancelled."
         }
     }
 }

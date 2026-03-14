@@ -48,7 +48,7 @@ import Foundation
             let response = try await pipeline.imageTask(with: request).response
             result = .success(response)
         } catch {
-            result = .failure(error as! ImagePipeline.Error)
+            result = .failure(error)
         }
         await completed.wait()
 

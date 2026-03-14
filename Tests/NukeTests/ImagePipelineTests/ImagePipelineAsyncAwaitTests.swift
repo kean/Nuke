@@ -72,13 +72,13 @@ import Foundation
             task.cancel()
         }
 
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await task.value
-        } catch {
+        } catch let error as ImagePipeline.Error {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
         NotificationCenter.default.removeObserver(observer)
     }
 
@@ -91,13 +91,13 @@ import Foundation
             try await pipeline.image(for: Test.url)
         }
 
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await task.value
-        } catch {
+        } catch let error as ImagePipeline.Error {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
     }
 
     @Test func cancelImmediately() async throws {
@@ -109,13 +109,13 @@ import Foundation
         }
         task.cancel()
 
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await task.value
-        } catch {
+        } catch let error as ImagePipeline.Error {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
     }
 
     @Test func cancelFromProgress() async throws {
@@ -162,13 +162,13 @@ import Foundation
 
         // THEN you are able to observe `event` update because
         // this task does no get cancelled
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await (result1, result2)
-        } catch {
+        } catch let error as ImagePipeline.Error {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
         #expect(recordedProgress == [])
     }
 
@@ -181,13 +181,13 @@ import Foundation
         }
         dataLoader.queue.isSuspended = false
 
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await task.image
         } catch {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
         #expect(task.state == .cancelled)
         NotificationCenter.default.removeObserver(observer)
     }
@@ -215,13 +215,13 @@ import Foundation
         }
         task.cancel()
 
-        var caughtError: Error?
+        var caughtError: ImagePipeline.Error?
         do {
             _ = try await task.value
-        } catch {
+        } catch let error as ImagePipeline.Error {
             caughtError = error
         }
-        #expect(caughtError is CancellationError)
+        #expect(caughtError == .cancelled)
     }
 
     @Test func imageTaskReturnedImmediately() async throws {
@@ -335,7 +335,7 @@ import Foundation
             _ = try await pipeline.image(for: request)
             Issue.record("Expected failure")
         } catch {
-            if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
+            if case let .dataLoadingFailed(error) = error {
                 #expect((error as? URLError)?.networkUnavailableReason == .cellular)
             } else {
                 Issue.record("Unexpected error type")
@@ -361,12 +361,11 @@ import Foundation
         let request = ImageRequest(urlRequest: urlRequest)
 
         // WHEN
-        @Sendable func loadImage() async throws -> PlatformImage {
+        @Sendable func loadImage() async throws(ImagePipeline.Error) -> PlatformImage {
             do {
                 return try await pipeline.image(for: request)
             } catch {
-                guard let error = (error as? ImagePipeline.Error),
-                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                     throw error
                 }
                 return try await pipeline.image(for: lowQualityImageURL)

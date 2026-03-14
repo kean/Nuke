@@ -74,19 +74,29 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: - Async/Await
 
     /// Returns the response image.
+    ///
+    /// Throws ``ImagePipeline/Error/cancelled`` if the task is cancelled.
     public var image: PlatformImage {
-        get async throws {
+        get async throws(ImagePipeline.Error) {
             try await response.image
         }
     }
 
     /// Returns the image response.
+    ///
+    /// Throws ``ImagePipeline/Error/cancelled`` if the task is cancelled.
     public var response: ImageResponse {
-        get async throws {
-            try await withTaskCancellationHandler {
-                try await _task.value
-            } onCancel: {
-                cancel()
+        get async throws(ImagePipeline.Error) {
+            do {
+                return try await withTaskCancellationHandler {
+                    try await _task.value
+                } onCancel: {
+                    cancel()
+                }
+            } catch let error as ImagePipeline.Error {
+                throw error
+            } catch {
+                preconditionFailure("Unexpected error type: \(error)")
             }
         }
     }
@@ -139,8 +149,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     private weak var pipeline: ImagePipeline?
 
     // Set once during creation, then read-only from `response` getter.
-    nonisolated(unsafe) var _task: Task<ImageResponse, Error>!
-    @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, Error>?
+    nonisolated(unsafe) var _task: Task<ImageResponse, any Error>!
+    @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
     @ImagePipelineActor var _state: State = .running
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
 
@@ -247,9 +257,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         switch event {
         case .cancelled:
             _finishAllStreams()
-            _continuation?.resume(throwing: CancellationError())
+            _continuation?.resume(throwing: ImagePipeline.Error.cancelled)
         case .finished(let result):
-            let result = result.mapError { $0 as Error }
             _finishAllStreams()
             _continuation?.resume(with: result)
         default:

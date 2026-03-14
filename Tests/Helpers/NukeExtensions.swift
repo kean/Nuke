@@ -8,16 +8,20 @@ import Nuke
 extension ImagePipeline.Error: @retroactive Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
-        case (.dataMissingInCache, .dataMissingInCache): return true
+        case (.dataMissingInCache, .dataMissingInCache),
+             (.dataIsEmpty, .dataIsEmpty),
+             (.imageRequestMissing, .imageRequestMissing),
+             (.pipelineInvalidated, .pipelineInvalidated),
+             (.dataDownloadExceededMaximumSize, .dataDownloadExceededMaximumSize),
+             (.cancelled, .cancelled),
+             (.decoderNotRegistered, .decoderNotRegistered),
+             (.decodingFailed, .decodingFailed),
+             (.processingFailed, .processingFailed):
+            return true
         case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
             return lhs as NSError == rhs as NSError
-        case (.dataIsEmpty, .dataIsEmpty): return true
-        case (.decoderNotRegistered, .decoderNotRegistered): return true
-        case (.decodingFailed, .decodingFailed): return true
-        case (.processingFailed, .processingFailed): return true
-        case (.imageRequestMissing, .imageRequestMissing): return true
-        case (.pipelineInvalidated, .pipelineInvalidated): return true
-        default: return false
+        default:
+            return false
         }
     }
 }

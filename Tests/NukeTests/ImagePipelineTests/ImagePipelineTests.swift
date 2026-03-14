@@ -319,7 +319,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
         } catch {
-            #expect(error as? ImagePipeline.Error == .pipelineInvalidated)
+            #expect(error == .pipelineInvalidated)
         }
     }
 
@@ -335,7 +335,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
         } catch {
-            #expect((error as? ImagePipeline.Error) == .dataLoadingFailed(error: expectedError))
+            #expect(error == .dataLoadingFailed(error: expectedError))
         }
     }
 
@@ -348,7 +348,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
         } catch {
-            #expect((error as? ImagePipeline.Error) == .dataIsEmpty)
+            #expect(error == .dataIsEmpty)
         }
     }
 
@@ -364,7 +364,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
         } catch {
-            guard case let .decoderNotRegistered(context) = error as? ImagePipeline.Error else {
+            guard case let .decoderNotRegistered(context) = error else {
                 Issue.record("Expected .decoderNotRegistered")
                 return
             }
@@ -389,7 +389,7 @@ import Foundation
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
         } catch {
-            if case let .decodingFailed(failedDecoder, context, error) = error as? ImagePipeline.Error {
+            if case let .decodingFailed(failedDecoder, context, error) = error {
                 #expect((failedDecoder as? MockFailingDecoder) === decoder)
                 #expect(context.request.url == Test.request.url)
                 #expect(context.data == Test.data)
@@ -411,7 +411,7 @@ import Foundation
             _ = try await pipeline.image(for: request)
             Issue.record("Expected failure")
         } catch {
-            guard case let .processingFailed(processor, context, underlyingError) = error as? ImagePipeline.Error else {
+            guard case let .processingFailed(processor, context, underlyingError) = error else {
                 Issue.record("Expected .processingFailed")
                 return
             }

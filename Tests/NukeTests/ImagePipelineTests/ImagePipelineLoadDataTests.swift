@@ -82,7 +82,7 @@ import Foundation
         do {
             _ = try await pipeline.image(for: Test.request)
             Issue.record("Expected failure")
-        } catch let error as ImagePipeline.Error {
+        } catch {
             guard case .dataDownloadExceededMaximumSize = error else {
                 Issue.record("Unexpected error: \(error)")
                 return
