@@ -25,6 +25,7 @@
 - Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
 - Replace callback-based `DataLoading` protocol with async/await: `loadData(with:)` now returns `(AsyncThrowingStream<Data, Error>, URLResponse)`. Remove `Cancellable` protocol
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
+- Fix `ImageTask.state` remaining `.running` after completion when using the completion-based `loadImage` API
 
 ## Nuke 12.9.0
 

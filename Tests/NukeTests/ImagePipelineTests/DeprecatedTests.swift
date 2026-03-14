@@ -34,13 +34,17 @@ import Foundation
 
     @Test func loadImageWithRequest() async {
         dataLoader.isSuspended = true
+        let taskRef = Ref<ImageTask?>(nil)
+        let stateInsideCallback = Ref<ImageTask.State>(.running)
         let result: Result<ImageResponse, ImagePipeline.Error> = await withCheckedContinuation { continuation in
-            pipeline.loadImage(with: Test.request) { result in
+            taskRef.value = pipeline.loadImage(with: Test.request) { result in
+                stateInsideCallback.value = taskRef.value!.state
                 continuation.resume(returning: result)
             }
             dataLoader.isSuspended = false
         }
         #expect(result.isSuccess)
+        #expect(stateInsideCallback.value == .completed)
     }
 
     @Test func loadImageCompletionOnMainThread() async {
@@ -79,15 +83,16 @@ import Foundation
 
     @Test func loadImageCancellation() async {
         dataLoader.isSuspended = true
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        let task = await withCheckedContinuation { (continuation: CheckedContinuation<ImageTask, Never>) in
             let task = pipeline.loadImage(with: Test.request) { _ in
                 Issue.record("Should not be called")
             }
             Task { @ImagePipelineActor in
                 task.cancel()
-                continuation.resume()
+                continuation.resume(returning: task)
             }
         }
+        #expect(task.state == .cancelled)
     }
 
     // MARK: - loadData

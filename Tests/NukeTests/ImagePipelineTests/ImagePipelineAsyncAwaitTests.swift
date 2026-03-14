@@ -43,6 +43,7 @@ import Foundation
 
         // THEN
         #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(task.state == .completed)
     }
 
     @Test func taskBasedImage() async throws {
@@ -187,6 +188,7 @@ import Foundation
             caughtError = error
         }
         #expect(caughtError is CancellationError)
+        #expect(task.state == .cancelled)
         NotificationCenter.default.removeObserver(observer)
     }
 

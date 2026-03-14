@@ -229,16 +229,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor func _setState(_ state: State) -> Bool {
         guard _state == .running else { return false }
         _state = state
-        if onEvent == nil {
-            withLock { $0.state = state }
-        }
-        return true
-    }
-
-    /// Updates the public state (lock-protected) without touching actor-isolated `_state`.
-    /// Used by the deprecated callback API on `@MainActor`.
-    func _setPublicState(_ state: State) {
         withLock { $0.state = state }
+        return true
     }
 
     /// Dispatches the given event to the observers.

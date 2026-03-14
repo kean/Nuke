@@ -41,7 +41,6 @@ extension ImagePipeline {
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result):
-                    task._setPublicState(.completed) // Important to do it on the callback queue
                     completion(result)
                 }
             }
