@@ -27,14 +27,14 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
     public var priority: ImageRequest.Priority {
-        get { withLock { $0.priority } }
+        get { withNonisolatedStateLock { $0.priority } }
         set { setPriority(newValue) }
     }
 
     /// Returns the current download progress. Returns zeros until the download
     /// starts and the total resource size is known.
     public var currentProgress: Progress {
-        withLock { $0.progress }
+        withNonisolatedStateLock { $0.progress }
     }
 
     /// The download progress.
@@ -58,7 +58,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// The current state of the task.
     public var state: State {
-        withLock { $0.state }
+        withNonisolatedStateLock { $0.state }
     }
 
     /// The state of the image task.
@@ -132,7 +132,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    private var publicState: PublicState
+    private var nonisolatedState: NonisolatedState
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
     private let lock: os_unfair_lock_t
@@ -152,7 +152,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.publicState = PublicState(priority: request.priority)
+        self.nonisolatedState = NonisolatedState(priority: request.priority)
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
@@ -166,7 +166,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        let didChange: Bool = withLock {
+        let didChange: Bool = withNonisolatedStateLock {
             guard $0.state == .running else { return false }
             $0.state = .cancelled
             return true
@@ -178,7 +178,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
-        let didChange: Bool = withLock {
+        let didChange: Bool = withNonisolatedStateLock {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
             return $0.state == .running
@@ -214,7 +214,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
                 _dispatch(.preview(response))
             }
         case let .progress(value):
-            withLock { $0.progress = value }
+            withNonisolatedStateLock { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
             _finish(.failure(error))
@@ -229,7 +229,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor func _setState(_ state: State) -> Bool {
         guard _state == .running else { return false }
         _state = state
-        withLock { $0.state = state }
+        withNonisolatedStateLock { $0.state = state }
         return true
     }
 
@@ -305,16 +305,16 @@ extension ImageTask {
         }
     }
 
-    private func withLock<T>(_ closure: (inout PublicState) -> T) -> T {
+    private func withNonisolatedStateLock<T>(_ closure: (inout NonisolatedState) -> T) -> T {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        return closure(&publicState)
+        return closure(&nonisolatedState)
     }
 
     /// Contains the state synchronized using the internal lock.
     ///
-    /// - warning: Must be accessed using `withLock`.
-    private struct PublicState {
+    /// - warning: Must be accessed using `withNonisolatedState`.
+    private struct NonisolatedState {
         var state: ImageTask.State = .running
         var priority: ImageRequest.Priority
         var progress = Progress(completed: 0, total: 0)
