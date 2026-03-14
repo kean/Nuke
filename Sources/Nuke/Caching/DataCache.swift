@@ -180,9 +180,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func change(for key: String) -> Staging.ChangeType? {
-        lock.lock()
-        defer { lock.unlock() }
-        return staging.change(for: key)
+        lock.withLock { staging.change(for: key) }
     }
 
     /// Stores data for the given key. The method returns instantly and the data
@@ -204,10 +202,10 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func stage(_ change: () -> Void) {
-        lock.lock()
-        change()
-        setNeedsFlushChanges()
-        lock.unlock()
+        lock.withLock {
+            change()
+            setNeedsFlushChanges()
+        }
     }
 
     /// Accesses the data associated with the given key for reading and writing.
@@ -291,14 +289,12 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     private func flushChangesIfNeeded() {
         // Create a snapshot of the recently made changes
-        let staging: Staging
-        lock.lock()
-        guard isFlushNeeded else {
-            return lock.unlock()
+        let staging: Staging? = lock.withLock {
+            guard isFlushNeeded else { return nil }
+            isFlushNeeded = false
+            return self.staging
         }
-        staging = self.staging
-        isFlushNeeded = false
-        lock.unlock()
+        guard let staging else { return }
 
         // Apply the snapshot to disk
         performChanges(for: staging)
