@@ -491,7 +491,7 @@ private let otherBlob = "456".data(using: .utf8)
 
     // MARK: Metadata
 
-    @Test func scheduledSweepUpdatesMetadata() async throws {
+@Test func scheduledSweepUpdatesMetadata() async throws {
         let expectation = TestExpectation()
         let cache = try DataCache(
             name: UUID().uuidString,

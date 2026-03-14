@@ -47,6 +47,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The time interval between cache sweeps. The default value is 1 hour.
     public var sweepInterval: TimeInterval = 3600
 
+    /// If `false`, the automatic LRU sweep is disabled. The default value is `true`.
+    public var isSweepEnabled: Bool = true
 
     // Staging
 
@@ -131,11 +133,12 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         }
         // Add a bit of a delay to free the resources during launch
         queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
-            self?.performSweep()
-            self?.updateMetadata {
+            guard let self, self.isSweepEnabled else { return }
+            self.performSweep()
+            self.updateMetadata {
                 $0.lastSweepDate = Date()
             }
-            self?.onSweepCompleted?()
+            self.onSweepCompleted?()
         }
     }
 

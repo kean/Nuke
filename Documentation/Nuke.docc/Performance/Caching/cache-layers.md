@@ -107,14 +107,24 @@ dataCache.removeAll()
 
 ``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. For a synchronous write, use ``DataCache/flush()``.
 
-> Tip: To share a disk cache between your app and an extension (e.g. a Notification Service Extension), point ``DataCache`` at a directory inside a shared app group container.
+> Tip: To share a disk cache between your app and an extension (e.g. a Notification Service Extension), point ``DataCache`` at a directory inside a shared app group container. Set ``DataCache/isSweepEnabled`` to `false` in the extension so that only the main app enforces size limits.
 >
 > ```swift
-> ImagePipeline {
->     $0.dataCache = FileManager.default
->         .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")?
->         .appendingPathComponent("DataCache")
->         .flatMap { try? DataCache(path: $0) }
+> let sharedCacheURL = FileManager.default
+>     .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")
+>
+> // Main app
+> ImagePipeline.shared = ImagePipeline {
+>     $0.dataCache = try? DataCache(path: sharedCacheURL)
+> }
+>
+> // Extension — reads/writes the same cache but skips LRU sweeps
+> ImagePipeline.shared = ImagePipeline {
+>     $0.dataCache = {
+>         let cache = try? DataCache(path: sharedCacheURL)
+>         cache?.isSweepEnabled = false
+>         return cache
+>     }()
 > }
 > ```
 
