@@ -194,7 +194,7 @@ public final class ImagePipeline: Sendable {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
             // case, the `cancel` method do no send the task event.
-            return task._dispatch(.cancelled)
+            return task._dispatch(.finished(.failure(.cancelled)))
         }
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
@@ -222,7 +222,7 @@ public final class ImagePipeline: Sendable {
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {
         switch event {
-        case .cancelled, .finished:
+        case .finished:
             tasks[task] = nil
         default: break
         }

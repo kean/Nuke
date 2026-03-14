@@ -95,6 +95,23 @@ import Foundation
         #expect(task.state == .cancelled)
     }
 
+    @Test func loadImageCancellationCompletionNotCalled() async {
+        dataLoader.isSuspended = true
+        let completionCalled = Ref(false)
+        let task = pipeline.loadImage(with: Test.request) { _ in
+            completionCalled.value = true
+        }
+        task.cancel()
+        // Wait for the pipeline actor to process cancellation and dispatch events
+        await Task { @ImagePipelineActor in }.value
+        // Simulate data arriving after cancellation
+        dataLoader.isSuspended = false
+        // Flush any DispatchQueue.main.async callbacks
+        await MainActor.run {}
+        #expect(!completionCalled.value)
+        #expect(task.state == .cancelled)
+    }
+
     // MARK: - loadData
 
     @Test func loadData() async {

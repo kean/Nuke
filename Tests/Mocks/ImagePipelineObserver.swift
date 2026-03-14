@@ -44,14 +44,16 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
             append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
         case .preview(let response):
             append(.intermediateResponseReceived(response: response))
-        case .cancelled:
-            cancelledTaskCount += 1
-            append(.cancelled)
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         case .finished(let result):
-            completedTaskCount += 1
-            append(.completed(result: result))
-            NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+            if case .failure(.cancelled) = result {
+                cancelledTaskCount += 1
+                append(.cancelled)
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+            } else {
+                completedTaskCount += 1
+                append(.completed(result: result))
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+            }
         }
     }
 }

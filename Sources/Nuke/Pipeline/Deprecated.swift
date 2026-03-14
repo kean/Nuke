@@ -39,7 +39,6 @@ extension ImagePipeline {
                 case .started: break
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
-                case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result):
                     completion(result)
                 }

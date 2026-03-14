@@ -33,8 +33,6 @@ extension ImageTask.Event: @retroactive Equatable {
             return lhs == rhs
         case let (.preview(lhs), .preview(rhs)):
             return lhs == rhs
-        case (.cancelled, .cancelled):
-            return true
         case let (.finished(lhs), .finished(rhs)):
             return lhs == rhs
         default:

@@ -133,12 +133,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case progress(Progress)
         /// The pipeline generated a progressive scan of the image.
         case preview(ImageResponse)
-        /// The task was cancelled.
-        ///
-        /// - note: You are guaranteed to receive either `.cancelled` or
-        /// `.finished`, but never both.
-        case cancelled
         /// The task finished with the given response.
+        ///
+        /// When the task is cancelled, this is called with
+        /// `.failure(``ImagePipeline/Error/cancelled``)`.
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
@@ -211,7 +209,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// external event such as session invalidation.
     @ImagePipelineActor func _cancel() {
         guard _setState(.cancelled) else { return }
-        _dispatch(.cancelled)
+        _dispatch(.finished(.failure(.cancelled)))
     }
 
     /// Gets called when the associated task sends a new event.
@@ -251,15 +249,16 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         guard _continuation != nil else {
             return // Task isn't fully wired yet
         }
+
         for continuation in _streamContinuations {
             continuation.yield(event)
         }
         switch event {
-        case .cancelled:
-            _finishAllStreams()
-            _continuation?.resume(throwing: ImagePipeline.Error.cancelled)
         case .finished(let result):
-            _finishAllStreams()
+            for continuation in _streamContinuations {
+                continuation.finish()
+            }
+            _streamContinuations.removeAll()
             _continuation?.resume(with: result)
         default:
             break
@@ -267,13 +266,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
         onEvent?(event, self)
         pipeline?.imageTask(self, didProcessEvent: event, isDataTask: isDataTask)
-    }
-
-    @ImagePipelineActor private func _finishAllStreams() {
-        for continuation in _streamContinuations {
-            continuation.finish()
-        }
-        _streamContinuations.removeAll()
     }
 
     // MARK: Hashable
@@ -301,8 +293,8 @@ extension ImageTask {
     ///
     /// - note: Each call creates an independent stream. Subscribing after the
     /// task has already finished or been cancelled produces an empty stream —
-    /// no terminal event (`.finished` or `.cancelled`) is replayed. Subscribe
-    /// before the task completes if you need to observe these events.
+    /// no `.finished` terminal event is replayed. Subscribe before the task
+    /// completes if you need to observe this event.
     private func makeStream() -> AsyncStream<Event> {
         AsyncStream { continuation in
             Task { @ImagePipelineActor in
