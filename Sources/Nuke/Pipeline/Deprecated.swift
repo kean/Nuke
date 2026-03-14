@@ -4,6 +4,10 @@
 
 import Foundation
 
+/// - warning: Renamed to ``ImagePipeline/Delegate``.
+@available(*, deprecated, renamed: "ImagePipeline.Delegate")
+public typealias ImagePipelineDelegate = ImagePipeline.Delegate
+
 extension ImagePipeline {
     // MARK: - Loading Images (Closures)
 

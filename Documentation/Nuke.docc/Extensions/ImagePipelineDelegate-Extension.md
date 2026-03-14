@@ -1,4 +1,4 @@
-# ``Nuke/ImagePipelineDelegate``
+# ``Nuke/ImagePipeline/Delegate-swift.protocol``
 
 ## Topics
 

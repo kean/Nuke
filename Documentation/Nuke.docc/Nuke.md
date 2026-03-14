@@ -68,7 +68,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 - <doc:image-processing>
 - <doc:loading-data>
 - <doc:image-formats>
-- ``ImagePipelineDelegate``
+- ``ImagePipeline/Delegate-swift.protocol``
 
 ### Performance
 

@@ -42,7 +42,7 @@ public final class ImagePipeline: Sendable {
     /// Provides access to the underlying caching subsystems.
     nonisolated public var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
-    let delegate: any ImagePipelineDelegate
+    let delegate: any ImagePipeline.Delegate
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -76,7 +76,7 @@ public final class ImagePipeline: Sendable {
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
     nonisolated public init(
         configuration: Configuration = Configuration(),
-        delegate: (any ImagePipelineDelegate)? = nil
+        delegate: (any ImagePipeline.Delegate)? = nil
     ) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
@@ -106,7 +106,7 @@ public final class ImagePipeline: Sendable {
     /// - parameters:
     ///   - configuration: The pipeline configuration.
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
-    nonisolated public convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
+    nonisolated public convenience init(delegate: (any ImagePipeline.Delegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
         self.init(configuration: configuration, delegate: delegate)

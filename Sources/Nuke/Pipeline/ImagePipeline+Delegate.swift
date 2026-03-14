@@ -4,82 +4,84 @@
 
 import Foundation
 
-/// A delegate that allows you to customize the pipeline dynamically on a per-request basis.
-///
-/// - important: The delegate methods are performed on the pipeline queue in the
-/// background.
-public protocol ImagePipelineDelegate: AnyObject, Sendable {
-    // MARK: Configuration
-
-    /// Returns data loader for the given request.
-    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
-
-    /// Returns image decoder for the given context.
-    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
-
-    /// Returns image encoder for the given context.
-    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
-
-    /// Returns the preview policy for progressive decoding of the given request.
-    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
-
-    // MARK: Caching
-
-    /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
-    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
-
-    /// Returns disk cache for the given request. Return `nil` to prevent cache
-    /// reads and writes.
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
-
-    /// Returns a cache key identifying the image produced for the given request
-    /// (including image processors). The key is used for both in-memory and
-    /// on-disk caches.
+extension ImagePipeline {
+    /// A delegate that allows you to customize the pipeline dynamically on a per-request basis.
     ///
-    /// Return `nil` to use a default key.
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
+    /// - important: The delegate methods are performed on the pipeline queue in the
+    /// background.
+    public protocol Delegate: AnyObject, Sendable {
+        // MARK: Configuration
 
-    /// Gets called when the pipeline is about to save data for the given request.
-    /// The implementation must call the completion closure passing `non-nil` data
-    /// to enable caching or `nil` to prevent it.
-    ///
-    /// This method is called only if the request parameters and data caching policy
-    /// of the pipeline already allow caching.
-    ///
-    /// - parameters:
-    ///   - data: Either the original data or the encoded image in case of storing
-    ///   a processed or re-encoded image.
-    ///   - image: Non-nil in case storing an encoded image.
-    ///   - request: The request for which image is being stored.
-    ///   - completion: The implementation must call the completion closure
-    ///   passing `non-nil` data to enable caching or `nil` to prevent it. You can
-    ///   safely call it synchronously. The callback gets called on the background
-    ///   thread.
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
+        /// Returns data loader for the given request.
+        func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
 
-    // MARK: Decompression
+        /// Returns image decoder for the given context.
+        func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
 
-    /// Returns `true` if the pipeline should decompress the given response.
-    ///
-    /// Called on a background queue managed by the pipeline.
-    func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
+        /// Returns image encoder for the given context.
+        func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
 
-    /// Decompresses the given image response.
-    ///
-    /// Called on a background queue managed by the pipeline.
-    func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
+        /// Returns the preview policy for progressive decoding of the given request.
+        func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
 
-    // MARK: ImageTask
+        // MARK: Caching
 
-    /// Gets called when the task is created. Unlike other methods, it is called
-    /// immediately on the caller's queue.
-    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
+        /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
+        func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
 
-    /// Gets called when the task receives an event.
-    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
+        /// Returns disk cache for the given request. Return `nil` to prevent cache
+        /// reads and writes.
+        func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
+
+        /// Returns a cache key identifying the image produced for the given request
+        /// (including image processors). The key is used for both in-memory and
+        /// on-disk caches.
+        ///
+        /// Return `nil` to use a default key.
+        func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
+
+        /// Gets called when the pipeline is about to save data for the given request.
+        /// The implementation must call the completion closure passing `non-nil` data
+        /// to enable caching or `nil` to prevent it.
+        ///
+        /// This method is called only if the request parameters and data caching policy
+        /// of the pipeline already allow caching.
+        ///
+        /// - parameters:
+        ///   - data: Either the original data or the encoded image in case of storing
+        ///   a processed or re-encoded image.
+        ///   - image: Non-nil in case storing an encoded image.
+        ///   - request: The request for which image is being stored.
+        ///   - completion: The implementation must call the completion closure
+        ///   passing `non-nil` data to enable caching or `nil` to prevent it. You can
+        ///   safely call it synchronously. The callback gets called on the background
+        ///   thread.
+        func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
+
+        // MARK: Decompression
+
+        /// Returns `true` if the pipeline should decompress the given response.
+        ///
+        /// Called on a background queue managed by the pipeline.
+        func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
+
+        /// Decompresses the given image response.
+        ///
+        /// Called on a background queue managed by the pipeline.
+        func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
+
+        // MARK: ImageTask
+
+        /// Gets called when the task is created. Unlike other methods, it is called
+        /// immediately on the caller's queue.
+        func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
+
+        /// Gets called when the task receives an event.
+        func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
+    }
 }
 
-extension ImagePipelineDelegate {
+extension ImagePipeline.Delegate {
     public func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
         pipeline.configuration.imageCache
     }
@@ -127,4 +129,4 @@ extension ImagePipelineDelegate {
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 }
 
-final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {}
+final class ImagePipelineDefaultDelegate: ImagePipeline.Delegate {}

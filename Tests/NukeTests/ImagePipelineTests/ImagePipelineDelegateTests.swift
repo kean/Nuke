@@ -81,7 +81,7 @@ import Foundation
     }
 }
 
-private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked Sendable {
+private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     var isCacheEnabled = true
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {

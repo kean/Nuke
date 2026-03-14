@@ -95,7 +95,7 @@ pipeline.cache.makeImageCacheKey(for: request)
 pipeline.cache.makeDataCacheKey(for: request)
 ```
 
-There is also a hook in ``ImagePipelineDelegate`` that allows you to customize how the keys are generated:
+There is also a hook in ``ImagePipeline/Delegate-swift.protocol`` that allows you to customize how the keys are generated:
 
 ```swift
 func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {

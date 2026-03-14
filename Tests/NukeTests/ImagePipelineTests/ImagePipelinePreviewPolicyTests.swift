@@ -120,7 +120,7 @@ import Foundation
 // MARK: - Helpers
 
 /// A delegate that returns a fixed preview policy for all requests.
-private final class PreviewPolicyDelegate: ImagePipelineDelegate, @unchecked Sendable {
+private final class PreviewPolicyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     let policy: ImagePipeline.PreviewPolicy
 
     init(policy: ImagePipeline.PreviewPolicy) {

@@ -11,7 +11,7 @@ ImagePipeline {
 }
 ```
 
-You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Configuration-swift.struct`` and ``ImagePipelineDelegate``. You can provide custom caches, data loaders, add support for new image formats, and more.
+You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Configuration-swift.struct`` and ``ImagePipeline/Delegate-swift.protocol``. You can provide custom caches, data loaders, add support for new image formats, and more.
 
 > Tip: The pipeline has two cache layers: memory cache and disk cache. By default, only the memory cache is enabled. For caching data persistently, it relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache). There are advantages to enabling a custom disk cache. You can learn more in <doc:caching>.
 
@@ -79,7 +79,7 @@ Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTa
 
 ## Progressive Decoding
 
-If progressive decoding is enabled, the pipeline attempts to produce previews as data arrives. The behavior is controlled by ``ImagePipeline/PreviewPolicy``, which the pipeline resolves via ``ImagePipelineDelegate/previewPolicy(for:pipeline:)``.
+If progressive decoding is enabled, the pipeline attempts to produce previews as data arrives. The behavior is controlled by ``ImagePipeline/PreviewPolicy``, which the pipeline resolves via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``.
 
 **Default policy:** `.incremental` for progressive JPEGs and GIFs, `.disabled` for all other formats (baseline JPEGs, PNGs, etc.). This means only formats that benefit from incremental rendering produce previews by default.
 

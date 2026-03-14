@@ -4,6 +4,7 @@
 
 *WIP*
 
+- Rename `ImagePipelineDelegate` to `ImagePipeline.Delegate`. A deprecated `ImagePipelineDelegate` typealias is provided for backward compatibility
 - Set deployment targets to iOS 15, tvOS 15, macOS 12, watchOS 8, visionOS 1
 - Add `ImagePipeline.PreviewPolicy` (`.incremental`, `.thumbnail`, `.disabled`) to control how progressive previews are generated per-request
 - Add `ImagePipelineDelegate.previewPolicy(for:pipeline:)` for customizing the policy dynamically. Default policy: `.incremental` for progressive JPEGs and GIFs, `.disabled` for everything else (baseline JPEGs, PNGs, etc.) — restoring the original behavior before `CGImageSourceCreateIncremental` was adopted

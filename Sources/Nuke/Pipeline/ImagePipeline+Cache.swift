@@ -208,7 +208,7 @@ extension ImagePipeline.Cache {
     /// Removes both images and data from all cache layers.
     ///
     /// - important: It clears only caches set in the pipeline configuration. If
-    /// you implement ``ImagePipelineDelegate`` that uses different caches for
+    /// you implement ``ImagePipeline/Delegate`` that uses different caches for
     /// different requests, this won't remove images from them.
     public func removeAll(caches: Caches = [.all]) {
         if caches.contains(.memory) {
