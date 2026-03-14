@@ -33,6 +33,17 @@ import Testing
         )
     }
 
+    @Test func anonymousProcessorDescription() {
+        let processor = ImageProcessors.Anonymous(id: "my-processor", { $0 })
+        #expect(processor.description.contains("my-processor"))
+    }
+
+    @Test func anonymousProcessorReturnsNil() {
+        let processor = ImageProcessors.Anonymous(id: "nil-processor") { _ in nil }
+        let result = processor.process(Test.image)
+        #expect(result == nil)
+    }
+
     @Test func anonymousProcessorIsApplied() throws {
         // Given
         let processor = ImageProcessors.Anonymous(id: "1") {

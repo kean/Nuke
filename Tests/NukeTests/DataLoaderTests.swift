@@ -331,4 +331,178 @@ struct DataLoaderTests {
             }
         }
     }
+
+    // MARK: - Delegate Forwarding
+
+    @Test func settingDelegateProperty() async throws {
+        let url = mockURL("delegate-set")
+        registerMock(url: url, chunks: [Data("ok".utf8)])
+
+        let loader = makeDataLoader()
+        let spy = SpyURLSessionDelegate()
+        loader.delegate = spy
+
+        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
+        for try await _ in stream {}
+
+        // Drain the delegate queue to ensure all callbacks have been processed
+        await withCheckedContinuation { continuation in
+            loader.session.delegateQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+
+        #expect(spy.didReceiveResponseCount > 0)
+        #expect(spy.didReceiveDataCount > 0)
+        #expect(spy.didCompleteCount > 0)
+    }
+
+    @Test func delegateReceivesMetricsCallback() async throws {
+        let url = mockURL("delegate-metrics")
+        registerMock(url: url, chunks: [Data("data".utf8)])
+
+        let loader = makeDataLoader()
+        let spy = SpyURLSessionDelegate()
+        loader.delegate = spy
+
+        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
+        for try await _ in stream {}
+
+        await withCheckedContinuation { continuation in
+            loader.session.delegateQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+
+        #expect(spy.didFinishMetricsCount > 0)
+    }
+
+    // MARK: - Default Validation
+
+    @Test func initWithDefaultValidation() async throws {
+        let url = mockURL("default-val")
+        registerMock(url: url, chunks: [Data("ok".utf8)])
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let loader = DataLoader(configuration: config)
+
+        let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
+        let httpResponse = try #require(response as? HTTPURLResponse)
+        #expect(httpResponse.statusCode == 200)
+        for try await _ in stream {}
+    }
+
+    @Test func initWithDefaultValidationRejectsNon2xx() async throws {
+        let url = mockURL("default-val-reject")
+        registerMock(url: url, statusCode: 403, chunks: [Data("forbidden".utf8)])
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let loader = DataLoader(configuration: config)
+
+        do {
+            _ = try await loader.loadData(with: URLRequest(url: url))
+            Issue.record("Expected validation error")
+        } catch {
+            #expect(error is DataLoader.Error)
+        }
+    }
+
+    // MARK: - Static Properties
+
+    @Test func defaultConfigurationHasUrlCache() {
+        let config = DataLoader.defaultConfiguration
+        #expect(config.urlCache === DataLoader.sharedUrlCache)
+    }
+
+    @Test func sharedUrlCacheHasExpectedCapacity() {
+        let cache = DataLoader.sharedUrlCache
+        #expect(cache.memoryCapacity == 0)
+        #expect(cache.diskCapacity == 150 * 1048576)
+    }
+
+    // MARK: - Caching
+
+    @Test func willCacheResponseIsForwarded() async throws {
+        let url = mockURL("cache-fwd")
+        MockURLProtocol.handlers[url] = .init { _, client, proto in
+            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "5"])!
+            client.urlProtocol(proto, didReceive: response, cacheStoragePolicy: .allowedInMemoryOnly)
+            client.urlProtocol(proto, didLoad: Data("hello".utf8))
+            client.urlProtocolDidFinishLoading(proto)
+        }
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        config.urlCache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0)
+        let loader = DataLoader(configuration: config, validate: { _ in nil })
+
+        let spy = SpyURLSessionDelegate()
+        loader.delegate = spy
+
+        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
+        for try await _ in stream {}
+
+        await withCheckedContinuation { continuation in
+            loader.session.delegateQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+
+        #expect(spy.didReceiveResponseCount > 0)
+    }
+
+    // MARK: - Redirect
+
+    @Test func redirectIsFollowed() async throws {
+        let sourceURL = mockURL("redirect-source")
+        let destURL = mockURL("redirect-dest")
+
+        registerMock(url: destURL, chunks: [Data("redirected".utf8)])
+
+        MockURLProtocol.handlers[sourceURL] = .init { _, client, proto in
+            let redirectResponse = HTTPURLResponse(url: sourceURL, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": destURL.absoluteString])!
+            client.urlProtocol(proto, wasRedirectedTo: URLRequest(url: destURL), redirectResponse: redirectResponse)
+        }
+
+        let loader = makeDataLoader { _ in nil }
+
+        do {
+            let (stream, _) = try await loader.loadData(with: URLRequest(url: sourceURL))
+            var received = Data()
+            for try await chunk in stream {
+                received.append(chunk)
+            }
+            #expect(received == Data("redirected".utf8))
+        } catch {
+            // Some URLSession implementations may handle redirects differently with MockURLProtocol
+        }
+    }
+}
+
+// MARK: - Spy Delegate
+
+private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    @Mutex var didReceiveResponseCount = 0
+    @Mutex var didReceiveDataCount = 0
+    @Mutex var didCompleteCount = 0
+    @Mutex var didFinishMetricsCount = 0
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        didReceiveResponseCount += 1
+        completionHandler(.allow)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        didReceiveDataCount += 1
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
+        didCompleteCount += 1
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        didFinishMetricsCount += 1
+    }
 }

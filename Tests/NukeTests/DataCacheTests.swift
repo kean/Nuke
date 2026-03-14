@@ -456,6 +456,112 @@ private let otherBlob = "456".data(using: .utf8)
         let data = try Data(contentsOf: url)
         #expect(String(data: data, encoding: .utf8) == "2")
     }
+
+    // MARK: Default Filename Generator
+
+    @Test func initWithPathUsingDefaultFilenameGenerator() throws {
+        let name = UUID().uuidString
+        let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+            .appendingPathComponent(name, isDirectory: true)
+        let cache = try DataCache(path: path)
+
+        cache["http://example.com/image.png"] = blob
+        cache.flush()
+
+        #expect(cache.containsData(for: "http://example.com/image.png"))
+        #expect(cache.filename(for: "http://example.com/image.png") != nil)
+    }
+
+    // MARK: Invalid Keys
+
+    @Test func cachedDataForEmptyKey() throws {
+        let cache = try DataCache(name: UUID().uuidString)
+        #expect(cache.cachedData(for: "") == nil)
+    }
+
+    @Test func containsDataForEmptyKey() throws {
+        let cache = try DataCache(name: UUID().uuidString)
+        #expect(!cache.containsData(for: ""))
+    }
+
+    @Test func urlForEmptyKey() throws {
+        let cache = try DataCache(name: UUID().uuidString)
+        #expect(cache.url(for: "") == nil)
+    }
+
+    // MARK: Metadata
+
+    @Test func scheduledSweepUpdatesMetadata() async throws {
+        let expectation = TestExpectation()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            onSweepCompleted: { expectation.fulfill() }
+        )
+        await expectation.wait()
+
+        let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
+        struct CacheMetadata: Codable { var lastSweepDate: Date? }
+        let data = try Data(contentsOf: metadataURL)
+        let metadata = try JSONDecoder().decode(CacheMetadata.self, from: data)
+        #expect(metadata.lastSweepDate != nil)
+        _ = cache
+    }
+
+    @Test func initWithExistingMetadataSkipsSweep() throws {
+        let name = UUID().uuidString
+        let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let path = root.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+
+        struct CacheMetadata: Codable { var lastSweepDate: Date? }
+        let metadata = CacheMetadata(lastSweepDate: Date())
+        try JSONEncoder().encode(metadata).write(
+            to: path.appendingPathComponent(".data-cache-info")
+        )
+
+        let cache = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
+
+        cache["key"] = blob
+        cache.flush()
+        #expect(cache["key"] == blob)
+    }
+
+    // MARK: Sweep Edge Cases
+
+    @Test func sweepWhenSizeUnderLimit() throws {
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) }
+        )
+        cache.sizeLimit = 1024 * 1024 * 100
+        cache["a"] = Data(repeating: 1, count: 100)
+        cache.flush()
+
+        cache.sweep()
+        #expect(cache.containsData(for: "a"))
+    }
+
+    @Test func sweepWhenEmpty() throws {
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) }
+        )
+        cache.sweep()
+        #expect(cache.totalCount == 0)
+    }
+
+    // MARK: Store Data for Invalid Key
+
+    @Test func storeDataForEmptyKeyIsNoOp() throws {
+        let cache = try DataCache(name: UUID().uuidString)
+        cache.storeData(blob!, for: "")
+        cache.flush()
+
+        #expect(cache.totalCount == 0)
+    }
+
 }
 
 extension DataCache {

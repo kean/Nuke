@@ -57,6 +57,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     private var isFlushScheduled = false
 
     var flushInterval: DispatchTimeInterval = .seconds(1)
+    var sweepDelay: DispatchTimeInterval = .seconds(5)
+    var onSweepCompleted: (@Sendable () -> Void)?
 
     private struct Metadata: Codable {
         var lastSweepDate: Date?
@@ -96,6 +98,22 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         try self.didInit()
     }
 
+    init(
+        name: String,
+        filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:),
+        sweepDelay: DispatchTimeInterval,
+        onSweepCompleted: @escaping @Sendable () -> Void
+    ) throws {
+        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
+        }
+        self.path = root.appendingPathComponent(name, isDirectory: true)
+        self.filenameGenerator = filenameGenerator
+        self.sweepDelay = sweepDelay
+        self.onSweepCompleted = onSweepCompleted
+        try self.didInit()
+    }
+
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
     /// generate a filename from the given key.
     public static func filename(for key: String) -> String? {
@@ -113,11 +131,12 @@ public final class DataCache: DataCaching, @unchecked Sendable {
             return // Already completed recently
         }
         // Add a bit of a delay to free the resources during launch
-        queue.asyncAfter(deadline: .now() + 5.0, qos: .background) { [weak self] in
+        queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
             self?.performSweep()
             self?.updateMetadata {
                 $0.lastSweepDate = Date()
             }
+            self?.onSweepCompleted?()
         }
     }
 

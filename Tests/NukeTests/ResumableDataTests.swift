@@ -201,6 +201,78 @@ import Foundation
     }
 }
 
+@Suite struct ResumableDataStorageTests {
+    @Test func registerAndUnregister() {
+        let storage = ResumableDataStorage.shared
+
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        // After unregistering, storage should clean up
+        // (pipeline auto-registers in init, so just unregister)
+        storage.unregister(pipeline)
+    }
+
+    @Test func storeAndRemoveResumableData() throws {
+        let storage = ResumableDataStorage.shared
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        let response = HTTPURLResponse(
+            url: Test.url,
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+                "Accept-Ranges": "bytes",
+                "Content-Length": "2000",
+                "ETag": "abc123"
+            ]
+        )!
+        let resumableData = ResumableData(response: response, data: Data(count: 1000))!
+
+        let request = ImageRequest(url: Test.url)
+        storage.storeResumableData(resumableData, for: request, pipeline: pipeline)
+
+        let retrieved = try #require(storage.removeResumableData(for: request, pipeline: pipeline))
+        #expect(retrieved.data.count == 1000)
+        #expect(retrieved.validator == "abc123")
+
+        // Should be nil after removal
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+
+        storage.unregister(pipeline)
+    }
+
+    @Test func removeAllResponses() {
+        let storage = ResumableDataStorage.shared
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        let response = HTTPURLResponse(
+            url: Test.url,
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+                "Accept-Ranges": "bytes",
+                "Content-Length": "2000",
+                "ETag": "xyz"
+            ]
+        )!
+        let resumableData = ResumableData(response: response, data: Data(count: 1000))!
+
+        storage.storeResumableData(resumableData, for: ImageRequest(url: Test.url), pipeline: pipeline)
+        storage.removeAllResponses()
+
+        let retrieved = storage.removeResumableData(for: ImageRequest(url: Test.url), pipeline: pipeline)
+        #expect(retrieved == nil)
+
+        storage.unregister(pipeline)
+    }
+}
+
 private let _data = Data(count: 1000)
 
 private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
