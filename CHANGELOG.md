@@ -4,6 +4,7 @@
 
 *WIP*
 
+- Add `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)` — an async, throwing hook that intercepts the `URLRequest` just before data loading begins. Use it to inject auth tokens, sign requests, or perform any async pre-flight work. Throw to cancel with a meaningful error (e.g., when a token refresh fails). Default implementation returns the request unchanged
 - Rename `ImagePipelineDelegate` to `ImagePipeline.Delegate`. A deprecated `ImagePipelineDelegate` typealias is provided for backward compatibility
 - Set deployment targets to iOS 15, tvOS 15, macOS 12, watchOS 8, visionOS 1
 - Add `ImagePipeline.PreviewPolicy` (`.incremental`, `.thumbnail`, `.disabled`) to control how progressive previews are generated per-request

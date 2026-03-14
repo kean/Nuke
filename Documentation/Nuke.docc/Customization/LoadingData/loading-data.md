@@ -12,6 +12,31 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 
 The default ``DataLoader`` works great for most situations, but if you need to provide a custom networking layer, you can use a ``DataLoading`` protocol. See also, [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
 
+## Intercepting Requests
+
+To modify a URL request just before it is sent — for example, to inject authentication tokens or sign requests — implement ``ImagePipeline/Delegate-swift.protocol/willLoadData(for:urlRequest:pipeline:)`` in your pipeline delegate:
+
+```swift
+final class AuthenticatedPipelineDelegate: ImagePipeline.Delegate {
+    func willLoadData(
+        for request: ImageRequest,
+        urlRequest: URLRequest,
+        pipeline: ImagePipeline
+    ) async throws -> URLRequest {
+        var urlRequest = urlRequest
+        let token = try await TokenStore.shared.validToken() // async, throws on failure
+        urlRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return urlRequest
+    }
+}
+
+let pipeline = ImagePipeline(delegate: AuthenticatedPipelineDelegate()) {
+    // ...
+}
+```
+
+The method is called on every URL-based request, after resumable data headers are applied but before the request is passed to ``DataLoading``. Throwing an error cancels the request and surfaces the error as ``ImagePipeline/Error/dataLoadingFailed(error:)``. The hook is not called for requests that use a custom data fetch closure or that target local file resources.
+
 ## Monitoring Network Requests
 
 Nuke can be used with [Pulse](https://github.com/kean/Pulse) for monitoring network traffic.

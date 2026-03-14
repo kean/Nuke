@@ -10,10 +10,7 @@ extension ImagePipeline {
     /// - important: The delegate methods are performed on the pipeline queue in the
     /// background.
     public protocol Delegate: AnyObject, Sendable {
-        // MARK: Configuration
-
-        /// Returns data loader for the given request.
-        func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
+        // MARK: Misc
 
         /// Returns image decoder for the given context.
         func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
@@ -23,6 +20,32 @@ extension ImagePipeline {
 
         /// Returns the preview policy for progressive decoding of the given request.
         func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
+
+        // MARK: Data Loading
+
+        /// Returns data loader for the given request.
+        func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
+
+        /// Intercepts the URL request just before data loading begins, allowing
+        /// you to modify or replace it.
+        ///
+        /// Use this hook to inject authentication tokens, sign requests, or
+        /// perform any other async pre-flight work. Throw to cancel the request
+        /// with a meaningful error — for example, when a token refresh fails.
+        ///
+        /// The default implementation returns `urlRequest` unchanged.
+        ///
+        /// - important: Not called for requests using a custom data fetch closure
+        ///   or for local file resources.
+        /// - parameters:
+        ///   - request: The image request being loaded.
+        ///   - urlRequest: The URL request that is about to be sent.
+        ///   - pipeline: The pipeline performing the request.
+        /// - returns: The URL request to use for loading. Return `urlRequest`
+        ///   unchanged to proceed without modification.
+        /// - throws: If an error is thrown, the image request fails with
+        ///   ``ImagePipeline/Error/dataLoadingFailed(error:)`` wrapping the error.
+        func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest
 
         // MARK: Caching
 
@@ -88,6 +111,14 @@ extension ImagePipeline.Delegate {
 
     public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         pipeline.configuration.dataLoader
+    }
+
+    public func willLoadData(
+        for request: ImageRequest,
+        urlRequest: URLRequest,
+        pipeline: ImagePipeline
+    ) async throws -> URLRequest {
+        urlRequest
     }
 
     public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {

@@ -79,10 +79,80 @@ import Foundation
         // THEN
         #expect(dataCache.store.isEmpty)
     }
+
+    // MARK: - willLoadData
+
+    @Test func willLoadDataIsCalled() async throws {
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(delegate.willLoadDataCallCount == 1)
+        #expect(delegate.willLoadDataRequest?.url == Test.url)
+    }
+
+    @Test func willLoadDataCanModifyRequest() async throws {
+        // GIVEN
+        let trackingLoader = TrackingDataLoader(wrapping: dataLoader)
+        delegate.urlRequestModifier = { request in
+            var request = request
+            request.setValue("Bearer token123", forHTTPHeaderField: "Authorization")
+            return request
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = trackingLoader
+            $0.dataCache = dataCache
+            $0.imageCache = nil
+        }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN the data loader received the modified request
+        #expect(trackingLoader.lastRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer token123")
+    }
+
+    @Test func willLoadDataThrowingCancelsWithDataLoadingFailed() async throws {
+        // GIVEN
+        struct TokenRefreshError: Error {}
+        delegate.willLoadDataError = TokenRefreshError()
+
+        // WHEN
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected an error")
+        } catch {
+            // THEN the error is wrapped in dataLoadingFailed
+            guard case .dataLoadingFailed(let underlying) = error else {
+                Issue.record("Expected dataLoadingFailed, got \(error)")
+                return
+            }
+            #expect(underlying is TokenRefreshError)
+        }
+    }
+
+    @Test func willLoadDataIsNotCalledForCustomDataFetch() async throws {
+        // GIVEN a request using a custom data fetch closure
+        let request = ImageRequest(id: "test", data: {
+            Test.data
+        })
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+
+        // THEN willLoadData is NOT called (custom fetch bypasses URL loading)
+        #expect(delegate.willLoadDataCallCount == 0)
+    }
 }
 
 private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     var isCacheEnabled = true
+
+    // willLoadData tracking
+    var willLoadDataCallCount = 0
+    var willLoadDataRequest: URLRequest?
+    var urlRequestModifier: ((URLRequest) -> URLRequest)?
+    var willLoadDataError: Error?
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
         request.userInfo["imageId"] as? String
@@ -90,5 +160,30 @@ private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecke
 
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
         completion(isCacheEnabled ? data : nil)
+    }
+
+    func willLoadData(
+        for request: ImageRequest,
+        urlRequest: URLRequest,
+        pipeline: ImagePipeline
+    ) async throws -> URLRequest {
+        willLoadDataCallCount += 1
+        willLoadDataRequest = urlRequest
+        if let error = willLoadDataError { throw error }
+        return urlRequestModifier?(urlRequest) ?? urlRequest
+    }
+}
+
+private final class TrackingDataLoader: DataLoading, @unchecked Sendable {
+    private let wrapped: MockDataLoader
+    var lastRequest: URLRequest?
+
+    init(wrapping loader: MockDataLoader) {
+        self.wrapped = loader
+    }
+
+    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+        lastRequest = request
+        return try await wrapped.loadData(with: request)
     }
 }

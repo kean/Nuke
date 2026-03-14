@@ -90,6 +90,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
+            urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
             let (stream, response) = try await dataLoader.loadData(with: urlRequest)
 
             guard !isDisposed else { return }

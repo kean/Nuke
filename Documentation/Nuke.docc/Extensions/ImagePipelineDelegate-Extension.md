@@ -5,6 +5,7 @@
 ### Data Loading
 
 - ``dataLoader(for:pipeline:)-7xolj``
+- ``willLoadData(for:urlRequest:pipeline:)``
 
 ### Decoding and Encoding
 
