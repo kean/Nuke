@@ -42,7 +42,7 @@ extension ImageDecoders {
         public init() { }
 
         public init?(context: ImageDecodingContext) {
-            self.scale = context.request.scale.map { CGFloat($0) } ?? self.scale
+            self.scale = CGFloat(context.request.scale)
             self.thumbnail = context.request.thumbnail
             self.previewPolicy = context.previewPolicy
             self.maximumDecodedImageSize = context.maximumDecodedImageSize

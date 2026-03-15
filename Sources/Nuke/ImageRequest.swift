@@ -107,7 +107,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// The display scale of the image. By default, `1`.
-    public var scale: Float? {
+    public var scale: Float {
         get { ref.scale }
         set { mutate { $0.scale = newValue } }
     }
@@ -454,10 +454,8 @@ extension ImageRequest {
         var customImageID: String?
         var processors: [any ImageProcessing]
         var userInfo: [UserInfoKey: Any]?
-        var scale: Float?
+        var scale: Float = 1.0
         var thumbnail: ThumbnailOptions?
-        // After trimming the request size in Nuke 10, CoW it is no longer as
-        // beneficial, but there still is a measurable difference.
 
         init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
