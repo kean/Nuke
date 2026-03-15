@@ -352,23 +352,37 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
         let targetSize: TargetSize
 
+        var options: Options = .defaults
+
         /// Whether a thumbnail should be automatically created for an image if
         /// a thumbnail isn't present in the image source file. The thumbnail is
         /// created from the full image, subject to the limit specified by size.
-        public var createThumbnailFromImageIfAbsent = true
+        public var createThumbnailFromImageIfAbsent: Bool {
+            get { options.contains(.createThumbnailFromImageIfAbsent) }
+            set { options.set(.createThumbnailFromImageIfAbsent, newValue) }
+        }
 
         /// Whether a thumbnail should be created from the full image even if a
         /// thumbnail is present in the image source file. The thumbnail is created
         /// from the full image, subject to the limit specified by size.
-        public var createThumbnailFromImageAlways = true
+        public var createThumbnailFromImageAlways: Bool {
+            get { options.contains(.createThumbnailFromImageAlways) }
+            set { options.set(.createThumbnailFromImageAlways, newValue) }
+        }
 
         /// Whether the thumbnail should be rotated and scaled according to the
         /// orientation and pixel aspect ratio of the full image.
-        public var createThumbnailWithTransform = true
+        public var createThumbnailWithTransform: Bool {
+            get { options.contains(.createThumbnailWithTransform) }
+            set { options.set(.createThumbnailWithTransform, newValue) }
+        }
 
         /// Specifies whether image decoding and caching should happen at image
         /// creation time.
-        public var shouldCacheImmediately = true
+        public var shouldCacheImmediately: Bool {
+            get { options.contains(.shouldCacheImmediately) }
+            set { options.set(.shouldCacheImmediately, newValue) }
+        }
 
         /// Initializes the options with the given pixel size. The thumbnail is
         /// resized to fit the target size.
@@ -396,6 +410,28 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
         var identifier: String {
             "com.github/kean/nuke/thumbnail?\(targetSize.parameters),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
+        }
+
+        struct Options: OptionSet, Hashable, Sendable {
+            let rawValue: UInt8
+
+            init(rawValue: UInt8) { self.rawValue = rawValue }
+
+            static let createThumbnailFromImageIfAbsent = Options(rawValue: 1 << 0)
+            static let createThumbnailFromImageAlways = Options(rawValue: 1 << 1)
+            static let createThumbnailWithTransform = Options(rawValue: 1 << 2)
+            static let shouldCacheImmediately = Options(rawValue: 1 << 3)
+
+            static let defaults: Options = [
+                .createThumbnailFromImageIfAbsent,
+                .createThumbnailFromImageAlways,
+                .createThumbnailWithTransform,
+                .shouldCacheImmediately
+            ]
+
+            mutating func set(_ option: Options, _ value: Bool) {
+                if value { insert(option) } else { remove(option) }
+            }
         }
     }
 

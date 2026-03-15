@@ -363,11 +363,12 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CG
     }
 
     let maxPixelSize = getMaxPixelSize(for: source, options: options)
+    let flags = options.options
     let options = [
-        kCGImageSourceCreateThumbnailFromImageAlways: options.createThumbnailFromImageAlways,
-        kCGImageSourceCreateThumbnailFromImageIfAbsent: options.createThumbnailFromImageIfAbsent,
-        kCGImageSourceShouldCacheImmediately: options.shouldCacheImmediately,
-        kCGImageSourceCreateThumbnailWithTransform: options.createThumbnailWithTransform,
+        kCGImageSourceCreateThumbnailFromImageAlways: flags.contains(.createThumbnailFromImageAlways),
+        kCGImageSourceCreateThumbnailFromImageIfAbsent: flags.contains(.createThumbnailFromImageIfAbsent),
+        kCGImageSourceShouldCacheImmediately: flags.contains(.shouldCacheImmediately),
+        kCGImageSourceCreateThumbnailWithTransform: flags.contains(.createThumbnailWithTransform),
         kCGImageSourceThumbnailMaxPixelSize: maxPixelSize] as [CFString: Any]
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
