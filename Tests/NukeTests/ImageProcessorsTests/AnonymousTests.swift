@@ -9,7 +9,8 @@ import Testing
     import UIKit
 #endif
 
-@Suite struct ImageProcessorsAnonymousTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageProcessorsAnonymousTests {
 
     @Test func anonymousProcessorsHaveDifferentIdentifiers() {
         #expect(

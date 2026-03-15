@@ -9,7 +9,7 @@ import Foundation
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite @MainActor struct ImageViewLoadingOptionsTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct ImageViewLoadingOptionsTests {
     let mockCache: MockImageCache
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline

@@ -7,7 +7,8 @@ import Foundation
 import ImageIO
 @testable import Nuke
 
-@Suite struct ImageDecoderTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageDecoderTests {
     @Test func decodePNG() throws {
         // Given
         let data = Test.data(name: "fixture", extension: "png")
@@ -403,7 +404,8 @@ import ImageIO
     }
 }
 
-@Suite struct ImageTypeTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageTypeTests {
     // MARK: PNG
 
     @Test func detectPNG() {

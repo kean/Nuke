@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImageContainerTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageContainerTests {
 
     // MARK: - Copy-on-Write
 

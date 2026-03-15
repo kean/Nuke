@@ -5,7 +5,8 @@
 import Testing
 @testable import Nuke
 
-@Suite struct ImageResponseTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageResponseTests {
 
     @Test func imageForwardsFromContainer() {
         let container = ImageContainer(image: Test.image)

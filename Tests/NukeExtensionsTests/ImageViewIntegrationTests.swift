@@ -12,7 +12,7 @@ import UIKit
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite @MainActor struct ImageViewIntegrationTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct ImageViewIntegrationTests {
     let imageView: _ImageView
     let pipeline: ImagePipeline
     let options: ImageLoadingOptions

@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImageDecodersEmptyTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageDecodersEmptyTests {
     @Test func isAsynchronousReturnsFalse() {
         let decoder = ImageDecoders.Empty()
         #expect(decoder.isAsynchronous == false)

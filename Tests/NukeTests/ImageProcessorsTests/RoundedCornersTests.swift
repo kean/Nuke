@@ -10,7 +10,8 @@ import Foundation
     import UIKit
 #endif
 
-@Suite struct ImageProcessorsRoundedCornersTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageProcessorsRoundedCornersTests {
 
     @Test(.disabled()) func thatCornerRadiusIsAdded() throws {
         // Given

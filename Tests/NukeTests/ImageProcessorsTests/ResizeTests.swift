@@ -10,7 +10,8 @@ import Foundation
 import UIKit
 #endif
 
-@Suite struct ImageProcessorsResizeTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageProcessorsResizeTests {
 
     @Test func thatImageIsResizedToFill() throws {
         // Given
@@ -320,7 +321,8 @@ import UIKit
     }
 }
 
-@Suite struct CoreGraphicsExtensionsTests {
+@Suite(.timeLimit(.minutes(1)))
+struct CoreGraphicsExtensionsTests {
     @Test func scaleToFill() {
         #expect(1 == CGSize(width: 10, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
         #expect(0.5 == CGSize(width: 20, height: 20).scaleToFill(CGSize(width: 10, height: 10)))

@@ -17,7 +17,8 @@ private let request1 = _request(index: 1)
 private let request2 = _request(index: 2)
 private let request3 = _request(index: 3)
 
-@Suite struct ImageCacheTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImageCacheTests {
     let cache: ImageCache
 
     init() {
@@ -413,7 +414,8 @@ private let request3 = _request(index: 3)
 #endif
 }
 
-@Suite struct InternalCacheTTLTests {
+@Suite(.timeLimit(.minutes(1)))
+struct InternalCacheTTLTests {
     let cache = Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
 
     // MARK: TTL

@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImagePipelineResumableDataTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImagePipelineResumableDataTests {
     private let dataLoader: _MockResumableDataLoader
     private let pipeline: ImagePipeline
 
