@@ -44,8 +44,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The path for the directory managed by the cache.
     public let path: URL
 
-    /// The time interval between cache sweeps. The default value is 1 hour.
-    public var sweepInterval: TimeInterval = 3600
+    /// The time interval between cache sweeps. The default value is 30 minutes.
+    public var sweepInterval: TimeInterval = 1800
 
     /// If `false`, the automatic LRU sweep is disabled. The default value is `true`.
     public var isSweepEnabled: Bool = true
