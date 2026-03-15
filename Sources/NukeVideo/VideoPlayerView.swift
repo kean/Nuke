@@ -84,7 +84,10 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     private var player: AVPlayer? {
         didSet {
-            registerNotifications()
+            unregisterNotifications()
+            if player != nil {
+                registerNotifications()
+            }
         }
     }
 
@@ -104,6 +107,13 @@ public final class VideoPlayerView: _PlatformBaseView {
         if asset == nil {
             reset()
         }
+    }
+
+    private func unregisterNotifications() {
+        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
+#if os(iOS) || os(tvOS) || os(visionOS)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+#endif
     }
 
     private func registerNotifications() {

@@ -58,6 +58,7 @@ Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 - Fix thumbnail requests re-downloading original image data when it is already stored in the disk cache — https://github.com/kean/Nuke/issues/837
 - Fix `ImageTask.state` remaining `.running` after completion when using the completion-based `loadImage` API
 - Fix `ImageDecoders.Video.decode(_:)` returning an empty image instead of a video thumbnail — https://github.com/kean/Nuke/issues/811
+- Fix `VideoPlayerView` accumulating duplicate `AVPlayerItemDidPlayToEndTime` observers on each `play()`/`reset()` cycle, causing `onVideoFinished` to fire multiple times — https://github.com/kean/Nuke/issues/818
 
 ## Nuke 12.9.0
 
