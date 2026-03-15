@@ -18,6 +18,7 @@ Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 - Add `@MainActor @Sendable` to `progress` and `completion` closures in `NukeExtensions` `loadImage` functions
 - Add `@MainActor @Sendable` to all callback closures in `NukeUI`: `FetchImage.onStart`/`onCompletion`, `LazyImage.onStart`/`onCompletion` modifiers, `LazyImageView.onStart`/`onPreview`/`onProgress`/`onSuccess`/`onFailure`/`onCompletion`
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead
+- Synchronize `ResumableDataStorage` on `ImagePipelineActor`, replacing `NSLock` with actor isolation and removing `@unchecked Sendable`
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 
 **New Features**

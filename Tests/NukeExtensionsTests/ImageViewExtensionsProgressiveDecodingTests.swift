@@ -12,13 +12,13 @@ import Foundation
     let pipeline: ImagePipeline
     let cache: MockImageCache
 
-    init() {
+    init() async {
         let dataLoader = MockProgressiveDataLoader()
         let cache = MockImageCache()
         self.dataLoader = dataLoader
         self.cache = cache
 
-        ResumableDataStorage.shared.removeAllResponses()
+        await ResumableDataStorage.shared.removeAllResponses()
 
         // We make two important assumptions with this setup:
         //

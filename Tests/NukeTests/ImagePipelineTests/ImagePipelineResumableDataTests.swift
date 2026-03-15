@@ -65,7 +65,7 @@ import Foundation
 
         // THEN no resumable data remains in storage: the completed download doesn't
         // produce a partial entry (ResumableData init requires data.count < Content-Length).
-        let stored = ResumableDataStorage.shared.removeResumableData(
+        let stored = await ResumableDataStorage.shared.removeResumableData(
             for: ImageRequest(url: Test.url),
             pipeline: pipeline
         )

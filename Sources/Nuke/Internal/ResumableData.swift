@@ -63,58 +63,43 @@ struct ResumableData: Sendable {
 }
 
 /// Shared cache, uses the same memory pool across multiple pipelines.
-final class ResumableDataStorage: @unchecked Sendable {
+@ImagePipelineActor
+final class ResumableDataStorage {
     static let shared = ResumableDataStorage()
 
-    private let lock = NSLock()
     private var registeredPipelines = Set<UUID>()
 
     private var cache: Cache<Key, ResumableData>?
 
     // MARK: Registration
 
-    func register(_ pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
+    func register(_ id: UUID) {
         if registeredPipelines.isEmpty {
             // 32 MB
             cache = Cache(costLimit: 32000000, countLimit: 100)
         }
-        registeredPipelines.insert(pipeline.id)
+        registeredPipelines.insert(id)
     }
 
-    func unregister(_ pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        registeredPipelines.remove(pipeline.id)
+    func unregister(_ id: UUID) {
+        registeredPipelines.remove(id)
         if registeredPipelines.isEmpty {
             cache = nil // Deallocate storage
         }
     }
 
     func removeAllResponses() {
-        lock.lock()
-        defer { lock.unlock() }
-
         cache?.removeAllCachedValues()
     }
 
     // MARK: Storage
 
     func removeResumableData(for request: ImageRequest, pipeline: ImagePipeline) -> ResumableData? {
-        lock.lock()
-        defer { lock.unlock() }
-
         guard let key = Key(request: request, pipeline: pipeline) else { return nil }
         return cache?.removeValue(forKey: key)
     }
 
     func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
-        lock.lock()
-        defer { lock.unlock() }
-
         guard let key = Key(request: request, pipeline: pipeline) else { return }
         cache?.set(data, forKey: key, cost: data.data.count)
     }

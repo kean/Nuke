@@ -66,7 +66,8 @@ public final class ImagePipeline: Sendable {
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     nonisolated deinit {
-        ResumableDataStorage.shared.unregister(self)
+        let id = self.id
+        Task { @ImagePipelineActor in ResumableDataStorage.shared.unregister(id) }
     }
 
     /// Initializes the instance with the given configuration.
@@ -89,7 +90,8 @@ public final class ImagePipeline: Sendable {
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
 
-        ResumableDataStorage.shared.register(self)
+        let id = self.id
+        Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }
 
     /// A convenience way to initialize the pipeline with a closure.

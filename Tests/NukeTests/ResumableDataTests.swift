@@ -248,6 +248,7 @@ import Foundation
     }
 }
 
+@ImagePipelineActor
 @Suite struct ResumableDataStorageTests {
     @Test func registerAndUnregister() {
         let storage = ResumableDataStorage.shared
@@ -256,9 +257,8 @@ import Foundation
             $0.dataLoader = MockDataLoader()
         }
 
-        // After unregistering, storage should clean up
-        // (pipeline auto-registers in init, so just unregister)
-        storage.unregister(pipeline)
+        storage.register(pipeline.id)
+        storage.unregister(pipeline.id)
     }
 
     @Test func storeAndRemoveResumableData() throws {
@@ -266,6 +266,7 @@ import Foundation
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
         }
+        storage.register(pipeline.id)
 
         let response = HTTPURLResponse(
             url: Test.url,
@@ -289,7 +290,7 @@ import Foundation
         // Should be nil after removal
         #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
 
-        storage.unregister(pipeline)
+        storage.unregister(pipeline.id)
     }
 
     @Test func removeAllResponses() {
@@ -297,6 +298,7 @@ import Foundation
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
         }
+        storage.register(pipeline.id)
 
         let response = HTTPURLResponse(
             url: Test.url,
@@ -316,7 +318,7 @@ import Foundation
         let retrieved = storage.removeResumableData(for: ImageRequest(url: Test.url), pipeline: pipeline)
         #expect(retrieved == nil)
 
-        storage.unregister(pipeline)
+        storage.unregister(pipeline.id)
     }
 }
 
