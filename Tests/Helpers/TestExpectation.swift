@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Testing
 @testable import Nuke
 
 final class TestExpectation: @unchecked Sendable {
@@ -33,7 +34,26 @@ final class TestExpectation: @unchecked Sendable {
         }
     }
 
-    func wait() async {
+    func wait(timeout: Duration = .seconds(60)) async {
+        let fulfilled = await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                await self.waitInternal()
+                return true
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+            let result = await group.next()!
+            group.cancelAll()
+            return result
+        }
+        if !fulfilled, !Task.isCancelled {
+            Issue.record("TestExpectation timed out after \(timeout)")
+        }
+    }
+
+    private func waitInternal() async {
         await withCheckedContinuation { continuation in
             lock.lock()
             switch state {
