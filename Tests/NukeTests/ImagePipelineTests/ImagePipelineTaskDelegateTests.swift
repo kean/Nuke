@@ -82,4 +82,50 @@ import Foundation
             .cancelled
         ])
     }
+
+    @Test func errorCompletionEventDelivered() async throws {
+        // GIVEN a data loader that fails
+        let error = URLError(.notConnectedToInternet)
+        dataLoader.results[Test.url] = .failure(error as NSError)
+
+        // WHEN
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
+        _ = try? await pipeline.imageTask(with: Test.request).response
+        await completed.wait()
+
+        // THEN the delegate receives a completed(.failure(...)) event
+        let events = delegate.events
+        guard case .completed(let result) = events.last else {
+            Issue.record("Expected completed event, got \(events)")
+            return
+        }
+        if case .success = result {
+            Issue.record("Expected failure result")
+        }
+    }
+
+    @Test func intermediateResponseEventsDelivered() async throws {
+        // GIVEN a pipeline with progressive decoding
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: Test.url)
+        for try await _ in task.previews {
+            dataLoader.resume()
+        }
+        _ = try await task.response
+
+        // THEN intermediate response events are recorded
+        let previews = delegate.events.filter {
+            if case .intermediateResponseReceived = $0 { return true }
+            return false
+        }
+        #expect(previews.count >= 1)
+    }
 }

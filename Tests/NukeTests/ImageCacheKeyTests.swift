@@ -45,4 +45,28 @@ import Foundation
         let requestKey = ImageCacheKey(request: ImageRequest(url: URL(string: "https://example.com/custom")!))
         #expect(customKey != requestKey)
     }
+
+    @Test func requestKeyHashable() {
+        let request = ImageRequest(url: URL(string: "https://example.com/image.png")!)
+        let key1 = ImageCacheKey(request: request)
+        let key2 = ImageCacheKey(request: request)
+        #expect(key1.hashValue == key2.hashValue)
+    }
+
+    @Test func customKeyCanBeUsedInSet() {
+        let key1 = ImageCacheKey(key: "a")
+        let key2 = ImageCacheKey(key: "b")
+        let key3 = ImageCacheKey(key: "a")
+        let set: Set<ImageCacheKey> = [key1, key2, key3]
+        #expect(set.count == 2)
+    }
+
+    @Test func customKeyCanBeUsedAsDictionaryKey() {
+        var dict = [ImageCacheKey: String]()
+        dict[ImageCacheKey(key: "k1")] = "value1"
+        dict[ImageCacheKey(key: "k2")] = "value2"
+        #expect(dict[ImageCacheKey(key: "k1")] == "value1")
+        #expect(dict[ImageCacheKey(key: "k2")] == "value2")
+        #expect(dict[ImageCacheKey(key: "k3")] == nil)
+    }
 }

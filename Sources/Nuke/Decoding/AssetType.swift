@@ -59,7 +59,7 @@ extension AssetType {
 
     private static func make(_ data: Data) -> AssetType? {
         func _match(_ numbers: [UInt8?], offset: Int = 0) -> Bool {
-            guard data.count >= numbers.count else {
+            guard data.count >= numbers.count + offset else {
                 return false
             }
             return zip(numbers.indices, numbers).allSatisfy { index, number in

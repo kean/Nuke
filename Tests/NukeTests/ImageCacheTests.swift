@@ -111,6 +111,18 @@ private let request3 = _request(index: 3)
         #expect(cache[request2] != nil)
     }
 
+    @Test func countLimitOfZeroPreventsCaching() {
+        // Given
+        cache.countLimit = 0
+
+        // When
+        cache[request1] = Test.container
+
+        // Then
+        #expect(cache.totalCount == 0)
+        #expect(cache[request1] == nil)
+    }
+
     @Test func imagesAreRemovedOnCountLimitChange() {
         // Given
         cache.countLimit = 2
@@ -149,6 +161,32 @@ private let request3 = _request(index: 3)
 
         cache[request1] = nil
         #expect(cache.totalCost == 0)
+    }
+
+    @Test func replacingExistingEntryKeepsCostConsistent() {
+        // Given
+        cache.costLimit = Int.max
+        cache[request1] = Test.container
+        let costAfterFirstStore = cache.totalCost
+
+        // When - store a new container at the same key
+        cache[request1] = Test.container
+
+        // Then - cost should not double; the old entry cost is replaced
+        #expect(cache.totalCost == costAfterFirstStore)
+        #expect(cache.totalCount == 1)
+    }
+
+    @Test func costLimitOfZeroPreventsCaching() {
+        // Given
+        cache.costLimit = 0
+
+        // When
+        cache[request1] = Test.container
+
+        // Then
+        #expect(cache.totalCost == 0)
+        #expect(cache[request1] == nil)
     }
 
     @Test func costLimitChanged() {
@@ -295,6 +333,27 @@ private let request3 = _request(index: 3)
         #expect(cache[request3] != nil)
     }
 
+    @Test func trimToCountRespectsLRUOrder() {
+        // Given - three items inserted in order
+        cache.countLimit = Int.max
+        cache[request1] = Test.container
+        cache[request2] = Test.container
+        cache[request3] = Test.container
+
+        // When - access request1 and request3, making request2 the LRU item
+        _ = cache[request1]
+        _ = cache[request3]
+
+        // Trim down to 2 items
+        cache.trim(toCount: 2)
+
+        // Then - the LRU item (request2) is evicted; recently accessed items remain
+        #expect(cache[request1] != nil)
+        #expect(cache[request2] == nil)
+        #expect(cache[request3] != nil)
+        #expect(cache.totalCount == 2)
+    }
+
     // MARK: Misc
 
     @Test func removeAll() {
@@ -350,6 +409,7 @@ private let request3 = _request(index: 3)
         // THEN
         #expect(cache.totalCount == 1)
     }
+
 #endif
 }
 

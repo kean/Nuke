@@ -70,6 +70,37 @@ import Testing
             ImageProcessors.GaussianBlur(radius: 3).hashableIdentifier
         )
     }
+
+    // MARK: - Output Dimensions
+
+    @Test func blurDoesNotChangeImageDimensions() throws {
+        // GIVEN
+        let image = Test.image
+        let inputSize = image.sizeInPixels
+        let processor = ImageProcessors.GaussianBlur(radius: 8)
+
+        // WHEN
+        let output = try #require(processor.process(image))
+
+        // THEN - blurring must not alter the canvas size
+        #expect(output.sizeInPixels == inputSize)
+    }
+
+    @Test func blurWithMinimumRadiusProducesOutput() throws {
+        // GIVEN - radius of 1 is the smallest non-trivial blur
+        let processor = ImageProcessors.GaussianBlur(radius: 1)
+
+        // WHEN / THEN - must not crash and must return a valid image
+        let output = try #require(processor.process(Test.image))
+        #expect(output.sizeInPixels == Test.image.sizeInPixels)
+    }
+
+    @Test func differentRadiiProduceDifferentDescriptions() {
+        #expect(
+            ImageProcessors.GaussianBlur(radius: 4).description !=
+            ImageProcessors.GaussianBlur(radius: 16).description
+        )
+    }
 }
 
 #endif

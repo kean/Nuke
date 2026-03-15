@@ -24,6 +24,23 @@ import Foundation
         #expect(request.allHTTPHeaderFields?["If-Range"] == "1234")
     }
 
+    @Test func resumingRequestUsesLastModifiedWhenNoETag() {
+        // GIVEN resumable data validated by Last-Modified (no ETag)
+        let lastModified = "Wed, 21 Oct 2015 07:28:00 GMT"
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000",
+            "Last-Modified": lastModified
+        ])
+        let data = ResumableData(response: response, data: _data)!
+        var request = URLRequest(url: Test.url)
+        data.resume(request: &request)
+
+        // THEN Range header is correct and If-Range contains the Last-Modified value
+        #expect(request.allHTTPHeaderFields?["Range"] == "bytes=1000-")
+        #expect(request.allHTTPHeaderFields?["If-Range"] == lastModified)
+    }
+
     @Test func checkingResumedResponse() {
         #expect(ResumableData.isResumedResponse(_makeResponse(statusCode: 206)))
 
@@ -197,6 +214,36 @@ import Foundation
         let data = ResumableData(response: response, data: _data)
 
         // Then
+        #expect(data == nil)
+    }
+
+    @Test func createWhenDownloadIsCompleteReturnsNil() {
+        // GIVEN data whose length equals the Content-Length (download is complete)
+        let completeData = Data(count: 2000)
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
+
+        // WHEN trying to create resumable data from a fully-downloaded response
+        let data = ResumableData(response: response, data: completeData)
+
+        // THEN no resumable data is created — there is nothing to resume
+        #expect(data == nil)
+    }
+
+    @Test func createWhenDataExceedsContentLengthReturnsNil() {
+        // GIVEN data that exceeds the declared Content-Length (e.g. due to rounding)
+        let oversizedData = Data(count: 2001)
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000",
+            "ETag": "xyz"
+        ])
+
+        let data = ResumableData(response: response, data: oversizedData)
+
         #expect(data == nil)
     }
 }

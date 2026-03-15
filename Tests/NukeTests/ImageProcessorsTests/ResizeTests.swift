@@ -282,6 +282,35 @@ import UIKit
         #expect(processor.description == "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
     }
 
+    // MARK: - Identity / Edge Cases
+
+    @Test func thatAspectFitImageIsNotUpscaledByDefault() throws {
+        // GIVEN a processor with a target larger than the image — aspect fit, no upscale
+        let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFit)
+
+        // WHEN
+        let output = try #require(processor.process(Test.image))
+
+        // THEN the image is not enlarged beyond its original size
+        #expect(output.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func thatAspectFitCorrectlySelectsLimitingDimension() throws {
+        // GIVEN a processor where the width is the limiting dimension
+        // (target 100×200: 640/100=6.4x, 480/200=2.4x — height scale is smaller, so height is limiting)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 200, height: 100), unit: .pixels, contentMode: .aspectFit)
+
+        // WHEN
+        let output = try #require(processor.process(Test.image))
+
+        // THEN fits within 200×100 while maintaining aspect ratio 4:3 → 100 high → 133 wide
+        // scale = 100/480 ≈ 0.208, width = 640 * 0.208 = ~133
+        let size = output.sizeInPixels
+        #expect(size.height == 100)
+        #expect(size.width <= 200)
+        #expect(size.width > 0)
+    }
+
     // Just make sure these initializers are still available.
     @Test func initializer() {
         _ = ImageProcessors.Resize(height: 10)

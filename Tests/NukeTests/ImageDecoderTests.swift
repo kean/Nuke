@@ -357,6 +357,50 @@ import ImageIO
         #expect(size.width <= 100)
         #expect(size.height <= 100)
     }
+
+    // MARK: - Invalid / Corrupted Data
+
+    @Test func decodeRandomDataThrows() {
+        // GIVEN - bytes that share no resemblance with any image format
+        let data = Data(repeating: 0xAB, count: 512)
+        let decoder = ImageDecoders.Default()
+
+        // WHEN / THEN - decoding must throw (not crash)
+        #expect(throws: (any Error).self) {
+            try decoder.decode(data)
+        }
+    }
+
+    @Test func decodeEmptyDataThrows() {
+        let decoder = ImageDecoders.Default()
+        #expect(throws: (any Error).self) {
+            try decoder.decode(Data())
+        }
+    }
+
+    @Test func decodeTruncatedJPEGThrows() {
+        // GIVEN - a JPEG with a valid header but body cut off after a handful of bytes
+        let full = Test.data(name: "baseline", extension: "jpeg")
+        let truncated = full[0..<32]
+        let decoder = ImageDecoders.Default()
+
+        // WHEN / THEN - a very short slice cannot be decoded into an image
+        #expect(throws: (any Error).self) {
+            try decoder.decode(truncated)
+        }
+    }
+
+    @Test func partialDataReturnsNilForUnsupportedFormat() {
+        // GIVEN - only 2 bytes of PNG data (not enough to decode)
+        let data = Test.data(name: "fixture", extension: "png")
+        let decoder = ImageDecoders.Default()
+
+        // WHEN - attempt partial decode with too-little data
+        let preview = decoder.decodePartiallyDownloadedData(data[0..<2])
+
+        // THEN - no preview produced for this tiny slice
+        #expect(preview == nil)
+    }
 }
 
 @Suite struct ImageTypeTests {
@@ -419,5 +463,31 @@ import ImageIO
         #expect(AssetType(data[0..<2]) == nil)
         #expect(AssetType(data[0..<12]) == .webp)
         #expect(AssetType(data) == .webp)
+    }
+
+    // MARK: HEIC
+
+    @Test func detectHEIC() {
+        let data = Test.data(name: "img_751", extension: "heic")
+        // HEIC detection requires the ftyp box at byte offset 4 (8 bytes),
+        // so 12 bytes total are needed. Shorter slices must return nil.
+        #expect(AssetType(data[0..<1]) == nil)
+        #expect(AssetType(data[0..<11]) == nil) // one byte short of the required 12
+        // Exactly 12 bytes — enough to identify HEIC
+        #expect(AssetType(data[0..<12]) == .heic)
+        // Full data
+        #expect(AssetType(data) == .heic)
+    }
+
+    // MARK: Edge Cases
+
+    @Test func detectEmptyData() {
+        #expect(AssetType(Data()) == nil)
+    }
+
+    @Test func detectUnknownFormat() {
+        // Random bytes that don't match any known format
+        let data = Data([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07])
+        #expect(AssetType(data) == nil)
     }
 }

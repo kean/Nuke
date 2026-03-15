@@ -101,4 +101,33 @@ import Foundation
         #expect(output.sizeInPixels == CGSize(width: 300, height: 200))
     }
 #endif
+
+    // MARK: No-op / small-image edge cases
+
+    @Test func thatImageSmallerThanMaxPixelSizeIsNotUpscaled() throws {
+        // GIVEN - test image is 640×480; request a thumbnail larger than that
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 2000)
+
+        // WHEN
+        let output = try #require(options.makeThumbnail(with: Test.data))
+
+        // THEN - the image is returned at its native size, not upscaled
+        let size = output.sizeInPixels
+        #expect(size.width <= 640)
+        #expect(size.height <= 480)
+    }
+
+    @Test func thatInvalidDataReturnsNil() {
+        // GIVEN - completely random bytes that don't form a valid image
+        let data = Data(repeating: 0xAB, count: 256)
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+
+        // WHEN / THEN
+        #expect(options.makeThumbnail(with: data) == nil)
+    }
+
+    @Test func thatEmptyDataReturnsNil() {
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        #expect(options.makeThumbnail(with: Data()) == nil)
+    }
 }

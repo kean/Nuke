@@ -105,4 +105,47 @@ import Testing
         #expect(list.first == nil)
         #expect(list.last == nil)
     }
+
+    // MARK: - Prepend
+
+    @Test func prependToEmptyList() {
+        // Given
+        let node = LinkedList<Int>.Node(value: 42)
+
+        // When
+        list.prepend(node)
+
+        // Then
+        #expect(list.first?.value == 42)
+        #expect(list.last?.value == 42)
+        #expect(!list.isEmpty)
+    }
+
+    @Test func prependToNonEmptyList() {
+        // Given
+        list.append(2)
+        list.append(3)
+        let node = LinkedList<Int>.Node(value: 1)
+
+        // When
+        list.prepend(node)
+
+        // Then
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 3)
+    }
+
+    // MARK: - Node Links
+
+    @Test func appendPreservesOrder() {
+        // Given
+        list.append(1)
+        list.append(2)
+        list.append(3)
+
+        // Then values are accessible in insertion order via first/last
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 3)
+        #expect(!list.isEmpty)
+    }
 }

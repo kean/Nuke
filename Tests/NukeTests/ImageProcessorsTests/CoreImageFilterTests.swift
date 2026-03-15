@@ -94,6 +94,42 @@ import CoreImage
         // THEN
         _ = output // image was produced successfully
     }
+
+    // MARK: - Composition
+
+    @Test func compositionOfTwoCIFiltersProducesOutput() throws {
+        // GIVEN two CoreImage filters composed in sequence
+        let input = Test.image(named: "fixture-tiny.jpeg")
+        let filter1 = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+        let filter2 = ImageProcessors.CoreImageFilter(name: "CIColorInvert")
+        let composition = ImageProcessors.Composition([filter1, filter2])
+
+        // WHEN
+        let output = try #require(composition.process(input))
+
+        // THEN a valid image is produced
+        _ = output
+    }
+
+    // MARK: - Identifiers
+
+    @Test func identifiersAreDistinctForDifferentFilterNames() {
+        // GIVEN two filters with different names (using the name-only initializer)
+        let sepia = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+        let bloom = ImageProcessors.CoreImageFilter(name: "CIBloom")
+
+        // THEN their identifiers differ
+        #expect(sepia.identifier != bloom.identifier)
+    }
+
+    @Test func identifiersAreEqualForSameFilterAndParameters() {
+        // GIVEN two identically-configured filters
+        let a = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.8], identifier: "sepia-80")
+        let b = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.8], identifier: "sepia-80")
+
+        // THEN their identifiers are equal
+        #expect(a.identifier == b.identifier)
+    }
 }
 
 #endif

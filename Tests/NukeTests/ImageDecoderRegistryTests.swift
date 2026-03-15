@@ -70,4 +70,48 @@ import Testing
         // Then
         #expect(decoder is ImageDecoders.Default)
     }
+
+    // MARK: - Fallthrough and Ordering
+
+    @Test func whenRegisteredDecoderReturnsNilFallsToBuiltIn() {
+        // GIVEN a registry with one decoder that always declines
+        let registry = ImageDecoderRegistry()
+        registry.register { _ in nil }
+
+        // WHEN
+        let context = ImageDecodingContext.mock
+        let decoder = registry.decoder(for: context)
+
+        // THEN the built-in default decoder is returned
+        #expect(decoder is ImageDecoders.Default)
+    }
+
+    @Test func decodersEvaluatedInLIFOOrder() {
+        // GIVEN a registry with two custom decoders registered in sequence
+        let registry = ImageDecoderRegistry()
+        registry.register { _ in MockImageDecoder(name: "first") }
+        registry.register { _ in MockImageDecoder(name: "second") }
+
+        // WHEN
+        let context = ImageDecodingContext.mock
+        let decoder = registry.decoder(for: context) as? MockImageDecoder
+
+        // THEN the most-recently registered decoder wins (LIFO)
+        #expect(decoder?.name == "second")
+    }
+
+    @Test func whenAllCustomDecodersDeclineBuiltInIsReturned() {
+        // GIVEN a registry where every custom decoder returns nil
+        let registry = ImageDecoderRegistry()
+        registry.register { _ in nil }
+        registry.register { _ in nil }
+        registry.register { _ in nil }
+
+        // WHEN
+        let context = ImageDecodingContext.mock
+        let decoder = registry.decoder(for: context)
+
+        // THEN falls through to the built-in Default decoder
+        #expect(decoder is ImageDecoders.Default)
+    }
 }

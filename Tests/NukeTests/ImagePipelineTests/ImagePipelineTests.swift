@@ -524,4 +524,40 @@ import Foundation
         #expect(response.image.scale == 7)
     }
 #endif
+
+    // MARK: - Error Propagation
+
+    @Test func errorPropagatedWhenDataLoadingFails() async {
+        // GIVEN - data loader configured to fail
+        let error = NSError(domain: "test", code: -1)
+        dataLoader.results[Test.url] = .failure(error)
+
+        // WHEN
+        do {
+            _ = try await pipeline.imageTask(with: Test.request).response
+            Issue.record("Expected error to be thrown")
+        } catch {
+            // THEN - the underlying error is wrapped in a pipeline error
+            #expect(error.dataLoadingError != nil)
+        }
+    }
+
+    @Test func errorPropagatedToBothCoalescedSubscribers() async {
+        // GIVEN - two tasks for the same URL, data loader will fail
+        let error = NSError(domain: "test", code: -1)
+        dataLoader.results[Test.url] = .failure(error)
+
+        // WHEN - both tasks are started concurrently
+        async let result1: ImageResponse = pipeline.imageTask(with: Test.request).response
+        async let result2: ImageResponse = pipeline.imageTask(with: Test.request).response
+
+        var errorCount = 0
+        do { _ = try await result1 } catch { errorCount += 1 }
+        do { _ = try await result2 } catch { errorCount += 1 }
+
+        // THEN - both subscribers receive an error
+        #expect(errorCount == 2)
+        // Only one network request was made (coalesced)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
 }

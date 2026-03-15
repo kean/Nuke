@@ -297,6 +297,47 @@ import Foundation
         let rhs = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         #expect(lhs != rhs)
     }
+
+    @Test func thumbnailOptionsWithDifferentMaxPixelSizeHaveDifferentIdentifiers() {
+        let small = ImageRequest.ThumbnailOptions(maxPixelSize: 200)
+        let large = ImageRequest.ThumbnailOptions(maxPixelSize: 800)
+        #expect(small.identifier != large.identifier)
+    }
+
+    @Test func thumbnailOptionsWithSameParametersAreEqual() {
+        let a = ImageRequest.ThumbnailOptions(size: CGSize(width: 300, height: 300), unit: .pixels, contentMode: .aspectFit)
+        let b = ImageRequest.ThumbnailOptions(size: CGSize(width: 300, height: 300), unit: .pixels, contentMode: .aspectFit)
+        #expect(a == b)
+        #expect(a.identifier == b.identifier)
+    }
+
+    @Test func modifyingOptionsOnCopyDoesNotAffectOriginal() {
+        // GIVEN
+        var original = Test.request
+        original.options = []
+
+        // WHEN - make a copy and add an option only to the copy
+        var copy = original
+        copy.options.insert(.disableMemoryCacheReads)
+
+        // THEN - original is unchanged
+        #expect(!original.options.contains(.disableMemoryCacheReads))
+        #expect(copy.options.contains(.disableMemoryCacheReads))
+    }
+
+    @Test func loadOptionsDoNotAffectMemoryCacheKey() {
+        // GIVEN - same URL, but different load-time options
+        let base          = ImageRequest(url: Test.url)
+        let disableReads  = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
+        let disableWrites = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
+        let reload        = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
+
+        // THEN - the memory-cache key is determined by URL/processors, not by load options
+        let baseKey = MemoryCacheKey(base)
+        #expect(MemoryCacheKey(disableReads)  == baseKey)
+        #expect(MemoryCacheKey(disableWrites) == baseKey)
+        #expect(MemoryCacheKey(reload)        == baseKey)
+    }
 }
 
 private func assertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, sourceLocation: SourceLocation = #_sourceLocation) {

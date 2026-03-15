@@ -41,6 +41,51 @@ import Foundation
         #expect(container.data == dummyData)
         #expect(container.userInfo["a"] as? Int == 1)
     }
+
+    // MARK: - Decoder Errors
+
+    @Test func decoderReturningNilResultsInDecodingFailedError() async throws {
+        // GIVEN a decoder whose _decode closure returns nil (causes decode() to throw)
+        let decoder = MockExperimentalDecoder()
+        decoder._decode = { _ in nil }
+
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in decoder }
+        }
+
+        // WHEN
+        do {
+            _ = try await pipeline.imageTask(with: Test.request).response
+            Issue.record("Expected a decoding error")
+        } catch {
+            // THEN the pipeline wraps it in a decodingFailed error
+            if case .decodingFailed = error {
+                // Expected
+            } else {
+                Issue.record("Expected decodingFailed, got \(error)")
+            }
+        }
+    }
+
+    @Test func whenDecoderFactoryReturnsNilPipelineErrors() async throws {
+        // GIVEN a pipeline where no decoder can handle the content
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in nil }
+        }
+
+        // WHEN
+        do {
+            _ = try await pipeline.imageTask(with: Test.request).response
+            Issue.record("Expected decoderNotRegistered error")
+        } catch {
+            // THEN
+            if case .decoderNotRegistered = error {
+                // Expected
+            } else {
+                Issue.record("Expected decoderNotRegistered, got \(error)")
+            }
+        }
+    }
 }
 
 private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable {

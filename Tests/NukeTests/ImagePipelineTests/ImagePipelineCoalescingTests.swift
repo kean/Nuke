@@ -386,6 +386,38 @@ import Foundation
         #expect(processors.numberOfProcessorsApplied == 3)
     }
 
+    // MARK: - Priority Escalation
+
+    @Test @ImagePipelineActor func lowPriorityRequestEscalatesWhenHigherPriorityJoins() async throws {
+        // GIVEN - a low-priority request already in flight
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        var lowRequest = Test.request
+        lowRequest.priority = .low
+
+        let lowOperations = await queue.waitForOperations(count: 1) {
+            _ = pipeline.imageTask(with: lowRequest)
+        }
+        let operation = try #require(lowOperations.first)
+        #expect(operation.priority == .low)
+
+        // WHEN - a normal-priority request for the same URL joins the session
+        var highRequest = Test.request
+        highRequest.priority = .normal
+
+        // Priority should be escalated to the highest subscriber
+        await queue.waitForPriorityChange(of: operation, to: .normal) {
+            _ = pipeline.imageTask(with: highRequest)
+        }
+
+        // THEN
+        #expect(operation.priority == .normal)
+
+        // Cleanup
+        queue.isSuspended = false
+    }
+
     @Test func dataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() async throws {
         // Given
         let dataCache = MockDataCache()

@@ -60,4 +60,31 @@ import AppKit
 #endif
         #expect(border.width > 0)
     }
+
+    @Test func bordersWithSameColorAndWidthAreEqual() {
+        let a = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
+        let b = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
+        #expect(a == b)
+        #expect(a.hashValue == b.hashValue)
+    }
+
+    @Test func bordersWithDifferentColorsAreNotEqual() {
+        let a = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
+        let b = ImageProcessingOptions.Border(color: .blue, width: 2, unit: .pixels)
+        #expect(a != b)
+    }
+
+    @Test func bordersWithDifferentWidthsAreNotEqual() {
+        let a = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
+        let b = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
+        #expect(a != b)
+    }
+
+    // MARK: - ContentMode
+
+    @Test func contentModeEquality() {
+        #expect(ImageProcessingOptions.ContentMode.aspectFill == .aspectFill)
+        #expect(ImageProcessingOptions.ContentMode.aspectFit == .aspectFit)
+        #expect(ImageProcessingOptions.ContentMode.aspectFill != .aspectFit)
+    }
 }

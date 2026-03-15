@@ -266,6 +266,19 @@ import Foundation
         #expect(recordedPreviews.first?.container.isPreview == true)
     }
 
+    // MARK: - Cancellation
+
+    @Test func cancelBeforeLoadingStartedIsHandledGracefully() async {
+        // GIVEN a task that is cancelled synchronously before the response is awaited
+        let task = pipeline.imageTask(with: Test.request)
+        task.cancel()
+
+        // THEN awaiting the response either throws (most likely) or succeeds
+        // without crashing. We do NOT record a failure if it succeeds, since
+        // timing means the loading may have already completed.
+        _ = try? await task.response
+    }
+
     // MARK: Scale
 
 #if os(iOS) || os(visionOS)

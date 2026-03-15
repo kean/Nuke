@@ -382,6 +382,40 @@ private let otherBlob = "456".data(using: .utf8)
         #expect(cache.totalSize == mb * 2)
     }
 
+    @Test func sweepReducesTotalCount() {
+        // GIVEN - 5 entries, limit fits only 3
+        let mb = 1024 * 1024
+        cache.sizeLimit = mb * 3
+        for i in 1...5 {
+            cache["key\(i)"] = Data(repeating: UInt8(i), count: mb)
+        }
+        cache.flush()
+
+        // WHEN
+        cache.sweep()
+
+        // THEN - at most 3 MB worth of entries remain
+        #expect(cache.totalCount <= 3)
+        #expect(cache.totalSize <= mb * 3)
+    }
+
+    @Test func sweepIsNoOpWhenUnderLimit() {
+        // GIVEN - total size well under the limit
+        let mb = 1024 * 1024
+        cache.sizeLimit = mb * 10
+        cache["small1"] = Data(repeating: 1, count: mb)
+        cache["small2"] = Data(repeating: 2, count: mb)
+        cache.flush()
+
+        let countBefore = cache.totalCount
+
+        // WHEN
+        cache.sweep()
+
+        // THEN - nothing is removed
+        #expect(cache.totalCount == countBefore)
+    }
+
     // MARK: Inspection
 
     @Test func containsData() {
@@ -550,6 +584,37 @@ private let otherBlob = "456".data(using: .utf8)
         )
         cache.sweep()
         #expect(cache.totalCount == 0)
+    }
+
+    // MARK: Large Data
+
+    @Test func storeLargeData() {
+        // GIVEN - a 500 KB payload (well above typical image sizes used in other tests)
+        let largeData = Data(repeating: 0xAB, count: 500_000)
+
+        // WHEN
+        cache["large-key"] = largeData
+        cache.flush()
+
+        // THEN - data survives the flush and is retrieved intact
+        let retrieved = cache.cachedData(for: "large-key")
+        #expect(retrieved?.count == largeData.count)
+    }
+
+    @Test func storeLargeDataReplacedBySmallData() {
+        // GIVEN - write a large blob, then overwrite with a small blob
+        let largeData = Data(repeating: 0xFF, count: 500_000)
+        let smallData = Data(repeating: 0x01, count: 100)
+
+        cache["key"] = largeData
+        cache.flush()
+
+        cache["key"] = smallData
+        cache.flush()
+
+        // THEN - the latest (small) payload wins
+        let retrieved = cache.cachedData(for: "key")
+        #expect(retrieved?.count == smallData.count)
     }
 
     // MARK: Store Data for Invalid Key

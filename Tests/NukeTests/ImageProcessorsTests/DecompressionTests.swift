@@ -32,4 +32,28 @@ import Testing
         #expect(output.cgImage?.bitsPerPixel == 8)
         #expect(output.cgImage?.bitsPerComponent == 8)
     }
+
+    @Test func isDecompressionNeededReturnsFalseForUntaggedImage() {
+        // GIVEN a freshly created image with no decompression tag
+        let image = Test.image
+
+        // THEN flag is unset (nil), treated as not needing decompression
+        #expect(ImageDecompression.isDecompressionNeeded(for: image) != true)
+    }
+
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+    @Test func wideGamutColorSpaceIsPreservedAfterDecompression() throws {
+        // GIVEN a wide-gamut (P3) image
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        let inputColorSpace = try #require(input.cgImage?.colorSpace)
+        #expect(inputColorSpace.isWideGamutRGB)
+
+        // WHEN decompressed
+        let output = ImageDecompression.decompress(image: input)
+
+        // THEN the wide-gamut color space is preserved
+        let outputColorSpace = try #require(output.cgImage?.colorSpace)
+        #expect(outputColorSpace.isWideGamutRGB)
+    }
+#endif
 }

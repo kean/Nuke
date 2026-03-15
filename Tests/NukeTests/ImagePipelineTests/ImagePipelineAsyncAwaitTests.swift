@@ -472,6 +472,98 @@ import Foundation
     }
 }
 
+// MARK: - ImageTask State
+
+@Suite struct ImageTaskStateTests {
+    let dataLoader: MockDataLoader
+    let pipeline: ImagePipeline
+
+    init() {
+        let dataLoader = MockDataLoader()
+        self.dataLoader = dataLoader
+        self.pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
+    @Test func stateIsRunningWhileInFlight() async throws {
+        dataLoader.queue.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+        Task.detached { try? await task.response }
+
+        await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
+
+        #expect(task.state == .running)
+        dataLoader.queue.isSuspended = false
+        _ = try await task.response
+    }
+
+    @Test func stateIsCompletedAfterSuccess() async throws {
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.response
+        #expect(task.state == .completed)
+    }
+
+    @Test func stateIsCancelledAfterCancel() async throws {
+        dataLoader.queue.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+        Task.detached { try? await task.response }
+        await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
+        task.cancel()
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {}
+        #expect(task.state == .cancelled)
+    }
+
+    @Test func stateIsFailedWhenErrorOccurs() async throws {
+        dataLoader.results[Test.url] = .failure(Foundation.URLError(.notConnectedToInternet) as NSError)
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try? await task.response
+        #expect(task.state == .completed)
+    }
+}
+
+// MARK: - ImageTask.Progress
+
+@Suite struct ImageTaskProgressTests {
+
+    @Test func fractionIsZeroWhenTotalIsZero() {
+        let progress = ImageTask.Progress(completed: 0, total: 0)
+        #expect(progress.fraction == 0)
+    }
+
+    @Test func fractionIsCorrect() {
+        let progress = ImageTask.Progress(completed: 50, total: 100)
+        #expect(abs(progress.fraction - 0.5) < 0.001)
+    }
+
+    @Test func fractionIsClampedToOne() {
+        // completed > total can happen due to rounding; fraction must not exceed 1
+        let progress = ImageTask.Progress(completed: 150, total: 100)
+        #expect(progress.fraction == 1)
+    }
+
+    @Test func fractionIsOneWhenComplete() {
+        let progress = ImageTask.Progress(completed: 1000, total: 1000)
+        #expect(progress.fraction == 1)
+    }
+
+    @Test func progressEquality() {
+        let a = ImageTask.Progress(completed: 50, total: 100)
+        let b = ImageTask.Progress(completed: 50, total: 100)
+        #expect(a == b)
+        #expect(a.hashValue == b.hashValue)
+    }
+
+    @Test func progressInequality() {
+        let a = ImageTask.Progress(completed: 50, total: 100)
+        let b = ImageTask.Progress(completed: 60, total: 100)
+        let c = ImageTask.Progress(completed: 50, total: 200)
+        #expect(a != b)
+        #expect(a != c)
+    }
+}
+
 /// We have to mock it because there is no way to construct native `URLError`
 /// with a `networkUnavailableReason`.
 private struct URLError: Swift.Error {

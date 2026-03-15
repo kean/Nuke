@@ -56,8 +56,20 @@ import Foundation
         ])
     }
 
-    @Test func thatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() {
+    @Test func thatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() async throws {
+        // GIVEN an initial partial download that fails and stores resumable data
+        _ = try? await pipeline.imageTask(with: Test.request).response
 
+        // WHEN the download is resumed and completes successfully (all bytes delivered)
+        _ = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN no resumable data remains in storage: the completed download doesn't
+        // produce a partial entry (ResumableData init requires data.count < Content-Length).
+        let stored = ResumableDataStorage.shared.removeResumableData(
+            for: ImageRequest(url: Test.url),
+            pipeline: pipeline
+        )
+        #expect(stored == nil)
     }
 }
 

@@ -53,4 +53,68 @@ import Foundation
         let cgImage = try #require(image.cgImage)
         #expect(cgImage.bitsPerComponent == 8)
     }
+
+    // MARK: - Image Formats
+
+    @Test func loadPNG() async throws {
+        // GIVEN a pipeline that returns PNG data
+        dataLoader.results[Test.url] = .success(
+            (Test.data(name: "fixture", extension: "png"),
+             URLResponse(url: Test.url, mimeType: "png", expectedContentLength: 0, textEncodingName: nil))
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the image is decoded correctly
+        #expect(response.container.type == .png)
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 360))
+    }
+
+    @Test func loadGIF() async throws {
+        // GIVEN a pipeline that returns GIF data
+        dataLoader.results[Test.url] = .success(
+            (Test.data(name: "cat", extension: "gif"),
+             URLResponse(url: Test.url, mimeType: "gif", expectedContentLength: 0, textEncodingName: nil))
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN GIF data is preserved in the container for animated playback
+        #expect(response.container.type == .gif)
+        #expect(response.container.data != nil)
+    }
+
+    @Test func loadHEIC() async throws {
+        // GIVEN a pipeline that returns HEIC data
+        dataLoader.results[Test.url] = .success(
+            (Test.data(name: "img_751", extension: "heic"),
+             URLResponse(url: Test.url, mimeType: "heic", expectedContentLength: 0, textEncodingName: nil))
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN image is decoded correctly
+        #expect(response.container.type == .heic)
+        #expect(response.image.sizeInPixels != .zero)
+    }
+
+#if os(iOS) || os(macOS) || os(visionOS)
+    @Test func loadWebP() async throws {
+        // GIVEN a pipeline that returns WebP data
+        dataLoader.results[Test.url] = .success(
+            (Test.data(name: "baseline", extension: "webp"),
+             URLResponse(url: Test.url, mimeType: "webp", expectedContentLength: 0, textEncodingName: nil))
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN image is decoded correctly
+        #expect(response.container.type == .webp)
+        #expect(response.image.sizeInPixels == CGSize(width: 550, height: 368))
+    }
+#endif
 }

@@ -62,4 +62,71 @@ import Foundation
         let data = try #require(encoder.encode(Test.image))
         #expect(!data.isEmpty)
     }
+
+    // MARK: - GIF Pass-Through Edge Cases
+
+    @Test func gifContainerWithoutDataReturnsNil() throws {
+        // GIVEN a GIF-typed container with no associated data (animation data lost)
+        let encoder = ImageEncoders.Default()
+        let container = ImageContainer(image: Test.image, type: .gif, data: nil)
+        let context = ImageEncodingContext(
+            request: Test.request,
+            image: Test.image,
+            urlResponse: nil
+        )
+
+        // WHEN
+        let result = encoder.encode(container, context: context)
+
+        // THEN returns nil — GIF encoding requires the original animated data
+        #expect(result == nil)
+    }
+
+    // MARK: - Context
+
+    @Test func encodingContextContainsExpectedValues() {
+        let context = ImageEncodingContext(
+            request: Test.request,
+            image: Test.image,
+            urlResponse: nil
+        )
+
+        #expect(context.request.url == Test.url)
+        #expect(context.urlResponse == nil)
+    }
+
+    // MARK: - ImageEncoders.ImageIO
+
+    @Test func imageIOEncoderProducesJPEGData() throws {
+        let encoder = ImageEncoders.ImageIO(type: .jpeg)
+        let data = try #require(encoder.encode(Test.image))
+        #expect(AssetType(data) == .jpeg)
+    }
+
+    @Test func imageIOEncoderProducesPNGData() throws {
+        let encoder = ImageEncoders.ImageIO(type: .png)
+        let data = try #require(encoder.encode(Test.image))
+        #expect(AssetType(data) == .png)
+    }
+
+    @Test func imageIOEncoderIsSupportedForJPEG() {
+        #expect(ImageEncoders.ImageIO.isSupported(type: .jpeg))
+    }
+
+    @Test func imageIOEncoderIsSupportedForPNG() {
+        #expect(ImageEncoders.ImageIO.isSupported(type: .png))
+    }
+
+    @Test func imageIOHigherCompressionProducesLargerData() throws {
+        let lowQuality = ImageEncoders.ImageIO(type: .jpeg, compressionRatio: 0.1)
+        let highQuality = ImageEncoders.ImageIO(type: .jpeg, compressionRatio: 0.9)
+        let lowData = try #require(lowQuality.encode(Test.image))
+        let highData = try #require(highQuality.encode(Test.image))
+        #expect(highData.count > lowData.count)
+    }
+
+    @Test func imageIOEncoderDefaultCompressionRatio() {
+        let encoder = ImageEncoders.ImageIO(type: .jpeg)
+        #expect(encoder.compressionRatio == 0.8)
+    }
 }

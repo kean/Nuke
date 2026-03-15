@@ -78,6 +78,35 @@ import Testing
 
 #endif
 
+    // MARK: - Compression Quality
+
+    @Test func higherCompressionQualityProducesLargerJPEG() throws {
+        // GIVEN
+        let lowQualityEncoder = ImageEncoders.Default(compressionQuality: 0.1)
+        let highQualityEncoder = ImageEncoders.Default(compressionQuality: 0.9)
+
+        // WHEN
+        let lowData = try #require(lowQualityEncoder.encode(Test.image))
+        let highData = try #require(highQualityEncoder.encode(Test.image))
+
+        // THEN - higher quality produces more bytes
+        #expect(highData.count > lowData.count)
+    }
+
+    @Test func encodeDecodedRoundTrip() throws {
+        // GIVEN - encode an image to JPEG
+        let encoder = ImageEncoders.Default(compressionQuality: 0.8)
+        let encoded = try #require(encoder.encode(Test.image))
+        #expect(AssetType(encoded) == .jpeg)
+
+        // WHEN - decode it back
+        let decoder = ImageDecoders.Default()
+        let container = try decoder.decode(encoded)
+
+        // THEN - decoded image is valid
+        #expect(container.type == .jpeg)
+    }
+
     // MARK: - Misc
 
     @Test func isOpaqueWithOpaquePNG() {

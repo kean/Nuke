@@ -122,4 +122,50 @@ import Testing
         // THEN
         #expect("\(processor)" == "Composition(processors: [Circle(border: nil)])")
     }
+
+    // MARK: Edge Cases
+
+    @Test func singleProcessorInCompositionIsApplied() throws {
+        // GIVEN - composition wrapping a single processor
+        let processor = ImageProcessors.Composition([MockImageProcessor(id: "solo")])
+
+        // WHEN
+        let image = try #require(processor.process(Test.image))
+
+        // THEN - the sole processor is still applied
+        #expect(image.nk_test_processorIDs == ["solo"])
+    }
+
+    @Test func emptyCompositionPassesThroughImage() throws {
+        // GIVEN - composition with no processors
+        let processor = ImageProcessors.Composition([])
+
+        // WHEN
+        let image = try #require(processor.process(Test.image))
+
+        // THEN - original image passes through with no processor IDs
+        #expect(image.nk_test_processorIDs == [])
+    }
+
+    @Test func whenOneProcessorReturnsNilCompositionReturnsNil() {
+        // GIVEN - a composition where the second step fails
+        let processor = ImageProcessors.Composition([
+            MockImageProcessor(id: "1"),
+            MockFailingProcessor()
+        ])
+
+        // WHEN/THEN - the entire composition yields nil
+        #expect(processor.process(Test.image) == nil)
+    }
+
+    @Test func remainingProcessorsSkippedAfterFailure() {
+        // GIVEN - a composition where the first step fails
+        let processor = ImageProcessors.Composition([
+            MockFailingProcessor(),
+            MockImageProcessor(id: "shouldNotRun")
+        ])
+
+        // WHEN/THEN - composition short-circuits at the first failure
+        #expect(processor.process(Test.image) == nil)
+    }
 }

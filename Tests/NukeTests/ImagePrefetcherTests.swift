@@ -283,6 +283,33 @@ import Foundation
         }
     }
 
+    // MARK: Empty Inputs
+
+    @Test func startPrefetchingWithEmptyURLArray() {
+        // WHEN - prefetching is started with an empty URL list
+        prefetcher.startPrefetching(with: [URL]())
+
+        // THEN - no tasks are created and nothing crashes
+        #expect(observer.startedTaskCount == 0)
+    }
+
+    @Test func startPrefetchingWithEmptyRequestArray() {
+        // WHEN - prefetching is started with an empty request list
+        prefetcher.startPrefetching(with: [ImageRequest]())
+
+        // THEN - no tasks are created and nothing crashes
+        #expect(observer.startedTaskCount == 0)
+    }
+
+    @Test func stopPrefetchingWithEmptyArrayIsNoOp() {
+        // GIVEN - nothing is currently being prefetched
+        // WHEN - stopping with an empty list
+        prefetcher.stopPrefetching(with: [URL]())
+
+        // THEN - no crash, no state change
+        #expect(observer.startedTaskCount == 0)
+    }
+
     // MARK: Misc
 
     @ImagePipelineActor

@@ -64,6 +64,46 @@ import UIKit
         #expect(response.image.nk_test_processorIDs == [])
     }
 
+    // MARK: - Processor Failures
+
+    @Test func processorFailurePropagatesAsError() async throws {
+        // GIVEN a request with a processor that always returns nil
+        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
+
+        // WHEN
+        do {
+            _ = try await pipeline.imageTask(with: request).response
+            Issue.record("Expected processing error")
+        } catch {
+            // THEN the pipeline surfaces a processingFailed error
+            if case .processingFailed = error {
+                // Expected
+            } else {
+                Issue.record("Expected processingFailed, got \(error)")
+            }
+        }
+    }
+
+    @Test func firstProcessorSucceedsSecondFails() async throws {
+        // GIVEN a request where only the second processor fails
+        let request = ImageRequest(url: Test.url, processors: [
+            MockImageProcessor(id: "ok"),
+            MockFailingProcessor()
+        ])
+
+        // WHEN/THEN the error still surfaces even after the first processor succeeds
+        do {
+            _ = try await pipeline.imageTask(with: request).response
+            Issue.record("Expected processing error")
+        } catch {
+            if case .processingFailed = error {
+                // Expected
+            } else {
+                Issue.record("Expected processingFailed, got \(error)")
+            }
+        }
+    }
+
     // MARK: - Decompression
 
 #if !os(macOS)

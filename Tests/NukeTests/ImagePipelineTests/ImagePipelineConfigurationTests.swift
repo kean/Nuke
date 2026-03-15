@@ -33,4 +33,26 @@ import Foundation
         ImagePipeline.Configuration.isSignpostLoggingEnabled = true
         ImagePipeline.Configuration.isSignpostLoggingEnabled = false
     }
+
+    // MARK: - Default Values
+
+    @Test func isTaskCoalescingEnabledByDefault() {
+        let config = ImagePipeline.Configuration()
+        #expect(config.isTaskCoalescingEnabled == true)
+    }
+
+    @Test func isRateLimiterEnabledByDefault() {
+        let config = ImagePipeline.Configuration()
+        #expect(config.isRateLimiterEnabled == true)
+    }
+
+    @Test func isProgressiveDecodingDisabledByDefault() {
+        let config = ImagePipeline.Configuration()
+        #expect(config.isProgressiveDecodingEnabled == false)
+    }
+
+    @Test func dataCachePolicyDefaultsToStoreOriginalData() {
+        let config = ImagePipeline.Configuration()
+        #expect(config.dataCachePolicy == .storeOriginalData)
+    }
 }

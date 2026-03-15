@@ -62,7 +62,50 @@ import Foundation
         _ = cancellable
     }
 
-    // MARK: Basics
+    // MARK: - Basics
+
+    @Test func imageIsLoaded() async throws {
+        // GIVEN
+        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+
+        // WHEN/THEN
+        var cancellable: AnyCancellable?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            cancellable = pipeline.imagePublisher(with: Test.url).sink(
+                receiveCompletion: { result in
+                    if case .failure = result {
+                        Issue.record("Expected success")
+                    }
+                },
+                receiveValue: { response in
+                    continuation.resume()
+                }
+            )
+        }
+        _ = cancellable
+    }
+
+    @Test func errorIsPropagated() async throws {
+        // GIVEN a network error
+        dataLoader.results[Test.url] = .failure(Foundation.URLError(.notConnectedToInternet) as NSError)
+
+        // WHEN/THEN
+        var cancellable: AnyCancellable?
+        var receivedError: ImagePipeline.Error?
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            cancellable = pipeline.imagePublisher(with: Test.url).sink(
+                receiveCompletion: { result in
+                    if case .failure(let error) = result {
+                        receivedError = error
+                    }
+                    continuation.resume()
+                },
+                receiveValue: { _ in }
+            )
+        }
+        _ = cancellable
+        #expect(receivedError != nil)
+    }
 
     @Test func syncCacheLookup() {
         // GIVEN
