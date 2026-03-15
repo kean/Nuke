@@ -16,6 +16,7 @@ jobs:
   ios-latest:
     name: Unit Tests (iOS 26.2, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -28,6 +29,7 @@ jobs:
   macos-latest:
     name: Unit Tests (macOS, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -40,6 +42,7 @@ jobs:
   tvos-latest:
     name: Unit Tests (tvOS 26.2, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -81,6 +84,7 @@ jobs:
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -99,6 +103,7 @@ jobs:
   ios-performance-tests:
     name: Performance Tests
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -108,6 +113,7 @@ jobs:
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-26
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
