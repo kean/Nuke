@@ -7,13 +7,13 @@ import Foundation
 @testable import Nuke
 
 @Suite struct ImageRequestMemoryTests {
-    @Test func containerInstanceSize() {
+    @Test func memoryLayout() {
         print("ImageRequest.Container instance size: \(ImageRequest._containerInstanceSize) bytes")
-    }
 
-    @Test func thumbnailOptionsMemoryLayout() {
         print("ThumbnailOptions — size: \(MemoryLayout<ImageRequest.ThumbnailOptions>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions>.alignment)")
         print("ThumbnailOptions.TargetSize — size: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.alignment)")
+
+        print("ImageRequest.Resource — size: \(MemoryLayout<ImageRequest.Resource>.size), stride: \(MemoryLayout<ImageRequest.Resource>.stride), alignment: \(MemoryLayout<ImageRequest.Resource>.alignment)")
     }
 }
 

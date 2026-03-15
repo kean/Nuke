@@ -160,6 +160,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ) {
         self.ref = Container(
             resource: Resource.url(url),
+            originalImageID: url?.absoluteString,
             processors: processors,
             priority: priority,
             options: options,
@@ -192,6 +193,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
+            originalImageID: urlRequest.url?.absoluteString,
             processors: processors,
             priority: priority,
             options: options,
@@ -234,7 +236,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         userInfo: [UserInfoKey: Any]? = nil
     ) {
         self.ref = Container(
-            resource: .data(id: id, fetch: data),
+            resource: .data(fetch: data),
+            originalImageID: id,
             processors: processors,
             priority: priority,
             options: options,
@@ -427,7 +430,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     var originalImageID: String? { ref.originalImageID }
 
     var dataFetchClosure: (@Sendable () async throws -> Data)? {
-        if case .data(_, let fetch) = ref.resource { return fetch }
+        if case .data(let fetch) = ref.resource { return fetch }
         return nil
     }
 
@@ -456,12 +459,12 @@ extension ImageRequest {
         // After trimming the request size in Nuke 10, CoW it is no longer as
         // beneficial, but there still is a measurable difference.
 
-        init(resource: Resource, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
             self.options = options
-            self.originalImageID = resource.imageId
+            self.originalImageID = originalImageID
             self.userInfo = userInfo
         }
 
@@ -482,21 +485,13 @@ extension ImageRequest {
     enum Resource: CustomStringConvertible {
         case url(URL?)
         case urlRequest(URLRequest)
-        case data(id: String, fetch: @Sendable () async throws -> Data)
+        case data(fetch: @Sendable () async throws -> Data)
 
         var description: String {
             switch self {
             case .url(let url): return "\(url?.absoluteString ?? "nil")"
             case .urlRequest(let urlRequest): return "\(urlRequest)"
-            case .data(let id, _): return "Data(\(id))"
-            }
-        }
-
-        var imageId: String? {
-            switch self {
-            case .url(let url): return url?.absoluteString
-            case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
-            case .data(let id, _): return id
+            case .data: return "<closure>"
             }
         }
     }
