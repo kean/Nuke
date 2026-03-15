@@ -101,16 +101,21 @@ struct ImagePipelineProgressiveDecodingTests {
         // When/Then
         let task = pipeline.imageTask(with: Test.request)
 
-        // Resume data loader from progress since no previews will be produced
+        // Subscribe to both streams synchronously before suspending to avoid a
+        // race where the background task starts too late and misses the first
+        // progress event (which is served automatically on the main queue).
         let dataLoader = self.dataLoader
+        let progressEvents = task.progress
+        let previewEvents = task.previews
+
         Task {
-            for await _ in task.progress {
+            for await _ in progressEvents {
                 dataLoader.resume()
             }
         }
 
         var recordedPreviews: [ImageResponse] = []
-        for try await preview in task.previews {
+        for try await preview in previewEvents {
             recordedPreviews.append(preview)
             dataLoader.resume()
         }
@@ -184,16 +189,20 @@ struct ImagePipelineProgressiveDecodingTests {
         // When
         let task = pipeline.imageTask(with: Test.request)
 
-        // Resume data loader from progress since no previews will be produced
+        // Subscribe to both streams synchronously before suspending to avoid a
+        // race where the background task starts too late and misses the first
+        // progress event (which is served automatically on the main queue).
         let dataLoader = self.dataLoader
+        let progressEvents = task.progress
+        let previewEvents = task.previews
         Task {
-            for await _ in task.progress {
+            for await _ in progressEvents {
                 dataLoader.resume()
             }
         }
 
         var recordedPreviews: [ImageResponse] = []
-        for try await preview in task.previews {
+        for try await preview in previewEvents {
             recordedPreviews.append(preview)
             dataLoader.resume()
         }
