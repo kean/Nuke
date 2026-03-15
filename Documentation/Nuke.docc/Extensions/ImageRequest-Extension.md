@@ -24,18 +24,20 @@ request.processors = [.resize(width: 320)]
 - ``processors``
 - ``priority-swift.property``
 - ``options-swift.property``
+- ``imageID``
+- ``scale``
+- ``thumbnail``
 - ``userInfo``
 
 ### Nested Types
 
 - ``Priority-swift.enum``
 - ``Options-swift.struct``
-- ``UserInfoKey``
 - ``ThumbnailOptions``
+- ``UserInfoKey``
 
 ### Instance Properties
 
 - ``urlRequest``
 - ``url``
-- ``imageId``
 - ``description``

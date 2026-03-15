@@ -6,6 +6,17 @@ import Testing
 import Foundation
 @testable import Nuke
 
+@Suite struct ImageRequestMemoryTests {
+    @Test func containerInstanceSize() {
+        print("ImageRequest.Container instance size: \(ImageRequest._containerInstanceSize) bytes")
+    }
+
+    @Test func thumbnailOptionsMemoryLayout() {
+        print("ThumbnailOptions — size: \(MemoryLayout<ImageRequest.ThumbnailOptions>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions>.alignment)")
+        print("ThumbnailOptions.TargetSize — size: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.alignment)")
+    }
+}
+
 @Suite struct ImageRequestTests {
     // The compiler picks up the new version
     @Test func testInit() {
@@ -164,8 +175,12 @@ import Foundation
     }
 
     @Test func thatCacheKeyUsesFilteredURLWhenSet() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = Test.url.absoluteString
+        }
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1")).with {
+            $0.imageID = Test.url.absoluteString
+        }
         assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
@@ -176,20 +191,32 @@ import Foundation
     }
 
     @Test func thatCacheKeyForProcessedImageDataUsesFilteredURLWhenSet() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = Test.url.absoluteString
+        }
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1")).with {
+            $0.imageID = Test.url.absoluteString
+        }
         assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
     @Test func thatLoadKeyForProcessedImageDoesntUseFilteredURL() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = Test.url.absoluteString
+        }
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1")).with {
+            $0.imageID = Test.url.absoluteString
+        }
         #expect(TaskLoadImageKey(lhs) != TaskLoadImageKey(rhs))
     }
 
     @Test func thatLoadKeyForOriginalImageDoesntUseFilteredURL() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = Test.url.absoluteString
+        }
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1")).with {
+            $0.imageID = Test.url.absoluteString
+        }
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 }

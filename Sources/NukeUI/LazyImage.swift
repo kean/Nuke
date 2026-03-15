@@ -180,7 +180,7 @@ private struct LazyImageContext: Equatable {
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
         let lhs = lhs.request
         let rhs = rhs.request
-        return lhs.preferredImageId == rhs.preferredImageId &&
+        return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
         lhs.processors == rhs.processors &&
         lhs.priority == rhs.priority &&

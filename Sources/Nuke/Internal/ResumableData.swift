@@ -124,7 +124,7 @@ final class ResumableDataStorage: @unchecked Sendable {
         let imageId: String
 
         init?(request: ImageRequest, pipeline: ImagePipeline) {
-            guard let imageId = request.imageId else {
+            guard let imageId = request.imageID else {
                 return nil
             }
             self.pipelineId = pipeline.id

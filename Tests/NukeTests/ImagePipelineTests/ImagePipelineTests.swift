@@ -234,8 +234,7 @@ import Foundation
 
     @Test func thumbnailIsGenerated() async throws {
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
@@ -246,8 +245,7 @@ import Foundation
 
     @Test @ImagePipelineActor func thumbnailIsGeneratedOnDecodingQueue() async throws {
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
         let observer = TaskQueueObserver(queue: pipeline.configuration.imageDecodingQueue)
 
         // WHEN
@@ -262,8 +260,7 @@ import Foundation
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
 
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
 
         // WHEN/THEN - image loads even though decompression queue is suspended
         _ = try await pipeline.image(for: request)
@@ -284,14 +281,20 @@ import Foundation
     }
 
     @Test func cacheKeyForRequestWithThumbnail() {
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        let request = ImageRequest(url: Test.url).with {
+            $0.thumbnail = .init(maxPixelSize: 400)
+        }
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
     }
 
     @Test func cacheKeyForRequestWithThumbnailFlexibleSize() {
-        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        let request = ImageRequest(url: Test.url).with {
+            $0.thumbnail = .init(
+                size: CGSize(width: 400, height: 400),
+                unit: .pixels,
+                contentMode: .aspectFit
+            )
+        }
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
     }
 
@@ -501,7 +504,7 @@ import Foundation
 #if !os(macOS)
     @Test func overridingImageScale() async throws {
         // GIVEN
-        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7])
+        let request = ImageRequest(url: Test.url).with { $0.scale = 7 }
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response
@@ -512,7 +515,7 @@ import Foundation
 
     @Test func overridingImageScaleWithFloat() async throws {
         // GIVEN
-        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
+        let request = ImageRequest(url: Test.url).with { $0.scale = 7.0 }
 
         // WHEN
         let response = try await pipeline.imageTask(with: request).response

@@ -342,7 +342,13 @@ import ImageIO
 
         var context = ImageDecodingContext.mock(data: data)
         context.maximumDecodedImageSize = 40_000
-        context.request.userInfo[.thumbnailKey] = ImageRequest.ThumbnailOptions(size: CGSize(width: 100, height: 100), unit: .pixels, contentMode: .aspectFit)
+        context.request = ImageRequest(url: Test.url).with {
+            $0.thumbnail = .init(
+                size: CGSize(width: 100, height: 100),
+                unit: .pixels,
+                contentMode: .aspectFit
+            )
+        }
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         // Thumbnail options take priority — downscaling is not applied

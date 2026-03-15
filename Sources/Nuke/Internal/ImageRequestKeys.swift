@@ -13,7 +13,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
-        self.imageId = request.preferredImageId
+        self.imageId = request.imageID
         self.scale = request.scale ?? 1
         self.thumbnail = request.thumbnail
         self.processors = request.processors
@@ -76,7 +76,7 @@ struct TaskFetchOriginalDataKey: Hashable {
     private let allowsCellularAccess: Bool
 
     init(_ request: ImageRequest) {
-        self.imageId = request.imageId
+        self.imageId = request.originalImageID
         switch request.resource {
         case .url, .data:
             self.cachePolicy = .useProtocolCachePolicy

@@ -99,6 +99,6 @@ There is also a hook in ``ImagePipeline/Delegate-swift.protocol`` that allows yo
 
 ```swift
 func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-    request.userInfo["imageId"] as? String
+    request.imageID
 }
 ```

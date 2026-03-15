@@ -95,7 +95,7 @@ import Foundation
 
     @Test func generatedThumbnailDataIsStoredInCache() async throws {
         // When
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit) }
         _ = try await pipeline.image(for: request)
 
         // Then

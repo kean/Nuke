@@ -44,9 +44,9 @@ When the first chunk of the image data is loaded, ``ImagePipeline`` creates a de
 
 The pipeline uses ``ImageDecoderRegistry`` to find the decoder.  The decoder is created once and is reused across a single image decoding session until the final chunk of data is downloaded. If the decoder supports progressive decoding, make it a `class` to retain state within a single decoding session.
 
-> ``ImageDecoding/decode(_:)`` method only passes `data` to the decoder. If the decoder needs additional information, pass it when instantiating it. ``ImageDecodingContext`` provides everything that you might need.
+> ``ImageDecoding/decode(_:)`` method only passes `data` to the decoder. If the decoder needs additional information, pass it when instantiating it. ``ImageDecodingContext`` provides everything that you might need, including the full ``ImageRequest``.
 >
-> You can also take advantage of ``ImageRequest/userInfo``. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
+> You can also take advantage of ``ImageRequest/userInfo``. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.
 
 The decoding is performed in the background on the operation queue provided in ``ImagePipeline/Configuration-swift.struct``. There is always only one decoding request at a time. The pipeline doesn't call ``ImageDecoding/decodePartiallyDownloadedData(_:)-9budu`` again until you are finished with the previous chunk.
 

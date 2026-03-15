@@ -47,6 +47,14 @@ extension ImageResponse: @retroactive Equatable {
     }
 }
 
+extension ImageRequest {
+    func with(_ configure: (inout ImageRequest) -> Void) -> ImageRequest {
+        var copy = self
+        configure(&copy)
+        return copy
+    }
+}
+
 extension ImagePipeline {
     nonisolated func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration

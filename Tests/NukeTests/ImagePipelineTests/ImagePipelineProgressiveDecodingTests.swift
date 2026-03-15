@@ -271,7 +271,7 @@ import Foundation
 #if os(iOS) || os(visionOS)
     @Test func overridingImageScaleWithFloat() async throws {
         // GIVEN
-        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
+        let request = ImageRequest(url: Test.url).with { $0.scale = 7.0 }
 
         // WHEN/THEN
         let task = pipeline.imageTask(with: request)

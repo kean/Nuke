@@ -83,10 +83,45 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         }
     }
 
-    /// Returns the ID of the underlying image. For URL-based requests, returns
-    /// the absolute URL string. For async data requests, returns the custom ID
-    /// provided in the initializer.
-    public var imageId: String? { ref.originalImageId }
+    /// The image identifier used for caching and task coalescing.
+    ///
+    /// By default, returns the absolute URL string for URL-based requests, or
+    /// the custom ID for async data requests.
+    ///
+    /// Set this to override the default identifier, for example, to strip
+    /// transient query parameters from the cache key:
+    ///
+    /// ```swift
+    /// var request = ImageRequest(url: URL(string: "http://example.com/image.jpeg?token=123"))
+    /// request.imageID = "http://example.com/image.jpeg"
+    /// ```
+    ///
+    /// - note: If the URL contains a short-lived auth token, consider using
+    /// ``ImagePipeline/Delegate-swift.protocol/willLoadData(for:urlRequest:pipeline:)``
+    /// instead. Store the base URL in the request and inject the token into
+    /// the `URLRequest` dynamically — this keeps the cache key stable without
+    /// having to set `imageID` on every request.
+    public var imageID: String? {
+        get { ref.customImageID ?? ref.originalImageID }
+        set { mutate { $0.customImageID = newValue } }
+    }
+
+    /// The display scale of the image. By default, `1`.
+    public var scale: Float? {
+        get { ref.scale }
+        set { mutate { $0.scale = newValue } }
+    }
+
+    /// Thumbnail options. When set, the pipeline generates a thumbnail instead
+    /// of a full image. Thumbnail creation is generally significantly more
+    /// efficient, especially in terms of memory usage, than image resizing
+    /// (``ImageProcessors/Resize``).
+    ///
+    /// - note: Requires the default image decoder.
+    public var thumbnail: ThumbnailOptions? {
+        get { ref.thumbnail }
+        set { mutate { $0.thumbnail = newValue } }
+    }
 
     /// Returns a debug request description.
     public var description: String {
@@ -107,7 +142,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Custom info passed alongside the request.
+    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -139,7 +174,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Custom info passed alongside the request.
+    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -189,7 +224,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Custom info passed alongside the request.
+    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     public init(
         id: String,
         data: @Sendable @escaping () async throws -> Data,
@@ -278,9 +313,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// A key used in `userInfo` for providing custom request options.
-    ///
-    /// There are a couple of built-in options that are passed using user info
-    /// as well, including ``imageIdKey``, ``scaleKey``, and ``thumbnailKey``.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         /// Returns a key raw value.
         public let rawValue: String
@@ -295,31 +327,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
             self.rawValue = value
         }
 
-        /// Overrides the image identifier used for caching and task coalescing.
-        ///
-        /// By default, ``ImagePipeline`` uses an image URL as a unique identifier
-        /// for caching and task coalescing. You can override this behavior by
-        /// providing a custom identifier. For example, you can use it to remove
-        /// transient query parameters from the URL, like access token.
-        ///
-        /// ```swift
-        /// let request = ImageRequest(
-        ///     url: URL(string: "http://example.com/image.jpeg?token=123"),
-        ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
-        /// )
-        /// ```
-        public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
-
-        /// The image scale to be used. By default, the scale is `1`.
-        public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
-
-        /// Specifies whether the pipeline should retrieve or generate a thumbnail
-        /// instead of a full image. The thumbnail creation is generally significantly
-        /// more efficient, especially in terms of memory usage, than image resizing
-        /// (``ImageProcessors/Resize``).
-        ///
-        /// - note: You must be using the default image decoder to make it work.
-        public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbnail"
     }
 
     /// Thumbnail options.
@@ -402,37 +409,29 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
     var resource: Resource { ref.resource }
 
-    func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
+    consuming func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
         var request = self
         request.processors = processors
         return request
     }
 
-    func withoutThumbnail() -> ImageRequest {
-        var request = self
-        request.userInfo[.thumbnailKey] = nil
-        return request
+    consuming func withoutThumbnail() -> ImageRequest {
+        var copy = self
+        copy.thumbnail = nil
+        return copy
     }
 
-    var preferredImageId: String {
-        if let imageId = ref.userInfo?[.imageIdKey] as? String {
-            return imageId
-        }
-        return imageId ?? ""
-    }
-
-    var thumbnail: ThumbnailOptions? {
-        ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
-    }
-
-    var scale: Float? {
-        (ref.userInfo?[.scaleKey] as? NSNumber)?.floatValue
-    }
+    /// The underlying resource image ID (URL string or data ID), never the
+    /// user-supplied ``imageID`` override. Used for data-loading task keys
+    /// where the actual URL determines what gets fetched.
+    var originalImageID: String? { ref.originalImageID }
 
     var dataFetchClosure: (@Sendable () async throws -> Data)? {
         if case .data(_, let fetch) = ref.resource { return fetch }
         return nil
     }
+
+    static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
 
 // MARK: - ImageRequest (Private)
@@ -447,19 +446,22 @@ extension ImageRequest {
         let resource: Resource
         var priority: Priority
         var options: Options
-        var originalImageId: String?
+        // It is stored partially for performance reasons (`absoluteString` can be expensive to compute)
+        var originalImageID: String?
+        var customImageID: String?
         var processors: [any ImageProcessing]
         var userInfo: [UserInfoKey: Any]?
+        var scale: Float?
+        var thumbnail: ThumbnailOptions?
         // After trimming the request size in Nuke 10, CoW it is no longer as
         // beneficial, but there still is a measurable difference.
 
-        /// Creates a resource with a default processor.
         init(resource: Resource, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
             self.options = options
-            self.originalImageId = resource.imageId
+            self.originalImageID = resource.imageId
             self.userInfo = userInfo
         }
 
@@ -469,8 +471,11 @@ extension ImageRequest {
             self.processors = ref.processors
             self.priority = ref.priority
             self.options = ref.options
-            self.originalImageId = ref.originalImageId
+            self.originalImageID = ref.originalImageID
             self.userInfo = ref.userInfo
+            self.customImageID = ref.customImageID
+            self.scale = ref.scale
+            self.thumbnail = ref.thumbnail
         }
     }
 

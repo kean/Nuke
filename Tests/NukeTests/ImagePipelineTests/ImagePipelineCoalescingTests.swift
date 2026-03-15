@@ -76,8 +76,8 @@ import Foundation
 #if !os(macOS)
     @Test func overridingImageScale() async throws {
         // GIVEN requests with the same URLs but different scale
-        let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
-        let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
+        let request1 = ImageRequest(url: Test.url).with { $0.scale = 2 }
+        let request2 = ImageRequest(url: Test.url).with { $0.scale = 3 }
 
         // WHEN loading images for those requests
         let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
@@ -97,7 +97,7 @@ import Foundation
 
     @Test func deduplicationGivenSameURLButDifferentThumbnailOptions() async throws {
         // GIVEN requests with the same URLs but one accesses thumbnail
-        let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        let request1 = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
         let request2 = ImageRequest(url: Test.url)
 
         let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
@@ -115,7 +115,9 @@ import Foundation
     @Test func deduplicationGivenSameURLButDifferentThumbnailOptionsReversed() async throws {
         // GIVEN requests with the same URLs but one accesses thumbnail (reversed order)
         let request1 = ImageRequest(url: Test.url)
-        let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        let request2 = ImageRequest(url: Test.url).with {
+            $0.thumbnail = .init(maxPixelSize: 400)
+        }
 
         let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
             (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))

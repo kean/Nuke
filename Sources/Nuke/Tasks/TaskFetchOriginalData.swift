@@ -252,7 +252,7 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
     private func makeSanitizedRequest() -> ImageRequest {
         var request = request
         request.processors = []
-        request.userInfo[.thumbnailKey] = nil
+        request.thumbnail = nil
         return request
     }
 

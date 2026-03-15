@@ -50,7 +50,13 @@ import Foundation
         }
 
         // WHEN
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(
+            size: CGSize(width: 400, height: 400),
+            unit: .pixels,
+            contentMode: .aspectFit
+        )
+
         _ = try await pipeline.image(for: request)
 
         // THEN
@@ -81,7 +87,13 @@ import Foundation
         }
 
         // WHEN
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(
+            size: CGSize(width: 400, height: 400),
+            unit: .pixels,
+            contentMode: .aspectFit
+        )
+
         _ = try await pipeline.image(for: request)
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
@@ -703,8 +715,8 @@ import Foundation
 
     @Test func originalDataStoredWhenThumbnailRequested() async throws {
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(maxPixelSize: 400)
 
         // WHEN
         _ = try await pipeline.image(for: request)
@@ -721,7 +733,9 @@ import Foundation
         #expect(dataCache.containsData(for: Test.url.absoluteString))
 
         // WHEN a thumbnail of the same URL is requested
-        let thumbnailRequest = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        var thumbnailRequest = ImageRequest(url: Test.url)
+        thumbnailRequest.thumbnail = .init(maxPixelSize: 400)
+
         _ = try await pipeline.image(for: thumbnailRequest)
 
         // THEN no additional network request is made — the original data from

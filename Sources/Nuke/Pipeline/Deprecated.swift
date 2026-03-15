@@ -8,6 +8,29 @@ import Foundation
 @available(*, deprecated, renamed: "ImagePipeline.Delegate")
 public typealias ImagePipelineDelegate = ImagePipeline.Delegate
 
+extension ImageRequest {
+    /// - warning: Renamed to ``imageID``. The new property uses idiomatic Swift naming (uppercase "ID") and is writable.
+    @available(*, deprecated, renamed: "imageID")
+    public var imageId: String? {
+        get { imageID }
+        set { imageID = newValue }
+    }
+}
+
+extension ImageRequest.UserInfoKey {
+    /// - warning: Use ``ImageRequest/imageID`` instead.
+    @available(*, deprecated, message: "Use the imageID property on ImageRequest instead")
+    public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
+
+    /// - warning: Use ``ImageRequest/scale`` instead.
+    @available(*, deprecated, message: "Use the scale property on ImageRequest instead")
+    public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
+
+    /// - warning: Use ``ImageRequest/thumbnail`` instead.
+    @available(*, deprecated, message: "Use the thumbnail property on ImageRequest instead")
+    public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbnail"
+}
+
 extension ImagePipeline {
     // MARK: - Loading Images (Closures)
 
