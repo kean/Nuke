@@ -143,6 +143,7 @@
 		0C27B34D2F54632F00F96DB1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				TestExpectation.swift,
 				TestHelpers.swift,
 			);
 			target = 0C8D7BE71D9DC02B00D12EB7 /* NukePerformanceTests */;
