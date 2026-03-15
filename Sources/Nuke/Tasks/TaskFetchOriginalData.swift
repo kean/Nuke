@@ -13,8 +13,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
     private var data = Data()
 
     override func start() {
-        if let fetch = request.dataFetchClosure {
-            loadAsyncData(fetch)
+        if case .data(let closure) = request.resource {
+            loadAsyncData(closure)
             return
         }
 

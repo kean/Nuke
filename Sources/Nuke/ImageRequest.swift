@@ -429,11 +429,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// where the actual URL determines what gets fetched.
     var originalImageID: String? { ref.originalImageID }
 
-    var dataFetchClosure: (@Sendable () async throws -> Data)? {
-        if case .data(let fetch) = ref.resource { return fetch }
-        return nil
-    }
-
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
 
