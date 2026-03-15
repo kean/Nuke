@@ -14,7 +14,7 @@ final class MemoryCacheKey: Hashable, Sendable {
 
     init(_ request: ImageRequest) {
         self.imageId = request.imageID
-        self.scale = request.scale ?? 1
+        self.scale = request.scale
         self.thumbnail = request.thumbnail
         self.processors = request.processors
     }
@@ -64,7 +64,7 @@ struct TaskFetchOriginalImageKey: Hashable {
 
     init(_ request: ImageRequest) {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
-        self.scale = request.scale ?? 1
+        self.scale = request.scale
         self.thumbnail = request.thumbnail
     }
 }
