@@ -40,6 +40,7 @@
 - Fix `ImageTask.state` remaining `.running` after completion when using the completion-based `loadImage` API
 - Add `AssetType.ico` with magic-byte detection for ICO (Windows icon) images
 - Add `ImageRequest.init(id:image:)` that accepts an async closure returning an `ImageContainer` directly. Use it to process images already in memory or to integrate with systems that provide pre-decoded images (e.g., Photos framework). The image skips data decoding entirely and is loaded in `TaskFetchOriginalImage` – https://github.com/kean/Nuke/issues/823
+- Fix `ImageDecoders.Video.decode(_:)` returning an empty image instead of a video thumbnail — https://github.com/kean/Nuke/issues/811
 
 ## Nuke 12.9.0
 

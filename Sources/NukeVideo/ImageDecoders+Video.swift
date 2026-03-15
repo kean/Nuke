@@ -30,7 +30,8 @@ extension ImageDecoders {
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
-            ImageContainer(image: PlatformImage(), type: type, data: data, userInfo: [
+            let image = makePreview(for: data, type: type) ?? PlatformImage()
+            return ImageContainer(image: image, type: type, data: data, userInfo: [
                 .videoAssetKey: AVDataAsset(data: data, type: type)
             ])
         }
