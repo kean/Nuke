@@ -8,6 +8,10 @@ on:
     branches:
       - '*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ios-latest:
     name: Unit Tests (iOS 26.2, Xcode 26.2)
@@ -15,7 +19,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=iPhone 17 Pro"
@@ -27,7 +31,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "platform=macOS"
@@ -39,7 +43,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=Apple TV"
@@ -53,7 +57,7 @@ jobs:
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: |
 #          .scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
@@ -68,7 +72,7 @@ jobs:
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: |
 #          .scripts/test.sh -s "Nuke" -d "OS=17.0,name=iPhone 15 Pro"
@@ -80,7 +84,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.2,name=iPhone 17 Pro"
 #  ios-memory-management-tests:
@@ -89,7 +93,7 @@ jobs:
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: .scripts/test.sh -s "NukeMemoryManagementTests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
@@ -98,7 +102,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.2,name=iPhone 17 Pro"
   swift-build:
@@ -107,6 +111,6 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         run: swift build
