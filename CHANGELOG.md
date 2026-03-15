@@ -35,6 +35,7 @@
 - Replace callback-based `DataLoading` protocol with async/await: `loadData(with:)` now returns `(AsyncThrowingStream<Data, Error>, URLResponse)`. Remove `Cancellable` protocol
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 - Fix `ImageTask.state` remaining `.running` after completion when using the completion-based `loadImage` API
+- Add `AssetType.ico` with magic-byte detection for ICO (Windows icon) images
 
 ## Nuke 12.9.0
 

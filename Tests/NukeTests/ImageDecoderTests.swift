@@ -241,6 +241,22 @@ import ImageIO
         #expect(container.userInfo.isEmpty)
     }
 
+    @Test func decodeICO() throws {
+        // Given
+        let data = Test.data(name: "fixture", extension: "ico")
+        let decoder = ImageDecoders.Default()
+
+        // When
+        let container = try decoder.decode(data)
+
+        // Then
+        #expect(container.type == AssetType.ico)
+        #expect(!container.isPreview)
+        #expect(container.data == nil)
+        #expect(container.userInfo.isEmpty)
+        #expect(container.image.sizeInPixels == CGSize(width: 32, height: 32))
+    }
+
     @Test func decodingGIFDataAttached() throws {
         let data = Test.data(name: "cat", extension: "gif")
         #expect(try ImageDecoders.Default().decode(data).data != nil)
@@ -377,6 +393,16 @@ import ImageIO
 
         // Full image
         #expect(AssetType(data) == .jpeg)
+    }
+
+    // MARK: ICO
+
+    @Test func detectICO() {
+        let data = Test.data(name: "fixture", extension: "ico")
+        #expect(AssetType(data[0..<1]) == nil)
+        #expect(AssetType(data[0..<3]) == nil)
+        #expect(AssetType(data[0..<4]) == .ico)
+        #expect(AssetType(data) == .ico)
     }
 
     // MARK: WebP
