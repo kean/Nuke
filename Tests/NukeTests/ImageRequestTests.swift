@@ -6,18 +6,6 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImageRequestMemoryTests {
-    @Test func memoryLayout() {
-        #expect(ImageRequest._containerInstanceSize == 104)
-
-        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
-        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.stride == 12)
-
-        #expect(MemoryLayout<ImageRequest.Resource>.size == 17)
-        #expect(MemoryLayout<ImageRequest.Resource>.stride == 24)
-    }
-}
-
 @Suite struct ImageRequestTests {
     // The compiler picks up the new version
     @Test func testInit() {
@@ -219,6 +207,16 @@ import Foundation
             $0.imageID = Test.url.absoluteString
         }
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
+    }
+
+    @Test func memoryLayout() {
+        #expect(ImageRequest._containerInstanceSize == 104)
+
+        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
+        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.stride == 12)
+
+        #expect(MemoryLayout<ImageRequest.Resource>.size == 17)
+        #expect(MemoryLayout<ImageRequest.Resource>.stride == 24)
     }
 }
 
