@@ -14,7 +14,8 @@ final class TestExpectation: @unchecked Sendable {
     private enum State {
         case idle
         case fulfilled
-        case awaiting(CheckedContinuation<Void, Never>)
+        case cancelled
+        case awaiting(CheckedContinuation<Bool, Never>)
     }
 
     init() {}
@@ -28,22 +29,16 @@ final class TestExpectation: @unchecked Sendable {
         case .awaiting(let continuation):
             state = .fulfilled
             lock.unlock()
-            continuation.resume()
-        case .fulfilled:
+            continuation.resume(returning: true)
+        case .fulfilled, .cancelled:
             lock.unlock()
         }
     }
 
     func wait(timeout: Duration = .seconds(60)) async {
         let fulfilled = await withTaskGroup(of: Bool.self) { group in
-            group.addTask {
-                await self.waitInternal()
-                return true
-            }
-            group.addTask {
-                try? await Task.sleep(for: timeout)
-                return false
-            }
+            group.addTask { await self.waitInternal() }
+            group.addTask { try? await Task.sleep(for: timeout); return false }
             let result = await group.next()!
             group.cancelAll()
             return result
@@ -53,19 +48,34 @@ final class TestExpectation: @unchecked Sendable {
         }
     }
 
-    private func waitInternal() async {
-        await withCheckedContinuation { continuation in
+    // Returns true if genuinely fulfilled, false if cancelled.
+    private func waitInternal() async -> Bool {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                lock.lock()
+                switch state {
+                case .idle:
+                    state = .awaiting(continuation)
+                    lock.unlock()
+                case .fulfilled:
+                    lock.unlock()
+                    continuation.resume(returning: true)
+                case .cancelled:
+                    lock.unlock()
+                    continuation.resume(returning: false)
+                case .awaiting:
+                    lock.unlock()
+                    preconditionFailure("wait() called multiple times")
+                }
+            }
+        } onCancel: {
             lock.lock()
-            switch state {
-            case .idle:
-                state = .awaiting(continuation)
+            if case .awaiting(let continuation) = state {
+                state = .cancelled
                 lock.unlock()
-            case .fulfilled:
+                continuation.resume(returning: false)
+            } else {
                 lock.unlock()
-                continuation.resume()
-            case .awaiting:
-                lock.unlock()
-                preconditionFailure("wait() called multiple times")
             }
         }
     }
