@@ -10,6 +10,10 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
     private var lastPreviewTime: CFAbsoluteTime?
 
     override func start() {
+        if case .image(let fetch) = request.resource {
+            loadAsyncImage(fetch)
+            return
+        }
         dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
@@ -81,5 +85,23 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
         let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)
         self.decoder = decoder
         return decoder
+    }
+
+    // MARK: Async Image Loading
+
+    private func loadAsyncImage(_ fetch: @Sendable @escaping () async throws -> ImageContainer) {
+        operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+            await self?.performAsyncImageLoad(fetch)
+        }
+    }
+
+    private func performAsyncImageLoad(_ fetch: @Sendable @escaping () async throws -> ImageContainer) async {
+        guard !isDisposed else { return }
+        do {
+            let container = try await fetch()
+            send(value: ImageResponse(container: container, request: request), isCompleted: true)
+        } catch {
+            send(error: .dataLoadingFailed(error: error))
+        }
     }
 }

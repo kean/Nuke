@@ -307,6 +307,56 @@ import Foundation
         }
     }
 
+    // MARK: - ImageRequest with Async/Await (image container)
+
+    @Test func imageRequestWithAsyncImageSuccess() async throws {
+        // GIVEN
+        let image = PlatformImage(data: Test.data)!
+        let container = ImageContainer(image: image)
+
+        // WHEN
+        let request = ImageRequest(id: "test", image: { container })
+        let result = try await pipeline.image(for: request)
+
+        // THEN
+        #expect(result.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func imageRequestWithAsyncImageFailure() async throws {
+        // WHEN
+        let request = ImageRequest(id: "test", image: {
+            throw Foundation.URLError(.cancelled)
+        })
+
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record("Expected failure")
+        } catch {
+            if case let .dataLoadingFailed(error) = error {
+                #expect((error as? Foundation.URLError)?.code == .cancelled)
+            } else {
+                Issue.record("Unexpected error type")
+            }
+        }
+    }
+
+    @Test func imageRequestWithAsyncImageProcessorsApplied() async throws {
+        // GIVEN
+        let image = try #require(PlatformImage(data: Test.data))
+        let container = ImageContainer(image: image)
+
+        // WHEN
+        let request = ImageRequest(
+            id: "test",
+            image: { container },
+            processors: [.resize(size: CGSize(width: 160, height: 120), unit: .pixels)]
+        )
+        let result = try await pipeline.image(for: request)
+
+        // THEN - image is resized (original is 640x480)
+        #expect(result.sizeInPixels == CGSize(width: 160, height: 120))
+    }
+
     // MARK: - ImageRequest with Async/Await
 
     @Test func imageRequestWithAsyncAwaitSuccess() async throws {

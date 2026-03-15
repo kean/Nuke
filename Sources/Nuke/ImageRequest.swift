@@ -69,6 +69,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         case .url(let url): return url.map { URLRequest(url: $0) } // create lazily
         case .urlRequest(let urlRequest): return urlRequest
         case .data: return nil
+        case .image: return nil
         }
     }
 
@@ -80,6 +81,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         case .url(let url): return url
         case .urlRequest(let request): return request.url
         case .data: return nil
+        case .image: return nil
         }
     }
 
@@ -237,6 +239,40 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ) {
         self.ref = Container(
             resource: .data(fetch: data),
+            originalImageID: id,
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
+    }
+
+    /// Initializes a request with the given async function that returns an image
+    /// container directly.
+    ///
+    /// Use this initializer to process images already in memory or integrate
+    /// with systems that provide pre-decoded images, such as the Photos framework.
+    ///
+    /// - note: Unlike ``init(id:data:)``, the image is never stored in the disk
+    /// cache because no raw data is available.
+    ///
+    /// - parameters:
+    ///   - id: Uniquely identifies the fetched image.
+    ///   - image: An async function returning an ``ImageContainer``.
+    ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
+    ///   - priority: The priority of the request.
+    ///   - options: Image loading options.
+    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
+    public init(
+        id: String,
+        image: @Sendable @escaping () async throws -> ImageContainer,
+        processors: [any ImageProcessing] = [],
+        priority: Priority = .normal,
+        options: Options = [],
+        userInfo: [UserInfoKey: any Sendable]? = nil
+    ) {
+        self.ref = Container(
+            resource: .image(fetch: image),
             originalImageID: id,
             processors: processors,
             priority: priority,
@@ -511,12 +547,14 @@ extension ImageRequest {
         case url(URL?)
         case urlRequest(URLRequest)
         case data(fetch: @Sendable () async throws -> Data)
+        case image(fetch: @Sendable () async throws -> ImageContainer)
 
         var description: String {
             switch self {
             case .url(let url): return "\(url?.absoluteString ?? "nil")"
             case .urlRequest(let urlRequest): return "\(urlRequest)"
             case .data: return "<closure>"
+            case .image: return "<closure>"
             }
         }
     }

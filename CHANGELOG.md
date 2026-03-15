@@ -31,7 +31,7 @@
 - Add `ImagePipeline.Configuration.maximumDecodedImageSize` — images whose decoded bitmap would exceed this limit are automatically downscaled during decoding. The default limit is calculated dynamically based on the device's physical memory. Set to `nil` to disable
 - Add `DataCache.isSweepEnabled` (`true` by default). Set it to `false` in targets that share a cache with the main app (e.g. a Notification Service Extension) so that only the main app enforces size limits via LRU sweeps
 - Fix thumbnail requests re-downloading original image data when it is already stored in the disk cache — https://github.com/kean/Nuke/issues/837
-- Add type-safe `imageID`, `scale`, and `thumbnail` properties to `ImageRequest`, replacing the previous `userInfo` dictionary-based approach. The new properties are more ergonomic and improve performance by eliminating dictionary lookups and `Any` boxing. The `userInfo[.imageIdKey]`, `userInfo[.scaleKey]`, and `userInfo[.thumbnailKey]` keys are deprecated. The new `imageID` key properties replaces the previous `imageId` to follow idiomatic Swift naming (uppercase "ID") and is now also writable.
+- Add type-safe `imageID`, `scale`, and `thumbnail` properties to `ImageRequest`, replacing the previous `userInfo` dictionary-based approach. The new properties are more ergonomic and improve performance by eliminating dictionary lookups and `Any` boxing. The `userInfo[.imageIdKey]`, `userInfo[.scaleKey]`, and `userInfo[.thumbnailKey]` keys are deprecated. The new `imageID` key properties replaces the previous `imageId` to follow idiomatic Swift naming (uppercase "ID") and is now also writable – https://github.com/kean/Nuke/issues/772 
 - Soft-deprecate the `userInfo` parameter in `ImageRequest` initializers in favor of dedicated type-safe properties
 - Change `userInfo` type from `[UserInfoKey: Any]` to `[UserInfoKey: any Sendable]` in both `ImageRequest` and `ImageContainer`
 - Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
@@ -39,6 +39,7 @@
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 - Fix `ImageTask.state` remaining `.running` after completion when using the completion-based `loadImage` API
 - Add `AssetType.ico` with magic-byte detection for ICO (Windows icon) images
+- Add `ImageRequest.init(id:image:)` that accepts an async closure returning an `ImageContainer` directly. Use it to process images already in memory or to integrate with systems that provide pre-decoded images (e.g., Photos framework). The image skips data decoding entirely and is loaded in `TaskFetchOriginalImage` – https://github.com/kean/Nuke/issues/823
 
 ## Nuke 12.9.0
 
