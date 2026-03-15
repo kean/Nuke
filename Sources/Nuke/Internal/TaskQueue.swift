@@ -36,10 +36,10 @@ public final class TaskQueue: Sendable {
     /// The default value matches the number of cores on the machine. For
     /// operations like image processing, it's recommended to use a lower number
     /// to avoid fully saturating the CPU.
-    nonisolated public var maxConcurrentTaskCount: Int {
-        get { _maxConcurrentTaskCount.value }
+    nonisolated public var maxConcurrentOperationCount: Int {
+        get { _maxConcurrentOperationCount.value }
         set {
-            let oldValue = _maxConcurrentTaskCount.withLock {
+            let oldValue = _maxConcurrentOperationCount.withLock {
                 let old = $0; $0 = newValue; return old
             }
             if newValue > oldValue {
@@ -48,7 +48,7 @@ public final class TaskQueue: Sendable {
         }
     }
 
-    nonisolated private let _maxConcurrentTaskCount: Mutex<Int>
+    nonisolated private let _maxConcurrentOperationCount: Mutex<Int>
     nonisolated private let _isSuspended = Mutex(value: false)
 
     /// Events emitted by the queue for observation (testing only).
@@ -63,8 +63,8 @@ public final class TaskQueue: Sendable {
     var onEvent: ((Event) -> Void)?
 
     /// Initializes the queue.
-    nonisolated public init(maxConcurrentTaskCount: Int = ProcessInfo.processInfo.processorCount) {
-        self._maxConcurrentTaskCount = Mutex(value: maxConcurrentTaskCount)
+    nonisolated public init(maxConcurrentOperationCount: Int = ProcessInfo.processInfo.processorCount) {
+        self._maxConcurrentOperationCount = Mutex(value: maxConcurrentOperationCount)
     }
 
     /// Adds work to the queue. The closure runs `@ImagePipelineActor`. The
@@ -90,7 +90,7 @@ public final class TaskQueue: Sendable {
     }
 
     private func drain() {
-        while !isSuspended && runningCount < maxConcurrentTaskCount && pendingCount > 0 {
+        while !isSuspended && runningCount < maxConcurrentOperationCount && pendingCount > 0 {
             guard let operation = dequeueHighestPriority() else { break }
             execute(operation)
         }
