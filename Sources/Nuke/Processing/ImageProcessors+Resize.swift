@@ -81,6 +81,10 @@ struct ImageTargetSize: Hashable {
 
     var cgSize: CGSize { CGSize(width: Double(width), height: Double(height)) }
 
+    init(maxPixelSize: Float) {
+        (width, height) = (maxPixelSize, 0)
+    }
+
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
     init(size: CGSize, unit: ImageProcessingOptions.Unit) {

@@ -393,26 +393,23 @@ func makeImage(from cgImage: CGImage, source: CGImageSource, scale: CGFloat = 1.
 }
 
 private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {
-    switch thumbnailOptions.targetSize {
-    case .fixed(let size):
-        return CGFloat(size)
-    case let .flexible(size, contentMode):
-        var targetSize = size.cgSize
-        let options = [kCGImageSourceShouldCache: false] as CFDictionary
-        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
-              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
-              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
-            return max(targetSize.width, targetSize.height)
-        }
-
-        let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
-#if canImport(UIKit)
-        targetSize = targetSize.rotatedForOrientation(orientation)
-#endif
-
-        let imageSize = CGSize(width: width, height: height)
-        let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)
-        let size = imageSize.scaled(by: scale).rounded()
-        return max(size.width, size.height)
+    guard thumbnailOptions.options.contains(.flexible) else {
+        return CGFloat(thumbnailOptions.size.width)
     }
+    var targetSize = thumbnailOptions.size.cgSize
+    let contentMode = thumbnailOptions.contentMode
+    let options = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+          let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
+        return max(targetSize.width, targetSize.height)
+    }
+    let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+#if canImport(UIKit)
+    targetSize = targetSize.rotatedForOrientation(orientation)
+#endif
+    let imageSize = CGSize(width: width, height: height)
+    let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)
+    let size = imageSize.scaled(by: scale).rounded()
+    return max(size.width, size.height)
 }

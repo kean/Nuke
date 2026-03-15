@@ -8,12 +8,13 @@ import Foundation
 
 @Suite struct ImageRequestMemoryTests {
     @Test func memoryLayout() {
-        print("ImageRequest.Container instance size: \(ImageRequest._containerInstanceSize) bytes")
+        #expect(ImageRequest._containerInstanceSize == 104)
 
-        print("ThumbnailOptions — size: \(MemoryLayout<ImageRequest.ThumbnailOptions>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions>.alignment)")
-        print("ThumbnailOptions.TargetSize — size: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.size), stride: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.stride), alignment: \(MemoryLayout<ImageRequest.ThumbnailOptions.TargetSize>.alignment)")
+        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
+        #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.stride == 12)
 
-        print("ImageRequest.Resource — size: \(MemoryLayout<ImageRequest.Resource>.size), stride: \(MemoryLayout<ImageRequest.Resource>.stride), alignment: \(MemoryLayout<ImageRequest.Resource>.alignment)")
+        #expect(MemoryLayout<ImageRequest.Resource>.size == 17)
+        #expect(MemoryLayout<ImageRequest.Resource>.stride == 24)
     }
 }
 
@@ -218,6 +219,89 @@ import Foundation
             $0.imageID = Test.url.absoluteString
         }
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
+    }
+}
+
+@Suite struct ThumbnailOptionsTests {
+    // MARK: - Default Values
+
+    @Test func defaultBoolPropertiesWithMaxPixelSize() {
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        #expect(options.createThumbnailFromImageIfAbsent == true)
+        #expect(options.createThumbnailFromImageAlways == true)
+        #expect(options.createThumbnailWithTransform == true)
+        #expect(options.shouldCacheImmediately == true)
+    }
+
+    @Test func defaultBoolPropertiesWithSize() {
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels)
+        #expect(options.createThumbnailFromImageIfAbsent == true)
+        #expect(options.createThumbnailFromImageAlways == true)
+        #expect(options.createThumbnailWithTransform == true)
+        #expect(options.shouldCacheImmediately == true)
+    }
+
+    // MARK: - contentMode
+
+    @Test func contentModeDefaultsToAspectFill() {
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels)
+        #expect(options.contentMode == .aspectFill)
+    }
+
+    @Test func contentModeAspectFitIsPreserved() {
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
+        #expect(options.contentMode == .aspectFit)
+    }
+
+    @Test func contentModeCanBeChanged() {
+        var options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+        options.contentMode = .aspectFit
+        #expect(options.contentMode == .aspectFit)
+    }
+
+    // MARK: - Identifier reflects flag changes
+
+    @Test func identifierChangesWhenCreateFromImageIfAbsentIsFalse() {
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.createThumbnailFromImageIfAbsent = false
+        #expect(options.identifier.hasSuffix("options=falsetruetruetrue"))
+    }
+
+    @Test func identifierChangesWhenCreateFromImageAlwaysIsFalse() {
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.createThumbnailFromImageAlways = false
+        #expect(options.identifier.hasSuffix("options=truefalsetruetrue"))
+    }
+
+    @Test func identifierChangesWhenCreateWithTransformIsFalse() {
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.createThumbnailWithTransform = false
+        #expect(options.identifier.hasSuffix("options=truetruefalsetrue"))
+    }
+
+    @Test func identifierChangesWhenShouldCacheImmediatelyIsFalse() {
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.shouldCacheImmediately = false
+        #expect(options.identifier.hasSuffix("options=truetruetruefalse"))
+    }
+
+    // MARK: - Hashable
+
+    @Test func equalOptionsAreEqual() {
+        #expect(ImageRequest.ThumbnailOptions(maxPixelSize: 400) == ImageRequest.ThumbnailOptions(maxPixelSize: 400))
+    }
+
+    @Test func optionsWithDifferentFlagAreNotEqual() {
+        let lhs = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        var rhs = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        rhs.createThumbnailWithTransform = false
+        #expect(lhs != rhs)
+    }
+
+    @Test func optionsWithDifferentContentModeAreNotEqual() {
+        let lhs = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+        let rhs = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
+        #expect(lhs != rhs)
     }
 }
 

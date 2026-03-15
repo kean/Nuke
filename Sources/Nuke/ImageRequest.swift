@@ -329,29 +329,13 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         public init(stringLiteral value: String) {
             self.rawValue = value
         }
-
     }
 
     /// Thumbnail options.
     ///
     /// For more info, see https://developer.apple.com/documentation/imageio/cgimagesource/image_source_option_dictionary_keys
     public struct ThumbnailOptions: Hashable, Sendable {
-        enum TargetSize: Hashable {
-            case fixed(Float)
-            case flexible(size: ImageTargetSize, contentMode: ImageProcessingOptions.ContentMode)
-
-            var parameters: String {
-                switch self {
-                case .fixed(let size):
-                    return "maxPixelSize=\(size)"
-                case let .flexible(size, contentMode):
-                    return "width=\(size.cgSize.width),height=\(size.cgSize.height),contentMode=\(contentMode)"
-                }
-            }
-        }
-
-        let targetSize: TargetSize
-
+        var size: ImageTargetSize
         var options: Options = .defaults
 
         /// Whether a thumbnail should be automatically created for an image if
@@ -390,7 +374,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// This option performs slightly faster than ``ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)``
         /// because it doesn't need to read the image size.
         public init(maxPixelSize: Float) {
-            self.targetSize = .fixed(maxPixelSize)
+            self.size = ImageTargetSize(maxPixelSize: maxPixelSize)
         }
 
         /// Initializes the options with the given size.
@@ -400,7 +384,15 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         ///   - unit: Unit of the target size.
         ///   - contentMode: A target content mode.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill) {
-            self.targetSize = .flexible(size: ImageTargetSize(size: size, unit: unit), contentMode: contentMode)
+            self.size = ImageTargetSize(size: size, unit: unit)
+            options.insert(.flexible)
+            if contentMode == .aspectFit { options.insert(.aspectFit) }
+        }
+
+        /// The content mode for flexible-size thumbnails.
+        public var contentMode: ImageProcessingOptions.ContentMode {
+            get { options.contains(.aspectFit) ? .aspectFit : .aspectFill }
+            set { options.set(.aspectFit, newValue == .aspectFit) }
         }
 
         /// Generates a thumbnail from the given image data.
@@ -409,7 +401,10 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         }
 
         var identifier: String {
-            "com.github/kean/nuke/thumbnail?\(targetSize.parameters),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
+            let sizeStr = options.contains(.flexible)
+                ? "width=\(size.cgSize.width),height=\(size.cgSize.height),contentMode=\(contentMode)"
+                : "maxPixelSize=\(size.width)"
+            return "com.github/kean/nuke/thumbnail?\(sizeStr),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
         }
 
         struct Options: OptionSet, Hashable, Sendable {
@@ -421,6 +416,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
             static let createThumbnailFromImageAlways = Options(rawValue: 1 << 1)
             static let createThumbnailWithTransform = Options(rawValue: 1 << 2)
             static let shouldCacheImmediately = Options(rawValue: 1 << 3)
+            static let aspectFit = Options(rawValue: 1 << 4)
+            static let flexible = Options(rawValue: 1 << 5)
 
             static let defaults: Options = [
                 .createThumbnailFromImageIfAbsent,
