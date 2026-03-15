@@ -77,9 +77,9 @@ public struct ImageContainer: @unchecked Sendable {
         self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 
-    func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
+    consuming func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
         var copy = self
-        copy.image = try closure(image)
+        copy.image = try closure(copy.image)
         return copy
     }
 

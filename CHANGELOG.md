@@ -42,6 +42,7 @@ Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 - Optimize data downloading by pre-allocating the buffer using the expected content size from the HTTP response, reducing memory reallocations during image downloads (this only applies when progressive decoding is on) — https://github.com/kean/Nuke/issues/738
 - Update `ImageCache.defaultCostLimit` to 15% of physical memory with no hard cap (previously 20% capped at 512 MB). The cache uses a custom LRU policy that enforces limits precisely, so 15% is effectively more generous than the previous capped value on modern devices – https://github.com/kean/Nuke/issues/838
 - The storage cost limit of `ResumableDataStorage` is now dynamic and varies depending on the available RAM.
+- Add `consuming` to `LazyImage` builder methods (`processors`, `priority`, `pipeline`, `onStart`, `onDisappear`, `onCompletion`) and `ImageContainer.map(_:)`
 
 **API Changes**
 
