@@ -2,10 +2,17 @@
 
 ## Nuke 13.0 (WIP)
 
-Nuke 13 achieves full Data Race Safety by migrating all pipeline work onto threads managed by Swift Concurrency, replacing `DispatchQueue` and `OperationQueue` with a `@globalActor`-based synchronization model. It ships over 10 new APIs - including progressive preview policies, a `willLoadData` auth hook, memory size limits, and type-safe `ImageRequest` properties - alongside massively improved documentation and a completely reworked and expanded test suite powered by Swift Testing with Swift 6 mode enabled.
+Nuke 13 achieves full Data Race Safety by migrating all pipeline work onto threads managed by Swift Concurrency, replacing `DispatchQueue` and `OperationQueue` with a `@globalActor`-based synchronization model. It ships over 10 new APIs: including progressive preview policies, a `willLoadData` auth hook, memory size limits, and type-safe `ImageRequest` properties.
 
-Minimum supported Xcode version: 26.0.
-Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
+To continue the reliability story, unit tests were updated to use Swift Testing and Swift 6, and were expanded:"
+
+- Nuke 12.9. Code (Nuke): 4589 lines. Tests (NukeTests): 496 tests, 6167 lines. Coverage 92.4%. 
+- Nuke 13.0. Code (Nuke): 4669 lines. Tests (NukeTests): 768 tests, 8509 lines. Coverage 96.0%.
+
+**Requirements**
+
+- Minimum supported Xcode version: 26.0.
+- Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 
 **Concurrency & Data Race Safety**
 
