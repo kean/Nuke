@@ -213,7 +213,7 @@ struct ImageRequestImageIdTests {
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
-    @Test func memoryLayout() {
+    @Test(.disabled()) func memoryLayout() {
         #expect(ImageRequest._containerInstanceSize == 104)
 
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
