@@ -12,20 +12,20 @@ Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 - Replace the internal serial `DispatchQueue` with a `@globalActor` (`ImagePipelineActor`) for pipeline synchronization, making thread-safety compiler-enforced. The actor is public so that custom `ImagePipeline.Delegate` implementations can use it when needed to reduce thread hops
 - Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
 - Replace callback-based `DataLoading` protocol with async/await: `loadData(with:)` now returns `(AsyncThrowingStream<Data, Error>, URLResponse)`. Remove `Cancellable` protocol
-- Add typed throws (`throws(ImagePipeline.Error)`) to `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)`. Add `ImagePipeline.Error.cancelled` case — cancellation now throws this instead of `CancellationError`
+- Add typed throws (`throws(ImagePipeline.Error)`) to `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)`. Add `ImagePipeline.Error.cancelled` case. Cancellation now throws this instead of `CancellationError`.
 - Change `userInfo` type from `[UserInfoKey: Any]` to `[UserInfoKey: any Sendable]` in both `ImageRequest` and `ImageContainer`
 - Add `@MainActor @Sendable` to completion-based `loadImage`/`loadData` closure parameters
 - Add `@MainActor @Sendable` to `progress` and `completion` closures in `NukeExtensions` `loadImage` functions
 - Add `@MainActor @Sendable` to all callback closures in `NukeUI`: `FetchImage.onStart`/`onCompletion`, `LazyImage.onStart`/`onCompletion` modifiers, `LazyImageView.onStart`/`onPreview`/`onProgress`/`onSuccess`/`onFailure`/`onCompletion`
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead
-- Synchronize `ResumableDataStorage` on `ImagePipelineActor`, replacing `NSLock` with actor isolation and removing `@unchecked Sendable`
+- Synchronize `ResumableDataStorage` on `ImagePipelineActor`, replacing `NSLock` with actor isolation and removing `@unchecked Sendable`.
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
 
 **New Features**
 
 - Add `ImagePipeline.PreviewPolicy` (`.incremental`, `.thumbnail`, `.disabled`) to control how progressive previews are generated per-request
-- Add `ImagePipelineDelegate.previewPolicy(for:pipeline:)` for customizing the policy dynamically. Default policy: `.incremental` for progressive JPEGs and GIFs, `.disabled` for everything else (baseline JPEGs, PNGs, etc.) — restoring the original behavior before `CGImageSourceCreateIncremental` was adopted
-- Add `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)` — an async, throwing hook that intercepts the `URLRequest` just before data loading begins. Use it to inject auth tokens, sign requests, or perform any async pre-flight work. Throw to cancel with a meaningful error (e.g., when a token refresh fails). Default implementation returns the request unchanged — https://github.com/kean/Nuke/issues/774
+- Add `ImagePipelineDelegate.previewPolicy(for:pipeline:)` for customizing the policy dynamically. Default policy: `.incremental` for progressive JPEGs and GIFs, `.disabled` for everything else (baseline JPEGs, PNGs, etc.), restoring the original behavior before `CGImageSourceCreateIncremental` was adopted
+- Add `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)`, an async, throwing hook that intercepts the `URLRequest` just before data loading begins. Use it to inject auth tokens, sign requests, or perform any async pre-flight work. Throw to cancel with a meaningful error (e.g., when a token refresh fails). Default implementation returns the request unchanged — https://github.com/kean/Nuke/issues/774
 - Add `ImageRequest.init(id:image:)` that accepts an async closure returning an `ImageContainer` directly. Use it to process images already in memory or to integrate with systems that provide pre-decoded images (e.g., Photos framework). The image skips data decoding entirely and is loaded in `TaskFetchOriginalImage` – https://github.com/kean/Nuke/issues/823
 - Add type-safe `imageID`, `scale`, and `thumbnail` properties to `ImageRequest`, replacing the previous `userInfo` dictionary-based approach. The new properties are more ergonomic and improve performance by eliminating dictionary lookups and `Any` boxing. The `userInfo[.imageIdKey]`, `userInfo[.scaleKey]`, and `userInfo[.thumbnailKey]` keys are deprecated. The new `imageID` property replaces `imageId` to follow idiomatic Swift naming (uppercase "ID") and is now also writable – https://github.com/kean/Nuke/issues/772
 - Add `ImagePipeline.Configuration.progressiveDecodingInterval` (default: 0.5s) to throttle progressive decoding attempts when data arrives faster than the interval
@@ -41,6 +41,7 @@ Minimum required platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15.
 - Rewrite `ImageProcessors.GaussianBlur` to use Accelerate (`vImageBoxConvolve`) instead of Core Image, fixing gray border artifacts and improving performance ~5.8x — https://github.com/kean/Nuke/issues/308
 - Optimize data downloading by pre-allocating the buffer using the expected content size from the HTTP response, reducing memory reallocations during image downloads (this only applies when progressive decoding is on) — https://github.com/kean/Nuke/issues/738
 - Update `ImageCache.defaultCostLimit` to 15% of physical memory with no hard cap (previously 20% capped at 512 MB). The cache uses a custom LRU policy that enforces limits precisely, so 15% is effectively more generous than the previous capped value on modern devices – https://github.com/kean/Nuke/issues/838
+- The storage cost limit of `ResumableDataStorage` is now dynamic and varies depending on the available RAM.
 
 **API Changes**
 

@@ -73,10 +73,14 @@ final class ResumableDataStorage {
 
     // MARK: Registration
 
+    /// Cost limit for resumable data: 1% of physical memory, capped at 32 MB.
+    static var defaultCostLimit: Int {
+        Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.01)
+    }
+
     func register(_ id: UUID) {
         if registeredPipelines.isEmpty {
-            // 32 MB
-            cache = Cache(costLimit: 32000000, countLimit: 100)
+            cache = Cache(costLimit: ResumableDataStorage.defaultCostLimit, countLimit: 100)
         }
         registeredPipelines.insert(id)
     }
