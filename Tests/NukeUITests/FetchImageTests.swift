@@ -8,7 +8,8 @@ import Combine
 @testable import Nuke
 @testable import NukeUI
 
-@Suite(.timeLimit(.minutes(1))) @MainActor struct FetchImageTests {
+@Suite(.timeLimit(.minutes(1))) @MainActor
+struct FetchImageTests {
     let dataLoader: MockDataLoader
     let observer: ImagePipelineObserver
     let pipeline: ImagePipeline

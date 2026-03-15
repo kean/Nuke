@@ -7,7 +7,8 @@ import Foundation
 @testable import Nuke
 
 /// Test how well image pipeline interacts with memory cache.
-@Suite(.timeLimit(.minutes(1))) struct ImagePipelineImageCacheTests {
+@Suite(.timeLimit(.minutes(1)))
+struct ImagePipelineImageCacheTests {
     let dataLoader: MockDataLoader
     let cache: MockImageCache
     let pipeline: ImagePipeline
