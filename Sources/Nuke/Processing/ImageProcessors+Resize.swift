@@ -73,21 +73,28 @@ extension ImageProcessors {
     }
 }
 
-// Adds Hashable without making changes to public CGSize API
+// Adds Hashable without making changes to public CGSize API. It uses `Float`
+// to reduce memory size.
 struct ImageTargetSize: Hashable {
-    let cgSize: CGSize
+    let width: Float
+    let height: Float
+
+    var cgSize: CGSize { CGSize(width: Double(width), height: Double(height)) }
 
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
     init(size: CGSize, unit: ImageProcessingOptions.Unit) {
         switch unit {
-        case .pixels: self.cgSize = size // The size is already in pixels
-        case .points: self.cgSize = size.scaled(by: Screen.scale)
+        case .pixels:
+            (width, height) = (Float(size.width), Float(size.height))
+        case .points:
+            let scaled = size.scaled(by: Screen.scale)
+            (width, height) = (Float(scaled.width), Float(scaled.height))
         }
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(cgSize.width)
-        hasher.combine(cgSize.height)
+        hasher.combine(width)
+        hasher.combine(height)
     }
 }
