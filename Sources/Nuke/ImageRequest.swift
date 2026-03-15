@@ -438,18 +438,18 @@ extension ImageRequest {
     /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to
     /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
     private final class Container: @unchecked Sendable {
-        // It's beneficial to put resource before priority and options because
-        // of the resource size/stride of 9/16. Priority (1 byte) and Options
-        // (2 bytes) slot just right in the remaining space.
+        // It's beneficial to put these fields in that order to align them
+        // as they perfeclty align at the boundary due to their size
         let resource: Resource
         var priority: Priority
         var options: Options
+        var scale: Float = 1.0
+
         // It is stored partially for performance reasons (`absoluteString` can be expensive to compute)
         var originalImageID: String?
         var customImageID: String?
         var processors: [any ImageProcessing]
         var userInfo: [UserInfoKey: any Sendable]?
-        var scale: Float = 1.0
         var thumbnail: ThumbnailOptions?
 
         init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: any Sendable]?) {
