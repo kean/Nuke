@@ -54,7 +54,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// Custom info passed alongside the request.
-    public var userInfo: [UserInfoKey: Any] {
+    public var userInfo: [UserInfoKey: any Sendable] {
         get { ref.userInfo ?? [:] }
         set { mutate { $0.userInfo = newValue } }
     }
@@ -156,7 +156,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
         options: Options = [],
-        userInfo: [UserInfoKey: Any]? = nil
+        userInfo: [UserInfoKey: any Sendable]? = nil
     ) {
         self.ref = Container(
             resource: Resource.url(url),
@@ -189,7 +189,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
         options: Options = [],
-        userInfo: [UserInfoKey: Any]? = nil
+        userInfo: [UserInfoKey: any Sendable]? = nil
     ) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
@@ -233,7 +233,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
         options: Options = [],
-        userInfo: [UserInfoKey: Any]? = nil
+        userInfo: [UserInfoKey: any Sendable]? = nil
     ) {
         self.ref = Container(
             resource: .data(fetch: data),
@@ -448,11 +448,11 @@ extension ImageRequest {
         var originalImageID: String?
         var customImageID: String?
         var processors: [any ImageProcessing]
-        var userInfo: [UserInfoKey: Any]?
+        var userInfo: [UserInfoKey: any Sendable]?
         var scale: Float = 1.0
         var thumbnail: ThumbnailOptions?
 
-        init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: any Sendable]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority

@@ -33,6 +33,7 @@
 - Fix thumbnail requests re-downloading original image data when it is already stored in the disk cache — https://github.com/kean/Nuke/issues/837
 - Add type-safe `imageID`, `scale`, and `thumbnail` properties to `ImageRequest`, replacing the previous `userInfo` dictionary-based approach. The new properties are more ergonomic and improve performance by eliminating dictionary lookups and `Any` boxing. The `userInfo[.imageIdKey]`, `userInfo[.scaleKey]`, and `userInfo[.thumbnailKey]` keys are deprecated. The new `imageID` key properties replaces the previous `imageId` to follow idiomatic Swift naming (uppercase "ID") and is now also writable.
 - Soft-deprecate the `userInfo` parameter in `ImageRequest` initializers in favor of dedicated type-safe properties
+- Change `userInfo` type from `[UserInfoKey: Any]` to `[UserInfoKey: any Sendable]` in both `ImageRequest` and `ImageContainer`
 - Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
 - Replace callback-based `DataLoading` protocol with async/await: `loadData(with:)` now returns `(AsyncThrowingStream<Data, Error>, URLResponse)`. Remove `Cancellable` protocol
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests

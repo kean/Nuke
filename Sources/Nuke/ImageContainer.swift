@@ -65,7 +65,7 @@ public struct ImageContainer: @unchecked Sendable {
     }
 
     /// Metadata provided by the user.
-    public var userInfo: [UserInfoKey: Any] {
+    public var userInfo: [UserInfoKey: any Sendable] {
         get { ref.userInfo }
         set { mutate { $0.userInfo = newValue } }
     }
@@ -73,7 +73,7 @@ public struct ImageContainer: @unchecked Sendable {
     private var ref: Container
 
     /// Initializes the container with the given image.
-    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
+    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: any Sendable] = [:]) {
         self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 
@@ -116,9 +116,9 @@ public struct ImageContainer: @unchecked Sendable {
         var type: AssetType?
         var isPreview: Bool
         var data: Data?
-        var userInfo: [UserInfoKey: Any]
+        var userInfo: [UserInfoKey: any Sendable]
 
-        init(image: PlatformImage, type: AssetType?, isPreview: Bool, data: Data? = nil, userInfo: [UserInfoKey: Any]) {
+        init(image: PlatformImage, type: AssetType?, isPreview: Bool, data: Data? = nil, userInfo: [UserInfoKey: any Sendable]) {
             self.image = image
             self.type = type
             self.isPreview = isPreview
