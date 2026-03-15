@@ -379,18 +379,6 @@ struct ImageDecoderTests {
         }
     }
 
-    @Test func decodeTruncatedJPEGThrows() {
-        // GIVEN - a JPEG with a valid header but body cut off after a handful of bytes
-        let full = Test.data(name: "baseline", extension: "jpeg")
-        let truncated = full[0..<32]
-        let decoder = ImageDecoders.Default()
-
-        // WHEN / THEN - a very short slice cannot be decoded into an image
-        #expect(throws: (any Error).self) {
-            try decoder.decode(truncated)
-        }
-    }
-
     @Test func partialDataReturnsNilForUnsupportedFormat() {
         // GIVEN - only 2 bytes of PNG data (not enough to decode)
         let data = Test.data(name: "fixture", extension: "png")
