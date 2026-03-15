@@ -253,12 +253,6 @@ import Foundation
         #expect(options.contentMode == .aspectFit)
     }
 
-    @Test func contentModeCanBeChanged() {
-        var options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
-        options.contentMode = .aspectFit
-        #expect(options.contentMode == .aspectFit)
-    }
-
     // MARK: - Identifier reflects flag changes
 
     @Test func identifierChangesWhenCreateFromImageIfAbsentIsFalse() {

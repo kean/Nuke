@@ -390,9 +390,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         }
 
         /// The content mode for flexible-size thumbnails.
-        public var contentMode: ImageProcessingOptions.ContentMode {
-            get { options.contains(.aspectFit) ? .aspectFit : .aspectFill }
-            set { options.set(.aspectFit, newValue == .aspectFit) }
+        var contentMode: ImageProcessingOptions.ContentMode {
+            options.contains(.aspectFit) ? .aspectFit : .aspectFill
         }
 
         /// Generates a thumbnail from the given image data.
