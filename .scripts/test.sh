@@ -23,5 +23,5 @@ xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}"
 for destination in "${destinations[@]}";
 do
 	echo "\nRunning tests for destination: $destination"
-	xcodebuild test-without-building -scheme "$scheme" -destination "$destination" -maximum-parallel-testing-workers 1 -test-timeouts-enabled YES -default-test-execution-time-allowance 120 -retry-tests-on-failure
+	xcodebuild test-without-building -scheme "$scheme" -destination "$destination" -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 120 -retry-tests-on-failure
 done
