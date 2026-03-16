@@ -8,8 +8,8 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 
 | Version   | Source lines | Tests | Test lines | Coverage |
 |-----------|-------------|-------|------------|----------|
-| Nuke 12.9 | 4,589       | 496   | 6,167      | 92.4%    |
 | Nuke 13.0 | 4,669       | 768   | 8,509      | 96.0%    |
+| Nuke 12.9 | 4,589       | 496   | 6,167      | 92.4%    |
 
 **Requirements**
 
