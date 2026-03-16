@@ -77,9 +77,16 @@ final class TestExpectation: @unchecked Sendable {
             }
         } onCancel: {
             let continuation = lock.withLock { () -> CheckedContinuation<Bool, Never>? in
-                guard case .awaiting(let continuation) = state else { return nil }
-                state = .cancelled
-                return continuation
+                switch state {
+                case .idle:
+                    state = .cancelled  // inner block hasn't run yet; it will see .cancelled and resume
+                    return nil
+                case .awaiting(let c):
+                    state = .cancelled
+                    return c
+                case .fulfilled, .cancelled:
+                    return nil
+                }
             }
             continuation?.resume(returning: false)
         }
