@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Boot simulator
         run: |
-          xcrun simctl boot "iPhone 17 Pro"
+          xcrun simctl boot "iPhone 17 Pro" --arch arm64
           xcrun simctl bootstatus "iPhone 17 Pro" -b
       - name: Run Tests
         run: |
