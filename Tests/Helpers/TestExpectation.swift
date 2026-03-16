@@ -192,16 +192,24 @@ extension TaskQueue {
 @ImagePipelineActor
 func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
     if operation.priority == target { action(); return }
+    let expectation = TestExpectation()
+    operation.onPriorityChanged = { priority in
+        if priority == target { expectation.fulfill() }
+    }
     action()
-    while operation.priority != target { await Task.yield() }
+    await expectation.wait()
+    operation.onPriorityChanged = nil
 }
 
 /// Waits for a standalone TaskQueue.Operation to be cancelled (not in a queue).
 @ImagePipelineActor
 func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
     if operation.isCancelled { action(); return }
+    let expectation = TestExpectation()
+    operation.onCancelled = { expectation.fulfill() }
     action()
-    while !operation.isCancelled { await Task.yield() }
+    await expectation.wait()
+    operation.onCancelled = nil
 }
 
 /// A simple mutable reference wrapper for use in test closures.

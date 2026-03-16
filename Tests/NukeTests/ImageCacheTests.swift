@@ -420,38 +420,38 @@ struct InternalCacheTTLTests {
 
     // MARK: TTL
 
-    @Test func ttl() {
+    @Test func ttl() async throws {
         // Given
         cache.set(1, forKey: 1, cost: 1, ttl: 0.05)  // 50 ms
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) == nil)
     }
 
-    @Test func defaultTTLIsUsed() {
+    @Test func defaultTTLIsUsed() async throws {
         // Given
         cache.conf.ttl = 0.05 // 50 ms
         cache.set(1, forKey: 1, cost: 1)
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) == nil)
     }
 
-    @Test func defaultToNonExpiringEntries() {
+    @Test func defaultToNonExpiringEntries() async throws {
         // Given
         cache.set(1, forKey: 1, cost: 1)
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) != nil)
