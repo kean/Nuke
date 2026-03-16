@@ -10,7 +10,8 @@ import Foundation
     import UIKit
 #endif
 
-@Suite struct ImageThumbnailTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageThumbnailTests {
 
     @Test func thatImageIsResized() throws {
         // WHEN

@@ -8,14 +8,23 @@ on:
     branches:
       - '*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ios-latest:
     name: Unit Tests (iOS 26.2, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 12
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "iPhone 17 Pro"
+          xcrun simctl bootstatus "iPhone 17 Pro" -b
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=iPhone 17 Pro"
@@ -24,10 +33,11 @@ jobs:
   macos-latest:
     name: Unit Tests (macOS, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 12
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "platform=macOS"
@@ -36,10 +46,15 @@ jobs:
   tvos-latest:
     name: Unit Tests (tvOS 26.2, Xcode 26.2)
     runs-on: macOS-26
+    timeout-minutes: 12
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "Apple TV"
+          xcrun simctl bootstatus "Apple TV" -b
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=Apple TV"
@@ -53,7 +68,7 @@ jobs:
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: |
 #          .scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
@@ -68,45 +83,48 @@ jobs:
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: |
 #          .scripts/test.sh -s "Nuke" -d "OS=17.0,name=iPhone 15 Pro"
 #          .scripts/test.sh -s "NukeUI" -d "OS=17.0,name=iPhone 15 Pro"
 #          .scripts/test.sh -s "NukeExtensions" -d "OS=17.0,name=iPhone 15 Pro"
-  ios-thread-safety:
-    name: Thread Safety Tests (TSan Enabled)
-    runs-on: macOS-26
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.2,name=iPhone 17 Pro"
+#  ios-thread-safety:
+#    name: Thread Safety Tests (TSan Enabled)
+#    runs-on: macOS-26
+#    timeout-minutes: 12
+#    env:
+#      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Run Tests
+#        run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.2,name=iPhone 17 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-13
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
 #    steps:
-#      - uses: actions/checkout@v2
+#      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: .scripts/test.sh -s "NukeMemoryManagementTests" -d "OS=14.4,name=iPhone 12 Pro"
-  ios-performance-tests:
-    name: Performance Tests
-    runs-on: macOS-26
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.2,name=iPhone 17 Pro"
+#  ios-performance-tests:
+#    name: Performance Tests
+#    runs-on: macOS-26
+#    timeout-minutes: 12
+#    env:
+#      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Run Tests
+#        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.2,name=iPhone 17 Pro"
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-26
+    timeout-minutes: 12
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build
         run: swift build

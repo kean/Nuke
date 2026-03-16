@@ -13,7 +13,8 @@ import CoreImage
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite struct ImageProcessorsCoreImageFilterTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageProcessorsCoreImageFilterTests {
     @Test func applySepia() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")

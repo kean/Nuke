@@ -158,6 +158,7 @@ public final class TaskQueue: Sendable {
             didSet {
                 guard oldValue != priority else { return }
                 queue?.operationPriorityChanged(self, from: oldValue)
+                onPriorityChanged?(priority)
             }
         }
 
@@ -166,6 +167,10 @@ public final class TaskQueue: Sendable {
         fileprivate var task: Task<Void, Never>?
         fileprivate weak var node: LinkedList<TaskQueue.Operation>.Node?
         private weak let queue: TaskQueue?
+
+        // Test hooks.
+        var onCancelled: (() -> Void)?
+        var onPriorityChanged: ((TaskPriority) -> Void)?
 
         init(queue: TaskQueue? = nil) {
             self.queue = queue
@@ -177,6 +182,7 @@ public final class TaskQueue: Sendable {
             work = nil
             task?.cancel()
             queue?.operationCancelled(self)
+            onCancelled?()
         }
     }
 }

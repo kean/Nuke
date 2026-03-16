@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImagePipelineFormatsTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImagePipelineFormatsTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
 

@@ -29,6 +29,36 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has a
   </tr>
 </table>
 
+## Documentation
+
+Load images using `ImagePipeline` from the lean core [**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke) module:
+
+```swift
+func loadImage() async throws {
+    let imageTask = ImagePipeline.shared.imageTask(with: url)
+    for await progress in imageTask.progress {
+        // Update progress
+    }
+    imageView.image = try await imageTask.image
+}
+```
+
+Or use the built-in UI components from [**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/):
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    }
+}
+```
+
+The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start. Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more examples.
+
+<a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
+<img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
+</a>
+
 ## Installation
 
 Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/), which is the recommended option. If that doesn't work for you, you can use binary frameworks attached to the [releases](https://github.com/kean/Nuke/releases).
@@ -41,38 +71,6 @@ The package ships with four modules that you can install depending on your needs
 |[**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/)|The UI components: `LazyImage` (SwiftUI) and `ImageView` (UIKit, AppKit)|
 |[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit)|
 |[**NukeVideo**](https://kean-docs.github.io/nukevideo/documentation/nukevideo/)|The components for decoding and playing short videos|
-
-## Documentation
-
-Nuke is easy to learn and use, thanks to its extensive documentation and a modern API. 
-
-You can load images using `ImagePipeline` from the lean core [**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke) module:
-
-```swift
-func loadImage() async throws {
-    let imageTask = ImagePipeline.shared.imageTask(with: url)
-    for await progress in imageTask.progress {
-        // Update progress
-    }
-    imageView.image = try await imageTask.image
-}
-```
-
-Or you can use the built-in UI components from the [**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/) module:
-
-```swift
-struct ContentView: View {
-    var body: some View {
-        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
-    }
-}
-```
-
-The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start learning about these and many other APIs provided by the framework. Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more usage examples.
-
-<a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
-<img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
-</a>
 
 ## Extensions
 
@@ -92,10 +90,10 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
-| Nuke      | Date         | Swift     | Xcode      | Platforms                                                  |
-|-----------|--------------|-----------|------------|------------------------------------------------------------|
-| Nuke 13.0 | TBD          | Swift 6.2 | Xcode 26.0 | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 13.0, visionOS 1.0 |
-| Nuke 12.0 | Mar 4, 2023  | Swift 5.7 | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0              |
+| Nuke      | Swift     | Xcode      | Platforms                                                   |
+|-----------|-----------|------------|-------------------------------------------------------------|
+| Nuke 13.0 | Swift 6.2 | Xcode 26.0 | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 13.0, visionOS 1.0  |
+| Nuke 12.0 | Swift 5.7 | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 
 ## License
 

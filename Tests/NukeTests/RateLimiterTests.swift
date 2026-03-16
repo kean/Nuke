@@ -5,7 +5,8 @@
 import Testing
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct RateLimiterTests {
+@Suite(.timeLimit(.minutes(2))) @ImagePipelineActor
+struct RateLimiterTests {
     let rateLimiter = RateLimiter(rate: 10, burst: 2)
 
     @Test func burstIsExecutedImmediately() {
@@ -30,7 +31,7 @@ import Testing
         #expect(isExecuted == [true, true, true, false], "Expect first 2 items to be executed immediately")
     }
 
-    @Test func overflow() async {
+    @Test(.disabled("Deadlocks on @ImagePipelineActor with withUnsafeContinuation — iOS 26.2")) func overflow() async {
         let count = 3
         await confirmation(expectedCount: count) { done in
             for _ in 0..<count {

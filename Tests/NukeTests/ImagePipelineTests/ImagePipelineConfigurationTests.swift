@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImagePipelineConfigurationTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImagePipelineConfigurationTests {
 
     @Test func imageIsLoadedWithRateLimiterDisabled() async throws {
         // Given

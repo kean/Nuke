@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct DeprecationTests {
+@Suite(.timeLimit(.minutes(2)))
+struct DeprecationTests {
     private let pipeline: ImagePipeline
     private let dataLoader: MockDataLoader
 

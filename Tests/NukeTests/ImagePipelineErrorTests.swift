@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImagePipelineErrorTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImagePipelineErrorTests {
 
     // MARK: - dataLoadingError
 

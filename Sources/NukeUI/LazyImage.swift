@@ -86,17 +86,17 @@ public struct LazyImage<Content: View>: View {
     ///
     /// Processors are only applied if the request does not already define its
     /// own processors. The request's processors always take priority.
-    public func processors(_ processors: [any ImageProcessing]?) -> Self {
+    public consuming func processors(_ processors: [any ImageProcessing]?) -> Self {
         map { $0.context?.request.processors = processors ?? [] }
     }
 
     /// Sets the priority of the requests.
-    public func priority(_ priority: ImageRequest.Priority?) -> Self {
+    public consuming func priority(_ priority: ImageRequest.Priority?) -> Self {
         map { $0.context?.request.priority = priority ?? .normal }
     }
 
     /// Changes the underlying pipeline used for image loading.
-    public func pipeline(_ pipeline: ImagePipeline) -> Self {
+    public consuming func pipeline(_ pipeline: ImagePipeline) -> Self {
         map { $0.pipeline = pipeline }
     }
 
@@ -109,21 +109,21 @@ public struct LazyImage<Content: View>: View {
     }
 
     /// Gets called when the request is started.
-    public func onStart(_ closure: @escaping @MainActor @Sendable (ImageTask) -> Void) -> Self {
+    public consuming func onStart(_ closure: @escaping @MainActor @Sendable (ImageTask) -> Void) -> Self {
         map { $0.onStart = closure }
     }
 
     /// Override the behavior on disappear. By default, the view is reset.
-    public func onDisappear(_ behavior: DisappearBehavior?) -> Self {
+    public consuming func onDisappear(_ behavior: DisappearBehavior?) -> Self {
         map { $0.onDisappearBehavior = behavior }
     }
 
     /// Gets called when the current request is completed.
-    public func onCompletion(_ closure: @escaping @MainActor @Sendable (Result<ImageResponse, Error>) -> Void) -> Self {
+    public consuming func onCompletion(_ closure: @escaping @MainActor @Sendable (Result<ImageResponse, Error>) -> Void) -> Self {
         map { $0.onCompletion = closure }
     }
 
-    private func map(_ closure: (inout LazyImage) -> Void) -> Self {
+    private consuming func map(_ closure: (inout LazyImage) -> Void) -> Self {
         var copy = self
         closure(&copy)
         return copy

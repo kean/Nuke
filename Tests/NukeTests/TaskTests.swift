@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct TaskTests {
+@Suite(.timeLimit(.minutes(2))) @ImagePipelineActor
+struct TaskTests {
     // MARK: - Starter
 
     @Test func starterCalledOnFirstSubscription() {

@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImagePipelineAsyncAwaitTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImagePipelineAsyncAwaitTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
     let pipelineDelegate: ImagePipelineObserver
@@ -474,7 +475,8 @@ import Foundation
 
 // MARK: - ImageTask State
 
-@Suite struct ImageTaskStateTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageTaskStateTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
 
@@ -525,7 +527,8 @@ import Foundation
 
 // MARK: - ImageTask.Progress
 
-@Suite struct ImageTaskProgressTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageTaskProgressTests {
 
     @Test func fractionIsZeroWhenTotalIsZero() {
         let progress = ImageTask.Progress(completed: 0, total: 0)

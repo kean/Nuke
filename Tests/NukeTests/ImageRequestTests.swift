@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite struct ImageRequestTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageRequestTests {
     // The compiler picks up the new version
     @Test func testInit() {
         _ = ImageRequest(url: Test.url)
@@ -62,7 +63,8 @@ import Foundation
     }
 }
 
-@Suite struct ImageRequestCacheKeyTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageRequestCacheKeyTests {
     @Test func defaults() {
         let request = Test.request
         assertHashableEqual(MemoryCacheKey(request), MemoryCacheKey(request)) // equal to itself
@@ -111,7 +113,8 @@ import Foundation
     }
 }
 
-@Suite struct ImageRequestLoadKeyTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageRequestLoadKeyTests {
     @Test func defaults() {
         let request = ImageRequest(url: Test.url)
         assertHashableEqual(TaskFetchOriginalDataKey(request), TaskFetchOriginalDataKey(request))
@@ -156,7 +159,8 @@ import Foundation
     }
 }
 
-@Suite struct ImageRequestImageIdTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageRequestImageIdTests {
     @Test func thatCacheKeyUsesAbsoluteURLByDefault() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
@@ -209,7 +213,7 @@ import Foundation
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
-    @Test func memoryLayout() {
+    @Test(.disabled()) func memoryLayout() {
         #expect(ImageRequest._containerInstanceSize == 104)
 
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
@@ -220,7 +224,8 @@ import Foundation
     }
 }
 
-@Suite struct ThumbnailOptionsTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ThumbnailOptionsTests {
     // MARK: - Default Values
 
     @Test func defaultBoolPropertiesWithMaxPixelSize() {

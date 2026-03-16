@@ -6,7 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct TaskQueueTests {
+@Suite(.timeLimit(.minutes(2))) @ImagePipelineActor
+struct TaskQueueTests {
     // MARK: - Basic Execution
 
     @Test func addedWorkIsExecuted() async {

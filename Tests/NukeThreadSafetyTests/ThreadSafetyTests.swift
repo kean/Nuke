@@ -10,7 +10,8 @@ import Foundation
 import UIKit
 #endif
 
-@Suite struct ThreadSafetyTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ThreadSafetyTests {
     @Test func imagePipelineThreadSafety() async {
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
@@ -170,7 +171,8 @@ import UIKit
     }
 }
 
-@Suite struct RandomizedTests {
+@Suite(.timeLimit(.minutes(2)))
+struct RandomizedTests {
     @Test func imagePipeline() async {
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {

@@ -5,7 +5,8 @@
 import Testing
 @testable import Nuke
 
-@Suite struct LinkedListTests {
+@Suite(.timeLimit(.minutes(2)))
+struct LinkedListTests {
     let list = LinkedList<Int>()
 
     @Test func emptyWhenCreated() {

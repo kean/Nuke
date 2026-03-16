@@ -17,7 +17,8 @@ private let request1 = _request(index: 1)
 private let request2 = _request(index: 2)
 private let request3 = _request(index: 3)
 
-@Suite struct ImageCacheTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageCacheTests {
     let cache: ImageCache
 
     init() {
@@ -413,43 +414,44 @@ private let request3 = _request(index: 3)
 #endif
 }
 
-@Suite struct InternalCacheTTLTests {
+@Suite(.timeLimit(.minutes(2)))
+struct InternalCacheTTLTests {
     let cache = Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
 
     // MARK: TTL
 
-    @Test func ttl() {
+    @Test func ttl() async throws {
         // Given
         cache.set(1, forKey: 1, cost: 1, ttl: 0.05)  // 50 ms
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) == nil)
     }
 
-    @Test func defaultTTLIsUsed() {
+    @Test func defaultTTLIsUsed() async throws {
         // Given
         cache.conf.ttl = 0.05 // 50 ms
         cache.set(1, forKey: 1, cost: 1)
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) == nil)
     }
 
-    @Test func defaultToNonExpiringEntries() {
+    @Test func defaultToNonExpiringEntries() async throws {
         // Given
         cache.set(1, forKey: 1, cost: 1)
         #expect(cache.value(forKey: 1) != nil)
 
         // When
-        usleep(55 * 1000)
+        try await Task.sleep(for: .milliseconds(55))
 
         // Then
         #expect(cache.value(forKey: 1) != nil)

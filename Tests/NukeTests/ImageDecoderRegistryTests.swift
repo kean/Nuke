@@ -5,7 +5,8 @@
 import Testing
 @testable import Nuke
 
-@Suite struct ImageDecoderRegistryTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageDecoderRegistryTests {
     @Test func defaultDecoderIsReturned() {
         // Given
         let context = ImageDecodingContext.mock

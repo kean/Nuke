@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Testing
 @testable import Nuke
 
 final class TestExpectation: @unchecked Sendable {
@@ -13,40 +14,81 @@ final class TestExpectation: @unchecked Sendable {
     private enum State {
         case idle
         case fulfilled
-        case awaiting(CheckedContinuation<Void, Never>)
+        case cancelled
+        case awaiting(CheckedContinuation<Bool, Never>)
     }
 
     init() {}
 
     func fulfill() {
-        lock.lock()
-        switch state {
-        case .idle:
-            state = .fulfilled
-            lock.unlock()
-        case .awaiting(let continuation):
-            state = .fulfilled
-            lock.unlock()
-            continuation.resume()
-        case .fulfilled:
-            lock.unlock()
+        let continuation = lock.withLock { () -> CheckedContinuation<Bool, Never>? in
+            switch state {
+            case .idle:
+                state = .fulfilled
+                return nil
+            case .awaiting(let continuation):
+                state = .fulfilled
+                return continuation
+            case .fulfilled, .cancelled:
+                return nil
+            }
+        }
+        continuation?.resume(returning: true)
+    }
+
+    func wait(timeout: Duration = .seconds(60)) async {
+        let fulfilled = await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                await self.waitInternal()
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+            let result = await group.next()
+            group.cancelAll()
+            return result ?? false
+        }
+        if !fulfilled, !Task.isCancelled {
+            Issue.record("TestExpectation timed out after \(timeout)")
         }
     }
 
-    func wait() async {
-        await withCheckedContinuation { continuation in
-            lock.lock()
-            switch state {
-            case .idle:
-                state = .awaiting(continuation)
-                lock.unlock()
-            case .fulfilled:
-                lock.unlock()
-                continuation.resume()
-            case .awaiting:
-                lock.unlock()
-                preconditionFailure("wait() called multiple times")
+    // Returns true if genuinely fulfilled, false if cancelled.
+    private func waitInternal() async -> Bool {
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let result = lock.withLock { () -> Bool? in
+                    switch state {
+                    case .idle:
+                        state = .awaiting(continuation)
+                        return nil
+                    case .fulfilled:
+                        return true
+                    case .cancelled:
+                        return false
+                    case .awaiting:
+                        preconditionFailure("wait() called multiple times")
+                    }
+                }
+                if let result {
+                    continuation.resume(returning: result)
+                }
             }
+        } onCancel: {
+            let continuation = lock.withLock { () -> CheckedContinuation<Bool, Never>? in
+                switch state {
+                case .idle:
+                    state = .cancelled  // inner block hasn't run yet; it will see .cancelled and resume
+                    return nil
+                case .awaiting(let c):
+                    state = .cancelled
+                    return c
+                case .fulfilled, .cancelled:
+                    return nil
+                }
+            }
+            continuation?.resume(returning: false)
         }
     }
 }
@@ -157,16 +199,24 @@ extension TaskQueue {
 @ImagePipelineActor
 func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
     if operation.priority == target { action(); return }
+    let expectation = TestExpectation()
+    operation.onPriorityChanged = { priority in
+        if priority == target { expectation.fulfill() }
+    }
     action()
-    while operation.priority != target { await Task.yield() }
+    await expectation.wait()
+    operation.onPriorityChanged = nil
 }
 
 /// Waits for a standalone TaskQueue.Operation to be cancelled (not in a queue).
 @ImagePipelineActor
 func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
     if operation.isCancelled { action(); return }
+    let expectation = TestExpectation()
+    operation.onCancelled = { expectation.fulfill() }
     action()
-    while !operation.isCancelled { await Task.yield() }
+    await expectation.wait()
+    operation.onCancelled = nil
 }
 
 /// A simple mutable reference wrapper for use in test closures.

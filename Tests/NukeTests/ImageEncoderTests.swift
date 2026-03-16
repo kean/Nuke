@@ -5,7 +5,8 @@
 import Testing
 @testable import Nuke
 
-@Suite struct ImageEncoderTests {
+@Suite(.timeLimit(.minutes(2)))
+struct ImageEncoderTests {
     @Test func encodeImage() throws {
         // Given
         let image = Test.image
