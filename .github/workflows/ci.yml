@@ -21,6 +21,10 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "iPhone 17 Pro"
+          xcrun simctl bootstatus "iPhone 17 Pro" -b
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=iPhone 17 Pro"
@@ -47,6 +51,10 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "Apple TV"
+          xcrun simctl bootstatus "Apple TV" -b
       - name: Run Tests
         run: |
           .scripts/test.sh -s "Nuke" -d "OS=26.2,name=Apple TV"
