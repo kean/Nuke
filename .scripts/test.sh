@@ -23,5 +23,5 @@ xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}"
 for destination in "${destinations[@]}";
 do
 	echo "\nRunning tests for destination: $destination"
-	xcodebuild test-without-building -scheme "$scheme" -destination "$destination"
+	xcodebuild test-without-building -scheme "$scheme" -destination "$destination" -maximum-parallel-testing-workers 2
 done
