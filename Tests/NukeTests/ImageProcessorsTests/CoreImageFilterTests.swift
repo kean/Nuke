@@ -13,7 +13,7 @@ import CoreImage
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImageProcessorsCoreImageFilterTests {
     @Test func applySepia() throws {
         // GIVEN

@@ -13,7 +13,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
 
     @Mutex var createdTaskCount = 0
     var results = [URL: Result<(Data, URLResponse), NSError>]()
-    let queue = OperationQueue()
+    let queue = Gate()
     var isSuspended: Bool {
         get { queue.isSuspended }
         set { queue.isSuspended = newValue }
@@ -37,7 +37,8 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
                     NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
                 }
             }
-            let operation = BlockOperation {
+            Task {
+                await self.queue.wait()
                 if let result = self.results[request.url!] {
                     switch result {
                     case let .success(val):
@@ -55,7 +56,6 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
                     continuation.finish()
                 }
             }
-            self.queue.addOperation(operation)
         }
 
         if Task.isCancelled {
@@ -68,5 +68,43 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
         return (stream, response)
+    }
+}
+
+/// A Swift-concurrency-native suspension gate. Replaces OperationQueue to avoid
+/// starving GCD's thread pool when many concurrent async tests are running.
+final class Gate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _isSuspended = false
+    private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+
+    var isSuspended: Bool {
+        get { lock.withLock { _isSuspended } }
+        set {
+            let toResume = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
+                _isSuspended = newValue
+                guard !newValue else { return [] }
+                defer { waiters.removeAll() }
+                return Array(waiters.values)
+            }
+            for c in toResume { c.resume() }
+        }
+    }
+
+    func wait() async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                lock.withLock {
+                    if _isSuspended {
+                        waiters[id] = continuation
+                    } else {
+                        continuation.resume()
+                    }
+                }
+            }
+        } onCancel: {
+            lock.withLock { waiters.removeValue(forKey: id) }?.resume()
+        }
     }
 }

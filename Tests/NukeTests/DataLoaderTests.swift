@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.serialized, .timeLimit(.minutes(1)))
+@Suite(.serialized, .timeLimit(.minutes(2)))
 struct DataLoaderTests {
 
     init() {

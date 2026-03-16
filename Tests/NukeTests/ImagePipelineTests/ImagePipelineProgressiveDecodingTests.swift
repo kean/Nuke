@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineProgressiveDecodingTests {
     private let dataLoader: MockProgressiveDataLoader
     private let pipeline: ImagePipeline

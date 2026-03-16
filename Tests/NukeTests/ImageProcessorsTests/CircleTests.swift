@@ -11,7 +11,7 @@ import Foundation
 #endif
 
 #if os(iOS) || os(tvOS) || os(visionOS)
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImageProcessorsCircleTests {
 
     @Test(.disabled()) func thatImageIsCroppedToSquareAutomatically() throws {

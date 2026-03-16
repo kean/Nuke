@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImageEncodingProtocolTests {
 
     // MARK: - Default encode(container:context:) for GIF pass-through

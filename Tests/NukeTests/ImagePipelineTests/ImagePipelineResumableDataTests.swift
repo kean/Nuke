@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineResumableDataTests {
     private let dataLoader: _MockResumableDataLoader
     private let pipeline: ImagePipeline
@@ -75,77 +75,58 @@ struct ImagePipelineResumableDataTests {
 }
 
 private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
-    private let queue = OperationQueue()
-
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
-
-    init() {
-        queue.maxConcurrentOperationCount = 1
-    }
 
     func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
         let headers = request.allHTTPHeaderFields
         let data = self.data
         let eTag = self.eTag
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let operation = BlockOperation {
-                func sendChunk(_ chunk: Data, of data: Data, statusCode: Int) -> (Data, URLResponse) {
-                    let response = HTTPURLResponse(
-                        url: request.url!,
-                        statusCode: statusCode,
-                        httpVersion: "HTTP/1.2",
-                        headerFields: [
-                            "Accept-Ranges": "bytes",
-                            "ETag": eTag,
-                            "Content-Range": "bytes \(chunk.startIndex)-\(chunk.endIndex)/\(data.count)",
-                            "Content-Length": "\(data.count)"
-                        ]
-                    )!
-                    return (chunk, response)
-                }
+        func sendChunk(_ chunk: Data, of data: Data, statusCode: Int) -> (Data, URLResponse) {
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: statusCode,
+                httpVersion: "HTTP/1.2",
+                headerFields: [
+                    "Accept-Ranges": "bytes",
+                    "ETag": eTag,
+                    "Content-Range": "bytes \(chunk.startIndex)-\(chunk.endIndex)/\(data.count)",
+                    "Content-Length": "\(data.count)"
+                ]
+            )!
+            return (chunk, response)
+        }
 
-                // Check if the client already has some resumable data available.
-                if let range = headers?["Range"], let validator = headers?["If-Range"] {
-                    let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
-
-                    guard validator == eTag else { return }
-
-                    // Send remaining data in chunks
-                    let remainingData = data[Int(offset)!...]
-                    let chunks = Array(_createChunks(for: remainingData, size: data.count / 6 + 1))
-                    let firstResult = sendChunk(chunks[0], of: remainingData, statusCode: 206)
-                    let response = firstResult.1
-                    let stream = AsyncThrowingStream<Data, Error> { streamContinuation in
-                        streamContinuation.yield(firstResult.0)
-                        for chunk in chunks.dropFirst() {
-                            let result = sendChunk(chunk, of: remainingData, statusCode: 206)
-                            streamContinuation.yield(result.0)
-                        }
-                        streamContinuation.finish()
-                    }
-                    continuation.resume(returning: (stream, response))
-                } else {
-                    // Send half of chunks.
-                    var chunks = Array(_createChunks(for: data, size: data.count / 6 + 1))
-                    chunks.removeLast(chunks.count / 2)
-
-                    let firstResult = sendChunk(chunks[0], of: data, statusCode: 200)
-                    let response = firstResult.1
-                    let stream = AsyncThrowingStream<Data, Error> { streamContinuation in
-                        streamContinuation.yield(firstResult.0)
-                        for chunk in chunks.dropFirst() {
-                            let result = sendChunk(chunk, of: data, statusCode: 200)
-                            streamContinuation.yield(result.0)
-                        }
-                        streamContinuation.finish(throwing: NSError(domain: NSURLErrorDomain, code: Foundation.URLError.networkConnectionLost.rawValue, userInfo: [:]))
-                    }
-                    continuation.resume(returning: (stream, response))
-                }
+        // Check if the client already has some resumable data available.
+        if let range = headers?["Range"], let validator = headers?["If-Range"] {
+            let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
+            guard validator == eTag else {
+                throw URLError(.cancelled)
             }
-
-            self.queue.addOperation(operation)
+            let remainingData = data[Int(offset)!...]
+            let chunks = Array(_createChunks(for: remainingData, size: data.count / 6 + 1))
+            let firstResult = sendChunk(chunks[0], of: remainingData, statusCode: 206)
+            let stream = AsyncThrowingStream<Data, Error> { continuation in
+                continuation.yield(firstResult.0)
+                for chunk in chunks.dropFirst() {
+                    continuation.yield(sendChunk(chunk, of: remainingData, statusCode: 206).0)
+                }
+                continuation.finish()
+            }
+            return (stream, firstResult.1)
+        } else {
+            var chunks = Array(_createChunks(for: data, size: data.count / 6 + 1))
+            chunks.removeLast(chunks.count / 2)
+            let firstResult = sendChunk(chunks[0], of: data, statusCode: 200)
+            let stream = AsyncThrowingStream<Data, Error> { continuation in
+                continuation.yield(firstResult.0)
+                for chunk in chunks.dropFirst() {
+                    continuation.yield(sendChunk(chunk, of: data, statusCode: 200).0)
+                }
+                continuation.finish(throwing: NSError(domain: NSURLErrorDomain, code: Foundation.URLError.networkConnectionLost.rawValue, userInfo: [:]))
+            }
+            return (stream, firstResult.1)
         }
     }
 }

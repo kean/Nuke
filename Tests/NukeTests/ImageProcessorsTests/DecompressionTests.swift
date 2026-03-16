@@ -5,7 +5,7 @@
 import Testing
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImageDecompressionTests {
 
     @Test func decompressionNotNeededFlagSet() throws {

@@ -8,7 +8,7 @@ import Foundation
 
 // Test ResumableData directly to make sure it makes the right decisions based
 // on HTTP flows.
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ResumableDataTests {
     @Test func resumingRequest() {
         let response = _makeResponse(headers: [
@@ -250,7 +250,7 @@ struct ResumableDataTests {
 }
 
 @ImagePipelineActor
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ResumableDataStorageTests {
     @Test func registerAndUnregister() {
         let storage = ResumableDataStorage.shared

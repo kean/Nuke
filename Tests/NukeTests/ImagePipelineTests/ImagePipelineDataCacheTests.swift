@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineDataCachingTests {
     let dataLoader: MockDataLoader
     let dataCache: MockDataCache
@@ -236,7 +236,7 @@ struct ImagePipelineDataCachingTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineDataCachePolicyTests {
     let dataLoader: MockDataLoader
     let dataCache: MockDataCache

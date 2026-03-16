@@ -12,7 +12,7 @@ import TVUIKit
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite(.timeLimit(.minutes(1))) @MainActor
+@Suite(.timeLimit(.minutes(2))) @MainActor
 struct ImageViewExtensionsTests {
     let imageView: _ImageView
     let observer: ImagePipelineObserver

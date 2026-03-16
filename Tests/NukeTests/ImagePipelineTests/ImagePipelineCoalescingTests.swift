@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineCoalescingTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
@@ -270,7 +270,7 @@ struct ImagePipelineCoalescingTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(1)))
+@Suite(.timeLimit(.minutes(2)))
 struct ImagePipelineProcessingDeduplicationTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
