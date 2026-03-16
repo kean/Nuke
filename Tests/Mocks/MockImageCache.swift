@@ -6,7 +6,7 @@ import Foundation
 import Nuke
 
 class MockImageCache: ImageCaching, @unchecked Sendable {
-    let queue = DispatchQueue(label: "com.github.Nuke.MockCache")
+    private let lock = NSLock()
     var enabled = true
     var images = [AnyHashable: ImageContainer]()
     var readCount = 0
@@ -21,13 +21,13 @@ class MockImageCache: ImageCaching, @unchecked Sendable {
 
     subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
-            queue.sync {
+            lock.withLock {
                 readCount += 1
                 return enabled ? images[key] : nil
             }
         }
         set {
-            queue.sync {
+            lock.withLock {
                 writeCount += 1
                 if let image = newValue {
                     if enabled { images[key] = image }
