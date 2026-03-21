@@ -90,7 +90,8 @@ public final class TaskQueue: Sendable {
     }
 
     private func drain() {
-        while !isSuspended && runningCount < maxConcurrentOperationCount && pendingCount > 0 {
+        guard !isSuspended else { return }
+        while runningCount < maxConcurrentOperationCount && pendingCount > 0 {
             guard let operation = dequeueHighestPriority() else { break }
             execute(operation)
         }
