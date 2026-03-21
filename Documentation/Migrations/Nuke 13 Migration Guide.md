@@ -141,16 +141,6 @@ case .finished(.failure(.cancelled)):
 
 The pipeline's work queues have changed type from `OperationQueue` to `TaskQueue`, a new custom type synchronized on `ImagePipelineActor`. It preserves some of the existing API signatures.
 
-```swift
-// Before (Nuke 12)
-configuration.dataLoadingQueue.maxConcurrentOperationCount = 4
-configuration.imageDecodingQueue.maxConcurrentOperationCount = 2
-
-// After (Nuke 13)
-configuration.dataLoadingQueue = TaskQueue(maxConcurrentOperationCount: 4)
-configuration.imageDecodingQueue = TaskQueue(maxConcurrentOperationCount: 2)
-```
-
 The deprecated `callbackQueue` and `dataCachingQueue` properties have been fully removed.
 
 ## Configuration: New Properties
