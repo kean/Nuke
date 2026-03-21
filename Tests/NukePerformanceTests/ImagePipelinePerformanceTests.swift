@@ -9,7 +9,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     /// A very broad test that establishes how long in general it takes to load
     /// data, decode, and decompress 50+ images. It's very useful to get a
     /// broad picture about how loader options affect performance.
-    func testLoaderOverallPerformance() {
+    @concurrent func testLoaderOverallPerformance() async {
         let pipeline = makePipeline()
 
         let requests = (0..<1000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
