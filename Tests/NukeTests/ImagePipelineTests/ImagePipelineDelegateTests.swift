@@ -183,8 +183,10 @@ private final class TrackingDataLoader: DataLoading, @unchecked Sendable {
         self.wrapped = loader
     }
 
-    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
         lastRequest = request
-        return try await wrapped.loadData(with: request)
+        return wrapped.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
     }
 }

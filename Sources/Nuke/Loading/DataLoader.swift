@@ -90,10 +90,14 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 #endif
     }()
 
-    public func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, any Swift.Error>, URLResponse) {
+    public func loadData(
+        with request: URLRequest,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Swift.Error?) -> Void
+    ) -> any Cancellable {
         let task = session.dataTask(with: request)
         task.prefersIncrementalDelivery = prefersIncrementalDelivery
-        return try await impl.loadData(with: task, session: session)
+        return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by ``DataLoader``.
@@ -123,19 +127,18 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     }
 
     /// Loads data with the given request.
-    func loadData(with task: URLSessionDataTask, session: URLSession) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
-        let handler = _Handler()
+    func loadData(
+        with task: URLSessionDataTask,
+        session: URLSession,
+        didReceiveData: @escaping (Data, URLResponse) -> Void,
+        completion: @escaping (Error?) -> Void
+    ) -> any Cancellable {
+        let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
-        return try await withTaskCancellationHandler {
-            try await withUnsafeThrowingContinuation { continuation in
-                handler.responseContinuation = continuation
-                task.resume()
-            }
-        } onCancel: {
-            task.cancel()
-        }
+        task.resume()
+        return AnonymousCancellable { task.cancel() }
     }
 
     // MARK: URLSessionDelegate
@@ -150,7 +153,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     }
 #endif
 
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: response, completionHandler: { _ in })
 
         guard let handler = handlers[dataTask] else {
@@ -158,21 +164,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             return
         }
         if let error = validate(response) {
-            handler.responseContinuation?.resume(throwing: error)
-            handler.responseContinuation = nil
+            handler.completion(error)
             completionHandler(.cancel)
             return
         }
-        let stream = AsyncThrowingStream<Data, Error> { continuation in
-            handler.streamContinuation = continuation
-            continuation.onTermination = { @Sendable reason in
-                if case .cancelled = reason {
-                    dataTask.cancel()
-                }
-            }
-        }
-        handler.responseContinuation?.resume(returning: (stream, response))
-        handler.responseContinuation = nil
         completionHandler(.allow)
     }
 
@@ -183,18 +178,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             return
         }
         handlers[task] = nil
-        if let streamContinuation = handler.streamContinuation {
-            // Response was already delivered; finish the stream.
-            if let error {
-                streamContinuation.finish(throwing: error)
-            } else {
-                streamContinuation.finish()
-            }
-        } else if let responseContinuation = handler.responseContinuation {
-            // Error before response (DNS failure, etc.)
-            responseContinuation.resume(throwing: error ?? URLError(.unknown))
-            handler.responseContinuation = nil
-        }
+        handler.completion(error)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
@@ -223,7 +207,12 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: data)
-        handlers[dataTask]?.streamContinuation?.yield(data)
+
+        guard let handler = handlers[dataTask], let response = dataTask.response else {
+            return
+        }
+        // Don't store data anywhere, just send it to the pipeline.
+        handler.didReceiveData(data, response)
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, willCacheResponse proposedResponse: CachedURLResponse, completionHandler: @Sendable @escaping (CachedURLResponse?) -> Void) {
@@ -234,7 +223,12 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     // MARK: Internal
 
     private final class _Handler: @unchecked Sendable {
-        var responseContinuation: UnsafeContinuation<(AsyncThrowingStream<Data, Error>, URLResponse), Error>?
-        var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
+        let didReceiveData: (Data, URLResponse) -> Void
+        let completion: (Error?) -> Void
+
+        init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
+            self.didReceiveData = didReceiveData
+            self.completion = completion
+        }
     }
 }

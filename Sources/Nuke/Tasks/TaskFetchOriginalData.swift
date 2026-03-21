@@ -91,15 +91,15 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
 
         do {
             urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
-            let (stream, response) = try await dataLoader.loadData(with: urlRequest)
 
-            guard !isDisposed else { return }
-
-            try dataTask(didReceiveResponse: response)
-
-            for try await chunk in stream {
+            var responseProcessed = false
+            for try await (chunk, urlResponse) in dataLoader.loadData(with: urlRequest) {
                 guard !isDisposed else { return }
-                try dataTask(didReceiveData: chunk, response: response)
+                if !responseProcessed {
+                    responseProcessed = true
+                    try dataTask(didReceiveResponse: urlResponse)
+                }
+                try dataTask(didReceiveData: chunk, response: urlResponse)
             }
 
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")

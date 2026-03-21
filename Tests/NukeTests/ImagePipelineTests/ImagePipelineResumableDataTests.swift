@@ -78,7 +78,9 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
         let headers = request.allHTTPHeaderFields
         let data = self.data
         let eTag = self.eTag
@@ -102,31 +104,25 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
         if let range = headers?["Range"], let validator = headers?["If-Range"] {
             let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
             guard validator == eTag else {
-                throw URLError(.cancelled)
+                completion(URLError(.cancelled))
+                return AnonymousCancellable {}
             }
             let remainingData = data[Int(offset)!...]
             let chunks = Array(_createChunks(for: remainingData, size: data.count / 6 + 1))
-            let firstResult = sendChunk(chunks[0], of: remainingData, statusCode: 206)
-            let stream = AsyncThrowingStream<Data, Error> { continuation in
-                continuation.yield(firstResult.0)
-                for chunk in chunks.dropFirst() {
-                    continuation.yield(sendChunk(chunk, of: remainingData, statusCode: 206).0)
-                }
-                continuation.finish()
+            for chunk in chunks {
+                let (chunkData, response) = sendChunk(chunk, of: remainingData, statusCode: 206)
+                didReceiveData(chunkData, response)
             }
-            return (stream, firstResult.1)
+            completion(nil)
         } else {
             var chunks = Array(_createChunks(for: data, size: data.count / 6 + 1))
             chunks.removeLast(chunks.count / 2)
-            let firstResult = sendChunk(chunks[0], of: data, statusCode: 200)
-            let stream = AsyncThrowingStream<Data, Error> { continuation in
-                continuation.yield(firstResult.0)
-                for chunk in chunks.dropFirst() {
-                    continuation.yield(sendChunk(chunk, of: data, statusCode: 200).0)
-                }
-                continuation.finish(throwing: NSError(domain: NSURLErrorDomain, code: Foundation.URLError.networkConnectionLost.rawValue, userInfo: [:]))
+            for chunk in chunks {
+                let (chunkData, response) = sendChunk(chunk, of: data, statusCode: 200)
+                didReceiveData(chunkData, response)
             }
-            return (stream, firstResult.1)
+            completion(NSError(domain: NSURLErrorDomain, code: Foundation.URLError.networkConnectionLost.rawValue, userInfo: [:]))
         }
+        return AnonymousCancellable {}
     }
 }

@@ -43,6 +43,14 @@ extension ImageRequest.Priority {
     }
 }
 
+struct AnonymousCancellable: Cancellable {
+    let onCancel: @Sendable () -> Void
+
+    func cancel() {
+        onCancel()
+    }
+}
+
 @concurrent func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
     closure()
 }

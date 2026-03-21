@@ -12,22 +12,26 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
-    private var streamContinuation: AsyncThrowingStream<Data, Error>.Continuation?
+    private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
+    private var _completion: (@Sendable (Error?) -> Void)?
 
     init() {
         self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
-    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
-        let stream = AsyncThrowingStream<Data, Error> { continuation in
-            self.streamContinuation = continuation
-        }
+    func loadData(
+        with request: URLRequest,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Error?) -> Void
+    ) -> any Cancellable {
+            self._didReceiveData = didReceiveData
+        self._completion = completion
         // Serve the first chunk immediately
         DispatchQueue.main.async {
             self.serveNextChunk()
         }
-        return (stream, urlResponse)
+        return _NoOpCancellable()
     }
 
     func resumeServingChunks(_ count: Int) {
@@ -39,9 +43,9 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     func serveNextChunk() {
         guard let chunk = chunks.first else { return }
         chunks.removeFirst()
-        streamContinuation?.yield(chunk)
+        _didReceiveData?(chunk, urlResponse)
         if chunks.isEmpty {
-            streamContinuation?.finish()
+            _completion?(nil)
         }
     }
 
@@ -50,12 +54,16 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
-                self.streamContinuation?.yield(chunk)
+                self._didReceiveData?(chunk, self.urlResponse)
                 if self.chunks.isEmpty {
-                    self.streamContinuation?.finish()
+                    self._completion?(nil)
                     completed()
                 }
             }
         }
     }
+}
+
+private final class _NoOpCancellable: Cancellable {
+    func cancel() {}
 }

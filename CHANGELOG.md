@@ -20,7 +20,6 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 
 - Replace the internal serial `DispatchQueue` with a `@globalActor` (`ImagePipelineActor`) for pipeline synchronization, making thread-safety compiler-enforced. The actor is public so that custom `ImagePipeline.Delegate` implementations can use it when needed to reduce thread hops
 - Replace `OperationQueue`-based scheduling with a custom `TaskQueue` synchronized on `ImagePipelineActor`. Background operations like image processing and decoding now run on the default Swift Concurrency executors, eliminating unnecessary thread hops. The entire pipeline is now a good Swift Concurrency citizen
-- Replace callback-based `DataLoading` protocol with async/await: `loadData(with:)` now returns `(AsyncThrowingStream<Data, Error>, URLResponse)`. Remove `Cancellable` protocol
 - Add typed throws (`throws(ImagePipeline.Error)`) to `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)`. Add `ImagePipeline.Error.cancelled` case. Cancellation now throws this instead of `CancellationError`.
 - Change `userInfo` type from `[UserInfoKey: Any]` to `[UserInfoKey: any Sendable]` in both `ImageRequest` and `ImageContainer`
 - Add `@MainActor @Sendable` to completion-based `loadImage`/`loadData` closure parameters

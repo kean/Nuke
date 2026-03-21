@@ -21,16 +21,15 @@ struct DataLoaderTests {
         registerMock(url: url, chunks: [body])
 
         let loader = makeDataLoader()
-        let request = URLRequest(url: url)
-        let (stream, response) = try await loader.loadData(with: request)
+        var response: URLResponse?
+        var received = Data()
+        for try await (chunk, resp) in loader.loadData(with: URLRequest(url: url)) {
+            response = resp
+            received.append(chunk)
+        }
 
         let httpResponse = try #require(response as? HTTPURLResponse)
         #expect(httpResponse.statusCode == 200)
-
-        var received = Data()
-        for try await chunk in stream {
-            received.append(chunk)
-        }
         #expect(received == body)
     }
 
@@ -42,10 +41,8 @@ struct DataLoaderTests {
         registerMock(url: url, chunks: [chunk1, chunk2, chunk3])
 
         let loader = makeDataLoader()
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-
         var chunks = [Data]()
-        for try await chunk in stream {
+        for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
             chunks.append(chunk)
         }
         let combined = chunks.reduce(Data(), +)
@@ -57,13 +54,8 @@ struct DataLoaderTests {
         registerMock(url: url, chunks: [])
 
         let loader = makeDataLoader()
-        let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
-
-        let httpResponse = try #require(response as? HTTPURLResponse)
-        #expect(httpResponse.statusCode == 200)
-
         var received = Data()
-        for try await chunk in stream {
+        for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
             received.append(chunk)
         }
         #expect(received.isEmpty)
@@ -74,13 +66,13 @@ struct DataLoaderTests {
         registerMock(url: url, headers: ["X-Custom": "value123"], chunks: [Data("x".utf8)])
 
         let loader = makeDataLoader()
-        let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
+        var response: URLResponse?
+        for try await (_, resp) in loader.loadData(with: URLRequest(url: url)) {
+            response = resp
+        }
 
         let httpResponse = try #require(response as? HTTPURLResponse)
         #expect(httpResponse.value(forHTTPHeaderField: "X-Custom") == "value123")
-
-        // Drain stream
-        for try await _ in stream {}
     }
 
     // MARK: - Validation
@@ -91,7 +83,7 @@ struct DataLoaderTests {
 
         let loader = makeDataLoader()
         do {
-            _ = try await loader.loadData(with: URLRequest(url: url))
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
             Issue.record("Expected validation error")
         } catch let error as DataLoader.Error {
             guard case .statusCodeUnacceptable(let code) = error else {
@@ -108,7 +100,7 @@ struct DataLoaderTests {
 
         let loader = makeDataLoader()
         do {
-            _ = try await loader.loadData(with: URLRequest(url: url))
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
             Issue.record("Expected validation error")
         } catch let error as DataLoader.Error {
             guard case .statusCodeUnacceptable(let code) = error else {
@@ -125,11 +117,11 @@ struct DataLoaderTests {
             registerMock(url: url, statusCode: statusCode, chunks: [Data("ok".utf8)])
 
             let loader = makeDataLoader()
-            let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
-
-            let httpResponse = try #require(response as? HTTPURLResponse)
-            #expect(httpResponse.statusCode == statusCode)
-            for try await _ in stream {}
+            var httpResponse: HTTPURLResponse?
+            for try await (_, response) in loader.loadData(with: URLRequest(url: url)) {
+                httpResponse = response as? HTTPURLResponse
+            }
+            #expect(httpResponse?.statusCode == statusCode)
         }
     }
 
@@ -139,9 +131,8 @@ struct DataLoaderTests {
 
         struct CustomError: Error {}
         let loader = makeDataLoader { _ in CustomError() }
-
         do {
-            _ = try await loader.loadData(with: URLRequest(url: url))
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
             Issue.record("Expected custom validation error")
         } catch {
             #expect(error is CustomError)
@@ -153,11 +144,11 @@ struct DataLoaderTests {
         registerMock(url: url, statusCode: 500, chunks: [Data("ok".utf8)])
 
         let loader = makeDataLoader { _ in nil }
-        let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
-
-        let httpResponse = try #require(response as? HTTPURLResponse)
-        #expect(httpResponse.statusCode == 500)
-        for try await _ in stream {}
+        var httpResponse: HTTPURLResponse?
+        for try await (_, response) in loader.loadData(with: URLRequest(url: url)) {
+            httpResponse = response as? HTTPURLResponse
+        }
+        #expect(httpResponse?.statusCode == 500)
     }
 
     // MARK: - Errors
@@ -168,7 +159,7 @@ struct DataLoaderTests {
 
         let loader = makeDataLoader()
         do {
-            _ = try await loader.loadData(with: URLRequest(url: url))
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
             Issue.record("Expected error")
         } catch {
             #expect((error as? URLError)?.code == .cannotFindHost)
@@ -181,20 +172,12 @@ struct DataLoaderTests {
         registerMockPartialFailure(url: url, data: partialData, error: URLError(.networkConnectionLost))
 
         let loader = makeDataLoader()
-
-        // URLProtocol delivers response + data + error synchronously, so
-        // URLSession may surface the error from `loadData` or the stream.
         do {
-            let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
             var received = Data()
-            do {
-                for try await chunk in stream {
-                    received.append(chunk)
-                }
-                Issue.record("Expected stream error")
-            } catch {
-                #expect((error as? URLError)?.code == .networkConnectionLost)
+            for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
+                received.append(chunk)
             }
+            Issue.record("Expected stream error")
         } catch {
             #expect((error as? URLError)?.code == .networkConnectionLost)
         }
@@ -205,7 +188,6 @@ struct DataLoaderTests {
     @Test func taskCancellationThrows() async throws {
         let url = mockURL("cancel")
         let started = TestExpectation()
-        // Handler that never completes — the task will be cancelled before it finishes
         MockURLProtocol.handlers[url] = .init { _, client, proto in
             let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)!
             client.urlProtocol(proto, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -215,11 +197,10 @@ struct DataLoaderTests {
 
         let loader = makeDataLoader()
         let task = Task {
-            let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-            for try await _ in stream {}
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
+            try Task.checkCancellation()
         }
 
-        // Wait for the request to actually start, then cancel
         await started.wait()
         task.cancel()
 
@@ -229,7 +210,6 @@ struct DataLoaderTests {
         } catch is CancellationError {
             // Expected
         } catch {
-            // URLError.cancelled is also acceptable
             #expect((error as? URLError)?.code == .cancelled)
         }
     }
@@ -242,9 +222,7 @@ struct DataLoaderTests {
 
         let loader = makeDataLoader()
         #expect(loader.prefersIncrementalDelivery == false)
-
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-        for try await _ in stream {}
+        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
     }
 
     // MARK: - Static Validation Helper
@@ -282,7 +260,6 @@ struct DataLoaderTests {
     @Test func loadLargeData() async throws {
         let url = mockURL("large")
         let largeData = Data(repeating: 0xAB, count: 1_000_000)
-        // Split into multiple chunks
         let chunkSize = 100_000
         var chunks = [Data]()
         var offset = 0
@@ -294,10 +271,8 @@ struct DataLoaderTests {
         registerMock(url: url, chunks: chunks)
 
         let loader = makeDataLoader()
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-
         var received = Data()
-        for try await chunk in stream {
+        for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
             received.append(chunk)
         }
         #expect(received == largeData)
@@ -310,17 +285,15 @@ struct DataLoaderTests {
 
         for i in 0..<5 {
             let url = mockURL("concurrent-\(i)")
-            let body = Data("response-\(i)".utf8)
-            registerMock(url: url, chunks: [body])
+            registerMock(url: url, chunks: [Data("response-\(i)".utf8)])
         }
 
         try await withThrowingTaskGroup(of: (Int, Data).self) { group in
             for i in 0..<5 {
                 let url = mockURL("concurrent-\(i)")
                 group.addTask {
-                    let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
                     var data = Data()
-                    for try await chunk in stream {
+                    for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
                         data.append(chunk)
                     }
                     return (i, data)
@@ -342,10 +315,8 @@ struct DataLoaderTests {
         let spy = SpyURLSessionDelegate()
         loader.delegate = spy
 
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-        for try await _ in stream {}
+        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
 
-        // Drain the delegate queue to ensure all callbacks have been processed
         await withCheckedContinuation { continuation in
             loader.session.delegateQueue.addBarrierBlock {
                 continuation.resume()
@@ -365,8 +336,7 @@ struct DataLoaderTests {
         let spy = SpyURLSessionDelegate()
         loader.delegate = spy
 
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-        for try await _ in stream {}
+        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
 
         await withCheckedContinuation { continuation in
             loader.session.delegateQueue.addBarrierBlock {
@@ -387,10 +357,11 @@ struct DataLoaderTests {
         config.protocolClasses = [MockURLProtocol.self]
         let loader = DataLoader(configuration: config)
 
-        let (stream, response) = try await loader.loadData(with: URLRequest(url: url))
-        let httpResponse = try #require(response as? HTTPURLResponse)
-        #expect(httpResponse.statusCode == 200)
-        for try await _ in stream {}
+        var httpResponse: HTTPURLResponse?
+        for try await (_, response) in loader.loadData(with: URLRequest(url: url)) {
+            httpResponse = response as? HTTPURLResponse
+        }
+        #expect(httpResponse?.statusCode == 200)
     }
 
     @Test func initWithDefaultValidationRejectsNon2xx() async throws {
@@ -402,7 +373,7 @@ struct DataLoaderTests {
         let loader = DataLoader(configuration: config)
 
         do {
-            _ = try await loader.loadData(with: URLRequest(url: url))
+            for try await _ in loader.loadData(with: URLRequest(url: url)) {}
             Issue.record("Expected validation error")
         } catch {
             #expect(error is DataLoader.Error)
@@ -441,8 +412,7 @@ struct DataLoaderTests {
         let spy = SpyURLSessionDelegate()
         loader.delegate = spy
 
-        let (stream, _) = try await loader.loadData(with: URLRequest(url: url))
-        for try await _ in stream {}
+        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
 
         await withCheckedContinuation { continuation in
             loader.session.delegateQueue.addBarrierBlock {
@@ -467,11 +437,9 @@ struct DataLoaderTests {
         }
 
         let loader = makeDataLoader { _ in nil }
-
         do {
-            let (stream, _) = try await loader.loadData(with: URLRequest(url: sourceURL))
             var received = Data()
-            for try await chunk in stream {
+            for try await (chunk, _) in loader.loadData(with: URLRequest(url: sourceURL)) {
                 received.append(chunk)
             }
             #expect(received == Data("redirected".utf8))

@@ -10,32 +10,6 @@ The minimum supported platforms have been raised.
 - Xcode 26.0
 - Swift 6.2
 
-## DataLoading Protocol
-
-The `DataLoading` protocol has been rewritten to use async/await and `AsyncThrowingStream` instead of callbacks. The `Cancellable` protocol has been removed.
-
-```swift
-// Before (Nuke 12)
-public protocol DataLoading: Sendable {
-    func loadData(
-        with request: URLRequest,
-        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
-        completion: @escaping @Sendable (Error?) -> Void
-    ) -> any Cancellable
-}
-
-public protocol Cancellable: AnyObject, Sendable {
-    func cancel()
-}
-
-// After (Nuke 13)
-public protocol DataLoading: Sendable {
-    func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse)
-}
-```
-
-If you have a custom `DataLoading` implementation, update it to return an `AsyncThrowingStream` that delivers data chunks, along with the initial `URLResponse`. The built-in `DataLoader` has been updated accordingly.
-
 ## Typed Throws
 
 `ImageTask.image`, `ImageTask.response`, `ImagePipeline.image(for:)`, and `ImagePipeline.data(for:)` now use typed throws (`throws(ImagePipeline.Error)`). Two new error cases have also been added:

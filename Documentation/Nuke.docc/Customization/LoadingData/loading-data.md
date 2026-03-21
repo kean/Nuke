@@ -82,38 +82,31 @@ public class AlamofireDataLoader: Nuke.DataLoading {
     // MARK: DataLoading
 
     /// Loads data using Alamofire.SessionManager.
-    public func loadData(with request: URLRequest) async throws -> (AsyncThrowingStream<Data, Error>, URLResponse) {
+    public func loadData(
+        with request: URLRequest,
+        didReceiveData: @escaping @Sendable @escaping (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable @escaping (Error?) -> Void
+    ) -> any Cancellable {
         let task = self.session.streamRequest(request)
-
-        let response = try await withCheckedThrowingContinuation { continuation in
-            task.onHTTPResponse { response in
-                continuation.resume(returning: response)
-            }
-        }
-
-        let stream = AsyncThrowingStream<Data, Error> { streamContinuation in
-            streamContinuation.onTermination = { @Sendable _ in
-                task.cancel()
-            }
-            task.responseStream { stream in
-                switch stream.event {
-                case let .stream(result):
-                    switch result {
-                    case let .success(data):
-                        streamContinuation.yield(data)
-                    }
-                case let .complete(completion):
-                    if let error = completion.error {
-                        streamContinuation.finish(throwing: error)
-                    } else {
-                        streamContinuation.finish()
+        task.responseStream { [weak task] stream in
+            switch stream.event {
+            case let .stream(result):
+                switch result {
+                case let .success(data):
+                    if let response = task?.response {
+                        didReceiveData(data, response)
                     }
                 }
+            case let .complete(response):
+                completion(response.error)
             }
         }
-        return (stream, response)
+        .resume()
+        return task
     }
 }
+
+extension Alamofire.Request: Nuke.Cancellable {}
 ```
 
 ## Topics
