@@ -31,7 +31,7 @@ struct RateLimiterTests {
         #expect(isExecuted == [true, true, true, false], "Expect first 2 items to be executed immediately")
     }
 
-    @Test(.disabled("Deadlocks on @ImagePipelineActor with withUnsafeContinuation — iOS 26.2")) func overflow() async {
+    @Test func overflow() async {
         let count = 3
         await confirmation(expectedCount: count) { done in
             for _ in 0..<count {
