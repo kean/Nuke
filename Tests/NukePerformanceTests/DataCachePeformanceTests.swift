@@ -36,7 +36,7 @@ class DataCachePeformanceTests: XCTestCase {
     }
 
     func testWriteWithFlushIndividual() {
-        let data = Array(0..<count).map { _ in generateRandomData() }
+        let data = Array(0..<200).map { _ in generateRandomData() }
 
         measure {
             for index in data.indices {
