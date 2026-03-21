@@ -74,7 +74,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The reason filenames need to be generated is that filesystems have a
     /// size limit for filenames (e.g. 255 UTF-8 characters in APFS) and do not
     /// allow certain characters.
-    public typealias FilenameGenerator = (_ key: String) -> String?
+    public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
     private let filenameGenerator: FilenameGenerator
 
@@ -82,7 +82,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
-    public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
+    public convenience init(name: String, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
         // This should be replaced with URL.cachesDirectory on iOS 16, which never fails
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
@@ -93,7 +93,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Creates a cache instance with a given path.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
-    public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
+    public init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
         self.path = path
         self.filenameGenerator = filenameGenerator
         try self.didInit()
@@ -101,9 +101,9 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     init(
         name: String,
-        filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:),
+        filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:),
         sweepDelay: DispatchTimeInterval,
-        onSweepCompleted: @escaping @Sendable () -> Void
+        onSweepCompleted: @Sendable @escaping () -> Void
     ) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
