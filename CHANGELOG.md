@@ -1,6 +1,8 @@
 # Nuke 13
 
-## Nuke 13.0 (WIP)
+## Nuke 13.0
+
+*Mar 22, 2026*
 
 Nuke 13 achieves full Data Race Safety by migrating all pipeline work to Swift Concurrency, replacing `DispatchQueue` and `OperationQueue` with a `@globalActor`-based synchronization model. It also ships over 10 new APIs, including progressive preview policies, a `willLoadData` auth hook, memory size limits, and type-safe `ImageRequest` properties.
 
@@ -73,7 +75,7 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 - Fix `ImageDecoders.Video.decode(_:)` returning an empty image instead of a video thumbnail — https://github.com/kean/Nuke/issues/811
 - Fix `VideoPlayerView` accumulating duplicate `AVPlayerItemDidPlayToEndTime` observers on each `play()`/`reset()` cycle, causing `onVideoFinished` to fire multiple times — https://github.com/kean/Nuke/issues/818
 
-## Nuke 12.9.0
+## Nuke 12.9
 
 *Feb 22, 2026*
 
@@ -87,7 +89,7 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 - Remove some `@unchecked` markers from `Sendable` types for better Data Race Safety checking
 - Fix an issue with `DataCache` not touching `.contentAccessDate` when accessing files
 
-## Nuke 12.8.0
+## Nuke 12.8
 
 *Jul 13, 2024*
 
