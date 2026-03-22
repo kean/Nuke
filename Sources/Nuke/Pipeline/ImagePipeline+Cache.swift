@@ -253,8 +253,11 @@ extension ImagePipeline.Cache {
             self.rawValue = rawValue
         }
 
+        /// In-memory image cache (see ``ImageCaching``).
         public static let memory = Caches(rawValue: 1 << 0)
+        /// Disk data cache (see ``DataCaching``).
         public static let disk = Caches(rawValue: 1 << 1)
+        /// Both memory and disk caches.
         public static let all: Caches = [.memory, .disk]
     }
 }

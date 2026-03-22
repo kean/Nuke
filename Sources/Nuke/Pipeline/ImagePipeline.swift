@@ -94,7 +94,7 @@ public final class ImagePipeline: Sendable {
         Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }
 
-    /// A convenience way to initialize the pipeline with a closure.
+    /// A convenient way to initialize the pipeline with a closure.
     ///
     /// Example usage:
     ///

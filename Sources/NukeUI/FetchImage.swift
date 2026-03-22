@@ -94,7 +94,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: Loading Images
 
-    /// Loads an image with the given request.
+    /// Loads an image with the given URL.
     public func load(_ url: URL?) {
         load(url.map { ImageRequest(url: $0) })
     }

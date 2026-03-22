@@ -108,7 +108,7 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// with the selected animation.
 ///
 /// - parameters:
-///   - request: The image request. If `nil`, it's handled as a failure scenario.
+///   - url: The image URL. If `nil`, it's handled as a failure scenario.
 ///   - options: `ImageLoadingOptions.shared` by default.
 ///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
 ///   the associated request automatically gets canceled.

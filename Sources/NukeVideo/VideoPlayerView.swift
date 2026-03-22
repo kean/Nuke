@@ -11,6 +11,10 @@ public typealias _PlatformBaseView = NSView
 public typealias _PlatformBaseView = UIView
 #endif
 
+/// A view that plays video content using AVKit.
+///
+/// Use ``asset`` to set the video to play and ``play()`` to start playback.
+/// The view loops video by default and is muted.
 @MainActor
 public final class VideoPlayerView: _PlatformBaseView {
     // MARK: Configuration
@@ -41,6 +45,7 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     // MARK: Initialization
 
+    /// The underlying player layer. Created lazily on first access.
     public var playerLayer: AVPlayerLayer {
         if let layer = _playerLayer {
             return layer
@@ -93,12 +98,15 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     private var playerObserver: AnyObject?
 
+    /// Stops playback and removes the current player, releasing associated resources.
     public func reset() {
         _playerLayer?.player = nil
         player = nil
         playerObserver = nil
     }
 
+    /// The video asset to play. Setting a new asset prepares the view for playback;
+    /// call ``play()`` to start.
     public var asset: AVAsset? {
         didSet { assetDidChange() }
     }
@@ -134,11 +142,16 @@ public final class VideoPlayerView: _PlatformBaseView {
 #endif
     }
 
+    /// Seeks to the beginning and resumes playback.
     public func restart() {
         player?.seek(to: CMTime.zero)
         player?.play()
     }
 
+    /// Creates a player for the current ``asset`` and starts playback.
+    ///
+    /// The video is muted and set to loop by default. Playback begins once the
+    /// player item is ready.
     public func play() {
         guard let asset else {
             return

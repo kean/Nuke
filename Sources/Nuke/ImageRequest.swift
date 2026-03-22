@@ -181,7 +181,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///
     /// ```swift
     /// let request = ImageRequest(
-    ///     url: URLRequest(url: URL(string: "http://...")),
+    ///     urlRequest: URLRequest(url: URL(string: "http://...")),
     ///     processors: [.resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )

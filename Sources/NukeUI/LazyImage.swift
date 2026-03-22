@@ -49,9 +49,11 @@ public struct LazyImage<Content: View>: View {
     /// Loads an image and displays custom content for each state.
     ///
     /// See also ``init(request:transaction:content:)``
-    public init(url: URL?,
-                transaction: Transaction = Transaction(animation: nil),
-                @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(
+        url: URL?,
+        transaction: Transaction = Transaction(animation: nil),
+        @ViewBuilder content: @escaping (LazyImageState) -> Content
+    ) {
         self.init(request: url.map { ImageRequest(url: $0) }, transaction: transaction, content: content)
     }
 
@@ -59,6 +61,7 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - request: The image request.
+    ///   - transaction: By default, transaction with no animations.
     ///   - content: The view to show for each of the image loading states.
     ///
     /// ```swift
@@ -72,9 +75,11 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(request: ImageRequest?,
-                transaction: Transaction = Transaction(animation: nil),
-                @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(
+        request: ImageRequest?,
+        transaction: Transaction = Transaction(animation: nil),
+        @ViewBuilder content: @escaping (LazyImageState) -> Content
+    ) {
         self.context = request.map { LazyImageContext(request: $0) }
         self.transaction = transaction
         self.makeContent = content
@@ -100,6 +105,7 @@ public struct LazyImage<Content: View>: View {
         map { $0.pipeline = pipeline }
     }
 
+    /// Defines the behavior when the view disappears.
     @frozen public enum DisappearBehavior {
         /// Cancels the current request but keeps the presentation state of
         /// the already displayed image.
@@ -113,7 +119,8 @@ public struct LazyImage<Content: View>: View {
         map { $0.onStart = closure }
     }
 
-    /// Override the behavior on disappear. By default, the view is reset.
+    /// Changes the behavior when the view disappears. By default, the current
+    /// request is canceled. Pass `nil` to disable any behavior on disappear.
     public consuming func onDisappear(_ behavior: DisappearBehavior?) -> Self {
         map { $0.onDisappearBehavior = behavior }
     }

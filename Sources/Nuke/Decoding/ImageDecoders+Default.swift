@@ -39,8 +39,11 @@ extension ImageDecoders {
         /// must run on the decoding queue rather than blocking the pipeline queue.
         public var isAsynchronous: Bool { thumbnail != nil }
 
+        /// Initializes the decoder with default settings.
         public init() { }
 
+        /// Initializes the decoder from the given decoding context, reading the
+        /// request's scale, thumbnail options, preview policy, and size limit.
         public init?(context: ImageDecodingContext) {
             self.scale = CGFloat(context.request.scale)
             self.thumbnail = context.request.thumbnail

@@ -82,8 +82,12 @@ extension ImageProcessing where Self: Hashable {
 /// whether the response is the final (fully downloaded) image or a progressive
 /// preview.
 public struct ImageProcessingContext: Sendable {
+    /// The request that initiated the image load.
     public var request: ImageRequest
+    /// The current image response being processed.
     public var response: ImageResponse
+    /// `true` when this is the final (fully downloaded) image; `false` for
+    /// progressive previews.
     public var isCompleted: Bool
 
     public init(request: ImageRequest, response: ImageResponse, isCompleted: Bool) {

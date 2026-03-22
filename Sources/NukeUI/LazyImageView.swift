@@ -107,6 +107,7 @@ public final class LazyImageView: _PlatformBaseView {
     /// Returns the underlying image view.
     public let imageView = NSImageView()
 #else
+    /// Returns the underlying image view.
     public let imageView = UIImageView()
 #endif
 

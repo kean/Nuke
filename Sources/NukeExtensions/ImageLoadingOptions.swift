@@ -144,6 +144,7 @@ public struct ImageLoadingOptions {
     ///   performed when displaying a failure image.
     ///   - contentModes: Content modes to be used for each image type
     ///   (placeholder, success, failure).
+    ///   - tintColors: By default, `nil`.
     public init(placeholder: UIImage? = nil, transition: Transition? = nil, failureImage: UIImage? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil, tintColors: TintColors? = nil) {
         self.placeholder = placeholder
         self.transition = transition
@@ -155,6 +156,14 @@ public struct ImageLoadingOptions {
 
 #elseif os(macOS)
 
+    /// - parameters:
+    ///   - placeholder: Placeholder to be displayed when the image is loading.
+    ///   - transition: The image transition animation performed when
+    ///   displaying a loaded image. Only runs when the image was not found in
+    ///   memory cache.
+    ///   - failureImage: Image to be displayed when the request fails.
+    ///   - failureImageTransition: The image transition animation
+    ///   performed when displaying a failure image.
     public init(placeholder: NSImage? = nil, transition: Transition? = nil, failureImage: NSImage? = nil, failureImageTransition: Transition? = nil) {
         self.placeholder = placeholder
         self.transition = transition
