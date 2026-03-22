@@ -75,6 +75,7 @@ extension ImagePipeline {
         ///   a processed or re-encoded image.
         ///   - image: Non-nil in case storing an encoded image.
         ///   - request: The request for which image is being stored.
+        ///   - pipeline: The pipeline that is about to store the data.
         ///   - completion: The implementation must call the completion closure
         ///   passing `non-nil` data to enable caching or `nil` to prevent it. You can
         ///   safely call it synchronously. The callback gets called on the background

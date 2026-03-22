@@ -64,9 +64,31 @@ If the data task is terminated when the image is partially loaded (either becaus
 
 ## Custom Networking Layer
 
-If you'd like to use Alamofire for networking, it's easy to do thanks to an [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to load image data using [Alamofire.SessionManager](https://github.com/Alamofire/Alamofire).
+If you'd like to use some other networking library or custom code, implement the ``DataLoading`` protocol.
 
-If you'd like to use some other networking library or use your custom code, all you need to do is implement the ``DataLoading`` protocol consisting of a single method.
+### The DataLoading Protocol Contract
+
+``DataLoading`` has a single method:
+
+```swift
+func loadData(
+    with request: URLRequest,
+    didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+    completion: @escaping @Sendable (Error?) -> Void
+) -> any Cancellable
+```
+
+**Threading:** `didReceiveData` and `completion` can be called on any thread.
+
+**Incremental delivery:** Call `didReceiveData` each time a new chunk arrives. Nuke uses these chunks for progressive decoding. Each call must include a `URLResponse` — pass the response you received from the first chunk onward.
+
+**Completion:** Call `completion` exactly once when the load finishes. Pass `nil` on success, or an `Error` on failure. Do not call `didReceiveData` after calling `completion`.
+
+**Cancellation:** Return a `Cancellable` whose `cancel()` method stops the underlying task and ensures neither `didReceiveData` nor `completion` are called after cancellation.
+
+### Alamofire Example
+
+An [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) is available, but here is how a minimal implementation looks to illustrate the protocol contract:
 
 ```swift
 /// Implements data loading using Alamofire framework.
@@ -84,8 +106,8 @@ public class AlamofireDataLoader: Nuke.DataLoading {
     /// Loads data using Alamofire.SessionManager.
     public func loadData(
         with request: URLRequest,
-        didReceiveData: @escaping @Sendable @escaping (Data, URLResponse) -> Void,
-        completion: @escaping @Sendable @escaping (Error?) -> Void
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
         let task = self.session.streamRequest(request)
         task.responseStream { [weak task] stream in

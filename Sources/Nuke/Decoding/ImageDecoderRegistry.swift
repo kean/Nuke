@@ -19,9 +19,6 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
 
     /// Returns a decoder that matches the given context.
     public func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
-        lock.lock()
-        defer { lock.unlock() }
-
         for match in matches.reversed() {
             if let decoder = match(context) {
                 return decoder
@@ -38,18 +35,12 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// including progressively decoded images. If the decoder doesn't support
     /// progressive decoding, return `nil` when `isCompleted` is `false`.
     public func register(_ match: @escaping (ImageDecodingContext) -> (any ImageDecoding)?) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        matches.append(match)
+        lock.withLock { matches.append(match) }
     }
 
     /// Removes all registered decoders.
     public func clear() {
-        lock.lock()
-        defer { lock.unlock() }
-
-        matches = []
+        lock.withLock { matches = [] }
     }
 }
 

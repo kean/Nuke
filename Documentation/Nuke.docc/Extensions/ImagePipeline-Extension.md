@@ -17,13 +17,13 @@ You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Conf
 
 ## Loading Images
 
-Use ``ImagePipeline/image(for:)-4akzh`` that works with both `URL` and ``ImageRequest`` and returns an image.
+Use ``ImagePipeline/image(for:)-(URL)`` (or the ``ImageRequest`` overload) to load an image.
 
 ```swift
 let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image. You can use ``AsyncImageTask`` to cancel the request, change the priority of the running task, and observe its progress.
+Alternatively, you can create an ``ImageTask`` and access its ``ImageTask/image`` or ``ImageTask/response`` to fetch the image. You can use ``ImageTask`` to cancel the request, change the priority of the running task, and observe its progress.
 
 ```swift
 final class AsyncImageView: UIImageView {
@@ -110,29 +110,26 @@ If progressive decoding is enabled, the pipeline attempts to produce previews as
 
 ### Loading Images (Async/Await)
 
-- ``image(for:)-4akzh``
-- ``image(for:)-9egg6``
-- ``imageTask(with:)-7s0fc``
-- ``imageTask(with:)-6aagk``
+- ``image(for:)-(URL)``
+- ``image(for:)-(ImageRequest)``
+- ``imageTask(with:)-(URL)``
+- ``imageTask(with:)-(ImageRequest)``
 
 ### Loading Images (Combine)
 
-- ``imagePublisher(with:)-8j2bd``
-- ``imagePublisher(with:)-3pzm6``
+- ``imagePublisher(with:)-(URL)``
+- ``imagePublisher(with:)-(ImageRequest)``
 
 ### Loading Images (Closures)
 
-- ``loadImage(with:completion:)-6q74f``
-- ``loadImage(with:completion:)-43osv``
-- ``loadImage(with:queue:progress:completion:)``
+- ``loadImage(with:completion:)-(URL,_)``
+- ``loadImage(with:completion:)-(ImageRequest,_)``
+- ``loadImage(with:progress:completion:)``
 
 ### Loading Data
 
-- ``data(for:)-86rhw``
-- ``data(for:)-54h5g``
-- ``loadData(with:completion:)-815rt``
-- ``loadData(with:completion:)-6cwk3``
-- ``loadData(with:queue:progress:completion:)``
+- ``data(for:)``
+- ``loadData(with:completion:)``
 
 ### Accessing Cached Images
 

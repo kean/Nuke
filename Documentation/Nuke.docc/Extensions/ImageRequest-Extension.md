@@ -10,6 +10,18 @@ request.processors = [.resize(width: 320)]
 
 > Tip: See <doc:image-processing> for more information on image processing.
 
+## Cache Policy Options
+
+``ImageRequest/Options-swift.struct`` is an `OptionSet` that controls how the pipeline interacts with its cache layers. By default, all caching is active.
+
+```swift
+// Always reload from the network, ignoring Nuke's caches
+let request = ImageRequest(url: url, options: [.reloadIgnoringCachedData])
+
+// Only return a cached result; don't go to the network
+let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
+```
+
 ## Topics
 
 ### Initializers

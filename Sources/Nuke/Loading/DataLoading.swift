@@ -6,6 +6,7 @@ import Foundation
 
 /// Fetches original image data.
 public protocol DataLoading: Sendable {
+    /// - parameter request: The URL request to load.
     /// - parameter didReceiveData: Can be called multiple times if streaming
     /// is supported.
     /// - parameter completion: Must be called once after all (or none in case

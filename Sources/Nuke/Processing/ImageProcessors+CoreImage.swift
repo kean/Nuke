@@ -37,6 +37,8 @@ extension ImageProcessors {
 
         /// Initializes the processor with a name of the `CIFilter` and its parameters.
         ///
+        /// - parameter name: The name of the `CIFilter` to apply.
+        /// - parameter parameters: The parameters for the filter.
         /// - parameter identifier: Uniquely identifies the processor.
         public init(name: String, parameters: [String: Any], identifier: String) {
             self.filter = .named(name, parameters: parameters)
@@ -51,6 +53,7 @@ extension ImageProcessors {
 
         /// Initializes the processor with the given `CIFilter`.
         ///
+        /// - parameter filter: The `CIFilter` to apply.
         /// - parameter identifier: Uniquely identifies the processor.
         public init(_ filter: CIFilter, identifier: String) {
             self.filter = .custom(filter)

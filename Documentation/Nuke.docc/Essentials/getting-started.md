@@ -4,13 +4,13 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:)-4akzh`` returning an image.
+``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:)-(URL)`` returning an image.
 
 ```swift
 let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-To get more control over the download, use ``ImagePipeline/imageTask(with:)-7s0fc`` to create an ``AsyncImageTask`` and then access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to receive the image.
+To get more control over the download, use ``ImagePipeline/imageTask(with:)-(URL)`` to create an ``ImageTask`` and then access its ``ImageTask/image`` or ``ImageTask/response`` to receive the image.
 
 ```swift
 func loadImage() async throws {
@@ -70,7 +70,7 @@ To optimize performance, you need to be able to monitor it. And that's where [Pu
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
 ```
 
-## NukeUI
+## UI Components
 
 **NukeUI** is a module that provides async image views for SwiftUI, UIKit, and AppKit.
 
@@ -83,3 +83,11 @@ struct ContainerView: View {
 ```
 
 Learn more in NukeUI [documentation](https://kean-docs.github.io/nukeui/documentation/nukeui/).
+
+## Next Steps
+
+- **<doc:swiftui>** — Use `LazyImage` and `FetchImage` in SwiftUI apps
+- **<doc:uikit>** — Load images into `UIImageView` and handle cell reuse
+- **<doc:caching>** — Understand the three cache layers and how to configure them
+- **<doc:performance-guide>** — Prefetching, decompression, coalescing, and more
+- **<doc:image-processing>** — Resize, blur, and apply custom processors

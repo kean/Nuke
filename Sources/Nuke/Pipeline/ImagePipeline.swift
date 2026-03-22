@@ -106,8 +106,8 @@ public final class ImagePipeline: Sendable {
     /// ```
     ///
     /// - parameters:
-    ///   - configuration: The pipeline configuration.
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
+    ///   - configure: A closure to configure the pipeline.
     nonisolated public convenience init(delegate: (any ImagePipeline.Delegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)

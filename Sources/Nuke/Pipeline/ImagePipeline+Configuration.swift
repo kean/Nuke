@@ -244,7 +244,7 @@ extension ImagePipeline {
         /// - note: Store only processed images for local resources (file:// or
         /// data:// URL scheme).
         ///
-        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)-6cwk3``
+        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)``
         /// method will not store the images in the disk cache for requests with
         /// any processors applied – this method only loads data and doesn't
         /// decode images.
@@ -262,7 +262,7 @@ extension ImagePipeline {
         /// different than provided by a server, e.g. decompressed. In other
         /// scenarios, consider using ``automatic`` policy instead.
         ///
-        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)-6cwk3``
+        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)``
         /// method will not store the images in the disk cache – this method only
         /// loads data and doesn't decode images.
         case storeEncodedImages

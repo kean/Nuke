@@ -75,6 +75,7 @@ extension ImagePipeline.Cache {
     /// - note: Image previews are not stored.
     ///
     /// - parameters:
+    ///   - image: The image container to store in the cache.
     ///   - request: The request. Make sure to remove the processors if you want
     ///   to retrieve an original image (if it's stored).
     ///   - caches: `[.all]`, by default.

@@ -253,7 +253,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// Use this initializer to process images already in memory or integrate
     /// with systems that provide pre-decoded images, such as the Photos framework.
     ///
-    /// - note: Unlike ``init(id:data:)``, the image is never stored in the disk
+    /// - note: Unlike ``init(id:data:processors:priority:options:userInfo:)``, the image is never stored in the disk
     /// cache because no raw data is available.
     ///
     /// - parameters:

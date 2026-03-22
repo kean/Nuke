@@ -4,23 +4,23 @@
 
 ### Data Loading
 
-- ``dataLoader(for:pipeline:)-7xolj``
+- ``dataLoader(for:pipeline:)``
 - ``willLoadData(for:urlRequest:pipeline:)``
 
 ### Decoding and Encoding
 
-- ``imageDecoder(for:pipeline:)-2rbkl``
-- ``imageEncoder(for:pipeline:)-6uxsr``
+- ``imageDecoder(for:pipeline:)``
+- ``imageEncoder(for:pipeline:)``
 - ``previewPolicy(for:pipeline:)``
 
 ### Caching
 
-- ``imageCache(for:pipeline:)-1i8cv``
-- ``dataCache(for:pipeline:)-2lnae``
-- ``cacheKey(for:pipeline:)-8k9a4``
-- ``willCache(data:image:for:pipeline:completion:)-7eg0n``
+- ``imageCache(for:pipeline:)``
+- ``dataCache(for:pipeline:)``
+- ``cacheKey(for:pipeline:)``
+- ``willCache(data:image:for:pipeline:completion:)``
 
 ### Decompression
 
-- ``shouldDecompress(response:for:pipeline:)-3cw2f``
-- ``decompress(response:request:pipeline:)-lbbz``
+- ``shouldDecompress(response:for:pipeline:)``
+- ``decompress(response:request:pipeline:)``

@@ -91,6 +91,8 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
 extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     /// Applies Core Image filter – `CIFilter` – to the image.
     ///
+    /// - parameter name: The name of the `CIFilter` to apply.
+    /// - parameter parameters: The parameters for the filter.
     /// - parameter identifier: Uniquely identifies the processor.
     public static func coreImageFilter(name: String, parameters: [String: Any], identifier: String) -> ImageProcessors.CoreImageFilter {
         ImageProcessors.CoreImageFilter(name: name, parameters: parameters, identifier: identifier)

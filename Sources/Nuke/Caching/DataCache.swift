@@ -80,6 +80,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
+    /// - parameter name: The name of the directory in which the cache is stored.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(name: String, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
@@ -91,6 +92,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     /// Creates a cache instance with a given path.
+    /// - parameter path: The path of the directory in which the cache is stored.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {

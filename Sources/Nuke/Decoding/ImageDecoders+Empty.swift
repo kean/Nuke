@@ -16,7 +16,7 @@ extension ImageDecoders {
         /// Initializes the decoder.
         ///
         /// - parameters:
-        ///   - type: Image type to be associated with an image container.
+        ///   - assetType: Image type to be associated with an image container.
         ///   `nil` by default.
         ///   - isProgressive: If `false`, returns `nil` for every progressive
         ///   scan. `false` by default.
