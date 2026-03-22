@@ -6,10 +6,10 @@ Nuke 13 achieves full Data Race Safety by migrating all pipeline work to Swift C
 
 The test suite was rewritten in Swift Testing with Swift 6 mode enabled and significantly expanded:
 
-| Version   | Source lines | Tests | Test lines | Coverage |
-|-----------|-------------|-------|------------|----------|
-| Nuke 13.0 | 4,669       | 768   | 8,509      | 96.0%    |
-| Nuke 12.9 | 4,589       | 496   | 6,167      | 92.4%    |
+| Version   | Source lines | Tests | Test lines | Coverage | Time |
+|-----------|--------------|-------|------------|----------|------|
+| Nuke 13.0 | 4,669        | 768   | 8,509      | 96.0%    | 1.3s |
+| Nuke 12.9 | 4,589        | 496   | 6,167      | 92.4%    | 1.3s | 
 
 **Requirements**
 
@@ -48,7 +48,7 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 
 - Rewrite `ImageProcessors.GaussianBlur` to use Accelerate (`vImageBoxConvolve`) instead of Core Image, fixing gray border artifacts and improving performance ~5.8x — https://github.com/kean/Nuke/issues/308
 - Optimize data downloading by pre-allocating the buffer using the expected content size from the HTTP response, reducing memory reallocations during image downloads (this only applies when progressive decoding is on) — https://github.com/kean/Nuke/issues/738
-- Update `ImageCache.defaultCostLimit` to 15% of physical memory with no hard cap (previously 20% capped at 512 MB). The cache uses a custom LRU policy that enforces limits precisely, so 15% is effectively more generous than the previous capped value on modern devices – https://github.com/kean/Nuke/issues/838
+- Update `ImageCache.defaultCostLimit` to 15% of physical memory and a hard cap of 768 MB (previously 20% capped at 512 MB). The cache uses a custom LRU policy that enforces limits precisely, so 15% is effectively more generous than the previous capped value on modern devices – https://github.com/kean/Nuke/issues/838
 - The storage cost limit of `ResumableDataStorage` is now dynamic and varies depending on the available RAM.
 - Add `consuming` to `LazyImage` builder methods (`processors`, `priority`, `pipeline`, `onStart`, `onDisappear`, `onCompletion`) and `ImageContainer.map(_:)`
 

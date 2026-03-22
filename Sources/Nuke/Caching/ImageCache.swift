@@ -67,11 +67,12 @@ public final class ImageCache: ImageCaching {
 
     /// Returns a cost limit computed based on the amount of the physical memory
     /// available on the device. The limit is set to 15% of the device's physical
-    /// memory with no hard cap. The cache uses a custom LRU eviction policy that
+    /// memory, capped at 768 MB. The cache uses a custom LRU eviction policy that
     /// enforces this limit precisely, unlike `NSCache` which treats cost limits
     /// as hints.
     public static var defaultCostLimit: Int {
-        Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.15)
+        let calculated = Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.15)
+        return min(calculated, 805_306_368) // 768 MB
     }
 
     public subscript(key: ImageCacheKey) -> ImageContainer? {
