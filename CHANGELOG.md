@@ -4,13 +4,6 @@
 
 Nuke 13 achieves full Data Race Safety by migrating all pipeline work to Swift Concurrency, replacing `DispatchQueue` and `OperationQueue` with a `@globalActor`-based synchronization model. It also ships over 10 new APIs, including progressive preview policies, a `willLoadData` auth hook, memory size limits, and type-safe `ImageRequest` properties.
 
-The test suite was rewritten in Swift Testing with Swift 6 mode enabled and significantly expanded:
-
-| Version   | Source lines | Tests | Test lines | Coverage | Time |
-|-----------|--------------|-------|------------|----------|------|
-| Nuke 13.0 | 4,669        | 768   | 8,509      | 96.0%    | 1.3s |
-| Nuke 12.9 | 4,589        | 496   | 6,167      | 92.4%    | 1.3s | 
-
 **Requirements**
 
 - Minimum supported Xcode version: 26.0.
@@ -28,6 +21,15 @@ The test suite was rewritten in Swift Testing with Swift 6 mode enabled and sign
 - Eliminate an actor hop during `ImageTask` startup, reducing per-request overhead
 - Synchronize `ResumableDataStorage` on `ImagePipelineActor`, replacing `NSLock` with actor isolation and removing `@unchecked Sendable`.
 - Convert unit tests to Swift Testing and enable Swift 6 mode for all tests
+
+**Quality**
+
+The test suite was rewritten in Swift Testing with Swift 6 mode enabled and significantly expanded. Despite the additional tests, the suite is 3x faster thanks to the parallelization.
+
+| Version   | Source lines | Tests | Test lines | Coverage | Time |
+|-----------|--------------|-------|------------|----------|------|
+| Nuke 13.0 | 4,669        | 768   | 8,509      | 96.0%    | 1.3s |
+| Nuke 12.9 | 4,589        | 496   | 6,167      | 92.4%    | 3.5s | 
 
 **New Features**
 
