@@ -373,6 +373,16 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CG
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
+    // When `createThumbnailWithTransform` is enabled, ImageIO already bakes
+    // the EXIF orientation into the thumbnail pixels. Passing the original
+    // orientation to UIImage would apply it a second time (double rotation).
+    if flags.contains(.createThumbnailWithTransform) {
+#if canImport(UIKit)
+        return PlatformImage(cgImage: image, scale: scale, orientation: .up)
+#else
+        return PlatformImage(cgImage: image)
+#endif
+    }
     return makeImage(from: image, source: source, scale: scale)
 }
 
