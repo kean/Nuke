@@ -167,7 +167,7 @@ public final class TaskQueue: Sendable {
         private(set) var isCancelled = false
         fileprivate var task: Task<Void, Never>?
         fileprivate weak var node: LinkedList<TaskQueue.Operation>.Node?
-        private weak let queue: TaskQueue?
+        private weak var queue: TaskQueue?
 
         // Test hooks.
         var onCancelled: (() -> Void)?
