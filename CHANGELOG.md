@@ -1,5 +1,11 @@
 # Nuke 13
 
+## Nuke 13.0.1
+
+*Mar 29, 2026*
+
+- Fix Xcode 26.0 compatibility – https://github.com/kean/Nuke/issues/871
+
 ## Nuke 13.0
 
 *Mar 22, 2026*

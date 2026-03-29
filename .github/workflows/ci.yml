@@ -16,7 +16,7 @@ jobs:
   ios-latest:
     name: Unit Tests (iOS 26.2, Xcode 26.2)
     runs-on: macOS-26
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -33,7 +33,7 @@ jobs:
   macos-latest:
     name: Unit Tests (macOS, Xcode 26.2)
     runs-on: macOS-26
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -46,7 +46,7 @@ jobs:
   tvos-latest:
     name: Unit Tests (tvOS 26.2, Xcode 26.2)
     runs-on: macOS-26
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
@@ -92,7 +92,7 @@ jobs:
 #  ios-thread-safety:
 #    name: Thread Safety Tests (TSan Enabled)
 #    runs-on: macOS-26
-#    timeout-minutes: 12
+#    timeout-minutes: 20
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
 #    steps:
@@ -111,17 +111,34 @@ jobs:
 #  ios-performance-tests:
 #    name: Performance Tests
 #    runs-on: macOS-26
-#    timeout-minutes: 12
+#    timeout-minutes: 20
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
 #    steps:
 #      - uses: actions/checkout@v4
 #      - name: Run Tests
 #        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.2,name=iPhone 17 Pro"
+  ios-xcode-26-0:
+    name: Unit Tests (iOS 26.0, Xcode 26.0)
+    runs-on: macOS-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "iPhone 17 Pro"
+          xcrun simctl bootstatus "iPhone 17 Pro" -b
+      - name: Run Tests
+        run: |
+          .scripts/test.sh -s "Nuke" -d "OS=26.0.1,name=iPhone 17 Pro"
+          .scripts/test.sh -s "NukeUI" -d "OS=26.0.1,name=iPhone 17 Pro"
+          .scripts/test.sh -s "NukeExtensions" -d "OS=26.0.1,name=iPhone 17 Pro"
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-26
-    timeout-minutes: 12
+    timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
