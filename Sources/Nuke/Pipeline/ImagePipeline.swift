@@ -201,8 +201,15 @@ public final class ImagePipeline: Sendable {
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
-        let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
+        let result = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
+        if configuration.isMetricsCollectionEnabled {
+            task._taskStartDate = Date(timeIntervalSinceReferenceDate: CFAbsoluteTimeGetCurrent())
+            if let pipelineTask = result.publisher.task as? AsyncPipelineTask<ImageResponse> {
+                pipelineTask.metricsCollector?.isCoalesced = result.isCoalesced
+                task._metricsCollector = pipelineTask.metricsCollector
+            }
+        }
+        tasks[task] = result.publisher.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?._process($0)
         }
         if !isDataTask {
@@ -254,25 +261,28 @@ public final class ImagePipeline: Sendable {
     // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
     // is created. The work is split between tasks to minimize any duplicated work.
 
-    func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    typealias ImagePublisherResult = TaskPool<TaskLoadImageKey, ImageResponse, Error>.PublisherResult
+    typealias DataPublisherResult = TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>.PublisherResult
+
+    func makeTaskLoadImage(for request: ImageRequest) -> ImagePublisherResult {
         tasksLoadImage.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadImage(self, request)
         }
     }
 
-    func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    func makeTaskLoadData(for request: ImageRequest) -> ImagePublisherResult {
         tasksLoadData.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadData(self, request)
         }
     }
 
-    func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+    func makeTaskFetchOriginalImage(for request: ImageRequest) -> TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>.PublisherResult {
         tasksFetchOriginalImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
             TaskFetchOriginalImage(self, request)
         }
     }
 
-    func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
+    func makeTaskFetchOriginalData(for request: ImageRequest) -> DataPublisherResult {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
             TaskFetchOriginalData(self, request)
         }

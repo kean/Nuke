@@ -81,8 +81,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
 
         signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
+        let metricsToken = metricsCollector?.beginStage(.dataLoading(.init(byteCount: 0, resumedByteCount: 0)))
+
         onCancelled = { [weak self] in
             guard let self else { return }
+            if let metricsToken { self.metricsCollector?.endStage(metricsToken) }
             signpost(self, "LoadImageData", .end, "Cancelled")
             self.tryToSaveResumableData()
         }
@@ -102,9 +105,20 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
                 try dataTask(didReceiveData: chunk, response: urlResponse)
             }
 
+            if let metricsToken {
+                let urlSessionMetrics = (dataLoader as? DataLoader)?.takeMetrics(for: urlRequest)
+                metricsCollector?.updateStageType(metricsToken, .dataLoading(.init(
+                    byteCount: Int64(data.count),
+                    resumedByteCount: resumedDataCount,
+                    urlSessionTaskMetrics: urlSessionMetrics
+                )))
+                metricsCollector?.endStage(metricsToken)
+            }
+
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
             dataTaskDidFinish()
         } catch {
+            if let metricsToken { metricsCollector?.endStage(metricsToken) }
             signpost(self, "LoadImageData", .end, "Failed")
             if let error = error as? ImagePipeline.Error {
                 dataTaskDidFinish(error: error)

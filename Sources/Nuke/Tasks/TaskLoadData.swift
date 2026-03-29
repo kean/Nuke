@@ -8,10 +8,12 @@ import Foundation
 final class TaskLoadData: AsyncPipelineTask<ImageResponse>, @unchecked Sendable {
     override func start() {
         if let data = pipeline.cache.cachedData(for: request) {
+            metricsCollector?.track(.diskCacheLookup(.init(isHit: true))) {}
             let container = ImageContainer(image: .init(), data: data)
             let response = ImageResponse(container: container, request: request)
             self.send(value: response, isCompleted: true)
         } else {
+            metricsCollector?.track(.diskCacheLookup(.init(isHit: false))) {}
             self.loadData()
         }
     }
@@ -21,7 +23,15 @@ final class TaskLoadData: AsyncPipelineTask<ImageResponse>, @unchecked Sendable 
             return send(error: .dataMissingInCache)
         }
         let request = request.withProcessors([])
-        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
+        let result = pipeline.makeTaskFetchOriginalData(for: request)
+        if result.isCoalesced, let child = (result.publisher.task as? AsyncPipelineTask<(Data, URLResponse?)>)?.metricsCollector {
+            child.isCoalesced = true
+        }
+        dependency = result.publisher.subscribe(self) { [weak self] in
+            if $1, let collector = self?.metricsCollector,
+               let child = (result.publisher.task as? AsyncPipelineTask<(Data, URLResponse?)>)?.metricsCollector {
+                collector.merge(from: child)
+            }
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }

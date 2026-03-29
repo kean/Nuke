@@ -61,6 +61,14 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         withNonisolatedStateLock { $0.state }
     }
 
+    /// Metrics collected during pipeline execution. Available after the task
+    /// completes. Returns `nil` when the pipeline's
+    /// ``ImagePipeline/Configuration-swift.struct/isMetricsCollectionEnabled``
+    /// is `false` or the task hasn't finished yet.
+    public var metrics: ImageTaskMetrics? {
+        withNonisolatedStateLock { $0.metrics }
+    }
+
     /// The state of the image task.
     @frozen public enum State {
         /// The task is currently running.
@@ -151,6 +159,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
     @ImagePipelineActor var _state: State = .running
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+    @ImagePipelineActor var _metricsCollector: MetricsCollector?
+    @ImagePipelineActor var _taskStartDate: Date?
 
     deinit {
         lock.deinitialize(count: 1)
@@ -231,6 +241,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     @ImagePipelineActor private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
         guard _setState(.completed) else { return }
+        if let collector = _metricsCollector, let startDate = _taskStartDate {
+            let metrics = collector.buildMetrics(taskId: taskId, taskStartDate: startDate, request: request, result: result)
+            withNonisolatedStateLock { $0.metrics = metrics }
+        }
         _dispatch(.finished(result))
     }
 
@@ -319,5 +333,6 @@ extension ImageTask {
         var state: ImageTask.State = .running
         var priority: ImageRequest.Priority
         var progress = Progress(completed: 0, total: 0)
+        var metrics: ImageTaskMetrics?
     }
 }

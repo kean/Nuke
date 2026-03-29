@@ -101,6 +101,14 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
+    /// Returns and removes the collected `URLSessionTaskMetrics` for the most
+    /// recently completed task matching the given request. Returns `nil` if no
+    /// metrics are available (e.g., when the data loader is not the default
+    /// ``DataLoader``).
+    func takeMetrics(for request: URLRequest) -> URLSessionTaskMetrics? {
+        impl.takeMetrics(for: request)
+    }
+
     /// Errors produced by ``DataLoader``.
     public enum Error: Swift.Error, CustomStringConvertible {
         /// Validation failed.
@@ -121,10 +129,15 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
+    private var collectedMetrics = [URLRequest: URLSessionTaskMetrics]()
     var delegate: URLSessionDelegate?
 
     init(validate: @Sendable @escaping (URLResponse) -> Swift.Error?) {
         self.validate = validate
+    }
+
+    func takeMetrics(for request: URLRequest) -> URLSessionTaskMetrics? {
+        collectedMetrics.removeValue(forKey: request)
     }
 
     /// Loads data with the given request.
@@ -183,6 +196,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        if let originalRequest = task.originalRequest {
+            collectedMetrics[originalRequest] = metrics
+        }
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didFinishCollecting: metrics)
     }
 

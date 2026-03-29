@@ -11,18 +11,22 @@ import Foundation
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable {
     override func start() {
-        if let container = pipeline.cache[request] {
+        let container = pipeline.cache[request]
+        metricsCollector?.track(.memoryCacheLookup(.init(isHit: container != nil))) {}
+        if let container {
             let response = ImageResponse(container: container, request: request, cacheType: .memory)
             send(value: response, isCompleted: !container.isPreview)
             if !container.isPreview {
                 return // The final image is loaded
             }
         }
-        if let data = pipeline.cache.cachedData(for: request) {
-            decodeCachedData(data)
-        } else if request.thumbnail != nil, request.processors.isEmpty,
-                  let data = pipeline.cache.cachedData(for: request.withoutThumbnail()) {
-            decodeCachedData(data)
+        let cachedData: Data? = pipeline.cache.cachedData(for: request)
+            ?? (request.thumbnail != nil && request.processors.isEmpty
+                ? pipeline.cache.cachedData(for: request.withoutThumbnail())
+                : nil)
+        metricsCollector?.track(.diskCacheLookup(.init(isHit: cachedData != nil))) {}
+        if let cachedData {
+            decodeCachedData(cachedData)
         } else {
             fetchImage()
         }
@@ -54,14 +58,32 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
         }
         if let processor = request.processors.last {
             let request = request.withProcessors(request.processors.dropLast())
-            dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
+            let result = pipeline.makeTaskLoadImage(for: request)
+            propagateCoalescingFlag(from: result)
+            dependency = result.publisher.subscribe(self) { [weak self] in
+                self?.mergeChildMetrics(from: result, isCompleted: $1)
                 self?.process($0, isCompleted: $1, processor: processor)
             }
         } else {
-            dependency = pipeline.makeTaskFetchOriginalImage(for: request).subscribe(self) { [weak self] in
+            let result = pipeline.makeTaskFetchOriginalImage(for: request)
+            propagateCoalescingFlag(from: result)
+            dependency = result.publisher.subscribe(self) { [weak self] in
+                self?.mergeChildMetrics(from: result, isCompleted: $1)
                 self?.didReceiveImageResponse($0, isCompleted: $1)
             }
         }
+    }
+
+    private func propagateCoalescingFlag<Key: Hashable>(from result: TaskPool<Key, ImageResponse, ImagePipeline.Error>.PublisherResult) {
+        if result.isCoalesced, let child = (result.publisher.task as? AsyncPipelineTask<ImageResponse>)?.metricsCollector {
+            child.isCoalesced = true
+        }
+    }
+
+    private func mergeChildMetrics<Key: Hashable>(from result: TaskPool<Key, ImageResponse, ImagePipeline.Error>.PublisherResult, isCompleted: Bool) {
+        guard isCompleted, let collector = metricsCollector,
+              let child = (result.publisher.task as? AsyncPipelineTask<ImageResponse>)?.metricsCollector else { return }
+        collector.merge(from: child)
     }
 
     // MARK: Processing
@@ -74,6 +96,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
             return // Back pressure - already processing another progressive image
         }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
+        let metricsToken = metricsCollector?.beginStage(.processing(.init(processorIdentifier: processor.identifier)))
         operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
             guard let self else { return }
             let result = await performInBackground {
@@ -87,6 +110,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
                     }
                 }
             }
+            if let metricsToken { self.metricsCollector?.endStage(metricsToken) }
             self.operation = nil
             self.didFinishProcessing(result: result, isCompleted: isCompleted)
         }
@@ -115,6 +139,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
         } else if operation != nil {
             return  // Back-pressure: receiving progressive scans too fast
         }
+        let metricsToken = metricsCollector?.beginStage(.decompression)
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self else { return }
             let response = await performInBackground {
@@ -122,6 +147,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
                     self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 }
             }
+            if let metricsToken { self.metricsCollector?.endStage(metricsToken) }
             self.operation = nil
             self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
         }

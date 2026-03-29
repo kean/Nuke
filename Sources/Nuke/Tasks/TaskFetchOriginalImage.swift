@@ -14,7 +14,15 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
             loadAsyncImage(fetch)
             return
         }
-        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
+        let result = pipeline.makeTaskFetchOriginalData(for: request)
+        if result.isCoalesced, let child = (result.publisher.task as? AsyncPipelineTask<(Data, URLResponse?)>)?.metricsCollector {
+            child.isCoalesced = true
+        }
+        dependency = result.publisher.subscribe(self) { [weak self] in
+            if $1, let collector = self?.metricsCollector,
+               let child = (result.publisher.task as? AsyncPipelineTask<(Data, URLResponse?)>)?.metricsCollector {
+                collector.merge(from: child)
+            }
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }
@@ -55,7 +63,18 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
             return
         }
 
+        let decoderType = metricsCollector != nil ? String(describing: type(of: decoder)) : nil
+        let metricsToken = metricsCollector?.beginStage(.decoding(.init(isProgressive: !isCompleted)))
         decode(context, decoder: decoder) { [weak self] in
+            if let metricsToken, let collector = self?.metricsCollector {
+                let decodedSize = (try? $0.get())?.image.size
+                collector.updateStageType(metricsToken, .decoding(.init(
+                    isProgressive: !isCompleted,
+                    decodedImageSize: decodedSize,
+                    decoderType: decoderType
+                )))
+                collector.endStage(metricsToken)
+            }
             self?.didFinishDecoding(context: context, result: $0)
         }
     }

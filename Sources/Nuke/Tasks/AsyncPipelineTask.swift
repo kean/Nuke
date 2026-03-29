@@ -10,6 +10,10 @@ class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> 
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
+    /// Lazily created metrics collector. Only allocated when metrics are enabled.
+    private(set) lazy var metricsCollector: MetricsCollector? = {
+        pipeline.configuration.isMetricsCollectionEnabled ? MetricsCollector() : nil
+    }()
 
     init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
         self.pipeline = pipeline

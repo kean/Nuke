@@ -158,6 +158,13 @@ extension ImagePipeline {
 
         private static let _isSignpostLoggingEnabled = Mutex(value: false)
 
+        /// When enabled, the pipeline collects timing metrics for each task and
+        /// makes them available via ``ImageTask/metrics``. `false` by default.
+        ///
+        /// - note: Metrics collection adds minimal overhead but is opt-in to
+        ///   ensure zero cost for users who don't need it.
+        public var isMetricsCollectionEnabled = false
+
         private var isCustomImageCacheProvided = false
 
         // MARK: - Task Queues

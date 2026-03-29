@@ -218,7 +218,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 extension AsyncTask {
     /// Publishes the results of the task.
     @ImagePipelineActor struct Publisher {
-        fileprivate let task: AsyncTask
+        let task: AsyncTask
 
         /// Attaches the subscriber to the task.
         /// - note: Returns `nil` if the task is already disposed.
@@ -321,22 +321,29 @@ final class TaskPool<Key: Hashable, Value: Sendable, Error: Sendable> {
         self.isCoalescingEnabled = isCoalescingEnabled
     }
 
+    struct PublisherResult {
+        let publisher: AsyncTask<Value, Error>.Publisher
+        /// `true` when the publisher was obtained from an existing in-flight task
+        /// (i.e., the work is being coalesced with another request).
+        let isCoalesced: Bool
+    }
+
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func publisherForKey(_ key: @autoclosure () -> Key, _ make: () -> AsyncTask<Value, Error>) -> AsyncTask<Value, Error>.Publisher {
+    func publisherForKey(_ key: @autoclosure () -> Key, _ make: () -> AsyncTask<Value, Error>) -> PublisherResult {
         guard isCoalescingEnabled else {
-            return make().publisher
+            return PublisherResult(publisher: make().publisher, isCoalesced: false)
         }
         let key = key()
         if let task = map[key] {
-            return task.publisher
+            return PublisherResult(publisher: task.publisher, isCoalesced: true)
         }
         let task = make()
         map[key] = task
         task.onDisposed = { [weak self] in
             self?.map[key] = nil
         }
-        return task.publisher
+        return PublisherResult(publisher: task.publisher, isCoalesced: false)
     }
 }
