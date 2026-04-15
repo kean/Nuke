@@ -128,7 +128,7 @@ extension ImagePipeline {
         public var maximumDecodedImageSize: Int? = {
             let physicalMemory = ProcessInfo.processInfo.physicalMemory
             let ratio = physicalMemory <= (536_870_912 /* 512 MB */) ? 0.02 : 0.04
-            let limit = min(67_108_864 /* 64 MB */, physicalMemory / UInt64(1 / ratio))
+            let limit = min(256_000_000 /* 256 MB */, physicalMemory / UInt64(1 / ratio))
             return Int(limit)
         }()
 

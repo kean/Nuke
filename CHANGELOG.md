@@ -24,6 +24,7 @@
 *Apr 14, 2026*
 
 - Fix `ImageDecoders.Default` double-applying EXIF orientation when downscaling images that exceed `maximumDecodedImageSize`
+- Fix the default `maximumDecodedImageSize` being applied too aggressively
 
 ## Nuke 13.0.1
 
