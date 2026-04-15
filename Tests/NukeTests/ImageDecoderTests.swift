@@ -338,6 +338,32 @@ struct ImageDecoderTests {
         #expect(container.image.sizeInPixels == CGSize(width: 640, height: 360))
     }
 
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
+    /// Verifies that downscaling does not double-apply EXIF orientation.
+    /// `CGImageSourceCreateThumbnailAtIndex` with `createThumbnailWithTransform`
+    /// already bakes the rotation into the pixel data, so the resulting
+    /// `UIImage` must use `.up` to avoid rotating a second time.
+    @Test func downscalingDoesNotDoubleApplyOrientation() throws {
+        // Raw pixels 480×640, displayed as 640×480 (EXIF `.right`).
+        let data = Test.data(name: "right-orientation", extension: "jpeg")
+
+        var context = ImageDecodingContext.mock(data: data)
+        context.maximumDecodedImageSize = 80_000 // ~20,000 pixels — forces downscaling
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+
+        // Orientation must be `.up` because the transform was already applied
+        // to the pixel buffer by ImageIO.
+        #expect(container.image.imageOrientation == .up)
+
+        // The bitmap must reflect the *displayed* aspect ratio (landscape),
+        // not the raw EXIF-rotated storage (portrait).
+        let cgImage = try #require(container.image.cgImage)
+        #expect(cgImage.width > cgImage.height)
+    }
+#endif
+
     @Test func downscalingSkippedWhenThumbnailSet() throws {
         let data = Test.data(name: "fixture", extension: "png")
 
