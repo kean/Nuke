@@ -19,6 +19,12 @@
 
 # Nuke 13
 
+## Nuke 13.0.2
+
+*Apr 14, 2026*
+
+- Fix `ImageDecoders.Default` double-applying EXIF orientation when downscaling images that exceed `maximumDecodedImageSize`
+
 ## Nuke 13.0.1
 
 *Mar 29, 2026*

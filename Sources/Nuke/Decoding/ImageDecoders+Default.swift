@@ -221,6 +221,12 @@ extension ImageDecoders.Default {
         guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
             return nil
         }
-        return makeImage(from: cgImage, source: source, scale: scale)
+        // `createThumbnailWithTransform` already bakes the EXIF orientation
+        // into the pixels, so use `.up` to avoid applying it a second time.
+#if canImport(UIKit)
+        return PlatformImage(cgImage: cgImage, scale: scale, orientation: .up)
+#else
+        return PlatformImage(cgImage: cgImage)
+#endif
     }
 }
