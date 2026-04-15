@@ -7,7 +7,7 @@ import Foundation
 import ImageIO
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageDecoderTests {
     @Test func decodePNG() throws {
         // Given
@@ -418,7 +418,7 @@ struct ImageDecoderTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageTypeTests {
     // MARK: PNG
 

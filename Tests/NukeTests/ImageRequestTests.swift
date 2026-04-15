@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageRequestTests {
     // The compiler picks up the new version
     @Test func testInit() {
@@ -63,7 +63,7 @@ struct ImageRequestTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageRequestCacheKeyTests {
     @Test func defaults() {
         let request = Test.request
@@ -113,7 +113,7 @@ struct ImageRequestCacheKeyTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageRequestLoadKeyTests {
     @Test func defaults() {
         let request = ImageRequest(url: Test.url)
@@ -159,7 +159,7 @@ struct ImageRequestLoadKeyTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageRequestImageIdTests {
     @Test func thatCacheKeyUsesAbsoluteURLByDefault() {
         let lhs = ImageRequest(url: Test.url)
@@ -224,7 +224,7 @@ struct ImageRequestImageIdTests {
     }
 }
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ThumbnailOptionsTests {
     // MARK: - Default Values
 

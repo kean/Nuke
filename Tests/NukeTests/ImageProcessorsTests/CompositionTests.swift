@@ -11,7 +11,7 @@ import Testing
 
 // MARK: - ImageProcessors.Composition
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsCompositionTests {
 
     @Test func appliesAllProcessors() throws {

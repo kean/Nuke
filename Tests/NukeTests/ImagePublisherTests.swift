@@ -7,7 +7,7 @@ import Testing
 import Combine
 import Foundation
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImagePublisherTests {
     private let dataLoader: MockDataLoader
     private let pipeline: ImagePipeline

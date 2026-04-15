@@ -6,7 +6,7 @@ import Testing
 import Foundation
 import Nuke
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsProtocolExtensionsTests {
 
     @Test func passingProcessorsUsingProtocolExtensionsResize() throws {

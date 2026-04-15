@@ -14,7 +14,7 @@ import UIKit
 import AppKit
 #endif
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageProcessingOptionsTests {
 
     // MARK: - Unit

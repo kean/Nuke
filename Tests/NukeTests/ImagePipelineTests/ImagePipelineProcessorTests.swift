@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 #endif
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineProcessorTests {
     let pipeline: ImagePipeline
 

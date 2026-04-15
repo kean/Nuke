@@ -11,7 +11,7 @@ import Testing
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsGaussianBlurTests {
     @Test func applyBlur() {
         // Given

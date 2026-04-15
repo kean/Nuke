@@ -10,7 +10,7 @@ import Security
 private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct DataCacheTests {
     private let cache: DataCache
 

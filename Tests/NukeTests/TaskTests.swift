@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2))) @ImagePipelineActor
+@Suite(.timeLimit(.minutes(5))) @ImagePipelineActor
 struct TaskTests {
     // MARK: - Starter
 

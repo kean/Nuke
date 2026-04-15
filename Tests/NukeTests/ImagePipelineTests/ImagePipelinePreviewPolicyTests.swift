@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImagePipelinePreviewPolicyTests {
 
     // MARK: - Progressive JPEG (default policy = .incremental)

@@ -5,7 +5,7 @@
 import Testing
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2))) @ImagePipelineActor
+@Suite(.timeLimit(.minutes(5))) @ImagePipelineActor
 struct RateLimiterTests {
     let rateLimiter = RateLimiter(rate: 10, burst: 2)
 

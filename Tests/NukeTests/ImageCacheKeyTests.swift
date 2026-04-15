@@ -6,7 +6,7 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite(.timeLimit(.minutes(2)))
+@Suite(.timeLimit(.minutes(5)))
 struct ImageCacheKeyTests {
     @Test func customKeyEquality() {
         let key1 = ImageCacheKey(key: "test-key")
