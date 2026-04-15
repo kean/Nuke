@@ -149,13 +149,11 @@ Several new configuration properties have been added:
 
 - `progressiveDecodingInterval` — minimum interval between progressive decoding attempts (default: 0.5s)
 - `maximumResponseDataSize` — downloads exceeding this limit are cancelled automatically (default: 10% of physical memory, capped at 200 MB)
-- `maximumDecodedImageSize` — images whose decoded bitmap exceeds this limit are downscaled automatically (default: based on physical memory)
 
-If you previously set no limits and want to preserve that behavior, set these to `nil`:
+If you previously set no limits and want to preserve that behavior, set this to `nil`:
 
 ```swift
 configuration.maximumResponseDataSize = nil
-configuration.maximumDecodedImageSize = nil
 ```
 
 ## Callback Closures: @MainActor @Sendable
