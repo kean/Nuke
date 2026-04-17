@@ -6,7 +6,7 @@ import Foundation
 
 /// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
 final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable {
-    private var decoder: (any ImageDecoding)?
+    private var decoder: (any BaseImageDecoding)?
     private var lastPreviewTime: CFAbsoluteTime?
 
     override func start() {
@@ -76,7 +76,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
     }
 
     // Lazily creates decoding for task
-    private func getDecoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
+    private func getDecoder(for context: ImageDecodingContext) -> (any BaseImageDecoding)? {
         // Return the existing processor in case it has already been created.
         if let decoder {
             return decoder

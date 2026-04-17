@@ -9,7 +9,7 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private var matches = [(ImageDecodingContext) -> (any ImageDecoding)?]()
+    private var matches = [(ImageDecodingContext) -> (any BaseImageDecoding)?]()
     private let lock = NSLock()
 
     /// Initializes a custom registry.
@@ -18,7 +18,7 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     }
 
     /// Returns a decoder that matches the given context.
-    public func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
+    public func decoder(for context: ImageDecodingContext) -> (any BaseImageDecoding)? {
         for match in matches.reversed() {
             if let decoder = match(context) {
                 return decoder
@@ -34,7 +34,7 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// The decoder is created once and is used for the entire decoding session,
     /// including progressively decoded images. If the decoder doesn't support
     /// progressive decoding, return `nil` when `isCompleted` is `false`.
-    public func register(_ match: @escaping (ImageDecodingContext) -> (any ImageDecoding)?) {
+    public func register(_ match: @escaping (ImageDecodingContext) -> (any BaseImageDecoding)?) {
         lock.withLock { matches.append(match) }
     }
 

@@ -128,6 +128,7 @@
 		0CDB92801DAF9BB900002905 /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		0CDB92821DAF9BC600002905 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0CDB92831DAF9BCB00002905 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		207CFF4E2F92C1F8007289D8 /* .editorconfig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = .editorconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -275,6 +276,7 @@
 		0C9174861BAE99EE004A7905 = {
 			isa = PBXGroup;
 			children = (
+				207CFF4E2F92C1F8007289D8 /* .editorconfig */,
 				0C096C7B1BAE9ADD007FE380 /* Sources */,
 				0C7C06551BCA87EC00089D7F /* Tests */,
 				0C9174911BAE99EE004A7905 /* Products */,
