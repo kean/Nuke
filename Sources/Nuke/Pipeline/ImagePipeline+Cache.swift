@@ -49,7 +49,7 @@ extension ImagePipeline.Cache {
     ///   - request: The request. Make sure to remove the processors if you want
     ///   to retrieve an original image (if it's stored).
     ///   - caches: `[.all]`, by default.
-    public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) -> ImageContainer? {
+    public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) async -> ImageContainer? {
         if caches.contains(.memory) {
             if let image = cachedImageFromMemoryCache(for: request) {
                 return image
@@ -57,7 +57,7 @@ extension ImagePipeline.Cache {
         }
         if caches.contains(.disk) {
             if let data = cachedData(for: request),
-               let image = decodeImageData(data, for: request) {
+               let image = await decodeImageData(data, for: request) {
                 return image
             }
         }
@@ -222,12 +222,20 @@ extension ImagePipeline.Cache {
 
     // MARK: Private
 
-    private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
+    private func decodeImageData(_ data: Data, for request: ImageRequest) async -> ImageContainer? {
         let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return nil
         }
-        return (try? decoder.decode(context))?.container
+        
+        switch decoder {
+            case let decoder as ImageDecoding:
+                return (try? decoder.decode(context))?.container
+            case let decoder as AsyncImageDecoding:
+                return (try? await decoder.decode(context))?.container
+            default:
+                fatalError("Invalid BaseImageDecoding Implementation")
+        }
     }
 
     private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
