@@ -24,6 +24,17 @@ func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
     return result
 }
 
+func signpost<T>(_ name: StaticString, _ work: () async throws -> T) async rethrows -> T {
+    guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try await work() }
+
+    let log = log.value
+    let signpostId = OSSignpostID(log: log)
+    os_signpost(.begin, log: log, name: name, signpostID: signpostId)
+    let result = try await work()
+    os_signpost(.end, log: log, name: name, signpostID: signpostId)
+    return result
+}
+
 private let log = Mutex(value: OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
 
 enum Formatter {

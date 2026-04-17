@@ -39,20 +39,63 @@ extension AsyncPipelineTask: ImageTaskSubscribers {
 }
 
 extension AsyncPipelineTask {
-    /// Decodes the data on the dedicated queue and calls the completion
-    /// on the pipeline's internal queue.
-    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
-        @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
-            signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                Result { try decoder.decode(context) }
-                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
+    @Sendable nonisolated func decode(
+        _ context: ImageDecodingContext,
+        using decoder: any ImageDecoding
+    ) -> Result<ImageResponse, ImagePipeline.Error> {
+        signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+            Result { try decoder.decode(context) }
+                .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
+        }
+    }
+
+    @Sendable nonisolated func decode(
+        _ context: ImageDecodingContext,
+        using decoder: any AsyncImageDecoding
+    ) async -> Result<ImageResponse, ImagePipeline.Error> {
+        await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+            do {
+                return .success(try await decoder.decode(context))
+            } catch {
+                let mappedError = ImagePipeline.Error.decodingFailed(
+                    decoder: decoder,
+                    context: context,
+                    error: error
+                )
+                
+                return .failure(mappedError)
             }
         }
-        guard decoder.isAsynchronous else {
-            return completion(decode())
-        }
-        operation = pipeline.configuration.imageDecodingQueue.add {
-            completion(await performInBackground(decode))
+    }
+
+    /// Decodes the data on the dedicated queue and calls the completion
+    /// on the pipeline's internal queue.
+    func decode(
+        _ context: ImageDecodingContext,
+        decoder: any BaseImageDecoding,
+        _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void
+    ) {
+        switch decoder {
+            case let decoder as ImageDecoding where decoder.isAsynchronous:
+                return completion(decode(context, using: decoder))
+                
+            case let decoder as ImageDecoding:
+                operation = pipeline.configuration.imageDecodingQueue.add {
+                    let imageContainer = await performInBackground {
+                        self.decode(context, using: decoder)
+                    }
+                    
+                    completion(imageContainer)
+                }
+                
+            case let decoder as AsyncImageDecoding:
+                operation = pipeline.configuration.imageDecodingQueue.add {
+                    let imageContainer = await self.decode(context, using: decoder)
+                    completion(imageContainer)
+                }
+                
+            default:
+                fatalError("Invalid BaseImageDecoding Implementation")
         }
     }
 }

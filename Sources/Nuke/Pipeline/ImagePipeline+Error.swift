@@ -19,7 +19,7 @@ extension ImagePipeline {
         /// By default, the pipeline uses ``ImageDecoders/Default`` as a catch-all.
         case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
-        case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
+        case decodingFailed(decoder: any BaseImageDecoding, context: ImageDecodingContext, error: Swift.Error)
         /// Processor failed to produce a final image.
         case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request or no URL.

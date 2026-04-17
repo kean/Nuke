@@ -30,7 +30,7 @@ extension ImagePipeline {
 
         /// Default implementation uses shared ``ImageDecoderRegistry`` to create
         /// a decoder that matches the context.
-        public var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any ImageDecoding)? = {
+        public var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any BaseImageDecoding)? = {
             ImageDecoderRegistry.shared.decoder(for: $0)
         }
 

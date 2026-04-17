@@ -13,7 +13,7 @@ extension ImagePipeline {
         // MARK: Misc
 
         /// Returns image decoder for the given context.
-        func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
+        func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any BaseImageDecoding)?
 
         /// Returns image encoder for the given context.
         func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
@@ -126,7 +126,7 @@ extension ImagePipeline.Delegate {
         pipeline.configuration.dataCache
     }
 
-    public func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
+    public func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any BaseImageDecoding)? {
         pipeline.configuration.makeImageDecoder(context)
     }
 
