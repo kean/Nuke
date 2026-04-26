@@ -507,7 +507,7 @@ extension ImageRequest {
     /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
     private final class Container: @unchecked Sendable {
         // It's beneficial to put these fields in that order to align them
-        // as they perfeclty align at the boundary due to their size
+        // as they perfectly align at the boundary due to their size
         let resource: Resource
         var priority: Priority
         var options: Options

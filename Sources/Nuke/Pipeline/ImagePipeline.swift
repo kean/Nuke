@@ -199,7 +199,7 @@ public final class ImagePipeline: Sendable {
         guard task._state != .cancelled else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
-            // case, the `cancel` method do no send the task event.
+            // case, the `cancel` method does not send the task event.
             return task._dispatch(.finished(.failure(.cancelled)))
         }
         guard !isInvalidated else {
@@ -258,8 +258,8 @@ public final class ImagePipeline: Sendable {
     //
     // Each task represents a resource or a piece of work required to produce the
     // final result. The pipeline reduces the amount of duplicated work by coalescing
-    // the tasks that represent the same work. For example, if you all `loadImage()`
-    // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
+    // the tasks that represent the same work. For example, if you call `loadImage()`
+    // and `loadData()` with the same request, only one `TaskFetchOriginalImageData`
     // is created. The work is split between tasks to minimize any duplicated work.
 
     func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {

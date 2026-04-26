@@ -164,7 +164,7 @@ extension CGContext {
             return ctx
         }
         // In case the combination of parameters (color space, bits per component, etc)
-        // is nit supported by Core Graphics, switch to default context.
+        // is not supported by Core Graphics, switch to default context.
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57

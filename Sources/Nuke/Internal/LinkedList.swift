@@ -11,7 +11,7 @@ final class LinkedList<Element> {
     private(set) var last: Node?
 
     deinit {
-        // This way we make sure that the deallocations do no happen recursively
+        // This way we make sure that the deallocations do not happen recursively
         // (and potentially overflow the stack).
         removeAllElements()
     }
