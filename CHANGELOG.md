@@ -24,6 +24,7 @@
 *Apr 26, 2026*
 
 - Minor performance optimizations
+- Eliminate a few `@unchecked Sendable` annotations
 - Deprecate `ImagePipeline.Configuration.maximumDecodedImageSize` and `ImageDecodingContext.maximumDecodedImageSize`. The automatic downscaling implementation has been removed; setting these values has no effect. Use `ImageRequest.ThumbnailOptions` to control decoded image size on a per-request basis
 
 ## Nuke 13.0.2
