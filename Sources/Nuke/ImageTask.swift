@@ -152,6 +152,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor var _state: State = .running
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
+    @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
     deinit {
         lock.deinitialize(count: 1)
