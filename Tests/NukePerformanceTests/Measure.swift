@@ -33,11 +33,12 @@ func measure(
 }
 
 private func report(name: String, samples: [Duration]) {
-    let ms = samples.map(\.milliseconds)
+    let ms = samples.map(\.milliseconds).sorted()
     let mean = ms.reduce(0, +) / Double(ms.count)
     let stddev = (ms.map { pow($0 - mean, 2) }.reduce(0, +) / Double(ms.count)).squareRoot()
+    let rel = mean > 0 ? stddev / mean * 100 : 0
     let list = ms.map(fmt).joined(separator: ", ")
-    print("[\(name)] avg=\(fmt(mean))ms stddev=\(fmt(stddev))ms min=\(fmt(ms.min() ?? 0))ms max=\(fmt(ms.max() ?? 0))ms n=\(ms.count) samples=[\(list)]")
+    print("◇ Measured \(name) avg=\(fmt(mean))ms ±\(String(format: "%.1f", rel))% samples=[\(list)]")
 }
 
 private func fmt(_ v: Double) -> String { String(format: "%.3f", v) }
