@@ -12,11 +12,8 @@ extension String {
     /// print("http://test.com".sha1)
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
-    var sha1: String? {
-        guard let input = self.data(using: .utf8) else {
-            return nil // The conversion to .utf8 should never fail
-        }
-        let digest = Insecure.SHA1.hash(data: input)
+    var sha1: String {
+        let digest = Insecure.SHA1.hash(data: Data(self.utf8))
         let hexCount = Insecure.SHA1Digest.byteCount * 2
         let bytes = [UInt8](unsafeUninitializedCapacity: hexCount) { buffer, count in
             var i = 0
