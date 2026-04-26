@@ -6,7 +6,8 @@ import Testing
 import Foundation
 import Nuke
 
-@Suite
+@Suite(.serialized)
+@MainActor
 struct ImageProcessingPerformanceTests {
     @Test
     func creatingProcessorIdentifiers() {

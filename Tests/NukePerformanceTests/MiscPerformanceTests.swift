@@ -6,7 +6,8 @@ import Testing
 import Foundation
 import Nuke
 
-@Suite
+@Suite(.serialized)
+@MainActor
 struct MiscPerformanceTests {
     /// Measures the overhead of spawning a large number of unstructured tasks
     /// on ``ImagePipelineActor`` using bare `Task { @ImagePipelineActor in }`.

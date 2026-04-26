@@ -6,7 +6,8 @@ import Testing
 import Foundation
 import Nuke
 
-@Suite
+@Suite(.serialized)
+@MainActor
 struct ImageCachePerformanceTests {
     @Test
     func cacheWrite() {

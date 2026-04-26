@@ -23,7 +23,7 @@ func measure<T>(
     _ name: String = #function,
     iterations: Int = 5,
     warmup: Int = 1,
-    _ body: () async throws -> T
+    _ body: @Sendable () async throws -> T
 ) async rethrows {
     let clock = ContinuousClock()
     try await runSamples(name: name, iterations: iterations, warmup: warmup) {

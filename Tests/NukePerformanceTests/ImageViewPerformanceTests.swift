@@ -7,7 +7,7 @@ import Foundation
 import Nuke
 import NukeExtensions
 
-@Suite
+@Suite(.serialized)
 @MainActor
 final class ImageViewPerformanceTests {
     private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessors.Resize(size: CGSize(width: 2, height: 2))])

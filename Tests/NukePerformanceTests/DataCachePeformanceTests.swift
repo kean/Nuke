@@ -7,7 +7,8 @@ import Foundation
 import Security
 import Nuke
 
-@Suite
+@Suite(.serialized)
+@MainActor
 final class DataCachePeformanceTests {
     let cache: DataCache
     let count = 1000

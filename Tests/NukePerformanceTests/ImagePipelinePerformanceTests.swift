@@ -6,7 +6,8 @@ import Testing
 import Foundation
 import Nuke
 
-@Suite
+@Suite(.serialized)
+@MainActor
 struct ImagePipelinePerformanceTests {
     /// A very broad test that establishes how long in general it takes to load
     /// data, decode, and decompress 50+ images. It's very useful to get a
