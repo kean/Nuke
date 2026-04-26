@@ -16,10 +16,16 @@ import Foundation
 @ImagePipelineActor
 class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate {
 
-    private struct Subscription {
+    private final class Subscription {
         let closure: (Event) -> Void
         weak var subscriber: AnyObject?
         var priority: TaskPriority
+
+        init(closure: @escaping (Event) -> Void, subscriber: AnyObject, priority: TaskPriority) {
+            self.closure = closure
+            self.subscriber = subscriber
+            self.priority = priority
+        }
     }
 
     // In most situations, especially for intermediate tasks, the almost almost
