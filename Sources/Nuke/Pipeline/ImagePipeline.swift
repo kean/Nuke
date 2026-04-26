@@ -43,6 +43,7 @@ public final class ImagePipeline: Sendable {
     nonisolated public var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
     let delegate: any ImagePipeline.Delegate
+    private let isDefaultDelegate: Bool
 
     private var tasks = [ObjectIdentifier: ImageTask]()
 
@@ -82,6 +83,7 @@ public final class ImagePipeline: Sendable {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
+        self.isDefaultDelegate = delegate == nil
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
@@ -235,7 +237,7 @@ public final class ImagePipeline: Sendable {
         default: break
         }
 
-        if !isDataTask {
+        if !isDataTask && !isDefaultDelegate {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
         }
     }
