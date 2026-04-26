@@ -147,7 +147,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         _totalCost = 0
     }
 
-    private dynamic func clearCacheOnEnterBackground() {
+    private func clearCacheOnEnterBackground() {
         // Remove most of the stored items when entering background.
         // This behavior is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
