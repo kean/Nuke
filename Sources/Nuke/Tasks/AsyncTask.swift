@@ -25,20 +25,24 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     // In most situations, especially for intermediate tasks, the almost almost
     // only one subscription.
     private var inlineSubscription: Subscription?
-    private var subscriptions: [TaskSubscriptionKey: Subscription]? // Create lazily
+    // Typically 0–2 overflow entries; linear scan is faster than a dictionary
+    // and avoids hashing and allocation overhead.
+    private var subscriptions: ContiguousArray<(key: TaskSubscriptionKey, sub: Subscription)>? // Create lazily
     private var nextSubscriptionKey = 0
 
     var subscribers: [AnyObject] {
         var output = [AnyObject?]()
         output.append(inlineSubscription?.subscriber)
-        subscriptions?.values.forEach { output.append($0.subscriber) }
+        if let subscriptions {
+            for entry in subscriptions { output.append(entry.sub.subscriber) }
+        }
         return output.compactMap { $0 }
     }
 
     func hasSubscriber<T>(of type: T.Type) -> Bool {
         if inlineSubscription?.subscriber is T { return true }
         if let subscriptions {
-            for sub in subscriptions.values where sub.subscriber is T { return true }
+            for entry in subscriptions where entry.sub.subscriber is T { return true }
         }
         return false
     }
@@ -96,8 +100,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if subscriptionKey == 0 {
             inlineSubscription = Subscription(closure: closure, subscriber: subscriber, priority: priority)
         } else {
-            if subscriptions == nil { subscriptions = [:] }
-            subscriptions![subscriptionKey] = Subscription(closure: closure, subscriber: subscriber, priority: priority)
+            if subscriptions == nil { subscriptions = [] }
+            subscriptions!.append((key: subscriptionKey, sub: Subscription(closure: closure, subscriber: subscriber, priority: priority)))
         }
 
         updatePriority(suggestedPriority: priority)
@@ -119,8 +123,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         if key == 0 {
             inlineSubscription?.priority = priority
-        } else {
-            subscriptions![key]?.priority = priority
+        } else if let idx = subscriptions?.firstIndex(where: { $0.key == key }) {
+            subscriptions![idx].sub.priority = priority
         }
         updatePriority(suggestedPriority: priority)
     }
@@ -130,7 +134,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             guard inlineSubscription != nil else { return }
             inlineSubscription = nil
         } else {
-            guard subscriptions!.removeValue(forKey: key) != nil else { return }
+            guard let idx = subscriptions?.firstIndex(where: { $0.key == key }) else { return }
+            subscriptions!.remove(at: idx)
         }
 
         guard !isDisposed else { return }
@@ -172,8 +177,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         inlineSubscription?.closure(event)
         if let subscriptions {
-            for subscription in subscriptions.values {
-                subscription.closure(event)
+            for entry in subscriptions {
+                entry.sub.closure(event)
             }
         }
     }
@@ -209,11 +214,11 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         // Same as subscriptions.map { $0?.priority }.max() but without allocating
         // any memory for redundant arrays
         if let subscriptions {
-            for subscription in subscriptions.values {
+            for entry in subscriptions {
                 if newPriority == nil {
-                    newPriority = subscription.priority
-                } else if subscription.priority > newPriority! {
-                    newPriority = subscription.priority
+                    newPriority = entry.sub.priority
+                } else if entry.sub.priority > newPriority! {
+                    newPriority = entry.sub.priority
                 }
             }
         }
