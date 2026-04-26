@@ -29,8 +29,7 @@ public final class ImagePrefetcher: Sendable {
     nonisolated public var priority: ImageRequest.Priority {
         get { _priority.value }
         set {
-            guard _priority.value != newValue else { return }
-            _priority.value = newValue
+            guard _priority.testAndSet(newValue) else { return }
             Task { @ImagePipelineActor in self.didUpdatePriority(to: newValue) }
         }
     }

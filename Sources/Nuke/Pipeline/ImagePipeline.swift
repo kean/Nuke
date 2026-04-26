@@ -31,7 +31,7 @@ public final class ImagePipeline: Sendable {
     /// Returns the shared image pipeline.
     nonisolated public static var shared: ImagePipeline {
         get { _shared.value }
-        set { _shared.value = newValue }
+        set { _shared.withLock { $0 = newValue } }
     }
 
     private nonisolated static let _shared = Mutex(value: ImagePipeline(configuration: .withURLCache))

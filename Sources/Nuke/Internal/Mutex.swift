@@ -20,16 +20,9 @@ final class Mutex<T>: @unchecked Sendable {
     }
 
     var value: T {
-        get {
-            os_unfair_lock_lock(lock)
-            defer { os_unfair_lock_unlock(lock) }
-            return _value
-        }
-        set {
-            os_unfair_lock_lock(lock)
-            defer { os_unfair_lock_unlock(lock) }
-            _value = newValue
-        }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return _value
     }
 
     func withLock<U>(_ closure: (inout T) -> U) -> U {

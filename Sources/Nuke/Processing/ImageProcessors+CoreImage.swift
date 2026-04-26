@@ -83,7 +83,7 @@ extension ImageProcessors {
         /// has `.priorityRequestLow` option set to `true`.
         public static var context: CIContext {
             get { _context.value }
-            set { _context.value = newValue }
+            set { _context.withLock { $0 = newValue } }
         }
 
         private static let _context = Mutex(value: CIContext(options: [.priorityRequestLow: true]))
