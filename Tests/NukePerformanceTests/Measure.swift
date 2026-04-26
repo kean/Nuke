@@ -6,7 +6,7 @@ import Foundation
 
 func measure(
     _ name: String = #function,
-    iterations: Int = 3,
+    iterations: Int = 5,
     _ body: () throws -> Void
 ) rethrows {
     let clock = ContinuousClock()
@@ -20,7 +20,7 @@ func measure(
 
 func measure(
     _ name: String = #function,
-    iterations: Int = 3,
+    iterations: Int = 5,
     _ body: () async throws -> Void
 ) async rethrows {
     let clock = ContinuousClock()
