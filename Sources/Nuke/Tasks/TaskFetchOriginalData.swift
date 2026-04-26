@@ -11,6 +11,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private var data = Data()
+    private var dataLoadContinuation: UnsafeContinuation<Void, Error>?
+    private var dataLoadCancellable: (any Cancellable)?
 
     override func start() {
         if case .data(let closure) = request.resource {
@@ -84,25 +86,18 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         onCancelled = { [weak self] in
             guard let self else { return }
             signpost(self, "LoadImageData", .end, "Cancelled")
+            self.dataLoadCancellable?.cancel()
             self.tryToSaveResumableData()
         }
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
-            urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
-
-            var responseProcessed = false
-            for try await (chunk, urlResponse) in dataLoader.loadData(with: urlRequest) {
-                guard !isDisposed else { return }
-                if !responseProcessed {
-                    responseProcessed = true
-                    try dataTask(didReceiveResponse: urlResponse)
-                }
-                try dataTask(didReceiveData: chunk, response: urlResponse)
             if !pipeline.isDefaultDelegate {
                 urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
             }
+
+            try await loadData(with: urlRequest, dataLoader: dataLoader)
 
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
             dataTaskDidFinish()
@@ -113,6 +108,51 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             } else {
                 dataTaskDidFinish(error: .dataLoadingFailed(error: error))
             }
+        }
+    }
+
+    // This method was previously using `AsyncThrowingStream` but it turned out to be
+    // sub-optimal in terms of the performance.
+    private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
+        try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
+            dataLoadContinuation = continuation
+            dataLoadCancellable = dataLoader.loadData(
+                with: urlRequest,
+                didReceiveData: { [weak self] chunk, response in
+                    Task { @ImagePipelineActor in
+                        self?.dataTaskDidReceive(chunk: chunk, response: response)
+                    }
+                },
+                completion: { [weak self] error in
+                    Task { @ImagePipelineActor in
+                        self?.finishDataLoad(error: error)
+                    }
+                }
+            )
+        }
+    }
+
+    private func dataTaskDidReceive(chunk: Data, response: URLResponse) {
+        guard dataLoadContinuation != nil, !isDisposed else { return }
+        do {
+            if urlResponse == nil {
+                try dataTask(didReceiveResponse: response)
+            }
+            try dataTask(didReceiveData: chunk, response: response)
+        } catch {
+            dataLoadCancellable?.cancel()
+            finishDataLoad(error: error)
+        }
+    }
+
+    private func finishDataLoad(error: Swift.Error?) {
+        guard let continuation = dataLoadContinuation else { return }
+        dataLoadContinuation = nil
+        dataLoadCancellable = nil
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume()
         }
     }
 

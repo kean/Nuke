@@ -78,6 +78,28 @@ extension ImageCaching {
     }
 }
 
+extension DataLoading {
+    /// Test-only convenience that adapts the callback-based ``DataLoading`` API
+    /// into an `AsyncThrowingStream` so tests can iterate chunks with
+    /// `for try await`. Production code calls the callback API directly.
+    func loadData(with request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), Error> {
+        AsyncThrowingStream { continuation in
+            let cancellable = self.loadData(
+                with: request,
+                didReceiveData: { data, response in
+                    continuation.yield((data, response))
+                },
+                completion: { error in
+                    continuation.finish(throwing: error)
+                }
+            )
+            continuation.onTermination = { _ in
+                cancellable.cancel()
+            }
+        }
+    }
+}
+
 #if os(macOS)
 import Cocoa
 typealias _ImageView = NSImageView

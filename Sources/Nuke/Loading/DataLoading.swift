@@ -22,22 +22,3 @@ public protocol DataLoading: Sendable {
 public protocol Cancellable: Sendable {
     func cancel()
 }
-
-extension DataLoading {
-    func loadData(with request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), Error> {
-        AsyncThrowingStream { continuation in
-            let cancellable = self.loadData(
-                with: request,
-                didReceiveData: { data, response in
-                    continuation.yield((data, response))
-                },
-                completion: { error in
-                    continuation.finish(throwing: error)
-                }
-            )
-            continuation.onTermination = { _ in
-                cancellable.cancel()
-            }
-        }
-    }
-}
