@@ -100,6 +100,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                     try dataTask(didReceiveResponse: urlResponse)
                 }
                 try dataTask(didReceiveData: chunk, response: urlResponse)
+            if !pipeline.isDefaultDelegate {
+                urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
             }
 
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")

@@ -43,7 +43,7 @@ public final class ImagePipeline: Sendable {
     nonisolated public var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
     let delegate: any ImagePipeline.Delegate
-    private let isDefaultDelegate: Bool
+    let isDefaultDelegate: Bool
 
     private var tasks = [ObjectIdentifier: ImageTask]()
 
