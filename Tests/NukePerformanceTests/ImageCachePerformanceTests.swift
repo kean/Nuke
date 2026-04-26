@@ -2,15 +2,18 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 import Nuke
 
-class ImageCachePerformanceTests: XCTestCase {
-    func testCacheWrite() {
+@Suite
+struct ImageCachePerformanceTests {
+    @Test
+    func cacheWrite() {
         let cache = ImageCache()
         let image = ImageContainer(image: PlatformImage())
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<500))")! }
+        let urls = (0..<100_000).map { _ in URL(string: "http://test.com/\(Int.random(in: 0..<500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -20,7 +23,8 @@ class ImageCachePerformanceTests: XCTestCase {
         }
     }
 
-    func testCacheHit() {
+    @Test
+    func cacheHit() {
         let cache = ImageCache()
         let image = ImageContainer(image: PlatformImage())
 
@@ -30,7 +34,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         var hits = 0
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<2000))")! }
+        let urls = (0..<100_000).map { _ in URL(string: "http://test.com/\(Int.random(in: 0..<2000))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -44,12 +48,13 @@ class ImageCachePerformanceTests: XCTestCase {
         print("hits: \(hits)")
     }
 
-    func testCacheMiss() {
+    @Test
+    func cacheMiss() {
         let cache = ImageCache()
 
         var misses = 0
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
+        let urls = (0..<100_000).map { _ in URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -63,7 +68,8 @@ class ImageCachePerformanceTests: XCTestCase {
         print("misses: \(misses)")
     }
 
-    func testCacheReplacement() {
+    @Test
+    func cacheReplacement() {
         let cache = ImageCache()
         let request = Test.request
         let image = Test.container

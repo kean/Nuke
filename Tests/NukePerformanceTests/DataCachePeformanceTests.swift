@@ -2,29 +2,29 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
+import Security
 import Nuke
 
-class DataCachePeformanceTests: XCTestCase {
-    var cache: DataCache!
-    var count = 1000
+@Suite
+final class DataCachePeformanceTests {
+    let cache: DataCache
+    let count = 1000
 
-    override func setUp() {
-        super.setUp()
-
-        cache = try! DataCache(name: UUID().uuidString)
+    init() throws {
+        cache = try DataCache(name: UUID().uuidString)
         _ = cache["key"] // Wait till index is loaded.
     }
 
-    override func tearDown() {
-        super.tearDown()
-
+    deinit {
         try? FileManager.default.removeItem(at: cache.path)
     }
 
     // MARK: - Write
 
-    func testWriteWithFlush() {
+    @Test
+    func writeWithFlush() {
         let data = Array(0..<count).map { _ in generateRandomData() }
 
         measure {
@@ -35,7 +35,8 @@ class DataCachePeformanceTests: XCTestCase {
         }
     }
 
-    func testWriteWithFlushIndividual() {
+    @Test
+    func writeWithFlushIndividual() {
         let data = Array(0..<200).map { _ in generateRandomData() }
 
         measure {
@@ -47,7 +48,8 @@ class DataCachePeformanceTests: XCTestCase {
         }
     }
 
-    func testWriteWithoutFlush() {
+    @Test
+    func writeWithoutFlush() {
         let data = Array(0..<count).map { _ in generateRandomData() }
 
         measure {
@@ -59,7 +61,8 @@ class DataCachePeformanceTests: XCTestCase {
 
     // MARK: - Read
 
-    func testReadFlushedPerformance() {
+    @Test
+    func readFlushedPerformance() {
         populate()
 
         let queue = OperationQueue()
@@ -67,14 +70,15 @@ class DataCachePeformanceTests: XCTestCase {
         measure { [cache] in
             for idx in 0..<count {
                 queue.addOperation {
-                    _ = cache?["\(idx)"]
+                    _ = cache["\(idx)"]
                 }
             }
             queue.waitUntilAllOperationsAreFinished()
         }
     }
 
-    func testReadFlushedPerformanceSync() {
+    @Test
+    func readFlushedPerformanceSync() {
         populate()
 
         measure {

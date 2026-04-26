@@ -2,12 +2,15 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 import Nuke
 
-class ImageRequestPerformanceTests: XCTestCase {
-    func testStoringRequestInCollections() {
-        let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
+@Suite
+struct ImageRequestPerformanceTests {
+    @Test
+    func storingRequestInCollections() {
+        let urls = (0..<200_000).map { _ in URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
