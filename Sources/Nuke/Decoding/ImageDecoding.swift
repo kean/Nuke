@@ -55,7 +55,7 @@ extension ImageDecoding {
             }
         }
 #if !os(macOS)
-        if container.userInfo[.isThumbnailKey] == nil && !container.isPreview {
+        if context.request.thumbnail == nil && !container.isPreview {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
 #endif

@@ -19,7 +19,9 @@
 
 # Nuke 13
 
-## Nuke (WIP)
+## Nuke 13.0.4
+
+*Apr 26, 2026*
 
 - Add missing `@ImagePipelineActor` isolation to the new `willLoadData` method in `ImagePipeline.Delegate` to avoid thread hops
 - Minor other performance improvements 

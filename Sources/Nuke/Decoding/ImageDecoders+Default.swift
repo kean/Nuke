@@ -71,9 +71,6 @@ extension ImageDecoders {
             if numberOfScans > 0 {
                 container.userInfo[.scanNumberKey] = numberOfScans
             }
-            if thumbnail != nil {
-                container.userInfo[.isThumbnailKey] = true
-            }
             return container
         }
 
