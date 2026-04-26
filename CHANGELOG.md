@@ -19,12 +19,11 @@
 
 # Nuke 13
 
-## Nuke 13.0.4
-
-- Performance optimizations
-
 ## Nuke 13.0.3
 
+*Apr 26, 2026*
+
+- Minor performance optimizations
 - Deprecate `ImagePipeline.Configuration.maximumDecodedImageSize` and `ImageDecodingContext.maximumDecodedImageSize`. The automatic downscaling implementation has been removed; setting these values has no effect. Use `ImageRequest.ThumbnailOptions` to control decoded image size on a per-request basis
 
 ## Nuke 13.0.2
