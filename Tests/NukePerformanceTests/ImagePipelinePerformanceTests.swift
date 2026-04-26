@@ -28,7 +28,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     func testAsyncAwaitPerformance() {
         let pipeline = makePipeline()
 
-        let requests = (0..<1000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
 
         measure {
             let semaphore = DispatchSemaphore(value: 0)
