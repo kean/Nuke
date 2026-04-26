@@ -45,6 +45,7 @@ extension ImagePipeline {
         ///   unchanged to proceed without modification.
         /// - throws: If an error is thrown, the image request fails with
         ///   ``ImagePipeline/Error/dataLoadingFailed(error:)`` wrapping the error.
+        @ImagePipelineActor
         func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest
 
         // MARK: Caching
@@ -114,6 +115,7 @@ extension ImagePipeline.Delegate {
         pipeline.configuration.dataLoader
     }
 
+    @ImagePipelineActor
     public func willLoadData(
         for request: ImageRequest,
         urlRequest: URLRequest,
