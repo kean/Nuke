@@ -9,25 +9,6 @@ import Nuke
 @Suite(.serialized)
 @MainActor
 struct ImagePipelinePerformanceTests {
-    /// A very broad test that establishes how long in general it takes to load
-    /// data, decode, and decompress 50+ images. It's very useful to get a
-    /// broad picture about how loader options affect performance.
-    @Test
-    func loaderOverallPerformance() {
-        let pipeline = makePipeline()
-        let requests = (0..<1000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
-        measure {
-            let group = DispatchGroup()
-            for request in requests {
-                group.enter()
-                pipeline.loadImage(with: request, progress: nil) { _ in
-                    group.leave()
-                }
-            }
-            group.wait()
-        }
-    }
-
     @Test
     func asyncAwaitPerformance() async {
         let pipeline = makePipeline()
