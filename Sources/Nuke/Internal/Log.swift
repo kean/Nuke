@@ -8,7 +8,6 @@ import os
 func signpost(_ object: AnyObject, _ name: StaticString, _ type: OSSignpostType, _ message: @autoclosure () -> String) {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return }
 
-    let log = log.value
     let signpostId = OSSignpostID(log: log, object: object)
     os_signpost(type, log: log, name: name, signpostID: signpostId, "%{public}s", message())
 }
@@ -16,7 +15,6 @@ func signpost(_ object: AnyObject, _ name: StaticString, _ type: OSSignpostType,
 func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try work() }
 
-    let log = log.value
     let signpostId = OSSignpostID(log: log)
     os_signpost(.begin, log: log, name: name, signpostID: signpostId)
     let result = try work()
@@ -24,7 +22,7 @@ func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
     return result
 }
 
-private let log = Mutex(value: OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
+private let log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
 
 enum Formatter {
     static func bytes(_ count: Int) -> String {
