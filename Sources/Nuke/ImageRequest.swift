@@ -127,7 +127,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
     /// Returns a debug request description.
     public var description: String {
-        "ImageRequest(resource: \(ref.resource), priority: \(priority), processors: \(processors), options: \(options), userInfo: \(userInfo))"
+        "ImageRequest(resource: \(ref.resource), priority: \(ref.priority), processors: \(ref.processors), options: \(ref.options), userInfo: \(ref.userInfo ?? [:]))"
     }
 
     // MARK: Initializers
