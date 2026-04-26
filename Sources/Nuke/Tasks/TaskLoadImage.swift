@@ -196,6 +196,6 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
     /// subscribed to it, which means that the request was initiated by the
     /// user and not the framework.
     private var hasDirectSubscribers: Bool {
-        subscribers.contains { $0 is ImageTask }
+        hasSubscriber(of: ImageTask.self)
     }
 }

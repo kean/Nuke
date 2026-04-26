@@ -35,6 +35,14 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         return output.compactMap { $0 }
     }
 
+    func hasSubscriber<T>(of type: T.Type) -> Bool {
+        if inlineSubscription?.subscriber is T { return true }
+        if let subscriptions {
+            for sub in subscriptions.values where sub.subscriber is T { return true }
+        }
+        return false
+    }
+
     /// Returns `true` if the task was either cancelled, or was completed.
     private(set) var isDisposed = false
     private var isStarted = false
