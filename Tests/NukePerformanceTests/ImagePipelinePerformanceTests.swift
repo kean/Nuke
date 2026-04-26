@@ -2,16 +2,18 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 import Nuke
 
-class ImagePipelinePerfomanceTests: XCTestCase {
+@Suite
+struct ImagePipelinePerformanceTests {
     /// A very broad test that establishes how long in general it takes to load
     /// data, decode, and decompress 50+ images. It's very useful to get a
     /// broad picture about how loader options affect performance.
-    @concurrent func testLoaderOverallPerformance() async {
+    @Test
+    func loaderOverallPerformance() {
         let pipeline = makePipeline()
-
         let requests = (0..<1000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
         measure {
             let group = DispatchGroup()
@@ -25,45 +27,33 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         }
     }
 
-    func testAsyncAwaitPerformance() {
+    @Test
+    func asyncAwaitPerformance() async {
         let pipeline = makePipeline()
-
         let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
-
-        measure {
-            let semaphore = DispatchSemaphore(value: 0)
-            Task.detached {
-                await withTaskGroup(of: Void.self) { group in
-                    for request in requests {
-                        group.addTask {
-                            _ = try? await pipeline.image(for: request)
-                        }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
                     }
                 }
-                semaphore.signal()
             }
-            semaphore.wait()
         }
     }
 
-    func testAsyncImageTaskPerformance() {
+    @Test
+    func asyncImageTaskPerformance() async {
         let pipeline = makePipeline()
-
         let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
-
-        measure {
-            let semaphore = DispatchSemaphore(value: 0)
-            Task.detached {
-                await withTaskGroup(of: Void.self) { group in
-                    for request in requests {
-                        group.addTask {
-                            _ = try? await pipeline.imageTask(with: request).image
-                        }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.imageTask(with: request).image
                     }
                 }
-                semaphore.signal()
             }
-            semaphore.wait()
         }
     }
 }
