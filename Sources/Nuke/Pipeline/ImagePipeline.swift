@@ -44,7 +44,7 @@ public final class ImagePipeline: Sendable {
 
     let delegate: any ImagePipeline.Delegate
 
-    private var tasks = [ImageTask: TaskSubscription]()
+    private var tasks = [ObjectIdentifier: ImageTask]()
 
     private let tasksLoadData: TaskPool<TaskLoadImageKey, ImageResponse, Error>
     private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, Error>
@@ -120,7 +120,9 @@ public final class ImagePipeline: Sendable {
         Task { @ImagePipelineActor in
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
-            self.tasks.keys.forEach(self.imageTaskCancelCalled)
+            for task in self.tasks.values {
+                self.imageTaskCancelCalled(task)
+            }
         }
     }
 
@@ -202,9 +204,10 @@ public final class ImagePipeline: Sendable {
             return task._process(.error(.pipelineInvalidated))
         }
         let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
+        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?._process($0)
         }
+        tasks[ObjectIdentifier(task)] = task
         if !isDataTask {
             delegate.imageTask(task, didReceiveEvent: .started, pipeline: self)
         }
@@ -214,18 +217,21 @@ public final class ImagePipeline: Sendable {
     // MARK: - Image Task Events
 
     func imageTaskCancelCalled(_ task: ImageTask) {
-        tasks.removeValue(forKey: task)?.unsubscribe()
+        tasks.removeValue(forKey: ObjectIdentifier(task))
+        task._subscription?.unsubscribe()
+        task._subscription = nil
         task._cancel()
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
-        tasks[task]?.setPriority(priority.taskPriority)
+        task._subscription?.setPriority(priority.taskPriority)
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {
         switch event {
         case .finished:
-            tasks[task] = nil
+            tasks.removeValue(forKey: ObjectIdentifier(task))
+            task._subscription = nil
         default: break
         }
 

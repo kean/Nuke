@@ -151,6 +151,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
     @ImagePipelineActor var _state: State = .running
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+    @ImagePipelineActor var _subscription: TaskSubscription?
 
     deinit {
         lock.deinitialize(count: 1)
