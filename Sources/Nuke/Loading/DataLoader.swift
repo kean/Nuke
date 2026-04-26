@@ -131,8 +131,8 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     func loadData(
         with task: URLSessionDataTask,
         session: URLSession,
-        didReceiveData: @escaping (Data, URLResponse) -> Void,
-        completion: @escaping (Error?) -> Void
+        didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void,
+        completion: @Sendable @escaping (Error?) -> Void
     ) -> any Cancellable {
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
@@ -223,11 +223,11 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
 
     // MARK: Internal
 
-    private final class _Handler: @unchecked Sendable {
-        let didReceiveData: (Data, URLResponse) -> Void
-        let completion: (Error?) -> Void
+    private final class _Handler: Sendable {
+        let didReceiveData: @Sendable (Data, URLResponse) -> Void
+        let completion: @Sendable (Error?) -> Void
 
-        init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
+        init(didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) {
             self.didReceiveData = didReceiveData
             self.completion = completion
         }
