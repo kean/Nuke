@@ -17,13 +17,21 @@ extension String {
             return nil // The conversion to .utf8 should never fail
         }
         let digest = Insecure.SHA1.hash(data: input)
-        var output = ""
-        for byte in digest {
-            output.append(String(format: "%02x", byte))
+        let hexCount = Insecure.SHA1Digest.byteCount * 2
+        let bytes = [UInt8](unsafeUninitializedCapacity: hexCount) { buffer, count in
+            var i = 0
+            for byte in digest {
+                buffer[i] = sha1HexChars[Int(byte >> 4)]
+                buffer[i &+ 1] = sha1HexChars[Int(byte & 0x0F)]
+                i &+= 2
+            }
+            count = hexCount
         }
-        return output
+        return String(decoding: bytes, as: UTF8.self)
     }
 }
+
+private let sha1HexChars: [UInt8] = Array("0123456789abcdef".utf8)
 
 extension URL {
     var isLocalResource: Bool {

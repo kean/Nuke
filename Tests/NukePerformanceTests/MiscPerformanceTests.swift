@@ -44,7 +44,7 @@ struct MiscPerformanceTests {
     /// the hot path when ``DataCache`` resolves keys to filesystem entries.
     @Test
     func sha1FilenameGeneration() {
-        let count = 10_000
+        let count = 100_000
         let keys = (0..<count).map { "https://example.com/images/photo-\($0).jpg" }
         measure {
             for key in keys {
