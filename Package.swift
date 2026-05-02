@@ -21,5 +21,6 @@ let package = Package(
         .target(name: "NukeUI", dependencies: ["Nuke"]),
         .target(name: "NukeVideo", dependencies: ["Nuke"]),
         .target(name: "NukeExtensions", dependencies: ["Nuke"])
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )
