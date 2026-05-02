@@ -287,7 +287,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
-
 // MARK: - ImageTask (Private)
 
 extension ImageTask {

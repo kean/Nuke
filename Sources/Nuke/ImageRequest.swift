@@ -445,8 +445,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         struct Options: OptionSet, Hashable, Sendable {
             let rawValue: UInt8
 
-            init(rawValue: UInt8) { self.rawValue = rawValue }
-
             static let createThumbnailFromImageIfAbsent = Options(rawValue: 1 << 0)
             static let createThumbnailFromImageAlways = Options(rawValue: 1 << 1)
             static let createThumbnailWithTransform = Options(rawValue: 1 << 2)

@@ -19,7 +19,6 @@ extension ImageProcessors {
         private let crop: Bool
         private let upscale: Bool
 
-
         /// Initializes the processor with the given size.
         ///
         /// - parameters:
