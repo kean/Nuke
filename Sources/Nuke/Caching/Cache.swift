@@ -115,8 +115,12 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
             return nil
         }
 
-        // bubble node up to make it last added (most recently used)
-        list.moveToLast(node)
+        // CLOCK / second-chance: mark as referenced instead of touching the
+        // linked list. Shrinks the read critical section to a single store
+        // so the unfair lock is held for less time under contention.
+        if !node.value.referenced {
+            node.value.referenced = true
+        }
 
         return node.value.value
     }
@@ -153,7 +157,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
             // Reuse the node to avoid a heap allocation on overwrite.
             _totalCost -= existingNode.value.cost
             existingNode.value = element
-            list.moveToLast(existingNode)
+            // An update counts as a use; let CLOCK protect it on the next sweep.
+            existingNode.value.referenced = true
         } else {
             map[element.key] = list.append(element)
         }
@@ -216,8 +221,16 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     private func _trim(while condition: () -> Bool) {
-        while condition(), let node = list.first { // least recently used
-            _remove(node: node)
+        // CLOCK sweep: a referenced entry gets its bit cleared and moved to
+        // the back (second chance); an unreferenced entry is evicted. Each
+        // entry can survive at most one full pass before becoming a candidate.
+        while condition(), let node = list.first {
+            if node.value.referenced {
+                node.value.referenced = false
+                list.moveToLast(node)
+            } else {
+                _remove(node: node)
+            }
         }
     }
 
@@ -228,6 +241,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         // 0 means "never expires" — saves 8 bytes vs. `Date?` and avoids
         // the optional unwrap on every lookup.
         let expirationTimestamp: TimeInterval
+        // CLOCK reference bit: set on read/update, cleared by the eviction sweep.
+        var referenced: Bool = false
         var isExpired: Bool {
             expirationTimestamp != 0 && expirationTimestamp < Date.timeIntervalSinceReferenceDate
         }
