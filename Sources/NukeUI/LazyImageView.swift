@@ -333,7 +333,10 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func handle(result: Result<ImageResponse, Error>, isSync: Bool) {
-        resetIfNeeded()
+        switch result {
+        case .success: resetIfNeeded(clearImage: false)
+        case .failure: resetIfNeeded()
+        }
         setPlaceholderViewHidden(true)
 
         switch result {
@@ -356,7 +359,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
-        resetIfNeeded()
+        resetIfNeeded(clearImage: false)
 
         if let view = makeImageView?(container) {
             addSubview(view)
@@ -477,10 +480,9 @@ public final class LazyImageView: _PlatformBaseView {
         case fill
     }
 
-    private func resetIfNeeded() {
+    private func resetIfNeeded(clearImage: Bool = true) {
         if isResetNeeded {
-            reset()
-            isResetNeeded = false
+            reset(clearImage: clearImage)
         }
     }
 }
