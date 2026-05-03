@@ -299,7 +299,7 @@ private final class ImageViewController {
     }
 
     func cancelOutstandingTask() {
-        task?.cancel() // The pipeline guarantees no callbacks to be deliver after cancellation
+        task?.cancel() // The pipeline guarantees no callbacks will be delivered after cancellation
         task = nil
     }
 

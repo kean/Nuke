@@ -23,7 +23,7 @@
 
 *May 3, 2026*
 
-- Optimize `ImageCache` reads, writes, and optimize for concurrent access patterns
+- Optimize `ImageCache` reads and writes for concurrent access patterns
 - Optimize `LazyImageView` performance
 
 ## Nuke 13.0.4
@@ -1480,7 +1480,7 @@ All the documentation for Nuke was rewritten from scratch in Nuke 8. It's now mo
 
 <img width="1158" alt="Screenshot 2019-06-11 at 22 31 18" src="https://user-images.githubusercontent.com/1567433/59304491-aacd2700-8c98-11e9-9630-293d27545b1a.png">
 
-The screenshots come the the **reworked demo** project. It gained new demos including *Image Processing* demo and also a way to change `ImagePipeline` configuration in runtime.
+The screenshots come from the **reworked demo** project. It gained new demos including *Image Processing* demo and also a way to change `ImagePipeline` configuration in runtime.
 
 ### Misc
 
