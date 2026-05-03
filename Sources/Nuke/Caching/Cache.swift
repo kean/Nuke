@@ -102,8 +102,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         }
 
         let ttl = ttl ?? _conf.ttl
-        let expiration = ttl.map { Date() + $0 }
-        let entry = Entry(value: value, key: key, cost: cost, expiration: expiration)
+        let expirationTimestamp = ttl.map { Date.timeIntervalSinceReferenceDate + $0 } ?? 0
+        let entry = Entry(value: value, key: key, cost: cost, expirationTimestamp: expirationTimestamp)
         _add(entry)
         _trim()
     }
@@ -193,12 +193,11 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         let value: Value
         let key: Key
         let cost: Int
-        let expiration: Date?
+        // 0 means "never expires" — saves 8 bytes vs. `Date?` and avoids
+        // the optional unwrap on every lookup.
+        let expirationTimestamp: TimeInterval
         var isExpired: Bool {
-            guard let expiration else {
-                return false
-            }
-            return expiration.timeIntervalSinceNow < 0
+            expirationTimestamp != 0 && expirationTimestamp < Date.timeIntervalSinceReferenceDate
         }
     }
 }
