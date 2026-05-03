@@ -105,7 +105,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         let expiration = ttl.map { Date() + $0 }
         let entry = Entry(value: value, key: key, cost: cost, expiration: expiration)
         _add(entry)
-        _trim() // _trim is extremely fast, it's OK to call it each time
+        _trim()
     }
 
     @discardableResult
@@ -160,6 +160,9 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     private func _trim() {
+        if _totalCost <= _conf.costLimit && map.count <= _conf.countLimit {
+            return
+        }
         _trim(toCost: _conf.costLimit)
         _trim(toCount: _conf.countLimit)
     }
