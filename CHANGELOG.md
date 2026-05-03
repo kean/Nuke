@@ -25,6 +25,7 @@
 
 - Optimize `ImageCache` reads and writes for concurrent access patterns
 - Optimize `LazyImageView`, `LazyImage`, and `FetchImage` performance
+- Fix an issue with a deprecated closure-based `ImagePipeline` API sometimes invoked after cancellation
 
 ## Nuke 13.0.4
 
