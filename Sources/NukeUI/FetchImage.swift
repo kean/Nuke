@@ -103,9 +103,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
-        reset()
+        cancel()
 
         guard var request else {
+            reset()
             handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
             return
         }
@@ -118,14 +119,21 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         // Quick synchronous memory cache lookup
-        if let image = pipeline.cache[request] {
-            if image.isPreview {
-                imageContainer = image // Display progressive image
-            } else {
-                let response = ImageResponse(container: image, request: request, cacheType: .memory)
-                handle(result: .success(response))
-                return
-            }
+        let cached = pipeline.cache[request]
+        if let image = cached, !image.isPreview {
+            // Set imageContainer and result directly to avoid a nil flicker.
+            clearLoadingState()
+            let response = ImageResponse(container: image, request: request, cacheType: .memory)
+            imageContainer = image
+            result = .success(response)
+            onCompletion?(.success(response))
+            return
+        }
+
+        reset()
+
+        if let image = cached {
+            imageContainer = image // Display progressive image
         }
 
         isLoading = true
@@ -241,10 +249,14 @@ public final class FetchImage: ObservableObject, Identifiable {
         cancel()
 
         // Avoid publishing unchanged values
-        if isLoading { isLoading = false }
+        clearLoadingState()
         if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
-        if _progress != nil { _progress = nil }
         lastResponse = nil // publisher-only
+    }
+
+    private func clearLoadingState() {
+        if isLoading { isLoading = false }
+        if _progress != nil { _progress = nil }
     }
 }

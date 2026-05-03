@@ -24,7 +24,7 @@
 *May 3, 2026*
 
 - Optimize `ImageCache` reads and writes for concurrent access patterns
-- Optimize `LazyImageView` performance
+- Optimize `LazyImageView`, `LazyImage`, and `FetchImage` performance
 
 ## Nuke 13.0.4
 
