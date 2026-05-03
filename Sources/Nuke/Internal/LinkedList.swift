@@ -52,6 +52,24 @@ final class LinkedList<Element> {
         }
     }
 
+    /// Moves an existing node to the end of the list. The node must already
+    /// be in this list. Faster than `remove` + `append` because it skips
+    /// the no-op when the node is already last and avoids redundant writes.
+    func moveToLast(_ node: Node) {
+        guard node !== last else { return }
+        let next = node.next // non-nil since node !== last
+        if let previous = node.previous {
+            previous.next = next
+        } else {
+            first = next
+        }
+        next?.previous = node.previous
+        node.previous = last
+        node.next = nil
+        last?.next = node
+        last = node
+    }
+
     func remove(_ node: Node) {
         node.next?.previous = node.previous // node.previous is nil if node=first
         node.previous?.next = node.next // node.next is nil if node=last
@@ -78,7 +96,7 @@ final class LinkedList<Element> {
     }
 
     final class Node {
-        let value: Element
+        var value: Element
         fileprivate var next: Node?
         fileprivate var previous: Node?
 

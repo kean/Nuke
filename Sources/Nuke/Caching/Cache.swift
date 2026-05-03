@@ -85,8 +85,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         }
 
         // bubble node up to make it last added (most recently used)
-        list.remove(node)
-        list.append(node)
+        list.moveToLast(node)
 
         return node.value.value
     }
@@ -123,12 +122,13 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
 
     private func _add(_ element: Entry) {
         if let existingNode = map[element.key] {
-            // This is slightly faster than calling _remove because of the
-            // skipped dictionary access
-            list.remove(existingNode)
+            // Reuse the node to avoid a heap allocation on overwrite.
             _totalCost -= existingNode.value.cost
+            existingNode.value = element
+            list.moveToLast(existingNode)
+        } else {
+            map[element.key] = list.append(element)
         }
-        map[element.key] = list.append(element)
         _totalCost += element.cost
     }
 
