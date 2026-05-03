@@ -20,19 +20,22 @@ public protocol ImageCaching: AnyObject, Sendable {
 /// Typically, you don't construct this directly - use the ``ImagePipeline`` or
 /// ``ImagePipeline/Cache-swift.struct`` APIs instead.
 public struct ImageCacheKey: Hashable, Sendable {
-    let key: Inner
-
-    // This is faster than using AnyHashable (and it shows in performance tests).
-    enum Inner: Hashable, Sendable {
-        case custom(String)
-        case `default`(MemoryCacheKey)
-    }
+    // A single class reference: copying is one retain, no enum tag, no outlined copy.
+    let key: MemoryCacheKey
 
     public init(key: String) {
-        self.key = .custom(key)
+        self.key = MemoryCacheKey(customKey: key)
     }
 
     public init(request: ImageRequest) {
-        self.key = .default(MemoryCacheKey(request))
+        self.key = MemoryCacheKey(request)
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(key)
+    }
+
+    public static func == (lhs: ImageCacheKey, rhs: ImageCacheKey) -> Bool {
+        lhs.key == rhs.key
     }
 }

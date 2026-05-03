@@ -7,13 +7,27 @@ import Foundation
 /// Uniquely identifies a cache processed image.
 final class MemoryCacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
+    private let customKey: String?
     private let imageId: String?
     private let scale: Float
     private let thumbnail: ImageRequest.ThumbnailOptions?
     private let processors: [any ImageProcessing]
     private let _hashValue: Int
 
+    init(customKey: String) {
+        self.customKey = customKey
+        self.imageId = nil
+        self.scale = 1
+        self.thumbnail = nil
+        self.processors = []
+
+        var hasher = Hasher()
+        hasher.combine(customKey)
+        self._hashValue = hasher.finalize()
+    }
+
     init(_ request: ImageRequest) {
+        self.customKey = nil
         self.imageId = request.imageID
         self.scale = request.scale
         self.thumbnail = request.thumbnail
@@ -32,7 +46,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     }
 
     static func == (lhs: MemoryCacheKey, rhs: MemoryCacheKey) -> Bool {
-        lhs._hashValue == rhs._hashValue && lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
+        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.customKey == rhs.customKey && lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors)
     }
 }
 
