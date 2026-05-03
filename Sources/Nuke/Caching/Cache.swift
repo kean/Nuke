@@ -20,8 +20,16 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     var conf: Configuration {
-        get { lock.withLock { _conf } }
-        set { lock.withLock { _conf = newValue } }
+        get {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            return _conf
+        }
+        set {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            _conf = newValue
+        }
     }
 
     private var _conf: Configuration {
@@ -29,22 +37,28 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     var totalCost: Int {
-        lock.withLock { _totalCost }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return _totalCost
     }
 
     var totalCount: Int {
-        lock.withLock { map.count }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return map.count
     }
 
     private var _totalCost = 0
     private var map = [Key: LinkedList<Entry>.Node]()
     private let list = LinkedList<Entry>()
-    private let lock = NSLock()
+    private let lock: os_unfair_lock_t
     private let memoryPressure: DispatchSourceMemoryPressure
     private var notificationObserver: AnyObject?
 
     init(costLimit: Int, countLimit: Int) {
         self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: nil, entryCostLimit: 0.1)
+        self.lock = .allocate(capacity: 1)
+        self.lock.initialize(to: os_unfair_lock())
 
         self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
         self.memoryPressure.setEventHandler { [weak self] in
@@ -61,6 +75,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
 
     deinit {
         memoryPressure.cancel()
+        lock.deinitialize(count: 1)
+        lock.deallocate()
     }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -72,8 +88,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
 #endif
 
     func value(forKey key: Key) -> Value? {
-        lock.lock()
-        defer { lock.unlock() }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
 
         guard let node = map[key] else {
             return nil
@@ -91,8 +107,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     func set(_ value: Value, forKey key: Key, cost: Int = 0, ttl: TimeInterval? = nil) {
-        lock.lock()
-        defer { lock.unlock() }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
 
         // Take care of overflow or cache size big enough to fit any
         // reasonable content (and also of costLimit = Int.max).
@@ -110,8 +126,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
 
     @discardableResult
     func removeValue(forKey key: Key) -> Value? {
-        lock.lock()
-        defer { lock.unlock() }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
 
         guard let node = map[key] else {
             return nil
@@ -139,8 +155,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     func removeAllCachedValues() {
-        lock.lock()
-        defer { lock.unlock() }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
 
         map.removeAll()
         list.removeAllElements()
@@ -152,8 +168,8 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         // This behavior is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
         // to change in future Nuke versions.
-        lock.lock()
-        defer { lock.unlock() }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
 
         _trim(toCost: Int(Double(_conf.costLimit) * 0.1))
         _trim(toCount: Int(Double(_conf.countLimit) * 0.1))
@@ -168,7 +184,9 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     func trim(toCost limit: Int) {
-        lock.withLock { _trim(toCost: limit) }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        _trim(toCost: limit)
     }
 
     private func _trim(toCost limit: Int) {
@@ -176,7 +194,9 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     func trim(toCount limit: Int) {
-        lock.withLock { _trim(toCount: limit) }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        _trim(toCount: limit)
     }
 
     private func _trim(toCount limit: Int) {
