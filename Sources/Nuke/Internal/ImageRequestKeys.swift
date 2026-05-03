@@ -11,23 +11,28 @@ final class MemoryCacheKey: Hashable, Sendable {
     private let scale: Float
     private let thumbnail: ImageRequest.ThumbnailOptions?
     private let processors: [any ImageProcessing]
+    private let _hashValue: Int
 
     init(_ request: ImageRequest) {
         self.imageId = request.imageID
         self.scale = request.scale
         self.thumbnail = request.thumbnail
         self.processors = request.processors
-    }
 
-    func hash(into hasher: inout Hasher) {
+        var hasher = Hasher()
         hasher.combine(imageId)
         hasher.combine(scale)
         hasher.combine(thumbnail)
         hasher.combine(processors.count)
+        self._hashValue = hasher.finalize()
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(_hashValue)
     }
 
     static func == (lhs: MemoryCacheKey, rhs: MemoryCacheKey) -> Bool {
-        lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
+        lhs._hashValue == rhs._hashValue && lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
     }
 }
 
