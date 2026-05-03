@@ -240,8 +240,8 @@ public final class LazyImageView: _PlatformBaseView {
         cancel()
 
         if clearImage {
-            imageView.image = nil
-            imageView.isHidden = true
+            if imageView.image != nil { imageView.image = nil }
+            if !imageView.isHidden { imageView.isHidden = true }
         }
 
         customImageView?.removeFromSuperview()
