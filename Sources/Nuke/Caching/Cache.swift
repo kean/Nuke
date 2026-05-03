@@ -13,10 +13,25 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     // Can't use `NSCache` because it is not LRU
 
     struct Configuration {
-        var costLimit: Int
+        var costLimit: Int { didSet { recomputeEntryMaxCost() } }
         var countLimit: Int
         var ttl: TimeInterval?
-        var entryCostLimit: Double
+        var entryCostLimit: Double { didSet { recomputeEntryMaxCost() } }
+        private(set) var entryMaxCost: Int = .max
+
+        init(costLimit: Int, countLimit: Int, ttl: TimeInterval?, entryCostLimit: Double) {
+            self.costLimit = costLimit
+            self.countLimit = countLimit
+            self.ttl = ttl
+            self.entryCostLimit = entryCostLimit
+            recomputeEntryMaxCost()
+        }
+
+        private mutating func recomputeEntryMaxCost() {
+            let clamped = max(0, min(entryCostLimit, 1))
+            let product = clamped * Double(costLimit)
+            entryMaxCost = product >= Double(Int.max) ? .max : Int(product)
+        }
     }
 
     var conf: Configuration {
@@ -110,10 +125,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
 
-        // Take care of overflow or cache size big enough to fit any
-        // reasonable content (and also of costLimit = Int.max).
-        let sanitizedEntryLimit = max(0, min(_conf.entryCostLimit, 1))
-        guard _conf.costLimit > 2_147_483_647 || cost < Int(sanitizedEntryLimit * Double(_conf.costLimit)) else {
+        guard cost < _conf.entryMaxCost else {
             return
         }
 
