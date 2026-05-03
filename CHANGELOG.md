@@ -21,6 +21,13 @@
 
 ## Nuke 13.0.4
 
+*May 3, 2026*
+
+- Optimize `ImageCache` reads, writes, and optimize for concurrent access patterns
+- Optimize `LazyImageView` performance
+
+## Nuke 13.0.4
+
 *Apr 26, 2026*
 
 - Add missing `@ImagePipelineActor` isolation to the new `willLoadData` method in `ImagePipeline.Delegate` to avoid thread hops
