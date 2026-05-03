@@ -61,7 +61,7 @@ extension ImagePipeline {
             let work: @MainActor @Sendable () -> Void = {
                 // The callback-based API guarantees that after cancellation no
                 // events are called on the callback queue.
-                guard task.state != .cancelled else { return }
+                guard !task.isCancelled else { return }
                 switch event {
                 case .started: break
                 case .progress(let value): progress?(nil, value)
