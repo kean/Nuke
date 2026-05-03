@@ -27,6 +27,8 @@
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0CFADE0001000000000000A1 /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
+		0CFADE0001000000000000A2 /* NukeUI.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +81,13 @@
 			remoteGlobalIDString = 0C55FCFC28567875000FD2C9;
 			remoteInfo = NukeExtensions;
 		};
+		0CFADE0001000000000000A3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C38DAA128568FAE0027F9FF;
+			remoteInfo = NukeUI;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -102,6 +111,7 @@
 			files = (
 				0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */,
 				0C27B34C2F5462D100F96DB1 /* NukeExtensions.framework in CopyFiles */,
+				0CFADE0001000000000000A2 /* NukeUI.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,6 +240,7 @@
 			files = (
 				0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */,
 				0C27B34B2F5462D100F96DB1 /* NukeExtensions.framework in Frameworks */,
+				0CFADE0001000000000000A1 /* NukeUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -514,6 +525,7 @@
 			dependencies = (
 				0C8D7BEF1D9DC02B00D12EB7 /* PBXTargetDependency */,
 				0CB644AE28567FC500916267 /* PBXTargetDependency */,
+				0CFADE0001000000000000A4 /* PBXTargetDependency */,
 				0C8D7BF41D9DC03A00D12EB7 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -847,6 +859,11 @@
 			isa = PBXTargetDependency;
 			target = 0C55FCFC28567875000FD2C9 /* NukeExtensions */;
 			targetProxy = 0CB644AD28567FC500916267 /* PBXContainerItemProxy */;
+		};
+		0CFADE0001000000000000A4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;
+			targetProxy = 0CFADE0001000000000000A3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
