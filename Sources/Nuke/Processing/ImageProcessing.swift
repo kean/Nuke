@@ -106,9 +106,8 @@ public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
 }
 
 func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
-    guard lhs.count == rhs.count else {
-        return false
-    }
+    if lhs.isEmpty && rhs.isEmpty { return true }
+    guard lhs.count == rhs.count else { return false }
     // Lazily creates `hashableIdentifiers` because for some processors the
     // identifiers might be expensive to compute.
     return zip(lhs, rhs).allSatisfy {
