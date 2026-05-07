@@ -14,10 +14,11 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Returns the fetched image.
     public var image: Image? {
+        guard let imageContainer else { return nil }
 #if os(macOS)
-        imageContainer.map { Image(nsImage: $0.image) }
+        return Image(nsImage: imageContainer.image)
 #else
-        imageContainer.map { Image(uiImage: $0.image) }
+        return Image(uiImage: imageContainer.image)
 #endif
     }
 
@@ -65,7 +66,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// (the default), the request's own priority is used. Can be updated while
     /// a task is already running.
     public var priority: ImageRequest.Priority? {
-        didSet { priority.map { imageTask?.priority = $0 } }
+        didSet {
+            if let priority {
+                imageTask?.priority = priority
+            }
+        }
     }
 
     /// A pipeline used for performing image requests.
@@ -96,7 +101,11 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Loads an image with the given URL.
     public func load(_ url: URL?) {
-        load(url.map { ImageRequest(url: $0) })
+        if let url {
+            load(ImageRequest(url: url))
+        } else {
+            load(nil as ImageRequest?)
+        }
     }
 
     /// Loads an image with the given request.

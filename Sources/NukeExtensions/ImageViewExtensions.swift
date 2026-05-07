@@ -128,7 +128,13 @@ extension TVPosterView: Nuke_ImageDisplaying {
     completion: (@MainActor @Sendable (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
-    return controller.loadImage(with: url.map({ ImageRequest(url: $0) }), options: options ?? .shared, progress: progress, completion: completion)
+    let request: ImageRequest?
+    if let url {
+        request = ImageRequest(url: url)
+    } else {
+        request = nil
+    }
+    return controller.loadImage(with: request, options: options ?? .shared, progress: progress, completion: completion)
 }
 
 /// Loads an image with the given request and displays it in the view.

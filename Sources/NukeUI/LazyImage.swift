@@ -34,7 +34,11 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - url: The image URL.
     public init(url: URL?) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) })
+        if let url {
+            self.init(request: ImageRequest(url: url))
+        } else {
+            self.init(request: nil)
+        }
     }
 
     /// Loads and displays an image using `SwiftUI.Image`.
@@ -42,7 +46,9 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
-        self.context = request.map(LazyImageContext.init)
+        if let request {
+            self.context = LazyImageContext(request: request)
+        }
         self.transaction = Transaction(animation: nil)
     }
 
@@ -54,7 +60,11 @@ public struct LazyImage<Content: View>: View {
         transaction: Transaction = Transaction(animation: nil),
         @ViewBuilder content: @escaping (LazyImageState) -> Content
     ) {
-        self.init(request: url.map { ImageRequest(url: $0) }, transaction: transaction, content: content)
+        if let url {
+            self.init(request: ImageRequest(url: url), transaction: transaction, content: content)
+        } else {
+            self.init(request: nil, transaction: transaction, content: content)
+        }
     }
 
     /// Loads an image and displays custom content for each state.
@@ -80,7 +90,9 @@ public struct LazyImage<Content: View>: View {
         transaction: Transaction = Transaction(animation: nil),
         @ViewBuilder content: @escaping (LazyImageState) -> Content
     ) {
-        self.context = request.map { LazyImageContext(request: $0) }
+        if let request {
+            self.context = LazyImageContext(request: request)
+        }
         self.transaction = transaction
         self.makeContent = content
     }

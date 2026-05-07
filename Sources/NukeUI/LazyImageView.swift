@@ -216,7 +216,13 @@ public final class LazyImageView: _PlatformBaseView {
     /// Sets the given URL and immediately starts the download.
     public var url: URL? {
         get { request?.url }
-        set { request = newValue.map { ImageRequest(url: $0) } }
+        set {
+            if let newValue {
+                request = ImageRequest(url: newValue)
+            } else {
+                request = nil
+            }
+        }
     }
 
     /// Sets the given request and immediately starts the download.

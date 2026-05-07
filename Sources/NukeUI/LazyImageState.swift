@@ -38,10 +38,11 @@ extension LazyImageState {
 
     /// Returns an image view.
     public var image: Image? {
+        guard let imageContainer else { return nil }
 #if os(macOS)
-        imageContainer.map { Image(nsImage: $0.image) }
+        return Image(nsImage: imageContainer.image)
 #else
-        imageContainer.map { Image(uiImage: $0.image) }
+        return Image(uiImage: imageContainer.image)
 #endif
     }
 }
