@@ -21,6 +21,8 @@
 
 ## Nuke 13.0.6
 
+*May 7, 2026*
+
 - Fix crashes on the Swift 5 boundary caused by dynamic actor isolation when invoking `Optional.map` with closures inferred as `@MainActor` in `LazyImage`, `LazyImageView`, `FetchImage`, and `loadImage(with:into:)`
 
 ## Nuke 13.0.5
