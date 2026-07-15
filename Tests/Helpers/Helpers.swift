@@ -51,6 +51,27 @@ enum Test {
         Test.image(named: "fixture", extension: "jpeg")
     }
 
+    // Grayscale (monochrome color space) image for color-space-sensitive paths.
+    static func grayscaleImage(width: Int, height: Int) -> PlatformImage {
+        let ctx = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        )!
+        ctx.setFillColor(CGColor(gray: 0.5, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        let cgImage = ctx.makeImage()!
+#if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+#else
+        return UIImage(cgImage: cgImage)
+#endif
+    }
+
     // Test.image size is 640 x 480 pixels
     static var container: ImageContainer {
         ImageContainer(image: image)

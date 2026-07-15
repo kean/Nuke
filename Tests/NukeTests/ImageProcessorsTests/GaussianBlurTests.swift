@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Foundation
 @testable import Nuke
 
 #if !os(macOS)
@@ -94,6 +95,17 @@ struct ImageProcessorsGaussianBlurTests {
         // WHEN / THEN - must not crash and must return a valid image
         let output = try #require(processor.process(Test.image))
         #expect(output.sizeInPixels == Test.image.sizeInPixels)
+    }
+
+    @Test func blurGrayscaleImageDoesNotCrash() throws {
+        // GIVEN - a grayscale (monochrome color space) source. Its 16-bit
+        // gray+alpha scratch context used to crash vImageBoxConvolve.
+        let image = Test.grayscaleImage(width: 400, height: 225)
+        let processor = ImageProcessors.GaussianBlur(radius: 8)
+
+        // WHEN / THEN - must not crash and must return a same-size image
+        let output = try #require(processor.process(image))
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 225))
     }
 
     @Test func differentRadiiProduceDifferentDescriptions() {
