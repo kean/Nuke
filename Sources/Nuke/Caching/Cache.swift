@@ -79,7 +79,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         self.memoryPressure.setEventHandler { [weak self] in
             self?.removeAllCachedValues()
         }
-        self.memoryPressure.resume()
+        self.memoryPressure.activate()
 
 #if os(iOS) || os(tvOS) || os(visionOS)
         Task {
