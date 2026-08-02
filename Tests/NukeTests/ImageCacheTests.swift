@@ -457,3 +457,40 @@ struct InternalCacheTTLTests {
         #expect(cache.value(forKey: 1) != nil)
     }
 }
+
+@Suite(.timeLimit(.minutes(5)))
+struct InternalCacheMemoryPressureTests {
+    // `DispatchSourceMemoryPressure` has no public API for injecting a
+    // pressure event, so this exercises the same eviction path the event
+    // handler calls (`removeAllCachedValues()`) rather than the system
+    // dispatch source itself.
+    @Test func removeAllCachedValuesEvictsEveryEntry() {
+        // Given
+        let cache = Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
+        for index in 0..<10 {
+            cache.set(index, forKey: index, cost: 1)
+        }
+        #expect(cache.totalCount == 10)
+
+        // When
+        cache.removeAllCachedValues()
+
+        // Then
+        #expect(cache.totalCount == 0)
+        #expect(cache.totalCost == 0)
+        #expect(cache.value(forKey: 0) == nil)
+    }
+
+    @Test func repeatedInitializationAndTeardownDoesNotCrash() {
+        // Regression coverage for the `Cache.init` dispatch-source lifecycle
+        // (see #826): each iteration creates and tears down a memory-pressure
+        // `DispatchSource`, exercising the same activate()/cancel() path even
+        // though it can't reproduce the mergeable-libraries-specific crash,
+        // which requires an Xcode linking mode outside SPM's reach.
+        for index in 0..<1000 {
+            let cache = Cache<Int, Int>(costLimit: 100, countLimit: 100)
+            cache.set(index, forKey: index, cost: 1)
+            #expect(cache.value(forKey: index) == index)
+        }
+    }
+}
