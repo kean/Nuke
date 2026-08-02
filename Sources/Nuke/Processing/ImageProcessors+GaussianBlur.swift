@@ -54,8 +54,11 @@ private extension CGImage {
         if kernelSize % 2 == 0 { kernelSize += 1 }
 
         let size = self.size
-        guard let inputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast),
-              let outputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast) else {
+        // vImageBoxConvolve_ARGB8888 needs a 32-bit ARGB layout. A grayscale
+        // source yields a 16-bit gray+alpha context (half the row stride vImage
+        // expects), so force RGB for the scratch contexts.
+        guard let inputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast, colorSpace: CGColorSpaceCreateDeviceRGB()),
+              let outputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast, colorSpace: CGColorSpaceCreateDeviceRGB()) else {
             return nil
         }
         inputCtx.draw(self, in: CGRect(origin: .zero, size: size))
