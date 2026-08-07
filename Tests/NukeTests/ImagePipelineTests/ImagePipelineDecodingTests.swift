@@ -4,7 +4,7 @@
 
 import Testing
 import Foundation
-@testable import Nuke
+@_spi(AsyncImageDecoding) @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineDecodingTests {

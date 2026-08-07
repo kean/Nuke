@@ -23,25 +23,6 @@ public protocol ImageDecoding: Sendable {
 }
 ```
 
-If decoding needs to call asynchronous APIs, use ``AsyncImageDecoding`` instead:
-
-```swift
-final class CustomDecoder: AsyncImageDecoding {
-    func decode(_ data: Data) async throws -> ImageContainer {
-        try await CustomDecoderImplementation.decode(data)
-    }
-}
-```
-
-The pipeline recognizes async decoders returned by `makeImageDecoder` or
-``ImageDecoderRegistry`` and awaits them on the image decoding queue. There is
-no need to block a thread with a semaphore. Progressive decoding remains
-synchronous and can be implemented with `decodePartiallyDownloadedData(_:)`.
-
-> Note: The synchronous ``ImagePipeline/Cache/cachedImage(for:caches:)`` API
-> can't use an async-only decoder to decode disk data. Regular image pipeline
-> loading, including loading from the disk cache, supports async decoders.
-
 ``ImageContainer`` is a struct that wraps the decoded image and (optionally) the original data and some additional information. The decoder decides what to attach to the container.
 
 ```swift

@@ -20,7 +20,6 @@ Nuke can drive progressive decoding, animated image rendering, progressive anima
 
 - <doc:image-decoding>
 - ``ImageDecoding``
-- ``AsyncImageDecoding``
 - ``ImageDecoders``
 - ``ImageDecodingError``
 - ``ImageDecodingContext``

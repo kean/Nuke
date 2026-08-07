@@ -14,8 +14,6 @@ public protocol ImageDecoding: Sendable {
     /// Returns `true` if you want the decoding to be performed on the decoding
     /// queue (see ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``). If `false`, the decoding will be
     /// performed synchronously on the pipeline operation queue. By default, `true`.
-    /// This option is ignored by ``AsyncImageDecoding``, which always uses the
-    /// decoding queue.
     var isAsynchronous: Bool { get }
 
     /// Produces an image from the given image data.
@@ -34,6 +32,7 @@ public protocol ImageDecoding: Sendable {
 /// Use this protocol when decoding needs to call asynchronous APIs. The image
 /// pipeline schedules async decoders on its decoding queue and awaits the
 /// result without blocking a thread.
+@_spi(AsyncImageDecoding)
 public protocol AsyncImageDecoding: ImageDecoding {
     /// Asynchronously produces an image from the given image data.
     func decode(_ data: Data) async throws -> ImageContainer
@@ -58,6 +57,7 @@ extension AsyncImageDecoding {
 
 public enum ImageDecodingError: Error, CustomStringConvertible, Sendable {
     case unknown
+    @_spi(AsyncImageDecoding)
     case synchronousDecodingUnsupported
 
     public var description: String {
