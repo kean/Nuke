@@ -27,6 +27,7 @@
 - Fix a leak where requests that finish synchronously – memory cache hits, disk cache hits for `data(for:)`, local resources, `.returnCacheDataDontLoad` misses, and malformed URLs – were never removed from the pipeline, retaining their responses for the lifetime of the pipeline
 - Fix `ImageTask.Event.started` being delivered to `ImagePipelineDelegate` after `.finished` for requests that finish synchronously
 - Fix a data race in `ImageDecoderRegistry` where `decoder(for:)` iterated the registered decoders without holding the lock. The registry is now backed by `Mutex` and is `Sendable` instead of `@unchecked Sendable`. The registered closures are called outside of the lock
+- `ImageDecoderRegistry.register(_:)` now takes a `@Sendable` closure. The registry is shared between the pipelines and the closures are called on the decoding threads. Registrations that capture non-`Sendable` state now produce a compiler error instead of silently escaping the check
 
 ## Nuke 13.0.6
 

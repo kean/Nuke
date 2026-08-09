@@ -9,7 +9,7 @@ public final class ImageDecoderRegistry: Sendable {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private let matches = Mutex<[(ImageDecodingContext) -> (any ImageDecoding)?]>(value: [])
+    private let matches = Mutex<[@Sendable (ImageDecodingContext) -> (any ImageDecoding)?]>(value: [])
 
     /// Initializes a custom registry.
     public init() {
@@ -35,7 +35,7 @@ public final class ImageDecoderRegistry: Sendable {
     /// The decoder is created once and is used for the entire decoding session,
     /// including progressively decoded images. If the decoder doesn't support
     /// progressive decoding, return `nil` when `isCompleted` is `false`.
-    public func register(_ match: @escaping (ImageDecodingContext) -> (any ImageDecoding)?) {
+    public func register(_ match: @escaping @Sendable (ImageDecodingContext) -> (any ImageDecoding)?) {
         matches.withLock { $0.append(match) }
     }
 
