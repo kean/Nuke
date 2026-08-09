@@ -323,11 +323,30 @@ extension CGSize {
 
 enum Screen {
 #if os(iOS) || os(tvOS)
-    /// Returns the current screen scale.
-    static let scale: CGFloat = UITraitCollection.current.displayScale
+    /// Returns the current screen scale. Never returns `0`.
+    ///
+    /// - note: `UITraitCollection.current` is only populated in the contexts
+    /// managed by UIKit and its `displayScale` is `0` everywhere else, e.g. when
+    /// a request is created on a background thread. That's why the scale has to
+    /// be re-evaluated on every access with the last known valid value used as
+    /// a fallback – caching it once would latch `0` for the entire lifetime of
+    /// the process.
+    static var scale: CGFloat {
+        let scale = UITraitCollection.current.displayScale
+        guard scale > 0 else {
+            return lastKnownScale.value
+        }
+        lastKnownScale.testAndSet(scale)
+        return scale
+    }
+
+    private static let lastKnownScale = Mutex<CGFloat>(value: 1)
 #elseif os(watchOS)
-    /// Returns the current screen scale.
-    static let scale: CGFloat = WKInterfaceDevice.current().screenScale
+    /// Returns the current screen scale. Never returns `0`.
+    ///
+    /// - note: unlike `UITraitCollection.current`, `WKInterfaceDevice` reports
+    /// the scale of the device regardless of the context, so it's safe to cache.
+    static let scale: CGFloat = max(1, WKInterfaceDevice.current().screenScale)
 #else
     /// Always returns 1.
     static let scale: CGFloat = 1
