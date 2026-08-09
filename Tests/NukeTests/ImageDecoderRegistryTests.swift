@@ -101,6 +101,29 @@ struct ImageDecoderRegistryTests {
         #expect(decoder?.name == "second")
     }
 
+    // MARK: - Thread Safety
+
+    @Test func registeringWhileResolvingDecodersConcurrently() async {
+        // GIVEN
+        let registry = ImageDecoderRegistry()
+        let context = ImageDecodingContext.mock
+
+        // WHEN decoders are registered while other threads are resolving them
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0..<100 {
+                group.addTask {
+                    registry.register { _ in MockImageDecoder(name: "\(index)") }
+                }
+                group.addTask {
+                    _ = registry.decoder(for: context)
+                }
+            }
+        }
+
+        // THEN the registry is intact and the registered decoders take priority
+        #expect(registry.decoder(for: context) is MockImageDecoder)
+    }
+
     @Test func whenAllCustomDecodersDeclineBuiltInIsReturned() {
         // GIVEN a registry where every custom decoder returns nil
         let registry = ImageDecoderRegistry()

@@ -5,12 +5,11 @@
 import Foundation
 
 /// A registry of image codecs.
-public final class ImageDecoderRegistry: @unchecked Sendable {
+public final class ImageDecoderRegistry: Sendable {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private var matches = [(ImageDecodingContext) -> (any ImageDecoding)?]()
-    private let lock = NSLock()
+    private let matches = Mutex<[(ImageDecodingContext) -> (any ImageDecoding)?]>(value: [])
 
     /// Initializes a custom registry.
     public init() {
@@ -19,7 +18,9 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
 
     /// Returns a decoder that matches the given context.
     public func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
-        for match in matches.reversed() {
+        // Iterate over a snapshot: the closures are provided by the user and
+        // must never be called while holding the lock.
+        for match in matches.value.reversed() {
             if let decoder = match(context) {
                 return decoder
             }
@@ -35,12 +36,12 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// including progressively decoded images. If the decoder doesn't support
     /// progressive decoding, return `nil` when `isCompleted` is `false`.
     public func register(_ match: @escaping (ImageDecodingContext) -> (any ImageDecoding)?) {
-        lock.withLock { matches.append(match) }
+        matches.withLock { $0.append(match) }
     }
 
     /// Removes all registered decoders.
     public func clear() {
-        lock.withLock { matches = [] }
+        matches.withLock { $0.removeAll() }
     }
 }
 

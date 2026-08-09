@@ -26,6 +26,7 @@
 - Add asynchronous image decoding support by @thliu21 in https://github.com/kean/Nuke/pull/879
 - Fix a leak where requests that finish synchronously – memory cache hits, disk cache hits for `data(for:)`, local resources, `.returnCacheDataDontLoad` misses, and malformed URLs – were never removed from the pipeline, retaining their responses for the lifetime of the pipeline
 - Fix `ImageTask.Event.started` being delivered to `ImagePipelineDelegate` after `.finished` for requests that finish synchronously
+- Fix a data race in `ImageDecoderRegistry` where `decoder(for:)` iterated the registered decoders without holding the lock. The registry is now backed by `Mutex` and is `Sendable` instead of `@unchecked Sendable`. The registered closures are called outside of the lock
 
 ## Nuke 13.0.6
 
