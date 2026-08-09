@@ -19,6 +19,12 @@
 
 # Nuke 13
 
+## WIP
+
+- Fix `GaussianBlur` crash on grayscale images by @Delarkz in https://github.com/kean/Nuke/pull/880
+- Fix cache initialization for mergeable libraries by @ZHUOLIN0928 in https://github.com/kean/Nuke/pull/881
+- Add asynchronous image decoding support by @thliu21 in https://github.com/kean/Nuke/pull/879
+
 ## Nuke 13.0.6
 
 *May 7, 2026*
