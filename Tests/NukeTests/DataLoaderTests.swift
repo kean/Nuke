@@ -125,6 +125,50 @@ struct DataLoaderTests {
         }
     }
 
+    /// ``DataLoading`` requires `completion` to be called exactly once. On a
+    /// validation failure the data loader must stop tracking the handler before
+    /// cancelling the task – otherwise `didCompleteWithError`, which
+    /// `URLSession` delivers in response to the `.cancel` disposition, finds the
+    /// handler still registered and calls `completion` a second time.
+    @Test func completionIsCalledOnceOnValidationFailure() async throws {
+        let url = mockURL("validation-completion-count")
+        registerMock(url: url, statusCode: 404, chunks: [Data("not found".utf8)])
+
+        let loader = makeDataLoader()
+        let spy = SpyURLSessionDelegate()
+        loader.delegate = spy
+
+        let recorder = CompletionRecorder()
+        _ = loader.loadData(
+            with: URLRequest(url: url),
+            didReceiveData: { _, _ in },
+            completion: {
+                recorder.record($0)
+            }
+        )
+
+        // `didCompleteWithError` is the callback that delivers the extra
+        // `completion` call, so wait for it, then drain the delegate queue to
+        // let the block that forwarded it run to the end.
+        await spy.didCompleteWithError.wait()
+        await withCheckedContinuation { continuation in
+            loader.session.delegateQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+
+        let errors = recorder.errors
+        #expect(errors.count == 1, "completion called \(errors.count) times: \(errors.map { $0.map(String.init(describing:)) ?? "nil" })")
+
+        let first = try #require(errors.first ?? nil)
+        guard let error = first as? DataLoader.Error,
+              case .statusCodeUnacceptable(let code) = error else {
+            Issue.record("Expected a validation error, got \(first)")
+            return
+        }
+        #expect(code == 404)
+    }
+
     @Test func customValidation() async throws {
         let url = mockURL("custom-val")
         registerMock(url: url, statusCode: 200, chunks: [Data("ok".utf8)])
@@ -449,6 +493,17 @@ struct DataLoaderTests {
     }
 }
 
+// MARK: - Completion Recorder
+
+/// Records every `completion` call made by a ``DataLoading`` instance.
+private final class CompletionRecorder: @unchecked Sendable {
+    @Mutex var errors: [(any Error)?] = []
+
+    func record(_ error: (any Error)?) {
+        _errors.withLock { $0.append(error) }
+    }
+}
+
 // MARK: - Spy Delegate
 
 private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
@@ -456,6 +511,8 @@ private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @un
     @Mutex var didReceiveDataCount = 0
     @Mutex var didCompleteCount = 0
     @Mutex var didFinishMetricsCount = 0
+
+    let didCompleteWithError = TestExpectation()
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         didReceiveResponseCount += 1
@@ -468,6 +525,7 @@ private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @un
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
         didCompleteCount += 1
+        didCompleteWithError.fulfill()
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {

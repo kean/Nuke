@@ -29,6 +29,7 @@
 - Fix a data race in `ImageDecoderRegistry` where `decoder(for:)` iterated the registered decoders without holding the lock. The registry is now backed by `Mutex` and is `Sendable` instead of `@unchecked Sendable`. The registered closures are called outside of the lock
 - `ImageDecoderRegistry.register(_:)` now takes a `@Sendable` closure. The registry is shared between the pipelines and the closures are called on the decoding threads. Registrations that capture non-`Sendable` state now produce a compiler error instead of silently escaping the check
 - Add `ImageDecoderRegistry.unregister(_:)`. `register(_:)` now returns a discardable `ImageDecoderRegistry.RegistrationToken` that can be used to remove an individual decoder instead of clearing the entire registry
+- Fix `DataLoader` calling the `completion` closure twice when response validation fails, violating the `DataLoading` contract. The handler is now unregistered before the task is cancelled, so the `URLError(.cancelled)` reported by `didCompleteWithError` is no longer delivered after the validation error
 
 ## Nuke 13.0.6
 

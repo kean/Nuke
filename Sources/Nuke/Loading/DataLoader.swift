@@ -165,6 +165,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             return
         }
         if let error = validate(response) {
+            // Unregister the handler first: `.cancel` makes `URLSession` deliver
+            // `didCompleteWithError`, which would otherwise call the completion
+            // a second time, breaking the `DataLoading` contract.
+            handlers[dataTask] = nil
             handler.completion(error)
             completionHandler(.cancel)
             return
