@@ -95,7 +95,16 @@ public struct ImageContainer: Sendable {
             self.rawValue = value
         }
 
-        /// A user info key to get the scan number (Int).
+        /// A user info key to get the index of the preview (`Int`), starting
+        /// with `1`.
+        ///
+        /// - important: The value counts the previews the decoder produced and
+        /// is not the index of a scan in the image data. Image I/O decodes the
+        /// partially downloaded data incrementally and doesn't report the scan
+        /// boundaries, so with ``ImagePipeline/PreviewPolicy/incremental`` the
+        /// number of previews depends on how the data arrives. The default
+        /// decoder also attaches it to the final image, where it is the total
+        /// number of previews that preceded it.
         public static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"
     }
 

@@ -20,9 +20,20 @@ extension ImageDecoders {
     /// - note: The decoder automatically sets the scale of the decoded images to
     /// match the scale of the screen.
     ///
-    /// - note: The default decoder supports progressive JPEG. It produces a new
-    /// preview every time it encounters a new full frame.
+    /// - note: The decoder produces previews for the partially downloaded data
+    /// according to the ``ImagePipeline/PreviewPolicy`` it is created with:
+    /// either by decoding the data incrementally with Image I/O – which is how
+    /// progressive JPEGs are displayed as they download – or by extracting the
+    /// embedded thumbnail once. The previews are numbered in the order they are
+    /// produced and the index is available in
+    /// ``ImageContainer/UserInfoKey/scanNumberKey``. It is not the index of a
+    /// scan in the image data: Image I/O doesn't report the scan boundaries, so
+    /// with ``ImagePipeline/PreviewPolicy/incremental`` the decoder generates a
+    /// preview per downloaded chunk that it manages to decode.
     public final class Default: ImageDecoding, @unchecked Sendable {
+        /// The number of previews produced so far, including the ones generated
+        /// by the ``ImagePipeline/PreviewPolicy/thumbnail`` policy and by the
+        /// thumbnail fallback. Not a count of the scans in the image data.
         private(set) var numberOfScans = 0
         private var incrementalSource: CGImageSource?
 
