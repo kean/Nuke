@@ -363,7 +363,17 @@ extension Color {
     /// Returns a hex representation of the color, e.g. "#FFFFAA".
     var hex: String {
         var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+#if os(macOS)
+        // Unlike `UIColor`, `NSColor` doesn't convert the color on the fly and
+        // raises an `NSInvalidArgumentException` if it's outside an RGB
+        // colorspace – including the grays, e.g. `.black`, and the catalog
+        // colors, e.g. `.labelColor`. `usingColorSpace(_:)` returns `nil` for
+        // the colors that can't be converted at all, e.g. pattern colors, which
+        // `UIColor` also reports zero components for.
+        usingColorSpace(.sRGB)?.getRed(&r, green: &g, blue: &b, alpha: &a)
+#else
         getRed(&r, green: &g, blue: &b, alpha: &a)
+#endif
         let components = [r, g, b, a < 1 ? a : nil]
         return "#" + components
             .compactMap { $0 }

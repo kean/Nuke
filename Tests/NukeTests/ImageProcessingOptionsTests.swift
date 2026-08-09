@@ -81,6 +81,40 @@ struct ImageProcessingOptionsTests {
         #expect(a != b)
     }
 
+    @Test func borderDescriptionForColorOutsideRGBColorSpace() {
+        let border = ImageProcessingOptions.Border(color: .black, width: 2, unit: .pixels)
+        #expect(border.description == "Border(color: #000000, width: 2.0 pixels)")
+    }
+
+    // MARK: - Color.hex
+
+    @Test func hexForColorInRGBColorSpace() {
+        #expect(Color.red.hex == "#FF0000")
+    }
+
+    /// On macOS, `getRed(_:green:blue:alpha:)` raises an `NSInvalidArgumentException`
+    /// for any color outside an RGB color space, and `.black`, `.white`, and the
+    /// grays are all in a grayscale one.
+    @Test func hexForColorOutsideRGBColorSpace() {
+        #expect(Color.black.hex == "#000000")
+        #expect(Color.white.hex == "#FFFFFF")
+    }
+
+    @Test func hexForColorWithAlpha() {
+        #expect(Color.black.withAlphaComponent(0.5).hex == "#00000080")
+    }
+
+#if os(macOS)
+    /// Catalog colors, e.g. `NSColor.labelColor`, are another color space that
+    /// `getRed(_:green:blue:alpha:)` can't read. Their value depends on the
+    /// current appearance, so only the format is verified.
+    @Test func hexForCatalogColor() {
+        let hex = Color.labelColor.hex
+        #expect(hex.hasPrefix("#"))
+        #expect(hex.count == 7 || hex.count == 9)
+    }
+#endif
+
     // MARK: - ContentMode
 
     @Test func contentModeEquality() {
