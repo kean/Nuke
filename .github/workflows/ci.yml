@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 26.4, Xcode 26.4)
+    name: Unit Tests (iOS 26.4.1, Xcode 26.4)
     runs-on: macOS-26
     timeout-minutes: 30
     env:
@@ -27,9 +27,9 @@ jobs:
           xcrun simctl bootstatus "iPhone 17 Pro" -b
       - name: Run Tests
         run: |
-          .scripts/test.sh -s "Nuke" -d "OS=26.4,name=iPhone 17 Pro"
-          .scripts/test.sh -s "NukeUI" -d "OS=26.4,name=iPhone 17 Pro"
-          .scripts/test.sh -s "NukeExtensions" -d "OS=26.4,name=iPhone 17 Pro"
+          .scripts/test.sh -s "Nuke" -d "OS=26.4.1,name=iPhone 17 Pro"
+          .scripts/test.sh -s "NukeUI" -d "OS=26.4.1,name=iPhone 17 Pro"
+          .scripts/test.sh -s "NukeExtensions" -d "OS=26.4.1,name=iPhone 17 Pro"
   macos-latest:
     name: Unit Tests (macOS, Xcode 26.4)
     runs-on: macOS-26
@@ -98,7 +98,7 @@ jobs:
 #    steps:
 #      - uses: actions/checkout@v4
 #      - name: Run Tests
-#        run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.4,name=iPhone 17 Pro"
+#        run: .scripts/test.sh -s "NukeThreadSafetyTests" -d "OS=26.4.1,name=iPhone 17 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-13
@@ -117,7 +117,7 @@ jobs:
 #    steps:
 #      - uses: actions/checkout@v4
 #      - name: Run Tests
-#        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.4,name=iPhone 17 Pro"
+#        run: .scripts/test.sh -s "NukePerformanceTests" -d "OS=26.4.1,name=iPhone 17 Pro"
   macos-xcode-26-0:
     name: Unit Tests (macOS, Xcode 26.0)
     runs-on: macOS-26
