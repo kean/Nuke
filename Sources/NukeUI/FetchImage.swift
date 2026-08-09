@@ -203,15 +203,15 @@ public final class FetchImage: ObservableObject, Identifiable {
         isLoading = true
 
         let generation = loadGeneration
-        let task = Task {
+        let task = Task { [weak self] in
             do {
                 let response = try await action()
-                guard generation == loadGeneration else { return } // Cancelled or superseded
+                guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
                 withTransaction(transaction) {
                     handle(result: .success(response))
                 }
             } catch {
-                guard generation == loadGeneration else { return } // Cancelled or superseded
+                guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
                 handle(result: .failure(error))
             }
         }

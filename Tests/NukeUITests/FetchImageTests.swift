@@ -440,6 +440,49 @@ struct FetchImageTests {
         #expect(try #require(image.result).isSuccess)
     }
 
+    @Test func asyncLoadDoesNotRetainImageWhileActionIsInFlight() async {
+        let gate = AsyncGate()
+        let started = TestExpectation()
+
+        var localImage: FetchImage? = FetchImage()
+        weak var weakImage = localImage
+
+        localImage?.load {
+            started.fulfill()
+            await gate.wait()
+            return Test.response
+        }
+        await started.wait()
+
+        localImage = nil
+        #expect(weakImage == nil)
+
+        gate.open()
+    }
+
+    @Test func asyncLoadCancelledWhenImageIsReleased() async {
+        let started = TestExpectation()
+        let cancelled = TestExpectation()
+
+        var localImage: FetchImage? = FetchImage()
+
+        localImage?.load {
+            started.fulfill()
+            do {
+                try await Task.sleep(for: .seconds(60))
+            } catch {
+                cancelled.fulfill()
+                throw error
+            }
+            return Test.response
+        }
+        await started.wait()
+
+        localImage = nil
+
+        await cancelled.wait()
+    }
+
     /// Gives any pending main-actor continuations a chance to run.
     private func drainPendingWork() async {
         for _ in 0..<10 { await Task.yield() }
