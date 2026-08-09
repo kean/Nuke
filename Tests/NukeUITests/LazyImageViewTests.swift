@@ -565,6 +565,44 @@ struct LazyImageViewTests {
         #expect(view.imageView.image != nil)
     }
 
+    @Test func customViewsAreNotStackedAcrossResponses() async {
+        var createdViews: [_PlatformBaseView] = []
+        view.makeImageView = { _ in
+            let customView = _PlatformBaseView()
+            createdViews.append(customView)
+            return customView
+        }
+
+        // A cached preview is displayed before the final image.
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.request = Test.request
+        await expectation.wait()
+
+        // More than one response was displayed.
+        #expect(createdViews.count > 1)
+        // Only the view created for the final image remains in the hierarchy.
+        #expect(createdViews.filter { $0.superview === view }.count == 1)
+        #expect(createdViews.last?.superview === view)
+    }
+
+    @Test func resetRemovesCustomView() async {
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+        #expect(customView.superview === view)
+
+        view.reset()
+
+        #expect(customView.superview == nil)
+    }
+
     // MARK: - Reset Behavior
 
     @Test func isResetEnabledFalseKeepsImageDuringLoad() async {

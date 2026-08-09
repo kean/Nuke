@@ -250,7 +250,7 @@ public final class LazyImageView: _PlatformBaseView {
             if !imageView.isHidden { imageView.isHidden = true }
         }
 
-        customImageView?.removeFromSuperview()
+        removeCustomImageView()
 
         setPlaceholderViewHidden(true)
         setFailureViewHidden(true)
@@ -367,6 +367,10 @@ public final class LazyImageView: _PlatformBaseView {
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded(clearImage: false)
 
+        // Remove the view created for the previous response (a progressive
+        // preview or a cached preview) before displaying the new one.
+        removeCustomImageView()
+
         if let view = makeImageView?(container) {
             addSubview(view)
             view.pinToSuperview()
@@ -381,6 +385,12 @@ public final class LazyImageView: _PlatformBaseView {
         if !isFromMemory, let transition = transition {
             runTransition(transition, container)
         }
+    }
+
+    private func removeCustomImageView() {
+        guard let customImageView else { return }
+        customImageView.removeFromSuperview()
+        self.customImageView = nil
     }
 
     // MARK: Private (Placeholder View)
