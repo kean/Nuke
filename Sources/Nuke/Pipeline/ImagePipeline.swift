@@ -66,6 +66,9 @@ public final class ImagePipeline: Sendable {
     nonisolated let id = UUID()
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
+    /// The number of image tasks the pipeline currently retains. Debug purposes.
+    var taskCount: Int { tasks.count }
+
     nonisolated deinit {
         let id = self.id
         Task { @ImagePipelineActor in ResumableDataStorage.shared.unregister(id) }

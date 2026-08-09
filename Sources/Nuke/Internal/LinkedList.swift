@@ -20,6 +20,19 @@ final class LinkedList<Element> {
         last == nil
     }
 
+    /// The number of elements in the list.
+    ///
+    /// - note: O(n). Testing and debug purposes.
+    var count: Int {
+        var count = 0
+        var node = first
+        while let current = node {
+            count += 1
+            node = current.next
+        }
+        return count
+    }
+
     /// Adds an element to the end of the list.
     @discardableResult
     func append(_ element: Element) -> Node {
