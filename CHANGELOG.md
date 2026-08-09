@@ -34,6 +34,7 @@
 - Fix resumable data being lost when a request ended before the server responded. The pipeline removes the data from the storage before loading and now puts it back if nothing new was downloaded, instead of discarding the previously downloaded bytes
 - Fix requests with `ImageRequest/Options/skipDataLoadingQueue` not cancelling the underlying `Task`, which left an async `willLoadData` or a custom `data` fetch closure running after cancellation
 - Fix the async/await variant of `FetchImage/load(_:)` delivering a result after the load was cancelled or superseded. `Task` cancellation is cooperative, so an action that doesn't check for it runs to completion – its result is now discarded instead of publishing a stale image or error over the state of the newer load, flipping `isLoading` off mid-load, and calling `onCompletion`
+- Fix `LazyImage` permanently lowering the priority of its requests after the view goes off-screen with the `LazyImage/DisappearBehavior/lowerPriority` disappear behavior. The priority override wasn't reset when the view reappeared, so every subsequent load – including the loads of the new URLs – ran with `.veryLow` priority, ignoring the priority set with `LazyImage/priority(_:)`
 
 ## Nuke 13.0.6
 

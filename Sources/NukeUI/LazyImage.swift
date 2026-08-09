@@ -179,6 +179,9 @@ public struct LazyImage<Content: View>: View {
         viewModel.pipeline = pipeline
         viewModel.onStart = onStart
         viewModel.onCompletion = onCompletion
+        // Undo the priority lowered by the `.lowerPriority` disappear behavior
+        // so that the requests use their own priorities again.
+        viewModel.priority = nil
         viewModel.load(context?.request)
     }
 
