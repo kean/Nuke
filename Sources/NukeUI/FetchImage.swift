@@ -90,6 +90,12 @@ public final class FetchImage: ObservableObject, Identifiable {
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
 
+    /// Incremented every time the current request is cancelled or superseded.
+    /// Used to discard the results of the async/await-based loads: `Task`
+    /// cancellation is cooperative, so the action can complete long after the
+    /// load it belongs to is no longer current.
+    private var loadGeneration = 0
+
     deinit {
         imageTask?.cancel()
     }
@@ -196,13 +202,16 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
         isLoading = true
 
+        let generation = loadGeneration
         let task = Task {
             do {
                 let response = try await action()
+                guard generation == loadGeneration else { return } // Cancelled or superseded
                 withTransaction(transaction) {
                     handle(result: .success(response))
                 }
             } catch {
+                guard generation == loadGeneration else { return } // Cancelled or superseded
                 handle(result: .failure(error))
             }
         }
@@ -250,6 +259,10 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         // publisher-based
         cancellable = nil
+
+        // async/await-based (the task is cancelled by `cancellable`, but the
+        // action isn't guaranteed to stop, so its result has to be discarded)
+        loadGeneration &+= 1
     }
 
     /// Resets the `FetchImage` instance by cancelling the request and removing

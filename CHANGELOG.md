@@ -33,6 +33,7 @@
 - Fix a request cancelled while `ImagePipelineDelegate/willLoadData(for:urlRequest:pipeline:)` was suspended still starting the download and running it to completion, discarding the result and occupying a slot in `dataLoadingQueue`. The pipeline now re-checks for cancellation when the delegate returns
 - Fix resumable data being lost when a request ended before the server responded. The pipeline removes the data from the storage before loading and now puts it back if nothing new was downloaded, instead of discarding the previously downloaded bytes
 - Fix requests with `ImageRequest/Options/skipDataLoadingQueue` not cancelling the underlying `Task`, which left an async `willLoadData` or a custom `data` fetch closure running after cancellation
+- Fix the async/await variant of `FetchImage/load(_:)` delivering a result after the load was cancelled or superseded. `Task` cancellation is cooperative, so an action that doesn't check for it runs to completion – its result is now discarded instead of publishing a stale image or error over the state of the newer load, flipping `isLoading` off mid-load, and calling `onCompletion`
 
 ## Nuke 13.0.6
 

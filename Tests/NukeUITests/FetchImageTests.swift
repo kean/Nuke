@@ -299,6 +299,152 @@ struct FetchImageTests {
         #expect(image.result == nil)
     }
 
+    @Test func asyncLoadDeliversNoResultAfterCancel() async {
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let actionReturned = TestExpectation()
+
+        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        image.onCompletion = { completions.value.append($0) }
+
+        // The action ignores cancellation, like most non-Nuke async work.
+        image.load {
+            started.fulfill()
+            await gate.wait()
+            actionReturned.fulfill()
+            return Test.response
+        }
+        await started.wait()
+
+        image.cancel()
+        gate.open()
+        await actionReturned.wait()
+        await drainPendingWork()
+
+        #expect(completions.value.isEmpty)
+        #expect(image.result == nil)
+        #expect(image.imageContainer == nil)
+    }
+
+    @Test func asyncLoadDeliversNoResultAfterReset() async {
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let actionReturned = TestExpectation()
+
+        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        image.onCompletion = { completions.value.append($0) }
+
+        image.load {
+            started.fulfill()
+            await gate.wait()
+            actionReturned.fulfill()
+            return Test.response
+        }
+        await started.wait()
+
+        image.reset()
+        gate.open()
+        await actionReturned.wait()
+        await drainPendingWork()
+
+        #expect(completions.value.isEmpty)
+        #expect(image.result == nil)
+        #expect(image.imageContainer == nil)
+        #expect(!image.isLoading)
+    }
+
+    @Test func asyncLoadDoesNotOverwriteNewerLoad() async throws {
+        struct StaleError: Error {}
+
+        let gate = AsyncGate()
+        let staleStarted = TestExpectation()
+        let staleActionReturned = TestExpectation()
+
+        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completed = TestExpectation()
+        image.onCompletion = {
+            completions.value.append($0)
+            completed.fulfill()
+        }
+
+        // The first load suspends at the gate and ignores cancellation.
+        image.load {
+            staleStarted.fulfill()
+            await gate.wait()
+            staleActionReturned.fulfill()
+            throw StaleError()
+        }
+        await staleStarted.wait()
+
+        // A newer load supersedes it and completes.
+        image.load { Test.response }
+        await completed.wait()
+        #expect(completions.value.count == 1)
+
+        // The superseded load finishes late and must be ignored.
+        gate.open()
+        await staleActionReturned.wait()
+        await drainPendingWork()
+
+        #expect(completions.value.count == 1)
+        let result = try #require(image.result)
+        #expect(result.isSuccess)
+        #expect(image.image != nil)
+        #expect(!image.isLoading)
+    }
+
+    @Test func asyncLoadDoesNotClearLoadingStateOfNewerLoad() async throws {
+        struct StaleError: Error {}
+
+        let staleGate = AsyncGate()
+        let newerGate = AsyncGate()
+        let staleStarted = TestExpectation()
+        let staleActionReturned = TestExpectation()
+        let newerStarted = TestExpectation()
+
+        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completed = TestExpectation()
+        image.onCompletion = {
+            completions.value.append($0)
+            completed.fulfill()
+        }
+
+        image.load {
+            staleStarted.fulfill()
+            await staleGate.wait()
+            staleActionReturned.fulfill()
+            throw StaleError()
+        }
+        await staleStarted.wait()
+
+        // A newer load supersedes it and is still in flight.
+        image.load {
+            newerStarted.fulfill()
+            await newerGate.wait()
+            return Test.response
+        }
+        await newerStarted.wait()
+        #expect(image.isLoading)
+
+        // The superseded load finishes late and must not touch the newer load's state.
+        staleGate.open()
+        await staleActionReturned.wait()
+        await drainPendingWork()
+
+        #expect(image.isLoading)
+        #expect(completions.value.isEmpty)
+        #expect(image.result == nil)
+
+        newerGate.open()
+        await completed.wait()
+        #expect(try #require(image.result).isSuccess)
+    }
+
+    /// Gives any pending main-actor continuations a chance to run.
+    private func drainPendingWork() async {
+        for _ in 0..<10 { await Task.yield() }
+    }
+
     // MARK: - Processors
 
     @Test func processorsAppliedFromImage() async {
