@@ -9,7 +9,22 @@ public final class ImageDecoderRegistry: Sendable {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private let matches = Mutex<[@Sendable (ImageDecodingContext) -> (any ImageDecoding)?]>(value: [])
+    private let state = Mutex(value: State())
+
+    private struct State {
+        var registrations: [Registration] = []
+        var nextID = 0
+    }
+
+    private struct Registration {
+        let token: RegistrationToken
+        let match: @Sendable (ImageDecodingContext) -> (any ImageDecoding)?
+    }
+
+    /// An opaque token that identifies a registered decoder.
+    public struct RegistrationToken: Hashable, Sendable {
+        fileprivate let id: Int
+    }
 
     /// Initializes a custom registry.
     public init() {
@@ -20,8 +35,8 @@ public final class ImageDecoderRegistry: Sendable {
     public func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
         // Iterate over a snapshot: the closures are provided by the user and
         // must never be called while holding the lock.
-        for match in matches.value.reversed() {
-            if let decoder = match(context) {
+        for registration in state.value.registrations.reversed() {
+            if let decoder = registration.match(context) {
                 return decoder
             }
         }
@@ -30,18 +45,38 @@ public final class ImageDecoderRegistry: Sendable {
 
     /// Registers a decoder to be used in a given decoding context.
     ///
+    /// The decoders are evaluated in the reverse order of registration: the
+    /// most recently registered decoder is asked first.
+    ///
     /// **Progressive Decoding**
     ///
     /// The decoder is created once and is used for the entire decoding session,
     /// including progressively decoded images. If the decoder doesn't support
     /// progressive decoding, return `nil` when `isCompleted` is `false`.
-    public func register(_ match: @escaping @Sendable (ImageDecodingContext) -> (any ImageDecoding)?) {
-        matches.withLock { $0.append(match) }
+    ///
+    /// - returns: A token that can be passed to ``unregister(_:)`` to remove
+    /// the decoder. Can be safely ignored.
+    @discardableResult
+    public func register(_ match: @escaping @Sendable (ImageDecodingContext) -> (any ImageDecoding)?) -> RegistrationToken {
+        state.withLock {
+            let token = RegistrationToken(id: $0.nextID)
+            $0.nextID += 1
+            $0.registrations.append(Registration(token: token, match: match))
+            return token
+        }
     }
 
-    /// Removes all registered decoders.
+    /// Removes the decoder registered with the given token. Does nothing if the
+    /// decoder is no longer registered.
+    public func unregister(_ token: RegistrationToken) {
+        state.withLock { state in
+            state.registrations.removeAll { $0.token == token }
+        }
+    }
+
+    /// Removes all registered decoders, including the default one.
     public func clear() {
-        matches.withLock { $0.removeAll() }
+        state.withLock { $0.registrations.removeAll() }
     }
 }
 

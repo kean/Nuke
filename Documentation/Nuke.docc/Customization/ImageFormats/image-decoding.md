@@ -79,6 +79,13 @@ extension ImageDecoders {
 
 When you register a decoder, you have access to ``ImageDecodingContext`` for the given decoding session.
 
+The decoders are evaluated in the reverse order of registration: the most recently registered decoder is asked first. ``ImageDecoderRegistry/register(_:)`` returns a token that you can pass to ``ImageDecoderRegistry/unregister(_:)`` to remove the decoder, which is useful if a decoder is only needed for a part of the app's lifetime.
+
+```swift
+let token = ImageDecoderRegistry.shared.register(ImageDecoders.SVG.init)
+ImageDecoderRegistry.shared.unregister(token)
+```
+
 ## Rendering Engines
 
 The decoders in Nuke work at download time - regular decoders produce images as data arrives, while progressive decoders can produce multiple previews before delivering the final images. But there are scenarios when decoding at download time doesn't work: for example, for animated images.
