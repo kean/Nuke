@@ -24,6 +24,8 @@
 - Fix `GaussianBlur` crash on grayscale images by @Delarkz in https://github.com/kean/Nuke/pull/880
 - Fix cache initialization for mergeable libraries by @ZHUOLIN0928 in https://github.com/kean/Nuke/pull/881
 - Add asynchronous image decoding support by @thliu21 in https://github.com/kean/Nuke/pull/879
+- Fix a leak where requests that finish synchronously – memory cache hits, disk cache hits for `data(for:)`, local resources, `.returnCacheDataDontLoad` misses, and malformed URLs – were never removed from the pipeline, retaining their responses for the lifetime of the pipeline
+- Fix `ImageTask.Event.started` being delivered to `ImagePipelineDelegate` after `.finished` for requests that finish synchronously
 
 ## Nuke 13.0.6
 
