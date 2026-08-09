@@ -30,7 +30,7 @@ extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            isProgressive ? ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:]) : nil
+            isProgressive ? ImageContainer(image: PlatformImage(), type: assetType, isPreview: true, data: data, userInfo: [:]) : nil
         }
     }
 }
