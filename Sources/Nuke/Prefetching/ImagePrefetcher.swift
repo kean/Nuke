@@ -195,6 +195,9 @@ public final class ImagePrefetcher: Sendable {
     private func didUpdatePriority(to priority: ImageRequest.Priority) {
         let taskPriority = priority.taskPriority
         for task in tasks.values {
+            // Updating the request covers the tasks that haven't started yet:
+            // it is what the operation body passes to the pipeline when it runs.
+            task.request.priority = priority
             task.imageTask?.priority = priority
             task.operation?.priority = taskPriority
         }
@@ -203,7 +206,11 @@ public final class ImagePrefetcher: Sendable {
     @ImagePipelineActor
     private final class PrefetchTask: Sendable {
         let key: TaskLoadImageKey
-        let request: ImageRequest
+        /// Mutable on purpose: the prefetcher priority can change in the window
+        /// between the operation being scheduled and its body running, and the
+        /// body is what passes the request to the pipeline. Once ``imageTask``
+        /// exists, the priority is updated on it instead.
+        var request: ImageRequest
         weak var imageTask: ImageTask?
         /// Retained on purpose (same as ``AsyncTask/operation``): it is the only
         /// way to cancel the prefetch in the window between the operation being
