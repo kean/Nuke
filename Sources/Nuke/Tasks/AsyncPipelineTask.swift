@@ -42,6 +42,20 @@ extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
+        if let decoder = decoder as? any AsyncImageDecoding {
+            operation = pipeline.configuration.imageDecodingQueue.add {
+                let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+                    do {
+                        return .success(try await decoder.decode(context))
+                    } catch {
+                        return .failure(.decodingFailed(decoder: decoder, context: context, error: error))
+                    }
+                }
+                completion(result)
+            }
+            return
+        }
+
         @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
             signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                 Result { try decoder.decode(context) }

@@ -4,7 +4,7 @@
 
 import Testing
 import Foundation
-@testable import Nuke
+@_spi(AsyncImageDecoding) @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineDecodingTests {
@@ -41,6 +41,25 @@ struct ImagePipelineDecodingTests {
         let container = response.container
         #expect(container.data == dummyData)
         #expect(container.userInfo["a"] as? Int == 1)
+    }
+
+    @Test func asyncDecoder() async throws {
+        // Given
+        let expectedData = Data("async-decoder".utf8)
+        let decoder = MockAsyncDecoder { _ in
+            await Task.yield()
+            return ImageContainer(image: PlatformImage(), data: expectedData)
+        }
+
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in decoder }
+        }
+
+        // When
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // Then
+        #expect(response.container.data == expectedData)
     }
 
     // MARK: - Decoder Errors
@@ -87,6 +106,34 @@ struct ImagePipelineDecodingTests {
             }
         }
     }
+
+    @Test func asyncDecoderErrorIsWrapped() async throws {
+        // Given
+        let expectedError = MockError(description: "async-decoder-failed")
+        let decoder = MockAsyncDecoder { _ in
+            await Task.yield()
+            throw expectedError
+        }
+
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in decoder }
+        }
+
+        // When
+        do {
+            _ = try await pipeline.imageTask(with: Test.request).response
+            Issue.record("Expected a decoding error")
+        } catch {
+            // Then
+            guard case let .decodingFailed(failedDecoder, context, underlyingError) = error else {
+                Issue.record("Expected decodingFailed, got \(error)")
+                return
+            }
+            #expect((failedDecoder as? MockAsyncDecoder) === decoder)
+            #expect(context.data == Test.data)
+            #expect(underlyingError as? MockError == expectedError)
+        }
+    }
 }
 
 private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable {
@@ -97,5 +144,17 @@ private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable 
             throw ImageDecodingError.unknown
         }
         return image
+    }
+}
+
+private final class MockAsyncDecoder: AsyncImageDecoding, @unchecked Sendable {
+    private let _decode: @Sendable (Data) async throws -> ImageContainer
+
+    init(_ decode: @escaping @Sendable (Data) async throws -> ImageContainer) {
+        self._decode = decode
+    }
+
+    func decode(_ data: Data) async throws -> ImageContainer {
+        try await _decode(data)
     }
 }
