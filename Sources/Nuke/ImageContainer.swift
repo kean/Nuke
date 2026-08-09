@@ -23,7 +23,7 @@ public typealias PlatformColor = NSColor
 #endif
 
 /// An image container with an image and associated metadata.
-public struct ImageContainer: @unchecked Sendable {
+public struct ImageContainer: Sendable {
     /// The fetched image.
 #if os(macOS)
     public var image: NSImage {
