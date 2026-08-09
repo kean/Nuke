@@ -8,6 +8,7 @@ import Testing
 #if !os(macOS)
 import UIKit
 #else
+import AppKit
 import CoreImage
 #endif
 
@@ -94,6 +95,69 @@ struct ImageProcessorsCoreImageFilterTests {
 
         // THEN
         _ = output // image was produced successfully
+    }
+
+    @Test func applyCustomFilterDoesNotModifyTheGivenFilter() throws {
+        // GIVEN
+        let input = Test.image(named: "fixture-tiny.jpeg")
+        let filter = try #require(CIFilter(name: "CISepiaTone", parameters: nil))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+
+        // WHEN
+        _ = try #require(processor.process(input))
+
+        // THEN the input image is never set on the filter owned by the client:
+        // it is mutable and can't be shared by the requests running concurrently
+        #expect(filter.value(forKey: kCIInputImageKey) == nil)
+    }
+
+    @Test func applyCustomFilterConcurrently() async throws {
+        // GIVEN a single processor (and a single filter) shared by multiple
+        // images, each with a distinct size
+        let filter = try #require(CIFilter(name: "CISepiaTone", parameters: nil))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+        let widths = Array(20..<40)
+
+        // WHEN processing them concurrently
+        let outputs = await withTaskGroup(of: (Int, Int?).self) { group in
+            for width in widths {
+                group.addTask {
+                    let input = Self.makeImage(width: width, height: 10)
+                    return (width, processor.process(input)?.cgImage?.width)
+                }
+            }
+            var outputs = [Int: Int]()
+            for await (width, output) in group {
+                outputs[width] = output
+            }
+            return outputs
+        }
+
+        // THEN every image is processed and none of them is produced from the
+        // input of another request
+        for width in widths {
+            #expect(outputs[width] == width)
+        }
+    }
+
+    private static func makeImage(width: Int, height: Int) -> PlatformImage {
+        let ctx = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        ctx.setFillColor(CGColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        let cgImage = ctx.makeImage()!
+#if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+#else
+        return UIImage(cgImage: cgImage)
+#endif
     }
 
     // MARK: - Composition

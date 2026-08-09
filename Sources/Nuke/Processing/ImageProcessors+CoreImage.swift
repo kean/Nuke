@@ -53,6 +53,10 @@ extension ImageProcessors {
 
         /// Initializes the processor with the given `CIFilter`.
         ///
+        /// The filter is never used directly: the processor applies a copy of it
+        /// to the image, which makes it safe to use the same processor – and the
+        /// same filter – for multiple images processed concurrently.
+        ///
         /// - parameter filter: The `CIFilter` to apply.
         /// - parameter identifier: Uniquely identifies the processor.
         public init(_ filter: CIFilter, identifier: String) {
@@ -92,11 +96,24 @@ extension ImageProcessors {
             guard let filter = CIFilter(name: name, parameters: parameters) else {
                 throw Error.failedToCreateFilter(name: name, parameters: parameters)
             }
-            return try CoreImageFilter.apply(filter: filter, to: image)
+            // The filter is created here and is used exclusively by this call
+            return try _apply(filter: filter, to: image)
         }
 
         /// Applies filter to the given image.
+        ///
+        /// The given filter is not modified: the image is processed by a copy of
+        /// it, which makes it safe to call this method concurrently with the same
+        /// filter instance.
         public static func apply(filter: CIFilter, to image: PlatformImage) throws -> PlatformImage {
+            // `CIFilter` is mutable and is not safe to use from multiple threads:
+            // `apply` sets the input image on it and then reads the output image.
+            // The same processor (and the same filter) can be shared by multiple
+            // requests processed concurrently, so each call gets its own copy.
+            try _apply(filter: (filter.copy() as? CIFilter) ?? filter, to: image)
+        }
+
+        private static func _apply(filter: CIFilter, to image: PlatformImage) throws -> PlatformImage {
             func getCIImage() throws -> CoreImage.CIImage {
                 if let image = image.ciImage {
                     return image
