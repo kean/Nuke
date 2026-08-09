@@ -132,6 +132,39 @@ struct ImagePipelineDelegateTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func cancellationDuringWillLoadDataPreventsDataLoading(skipDataLoadingQueue: Bool) async throws {
+        // GIVEN a delegate that suspends inside `willLoadData`
+        let entered = AsyncGate(), proceed = AsyncGate()
+        delegate.willLoadDataEntered = entered
+        delegate.willLoadDataProceed = proceed
+
+        var request = Test.request
+        if skipDataLoadingQueue {
+            request.options.insert(.skipDataLoadingQueue)
+        }
+
+        // WHEN the task is cancelled while `willLoadData` is suspended
+        let task = pipeline.imageTask(with: request)
+        let response = Task { try await task.response }
+        await entered.wait()
+        task.cancel()
+        await drainPipeline()
+        proceed.open()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await response.value
+        }
+        await drainPipeline()
+
+        // THEN the data loading never starts and the queue slot is released
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 0)
+    }
+
+    private func drainPipeline() async {
+        await Task { @ImagePipelineActor in }.value
+    }
+
     @Test func willLoadDataIsNotCalledForCustomDataFetch() async throws {
         // GIVEN a request using a custom data fetch closure
         let request = ImageRequest(id: "test", data: {
@@ -154,6 +187,8 @@ private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecke
     var willLoadDataRequest: URLRequest?
     var urlRequestModifier: ((URLRequest) -> URLRequest)?
     var willLoadDataError: Error?
+    var willLoadDataEntered: AsyncGate?
+    var willLoadDataProceed: AsyncGate?
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
         request.userInfo["imageId"] as? String
@@ -170,6 +205,8 @@ private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecke
     ) async throws -> URLRequest {
         willLoadDataCallCount += 1
         willLoadDataRequest = urlRequest
+        willLoadDataEntered?.open()
+        await willLoadDataProceed?.wait()
         if let error = willLoadDataError { throw error }
         return urlRequestModifier?(urlRequest) ?? urlRequest
     }

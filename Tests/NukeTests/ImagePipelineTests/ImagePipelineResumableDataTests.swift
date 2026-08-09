@@ -72,6 +72,51 @@ struct ImagePipelineResumableDataTests {
         )
         #expect(stored == nil)
     }
+
+    @Test func resumableDataIsKeptWhenCancelledBeforeServerResponds() async throws {
+        // GIVEN a pipeline whose delegate can suspend right before data loading
+        let delegate = _GatingDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        // GIVEN an initial partial download that stores resumable data
+        _ = try? await pipeline.imageTask(with: Test.request).response
+
+        // WHEN the next attempt is cancelled while `willLoadData` is suspended,
+        // after the pipeline has already taken the data out of the storage
+        let entered = AsyncGate(), proceed = AsyncGate()
+        delegate.entered = entered
+        delegate.proceed = proceed
+
+        let task = pipeline.imageTask(with: Test.request)
+        let response = Task { try await task.response }
+        await entered.wait()
+        task.cancel()
+        await Task { @ImagePipelineActor in }.value
+        proceed.open()
+        _ = try? await response.value
+        await Task { @ImagePipelineActor in }.value
+
+        // THEN the resumable data is still there for the next attempt
+        let stored = await ResumableDataStorage.shared.removeResumableData(
+            for: ImageRequest(url: Test.url),
+            pipeline: pipeline
+        )
+        #expect(stored != nil)
+    }
+}
+
+private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
+    var entered: AsyncGate?
+    var proceed: AsyncGate?
+
+    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
+        entered?.open()
+        await proceed?.wait()
+        return urlRequest
+    }
 }
 
 private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {

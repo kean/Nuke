@@ -30,6 +30,9 @@
 - `ImageDecoderRegistry.register(_:)` now takes a `@Sendable` closure. The registry is shared between the pipelines and the closures are called on the decoding threads. Registrations that capture non-`Sendable` state now produce a compiler error instead of silently escaping the check
 - Add `ImageDecoderRegistry.unregister(_:)`. `register(_:)` now returns a discardable `ImageDecoderRegistry.RegistrationToken` that can be used to remove an individual decoder instead of clearing the entire registry
 - Fix `DataLoader` calling the `completion` closure twice when response validation fails, violating the `DataLoading` contract. The handler is now unregistered before the task is cancelled, so the `URLError(.cancelled)` reported by `didCompleteWithError` is no longer delivered after the validation error
+- Fix a request cancelled while `ImagePipelineDelegate/willLoadData(for:urlRequest:pipeline:)` was suspended still starting the download and running it to completion, discarding the result and occupying a slot in `dataLoadingQueue`. The pipeline now re-checks for cancellation when the delegate returns
+- Fix resumable data being lost when a request ended before the server responded. The pipeline removes the data from the storage before loading and now puts it back if nothing new was downloaded, instead of discarding the previously downloaded bytes
+- Fix requests with `ImageRequest/Options/skipDataLoadingQueue` not cancelling the underlying `Task`, which left an async `willLoadData` or a custom `data` fetch closure running after cancellation
 
 ## Nuke 13.0.6
 

@@ -219,6 +219,35 @@ func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> 
     operation.onCancelled = nil
 }
 
+/// A one-shot gate: `wait()` suspends until someone calls `open()`. Use it to
+/// hold code at a known suspension point while the test does something else.
+final class AsyncGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isOpen = false
+    private var waiters: [UnsafeContinuation<Void, Never>] = []
+
+    init() {}
+
+    func open() {
+        let waiters = lock.withLock { () -> [UnsafeContinuation<Void, Never>] in
+            isOpen = true
+            defer { self.waiters = [] }
+            return self.waiters
+        }
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func wait() async {
+        await withUnsafeContinuation { continuation in
+            let isOpen = lock.withLock { () -> Bool in
+                if !self.isOpen { waiters.append(continuation) }
+                return self.isOpen
+            }
+            if isOpen { continuation.resume() }
+        }
+    }
+}
+
 /// A simple mutable reference wrapper for use in test closures.
 final class Ref<T>: @unchecked Sendable {
     var value: T

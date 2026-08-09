@@ -13,6 +13,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var data = Data()
     private var dataLoadContinuation: UnsafeContinuation<Void, Error>?
     private var dataLoadCancellable: (any Cancellable)?
+    private var dataLoadTask: Task<Void, Never>?
 
     override func start() {
         if case .data(let closure) = request.resource {
@@ -53,8 +54,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
     private func loadData(urlRequest: URLRequest) {
         if request.options.contains(.skipDataLoadingQueue) {
-            Task { @ImagePipelineActor in
+            dataLoadTask = Task { @ImagePipelineActor in
                 await self.performDataLoad(urlRequest: urlRequest)
+            }
+            onCancelled = { [weak self] in
+                self?.dataLoadTask?.cancel()
             }
         } else {
             // Wrap data request in an operation to limit the maximum number of
@@ -86,6 +90,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         onCancelled = { [weak self] in
             guard let self else { return }
             signpost(self, "LoadImageData", .end, "Cancelled")
+            self.dataLoadTask?.cancel()
             self.dataLoadCancellable?.cancel()
             self.tryToSaveResumableData()
         }
@@ -95,6 +100,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         do {
             if !pipeline.isDefaultDelegate {
                 urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
+                // The task can get cancelled while the delegate is suspended.
+                // `onCancelled` already ran, so there is nothing left to clean up.
+                guard !isDisposed else { return }
             }
 
             try await loadData(with: urlRequest, dataLoader: dataLoader)
@@ -233,7 +241,12 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
     private func loadAsyncData(_ fetch: @Sendable @escaping () async throws -> Data) {
         if request.options.contains(.skipDataLoadingQueue) {
-            Task { await self.performAsyncDataLoad(fetch) }
+            dataLoadTask = Task {
+                await self.performAsyncDataLoad(fetch)
+            }
+            onCancelled = { [weak self] in
+                self?.dataLoadTask?.cancel()
+            }
         } else {
             operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
                 await self?.performAsyncDataLoad(fetch)
@@ -267,9 +280,13 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func tryToSaveResumableData() {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
-        if pipeline.configuration.isResumableDataEnabled,
-           let response = urlResponse, !data.isEmpty,
+        guard pipeline.configuration.isResumableDataEnabled else { return }
+        if let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data) {
+            ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
+        } else if let resumableData {
+            // The request ended before the server responded – put the data that
+            // `performDataLoad` took out of the storage back where it was.
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
         }
     }
