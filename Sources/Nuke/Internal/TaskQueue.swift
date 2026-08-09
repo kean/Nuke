@@ -111,10 +111,17 @@ public final class TaskQueue: Sendable {
 
     private func execute(_ operation: TaskQueue.Operation) {
         runningCount += 1
-        let work = operation.work
-        operation.work = nil
+        // The operation is captured strongly to keep it alive while it executes:
+        // it is no longer stored in the pending buckets and the clients typically
+        // reference it weakly. The work is read _inside_ the task (instead of
+        // being hoisted out of the operation) so that cancelling an operation
+        // that was dequeued, but hasn't started yet, prevents it from running.
         operation.task = Task { @ImagePipelineActor [weak self] in
-            try? await work?()
+            if let work = operation.work {
+                operation.work = nil
+                try? await work()
+            }
+            operation.task = nil // Break the retain cycle
             self?.operationFinished()
         }
     }
@@ -177,6 +184,8 @@ public final class TaskQueue: Sendable {
             self.queue = queue
         }
 
+        /// Cancels the operation. If the work hasn't started executing yet, it
+        /// never runs; otherwise, the underlying task is cancelled.
         func cancel() {
             guard !isCancelled else { return }
             isCancelled = true

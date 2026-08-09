@@ -125,6 +125,43 @@ struct ImagePrefetcherTests {
         }
     }
 
+    @Test @ImagePipelineActor func stopPrefetchingImmediatelyAfterStart() async {
+        // GIVEN
+        let url = Test.url
+        let finished = TestExpectation()
+        prefetcher.queue.onEvent = { event in
+            if case .finished = event { finished.fulfill() }
+        }
+
+        // WHEN start and immediately stop prefetching in the same run loop tick
+        // (the standard collection view prefetching pattern) – the prefetch
+        // operation is dequeued, but its body hasn't run yet
+        prefetcher.startPrefetching(with: [url])
+        prefetcher.stopPrefetching(with: [url])
+        await finished.wait()
+
+        // THEN no image task is ever started
+        #expect(observer.startedTaskCount == 0)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test @ImagePipelineActor func stopAllPrefetchingImmediatelyAfterStart() async {
+        // GIVEN
+        let finished = TestExpectation()
+        prefetcher.queue.onEvent = { event in
+            if case .finished = event { finished.fulfill() }
+        }
+
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+        prefetcher.stopPrefetching()
+        await finished.wait()
+
+        // THEN no image task is ever started
+        #expect(observer.startedTaskCount == 0)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     // MARK: Destination
 
     @Test func startPrefetchingDestinationDisk() async {

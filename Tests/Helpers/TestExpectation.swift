@@ -254,6 +254,12 @@ final class Ref<T>: @unchecked Sendable {
     init(_ value: T) { self.value = value }
 }
 
+/// Holds a weak reference to an object. Use it to test object lifetimes.
+final class WeakRef<T: AnyObject>: @unchecked Sendable {
+    weak var value: T?
+    init(_ value: T? = nil) { self.value = value }
+}
+
 extension TaskQueue {
     /// Waits until all enqueued operations have finished executing.
     /// Modeled after `OperationQueue.waitUntilAllOperationsAreFinished()`.

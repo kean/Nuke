@@ -474,6 +474,45 @@ struct TaskQueueTests {
         #expect(op2.isCancelled)
     }
 
+    @Test func cancellingDequeuedOperationBeforeItStartsPreventsExecution() async {
+        // Given – the queue has a free slot, so the operation is dequeued and
+        // started right away, but its work doesn't run until the underlying
+        // task gets scheduled
+        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let executed = Ref(false)
+        let operation = queue.add { executed.value = true }
+
+        // When – cancel in the window between the two
+        operation.cancel()
+        await queue.waitUntilAllOperationsAreFinished()
+
+        // Then
+        #expect(!executed.value)
+    }
+
+    @Test func runningOperationIsRetainedByTheQueue() async {
+        // Given
+        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let started = TestExpectation()
+        let gate = TestExpectation()
+
+        // When – the caller doesn't retain the returned operation
+        let ref = WeakRef<TaskQueue.Operation>()
+        ref.value = queue.add {
+            started.fulfill()
+            await gate.wait()
+        }
+        await started.wait()
+
+        // Then – it stays alive while it executes so that the clients that
+        // reference it weakly can still cancel it or change its priority
+        #expect(ref.value != nil)
+
+        // Cleanup
+        gate.fulfill()
+        await queue.waitUntilAllOperationsAreFinished()
+    }
+
     @Test func cancellingAlreadyCancelledOperationIsNoop() {
         // Given
         let queue = TaskQueue(maxConcurrentOperationCount: 1)

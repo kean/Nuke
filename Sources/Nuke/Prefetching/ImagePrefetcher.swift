@@ -205,7 +205,12 @@ public final class ImagePrefetcher: Sendable {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
-        weak var operation: TaskQueue.Operation?
+        /// Retained on purpose (same as ``AsyncTask/operation``): it is the only
+        /// way to cancel the prefetch in the window between the operation being
+        /// scheduled and its body running, and the body is what creates
+        /// ``imageTask``. It's the window the standard "start prefetching, then
+        /// immediately stop it" pattern lands in.
+        var operation: TaskQueue.Operation?
 
         init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request
