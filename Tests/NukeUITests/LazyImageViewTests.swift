@@ -651,6 +651,44 @@ struct LazyImageViewTests {
         #expect(view.imageView.image != nil)
         #expect(view.imageView.image !== firstImage)
     }
+
+    @Test func isResetEnabledFalseDisplaysProgressivePreviewsWithoutCancellingTask() async throws {
+        let progressiveLoader = MockProgressiveDataLoader()
+        view.pipeline = ImagePipeline {
+            $0.dataLoader = progressiveLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+        }
+        // The reset is deferred until a new image is ready, so it is applied
+        // when the first preview is displayed.
+        view.isResetEnabled = false
+
+        var previewCount = 0
+        var taskCancelledByPreview = false
+        let previewExpectation = TestExpectation()
+        view.onPreview = { _ in
+            previewCount += 1
+            // Applying the deferred reset must not cancel the ongoing request.
+            if view.imageTask == nil { taskCancelledByPreview = true }
+            if previewCount == 1 { previewExpectation.fulfill() }
+            progressiveLoader.resume()
+        }
+
+        let completionExpectation = TestExpectation()
+        view.onCompletion = { _ in completionExpectation.fulfill() }
+        view.url = Test.url
+
+        await previewExpectation.wait()
+        #expect(view.imageView.image != nil)
+        try #require(!taskCancelledByPreview)
+
+        // The request survived the preview and delivered the final image.
+        await completionExpectation.wait()
+        #expect(previewCount > 0)
+        #expect(view.imageView.image != nil)
+    }
 }
 
 #endif
