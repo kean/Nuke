@@ -106,10 +106,10 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     // MARK: Decompression
 
     private func didReceiveImageResponse(_ response: ImageResponse, isCompleted: Bool) {
+        guard !isDisposed else { return }
         guard isDecompressionNeeded(for: response) else {
             return didReceiveDecompressedImage(response, isCompleted: isCompleted)
         }
-        guard !isDisposed else { return }
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive decompression tasks
         } else if operation != nil {
