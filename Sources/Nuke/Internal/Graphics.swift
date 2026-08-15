@@ -396,24 +396,36 @@ typealias Color = UIColor
 #endif
 
 extension Color {
-    /// Returns a hex representation of the color, e.g. "#FFFFAA".
-    var hex: String {
+    /// Returns a hex representation of the color, e.g. "#FFFFAA", or `nil` if
+    /// the color has no sRGB representation, e.g. a pattern color.
+    ///
+    /// - note: The components are clamped to `0...1`. The colors in the
+    /// extended sRGB space – which is what a P3 color converts to – have
+    /// components outside of that range and would otherwise produce malformed
+    /// hex, e.g. `"117"` for `1.093`.
+    var hex: String? {
         var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
 #if os(macOS)
         // Unlike `UIColor`, `NSColor` doesn't convert the color on the fly and
         // raises an `NSInvalidArgumentException` if it's outside an RGB
         // colorspace – including the grays, e.g. `.black`, and the catalog
         // colors, e.g. `.labelColor`. `usingColorSpace(_:)` returns `nil` for
-        // the colors that can't be converted at all, e.g. pattern colors, which
-        // `UIColor` also reports zero components for.
-        usingColorSpace(.sRGB)?.getRed(&r, green: &g, blue: &b, alpha: &a)
+        // the colors that can't be converted at all, e.g. pattern colors.
+        guard let color = usingColorSpace(.sRGB) else {
+            return nil
+        }
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
 #else
-        getRed(&r, green: &g, blue: &b, alpha: &a)
+        // Returns `false` and leaves the components untouched for the colors
+        // with no RGB representation, e.g. pattern colors.
+        guard getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return nil
+        }
 #endif
         let components = [r, g, b, a < 1 ? a : nil]
         return "#" + components
             .compactMap { $0 }
-            .map { String(format: "%02lX", lroundf(Float($0) * 255)) }
+            .map { String(format: "%02lX", lroundf(Float(min(max($0, 0), 1)) * 255)) }
             .joined()
     }
 }

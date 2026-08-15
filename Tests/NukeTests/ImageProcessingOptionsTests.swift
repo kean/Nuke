@@ -108,12 +108,42 @@ struct ImageProcessingOptionsTests {
     /// Catalog colors, e.g. `NSColor.labelColor`, are another color space that
     /// `getRed(_:green:blue:alpha:)` can't read. Their value depends on the
     /// current appearance, so only the format is verified.
-    @Test func hexForCatalogColor() {
-        let hex = Color.labelColor.hex
+    @Test func hexForCatalogColor() throws {
+        let hex = try #require(Color.labelColor.hex)
         #expect(hex.hasPrefix("#"))
         #expect(hex.count == 7 || hex.count == 9)
     }
 #endif
+
+    /// The components of a P3 color converted to (extended) sRGB fall outside
+    /// of `0...1`, which used to produce malformed hex, e.g. `"#1170000"`.
+    @Test func hexForWideGamutColorIsWellFormed() throws {
+        let hex = try #require(Color(displayP3Red: 1, green: 0, blue: 0, alpha: 1).hex)
+        #expect(hex == "#FF0000")
+    }
+
+    @Test func hexForWideGamutColorWithNegativeComponentsIsWellFormed() throws {
+        let hex = try #require(Color(displayP3Red: 0, green: 1, blue: 0, alpha: 1).hex)
+        #expect(hex.count == 7)
+        #expect(hex.dropFirst().filter(\.isHexDigit).count == 6)
+    }
+
+    /// Pattern colors have no sRGB representation. They used to report all-zero
+    /// components, which made every one of them – and `.clear` – hex to
+    /// `"#00000000"` and share an identifier.
+    @Test func hexForPatternColorIsNil() {
+        #expect(Color(patternImage: Test.image).hex == nil)
+        #expect(Color.clear.hex == "#00000000")
+    }
+
+    @Test func borderDescriptionsForPatternColorsDoNotCollide() {
+        let a = ImageProcessingOptions.Border(color: Color(patternImage: Test.image), width: 2, unit: .pixels)
+        let b = ImageProcessingOptions.Border(color: Color(patternImage: Test.image(named: "fixture-tiny", extension: "jpeg")), width: 2, unit: .pixels)
+        let clear = ImageProcessingOptions.Border(color: .clear, width: 2, unit: .pixels)
+
+        #expect(a.description != b.description)
+        #expect(a.description != clear.description)
+    }
 
     // MARK: - ContentMode
 
