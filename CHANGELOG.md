@@ -22,12 +22,12 @@
 ## WIP
 
 - Add `AssetType/utType` and `AssetType/init(_:)` for bridging to and from `UTType`
-- Add `AssetType/bmp`, `AssetType/tiff`, `AssetType/jpeg2000`, and `AssetType/jxl`, and detect them in `AssetType/init(_:)`. Image I/O decodes these formats, but the type sniffing didn't recognize them, so `ImageContainer/type` was `nil`
-- Fix `AssetType/init(_:)` detecting GIF from the first three bytes alone instead of the complete `GIF87a`/`GIF89a` signature, which made the decoder keep the original data in the memory cache for files that only happened to start with `GIF`
-- Fix `AssetType/webp`, `AssetType/mp4`, `AssetType/m4v`, and `AssetType/mov` using identifiers that the system doesn't declare. They now use `org.webmproject.webp`, `public.mpeg-4`, `com.apple.m4v-video`, and `com.apple.quicktime-movie`, so every built-in type bridges to a `UTType`
-- Fix MP4 files with an `mp42` major brand, which is a standard MP4 brand, being detected as `AssetType/m4v`
-- Detect the ISO base media types by parsing the major brand in the `ftyp` box, which adds support for the remaining MP4 (`iso2`, `iso4`, `iso5`, `iso6`, `mp41`, `mmp4`, `avc1`, `dash`), M4V (`M4VH`, `M4VP`), and HEIC (`heix`, `heim`, `heis`, `hevc`, `hevx`, `hevm`, `hevs`) brands
-- Fix an issue with progressive image downloads fail to complete if `isResetEnabled` is `true` on `LazyImageView` when the request starts by @nathantannar4 in https://github.com/kean/Nuke/pull/884
+- Add `AssetType/bmp`, `AssetType/tiff`, `AssetType/jpeg2000`, and `AssetType/jxl`. Image I/O decodes these formats, but `AssetType/init(_:)` didn't recognize them, so `ImageContainer/type` was `nil`
+- Fix `AssetType/init(_:)` detecting GIF from the first three bytes instead of the complete `GIF87a`/`GIF89a` signature, which kept the original data in the memory cache for the files that merely started with `GIF`
+- Fix `AssetType/webp`, `AssetType/mp4`, `AssetType/m4v`, and `AssetType/mov` using the identifiers that the system doesn't declare, so they didn't bridge to a `UTType`
+- Fix MP4 files with the standard `mp42` major brand being detected as `AssetType/m4v`
+- Detect the ISO base media types from the major brand in the `ftyp` box, which adds the remaining MP4, M4V, and HEIC brands
+- Fix progressive image downloads not completing when `isResetEnabled` is `true` on `LazyImageView` by @nathantannar4 in https://github.com/kean/Nuke/pull/884
 - Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` storing image previews in the disk cache, so a progressive scan passed to it was later delivered as a completed image
 - Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`, which enlarged the image beyond its native resolution
 - Fix the `file` and `data` URL schemes being matched case-sensitively, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path and had their contents copied into the data cache
