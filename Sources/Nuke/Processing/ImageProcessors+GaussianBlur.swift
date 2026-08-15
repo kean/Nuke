@@ -61,9 +61,12 @@ private extension CGImage {
         let size = self.size
         // vImageBoxConvolve_ARGB8888 needs a 32-bit ARGB layout. A grayscale
         // source yields a 16-bit gray+alpha context (half the row stride vImage
-        // expects), so force RGB for the scratch contexts.
-        guard let inputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast, colorSpace: CGColorSpaceCreateDeviceRGB()),
-              let outputCtx = CGContext.make(self, size: size, alphaInfo: .premultipliedLast, colorSpace: CGColorSpaceCreateDeviceRGB()) else {
+        // expects), so force RGB for the scratch contexts. `.noneSkipLast` keeps
+        // the same 32-bit layout for opaque images without tagging the output
+        // with alpha, which would make `ImageEncoders.Default` pick PNG.
+        let alphaInfo: CGImageAlphaInfo = isOpaque ? .noneSkipLast : .premultipliedLast
+        guard let inputCtx = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB()),
+              let outputCtx = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB()) else {
             return nil
         }
         inputCtx.draw(self, in: CGRect(origin: .zero, size: size))
