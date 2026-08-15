@@ -349,7 +349,7 @@ struct ImagePipelineProcessingDeduplicationTests {
     @Test func intermediateDataCacheResultsAreUsed() async throws {
         // Given
         let dataCache = MockDataCache()
-        dataCache.store[Test.url.absoluteString + "12"] = Test.data
+        dataCache.store[Test.url.absoluteString + "++1+2"] = Test.data
 
         let pipeline = pipeline.reconfigured {
             $0.dataCache = dataCache

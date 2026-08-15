@@ -516,6 +516,64 @@ struct ImagePipelineCacheTests {
         #expect(cache.makeImageCacheKey(for: Test.request) != cache.makeImageCacheKey(for: other))
     }
 
+    @Test func makeDataCacheKeyIsStable() {
+        // GIVEN two equal requests
+        let request = ImageRequest(url: Test.url, processors: [
+            ImageProcessors.Anonymous(id: "resize", { $0 }),
+            ImageProcessors.Anonymous(id: "blur", { $0 })
+        ])
+
+        // THEN they produce the same key
+        #expect(cache.makeDataCacheKey(for: request) == cache.makeDataCacheKey(for: request))
+        #expect(cache.makeDataCacheKey(for: Test.request) == cache.makeDataCacheKey(for: Test.request))
+    }
+
+    @Test func makeDataCacheKeyForProcessorsWithAmbiguousIdentifiers() {
+        // GIVEN requests with processor identifiers that concatenate to the
+        // same string
+        let lhs = ImageRequest(url: Test.url, processors: [
+            ImageProcessors.Anonymous(id: "resize-", { $0 }),
+            ImageProcessors.Anonymous(id: "largeblur", { $0 })
+        ])
+        let rhs = ImageRequest(url: Test.url, processors: [
+            ImageProcessors.Anonymous(id: "resize-large", { $0 }),
+            ImageProcessors.Anonymous(id: "blur", { $0 })
+        ])
+
+        // THEN the keys are different
+        #expect(cache.makeDataCacheKey(for: lhs) != cache.makeDataCacheKey(for: rhs))
+    }
+
+    @Test func makeDataCacheKeyForAmbiguousImageIDAndProcessorIdentifier() {
+        // GIVEN requests where the image ID and the processor identifier
+        // concatenate to the same string
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = "image-1"
+            $0.processors = [ImageProcessors.Anonymous(id: "2", { $0 })]
+        }
+        let rhs = ImageRequest(url: Test.url).with {
+            $0.imageID = "image-12"
+        }
+
+        // THEN the keys are different
+        #expect(cache.makeDataCacheKey(for: lhs) != cache.makeDataCacheKey(for: rhs))
+    }
+
+    @Test func makeDataCacheKeyForAmbiguousImageIDAndThumbnailIdentifier() {
+        // GIVEN requests where the image ID and the thumbnail identifier
+        // concatenate to the same string
+        let thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.thumbnail = thumbnail
+        }
+        let rhs = ImageRequest(url: Test.url).with {
+            $0.imageID = Test.url.absoluteString + thumbnail.identifier
+        }
+
+        // THEN the keys are different
+        #expect(cache.makeDataCacheKey(for: lhs) != cache.makeDataCacheKey(for: rhs))
+    }
+
     // MARK: Decoding Cached Data
 
     @Test func cachedImageIsNilWhenNoDecoderIsRegistered() {

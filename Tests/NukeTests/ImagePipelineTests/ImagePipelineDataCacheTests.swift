@@ -29,7 +29,7 @@ struct ImagePipelineDataCachingTests {
     @Test func imageIsLoaded() async throws {
         // Given
         dataLoader.queue.isSuspended = true
-        dataCache.store[Test.url.absoluteString] = Test.data
+        dataCache.store[Test.url.absoluteString + "++"] = Test.data
 
         // When/Then
         _ = try await pipeline.image(for: Test.request)
@@ -163,7 +163,7 @@ struct ImagePipelineDataCachingTests {
 
     @Test func reloadIgnoringCachedData() async throws {
         // Given
-        dataCache.store[Test.url.absoluteString] = Test.data
+        dataCache.store[Test.url.absoluteString + "++"] = Test.data
 
         var request = Test.request
         request.options = [.reloadIgnoringCachedData]
@@ -177,7 +177,7 @@ struct ImagePipelineDataCachingTests {
 
     @Test func loadFromCacheOnlyDataCache() async throws {
         // Given
-        dataCache.store[Test.url.absoluteString] = Test.data
+        dataCache.store[Test.url.absoluteString + "++"] = Test.data
 
         var request = Test.request
         request.options = [.returnCacheDataDontLoad]
@@ -268,7 +268,7 @@ struct ImagePipelineDataCachePolicyTests {
     @Test func processedImageLoadedFromDataCache() async throws {
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
-        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+        dataCache.store[Test.url.absoluteString + "++1"] = Test.data
 
         // When/Then
         _ = try await pipeline.image(for: request)
@@ -281,7 +281,7 @@ struct ImagePipelineDataCachePolicyTests {
     @Test func processedImageIsDecompressed() async throws {
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
-        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+        dataCache.store[Test.url.absoluteString + "++1"] = Test.data
 
         // When/Then
         let response = try await pipeline.imageTask(with: request).response
@@ -296,7 +296,7 @@ struct ImagePipelineDataCachePolicyTests {
             $0.imageCache = cache
         }
         dataLoader.queue.isSuspended = true
-        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+        dataCache.store[Test.url.absoluteString + "++1"] = Test.data
 
         // When
         _ = try await pipeline.image(for: request)
@@ -317,7 +317,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
-        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+        dataCache.store[Test.url.absoluteString + "++1"] = Test.data
 
         // When/Then
         let response = try await pipeline.imageTask(with: request).response
@@ -344,7 +344,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -363,7 +363,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -383,8 +383,8 @@ struct ImagePipelineDataCachePolicyTests {
         // encoded processed image is stored in disk cache
         // original image data is stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 2)
         #expect(dataCache.store.count == 2)
     }
@@ -405,7 +405,7 @@ struct ImagePipelineDataCachePolicyTests {
         // THEN
         // encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
         #expect(dataLoader.createdTaskCount == 0)
@@ -428,7 +428,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -448,7 +448,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -468,8 +468,8 @@ struct ImagePipelineDataCachePolicyTests {
         // encoded processed image is stored in disk cache
         // encoded original image is stored in disk cache
         #expect(encoder.encodeCount == 2)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 2)
         #expect(dataCache.store.count == 2)
     }
@@ -490,7 +490,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN encoded processed image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -509,7 +509,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -532,7 +532,7 @@ struct ImagePipelineDataCachePolicyTests {
         // encoded processed image is stored in disk cache
         // encoded original image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -555,8 +555,8 @@ struct ImagePipelineDataCachePolicyTests {
         // THEN encoded processed image is stored in disk cache and
         // original image data stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 2)
         #expect(dataCache.store.count == 2)
     }
@@ -575,7 +575,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -595,8 +595,8 @@ struct ImagePipelineDataCachePolicyTests {
         // encoded processed image is stored in disk cache
         // original image data is stored in disk cache
         #expect(encoder.encodeCount == 1)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 2)
         #expect(dataCache.store.count == 2)
     }
@@ -710,7 +710,7 @@ struct ImagePipelineDataCachePolicyTests {
 
         // Then
         #expect(isCustomEncoderCalled)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++1") == nil)
     }
 
     // MARK: Integration with Thumbnail Feature
@@ -724,7 +724,7 @@ struct ImagePipelineDataCachePolicyTests {
         _ = try await pipeline.image(for: request)
 
         // THEN
-        #expect(dataCache.containsData(for: "http://test.com/example.jpeg"))
+        #expect(dataCache.containsData(for: "http://test.com/example.jpeg++"))
     }
 
     // MARK: - Thumbnail + Original Data Reuse
@@ -732,7 +732,7 @@ struct ImagePipelineDataCachePolicyTests {
     @Test func thumbnailRequestReusesOriginalDataFromDiskCache() async throws {
         // GIVEN original image is loaded (no thumbnail), caching original data to disk
         _ = try await pipeline.image(for: Test.request)
-        #expect(dataCache.containsData(for: Test.url.absoluteString))
+        #expect(dataCache.containsData(for: Test.url.absoluteString + "++"))
 
         // WHEN a thumbnail of the same URL is requested
         var thumbnailRequest = ImageRequest(url: Test.url)

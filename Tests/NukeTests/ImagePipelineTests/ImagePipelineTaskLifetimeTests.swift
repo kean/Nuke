@@ -102,7 +102,7 @@ struct ImagePipelineTaskLifetimeTests {
 
     @Test func taskIsRemovedOnDiskCacheHitForDataRequest() async throws {
         // Given cached data, `TaskLoadData` finishes the task synchronously
-        dataCache.store[Test.url.absoluteString] = Test.data
+        dataCache.store[Test.url.absoluteString + "++"] = Test.data
 
         // When
         _ = try await pipeline.data(for: Test.request)
