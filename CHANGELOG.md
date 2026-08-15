@@ -32,6 +32,10 @@
 - Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`, which enlarged the image beyond its native resolution
 - Fix the `file` and `data` URL schemes being matched case-sensitively, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path and had their contents copied into the data cache
 - Fix a crash when resizing an image to a non-finite size. `CGContext` creation converted the dimensions with `Int(_:)`, which traps on NaN and infinity
+- Fix `ImageDecoders/Default` generating GIF previews even when the preview policy is `ImagePipeline/PreviewPolicy/disabled`
+- Fix `ImageProcessors/GaussianBlur` blurring the image with a radius of `0` or less instead of returning it unchanged. The radius was clamped to a minimum of `2`, so every radius in `0...2` also rendered identically under different cache keys
+- Fix `ImageProcessingOptions/Border` producing the same identifier for every color with no sRGB representation, e.g. a pattern color. The components are now also clamped to `0...1`, which used to produce malformed hex for wide-gamut colors on iOS
+- Fix progressive previews being silently dropped for the rest of the task's lifetime when the cached data fails to decode and the task falls back to loading the image
 
 ## Nuke 13.1.0
 
