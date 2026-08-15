@@ -19,6 +19,11 @@
 
 # Nuke 13
 
+## WIP
+
+- Fix `LazyImage/processors(_:)` and `LazyImage/priority(_:)` overriding the processors and the priority that the request already defines, and resetting them when passed `nil` – https://github.com/kean/Nuke/pull/900
+- Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled`, which the pipeline reads on every signpost while it can be written from any thread – https://github.com/kean/Nuke/pull/901
+
 ## Nuke 13.2.0
 
 *Aug 15, 2026*
