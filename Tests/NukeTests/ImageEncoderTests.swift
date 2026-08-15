@@ -64,7 +64,7 @@ struct ImageEncoderTests {
 
 #if os(iOS) || os(tvOS) || os(visionOS)
 
-    @Test func encodeCoreImageBackedImage() throws {
+    @Test func encodeBlurredImage() throws {
         // Given
         let image = try ImageProcessors.GaussianBlur().processThrowing(Test.image)
         let encoder = ImageEncoders.Default()
@@ -72,9 +72,9 @@ struct ImageEncoderTests {
         // When
         let data = try #require(encoder.encode(image))
 
-        // Then encoded as PNG because GaussianBlur produces
-        // images with alpha channel
-        #expect(AssetType(data) == .png)
+        // Then encoded as JPEG because GaussianBlur preserves the opacity
+        // of the input image
+        #expect(AssetType(data) == .jpeg)
     }
 
 #endif
