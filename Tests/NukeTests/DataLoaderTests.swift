@@ -391,6 +391,25 @@ struct DataLoaderTests {
         #expect(spy.didFinishMetricsCount > 0)
     }
 
+    @Test func delegateReceivesDidCreateTaskCallback() async throws {
+        let url = mockURL("delegate-did-create-task")
+        registerMock(url: url, chunks: [Data("data".utf8)])
+
+        let loader = makeDataLoader()
+        let spy = SpyURLSessionDelegate()
+        loader.delegate = spy
+
+        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
+
+        await withCheckedContinuation { continuation in
+            loader.session.delegateQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+
+        #expect(spy.didCreateTaskCount == 1)
+    }
+
     // MARK: - Default Validation
 
     @Test func initWithDefaultValidation() async throws {
@@ -511,8 +530,13 @@ private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @un
     @Mutex var didReceiveDataCount = 0
     @Mutex var didCompleteCount = 0
     @Mutex var didFinishMetricsCount = 0
+    @Mutex var didCreateTaskCount = 0
 
     let didCompleteWithError = TestExpectation()
+
+    func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        didCreateTaskCount += 1
+    }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         didReceiveResponseCount += 1
