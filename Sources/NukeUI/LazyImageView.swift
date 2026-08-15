@@ -242,8 +242,10 @@ public final class LazyImageView: _PlatformBaseView {
         reset(clearImage: true)
     }
 
-    private func reset(clearImage: Bool) {
-        cancel()
+    private func reset(clearImage: Bool, shouldCancel: Bool = true) {
+        if shouldCancel {
+            cancel()
+        }
 
         if clearImage {
             if imageView.image != nil { imageView.image = nil }
@@ -365,7 +367,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
-        resetIfNeeded(clearImage: false)
+        resetIfNeeded(clearImage: false, shouldCancel: !container.isPreview)
 
         // Remove the view created for the previous response (a progressive
         // preview or a cached preview) before displaying the new one.
@@ -496,9 +498,9 @@ public final class LazyImageView: _PlatformBaseView {
         case fill
     }
 
-    private func resetIfNeeded(clearImage: Bool = true) {
+    private func resetIfNeeded(clearImage: Bool = true, shouldCancel: Bool = true) {
         if isResetNeeded {
-            reset(clearImage: clearImage)
+            reset(clearImage: clearImage, shouldCancel: shouldCancel)
         }
     }
 }
