@@ -45,18 +45,24 @@ struct ImageProcessingExtensions {
     }
 
     /// Crops the input image to the given size and resizes it if needed.
-    /// - note: this method will always upscale.
-    func byResizingAndCropping(to targetSize: CGSize) -> PlatformImage? {
+    /// - note: if `upscale` is `false`, the image is never enlarged: it's
+    /// cropped to the target aspect ratio at its native resolution instead.
+    func byResizingAndCropping(to targetSize: CGSize, upscale: Bool) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
 #if canImport(UIKit)
         let targetSize = targetSize.rotatedForOrientation(CGImagePropertyOrientation(image.imageOrientation))
 #endif
-        let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
+        var scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
+        var canvasSize = targetSize
+        if scale > 1 && !upscale {
+            canvasSize = targetSize.scaled(by: 1 / scale).rounded()
+            scale = 1
+        }
         let scaledSize = cgImage.size.scaled(by: scale)
-        let drawRect = scaledSize.centeredInRectWithSize(targetSize)
-        return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
+        let drawRect = scaledSize.centeredInRectWithSize(canvasSize)
+        return image.draw(inCanvasWithSize: canvasSize, drawRect: drawRect)
     }
 
     func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
