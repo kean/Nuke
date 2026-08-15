@@ -150,7 +150,12 @@ extension ImagePipeline {
         ///
         /// For more information, see the [Logging](https://developer.apple.com/documentation/os/logging)
         /// documentation and [WWDC 2018 Session 405](https://developer.apple.com/videos/play/wwdc2018/405/).
-        nonisolated(unsafe) public static var isSignpostLoggingEnabled = false
+        public static var isSignpostLoggingEnabled: Bool {
+            get { _isSignpostLoggingEnabled.value }
+            set { _isSignpostLoggingEnabled.withLock { $0 = newValue } }
+        }
+
+        private static let _isSignpostLoggingEnabled = Mutex(value: false)
 
         private var isCustomImageCacheProvided = false
 
