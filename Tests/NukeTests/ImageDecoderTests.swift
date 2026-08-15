@@ -283,6 +283,39 @@ struct ImageDecoderTests {
         #expect(decoder.decodePartiallyDownloadedData(chunk) == nil)
     }
 
+    @Test func decodingGIFPreviewWithDisabledPolicy() throws {
+        let data = Test.data(name: "cat", extension: "gif")
+        let chunk = data[...60000]
+
+        var context = ImageDecodingContext.mock(data: chunk)
+        context.previewPolicy = .disabled
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        // No previews with the .disabled policy, GIFs included
+        #expect(decoder.decodePartiallyDownloadedData(chunk) == nil)
+        #expect(decoder.decodePartiallyDownloadedData(data[...120000]) == nil)
+        #expect(decoder.numberOfScans == 0)
+
+        // Full decode still works
+        let container = try decoder.decode(data)
+        #expect(container.type == .gif)
+        #expect(!container.isPreview)
+    }
+
+    @Test func decodingGIFPreviewWithThumbnailPolicy() throws {
+        let data = Test.data(name: "cat", extension: "gif")
+        let chunk = data[...60000]
+
+        var context = ImageDecodingContext.mock(data: chunk)
+        context.previewPolicy = .thumbnail
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        // GIFs can't be decoded incrementally, so a single preview is still
+        // generated for any policy other than .disabled
+        #expect(decoder.decodePartiallyDownloadedData(chunk) != nil)
+        #expect(decoder.decodePartiallyDownloadedData(chunk) == nil)
+    }
+
     @Test func decodingPNGDataNotAttached() throws {
         let data = Test.data(name: "fixture", extension: "png")
         let container = try ImageDecoders.Default().decode(data)
