@@ -101,11 +101,21 @@ struct AssetTypeTests {
         #expect(AssetType(data) == .mp4)
     }
 
+    @Test(arguments: ["isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "mmp4", "avc1", "dash"])
+    func detectMP4Brands(brand: String) {
+        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .mp4)
+    }
+
     @Test func detectM4V() {
         let data = makeISOBaseMedia(brand: "M4V ")
         #expect(AssetType(data[0..<11]) == nil)
         #expect(AssetType(data[0..<12]) == .m4v)
         #expect(AssetType(data) == .m4v)
+    }
+
+    @Test(arguments: ["M4V ", "M4VH", "M4VP"])
+    func detectM4VBrands(brand: String) {
+        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .m4v)
     }
 
     @Test func detectMOV() {
@@ -116,12 +126,16 @@ struct AssetTypeTests {
     }
 
     @Test func detectMP4Fixture() {
+        // The fixture has an `mp42` major brand, which is a standard MP4 brand:
+        // the system reports the file as `public.mpeg-4`.
         let data = Test.data(name: "video", extension: "mp4")
-        // Known issue: the fixture has an `mp42` major brand, which the
-        // detection maps to `.m4v`. `mp42` is a standard MP4 brand – the system
-        // reports the file as `public.mpeg-4` – so this is a misclassification.
-        // Update the expectation to `.mp4` when the `ftyp` brands are parsed.
-        #expect(AssetType(data) == .m4v)
+        #expect(AssetType(data) == .mp4)
+        #expect(AssetType(data)?.utType == .mpeg4Movie)
+    }
+
+    @Test(arguments: ["heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs"])
+    func detectHEICBrands(brand: String) {
+        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .heic)
     }
 
     // MARK: Edge Cases
@@ -136,31 +150,34 @@ struct AssetTypeTests {
         #expect(AssetType(data) == nil)
     }
 
-    @Test func detectUnknownISOBaseMediaBrand() {
-        // `mif1` is the generic HEIF brand and isn't one of the brands the
-        // detection matches.
-        #expect(AssetType(makeISOBaseMedia(brand: "mif1")) == nil)
+    @Test(arguments: ["mif1", "msf1", "avif", "avis", "M4A ", "3gp4"])
+    func detectUnsupportedISOBaseMediaBrands(brand: String) {
+        // HEIF, AVIF, MPEG-4 audio, and 3GPP aren't formats the decoders
+        // support, so the brands they use are not recognized.
+        #expect(AssetType(makeISOBaseMedia(brand: brand)) == nil)
     }
 
     // MARK: utType
 
-    @Test func utTypeForSystemDeclaredTypes() {
+    @Test func utTypeForBuiltInTypes() {
         #expect(AssetType.png.utType == .png)
         #expect(AssetType.jpeg.utType == .jpeg)
         #expect(AssetType.gif.utType == .gif)
         #expect(AssetType.heic.utType == .heic)
         #expect(AssetType.ico.utType == .ico)
+        #expect(AssetType.webp.utType == .webP)
+        #expect(AssetType.mp4.utType == .mpeg4Movie)
+        #expect(AssetType.m4v.utType == UTType("com.apple.m4v-video"))
+        #expect(AssetType.mov.utType == .quickTimeMovie)
     }
 
-    @Test func utTypeForIdentifiersTheSystemDoesNotDeclare() {
-        // These four identifiers aren't the ones the system uses for these
-        // formats (`org.webmproject.webp`, `public.mpeg-4`,
-        // `com.apple.m4v-video`, and `com.apple.quicktime-movie`), so they
-        // can't be bridged.
-        #expect(AssetType.webp.utType == nil)
-        #expect(AssetType.mp4.utType == nil)
-        #expect(AssetType.m4v.utType == nil)
-        #expect(AssetType.mov.utType == nil)
+    @Test func builtInTypesUseTheIdentifiersTheSystemDeclares() {
+        // A type the system doesn't declare can't be bridged, so every built-in
+        // type has to use the identifier the system registers for the format.
+        let types: [AssetType] = [.png, .jpeg, .gif, .heic, .ico, .webp, .mp4, .m4v, .mov]
+        for type in types {
+            #expect(type.utType?.identifier == type.rawValue)
+        }
     }
 
     @Test func utTypeForCustomType() {
@@ -172,8 +189,19 @@ struct AssetTypeTests {
     @Test func utTypeMetadata() {
         #expect(AssetType.png.utType?.preferredMIMEType == "image/png")
         #expect(AssetType.jpeg.utType?.preferredFilenameExtension == "jpeg")
+        #expect(AssetType.webp.utType?.preferredMIMEType == "image/webp")
         #expect(AssetType.gif.utType?.conforms(to: .image) == true)
         #expect(AssetType.heic.utType?.conforms(to: .movie) == false)
+    }
+
+    @Test func utTypeConformanceIdentifiesVideo() {
+        for type in [AssetType.mp4, .m4v, .mov] {
+            #expect(type.utType?.conforms(to: .movie) == true)
+        }
+        for type in [AssetType.png, .jpeg, .gif, .heic, .ico, .webp] {
+            #expect(type.utType?.conforms(to: .image) == true)
+            #expect(type.utType?.conforms(to: .movie) == false)
+        }
     }
 
     // MARK: init(UTType)
@@ -184,21 +212,15 @@ struct AssetTypeTests {
         #expect(AssetType(UTType.gif) == .gif)
         #expect(AssetType(UTType.heic) == .heic)
         #expect(AssetType(UTType.ico) == .ico)
+        #expect(AssetType(UTType.webP) == .webp)
+        #expect(AssetType(UTType.mpeg4Movie) == .mp4)
+        #expect(AssetType(UTType.quickTimeMovie) == .mov)
     }
 
     @Test func initWithUTTypeOutsideOfTheBuiltInTypes() {
         #expect(AssetType(UTType.tiff).rawValue == "public.tiff")
-        #expect(AssetType(UTType.webP).rawValue == "org.webmproject.webp")
-        #expect(AssetType(UTType.mpeg4Movie).rawValue == "public.mpeg-4")
-        #expect(AssetType(UTType.quickTimeMovie).rawValue == "com.apple.quicktime-movie")
-    }
-
-    @Test func initWithUTTypeDoesNotMatchTheBuiltInVideoTypes() {
-        // The built-in video types use identifiers the system doesn't declare,
-        // so bridging the system types back doesn't produce them.
-        #expect(AssetType(UTType.mpeg4Movie) != .mp4)
-        #expect(AssetType(UTType.quickTimeMovie) != .mov)
-        #expect(AssetType(UTType.webP) != .webp)
+        #expect(AssetType(UTType.bmp).rawValue == "com.microsoft.bmp")
+        #expect(AssetType(UTType.pdf).rawValue == "com.adobe.pdf")
     }
 
     @Test func roundTrip() {

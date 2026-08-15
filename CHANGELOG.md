@@ -22,6 +22,9 @@
 ## WIP
 
 - Add `AssetType/utType` and `AssetType/init(_:)` for bridging to and from `UTType`
+- Fix `AssetType/webp`, `AssetType/mp4`, `AssetType/m4v`, and `AssetType/mov` using identifiers that the system doesn't declare. They now use `org.webmproject.webp`, `public.mpeg-4`, `com.apple.m4v-video`, and `com.apple.quicktime-movie`, so every built-in type bridges to a `UTType`
+- Fix MP4 files with an `mp42` major brand, which is a standard MP4 brand, being detected as `AssetType/m4v`
+- Detect the ISO base media types by parsing the major brand in the `ftyp` box, which adds support for the remaining MP4 (`iso2`, `iso4`, `iso5`, `iso6`, `mp41`, `mmp4`, `avc1`, `dash`), M4V (`M4VH`, `M4VP`), and HEIC (`heix`, `heim`, `heis`, `hevc`, `hevx`, `hevm`, `hevs`) brands
 - Fix an issue with progressive image downloads fail to complete if `isResetEnabled` is `true` on `LazyImageView` when the request starts by @nathantannar4 in https://github.com/kean/Nuke/pull/884
 
 ## Nuke 13.1.0

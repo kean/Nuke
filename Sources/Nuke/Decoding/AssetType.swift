@@ -33,17 +33,17 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     ///
     /// Native decoding support only available on the following platforms: macOS 11,
     /// iOS 14, watchOS 7, tvOS 14.
-    public static let webp: AssetType = "public.webp"
+    public static let webp: AssetType = "org.webmproject.webp"
 
     /// MPEG-4 video.
-    public static let mp4: AssetType = "public.mpeg4"
+    public static let mp4: AssetType = "public.mpeg-4"
 
     /// M4V video container developed by Apple, similar to MP4. May optionally
     /// be protected by DRM copy protection.
-    public static let m4v: AssetType = "public.m4v"
+    public static let m4v: AssetType = "com.apple.m4v-video"
 
     /// QuickTime movie.
-    public static let mov: AssetType = "public.mov"
+    public static let mov: AssetType = "com.apple.quicktime-movie"
 
     /// ICO (Windows icon format).
     public static let ico: AssetType = "com.microsoft.ico"
@@ -107,24 +107,49 @@ extension AssetType {
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
 
-        if _match([0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63], offset: 4) { return .heic }
-
-        // see https://stackoverflow.com/questions/21879981/avfoundation-avplayer-supported-formats-no-vob-or-mpg-containers
-        // https://en.wikipedia.org/wiki/List_of_file_signatures
-        if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
-
-        // https://www.garykessler.net/library/file_sigs.html
-        if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
-
-        if _match([0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x56, 0x20], offset: 4) { return .m4v }
-
-        // MOV magic numbers https://www.garykessler.net/library/file_sigs.html
-        if _match([0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], offset: 4) { return .mov }
+        // ISO base media file format (HEIC, MP4, M4V, MOV): the `ftyp` box
+        // starts at byte 4 and is followed by a four-character major brand that
+        // identifies the flavor of the container.
+        // https://en.wikipedia.org/wiki/ISO_base_media_file_format
+        if _match([0x66, 0x74, 0x79, 0x70], offset: 4),
+           let type = _makeISOBaseMedia(majorBrand: _string(at: 8, count: 4, in: data)) {
+            return type
+        }
 
         // ICO magic numbers https://en.wikipedia.org/wiki/ICO_(file_format)
         if _match([0x00, 0x00, 0x01, 0x00]) { return .ico }
 
         // Either not enough data, or we just don't support this format.
         return nil
+    }
+
+    /// Returns the type of an ISO base media file with the given major brand,
+    /// or `nil` if the brand is unknown or belongs to an unsupported format,
+    /// such as HEIF (`mif1`), AVIF (`avif`), or MPEG-4 audio (`M4A `).
+    ///
+    /// The brands are registered at https://mp4ra.org/registered-types/brands.
+    private static func _makeISOBaseMedia(majorBrand: String?) -> AssetType? {
+        switch majorBrand {
+        case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
+            return .heic
+        case "isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "mmp4", "avc1", "dash":
+            return .mp4
+        case "M4V ", "M4VH", "M4VP":
+            return .m4v
+        case "qt  ":
+            return .mov
+        default:
+            return nil
+        }
+    }
+
+    /// Decodes `count` bytes at the given offset as an ASCII string, or returns
+    /// `nil` if the data is too short.
+    private static func _string(at offset: Int, count: Int, in data: Data) -> String? {
+        guard data.count >= offset + count else {
+            return nil
+        }
+        let start = data.index(data.startIndex, offsetBy: offset)
+        return String(decoding: data[start..<data.index(start, offsetBy: count)], as: UTF8.self)
     }
 }
