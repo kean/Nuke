@@ -400,6 +400,25 @@ struct ImageProcessorsResizeTests {
         #expect(size.width > 0)
     }
 
+    /// The processing is expected to fail instead of trapping when converting
+    /// the target size to the context dimensions, and to fail consistently
+    /// regardless of whether the image is cropped.
+    @Test(arguments: [
+        CGSize(width: CGFloat.nan, height: CGFloat.nan),
+        CGSize(width: 400, height: CGFloat.nan),
+        CGSize(width: CGFloat.infinity, height: CGFloat.infinity),
+        CGSize(width: 400, height: -CGFloat.infinity),
+        CGSize(width: 0, height: 0),
+        CGSize(width: -400, height: -400)
+    ], [true, false])
+    func thatProcessingFailsForInvalidTargetSize(size: CGSize, crop: Bool) {
+        // Given
+        let processor = ImageProcessors.Resize(size: size, unit: .pixels, crop: crop)
+
+        // When/Then
+        #expect(processor.process(Test.image) == nil)
+    }
+
     // Just make sure these initializers are still available.
     @Test func initializer() {
         _ = ImageProcessors.Resize(height: 10)
