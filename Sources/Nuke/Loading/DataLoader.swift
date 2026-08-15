@@ -144,7 +144,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
 
     // MARK: URLSessionDelegate
 
-#if !os(macOS) && !targetEnvironment(macCatalyst)
     func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
         if #available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *) {
             (delegate as? URLSessionTaskDelegate)?.urlSession?(session, didCreateTask: task)
@@ -152,7 +151,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             // Doesn't exist on earlier versions
         }
     }
-#endif
 
     func urlSession(_ session: URLSession,
                     dataTask: URLSessionDataTask,
