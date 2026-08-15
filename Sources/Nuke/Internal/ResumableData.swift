@@ -69,6 +69,9 @@ final class ResumableDataStorage {
 
     private var registeredPipelines = Set<UUID>()
 
+    /// The pipelines that were unregistered before they were registered.
+    private var unregisteredPipelines = Set<UUID>()
+
     private var cache: Cache<Key, ResumableData>?
 
     // MARK: Registration
@@ -79,6 +82,9 @@ final class ResumableDataStorage {
     }
 
     func register(_ id: UUID) {
+        if unregisteredPipelines.remove(id) != nil {
+            return // The pipeline is already gone (see `unregister`)
+        }
         if registeredPipelines.isEmpty {
             cache = Cache(costLimit: ResumableDataStorage.defaultCostLimit, countLimit: 100)
         }
@@ -86,7 +92,13 @@ final class ResumableDataStorage {
     }
 
     func unregister(_ id: UUID) {
-        registeredPipelines.remove(id)
+        if registeredPipelines.remove(id) == nil {
+            // Both `register` and `unregister` are performed asynchronously and
+            // the actor makes no FIFO guarantees, so `unregister` can be
+            // performed first. Remember the id to ignore the pending `register`
+            // call. It is always enqueued first, so the id is never left behind.
+            unregisteredPipelines.insert(id)
+        }
         if registeredPipelines.isEmpty {
             cache = nil // Deallocate storage
         }

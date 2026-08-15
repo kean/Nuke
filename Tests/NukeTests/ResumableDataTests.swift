@@ -263,6 +263,60 @@ struct ResumableDataStorageTests {
         storage.unregister(pipeline.id)
     }
 
+    // The pipeline registers and unregisters itself asynchronously and the actor
+    // makes no FIFO guarantees, so `unregister` can be performed first.
+    @Test func registerAfterUnregisterIsIgnored() {
+        let storage = ResumableDataStorage()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        // WHEN unregister is performed before register
+        storage.unregister(pipeline.id)
+        storage.register(pipeline.id)
+
+        // THEN the pipeline is not registered and the cache is deallocated
+        let request = ImageRequest(url: Test.url)
+        storage.storeResumableData(_resumableData, for: request, pipeline: pipeline)
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func unregisterBeforeRegisterDoesNotAffectOtherPipelines() {
+        let storage = ResumableDataStorage()
+        let first = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+        let second = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        // WHEN one pipeline is unregistered before it is registered
+        storage.unregister(first.id)
+        storage.register(second.id)
+
+        // THEN the other pipeline is registered as usual
+        let request = ImageRequest(url: Test.url)
+        storage.storeResumableData(_resumableData, for: request, pipeline: second)
+        #expect(storage.removeResumableData(for: request, pipeline: second)?.data.count == 1000)
+    }
+
+    @Test func pendingUnregisterIsConsumedByTheFirstRegister() {
+        let storage = ResumableDataStorage()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+        storage.unregister(pipeline.id)
+        storage.register(pipeline.id) // Ignored
+
+        // WHEN the pipeline is registered again
+        storage.register(pipeline.id)
+
+        // THEN the registration goes through (the id is not remembered forever)
+        let request = ImageRequest(url: Test.url)
+        storage.storeResumableData(_resumableData, for: request, pipeline: pipeline)
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline)?.data.count == 1000)
+    }
+
     @Test func storeAndRemoveResumableData() throws {
         let storage = ResumableDataStorage.shared
         let pipeline = ImagePipeline {
@@ -325,6 +379,12 @@ struct ResumableDataStorageTests {
 }
 
 private let _data = Data(count: 1000)
+
+private let _resumableData = ResumableData(response: _makeResponse(headers: [
+    "Accept-Ranges": "bytes",
+    "Content-Length": "2000",
+    "ETag": "1234"
+]), data: _data)!
 
 private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
     return HTTPURLResponse(url: Test.url, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
