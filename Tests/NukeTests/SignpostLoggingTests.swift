@@ -72,6 +72,39 @@ struct SignpostLoggingTests {
         }
     }
 
+    /// The pipeline reads `isSignpostLoggingEnabled` on every `signpost(...)`
+    /// call from its own threads, so writing it from another thread has to be
+    /// synchronized – otherwise the thread sanitizer aborts the test run.
+    @Test func signpostLoggingIsToggledWhileLoadingImages() async throws {
+        // Given
+        let initialValue = ImagePipeline.Configuration.isSignpostLoggingEnabled
+        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = initialValue }
+
+        let writer = Task.detached {
+            var isEnabled = true
+            while !Task.isCancelled {
+                isEnabled.toggle()
+                ImagePipeline.Configuration.isSignpostLoggingEnabled = isEnabled
+                await Task.yield()
+            }
+        }
+
+        // When loading images while the flag is being toggled
+        let pipeline = self.pipeline
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0..<50 {
+                group.addTask {
+                    let url = URL(string: "https://example.com/image-\(index).jpeg")!
+                    _ = try? await pipeline.image(for: ImageRequest(url: url))
+                }
+            }
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
+    }
+
     @Test func byteFormatter() {
         #expect(!Formatter.bytes(0).isEmpty)
         #expect(!Formatter.bytes(1024).isEmpty)
