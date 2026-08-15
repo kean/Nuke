@@ -28,14 +28,14 @@
 - Fix MP4 files with the standard `mp42` major brand being detected as `AssetType/m4v`
 - Detect the ISO base media types from the major brand in the `ftyp` box, which adds the remaining MP4, M4V, and HEIC brands
 - Fix progressive image downloads not completing when `isResetEnabled` is `true` on `LazyImageView` by @nathantannar4 in https://github.com/kean/Nuke/pull/884
-- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` storing image previews in the disk cache, so a progressive scan passed to it was later delivered as a completed image
-- Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`, which enlarged the image beyond its native resolution
-- Fix the `file` and `data` URL schemes being matched case-sensitively, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path and had their contents copied into the data cache
-- Fix a crash when resizing an image to a non-finite size. `CGContext` creation converted the dimensions with `Int(_:)`, which traps on NaN and infinity
-- Fix `ImageDecoders/Default` generating GIF previews even when the preview policy is `ImagePipeline/PreviewPolicy/disabled`
-- Fix `ImageProcessors/GaussianBlur` blurring the image with a radius of `0` or less instead of returning it unchanged. The radius was clamped to a minimum of `2`, so every radius in `0...2` also rendered identically under different cache keys
-- Fix `ImageProcessingOptions/Border` producing the same identifier for every color with no sRGB representation, e.g. a pattern color. The components are now also clamped to `0...1`, which used to produce malformed hex for wide-gamut colors on iOS
-- Fix progressive previews being silently dropped for the rest of the task's lifetime when the cached data fails to decode and the task falls back to loading the image
+- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` storing image previews in the disk cache, so a progressive scan passed to it was later delivered as a completed image – https://github.com/kean/Nuke/pull/885
+- Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`, which enlarged the image beyond its native resolution – https://github.com/kean/Nuke/pull/886
+- Fix the `file` and `data` URL schemes being matched case-sensitively, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path and had their contents copied into the data cache – https://github.com/kean/Nuke/pull/887
+- Fix a crash when resizing an image to a non-finite size. `CGContext` creation converted the dimensions with `Int(_:)`, which traps on NaN and infinity – https://github.com/kean/Nuke/pull/888
+- Fix `ImageDecoders/Default` generating GIF previews even when the preview policy is `ImagePipeline/PreviewPolicy/disabled` – https://github.com/kean/Nuke/pull/892
+- Fix `ImageProcessors/GaussianBlur` blurring the image with a radius of `0` or less instead of returning it unchanged. The radius was clamped to a minimum of `2`, so every radius in `0...2` also rendered identically under different cache keys – https://github.com/kean/Nuke/pull/893
+- Fix `ImageProcessingOptions/Border` producing the same identifier for every color with no sRGB representation, e.g. a pattern color. The components are now also clamped to `0...1`, which used to produce malformed hex for wide-gamut colors on iOS – https://github.com/kean/Nuke/pull/891
+- Fix progressive previews being silently dropped for the rest of the task's lifetime when the cached data fails to decode and the task falls back to loading the image – https://github.com/kean/Nuke/pull/894
 
 ## Nuke 13.1.0
 
