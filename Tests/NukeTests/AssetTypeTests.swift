@@ -24,7 +24,23 @@ struct AssetTypeTests {
 
     @Test func detectGIF() {
         let data = Test.data(name: "cat", extension: "gif")
+        #expect(AssetType(data[0..<1]) == nil)
+        #expect(AssetType(data[0..<5]) == nil)
+        #expect(AssetType(data[0..<6]) == .gif)
         #expect(AssetType(data) == .gif)
+    }
+
+    @Test(arguments: ["GIF87a", "GIF89a"])
+    func detectGIFVersions(signature: String) {
+        let data = Data(signature.utf8) + Data([0x01, 0x00, 0x01, 0x00])
+        #expect(AssetType(data) == .gif)
+    }
+
+    @Test func doesNotDetectGIFWithUnknownVersion() {
+        // The version is part of the signature: anything else is not a GIF and
+        // must not be given the type that makes the pipeline retain the data.
+        #expect(AssetType(Data("GIF88a".utf8)) == nil)
+        #expect(AssetType(Data("GIF".utf8) + Data([0x00, 0x00, 0x00])) == nil)
     }
 
     // MARK: JPEG
