@@ -2,7 +2,7 @@
 
 | Version          | Date         | Swift | Xcode | Platforms                                                   |
 |------------------|--------------|-------|-------|-------------------------------------------------------------|
-| [13.0](#nuke-13) | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 13.0, visionOS 1.0  |
+| [13.0](#nuke-13) | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
 | [12.0](#nuke-12) | Mar 4, 2023  | 5.7   | 14.1  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 | [11.0](#nuke-11) | Jul 20, 2022 | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 | [10.0](#nuke-10) | June 1, 2021 | 5.3   | 12.0  | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0               |

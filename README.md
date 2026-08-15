@@ -29,7 +29,7 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has a
   </tr>
 </table>
 
-## Documentation
+## Usage
 
 Load images using `ImagePipeline` from the lean core [**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke) module:
 
@@ -88,11 +88,11 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 ## Minimum Requirements
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/main/Documentation/Migrations).
 
 | Nuke      | Swift     | Xcode      | Platforms                                                   |
 |-----------|-----------|------------|-------------------------------------------------------------|
-| Nuke 13.0 | Swift 6.2 | Xcode 26.0 | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 13.0, visionOS 1.0  |
+| Nuke 13.0 | Swift 6.2 | Xcode 26.0 | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
 | Nuke 12.0 | Swift 5.7 | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 
 ## License
