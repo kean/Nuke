@@ -99,6 +99,50 @@ struct ImageTaskTests {
 
     // MARK: - Events
 
+    @Test func startedIsTheFirstEventDeliveredToTheStream() async throws {
+        // Given a stream created before the pipeline starts the task
+        let observer = ImagePipelineObserver()
+        let pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let stream = Nuke.Mutex<AsyncStream<ImageTask.Event>?>(value: nil)
+        observer.onTaskCreated = { task in
+            stream.withLock { $0 = task.events }
+        }
+
+        // When
+        _ = try await pipeline.imageTask(with: Test.request).response
+
+        // Then
+        var events: [ImageTask.Event] = []
+        for await event in try #require(stream.value) {
+            events.append(event)
+        }
+        #expect(events.first == .started)
+        #expect(events.filter { $0 == .started }.count == 1)
+
+        // Then the delegate receives it exactly once
+        await Task { @ImagePipelineActor in }.value
+        #expect(observer.startedTaskCount == 1)
+    }
+
+    @Test func startedIsTheFirstEventDeliveredToTheEventClosure() async throws {
+        // Given
+        let events = Nuke.Mutex<[ImageTask.Event]>(value: [])
+
+        // When
+        let task = pipeline.makeStartedImageTask(with: Test.request) { event, _ in
+            events.withLock { $0.append(event) }
+        }
+        _ = try await task.response
+
+        // Then
+        let recorded = events.value
+        #expect(recorded.first == .started)
+        #expect(recorded.filter { $0 == .started }.count == 1)
+    }
+
     @Test func eventsAreDeliveredToMultipleIndependentStreams() async throws {
         // Given
         dataLoader.isSuspended = true
