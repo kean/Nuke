@@ -39,6 +39,11 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     }
 
     private func didFinishDecoding(with response: ImageResponse?) {
+        // `decode` stores the decoding queue operation for the asynchronous
+        // decoders. It has to be cleared: the progressive back-pressure guards
+        // check `operation != nil` and would otherwise drop every preview the
+        // task receives after falling back to `fetchImage`.
+        operation = nil
         if let response {
             didReceiveImageResponse(response, isCompleted: true)
         } else {

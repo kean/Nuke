@@ -127,6 +127,47 @@ struct ImagePipelineProgressiveDecodingTests {
         #expect(!response.isPreview)
     }
 
+    /// The cached data decode runs on the decoding queue for the asynchronous
+    /// decoders, occupying the task's operation handle. When the decode fails
+    /// and the task falls back to loading the image, the stale handle used to
+    /// trip the progressive back-pressure guard and drop every preview.
+    @Test func previewsAreDeliveredWhenTheCachedDataFailsToDecode() async throws {
+        // Given a disk cache entry that the (asynchronous) decoder can't decode
+        let dataCache = MockDataCache()
+        let pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+            $0.makeImageDecoder = { _ in MockImageDecoder(name: "a") }
+        }
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "_image_processor")])
+        dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] = Data("not an image".utf8)
+
+        // When
+        let task = pipeline.imageTask(with: request)
+
+        let dataLoader = self.dataLoader
+        let progressEvents = task.progress
+        let previewEvents = task.previews
+
+        Task {
+            for await _ in progressEvents {
+                dataLoader.resume()
+            }
+        }
+
+        var recordedPreviews: [ImageResponse] = []
+        for try await preview in previewEvents {
+            recordedPreviews.append(preview)
+            dataLoader.resume()
+        }
+        let response = try await task.response
+
+        // Then the previews are still delivered and the final image arrives
+        #expect(!recordedPreviews.isEmpty)
+        #expect(recordedPreviews.allSatisfy { $0.image.nk_test_processorIDs == ["_image_processor"] })
+        #expect(!response.isPreview)
+        #expect(response.image.nk_test_processorIDs == ["_image_processor"])
+    }
+
     // MARK: - Image Processing
 
 #if !os(macOS)
