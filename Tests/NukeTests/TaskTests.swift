@@ -460,6 +460,64 @@ struct TaskTests {
         #expect(isDisposeCalled)
         #expect(task.isDisposed)
     }
+
+    @Test func whenDependencyFailsOutstandingOperationIsCancelled() {
+        // Given a task waiting on an operation and on a dependency
+        let operation = TaskQueue.Operation()
+        let dependency = SimpleTask<Int, MyError>()
+        let task = SimpleTask<Int, MyError>(starter: {
+            $0.operation = operation
+            $0.dependency = dependency.publisher.subscribe($0) { _, _ in }
+        })
+        _ = task.subscribe { _ in }
+        #expect(!operation.isCancelled)
+
+        // When the dependency fails
+        dependency.send(error: .init(raw: "1"))
+
+        // Then the orphaned operation isn't left to occupy a queue slot
+        #expect(operation.isCancelled)
+    }
+
+    @Test func whenTaskFailsItsOwnOperationIsNotCancelled() {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        _ = task.subscribe { _ in }
+
+        // When the task reports the error itself, which it does from inside
+        // the operation that runs it
+        task.send(error: .init(raw: "1"))
+
+        // Then
+        #expect(!operation.isCancelled)
+    }
+
+    @Test func whenTaskCompletesWithSuccessOperationIsNotCancelled() {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        _ = task.subscribe { _ in }
+
+        // When
+        task.send(value: 1, isCompleted: true)
+
+        // Then
+        #expect(!operation.isCancelled)
+    }
+
+    @Test func whenTaskSendsIntermediateValueOperationIsNotCancelled() {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        _ = task.subscribe { _ in }
+
+        // When
+        task.send(value: 1)
+
+        // Then
+        #expect(!operation.isCancelled)
+    }
 }
 
 // MARK: - Helpers

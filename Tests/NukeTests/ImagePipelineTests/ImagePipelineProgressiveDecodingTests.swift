@@ -290,6 +290,50 @@ struct ImagePipelineProgressiveDecodingTests {
         #expect(!response.isPreview)
     }
 
+    // MARK: Failures
+
+    /// A pending progressive processing operation used to outlive the failed
+    /// task, holding on to the decoded preview until the queue drained past it.
+    @Test @ImagePipelineActor func pendingProcessingIsCancelledWhenTheTaskFails() async throws {
+        // Given a decoder that produces previews, but fails on the final image
+        final class FailingFinalImageDecoder: ImageDecoding, @unchecked Sendable {
+            private let decoder = ImageDecoders.Default()
+
+            func decode(_ data: Data) throws -> ImageContainer {
+                throw MockError(description: "decoder-failed")
+            }
+
+            func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+                decoder.decodePartiallyDownloadedData(data)
+            }
+        }
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in FailingFinalImageDecoder() }
+        }
+
+        // Given a suspended processing queue that keeps the preview processing pending
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        // When the first scan is decoded and scheduled for processing
+        let request = ImageRequest(url: Test.url, processors: [processorsFactory.make(id: "1")])
+        let task = pipeline.imageTask(with: request)
+        let operations = await queue.waitForOperations(count: 1) {}
+
+        // When the download completes and the final image fails to decode
+        dataLoader.resumeServingChunks(2)
+        await #expect(throws: ImagePipeline.Error.self) {
+            try await task.response
+        }
+
+        // Then the pending processing operation is cancelled and never runs
+        #expect(operations.first?.isCancelled == true)
+        queue.isSuspended = false
+        await queue.waitUntilAllOperationsAreFinished()
+        #expect(processorsFactory.numberOfProcessorsApplied == 0)
+        #expect(cache[request] == nil)
+    }
+
     // MARK: Memory Cache
 
     @Test func intermediateMemoryCachedResultsAreDelivered() async throws {

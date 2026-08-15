@@ -80,6 +80,10 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
+    /// The outstanding operation: either the one that runs the task itself
+    /// (data loading), or the work it awaits (decoding, processing). It's only
+    /// cancelled when the task is cancelled – cancelling it on completion would
+    /// cancel the very operation that reports the completion.
     var operation: TaskQueue.Operation? {
         didSet {
             guard priority != .normal else { return }
@@ -257,6 +261,11 @@ extension AsyncTask {
                 case let .progress(progress):
                     task.send(progress: progress)
                 case let .error(error):
+                    // Cancel the orphaned progressive work – unlike the
+                    // completed values, the errors bypass the call sites that
+                    // normally do it. Safe here: the task is terminated by its
+                    // dependency, so it isn't running inside this operation.
+                    task.operation?.cancel()
                     task.send(error: error)
                 }
             }
