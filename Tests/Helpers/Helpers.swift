@@ -51,6 +51,27 @@ enum Test {
         Test.image(named: "fixture", extension: "jpeg")
     }
 
+    // Opaque device RGB image of the given size filled with a solid color.
+    static func rgbImage(width: Int, height: Int, color: CGColor = CGColor(red: 0, green: 0, blue: 1, alpha: 1)) -> PlatformImage {
+        let ctx = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        )!
+        ctx.setFillColor(color)
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        let cgImage = ctx.makeImage()!
+#if os(macOS)
+        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
+#else
+        return UIImage(cgImage: cgImage)
+#endif
+    }
+
     // Grayscale (monochrome color space) image for color-space-sensitive paths.
     static func grayscaleImage(width: Int, height: Int) -> PlatformImage {
         let ctx = CGContext(

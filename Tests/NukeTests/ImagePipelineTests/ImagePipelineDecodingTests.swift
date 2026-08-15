@@ -6,6 +6,9 @@ import Testing
 import Foundation
 @_spi(AsyncImageDecoding) @testable import Nuke
 
+import UniformTypeIdentifiers
+
+
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineDecodingTests {
     let dataLoader: MockDataLoader
@@ -134,6 +137,91 @@ struct ImagePipelineDecodingTests {
             #expect(underlyingError as? MockError == expectedError)
         }
     }
+
+    // MARK: - Async Decoders (Previews)
+
+    /// An async decoder is never asked to decode synchronously – the default
+    /// implementation of the synchronous requirement always throws.
+    @Test func asyncDecoderRejectsSynchronousDecoding() throws {
+        // Given
+        let decoder: any ImageDecoding = MockAsyncDecoder { _ in ImageContainer(image: PlatformImage()) }
+
+        // When/Then
+        do {
+            _ = try decoder.decode(Test.data)
+            Issue.record("Expected the decoder to throw")
+        } catch {
+            #expect(error as? ImageDecodingError == .synchronousDecodingUnsupported)
+        }
+    }
+
+    @Test func asyncDecoderProducesPreviews() async throws {
+        // Given a decoder that supports progressive decoding
+        let dataLoader = MockProgressiveDataLoader()
+        let decoder = MockAsyncDecoder { _ in
+            ImageContainer(image: Test.image)
+        }
+        decoder.decodePreview = { _ in
+            ImageContainer(image: Test.image, isPreview: true)
+        }
+        let pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.makeImageDecoder = { _ in decoder }
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // When
+        var previewCount = 0
+        let task = pipeline.imageTask(with: Test.request)
+        for await event in task.events {
+            switch event {
+            case .preview:
+                previewCount += 1
+                dataLoader.resume()
+            default:
+                break
+            }
+        }
+
+        // Then
+        #expect(previewCount > 0)
+        #expect(try await task.response.container.isPreview == false)
+    }
+
+    /// When an async decoder doesn't support progressive decoding, the partial
+    /// data is discarded and no previews are produced.
+    @Test func asyncDecoderWithoutPreviewSupportProducesNoPreviews() async throws {
+        // Given
+        let dataLoader = MockProgressiveDataLoader()
+        let decoder = MockAsyncDecoder { _ in
+            ImageContainer(image: Test.image)
+        }
+        let pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.makeImageDecoder = { _ in decoder }
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // When
+        var previewCount = 0
+        let task = pipeline.imageTask(with: Test.request)
+        for await event in task.events {
+            switch event {
+            case .preview:
+                previewCount += 1
+            case .progress:
+                dataLoader.resume()
+            default:
+                break
+            }
+        }
+
+        // Then the request still succeeds
+        #expect(previewCount == 0)
+        _ = try await task.response
+    }
 }
 
 private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable {
@@ -150,11 +238,18 @@ private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable 
 private final class MockAsyncDecoder: AsyncImageDecoding, @unchecked Sendable {
     private let _decode: @Sendable (Data) async throws -> ImageContainer
 
+    /// When `nil` (the default), the decoder doesn't support previews.
+    var decodePreview: (@Sendable (Data) -> ImageContainer?)?
+
     init(_ decode: @escaping @Sendable (Data) async throws -> ImageContainer) {
         self._decode = decode
     }
 
     func decode(_ data: Data) async throws -> ImageContainer {
         try await _decode(data)
+    }
+
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        decodePreview?(data)
     }
 }

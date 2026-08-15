@@ -117,6 +117,63 @@ struct ImagePipelinePreviewPolicyTests {
         #expect(finalImage.sizeInPixels.width > 0)
     }
 
+    // MARK: - Thumbnail Policy
+
+    @Test func thumbnailPolicyDeliversASinglePreview() async throws {
+        // GIVEN a delegate that asks for the embedded thumbnail
+        let delegate = PreviewPolicyDelegate(policy: .thumbnail)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "progressive", extension: "jpeg"),
+            chunkCount: 8
+        )
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        let task = pipeline.imageTask(with: Test.url)
+        var previews: [ImageResponse] = []
+        for try await preview in task.previews {
+            previews.append(preview)
+        }
+        let finalImage = try await task.image
+
+        // THEN the thumbnail is only ever generated once, no matter how many
+        // chunks arrive
+        #expect(previews.count == 1)
+        #expect(previews.allSatisfy { $0.container.isPreview })
+        #expect(previews.first?.container.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(finalImage.sizeInPixels == CGSize(width: 450, height: 300))
+    }
+
+    @Test func thumbnailPolicyDeliversNoPreviewsWhenThereIsNoThumbnail() async throws {
+        // GIVEN an image with no embedded thumbnail
+        let delegate = PreviewPolicyDelegate(policy: .thumbnail)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "img_751", extension: "heic")
+        )
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        let task = pipeline.imageTask(with: Test.url)
+        var previews: [ImageResponse] = []
+        for try await preview in task.previews {
+            previews.append(preview)
+        }
+
+        // THEN
+        #expect(previews.isEmpty)
+        _ = try await task.image
+    }
+
     // MARK: - Policy that only resolves to .incremental on later chunks
 
     @Test func policyIsReevaluatedWhenMoreDataArrives() async throws {

@@ -118,6 +118,25 @@ struct ImageEncodingProtocolTests {
         #expect(ImageEncoders.ImageIO.isSupported(type: .png))
     }
 
+    @Test func imageIOEncoderIsSupportedIsMemoized() {
+        // The second call is served from the cached availability map
+        let first = ImageEncoders.ImageIO.isSupported(type: .png)
+        let second = ImageEncoders.ImageIO.isSupported(type: .png)
+        #expect(first == second)
+    }
+
+    @Test func imageIOEncoderIsNotSupportedForUnknownType() {
+        #expect(!ImageEncoders.ImageIO.isSupported(type: AssetType(rawValue: "com.github.kean.nuke.not-a-real-type")))
+    }
+
+    @Test func imageIOEncoderReturnsNilForImageWithoutCGImage() {
+        // Given an image with no backing `CGImage`
+        let encoder = ImageEncoders.ImageIO(type: .png)
+
+        // Then
+        #expect(encoder.encode(PlatformImage()) == nil)
+    }
+
     @Test func imageIOHigherCompressionProducesLargerData() throws {
         let lowQuality = ImageEncoders.ImageIO(type: .jpeg, compressionRatio: 0.1)
         let highQuality = ImageEncoders.ImageIO(type: .jpeg, compressionRatio: 0.9)

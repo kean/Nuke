@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import CoreImage
 import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
@@ -86,6 +87,16 @@ struct ImageProcessorsProtocolExtensionsTests {
         let processor = ImageProcessors.CoreImageFilter(name: name, parameters: [:], identifier: id)
 
         let request = try #require(ImageRequest(url: nil, processors: [.coreImageFilter(name: name, parameters: [:], identifier: id)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
+    }
+
+    @Test func passingProcessorsUsingProtocolExtensionsCoreImageFilterInstance() throws {
+        let id = UUID().uuidString
+        let filter = CIFilter(name: "CISepiaTone")!
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: id)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.coreImageFilter(filter, identifier: id)]))
 
         #expect(request.processors.first?.identifier == processor.identifier)
     }

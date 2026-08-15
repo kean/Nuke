@@ -84,6 +84,82 @@ struct ImageProcessorsCoreImageFilterTests {
         #expect("\(processor)" == "CoreImageFilter(name: CISepiaTone, parameters: [\"inputIntensity\": 0.5])")
     }
 
+    @Test func descriptionForCustomFilter() throws {
+        // GIVEN
+        let filter = try #require(CIFilter(name: "CISepiaTone", parameters: nil))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+
+        // THEN
+        #expect("\(processor)".hasPrefix("CoreImageFilter(filter: "))
+    }
+
+    @Test func processingAnImageContainer() throws {
+        // GIVEN
+        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+        let container = ImageContainer(image: Test.image(named: "fixture-tiny.jpeg"), data: Test.data)
+
+        // WHEN
+        let output = try processor.process(container, context: .mock)
+
+        // THEN the image is replaced and the rest of the container is preserved
+        #expect(output.image !== container.image)
+        #expect(output.image.sizeInPixels == container.image.sizeInPixels)
+        #expect(output.data == Test.data)
+    }
+
+    // MARK: - Context
+
+    @Test func settingACustomContext() throws {
+        // GIVEN
+        let original = ImageProcessors.CoreImageFilter.context
+        defer { ImageProcessors.CoreImageFilter.context = original }
+
+        // WHEN
+        ImageProcessors.CoreImageFilter.context = CIContext(options: [.useSoftwareRenderer: true])
+
+        // THEN the filters keep working with the new context
+        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+        #expect(processor.process(Test.image(named: "fixture-tiny.jpeg")) != nil)
+    }
+
+    // MARK: - Errors
+
+    @Test func filterProducingNoOutputImage() throws {
+        // GIVEN a filter that can't produce an output without its second image
+        let filter = try #require(CIFilter(name: "CISourceOverCompositing"))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+
+        // THEN
+        #expect(throws: ImageProcessors.CoreImageFilter.Error.self) {
+            try processor.processThrowing(Test.image(named: "fixture-tiny.jpeg"))
+        }
+    }
+
+    @Test func filterProducingAnImageWithInfiniteExtent() throws {
+        // GIVEN a filter whose output extent is infinite and can't be rendered
+        let filter = try #require(CIFilter(name: "CIAffineClamp"))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+
+        // THEN
+        #expect(throws: ImageProcessors.CoreImageFilter.Error.self) {
+            try processor.processThrowing(Test.image(named: "fixture-tiny.jpeg"))
+        }
+    }
+
+    @Test func errorDescriptions() throws {
+        typealias Error = ImageProcessors.CoreImageFilter.Error
+
+        #expect("\(Error.failedToCreateFilter(name: "CIYo", parameters: [:]))" == "Failed to create filter named CIYo with parameters: [:]")
+
+        #expect("\(Error.inputImageIsEmpty(inputImage: PlatformImage()))".hasPrefix("Failed to create input CIImage for "))
+
+        let filter = try #require(CIFilter(name: "CISepiaTone"))
+        #expect("\(Error.failedToApplyFilter(filter: filter))" == "Failed to apply filter: CISepiaTone")
+
+        let image = CIImage(cgImage: try #require(Test.image(named: "fixture-tiny.jpeg").cgImage))
+        #expect("\(Error.failedToCreateOutputCGImage(image: image))".hasPrefix("Failed to create output image for extent: "))
+    }
+
     @Test func applyCustomFilter() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")

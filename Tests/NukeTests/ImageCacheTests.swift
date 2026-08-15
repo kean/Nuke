@@ -86,6 +86,21 @@ struct ImageCacheTests {
         #expect(cache.ttl == 1)
     }
 
+    @Test func entryCostLimitChanges() {
+        // Then it reflects the value set in `init`
+        #expect(cache.entryCostLimit == 2)
+
+        // When
+        cache.entryCostLimit = 0.5
+
+        // Then
+        #expect(cache.entryCostLimit == 0.5)
+    }
+
+    @Test func entryCostLimitDefaultsToOneTenth() {
+        #expect(ImageCache().entryCostLimit == 0.1)
+    }
+
     @Test func itemsAreRemovedImmediatelyWhenCountLimitIsReached() {
         // Given
         cache.countLimit = 1
@@ -140,6 +155,23 @@ struct ImageCacheTests {
     }
 
     // MARK: Cost
+
+    @Test func costForImageWithoutCGImage() {
+        // Given an image that isn't backed by a `CGImage` (its size is unknown)
+        let container = ImageContainer(image: PlatformImage())
+
+        // Then it's given a nominal cost
+        #expect(cache.cost(for: container) == 1)
+    }
+
+    @Test func costForImageWithoutCGImageIncludesAssociatedData() {
+        // Given
+        let data = Test.data(name: "cat", extension: "gif")
+        let container = ImageContainer(image: PlatformImage(), data: data)
+
+        // Then
+        #expect(cache.cost(for: container) == 1 + data.count)
+    }
 
 #if !os(macOS)
 

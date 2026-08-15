@@ -347,3 +347,66 @@ private func assertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, sourceLocation
     #expect(lhs.hashValue == rhs.hashValue, sourceLocation: sourceLocation)
     #expect(lhs == rhs, sourceLocation: sourceLocation)
 }
+
+@Suite(.timeLimit(.minutes(5)))
+struct ImageRequestDescriptionTests {
+    @Test func descriptionForURL() {
+        // Given
+        let request = ImageRequest(url: Test.url)
+
+        // Then
+        let description = request.description
+        #expect(description.hasPrefix("ImageRequest("))
+        #expect(description.contains("resource: \(Test.url.absoluteString)"))
+        #expect(description.contains("priority: normal"))
+        #expect(description.contains("processors: []"))
+    }
+
+    @Test func descriptionForRequestWithNoURL() {
+        // Given
+        let request = ImageRequest(url: nil)
+
+        // Then
+        #expect(request.description.contains("resource: nil"))
+    }
+
+    @Test func descriptionForURLRequest() {
+        // Given
+        let request = ImageRequest(urlRequest: URLRequest(url: Test.url))
+
+        // Then
+        #expect(request.description.contains("resource: \(URLRequest(url: Test.url))"))
+    }
+
+    @Test func descriptionForDataClosure() {
+        // Given
+        let request = ImageRequest(id: "data-id", data: { Test.data })
+
+        // Then a closure can't be described any further
+        #expect(request.description.contains("resource: <closure>"))
+    }
+
+    @Test func descriptionForImageClosure() {
+        // Given
+        let request = ImageRequest(id: "image-id", image: { Test.container })
+
+        // Then
+        #expect(request.description.contains("resource: <closure>"))
+    }
+
+    @Test func descriptionIncludesProcessorsAndOptions() {
+        // Given
+        let request = ImageRequest(
+            url: Test.url,
+            processors: [ImageProcessors.Anonymous(id: "test-processor", { $0 })],
+            priority: .veryHigh,
+            options: [.reloadIgnoringCachedData]
+        )
+
+        // Then
+        let description = request.description
+        #expect(description.contains("priority: veryHigh"))
+        #expect(description.contains("test-processor"))
+        #expect(!description.contains("options: []"))
+    }
+}

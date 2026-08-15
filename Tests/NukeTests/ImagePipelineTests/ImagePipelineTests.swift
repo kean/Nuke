@@ -478,6 +478,25 @@ struct ImagePipelineTests {
         _ = try await pipeline.image(for: request)
     }
 
+    @Test func skipDataLoadingQueuePerRequestWithURLIsCancellable() async throws {
+        // Given the data loading is in flight but not finished
+        dataLoader.isSuspended = true
+        let request = ImageRequest(url: Test.url, options: [.skipDataLoadingQueue])
+        let task = pipeline.imageTask(with: request)
+        while dataLoader.createdTaskCount == 0 {
+            await Task.yield()
+        }
+
+        // When
+        task.cancel()
+
+        // Then
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        #expect(await pipeline.taskCount == 0)
+    }
+
     // MARK: Misc
 
     @Test func loadWithStringLiteral() async throws {

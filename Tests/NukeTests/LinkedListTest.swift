@@ -150,3 +150,113 @@ struct LinkedListTests {
         #expect(!list.isEmpty)
     }
 }
+
+@Suite(.timeLimit(.minutes(5)))
+struct LinkedListMoveToLastTests {
+    let list = LinkedList<Int>()
+
+    @Test func countIsZeroForAnEmptyList() {
+        #expect(list.count == 0)
+    }
+
+    @Test func countReflectsTheNumberOfElements() {
+        // When
+        list.append(1)
+        list.append(2)
+        list.append(3)
+
+        // Then
+        #expect(list.count == 3)
+
+        // When
+        list.removeAllElements()
+
+        // Then
+        #expect(list.count == 0)
+    }
+
+    @Test func movingTheFirstNodeToLast() {
+        // Given
+        let node = list.append(1)
+        list.append(2)
+        list.append(3)
+
+        // When
+        list.moveToLast(node)
+
+        // Then
+        #expect(list.first?.value == 2)
+        #expect(list.last?.value == 1)
+        #expect(list.count == 3)
+    }
+
+    @Test func movingAMiddleNodeToLast() {
+        // Given
+        list.append(1)
+        let node = list.append(2)
+        list.append(3)
+
+        // When
+        list.moveToLast(node)
+
+        // Then
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 2)
+        #expect(list.count == 3)
+        #expect(list.drained() == [1, 3, 2])
+    }
+
+    @Test func movingTheLastNodeToLastIsANoOp() {
+        // Given
+        list.append(1)
+        list.append(2)
+        let node = list.append(3)
+
+        // When
+        list.moveToLast(node)
+
+        // Then
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 3)
+        #expect(list.count == 3)
+    }
+
+    @Test func movingTheOnlyNodeToLastIsANoOp() {
+        // Given
+        let node = list.append(1)
+
+        // When
+        list.moveToLast(node)
+
+        // Then
+        #expect(list.first?.value == 1)
+        #expect(list.last?.value == 1)
+        #expect(list.count == 1)
+    }
+
+    @Test func movingEveryNodePreservesTheListIntegrity() {
+        // Given
+        for value in 1...4 { list.append(value) }
+
+        // When each node is given a "second chance" in turn
+        for _ in 1...4 {
+            list.moveToLast(list.first!)
+        }
+
+        // Then the list is rotated back into its original order
+        #expect(list.count == 4)
+        #expect(list.drained() == [1, 2, 3, 4])
+    }
+}
+
+private extension LinkedList {
+    /// Removes and returns every element, front to back.
+    func drained() -> [Element] {
+        var values: [Element] = []
+        while let node = first {
+            values.append(node.value)
+            remove(node)
+        }
+        return values
+    }
+}

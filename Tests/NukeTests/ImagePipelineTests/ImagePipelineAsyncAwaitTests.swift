@@ -394,6 +394,57 @@ struct ImagePipelineAsyncAwaitTests {
         }
     }
 
+    @Test func imageRequestWithAsyncAwaitReturningEmptyData() async throws {
+        // WHEN
+        let request = ImageRequest(id: "test", data: { Data() })
+
+        // THEN
+        await #expect(throws: ImagePipeline.Error.dataIsEmpty) {
+            try await pipeline.image(for: request)
+        }
+    }
+
+    @Test func imageRequestWithAsyncAwaitSkippingDataLoadingQueue() async throws {
+        // GIVEN a request that bypasses the data loading queue
+        let request = ImageRequest(
+            id: "test",
+            data: { Test.data },
+            options: [.skipDataLoadingQueue]
+        )
+
+        // WHEN
+        let image = try await pipeline.image(for: request)
+
+        // THEN
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func imageRequestWithAsyncAwaitSkippingDataLoadingQueueIsCancellable() async throws {
+        // GIVEN a fetch closure that doesn't finish on its own
+        let entered = TestExpectation()
+        let proceed = AsyncGate()
+        let request = ImageRequest(
+            id: "test",
+            data: {
+                entered.fulfill()
+                await proceed.wait()
+                return Test.data
+            },
+            options: [.skipDataLoadingQueue]
+        )
+
+        // WHEN the task is cancelled while the closure is in flight
+        let task = pipeline.imageTask(with: request)
+        await entered.wait()
+        task.cancel()
+
+        // THEN
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        proceed.open()
+    }
+
     // MARK: Common Use Cases
 
     @Test func lowDataMode() async throws {

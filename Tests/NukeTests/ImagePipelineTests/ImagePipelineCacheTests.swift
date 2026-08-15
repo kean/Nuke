@@ -116,6 +116,37 @@ struct ImagePipelineCacheTests {
         #expect(pipeline.cache[Test.request] != nil)
     }
 
+    @Test func subscriptWithURL() {
+        // GIVEN
+        cache[Test.url] = Test.container
+
+        // THEN the URL and the request subscripts address the same entry
+        #expect(cache[Test.url] != nil)
+        #expect(cache[ImageRequest(url: Test.url)] != nil)
+    }
+
+    @Test func subscriptWithURLRemove() {
+        // GIVEN
+        cache[Test.url] = Test.container
+
+        // WHEN
+        cache[Test.url] = nil
+
+        // THEN
+        #expect(cache[Test.url] == nil)
+    }
+
+    @Test func subscriptRemoveWhenNoImageCache() {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.imageCache = nil
+        }
+
+        // WHEN/THEN it's a no-op instead of a crash
+        pipeline.cache[Test.request] = nil
+        #expect(pipeline.cache[Test.request] == nil)
+    }
+
     // MARK: Cached Image
 
     @Test func getCachedImageDefaultFromMemoryCache() {
@@ -458,6 +489,55 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
+    // MARK: Keys
+
+    @Test func makeImageCacheKeyUsesTheCustomKeyFromTheDelegate() {
+        // GIVEN a delegate that maps every request to the same key
+        let delegate = MockCustomCacheKeyDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = memoryCache
+        }
+        let other = ImageRequest(url: URL(string: "http://test.com/other.jpeg")!)
+
+        // THEN both requests resolve to the same memory cache entry
+        #expect(pipeline.cache.makeImageCacheKey(for: Test.request) == pipeline.cache.makeImageCacheKey(for: other))
+
+        // ...and an image stored for one is returned for the other
+        pipeline.cache[Test.request] = Test.container
+        #expect(pipeline.cache[other] != nil)
+    }
+
+    @Test func makeImageCacheKeyFallsBackToTheDefaultKey() {
+        // GIVEN requests with different URLs and no delegate customization
+        let other = ImageRequest(url: URL(string: "http://test.com/other.jpeg")!)
+
+        // THEN
+        #expect(cache.makeImageCacheKey(for: Test.request) != cache.makeImageCacheKey(for: other))
+    }
+
+    // MARK: Decoding Cached Data
+
+    @Test func cachedImageIsNilWhenNoDecoderIsRegistered() {
+        // GIVEN data stored on disk and a pipeline that can't decode it
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in nil }
+        }
+        pipeline.cache.storeCachedData(Test.data, for: Test.request)
+
+        // THEN the data is there, but it can't be turned into an image
+        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
+        #expect(pipeline.cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
+    }
+
+    @Test func cachedImageIsNilWhenTheCachedDataIsCorrupted() {
+        // GIVEN
+        cache.storeCachedData(Data("not-an-image".utf8), for: Test.request)
+
+        // THEN
+        #expect(cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
+    }
+
     // MARK: - Image Orientation
 
 #if canImport(UIKit)
@@ -499,4 +579,10 @@ struct ImagePipelineCacheTests {
         #expect(cached.imageOrientation == .right)
     }
 #endif
+}
+
+private final class MockCustomCacheKeyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
+    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
+        "custom-cache-key"
+    }
 }

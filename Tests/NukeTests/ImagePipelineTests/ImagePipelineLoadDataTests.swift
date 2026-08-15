@@ -91,6 +91,28 @@ struct ImagePipelineLoadDataTests {
         }
     }
 
+    /// When the server doesn't report the size upfront, the limit is enforced
+    /// against the data received so far.
+    @Test func downloadExceedingMaximumResponseDataSizeWithUnknownContentLength() async throws {
+        // GIVEN a response with no `expectedContentLength`
+        let response = URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: -1, textEncodingName: nil)
+        dataLoader.results[Test.url] = .success((Test.data, response))
+        let pipeline = pipeline.reconfigured {
+            $0.maximumResponseDataSize = 1024
+        }
+
+        // WHEN/THEN
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
+        } catch {
+            guard case .dataDownloadExceededMaximumSize = error else {
+                Issue.record("Unexpected error: \(error)")
+                return
+            }
+        }
+    }
+
     // MARK: - ImageRequest.CachePolicy
 
     @Test func cacheLookupWithDefaultPolicyImageStored() async throws {
