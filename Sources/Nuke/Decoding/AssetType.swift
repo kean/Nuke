@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import UniformTypeIdentifiers
 
 /// A uniform type identifier (UTI).
 public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
@@ -46,6 +47,29 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
 
     /// ICO (Windows icon format).
     public static let ico: AssetType = "com.microsoft.ico"
+}
+
+extension AssetType {
+    /// The uniform type that ``rawValue`` identifies, or `nil` if the system
+    /// doesn't recognize the identifier.
+    ///
+    /// Use it to reach the metadata the system associates with the type:
+    ///
+    /// ```swift
+    /// AssetType.png.utType?.preferredMIMEType // "image/png"
+    /// ```
+    ///
+    /// - note: The system only recognizes identifiers that are declared either
+    /// by itself or by one of the loaded bundles, so the property returns `nil`
+    /// for custom types that a decoder attaches without declaring them.
+    public var utType: UTType? {
+        UTType(rawValue)
+    }
+
+    /// Initializes the asset type with the identifier of the given uniform type.
+    public init(_ type: UTType) {
+        self.init(rawValue: type.identifier)
+    }
 }
 
 extension AssetType {

@@ -21,6 +21,7 @@
 
 ## WIP
 
+- Add `AssetType/utType` and `AssetType/init(_:)` for bridging to and from `UTType`
 - Fix an issue with progressive image downloads fail to complete if `isResetEnabled` is `true` on `LazyImageView` when the request starts by @nathantannar4 in https://github.com/kean/Nuke/pull/884
 
 ## Nuke 13.1.0
