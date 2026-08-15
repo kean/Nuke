@@ -19,7 +19,9 @@
 
 # Nuke 13
 
-## WIP
+## Nuke 13.2.0
+
+*Aug 15, 2026*
 
 - Add `AssetType/utType` and `AssetType/init(_:)` for bridging to and from `UTType`
 - Add `AssetType/bmp`, `AssetType/tiff`, `AssetType/jpeg2000`, and `AssetType/jxl`. Image I/O decodes these formats, but `AssetType/init(_:)` didn't recognize them, so `ImageContainer/type` was `nil`
