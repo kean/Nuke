@@ -305,6 +305,76 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
+    @Test func storeCachedImagePreviewIsNotStoredInDiskCache() {
+        // GIVEN a progressive preview
+        let request = Test.request
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+
+        // WHEN
+        cache.storeCachedImage(preview, for: request)
+
+        // THEN it never reaches the disk cache
+        #expect(cache.cachedData(for: request) == nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(!cache.containsData(for: request))
+    }
+
+    @Test func storeCachedImagePreviewIsNotStoredInDiskCacheWhenDiskIsTheOnlyLayer() {
+        // GIVEN a progressive preview
+        let request = Test.request
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+
+        // WHEN
+        cache.storeCachedImage(preview, for: request, caches: [.disk])
+
+        // THEN nothing is written to either layer
+        #expect(cache.cachedData(for: request) == nil)
+        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
+    }
+
+    @Test func storeCachedImageNonPreviewIsStoredInDiskCache() {
+        // GIVEN a final image
+        let request = Test.request
+
+        // WHEN
+        cache.storeCachedImage(Test.container, for: request)
+
+        // THEN it is written to the disk cache
+        #expect(cache.cachedData(for: request) != nil)
+        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+    }
+
+    @Test func storeCachedImagePreviewInMemoryCacheWhenEnabled() throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.isStoringPreviewsInMemoryCache = true
+        }
+        let request = Test.request
+
+        // WHEN
+        pipeline.cache.storeCachedImage(ImageContainer(image: Test.image, isPreview: true), for: request)
+
+        // THEN the memory cache behavior is unchanged, the disk cache is untouched
+        let image = try #require(pipeline.cache.cachedImage(for: request, caches: [.memory]))
+        #expect(image.isPreview)
+        #expect(pipeline.cache.cachedData(for: request) == nil)
+    }
+
+    @Test func storeCachedImagePreviewInMemoryCacheWhenDisabled() {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.isStoringPreviewsInMemoryCache = false
+        }
+        let request = Test.request
+
+        // WHEN
+        pipeline.cache.storeCachedImage(ImageContainer(image: Test.image, isPreview: true), for: request)
+
+        // THEN it's stored in neither layer
+        #expect(pipeline.cache.cachedImage(for: request, caches: [.memory]) == nil)
+        #expect(pipeline.cache.cachedData(for: request) == nil)
+    }
+
     // MARK: Cached Data
 
     @Test func storeCachedData() {

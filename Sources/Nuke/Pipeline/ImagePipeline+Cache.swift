@@ -72,7 +72,10 @@ extension ImagePipeline.Cache {
     /// - note: Default ``DataCache`` stores data asynchronously, so it's safe
     /// to call this method even from the main thread.
     ///
-    /// - note: Image previews are not stored.
+    /// - note: Image previews are never stored in the disk cache. They are
+    /// stored in the memory cache only if
+    /// ``ImagePipeline/Configuration-swift.struct/isStoringPreviewsInMemoryCache``
+    /// is enabled (it is, by default).
     ///
     /// - parameters:
     ///   - image: The image container to store in the cache.
@@ -83,7 +86,7 @@ extension ImagePipeline.Cache {
         if caches.contains(.memory) {
             storeCachedImageInMemoryCache(image, for: request)
         }
-        if caches.contains(.disk) {
+        if caches.contains(.disk), !image.isPreview {
             if let data = encodeImage(image, for: request) {
                 storeCachedData(data, for: request)
             }
