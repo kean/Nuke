@@ -36,6 +36,9 @@ struct ImageProcessingExtensions {
 #if canImport(UIKit)
         let targetSize = targetSize.rotatedForOrientation(CGImagePropertyOrientation(image.imageOrientation))
 #endif
+        guard targetSize.isFinite else {
+            return nil // Nothing to draw, and NaN would slip past the scale check
+        }
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
@@ -54,6 +57,9 @@ struct ImageProcessingExtensions {
 #if canImport(UIKit)
         let targetSize = targetSize.rotatedForOrientation(CGImagePropertyOrientation(image.imageOrientation))
 #endif
+        guard targetSize.isFinite else {
+            return nil // Nothing to draw
+        }
         var scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         var canvasSize = targetSize
         if scale > 1 && !upscale {
@@ -178,10 +184,17 @@ extension CGContext {
     }
 
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo?, colorSpace: CGColorSpace) -> CGContext? {
-        CGContext(
+        // The target sizes come straight from the user, e.g. from
+        // `ImageProcessors.Resize`, and `Int(_:)` traps on the values that an
+        // `Int` can't represent – NaN, infinity, and anything out of range.
+        guard let width = size.width.pixelDimension,
+              let height = size.height.pixelDimension else {
+            return nil
+        }
+        return CGContext(
             data: nil,
-            width: Int(size.width),
-            height: Int(size.height),
+            width: width,
+            height: height,
             bitsPerComponent: 8,
             bytesPerRow: 0,
             space: colorSpace,
@@ -208,9 +221,26 @@ extension CGFloat {
         case .points: return self * Screen.scale
         }
     }
+
+    /// Returns the value as a canvas dimension in pixels, or `nil` if it can't
+    /// be represented by one because it's not finite, is out of range, or is
+    /// too small to draw in. The comparisons are always `false` for NaN.
+    var pixelDimension: Int? {
+        // The upper bound is well above anything Core Graphics can allocate and
+        // is only there to keep the conversion in range on 32-bit platforms.
+        guard self >= 1, self <= 1_073_741_824 else {
+            return nil
+        }
+        return Int(self)
+    }
 }
 
 extension CGSize {
+    /// Returns `true` if neither of the dimensions is NaN or infinite.
+    var isFinite: Bool {
+        width.isFinite && height.isFinite
+    }
+
     func getScale(targetSize: CGSize, contentMode: ImageProcessingOptions.ContentMode) -> CGFloat {
         let scaleHor = targetSize.width / width
         let scaleVert = targetSize.height / height

@@ -210,6 +210,46 @@ struct GraphicsTests {
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
     }
 
+    // MARK: - Invalid Target Sizes
+
+    /// The target sizes come straight from the user and converting a non-finite
+    /// `CGFloat` to an `Int` traps, so the invalid sizes have to be rejected
+    /// before the context is created.
+    @Test(arguments: [
+        CGSize(width: CGFloat.nan, height: CGFloat.nan),
+        CGSize(width: 40, height: CGFloat.nan),
+        CGSize(width: CGFloat.nan, height: 40),
+        CGSize(width: CGFloat.infinity, height: CGFloat.infinity),
+        CGSize(width: 40, height: CGFloat.infinity),
+        CGSize(width: -CGFloat.infinity, height: -CGFloat.infinity),
+        CGSize(width: 0, height: 0),
+        CGSize(width: -40, height: -40)
+    ])
+    func drawingPrimitivesReturnNilForInvalidTargetSizes(targetSize: CGSize) {
+        // Given
+        let input = Test.rgbImage(width: 40, height: 40)
+
+        // Then every drawing primitive bails out instead of crashing
+        #expect(input.draw(inCanvasWithSize: targetSize) == nil)
+        #expect(input.processed.byResizing(to: targetSize, contentMode: .aspectFill, upscale: false) == nil)
+        #expect(input.processed.byResizing(to: targetSize, contentMode: .aspectFill, upscale: true) == nil)
+        #expect(input.processed.byResizing(to: targetSize, contentMode: .aspectFit, upscale: false) == nil)
+        #expect(input.processed.byResizing(to: targetSize, contentMode: .aspectFit, upscale: true) == nil)
+        #expect(input.processed.byResizingAndCropping(to: targetSize, upscale: false) == nil)
+        #expect(input.processed.byResizingAndCropping(to: targetSize, upscale: true) == nil)
+    }
+
+    @Test func drawingReturnsNilForFiniteButOutOfRangeTargetSize() {
+        // Given a size that is finite but is way out of the `Int` range
+        let input = Test.rgbImage(width: 40, height: 40)
+        let targetSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+
+        // Then
+        #expect(input.draw(inCanvasWithSize: targetSize) == nil)
+        #expect(input.processed.byResizing(to: targetSize, contentMode: .aspectFill, upscale: true) == nil)
+        #expect(input.processed.byResizingAndCropping(to: targetSize, upscale: true) == nil)
+    }
+
     // MARK: - Images Without a Backing CGImage
 
     @Test func drawingPrimitivesReturnNilForImagesWithoutCGImage() {
