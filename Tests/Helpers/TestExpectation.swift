@@ -219,6 +219,21 @@ func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> 
     operation.onCancelled = nil
 }
 
+/// Polls `condition` until it holds or the timeout elapses, giving the run loop
+/// a chance to make progress in between. Use it for state that is updated by
+/// something that doesn't offer a callback, such as a UIKit animation.
+func waitUntil(timeout: Duration = .seconds(10), isolation: isolated (any Actor)? = #isolation, _ condition: () -> Bool) async {
+    let clock = ContinuousClock()
+    let start = clock.now
+    while clock.now - start < timeout {
+        if condition() { return }
+        try? await Task.sleep(for: .milliseconds(5))
+    }
+    if !condition() {
+        Issue.record("waitUntil timed out after \(timeout)")
+    }
+}
+
 /// A one-shot gate: `wait()` suspends until someone calls `open()`. Use it to
 /// hold code at a known suspension point while the test does something else.
 final class AsyncGate: @unchecked Sendable {

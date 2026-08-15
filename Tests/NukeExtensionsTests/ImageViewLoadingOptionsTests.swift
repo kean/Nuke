@@ -7,6 +7,12 @@ import Foundation
 @testable import Nuke
 @testable import NukeExtensions
 
+#if os(iOS) || os(tvOS) || os(visionOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 @Suite(.timeLimit(.minutes(5))) @MainActor
@@ -318,6 +324,68 @@ struct ImageViewLoadingOptionsTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
+    // MARK: - Initializer
+
+#if os(iOS) || os(tvOS) || os(visionOS)
+    @Test func initializerStoresAllOptions() {
+        // GIVEN
+        let placeholder = Test.image
+        let failureImage = Test.image
+        let contentModes = ImageLoadingOptions.ContentModes(
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .scaleAspectFit
+        )
+        let tintColors = ImageLoadingOptions.TintColors(
+            success: .red,
+            failure: .green,
+            placeholder: .blue
+        )
+
+        // WHEN
+        let options = ImageLoadingOptions(
+            placeholder: placeholder,
+            transition: .fadeIn(duration: 0.25),
+            failureImage: failureImage,
+            failureImageTransition: .fadeIn(duration: 0.5),
+            contentModes: contentModes,
+            tintColors: tintColors
+        )
+
+        // THEN
+        #expect(options.placeholder === placeholder)
+        #expect(options.failureImage === failureImage)
+        #expect(options.transition != nil)
+        #expect(options.failureImageTransition != nil)
+        #expect(options.contentMode(for: .success) == .scaleAspectFill)
+        #expect(options.contentMode(for: .failure) == .center)
+        #expect(options.contentMode(for: .placeholder) == .scaleAspectFit)
+        #expect(options.tintColor(for: .success) == .red)
+        #expect(options.tintColor(for: .failure) == .green)
+        #expect(options.tintColor(for: .placeholder) == .blue)
+    }
+#elseif os(macOS)
+    @Test func initializerStoresAllOptions() {
+        // GIVEN
+        let placeholder = Test.image
+        let failureImage = Test.image
+
+        // WHEN
+        let options = ImageLoadingOptions(
+            placeholder: placeholder,
+            transition: .fadeIn(duration: 0.25),
+            failureImage: failureImage,
+            failureImageTransition: .fadeIn(duration: 0.5)
+        )
+
+        // THEN
+        #expect(options.placeholder === placeholder)
+        #expect(options.failureImage === failureImage)
+        #expect(options.transition != nil)
+        #expect(options.failureImageTransition != nil)
+    }
+#endif
+
     // MARK: - Misc
 
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -340,6 +408,40 @@ struct ImageViewLoadingOptionsTests {
 
         // THEN make sure we run the pass with cross-disolve and at least
         // it doesn't crash
+    }
+
+    @Test func transitionCrossDissolveRemovesTemporaryView() async throws {
+        // GIVEN an image view in a visible hierarchy, already displaying an
+        // image. The window is what makes UIKit actually run the animation.
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        let container = UIView(frame: window.bounds)
+        window.addSubview(container)
+        window.isHidden = false
+        container.addSubview(imageView)
+        imageView.frame = container.bounds
+        imageView.image = Test.image
+
+        var options = options
+        options.transition = .fadeIn(duration: 0.1)
+        options.isPrepareForReuseEnabled = false
+        options.contentModes = .init(
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .center
+        )
+
+        // WHEN
+        await loadImageAndWait(with: Test.request, options: options, into: imageView)
+
+        // THEN a temporary view is inserted above the image view to cross-fade
+        // between the two content modes
+        let transitionView = try #require(container.subviews.first { $0 !== imageView } as? UIImageView)
+
+        // ... and it is torn down when the animation completes
+        await waitUntil { transitionView.superview == nil }
+        #expect(transitionView.superview == nil)
+        #expect(transitionView.image == nil)
+        withExtendedLifetime(window) {}
     }
 #endif
 

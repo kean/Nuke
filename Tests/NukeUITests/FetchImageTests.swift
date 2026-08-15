@@ -120,6 +120,25 @@ struct FetchImageTests {
         #expect(image.image != nil)
     }
 
+    @Test func memoryCachedPreviewIsDisplayedWhileLoading() async throws {
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+        pipeline.cache[Test.request] = preview
+
+        let expectation = TestExpectation()
+        image.onCompletion = { _ in expectation.fulfill() }
+        image.load(Test.request)
+
+        // The cached preview is displayed immediately, but the request still runs.
+        #expect(image.imageContainer?.isPreview == true)
+        #expect(image.isLoading)
+        #expect(image.result == nil)
+
+        await expectation.wait()
+
+        #expect(image.imageContainer?.isPreview == false)
+        #expect(try #require(image.result).isSuccess)
+    }
+
     @Test func priorityUpdated() async throws {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -592,6 +611,32 @@ struct FetchImageTests {
         await expectation.wait()
         #expect(!image.isLoading)
         withExtendedLifetime(cancellable) {}
+    }
+
+    @Test func publisherFailurePropagatesError() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        let expectation = TestExpectation()
+        let cancellable = image.$result.dropFirst().sink { _ in
+            expectation.fulfill()
+        }
+
+        image.load(pipeline.imagePublisher(with: Test.request))
+        await expectation.wait()
+
+        let result = try #require(image.result)
+        #expect(result.isFailure)
+        #expect(image.image == nil)
+        #expect(!image.isLoading)
+        withExtendedLifetime(cancellable) {}
+    }
+
+    @Test func publisherFinishingWithoutValueLeavesResultEmpty() {
+        image.load(Empty<ImageResponse, Error>(completeImmediately: true))
+
+        #expect(image.result == nil)
+        #expect(image.imageContainer == nil)
+        #expect(!image.isLoading)
     }
 
     @Test func publisherMemoryCacheLookup() throws {

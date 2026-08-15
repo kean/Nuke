@@ -93,6 +93,31 @@ struct LazyImageViewTests {
         #expect(view.request?.url == Test.url)
     }
 
+    @Test func settingURLToNilClearsRequest() {
+        view.url = Test.url
+        #expect(view.request != nil)
+
+        view.url = nil
+
+        #expect(view.request == nil)
+        #expect(view.url == nil)
+    }
+
+    @Test func viewCreatedFromCoderIsConfigured() throws {
+        // Mimics a view unarchived from a storyboard or a nib.
+        let data = try NSKeyedArchiver.archivedData(withRootObject: _PlatformBaseView(), requiringSecureCoding: false)
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+        unarchiver.requiresSecureCoding = false
+        unarchiver.setClass(LazyImageView.self, forClassName: NSStringFromClass(_PlatformBaseView.self))
+
+        let view = try #require(unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? LazyImageView)
+
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.superview === view)
+        #expect(view.placeholderView != nil)
+        #expect(view.transition != nil)
+    }
+
     // MARK: - Memory Cache
 
     @Test func memoryCacheHitDisplaysImageSynchronously() {
@@ -310,6 +335,17 @@ struct LazyImageViewTests {
         view.placeholderView = placeholder
         #expect(placeholder.superview === view)
     }
+
+#if os(iOS) || os(tvOS) || os(visionOS)
+    @Test func activityIndicatorPlaceholderStartsAnimating() {
+        let spinner = UIActivityIndicatorView()
+        #expect(!spinner.isAnimating)
+
+        view.placeholderView = spinner
+
+        #expect(spinner.isAnimating)
+    }
+#endif
 
     @Test func replacingPlaceholderViewRemovesOld() {
         let first = _PlatformBaseView()
@@ -688,6 +724,210 @@ struct LazyImageViewTests {
         await completionExpectation.wait()
         #expect(previewCount > 0)
         #expect(view.imageView.image != nil)
+    }
+
+    // MARK: - Progressive Rendering
+
+    @Test func progressivePreviewsAreDisplayedByDefault() async {
+        let progressiveLoader = MockProgressiveDataLoader()
+        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
+
+        var imageWasSetDuringPreview = false
+        var previewCount = 0
+        let previewExpectation = TestExpectation()
+        view.onPreview = { _ in
+            previewCount += 1
+            if view.imageView.image != nil { imageWasSetDuringPreview = true }
+            if previewCount == 1 { previewExpectation.fulfill() }
+            progressiveLoader.resume()
+        }
+
+        let completionExpectation = TestExpectation()
+        view.onCompletion = { _ in completionExpectation.fulfill() }
+        view.url = Test.url
+
+        await previewExpectation.wait()
+        await completionExpectation.wait()
+
+        #expect(previewCount > 0)
+        #expect(imageWasSetDuringPreview)
+    }
+
+    @Test func progressivePreviewsIgnoredWhenRenderingDisabled() async {
+        let progressiveLoader = MockProgressiveDataLoader()
+        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
+        view.isProgressiveImageRenderingEnabled = false
+
+        var imageWasSetDuringPreview = false
+        var previewCount = 0
+        let previewExpectation = TestExpectation()
+        view.onPreview = { _ in
+            previewCount += 1
+            if view.imageView.image != nil { imageWasSetDuringPreview = true }
+            if previewCount == 1 { previewExpectation.fulfill() }
+            progressiveLoader.resume()
+        }
+
+        let completionExpectation = TestExpectation()
+        view.onCompletion = { _ in completionExpectation.fulfill() }
+        view.url = Test.url
+
+        await previewExpectation.wait()
+        await completionExpectation.wait()
+
+        // Previews are still reported, but nothing is displayed until the
+        // final image arrives.
+        #expect(previewCount > 0)
+        #expect(!imageWasSetDuringPreview)
+        #expect(view.imageView.image != nil)
+    }
+
+    private func makeProgressivePipeline(with dataLoader: MockProgressiveDataLoader) -> ImagePipeline {
+        ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+        }
+    }
+
+    // MARK: - Fade-In Transition
+
+    @Test func fadeInTransitionRunsOnSuccess() async {
+        makeImageViewLayerBacked()
+        view.transition = .fadeIn(duration: 0.33)
+
+        // The transition runs while the image is being displayed, which happens
+        // before the completion callback.
+        var animation: CAAnimation?
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in
+            animation = self.fadeInAnimation()
+            expectation.fulfill()
+        }
+        view.url = Test.url
+        await expectation.wait()
+
+        #expect(view.imageView.image != nil)
+        #expect(!view.imageView.isHidden)
+#if os(macOS)
+        #expect(animation != nil)
+#else
+        _ = animation
+#endif
+    }
+
+    @Test func fadeInTransitionSkippedWhenImageViewIsUnused() async {
+        makeImageViewLayerBacked()
+        view.transition = .fadeIn(duration: 0.33)
+
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+
+        var animation: CAAnimation?
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in
+            animation = self.fadeInAnimation()
+            expectation.fulfill()
+        }
+        view.url = Test.url
+        await expectation.wait()
+
+        // The custom view is displayed, so the built-in image view stays hidden
+        // and must not be faded in.
+        #expect(customView.superview === view)
+        #expect(view.imageView.isHidden)
+        #expect(animation == nil)
+    }
+
+    private func makeImageViewLayerBacked() {
+#if os(macOS)
+        view.imageView.wantsLayer = true
+#endif
+    }
+
+    private func fadeInAnimation() -> CAAnimation? {
+#if os(macOS)
+        view.imageView.layer?.animation(forKey: "imageTransition")
+#else
+        view.imageView.layer.animation(forKey: "imageTransition")
+#endif
+    }
+
+    // MARK: - Subview Positioning
+
+    @Test func placeholderViewFillsTheViewByDefault() {
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        view.updateConstraints()
+
+        #expect(constraints(for: placeholder).count == 4)
+    }
+
+    @Test func placeholderViewIsCenteredWhenPositionIsCenter() {
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+        view.placeholderViewPosition = .center
+
+        view.updateConstraints()
+
+        let constraints = constraints(for: placeholder)
+        #expect(constraints.count == 2)
+        #expect(constraints.contains { $0.firstAttribute == .centerX })
+        #expect(constraints.contains { $0.firstAttribute == .centerY })
+    }
+
+    @Test func failureViewFillsTheViewByDefault() {
+        let failureView = _PlatformBaseView()
+        view.failureView = failureView
+
+        view.updateConstraints()
+
+        #expect(constraints(for: failureView).count == 4)
+    }
+
+    @Test func failureViewIsCenteredWhenPositionIsCenter() {
+        let failureView = _PlatformBaseView()
+        view.failureView = failureView
+        view.failureViewPosition = .center
+
+        view.updateConstraints()
+
+        let constraints = constraints(for: failureView)
+        #expect(constraints.count == 2)
+        #expect(constraints.contains { $0.firstAttribute == .centerX })
+        #expect(constraints.contains { $0.firstAttribute == .centerY })
+    }
+
+    @Test func changingPositionReplacesConstraints() {
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+        view.updateConstraints()
+        #expect(constraints(for: placeholder).count == 4)
+
+        view.placeholderViewPosition = .center
+        view.updateConstraints()
+        #expect(constraints(for: placeholder).count == 2)
+
+        view.placeholderViewPosition = .fill
+        view.updateConstraints()
+        #expect(constraints(for: placeholder).count == 4)
+    }
+
+    @Test func updatingConstraintsWithoutSubviewsIsSafe() {
+        view.placeholderView = nil
+        view.failureView = nil
+
+        view.updateConstraints()
+
+        #expect(view.placeholderView == nil)
+        #expect(view.failureView == nil)
+    }
+
+    private func constraints(for subview: _PlatformBaseView) -> [NSLayoutConstraint] {
+        view.constraints.filter { $0.firstItem === subview && $0.isActive }
     }
 }
 
