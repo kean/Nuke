@@ -47,6 +47,21 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
 
     /// ICO (Windows icon format).
     public static let ico: AssetType = "com.microsoft.ico"
+
+    /// BMP (Windows bitmap).
+    public static let bmp: AssetType = "com.microsoft.bmp"
+
+    /// TIFF (Tagged Image File Format).
+    public static let tiff: AssetType = "public.tiff"
+
+    /// JPEG 2000.
+    public static let jpeg2000: AssetType = "public.jpeg-2000"
+
+    /// JPEG XL.
+    ///
+    /// Native decoding support only available on the following platforms: macOS 14,
+    /// iOS 17, watchOS 10, tvOS 17.
+    public static let jxl: AssetType = "public.jpeg-xl"
 }
 
 extension AssetType {
@@ -118,6 +133,24 @@ extension AssetType {
 
         // ICO magic numbers https://en.wikipedia.org/wiki/ICO_(file_format)
         if _match([0x00, 0x00, 0x01, 0x00]) { return .ico }
+
+        // JPEG 2000: either the JP2 signature box, or a raw codestream that
+        // starts with the SOC and SIZ markers.
+        // https://en.wikipedia.org/wiki/JPEG_2000
+        if _match([0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A]) { return .jpeg2000 }
+        if _match([0xFF, 0x4F, 0xFF, 0x51]) { return .jpeg2000 }
+
+        // JPEG XL: either the container signature box, or a naked codestream.
+        // https://en.wikipedia.org/wiki/JPEG_XL
+        if _match([0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A]) { return .jxl }
+        if _match([0xFF, 0x0A]) { return .jxl }
+
+        // TIFF magic numbers: a byte-order mark ("II" or "MM") followed by 42
+        // written in that order. https://en.wikipedia.org/wiki/TIFF
+        if _match([0x49, 0x49, 0x2A, 0x00]) || _match([0x4D, 0x4D, 0x00, 0x2A]) { return .tiff }
+
+        // BMP magic numbers https://en.wikipedia.org/wiki/BMP_file_format
+        if _match([0x42, 0x4D]) { return .bmp }
 
         // Either not enough data, or we just don't support this format.
         return nil

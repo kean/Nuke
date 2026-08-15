@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import ImageIO
 import UniformTypeIdentifiers
 @testable import Nuke
 
@@ -58,6 +59,67 @@ struct AssetTypeTests {
         #expect(AssetType(data[0..<3]) == nil)
         #expect(AssetType(data[0..<4]) == .ico)
         #expect(AssetType(data) == .ico)
+    }
+
+    // MARK: BMP
+
+    @Test func detectBMP() {
+        let data = Data([0x42, 0x4D, 0x8A, 0x10])
+        #expect(AssetType(data[0..<1]) == nil)
+        #expect(AssetType(data[0..<2]) == .bmp)
+        #expect(AssetType(data) == .bmp)
+    }
+
+    // MARK: TIFF
+
+    @Test func detectLittleEndianTIFF() {
+        let data = Data([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00])
+        #expect(AssetType(data[0..<3]) == nil)
+        #expect(AssetType(data[0..<4]) == .tiff)
+        #expect(AssetType(data) == .tiff)
+    }
+
+    @Test func detectBigEndianTIFF() {
+        let data = Data([0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08])
+        #expect(AssetType(data[0..<3]) == nil)
+        #expect(AssetType(data[0..<4]) == .tiff)
+        #expect(AssetType(data) == .tiff)
+    }
+
+    // MARK: JPEG 2000
+
+    @Test func detectJPEG2000() {
+        // The JP2 signature box.
+        let data = Data([0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A])
+        #expect(AssetType(data[0..<4]) == nil)
+        #expect(AssetType(data[0..<11]) == nil)
+        #expect(AssetType(data) == .jpeg2000)
+    }
+
+    @Test func detectJPEG2000Codestream() {
+        // A raw codestream starts with the SOC and SIZ markers.
+        let data = Data([0xFF, 0x4F, 0xFF, 0x51, 0x00, 0x2F])
+        #expect(AssetType(data[0..<3]) == nil)
+        #expect(AssetType(data[0..<4]) == .jpeg2000)
+        #expect(AssetType(data) == .jpeg2000)
+    }
+
+    // MARK: JPEG XL
+
+    @Test func detectJPEGXL() {
+        // The container signature box.
+        let data = Data([0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A])
+        #expect(AssetType(data[0..<4]) == nil)
+        #expect(AssetType(data[0..<11]) == nil)
+        #expect(AssetType(data) == .jxl)
+    }
+
+    @Test func detectJPEGXLCodestream() {
+        // A naked codestream starts with the two-byte signature.
+        let data = Data([0xFF, 0x0A, 0x00, 0x50])
+        #expect(AssetType(data[0..<1]) == nil)
+        #expect(AssetType(data[0..<2]) == .jxl)
+        #expect(AssetType(data) == .jxl)
     }
 
     // MARK: WebP
@@ -165,6 +227,10 @@ struct AssetTypeTests {
         #expect(AssetType.gif.utType == .gif)
         #expect(AssetType.heic.utType == .heic)
         #expect(AssetType.ico.utType == .ico)
+        #expect(AssetType.bmp.utType == .bmp)
+        #expect(AssetType.tiff.utType == .tiff)
+        #expect(AssetType.jpeg2000.utType == UTType("public.jpeg-2000"))
+        #expect(AssetType.jxl.utType == UTType("public.jpeg-xl"))
         #expect(AssetType.webp.utType == .webP)
         #expect(AssetType.mp4.utType == .mpeg4Movie)
         #expect(AssetType.m4v.utType == UTType("com.apple.m4v-video"))
@@ -174,7 +240,7 @@ struct AssetTypeTests {
     @Test func builtInTypesUseTheIdentifiersTheSystemDeclares() {
         // A type the system doesn't declare can't be bridged, so every built-in
         // type has to use the identifier the system registers for the format.
-        let types: [AssetType] = [.png, .jpeg, .gif, .heic, .ico, .webp, .mp4, .m4v, .mov]
+        let types: [AssetType] = [.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .webp, .mp4, .m4v, .mov]
         for type in types {
             #expect(type.utType?.identifier == type.rawValue)
         }
@@ -198,7 +264,7 @@ struct AssetTypeTests {
         for type in [AssetType.mp4, .m4v, .mov] {
             #expect(type.utType?.conforms(to: .movie) == true)
         }
-        for type in [AssetType.png, .jpeg, .gif, .heic, .ico, .webp] {
+        for type in [AssetType.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .webp] {
             #expect(type.utType?.conforms(to: .image) == true)
             #expect(type.utType?.conforms(to: .movie) == false)
         }
@@ -212,15 +278,17 @@ struct AssetTypeTests {
         #expect(AssetType(UTType.gif) == .gif)
         #expect(AssetType(UTType.heic) == .heic)
         #expect(AssetType(UTType.ico) == .ico)
+        #expect(AssetType(UTType.bmp) == .bmp)
+        #expect(AssetType(UTType.tiff) == .tiff)
         #expect(AssetType(UTType.webP) == .webp)
         #expect(AssetType(UTType.mpeg4Movie) == .mp4)
         #expect(AssetType(UTType.quickTimeMovie) == .mov)
     }
 
     @Test func initWithUTTypeOutsideOfTheBuiltInTypes() {
-        #expect(AssetType(UTType.tiff).rawValue == "public.tiff")
-        #expect(AssetType(UTType.bmp).rawValue == "com.microsoft.bmp")
         #expect(AssetType(UTType.pdf).rawValue == "com.adobe.pdf")
+        #expect(AssetType(UTType.svg).rawValue == "public.svg-image")
+        #expect(AssetType(UTType.icns).rawValue == "com.apple.icns")
     }
 
     @Test func roundTrip() {
@@ -236,5 +304,38 @@ struct AssetTypeTests {
         let data = Test.data(name: "fixture", extension: "png")
         let container = try ImageDecoders.Default().decode(data)
         #expect(container.type?.utType == .png)
+    }
+
+    /// Re-encodes the PNG fixture with Image I/O to check the sniffing against
+    /// the headers the system itself writes, and to make sure the decoder
+    /// reports a type for every format it decodes. There is no JPEG XL encoder,
+    /// so that format is covered by the unit tests only.
+    @Test(arguments: [AssetType.png, .jpeg, .gif, .heic, .bmp, .tiff, .jpeg2000])
+    func detectDataProducedByImageIO(type: AssetType) throws {
+        guard let data = encode(Test.data(name: "fixture", extension: "png"), as: type) else {
+            return // The platform has no encoder for this format
+        }
+        #expect(AssetType(data) == type)
+
+        let container = try ImageDecoders.Default().decode(data)
+        #expect(container.type == type)
+    }
+
+    /// Re-encodes the given image data as the given type, or returns `nil` if
+    /// the platform has no encoder for it.
+    private func encode(_ data: Data, as type: AssetType) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            return nil
+        }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, type.rawValue as CFString, 1, nil) else {
+            return nil
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
+        return output as Data
     }
 }
