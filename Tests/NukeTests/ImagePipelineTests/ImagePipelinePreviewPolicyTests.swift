@@ -174,6 +174,61 @@ struct ImagePipelinePreviewPolicyTests {
         _ = try await task.image
     }
 
+    // MARK: - GIF
+
+    @Test func gifDeliversPreviewsByDefault() async throws {
+        // GIVEN a GIF served in chunks (default policy is .incremental for GIF)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "cat", extension: "gif"),
+            chunkCount: 8
+        )
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        let task = pipeline.imageTask(with: Test.url)
+        var previews: [ImageResponse] = []
+        for try await preview in task.previews {
+            previews.append(preview)
+        }
+
+        // THEN a single preview is delivered
+        #expect(previews.count == 1)
+        #expect(previews.allSatisfy { $0.container.isPreview })
+        _ = try await task.image
+    }
+
+    @Test func gifWithDisabledPolicyDeliversNoPreviews() async throws {
+        // GIVEN a delegate that disables previews and a GIF served in chunks
+        let delegate = PreviewPolicyDelegate(policy: .disabled)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "cat", extension: "gif"),
+            chunkCount: 8
+        )
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        let task = pipeline.imageTask(with: Test.url)
+        var previews: [ImageResponse] = []
+        for try await preview in task.previews {
+            previews.append(preview)
+        }
+
+        // THEN no previews are delivered
+        #expect(previews.isEmpty)
+        let response = try await task.response
+        #expect(response.container.type == .gif)
+    }
+
     // MARK: - Policy that only resolves to .incremental on later chunks
 
     @Test func policyIsReevaluatedWhenMoreDataArrives() async throws {

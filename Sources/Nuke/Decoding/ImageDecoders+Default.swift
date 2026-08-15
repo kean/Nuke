@@ -89,9 +89,15 @@ extension ImageDecoders {
             lock.lock()
             defer { lock.unlock() }
 
+            guard previewPolicy != .disabled else {
+                return nil
+            }
+
             let assetType = AssetType(data)
 
-            // GIF preview is always allowed regardless of policy
+            // GIFs can't be decoded incrementally: Image I/O needs the complete
+            // frame data, so a single preview is generated from whatever has
+            // been downloaded so far regardless of the policy.
             if assetType == .gif {
                 if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data, scale: scale) {
                     isPreviewForGIFGenerated = true
@@ -102,7 +108,7 @@ extension ImageDecoders {
 
             switch previewPolicy {
             case .disabled:
-                return nil
+                return nil // Already handled above
 
             case .thumbnail:
                 if numberOfScans > 0 { return nil } // Already generated
