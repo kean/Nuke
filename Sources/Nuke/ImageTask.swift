@@ -131,7 +131,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// An event produced during the runtime of the task.
     @frozen public enum Event: Sendable {
-        /// The task was started by the pipeline.
+        /// The task was started by the pipeline. Always the first event in the
+        /// stream: it is replayed for the subscribers that are added after the
+        /// pipeline started the task.
         case started
         /// The download progress was updated.
         case progress(Progress)
@@ -154,6 +156,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     nonisolated(unsafe) var _task: Task<ImageResponse, any Error>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
     @ImagePipelineActor var _state: State = .running
+    @ImagePipelineActor var _didStart = false
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
@@ -265,6 +268,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             continuation.yield(event)
         }
         switch event {
+        case .started:
+            // Recorded so that the streams created after the pipeline started
+            // the task still see it – see `makeStream()`.
+            _didStart = true
         case .finished(let result):
             for continuation in _streamContinuations {
                 continuation.finish()
@@ -310,6 +317,14 @@ extension ImageTask {
             Task { @ImagePipelineActor in
                 guard self._state == .running else {
                     return continuation.finish()
+                }
+                // The pipeline starts the task asynchronously, so there is no
+                // way for a subscriber to be registered before `.started` is
+                // sent. It is replayed to make it the first event of every
+                // stream regardless of the order in which the pipeline and the
+                // subscriber reach the actor.
+                if self._didStart {
+                    continuation.yield(.started)
                 }
                 self._streamContinuations.append(continuation)
             }

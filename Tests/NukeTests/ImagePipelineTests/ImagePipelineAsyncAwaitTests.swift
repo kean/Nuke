@@ -517,6 +517,7 @@ struct ImagePipelineAsyncAwaitTests {
             }
             return true
         } == [
+            .started,
             .preview(recordedPreviews[0]),
             .preview(recordedPreviews[1]),
             .finished(result)
