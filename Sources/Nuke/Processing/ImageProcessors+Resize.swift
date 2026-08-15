@@ -57,7 +57,7 @@ extension ImageProcessors {
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
-                return image.processed.byResizingAndCropping(to: size.cgSize)
+                return image.processed.byResizingAndCropping(to: size.cgSize, upscale: upscale)
             }
             return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
         }
