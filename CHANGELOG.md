@@ -31,6 +31,7 @@
 - Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` writing image previews to the disk cache despite documenting that it doesn't. A partially decoded progressive scan passed to it was stored under the final image key and was decoded and delivered as a completed image on the subsequent cache hits
 - Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`. The cropping path always enlarged the image, contradicting the documented `upscale: false` default, and created a separate cache entry holding the same content as `upscale: true`. It now crops to the target aspect ratio at the native resolution instead
 - Fix the `file` and `data` URL schemes being matched case-sensitively. URI schemes are case-insensitive, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path, loaded through `URLSession`, and had their contents copied into the data cache
+- Fix a crash when resizing an image to a non-finite size. The `CGContext` creation converted the target dimensions with `Int(_:)`, which traps on NaN, infinity, and the values outside the `Int` range, so a request such as `ImageProcessors.Resize(size: CGSize(width: .nan, height: .nan), crop: true)` terminated the process on the processing queue. The resizing paths now also reject the non-finite sizes up front: NaN slipped past the scale check, which made the non-cropping path silently return the original image instead
 
 ## Nuke 13.1.0
 
