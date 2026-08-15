@@ -65,7 +65,12 @@ public enum ImageProcessingOptions: Sendable {
 #endif
 
         public var description: String {
-            "Border(color: \(color.hex), width: \(width) pixels)"
+            // `hex` is `nil` for the colors with no sRGB representation, e.g.
+            // pattern colors. The description is part of the identifiers of the
+            // processors that draw borders, so the fallback has to stay
+            // distinct per color instead of collapsing every such color onto
+            // the same – and, in the case of "#00000000", already taken – value.
+            "Border(color: \(color.hex ?? String(describing: color)), width: \(width) pixels)"
         }
     }
 
