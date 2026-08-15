@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import CoreGraphics
 @testable import Nuke
 
 #if !os(macOS)
@@ -114,6 +115,85 @@ struct ImageProcessorsGaussianBlurTests {
             ImageProcessors.GaussianBlur(radius: 16).description
         )
     }
+
+    // MARK: - Zero and Negative Radius
+
+    @Test func zeroRadiusReturnsTheImageUnchanged() throws {
+        // GIVEN
+        let image = Test.image
+        let processor = ImageProcessors.GaussianBlur(radius: 0)
+
+        // WHEN
+        let output = try #require(processor.process(image))
+
+        // THEN the processor is an identity transform
+        #expect(output === image)
+    }
+
+    @Test func negativeRadiusIsClampedToZero() throws {
+        // GIVEN
+        let image = Test.image
+        let processor = ImageProcessors.GaussianBlur(radius: -8)
+
+        // WHEN
+        let output = try #require(processor.process(image))
+
+        // THEN the image is returned unchanged and the processor is
+        // indistinguishable from the one with a radius of `0`
+        #expect(output === image)
+        #expect(processor.identifier == ImageProcessors.GaussianBlur(radius: 0).identifier)
+        #expect(processor.hashableIdentifier == ImageProcessors.GaussianBlur(radius: 0).hashableIdentifier)
+        #expect(processor == ImageProcessors.GaussianBlur(radius: 0))
+    }
+
+    @Test func zeroRadiusIsDistinctFromTheSmallestBlur() throws {
+        // GIVEN
+        let image = Test.image
+
+        // WHEN
+        let identity = try #require(ImageProcessors.GaussianBlur(radius: 0).process(image))
+        let blurred = try #require(ImageProcessors.GaussianBlur(radius: 1).process(image))
+
+        // THEN a radius of `1` does blur the image
+        #expect(try pixels(of: identity) != pixels(of: blurred))
+    }
+
+    @Test func smallRadiiProduceDifferentOutput() throws {
+        // GIVEN - processors with distinct identifiers, so they must not
+        // produce byte-identical output and populate the cache with duplicates
+        let image = Test.image
+
+        // WHEN
+        let outputs = try (1...3).map {
+            try pixels(of: #require(ImageProcessors.GaussianBlur(radius: $0).process(image)))
+        }
+
+        // THEN
+        #expect(outputs[0] != outputs[1])
+        #expect(outputs[1] != outputs[2])
+    }
+}
+
+/// Renders the image into a known ARGB context and returns the raw bytes.
+private func pixels(of image: PlatformImage) throws -> Data {
+    let cgImage = try #require(image.cgImage)
+    let bytesPerRow = cgImage.width * 4
+    var bytes = [UInt8](repeating: 0, count: bytesPerRow * cgImage.height)
+    let success = bytes.withUnsafeMutableBytes { buffer -> Bool in
+        guard let context = CGContext(
+            data: buffer.baseAddress,
+            width: cgImage.width,
+            height: cgImage.height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return false }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        return true
+    }
+    #expect(success)
+    return Data(bytes)
 }
 
 #endif
