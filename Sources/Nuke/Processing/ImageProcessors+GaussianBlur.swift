@@ -23,13 +23,16 @@ extension ImageProcessors {
 
         /// Initializes the receiver with a blur radius.
         ///
-        /// - parameter radius: `8` by default.
+        /// - parameter radius: `8` by default. A radius of `0` – or any negative
+        /// value, which is clamped to `0` – makes the processor an identity
+        /// transform that returns the image unchanged.
         public init(radius: Int = 8) {
-            self.radius = radius
+            self.radius = max(0, radius)
         }
 
         /// Applies a Gaussian blur to the image.
         public func process(_ image: PlatformImage) -> PlatformImage? {
+            guard radius > 0 else { return image }
             guard let cgImage = image.cgImage else { return nil }
             guard let output = cgImage.blurred(radius: radius) else { return nil }
             return PlatformImage.make(cgImage: output, source: image)
@@ -47,8 +50,10 @@ extension ImageProcessors {
 
 private extension CGImage {
     /// Applies a Gaussian blur approximation using three box-blur passes (SVG spec).
+    ///
+    /// - parameter radius: Must be greater than `0`.
     func blurred(radius: Int) -> CGImage? {
-        let inputRadius = max(Double(radius), 2.0)
+        let inputRadius = Double(radius)
         let pi2 = 2.0 * Double.pi
         var kernelSize = UInt32(floor(inputRadius * 3.0 * sqrt(pi2) / 4.0 + 0.5))
         if kernelSize % 2 == 0 { kernelSize += 1 }
