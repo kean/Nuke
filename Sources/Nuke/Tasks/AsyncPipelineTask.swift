@@ -41,9 +41,14 @@ extension AsyncPipelineTask: ImageTaskSubscribers {
 extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
+    ///
+    /// If the decoding is scheduled on the decoding queue, the operation is
+    /// stored in ``AsyncTask/operation`` – it also serves as a back-pressure
+    /// flag for the progressive decoding – and is cleared before the completion
+    /// is called, so the callers never see a stale handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
-            operation = pipeline.configuration.imageDecodingQueue.add {
+            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
                 let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                     do {
                         return .success(try await decoder.decode(context))
@@ -51,6 +56,7 @@ extension AsyncPipelineTask {
                         return .failure(.decodingFailed(decoder: decoder, context: context, error: error))
                     }
                 }
+                self?.operation = nil
                 completion(result)
             }
             return
@@ -65,8 +71,10 @@ extension AsyncPipelineTask {
         guard decoder.isAsynchronous else {
             return completion(decode())
         }
-        operation = pipeline.configuration.imageDecodingQueue.add {
-            completion(await performInBackground(decode))
+        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+            let result = await performInBackground(decode)
+            self?.operation = nil
+            completion(result)
         }
     }
 }

@@ -141,7 +141,7 @@ struct ImagePipelineProgressiveDecodingTests {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "_image_processor")])
         dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] = Data("not an image".utf8)
 
-        // When
+        // W
         let task = pipeline.imageTask(with: request)
 
         let dataLoader = self.dataLoader
