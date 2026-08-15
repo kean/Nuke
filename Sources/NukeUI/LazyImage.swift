@@ -104,12 +104,22 @@ public struct LazyImage<Content: View>: View {
     /// Processors are only applied if the request does not already define its
     /// own processors. The request's processors always take priority.
     public consuming func processors(_ processors: [any ImageProcessing]?) -> Self {
-        map { $0.context?.request.processors = processors ?? [] }
+        map {
+            if let processors, !processors.isEmpty, $0.context?.request.processors.isEmpty == true {
+                $0.context?.request.processors = processors
+            }
+        }
     }
 
     /// Sets the priority of the requests.
+    ///
+    /// When `nil` (the default), the request's own priority is used.
     public consuming func priority(_ priority: ImageRequest.Priority?) -> Self {
-        map { $0.context?.request.priority = priority ?? .normal }
+        map {
+            if let priority {
+                $0.context?.request.priority = priority
+            }
+        }
     }
 
     /// Changes the underlying pipeline used for image loading.
@@ -205,7 +215,6 @@ private struct LazyImageContext: Equatable {
         return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
         lhs.processors == rhs.processors &&
-        lhs.priority == rhs.priority &&
         lhs.options == rhs.options
     }
 }
