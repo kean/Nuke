@@ -28,6 +28,9 @@
 - Fix MP4 files with an `mp42` major brand, which is a standard MP4 brand, being detected as `AssetType/m4v`
 - Detect the ISO base media types by parsing the major brand in the `ftyp` box, which adds support for the remaining MP4 (`iso2`, `iso4`, `iso5`, `iso6`, `mp41`, `mmp4`, `avc1`, `dash`), M4V (`M4VH`, `M4VP`), and HEIC (`heix`, `heim`, `heis`, `hevc`, `hevx`, `hevm`, `hevs`) brands
 - Fix an issue with progressive image downloads fail to complete if `isResetEnabled` is `true` on `LazyImageView` when the request starts by @nathantannar4 in https://github.com/kean/Nuke/pull/884
+- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` writing image previews to the disk cache despite documenting that it doesn't. A partially decoded progressive scan passed to it was stored under the final image key and was decoded and delivered as a completed image on the subsequent cache hits
+- Fix `ImageProcessors.Resize` ignoring `upscale` when `crop` is `true`. The cropping path always enlarged the image, contradicting the documented `upscale: false` default, and created a separate cache entry holding the same content as `upscale: true`. It now crops to the target aspect ratio at the native resolution instead
+- Fix the `file` and `data` URL schemes being matched case-sensitively. URI schemes are case-insensitive, so `FILE:///…` and `Data:…` URLs skipped the local resource fast path, loaded through `URLSession`, and had their contents copied into the data cache
 
 ## Nuke 13.1.0
 
