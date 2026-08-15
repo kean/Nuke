@@ -36,6 +36,11 @@
 - Fix `ImageProcessors/GaussianBlur` blurring the image with a radius of `0` or less instead of returning it unchanged. The radius was clamped to a minimum of `2`, so every radius in `0...2` also rendered identically under different cache keys – https://github.com/kean/Nuke/pull/893
 - Fix `ImageProcessingOptions/Border` producing the same identifier for every color with no sRGB representation, e.g. a pattern color. The components are now also clamped to `0...1`, which used to produce malformed hex for wide-gamut colors on iOS – https://github.com/kean/Nuke/pull/891
 - Fix progressive previews being silently dropped for the rest of the task's lifetime when the cached data fails to decode and the task falls back to loading the image – https://github.com/kean/Nuke/pull/894
+- Fix `DataLoader/delegate` never receiving `urlSession(_:didCreateTask:)` on macOS and Mac Catalyst, where the forwarding was compiled out – https://github.com/kean/Nuke/pull/895
+- Fix `ImageProcessors/GaussianBlur` tagging opaque images with an alpha channel, which made `ImageEncoders/Default` encode blurred photos as PNG instead of JPEG or HEIC – https://github.com/kean/Nuke/pull/896
+- Fix `ImageTask/Event/started` never being delivered to `ImageTask/events` or the task's event closure – https://github.com/kean/Nuke/pull/897
+- Fix an outstanding decoding or processing operation not being cancelled when a task fails, leaving it to occupy a queue slot and run with its result discarded – https://github.com/kean/Nuke/pull/898
+- Fix the shared resumable data cache never being deallocated when a pipeline's registration and unregistration are processed out of order – https://github.com/kean/Nuke/pull/899
 
 ## Nuke 13.1.0
 
