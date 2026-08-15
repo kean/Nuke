@@ -90,6 +90,51 @@ struct ImageProcessorsResizeTests {
         #expect(output.sizeInPixels == CGSize(width: 400, height: 400))
     }
 
+    @Test func thatCroppedImageIsntUpscaledByDefault() throws {
+        // Given a target larger than the image (640x480px)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, crop: true)
+
+        // When
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
+        // Then the image is cropped to the target aspect ratio but isn't enlarged
+        #expect(output.sizeInPixels == CGSize(width: 480, height: 480))
+    }
+
+    @Test func thatCroppedImageIsUpscaledIfOptionIsEnabled() throws {
+        // Given
+        let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, crop: true, upscale: true)
+
+        // When
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 960, height: 960))
+    }
+
+    @Test func thatCroppedImageIsntUpscaledWithNonSquareTarget() throws {
+        // Given a portrait image and a larger square target
+        let input = Test.rgbImage(width: 100, height: 200)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 500, height: 500), unit: .pixels, crop: true)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then the image is cropped to a square at its native resolution
+        #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
+    }
+
+    @Test(arguments: [false, true]) func thatCroppedImageIsDownscaledRegardlessOfUpscaleOption(upscale: Bool) throws {
+        // Given a target smaller than the image (640x480px)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 300, height: 300), unit: .pixels, crop: true, upscale: upscale)
+
+        // When
+        let output = try #require(processor.process(Test.image), "Failed to process an image")
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 300, height: 300))
+    }
+
     @Test func thatImageIsntCroppedWithAspectFitMode() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)

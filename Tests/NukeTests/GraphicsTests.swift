@@ -199,12 +199,12 @@ struct GraphicsTests {
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
     }
 
-    @Test func resizingAndCroppingAlwaysUpscales() throws {
+    @Test func resizingAndCroppingUpscalesWhenRequested() throws {
         // Given
         let input = Test.rgbImage(width: 40, height: 20)
 
         // When
-        let output = try #require(input.processed.byResizingAndCropping(to: CGSize(width: 100, height: 100)))
+        let output = try #require(input.processed.byResizingAndCropping(to: CGSize(width: 100, height: 100), upscale: true))
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
@@ -223,7 +223,7 @@ struct GraphicsTests {
         #expect(input.processed.byAddingRoundedCorners(radius: 10) == nil)
         #expect(input.draw(inCanvasWithSize: CGSize(width: 10, height: 10)) == nil)
         #expect(input.processed.byResizing(to: CGSize(width: 10, height: 10), contentMode: .aspectFill, upscale: true) == nil)
-        #expect(input.processed.byResizingAndCropping(to: CGSize(width: 10, height: 10)) == nil)
+        #expect(input.processed.byResizingAndCropping(to: CGSize(width: 10, height: 10), upscale: true) == nil)
         #expect(input.decompressed(isUsingPrepareForDisplay: false) == nil)
     }
 }

@@ -32,7 +32,9 @@ private let sha1HexChars: [UInt8] = Array("0123456789abcdef".utf8)
 
 extension URL {
     var isLocalResource: Bool {
-        scheme == "file" || scheme == "data"
+        // URI schemes are case-insensitive (RFC 3986).
+        guard let scheme = scheme?.lowercased() else { return false }
+        return scheme == "file" || scheme == "data"
     }
 }
 

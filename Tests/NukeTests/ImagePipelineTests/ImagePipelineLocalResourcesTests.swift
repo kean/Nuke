@@ -107,6 +107,41 @@ struct ImagePipelineLocalResourcesTests {
         }
     }
 
+    // MARK: - Case-Insensitive Schemes
+
+    /// URI schemes are case-insensitive (RFC 3986), so `FILE://` has to be
+    /// treated exactly like `file://`.
+    @Test func uppercaseFileURLIsLoadedDirectlyAndIsNotStoredInTheDataCache() async throws {
+        // Given
+        let fileURL = try makeTemporaryFile(with: Test.data)
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        let path = fileURL.absoluteString.dropFirst("file://".count)
+        let url = try #require(URL(string: "FILE://" + path))
+
+        // When
+        let image = try await pipeline.image(for: ImageRequest(url: url))
+
+        // Then
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(dataCache.writeCount == 0)
+        #expect(dataCache.store.isEmpty)
+    }
+
+    @Test func uppercaseDataURLIsLoadedDirectlyAndIsNotStoredInTheDataCache() async throws {
+        // Given
+        let url = try #require(URL(string: "DATA:image/jpeg;base64,\(Test.data.base64EncodedString())"))
+
+        // When
+        let image = try await pipeline.image(for: ImageRequest(url: url))
+
+        // Then
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(dataCache.writeCount == 0)
+        #expect(dataCache.store.isEmpty)
+    }
+
     // MARK: - Disabling Local Resources Support
 
     @Test func localResourcesGoThroughTheDataLoaderWhenSupportIsDisabled() async throws {
