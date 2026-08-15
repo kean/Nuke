@@ -34,9 +34,24 @@ struct ImageProcessorsGaussianBlurTests {
         #expect(processor.process(image) != nil)
     }
 
-    @Test func applyBlurProducesTransparentImages() throws {
-        // Given
+    @Test func applyBlurPreservesOpacityOfOpaqueImages() throws {
+        // Given an opaque image
         let image = Test.image
+        #expect(image.cgImage?.isOpaque == true)
+        let processor = ImageProcessors.GaussianBlur()
+
+        // When
+        let processed = try #require(processor.process(image))
+
+        // Then the output isn't tagged with an alpha channel: it would make
+        // `ImageEncoders.Default` encode it as PNG instead of JPEG/HEIC
+        #expect(processed.cgImage?.isOpaque == true)
+    }
+
+    @Test func applyBlurPreservesAlphaChannelOfTransparentImages() throws {
+        // Given an image with an alpha channel
+        let image = Test.image(named: "swift", extension: "png")
+        #expect(image.cgImage?.isOpaque == false)
         let processor = ImageProcessors.GaussianBlur()
 
         // When
@@ -44,6 +59,22 @@ struct ImageProcessorsGaussianBlurTests {
 
         // Then
         #expect(processed.cgImage?.isOpaque == false)
+    }
+
+    @Test func blurSpreadsAlphaOfTransparentImages() throws {
+        // GIVEN an opaque square in the middle of a transparent canvas
+        let image = imageWithOpaqueSquare(size: 64, square: 16)
+        let outsideTheSquare = 32 * 64 + 20 // (x: 20, y: 32)
+        #expect(try alphaChannel(of: image)[outsideTheSquare] == 0)
+
+        // WHEN
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 8).process(image))
+
+        // THEN the alpha channel is blurred too: it bleeds outside of the
+        // square and the solid core softens
+        let alpha = try alphaChannel(of: output)
+        #expect(alpha[outsideTheSquare] > 0)
+        #expect(alpha.max() ?? 0 < 255)
     }
 
     @Test func imagesWithSameRadiusHasSameIdentifiers() {
@@ -194,6 +225,29 @@ private func pixels(of image: PlatformImage) throws -> Data {
     }
     #expect(success)
     return Data(bytes)
+}
+
+/// Returns the alpha component of every pixel of the image, row by row.
+private func alphaChannel(of image: PlatformImage) throws -> [UInt8] {
+    let pixels = try pixels(of: image)
+    return stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+}
+
+/// Returns a transparent image with an opaque square in the middle.
+private func imageWithOpaqueSquare(size: Int, square: Int) -> PlatformImage {
+    let context = CGContext(
+        data: nil,
+        width: size,
+        height: size,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    )!
+    context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+    let origin = (size - square) / 2
+    context.fill(CGRect(x: origin, y: origin, width: square, height: square))
+    return PlatformImage(cgImage: context.makeImage()!)
 }
 
 #endif
