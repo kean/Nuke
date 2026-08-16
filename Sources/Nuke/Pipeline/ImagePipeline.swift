@@ -186,7 +186,7 @@ public final class ImagePipeline: Sendable {
 
     // By this time, the task has `continuation` set and is fully wired.
     private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
-        guard task._state != .cancelled else {
+        guard !task._isFinished else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
             // case, the `cancel` method does not send the task event.
