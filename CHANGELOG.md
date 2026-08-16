@@ -33,6 +33,7 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
+- Remove `DataCache/queue`. The cache no longer uses a `DispatchQueue`: the staged changes are flushed by a `Task`, and the mutable state is guarded by a single lock, making `DataCache` `Sendable` – https://github.com/kean/Nuke/pull/925
 
 **Bug Fixes**
 
@@ -40,6 +41,7 @@
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
+- Fix a data race on the `DataCache` configuration properties, and stop `DataCache.init` from reading its metadata file on the calling thread – https://github.com/kean/Nuke/pull/925
 
 # Nuke 13
 
