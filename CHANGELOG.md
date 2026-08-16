@@ -35,14 +35,11 @@
 
 **Bug Fixes**
 
+- Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled`, which the pipeline reads on every signpost while it can be written from any thread – https://github.com/kean/Nuke/pull/901
+- Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
 
 # Nuke 13
-
-## WIP
-
-- Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled`, which the pipeline reads on every signpost while it can be written from any thread – https://github.com/kean/Nuke/pull/901
-- Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 
 ## Nuke 13.2.0
 
