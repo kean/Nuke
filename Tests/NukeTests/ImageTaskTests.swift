@@ -229,9 +229,11 @@ struct ImageTaskTests {
         task.cancel()
 
         // Then it is visible on the calling thread, without waiting for the
-        // pipeline actor to process the cancellation
+        // pipeline actor to process the cancellation.
+        //
+        // The result is deliberately not asserted here: it is written on the
+        // pipeline actor, so whether it is set yet is a race.
         #expect(task.isCancelled)
-        #expect(task.status.result == nil)
     }
 
     // MARK: - Priority

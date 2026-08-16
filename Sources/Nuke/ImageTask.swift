@@ -32,13 +32,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         set { setPriority(newValue) }
     }
 
-    /// Returns the current download progress. Returns zeros until the download
-    /// starts and the total resource size is known.
-    @available(*, deprecated, renamed: "status.progress", message: "Use `status` to read the progress along with the rest of the task state captured at the same point in time.")
-    public var currentProgress: Progress {
-        statusLock.withLockUnchecked { $0.progress }
-    }
-
     /// The download progress.
     public struct Progress: Hashable, Sendable {
         /// The number of bytes that the task has received.
@@ -335,5 +328,48 @@ extension ImageTask {
                 self._streamContinuations.append(continuation)
             }
         }
+    }
+}
+
+// MARK: - ImageTask (Deprecated)
+
+extension ImageTask {
+    /// Returns the current download progress. Returns zeros until the download
+    /// starts and the total resource size is known.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``status`` instead.
+    @available(*, deprecated, renamed: "status.progress", message: "Deprecated in Nuke 14.0. Use `status` to read the progress along with the rest of the task state captured at the same point in time.")
+    public var currentProgress: Progress {
+        statusLock.withLockUnchecked { $0.progress }
+    }
+
+    /// The current state of the task.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``status`` instead. The state is
+    /// now derived from it: ``Status/isCancelled`` records the cancellation
+    /// request and ``Status/result`` records how the task actually ended.
+    @available(*, deprecated, message: "Deprecated in Nuke 14.0. Use `status` instead: `isCancelled` for the cancellation request and `result` for the outcome.")
+    public var state: State {
+        let status = self.status
+        guard let result = status.result else {
+            return status.isCancelled ? .cancelled : .running
+        }
+        if case .failure(.cancelled) = result {
+            return .cancelled
+        }
+        return .completed
+    }
+
+    /// The state of the image task.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``ImageTask/Status`` instead.
+    @available(*, deprecated, message: "Deprecated in Nuke 14.0. Use `ImageTask.Status` instead.")
+    @frozen public enum State {
+        /// The task is currently running.
+        case running
+        /// The task has received a cancel message.
+        case cancelled
+        /// The task has completed (without being canceled).
+        case completed
     }
 }

@@ -566,6 +566,13 @@ struct ImageTaskStatusTests {
         await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
         task.cancel()
         await notification(MockDataLoader.DidCancelTask, object: dataLoader) {}
+
+        // `DidCancelTask` is posted from the data loader queue while the
+        // pipeline is still on its way to recording the outcome, so wait for
+        // the task itself to finish before reading the result.
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
         #expect(task.status.isCancelled)
         #expect(task.status.result?.error == .cancelled)
     }

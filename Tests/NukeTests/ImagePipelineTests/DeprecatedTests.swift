@@ -160,3 +160,87 @@ struct DeprecationTests {
         #expect(progressValues.value[1] == (20, 20))
     }
 }
+
+/// `ImageTask.state` is no longer stored – it is derived from `status`. These
+/// tests pin the mapping to what the stored property used to report.
+@Suite(.timeLimit(.minutes(5)))
+struct DeprecatedImageTaskStateTests {
+    private let pipeline: ImagePipeline
+    private let dataLoader: MockDataLoader
+
+    init() {
+        let dataLoader = MockDataLoader()
+        self.dataLoader = dataLoader
+        self.pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
+    // The `state` reads are hoisted out of `#expect` on purpose: the macro
+    // re-expands its argument, which would report every deprecation twice.
+
+    @Test func stateIsRunningWhileInFlight() {
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+
+        let state = task.state
+        #expect(state == .running)
+        task.cancel()
+    }
+
+    @Test func stateIsCancelledAsSoonAsCancelIsCalled() {
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+
+        task.cancel()
+
+        // Reads as `.cancelled` whether or not the pipeline has processed the
+        // cancellation yet, matching the old stored state, which flipped
+        // synchronously inside `cancel()`.
+        let state = task.state
+        #expect(state == .cancelled)
+    }
+
+    @Test func stateIsCancelledAfterThePipelineProcessesTheCancellation() async throws {
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        let state = task.state
+        #expect(state == .cancelled)
+    }
+
+    @Test func stateIsCompletedAfterSuccess() async throws {
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.response
+
+        let state = task.state
+        #expect(state == .completed)
+    }
+
+    @Test func stateIsCompletedWhenTheTaskFails() async throws {
+        dataLoader.results[Test.url] = .failure(Foundation.URLError(.notConnectedToInternet) as NSError)
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try? await task.response
+
+        let state = task.state
+        #expect(state == .completed)
+    }
+
+    @Test func stateStaysCompletedWhenAFinishedTaskIsCancelled() async throws {
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.response
+
+        // Cancelling after the fact records the request but must not rewrite
+        // the outcome, which is what the stored state used to guarantee.
+        task.cancel()
+
+        let state = task.state
+        #expect(task.isCancelled)
+        #expect(state == .completed)
+    }
+}
