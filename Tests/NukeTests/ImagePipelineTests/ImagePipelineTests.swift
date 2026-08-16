@@ -567,13 +567,17 @@ struct ImagePipelineTests {
         let error = NSError(domain: "test", code: -1)
         dataLoader.results[Test.url] = .failure(error)
 
-        // WHEN - both tasks are started concurrently
-        async let result1: ImageResponse = pipeline.imageTask(with: Test.request).response
-        async let result2: ImageResponse = pipeline.imageTask(with: Test.request).response
+        // WHEN - both tasks are started concurrently. Data loading stays
+        // suspended until both have registered with the pipeline, otherwise the
+        // first one can fail before the second subscribes and there is nothing
+        // left to coalesce with.
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+        }
 
         var errorCount = 0
-        do { _ = try await result1 } catch { errorCount += 1 }
-        do { _ = try await result2 } catch { errorCount += 1 }
+        do { _ = try await task1.response } catch { errorCount += 1 }
+        do { _ = try await task2.response } catch { errorCount += 1 }
 
         // THEN - both subscribers receive an error
         #expect(errorCount == 2)
