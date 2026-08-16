@@ -33,6 +33,10 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 
+**Bug Fixes**
+
+- Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
+
 # Nuke 13
 
 ## WIP
