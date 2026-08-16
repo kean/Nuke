@@ -42,3 +42,22 @@ let request = ImageRequest(url: url, userInfo: ["key": "value"])
 var request = ImageRequest(url: url)
 request.userInfo = ["key": "value"]
 ```
+
+## `Float` to `CGFloat`
+
+The public scale and size APIs now use `CGFloat`, matching the types you get from UIKit and SwiftUI.
+
+| API | Nuke 13 | Nuke 14 |
+|---|---|---|
+| `ImageRequest.scale` | `Float` | `CGFloat` |
+| `ImageRequest.ThumbnailOptions.init(maxPixelSize:)` | `Float` | `CGFloat` |
+
+Literals continue to work as is. Remove the conversions if you had any:
+
+```swift
+// Nuke 13
+request.scale = Float(traitCollection.displayScale)
+
+// Nuke 14
+request.scale = traitCollection.displayScale
+```

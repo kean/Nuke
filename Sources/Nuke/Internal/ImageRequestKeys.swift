@@ -9,7 +9,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
     private let customKey: String?
     private let imageId: String?
-    private let scale: Float
+    private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
     private let processors: [any ImageProcessing]
     private let _hashValue: Int
@@ -78,7 +78,7 @@ final class TaskLoadImageKey: Hashable, Sendable {
 /// Uniquely identifies a task of retrieving the original image.
 struct TaskFetchOriginalImageKey: Hashable {
     private let dataLoadKey: TaskFetchOriginalDataKey
-    private let scale: Float
+    private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
 
     init(_ request: ImageRequest) {
