@@ -28,14 +28,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
     public var priority: ImageRequest.Priority {
-        get { withNonisolatedStateLock { $0.priority } }
+        get { _status.withLockUnchecked { $0.priority } }
         set { setPriority(newValue) }
-    }
-
-    /// Returns the current download progress. Returns zeros until the download
-    /// starts and the total resource size is known.
-    public var currentProgress: Progress {
-        withNonisolatedStateLock { $0.progress }
     }
 
     /// The download progress.
@@ -57,23 +51,51 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    /// The current state of the task.
-    public var state: State {
-        withNonisolatedStateLock { $0.state }
+    /// Returns `true` if the task was cancelled from the outside: either by
+    /// calling ``cancel()``, or by cancelling the Swift concurrency task that
+    /// awaits ``response``.
+    ///
+    /// The flag is set synchronously, on the thread that requests the
+    /// cancellation, and never goes back to `false`.
+    ///
+    /// - note: Cancellation is a request, not an outcome. It is recorded before
+    /// the pipeline sends ``Event/finished(_:)``, and it can also be requested
+    /// after the task has already finished. Use ``Status/result`` to learn how
+    /// the task actually ended.
+    public var isCancelled: Bool {
+        _status.withLockUnchecked { $0.isCancelled }
     }
 
-    var isCancelled: Bool {
-        withNonisolatedStateLock { $0.isCancelled }
+    /// Returns a snapshot of everything about the task that can change while
+    /// it runs.
+    ///
+    /// Reading the individual properties one by one acquires the task's lock
+    /// once per property, so the values can come from different points in time.
+    /// Read the status instead when you need them to agree with each other.
+    public var status: Status {
+        _status.withLockUnchecked { $0 }
     }
 
-    /// The state of the image task.
-    @frozen public enum State {
-        /// The task is currently running.
-        case running
-        /// The task has received a cancel message.
-        case cancelled
-        /// The task has completed (without being canceled).
-        case completed
+    /// A snapshot of the task state, captured at a single point in time.
+    public struct Status: Sendable {
+        /// The result the task finished with, or `nil` if it is still running.
+        ///
+        /// The result is recorded immediately before the ``Event/finished(_:)``
+        /// event is sent, so it is guaranteed to be available to the observers
+        /// of that event and to anyone awaiting ``ImageTask/response``.
+        public internal(set) var result: Result<ImageResponse, ImagePipeline.Error>?
+
+        /// Returns `true` if the task was cancelled from the outside.
+        ///
+        /// - seealso: ``ImageTask/isCancelled``
+        public internal(set) var isCancelled = false
+
+        /// The priority of the task.
+        public internal(set) var priority: ImageRequest.Priority
+
+        /// The download progress. Contains zeros until the download starts and
+        /// the total resource size is known.
+        public internal(set) var progress = Progress(completed: 0, total: 0)
     }
 
     // MARK: - Async/Await
@@ -138,7 +160,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    private let nonisolatedState: OSAllocatedUnfairLock<NonisolatedState>
+    private let _status: OSAllocatedUnfairLock<Status>
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
@@ -154,7 +176,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.nonisolatedState = OSAllocatedUnfairLock(uncheckedState: NonisolatedState(priority: request.priority))
+        self._status = OSAllocatedUnfairLock(uncheckedState: Status(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
@@ -165,11 +187,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        let didChange: Bool = withNonisolatedStateLock {
+        let didChange: Bool = _status.withLockUnchecked {
+            let didChange = !$0.isCancelled && $0.result == nil
             $0.isCancelled = true
-            guard $0.state == .running else { return false }
-            $0.state = .cancelled
-            return true
+            return didChange
         }
         guard didChange else { return } // Make sure it gets called once (expensive)
         Task { @ImagePipelineActor in
@@ -178,10 +199,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
-        let didChange: Bool = withNonisolatedStateLock {
+        let didChange: Bool = _status.withLockUnchecked {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
-            return $0.state == .running
+            return !$0.isCancelled && $0.result == nil
         }
         guard didChange else { return }
         Task { @ImagePipelineActor in
@@ -200,8 +221,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
     @ImagePipelineActor func _cancel() {
-        guard _setFinished(.cancelled) else { return }
-        _dispatch(.finished(.failure(.cancelled)))
+        _finish(.failure(.cancelled))
     }
 
     /// Gets called when the associated task sends a new event.
@@ -214,28 +234,18 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
                 _dispatch(.preview(response))
             }
         case let .progress(value):
-            withNonisolatedStateLock { $0.progress = value }
+            _status.withLockUnchecked { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
             _finish(.failure(error))
         }
     }
 
+    /// Sends the terminal event, but only the first time it is called.
     @ImagePipelineActor private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
-        guard _setFinished(.completed) else { return }
-        _dispatch(.finished(result))
-    }
-
-    /// Latches the task as finished and records the outcome. Returns `false`
-    /// if the terminal event was already sent.
-    @ImagePipelineActor private func _setFinished(_ state: State) -> Bool {
-        guard !_isFinished else { return false }
+        guard !_isFinished else { return }
         _isFinished = true
-        withNonisolatedStateLock {
-            guard $0.state == .running else { return }
-            $0.state = state
-        }
-        return true
+        _dispatch(.finished(result))
     }
 
     /// Dispatches the given event to the observers.
@@ -247,6 +257,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             return // Task isn't fully wired yet
         }
 
+        // Record the result first so that it is already visible to everyone
+        // observing the terminal event.
+        if case .finished(let result) = event {
+            _status.withLockUnchecked { $0.result = result }
+        }
         for continuation in _streamContinuations {
             continuation.yield(event)
         }
@@ -278,7 +293,13 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: CustomStringConvertible
 
     public var description: String {
-        "ImageTask(id: \(taskId), priority: \(priority), progress: \(currentProgress.completed) / \(currentProgress.total), state: \(state))"
+        let status = self.status
+        let state: String = switch status.result {
+        case .none: status.isCancelled ? "cancelled" : "running"
+        case .success: "success"
+        case .failure(let error): "failure(\(error))"
+        }
+        return "ImageTask(id: \(taskId), priority: \(status.priority), progress: \(status.progress.completed) / \(status.progress.total), state: \(state))"
     }
 }
 
@@ -301,18 +322,47 @@ extension ImageTask {
             }
         }
     }
+}
 
-    private func withNonisolatedStateLock<T>(_ closure: (inout NonisolatedState) -> T) -> T {
-        nonisolatedState.withLockUnchecked(closure)
+// MARK: - ImageTask (Deprecated)
+
+extension ImageTask {
+    /// Returns the current download progress. Returns zeros until the download
+    /// starts and the total resource size is known.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``status`` instead.
+    @available(*, deprecated, renamed: "status.progress", message: "Deprecated in Nuke 14.0. Use `status` to read the progress along with the rest of the task state captured at the same point in time.")
+    public var currentProgress: Progress {
+        _status.withLockUnchecked { $0.progress }
     }
 
-    /// Contains the state synchronized using the internal lock.
+    /// The current state of the task.
     ///
-    /// - warning: Must be accessed using `withNonisolatedState`.
-    private struct NonisolatedState {
-        var state: ImageTask.State = .running
-        var isCancelled = false
-        var priority: ImageRequest.Priority
-        var progress = Progress(completed: 0, total: 0)
+    /// - warning: Deprecated in Nuke 14.0. Use ``status`` instead. The state is
+    /// now derived from it: ``Status/isCancelled`` records the cancellation
+    /// request and ``Status/result`` records how the task actually ended.
+    @available(*, deprecated, message: "Deprecated in Nuke 14.0. Use `status` instead: `isCancelled` for the cancellation request and `result` for the outcome.")
+    public var state: State {
+        let status = self.status
+        guard let result = status.result else {
+            return status.isCancelled ? .cancelled : .running
+        }
+        if case .failure(.cancelled) = result {
+            return .cancelled
+        }
+        return .completed
+    }
+
+    /// The state of the image task.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``ImageTask/Status`` instead.
+    @available(*, deprecated, message: "Deprecated in Nuke 14.0. Use `ImageTask.Status` instead.")
+    @frozen public enum State {
+        /// The task is currently running.
+        case running
+        /// The task has received a cancel message.
+        case cancelled
+        /// The task has completed (without being canceled).
+        case completed
     }
 }

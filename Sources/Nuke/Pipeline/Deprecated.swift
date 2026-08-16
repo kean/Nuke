@@ -37,7 +37,7 @@ extension ImagePipeline {
                 guard !task.isCancelled else { return }
                 switch event {
                 case .progress(let value): progress?(nil, value)
-                case .preview(let response): progress?(response, task.currentProgress)
+                case .preview(let response): progress?(response, task.status.progress)
                 case .finished(let result):
                     completion(result)
                 }

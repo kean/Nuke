@@ -37,7 +37,7 @@ struct ImageTaskTests {
         #expect(ImageTask.Progress(completed: 200, total: 100).fraction == 1)
     }
 
-    @Test func currentProgressIsEmptyBeforeTheDownloadStarts() {
+    @Test func progressIsEmptyBeforeTheDownloadStarts() {
         // Given
         dataLoader.isSuspended = true
 
@@ -45,7 +45,7 @@ struct ImageTaskTests {
         let task = pipeline.imageTask(with: Test.request)
 
         // Then
-        #expect(task.currentProgress == ImageTask.Progress(completed: 0, total: 0))
+        #expect(task.status.progress == ImageTask.Progress(completed: 0, total: 0))
         task.cancel()
     }
 
@@ -95,6 +95,17 @@ struct ImageTaskTests {
 
         // Then
         #expect(task.description.contains("state: cancelled"))
+    }
+
+    @Test func descriptionReflectsTheFinishedState() async throws {
+        // Given
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When
+        _ = try await task.response
+
+        // Then
+        #expect(task.description.contains("state: success"))
     }
 
     // MARK: - Events
@@ -157,9 +168,9 @@ struct ImageTaskTests {
         #expect(events.isEmpty)
     }
 
-    // MARK: - State
+    // MARK: - Status
 
-    @Test func stateIsCompletedWhenTheTaskFinishes() async throws {
+    @Test func statusResultIsSetWhenTheTaskFinishes() async throws {
         // Given
         let task = pipeline.imageTask(with: Test.request)
 
@@ -167,10 +178,23 @@ struct ImageTaskTests {
         _ = try await task.response
 
         // Then
-        #expect(task.state == .completed)
+        #expect(task.status.result?.isSuccess == true)
     }
 
-    @Test func cancellingAFinishedTaskDoesNotChangeItsState() async throws {
+    @Test func statusIsCapturedAtomically() async throws {
+        // Given
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When
+        _ = try await task.response
+
+        // Then the result and the progress agree with each other
+        let status = task.status
+        #expect(status.result?.isSuccess == true)
+        #expect(status.progress.fraction == 1)
+    }
+
+    @Test func cancellingAFinishedTaskDoesNotChangeItsResult() async throws {
         // Given
         let task = pipeline.imageTask(with: Test.request)
         _ = try await task.response
@@ -178,8 +202,9 @@ struct ImageTaskTests {
         // When
         task.cancel()
 
-        // Then
-        #expect(task.state == .completed)
+        // Then the cancellation is recorded, but the outcome is not affected
+        #expect(task.isCancelled)
+        #expect(task.status.result?.isSuccess == true)
     }
 
     @Test func cancellingTwiceIsIdempotent() {
@@ -192,7 +217,23 @@ struct ImageTaskTests {
         task.cancel()
 
         // Then
-        #expect(task.state == .cancelled)
+        #expect(task.isCancelled)
+    }
+
+    @Test func isCancelledIsSetSynchronously() {
+        // Given
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When
+        task.cancel()
+
+        // Then it is visible on the calling thread, without waiting for the
+        // pipeline actor to process the cancellation.
+        //
+        // The result is deliberately not asserted here: it is written on the
+        // pipeline actor, so whether it is set yet is a race.
+        #expect(task.isCancelled)
     }
 
     // MARK: - Priority

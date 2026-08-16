@@ -44,7 +44,7 @@ struct ImagePipelineAsyncAwaitTests {
 
         // THEN
         #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
-        #expect(task.state == .completed)
+        #expect(task.status.result?.isSuccess == true)
     }
 
     @Test func taskBasedImage() async throws {
@@ -189,7 +189,7 @@ struct ImagePipelineAsyncAwaitTests {
             caughtError = error
         }
         #expect(caughtError == .cancelled)
-        #expect(task.state == .cancelled)
+        #expect(task.isCancelled)
         NotificationCenter.default.removeObserver(observer)
     }
 
@@ -527,7 +527,7 @@ struct ImagePipelineAsyncAwaitTests {
 // MARK: - ImageTask State
 
 @Suite(.timeLimit(.minutes(5)))
-struct ImageTaskStateTests {
+struct ImageTaskStatusTests {
     let dataLoader: MockDataLoader
     let pipeline: ImagePipeline
 
@@ -540,39 +540,49 @@ struct ImageTaskStateTests {
         }
     }
 
-    @Test func stateIsRunningWhileInFlight() async throws {
+    @Test func statusIsEmptyWhileInFlight() async throws {
         dataLoader.queue.isSuspended = true
         let task = pipeline.imageTask(with: Test.request)
         Task.detached { try? await task.response }
 
         await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
 
-        #expect(task.state == .running)
+        #expect(task.status.result == nil)
+        #expect(!task.status.isCancelled)
         dataLoader.queue.isSuspended = false
         _ = try await task.response
     }
 
-    @Test func stateIsCompletedAfterSuccess() async throws {
+    @Test func statusRecordsTheSuccess() async throws {
         let task = pipeline.imageTask(with: Test.request)
         _ = try await task.response
-        #expect(task.state == .completed)
+        #expect(task.status.result?.isSuccess == true)
     }
 
-    @Test func stateIsCancelledAfterCancel() async throws {
+    @Test func statusRecordsTheCancellation() async throws {
         dataLoader.queue.isSuspended = true
         let task = pipeline.imageTask(with: Test.request)
         Task.detached { try? await task.response }
         await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
         task.cancel()
         await notification(MockDataLoader.DidCancelTask, object: dataLoader) {}
-        #expect(task.state == .cancelled)
+
+        // `DidCancelTask` is posted from the data loader queue while the
+        // pipeline is still on its way to recording the outcome, so wait for
+        // the task itself to finish before reading the result.
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        #expect(task.status.isCancelled)
+        #expect(task.status.result?.error == .cancelled)
     }
 
-    @Test func stateIsFailedWhenErrorOccurs() async throws {
+    @Test func statusRecordsTheFailure() async throws {
         dataLoader.results[Test.url] = .failure(Foundation.URLError(.notConnectedToInternet) as NSError)
         let task = pipeline.imageTask(with: Test.request)
         _ = try? await task.response
-        #expect(task.state == .completed)
+        #expect(task.status.result?.isSuccess == false)
+        #expect(!task.status.isCancelled)
     }
 }
 
