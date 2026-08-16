@@ -67,6 +67,27 @@ struct ImageTaskTests {
         other.cancel()
     }
 
+    // MARK: - Identifiable
+
+    @Test func idIsStableAndUniqueAcrossPipelines() {
+        // Given two pipelines that both hand out the same `taskId`
+        dataLoader.isSuspended = true
+        let other = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let lhs = pipeline.imageTask(with: Test.request)
+        let rhs = other.imageTask(with: Test.request)
+
+        // Then the identifiers are still distinct
+        #expect(lhs.taskId == rhs.taskId)
+        #expect(lhs.id == lhs.id)
+        #expect(lhs.id != rhs.id)
+
+        lhs.cancel()
+        rhs.cancel()
+    }
+
     // MARK: - CustomStringConvertible
 
     @Test func description() {
