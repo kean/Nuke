@@ -17,6 +17,14 @@
 | [1.0](#nuke-1)   | Oct 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0, macOS 10.9                            |
 | [0.2](#nuke-0x)  | Sep 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0                                        |
 
+# Nuke 14
+
+## WIP
+
+**Requirements**
+
+- Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0
+
 # Nuke 13
 
 ## WIP

@@ -19,7 +19,7 @@ Nuke can also drive progressive decoding, animated image rendering, drawing vect
 | GIF | ``AssetType/gif`` | ✅ | ✅ | Automatic (single preview) | ✅ (data attached) |
 | HEIC | ``AssetType/heic`` | ✅ | ✅ | Opt-in | First frame only |
 | WebP | ``AssetType/webp`` | ✅ | ❌ | Opt-in | First frame only |
-| AVIF | – | ✅ iOS 16, macOS 13 | ✅ recent OS only | Opt-in | First frame only |
+| AVIF | – | ✅ | ✅ recent OS only | Opt-in | First frame only |
 | JPEG XL | ``AssetType/jxl`` | ✅ iOS 17, macOS 14 | ❌ | Opt-in | – |
 | JPEG 2000 | ``AssetType/jpeg2000`` | ✅ | ✅ | Opt-in | – |
 | TIFF | ``AssetType/tiff`` | ✅ | ✅ | Opt-in | – |
@@ -33,7 +33,7 @@ Nuke can also drive progressive decoding, animated image rendering, drawing vect
 Reading the columns:
 
 - **``AssetType``** – the type `AssetType(data)` returns for this format, or `–` if the sniffer doesn't recognize it. A `–` doesn't prevent decoding, it only means ``ImageContainer/type`` is `nil`.
-- **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every OS Nuke supports (iOS 15, tvOS 15, macOS 12, watchOS 8, visionOS 1).
+- **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every OS Nuke supports (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
 - **Encode** – whether the format can be used with ``ImageEncoders/ImageIO``. ``ImageEncoders/Default`` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder.
 - **Previews** – behavior once ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``, and whether Image I/O can produce anything from a partial file is format-dependent.
 - **Animation** – "First frame only" means the built-in decoder produces a still image even when the file has multiple frames. See <doc:supported-image-formats#Animated-Images>.
@@ -106,7 +106,7 @@ Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` retu
 
 ## AVIF
 
-[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on iOS 16, macOS 13, and the tvOS and watchOS releases from the same cycle.
+[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every OS Nuke supports.
 
 ``AssetType`` doesn't sniff AVIF: the format is an ISO base media container with an `avif` major brand, which isn't one of the recognized brands. Images decode normally, but ``ImageContainer/type`` is `nil`.
 
