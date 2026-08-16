@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 #if canImport(UIKit)
 import UIKit
@@ -29,11 +30,11 @@ import AppKit
 public final class ImagePipeline: Sendable {
     /// Returns the shared image pipeline.
     nonisolated public static var shared: ImagePipeline {
-        get { _shared.value }
+        get { _shared.withLock { $0 } }
         set { _shared.withLock { $0 = newValue } }
     }
 
-    private nonisolated static let _shared = Mutex(value: ImagePipeline(configuration: .withURLCache))
+    private nonisolated static let _shared = OSAllocatedUnfairLock(initialState: ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
     nonisolated public let configuration: Configuration
@@ -59,7 +60,7 @@ public final class ImagePipeline: Sendable {
             return value
         }
     }
-    private nonisolated let _nextTaskId = Mutex<UInt64>(value: 0)
+    private nonisolated let _nextTaskId = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     let rateLimiter: RateLimiter?
     nonisolated let id = UUID()

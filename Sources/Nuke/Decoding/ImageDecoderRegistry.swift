@@ -3,13 +3,14 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// A registry of image codecs.
 public final class ImageDecoderRegistry: Sendable {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private let state = Mutex(value: State())
+    private let state = OSAllocatedUnfairLock(initialState: State())
 
     private struct State {
         var registrations: [Registration] = []
@@ -35,7 +36,7 @@ public final class ImageDecoderRegistry: Sendable {
     public func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
         // Iterate over a snapshot: the closures are provided by the user and
         // must never be called while holding the lock.
-        for registration in state.value.registrations.reversed() {
+        for registration in state.withLock({ $0.registrations }).reversed() {
             if let decoder = registration.match(context) {
                 return decoder
             }

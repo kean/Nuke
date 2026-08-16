@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 #if os(watchOS)
 import ImageIO
@@ -370,13 +371,13 @@ enum Screen {
     static var scale: CGFloat {
         let scale = UITraitCollection.current.displayScale
         guard scale > 0 else {
-            return lastKnownScale.value
+            return lastKnownScale.withLock { $0 }
         }
-        lastKnownScale.testAndSet(scale)
+        lastKnownScale.withLock { $0 = scale }
         return scale
     }
 
-    private static let lastKnownScale = Mutex<CGFloat>(value: 1)
+    private static let lastKnownScale = OSAllocatedUnfairLock<CGFloat>(initialState: 1)
 #elseif os(watchOS)
     /// Returns the current screen scale. Never returns `0`.
     ///

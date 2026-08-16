@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 import Testing
 @testable import Nuke
 
@@ -13,9 +14,9 @@ struct TestExpectationTests {
     /// while it is still being created.
     @Test func notificationIsDeliveredWhileExpectationIsCreated() async {
         let name = Notification.Name("com.github.kean.Nuke.Tests.TestExpectationTests.\(UUID().uuidString)")
-        let isPosting = Nuke.Mutex(value: true)
+        let isPosting = OSAllocatedUnfairLock(initialState: true)
         let thread = Thread {
-            while isPosting.value {
+            while isPosting.withLock({ $0 }) {
                 NotificationCenter.default.post(name: name, object: nil)
             }
         }

@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 @Suite(.serialized, .timeLimit(.minutes(2)))
@@ -516,43 +517,52 @@ struct DataLoaderTests {
 
 /// Records every `completion` call made by a ``DataLoading`` instance.
 private final class CompletionRecorder: @unchecked Sendable {
-    @Mutex var errors: [(any Error)?] = []
+    var errors: [(any Error)?] { _errors.withLockUnchecked { $0 } }
+
+    // `any Error` is not `Sendable`, so the state cannot be checked statically.
+    private let _errors = OSAllocatedUnfairLock<[(any Error)?]>(uncheckedState: [])
 
     func record(_ error: (any Error)?) {
-        _errors.withLock { $0.append(error) }
+        _errors.withLockUnchecked { $0.append(error) }
     }
 }
 
 // MARK: - Spy Delegate
 
 private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    @Mutex var didReceiveResponseCount = 0
-    @Mutex var didReceiveDataCount = 0
-    @Mutex var didCompleteCount = 0
-    @Mutex var didFinishMetricsCount = 0
-    @Mutex var didCreateTaskCount = 0
+    var didReceiveResponseCount: Int { _didReceiveResponseCount.withLock { $0 } }
+    var didReceiveDataCount: Int { _didReceiveDataCount.withLock { $0 } }
+    var didCompleteCount: Int { _didCompleteCount.withLock { $0 } }
+    var didFinishMetricsCount: Int { _didFinishMetricsCount.withLock { $0 } }
+    var didCreateTaskCount: Int { _didCreateTaskCount.withLock { $0 } }
+
+    private let _didReceiveResponseCount = OSAllocatedUnfairLock(initialState: 0)
+    private let _didReceiveDataCount = OSAllocatedUnfairLock(initialState: 0)
+    private let _didCompleteCount = OSAllocatedUnfairLock(initialState: 0)
+    private let _didFinishMetricsCount = OSAllocatedUnfairLock(initialState: 0)
+    private let _didCreateTaskCount = OSAllocatedUnfairLock(initialState: 0)
 
     let didCompleteWithError = TestExpectation()
 
     func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
-        didCreateTaskCount += 1
+        _didCreateTaskCount.withLock { $0 += 1 }
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        didReceiveResponseCount += 1
+        _didReceiveResponseCount.withLock { $0 += 1 }
         completionHandler(.allow)
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        didReceiveDataCount += 1
+        _didReceiveDataCount.withLock { $0 += 1 }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
-        didCompleteCount += 1
+        _didCompleteCount.withLock { $0 += 1 }
         didCompleteWithError.fulfill()
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        didFinishMetricsCount += 1
+        _didFinishMetricsCount.withLock { $0 += 1 }
     }
 }

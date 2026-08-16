@@ -5,7 +5,6 @@
 import Nuke
 import Foundation
 import CoreGraphics
-import os
 
 #if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
 import UIKit
@@ -218,26 +217,5 @@ extension Result {
         case let .failure(error):
             return error
         }
-    }
-}
-
-@propertyWrapper final class Mutex<T> {
-    private let lock: OSAllocatedUnfairLock<T>
-
-    init(wrappedValue value: T) {
-        self.lock = OSAllocatedUnfairLock(uncheckedState: value)
-    }
-
-    var wrappedValue: T {
-        get { withLock { $0 } }
-        set { withLock { $0 = newValue } }
-    }
-
-    var projectedValue: Mutex<T> {
-        self
-    }
-
-    func withLock<U>(_ closure: (inout T) -> U) -> U {
-        lock.withLockUnchecked(closure)
     }
 }

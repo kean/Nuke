@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
@@ -18,7 +19,9 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 
-    @Mutex var createdTaskCount = 0
+    var createdTaskCount: Int { _createdTaskCount.withLock { $0 } }
+    private let _createdTaskCount = OSAllocatedUnfairLock(initialState: 0)
+
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
     var isSuspended: Bool {
@@ -30,7 +33,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         let task = MockDataTask()
 
         // - warning: Important so it runs atomically
-        $createdTaskCount.withLock { $0 = $0 + 1 }
+        _createdTaskCount.withLock { $0 += 1 }
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
 
