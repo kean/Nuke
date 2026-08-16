@@ -28,14 +28,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
     public var priority: ImageRequest.Priority {
-        get { withStatusLock { $0.priority } }
+        get { statusLock.withLockUnchecked { $0.priority } }
         set { setPriority(newValue) }
     }
 
     /// Returns the current download progress. Returns zeros until the download
     /// starts and the total resource size is known.
+    @available(*, deprecated, renamed: "status.progress", message: "Use `status` to read the progress along with the rest of the task state captured at the same point in time.")
     public var currentProgress: Progress {
-        withStatusLock { $0.progress }
+        statusLock.withLockUnchecked { $0.progress }
     }
 
     /// The download progress.
@@ -69,7 +70,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// after the task has already finished. Use ``Status/result`` to learn how
     /// the task actually ended.
     public var isCancelled: Bool {
-        withStatusLock { $0.isCancelled }
+        statusLock.withLockUnchecked { $0.isCancelled }
     }
 
     /// Returns a snapshot of everything about the task that can change while
@@ -79,7 +80,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// once per property, so the values can come from different points in time.
     /// Read the status instead when you need them to agree with each other.
     public var status: Status {
-        withStatusLock { $0 }
+        statusLock.withLockUnchecked { $0 }
     }
 
     /// A snapshot of the task state, captured at a single point in time.
@@ -200,7 +201,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        let didChange: Bool = withStatusLock {
+        let didChange: Bool = statusLock.withLockUnchecked {
             let didChange = !$0.isCancelled && $0.result == nil
             $0.isCancelled = true
             return didChange
@@ -212,7 +213,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
-        let didChange: Bool = withStatusLock {
+        let didChange: Bool = statusLock.withLockUnchecked {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
             return !$0.isCancelled && $0.result == nil
@@ -247,7 +248,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
                 _dispatch(.preview(response))
             }
         case let .progress(value):
-            withStatusLock { $0.progress = value }
+            statusLock.withLockUnchecked { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
             _finish(.failure(error))
@@ -273,7 +274,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         // Record the result first so that it is already visible to everyone
         // observing the terminal event.
         if case .finished(let result) = event {
-            withStatusLock { $0.result = result }
+            statusLock.withLockUnchecked { $0.result = result }
         }
         for continuation in _streamContinuations {
             continuation.yield(event)
@@ -334,11 +335,5 @@ extension ImageTask {
                 self._streamContinuations.append(continuation)
             }
         }
-    }
-
-    /// Provides exclusive access to the ``Status`` shared between the callers
-    /// and the pipeline actor.
-    private func withStatusLock<T>(_ closure: (inout Status) -> T) -> T {
-        statusLock.withLockUnchecked(closure)
     }
 }

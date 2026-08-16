@@ -37,7 +37,7 @@ struct ImageTaskTests {
         #expect(ImageTask.Progress(completed: 200, total: 100).fraction == 1)
     }
 
-    @Test func currentProgressIsEmptyBeforeTheDownloadStarts() {
+    @Test func progressIsEmptyBeforeTheDownloadStarts() {
         // Given
         dataLoader.isSuspended = true
 
@@ -45,7 +45,7 @@ struct ImageTaskTests {
         let task = pipeline.imageTask(with: Test.request)
 
         // Then
-        #expect(task.currentProgress == ImageTask.Progress(completed: 0, total: 0))
+        #expect(task.status.progress == ImageTask.Progress(completed: 0, total: 0))
         task.cancel()
     }
 
