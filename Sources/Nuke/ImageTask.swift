@@ -153,7 +153,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // Set once during creation, then read-only from `response` getter.
     nonisolated(unsafe) var _task: Task<ImageResponse, any Error>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
-    @ImagePipelineActor var _state: State = .running
+    @ImagePipelineActor var _isFinished = false
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
@@ -207,7 +207,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
     @ImagePipelineActor func _cancel() {
-        guard _setState(.cancelled) else { return }
+        guard _setFinished(.cancelled) else { return }
         _dispatch(.finished(.failure(.cancelled)))
     }
 
@@ -229,14 +229,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     @ImagePipelineActor private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
-        guard _setState(.completed) else { return }
+        guard _setFinished(.completed) else { return }
         _dispatch(.finished(result))
     }
 
-    // The state mirror needs to be eliminated.
-    @ImagePipelineActor func _setState(_ state: State) -> Bool {
-        guard _state == .running else { return false }
-        _state = state
+    /// Latches the task as finished and records the outcome. Returns `false`
+    /// if the terminal event was already sent.
+    @ImagePipelineActor private func _setFinished(_ state: State) -> Bool {
+        guard !_isFinished else { return false }
+        _isFinished = true
         withNonisolatedStateLock {
             guard $0.state == .running else { return }
             $0.state = state
@@ -300,7 +301,7 @@ extension ImageTask {
     private func makeStream() -> AsyncStream<Event> {
         AsyncStream { continuation in
             Task { @ImagePipelineActor in
-                guard self._state == .running else {
+                guard !self._isFinished else {
                     return continuation.finish()
                 }
                 self._streamContinuations.append(continuation)
