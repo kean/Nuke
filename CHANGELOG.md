@@ -31,6 +31,7 @@
 - Remove the soft-deprecated `userInfo` parameter from the `ImageRequest` initializers. It's still available as a property – https://github.com/kean/Nuke/pull/909
 - `ImageRequest.scale` and `ImageRequest.ThumbnailOptions.init(maxPixelSize:)` now use `CGFloat` – https://github.com/kean/Nuke/pull/910
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
+- Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 
 # Nuke 13
 
