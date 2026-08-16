@@ -96,11 +96,12 @@ final class TestExpectation: @unchecked Sendable {
 extension TestExpectation {
     convenience init(notification name: Notification.Name, object: AnyObject? = nil) {
         self.init()
-        let ref = TokenRef()
-        ref.token = NotificationCenter.default.addObserver(forName: name, object: object, queue: nil) { [weak self] _ in
-            if let token = ref.token { NotificationCenter.default.removeObserver(token) }
+        let observer = NotificationObserver()
+        let token = NotificationCenter.default.addObserver(forName: name, object: object, queue: nil) { [weak self] _ in
+            observer.remove()
             self?.fulfill()
         }
+        observer.store(token)
     }
 
     /// Creates a test expectation that waits for a given number of operations
@@ -139,8 +140,31 @@ private final class TaskQueueOperationRecorder: @unchecked Sendable {
     }
 }
 
-private final class TokenRef: @unchecked Sendable {
-    var token: NSObjectProtocol?
+/// Owns the token returned by `NotificationCenter.addObserver`. The notification
+/// can be delivered on another thread before `addObserver` returns, so the token
+/// handoff has to be synchronized, and the observer has to be removed exactly
+/// once no matter which side wins the race.
+private final class NotificationObserver: @unchecked Sendable {
+    private let lock = NSLock()
+    private var token: NSObjectProtocol?
+    private var isRemoved = false
+
+    func store(_ token: NSObjectProtocol) {
+        let isRemoved = lock.withLock { () -> Bool in
+            if !self.isRemoved { self.token = token }
+            return self.isRemoved
+        }
+        if isRemoved { NotificationCenter.default.removeObserver(token) }
+    }
+
+    func remove() {
+        let token = lock.withLock { () -> NSObjectProtocol? in
+            isRemoved = true
+            defer { self.token = nil }
+            return self.token
+        }
+        if let token { NotificationCenter.default.removeObserver(token) }
+    }
 }
 
 func notification(_ name: Notification.Name, object: AnyObject? = nil, isolation: isolated (any Actor)? = #isolation, while action: () -> Void = {}) async {
