@@ -23,6 +23,8 @@
 
 - Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled`, which the pipeline reads on every signpost while it can be written from any thread – https://github.com/kean/Nuke/pull/901
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
+- Fix `NukeVideo` not compiling for watchOS – https://github.com/kean/Nuke/pull/906
+- Fix the Xcode project not building for visionOS – https://github.com/kean/Nuke/pull/906
 
 ## Nuke 13.2.0
 
