@@ -35,7 +35,7 @@ import AppKit
 /// The pipeline maintains a strong reference to the task until the request
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
-public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Sendable {
+public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @unchecked Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     public let taskId: UInt64
 
@@ -350,6 +350,14 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         onEvent?(event, self)
         pipeline?.imageTask(self, didProcessEvent: event, isDataTask: isDataTask)
     }
+
+    // MARK: Identifiable
+
+    /// An identifier that uniquely identifies the task.
+    ///
+    /// Derived from the object identity, not from ``taskId``, which is only
+    /// unique within a single pipeline.
+    public var id: ObjectIdentifier { ObjectIdentifier(self) }
 
     // MARK: Hashable
 
