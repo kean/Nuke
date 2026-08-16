@@ -5,6 +5,8 @@
 import AVKit
 import Foundation
 
+#if !os(watchOS)
+
 #if os(macOS)
 public typealias _PlatformBaseView = NSView
 #else
@@ -217,3 +219,5 @@ extension AVPlayer {
         rate != 0 && error == nil
     }
 }
+
+#endif
