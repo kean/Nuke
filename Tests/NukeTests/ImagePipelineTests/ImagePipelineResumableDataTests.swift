@@ -57,6 +57,49 @@ struct ImagePipelineResumableDataTests {
         ])
     }
 
+    /// On a "206 Partial Content" response, `expectedContentLength` covers only
+    /// the remaining bytes while the accumulated data already contains the
+    /// resumed prefix. The guard that decides whether to give the decoder a
+    /// chance to produce a preview used to compare the two directly, so it was
+    /// never satisfied and the resumed download produced no previews at all.
+    @Test func previewsAreDeliveredWhenTheDownloadIsResumed() async throws {
+        // GIVEN a pipeline with progressive decoding enabled
+        let dataLoader = _MockResumableProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // GIVEN an initial download that delivers one scan and then fails
+        var initialPreviews: [ImageResponse] = []
+        let initialTask = pipeline.imageTask(with: Test.request)
+        for await preview in initialTask.previews {
+            initialPreviews.append(preview)
+        }
+        await #expect(throws: ImagePipeline.Error.self) {
+            try await initialTask.response
+        }
+        #expect(initialPreviews.count == 1)
+
+        // WHEN the download is resumed with "206 Partial Content"
+        var previews: [ImageResponse] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await preview in task.previews {
+            previews.append(preview)
+        }
+        let response = try await task.response
+
+        // THEN the remaining scans are still delivered as previews
+        #expect(dataLoader.isResumed)
+        #expect(previews.count == 1)
+        #expect(previews.allSatisfy { $0.container.isPreview })
+
+        // THEN the final image is produced
+        #expect(!response.container.isPreview)
+    }
+
     @Test func thatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() async throws {
         // GIVEN an initial partial download that fails and stores resumable data
         _ = try? await pipeline.imageTask(with: Test.request).response
@@ -116,6 +159,55 @@ private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable
         entered?.open()
         await proceed?.wait()
         return urlRequest
+    }
+}
+
+/// Serves a progressive JPEG in three scans: the first attempt delivers the
+/// first scan and fails, the resumed attempt delivers the rest with
+/// "206 Partial Content".
+private final class _MockResumableProgressiveDataLoader: DataLoading, @unchecked Sendable {
+    let data = Test.data(name: "progressive", extension: "jpeg")
+    let eTag = "img_01"
+
+    /// `true` when the server accepted the "If-Range" header.
+    private(set) var isResumed = false
+
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let chunks = _createChunks(for: data, size: data.count / 3)
+
+        func makeResponse(statusCode: Int, headerFields: [String: String]) -> HTTPURLResponse {
+            var headerFields = headerFields
+            headerFields["Accept-Ranges"] = "bytes"
+            headerFields["ETag"] = eTag
+            return HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headerFields)!
+        }
+
+        if let range = request.allHTTPHeaderFields?["Range"], request.allHTTPHeaderFields?["If-Range"] == eTag {
+            isResumed = true
+
+            // The client already has the first chunk – serve the remaining ones.
+            let offset = Int(_groups(regex: "bytes=(\\d*)-", in: range)[0])!
+            let remainingChunks = chunks.filter { $0.startIndex >= offset }
+            let remainingCount = data.count - offset
+
+            // "Content-Length" of a partial response covers the remaining bytes only.
+            let response = makeResponse(statusCode: 206, headerFields: [
+                "Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)",
+                "Content-Length": "\(remainingCount)"
+            ])
+            for chunk in remainingChunks {
+                didReceiveData(chunk, response)
+            }
+            completion(nil)
+        } else {
+            // Serve the first chunk and fail mid-download.
+            let response = makeResponse(statusCode: 200, headerFields: ["Content-Length": "\(data.count)"])
+            didReceiveData(chunks[0], response)
+            completion(URLError(.networkConnectionLost))
+        }
+        return AnonymousCancellable {}
     }
 }
 
