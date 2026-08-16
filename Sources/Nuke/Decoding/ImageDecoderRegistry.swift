@@ -91,14 +91,6 @@ public struct ImageDecodingContext: Sendable {
     /// The preview policy for progressive decoding. Set by the pipeline
     /// delegate for partial data; defaults to `.incremental`.
     public var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
-    /// - warning: Deprecated. The automatic downscaling implementation has
-    /// been removed. Setting this value has no effect.
-    @available(*, deprecated, message: "Automatic decoded image size limiting has been removed. Setting this value has no effect.")
-    public var maximumDecodedImageSize: Int? {
-        get { _maximumDecodedImageSize }
-        set { _maximumDecodedImageSize = newValue }
-    }
-    private var _maximumDecodedImageSize: Int?
 
     public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil) {
         self.request = request

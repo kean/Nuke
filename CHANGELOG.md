@@ -25,6 +25,10 @@
 
 - Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904. The internal locks now use `OSAllocatedUnfairLock` instead of the hand-rolled `os_unfair_lock_t` allocations – https://github.com/kean/Nuke/pull/908
 
+**API Changes**
+
+- Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize` – https://github.com/kean/Nuke/pull/907
+
 # Nuke 13
 
 ## WIP

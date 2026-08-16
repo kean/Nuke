@@ -13,3 +13,19 @@ The minimum supported platforms have been raised.
 - Swift 6.2
 
 Apps that need to support earlier OS versions can stay on Nuke 13.x, which continues to receive fixes.
+
+## Removed Deprecated APIs
+
+The APIs deprecated in Nuke 13 have been removed.
+
+| Removed | Replacement |
+|---|---|
+| `ImagePipelineDelegate` | `ImagePipeline.Delegate` |
+| `ImageRequest.imageId` | `ImageRequest.imageID` |
+| `ImageRequest.UserInfoKey.imageIdKey` | `ImageRequest.imageID` |
+| `ImageRequest.UserInfoKey.scaleKey` | `ImageRequest.scale` |
+| `ImageRequest.UserInfoKey.thumbnailKey` | `ImageRequest.thumbnail` |
+| `ImagePipeline.Configuration.maximumDecodedImageSize` | `ImageRequest.ThumbnailOptions` |
+| `ImageDecodingContext.maximumDecodedImageSize` | `ImageRequest.ThumbnailOptions` |
+
+The automatic downscaling implementation behind `maximumDecodedImageSize` was removed in Nuke 13, so setting it already had no effect. Use `ImageRequest.ThumbnailOptions` to control the decoded image size on a per-request basis instead.
