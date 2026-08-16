@@ -65,6 +65,37 @@ struct ImagePipelineTests {
         }
     }
 
+    /// Every update schedules its own hop to the pipeline actor, and the hops
+    /// carry no ordering guarantee between them. Each one has to apply the
+    /// priority that is current when it runs, otherwise a stale value can land
+    /// last and leave the operation out of sync with ``ImageTask/priority``.
+    @Test @ImagePipelineActor func priorityUpdatesNeverApplyAStaleValue() async throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: Test.request)
+        Task.detached { try await imageTask.response }
+        await expectation.wait()
+
+        let operation = try #require(expectation.operations.first)
+        var recorded: [TaskPriority] = []
+        operation.onPriorityChanged = { recorded.append($0) }
+
+        // When two updates are made back to back. The test holds the actor
+        // until it suspends, so both hops are scheduled before either runs.
+        let didApplyUpdates = TestExpectation()
+        imageTask.priority = .veryHigh
+        imageTask.priority = .veryLow
+        Task { @ImagePipelineActor in didApplyUpdates.fulfill() }
+        await didApplyUpdates.wait()
+
+        // Then the operation only ever sees the final priority
+        #expect(recorded == [.veryLow])
+        #expect(imageTask.priority == .veryLow)
+    }
+
     @Test @ImagePipelineActor func decodingPriorityUpdated() async throws {
         // Given
         let pipeline = pipeline.reconfigured {
