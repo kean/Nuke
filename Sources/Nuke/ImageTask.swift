@@ -15,6 +15,23 @@ import AppKit
 
 /// A task performed by the ``ImagePipeline``.
 ///
+/// The pipeline starts executing a task the moment it is created. Await its
+/// ``image`` or ``response`` to get the result, and observe ``progress``,
+/// ``previews``, or ``events`` to follow it while it runs.
+///
+/// ```swift
+/// let task = ImagePipeline.shared.imageTask(with: url)
+/// Task {
+///     for await progress in task.progress {
+///         print("Downloaded \(progress.fraction * 100)%")
+///     }
+/// }
+/// let image = try await task.image
+/// ```
+///
+/// Use ``cancel()`` to stop the task, or cancel the Swift concurrency task that
+/// awaits ``response`` – the pipeline treats both the same way.
+///
 /// The pipeline maintains a strong reference to the task until the request
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
@@ -102,7 +119,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// Returns the response image.
     ///
-    /// Throws ``ImagePipeline/Error/cancelled`` if the task is cancelled.
+    /// Throws an ``ImagePipeline/Error`` if the request fails at any stage –
+    /// loading, decoding, or processing – or ``ImagePipeline/Error/cancelled``
+    /// if the task is cancelled.
+    ///
+    /// - seealso: ``response``
     public var image: PlatformImage {
         get async throws(ImagePipeline.Error) {
             try await response.image
@@ -111,7 +132,16 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// Returns the image response.
     ///
-    /// Throws ``ImagePipeline/Error/cancelled`` if the task is cancelled.
+    /// Throws an ``ImagePipeline/Error`` if the request fails at any stage –
+    /// loading, decoding, or processing – or ``ImagePipeline/Error/cancelled``
+    /// if the task is cancelled.
+    ///
+    /// Cancelling the Swift concurrency task that awaits the response also
+    /// cancels the image task, exactly as if you called ``cancel()``.
+    ///
+    /// It is safe to await the response more than once and at any point in the
+    /// task lifetime, including after it has already finished – every caller
+    /// gets the same outcome.
     public var response: ImageResponse {
         get async throws(ImagePipeline.Error) {
             let result = await withTaskCancellationHandler {
@@ -124,6 +154,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     /// The stream of progress updates.
+    ///
+    /// A convenience over ``events``: every access creates a new subscription.
     public var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
         events.compactMap {
             if case .progress(let value) = $0 { return value }
@@ -133,6 +165,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// The stream of image previews generated for images that support
     /// progressive decoding.
+    ///
+    /// A convenience over ``events``: every access creates a new subscription.
     ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
     public var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
@@ -146,11 +180,29 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// The events sent by the pipeline during the task execution.
     ///
-    /// Each access creates an independent stream that ends with the terminal
-    /// ``Event/finished(_:)`` event. Subscribing is safe at any point in the
-    /// task lifetime: a stream created after the task has already finished
-    /// replays the terminal event, and a stream created mid-download starts
-    /// with the current ``Event/progress(_:)`` value, if any.
+    /// ```swift
+    /// for await event in task.events {
+    ///     switch event {
+    ///     case .progress(let progress): print(progress.fraction)
+    ///     case .preview(let response): imageView.image = response.image
+    ///     case .finished(let result): print(result)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Every access creates a new independent stream, and each one delivers the
+    /// complete set of events. Reading `events` twice gives you two streams, and
+    /// iterating both ``progress`` and ``previews`` creates two subscriptions –
+    /// store the stream in a variable if you want a single subscription.
+    ///
+    /// A stream always ends with the terminal ``Event/finished(_:)`` event.
+    /// Subscribing is safe at any point in the task lifetime: a stream created
+    /// after the task has already finished replays the terminal event, and a
+    /// stream created mid-download starts with the current
+    /// ``Event/progress(_:)`` value, if any.
+    ///
+    /// - note: A stream buffers the events that the consumer hasn't picked up
+    /// yet, so a slow consumer never misses one.
     public var events: AsyncStream<Event> { makeStream() }
 
     /// An event produced during the runtime of the task.
@@ -192,13 +244,24 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     ///
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
+    ///
+    /// The task fails with ``ImagePipeline/Error/cancelled``, and its event
+    /// streams end with the matching ``Event/finished(_:)`` event. Cancellation
+    /// is a request, not an outcome: ``isCancelled`` is set synchronously, but
+    /// a task that is already about to finish can still succeed.
+    ///
+    /// The method is thread-safe and calling it more than once, or after the
+    /// task has already finished, has no effect.
     public func cancel() {
         let didChange: Bool = _status.withLock {
             let didChange = !$0.isCancelled && $0.result == nil
             $0.isCancelled = true
             return didChange
         }
-        guard didChange else { return } // Make sure it gets called once (expensive)
+        // Reaching the pipeline requires a hop to its actor, which then
+        // unsubscribes the task and tears down the work no one else needs,
+        // so make sure it happens at most once.
+        guard didChange else { return }
         Task { @ImagePipelineActor in
             self.pipeline?.imageTaskCancelCalled(self)
         }
