@@ -92,17 +92,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Throws ``ImagePipeline/Error/cancelled`` if the task is cancelled.
     public var response: ImageResponse {
         get async throws(ImagePipeline.Error) {
-            do {
-                return try await withTaskCancellationHandler {
-                    try await _task.value
-                } onCancel: {
-                    cancel()
-                }
-            } catch let error as ImagePipeline.Error {
-                throw error
-            } catch {
-                preconditionFailure("Unexpected error type: \(error)")
+            let result = await withTaskCancellationHandler {
+                await _task.value
+            } onCancel: {
+                cancel()
             }
+            return try result.get()
         }
     }
 
@@ -149,8 +144,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     private weak var pipeline: ImagePipeline?
 
     // Set once during creation, then read-only from `response` getter.
-    nonisolated(unsafe) var _task: Task<ImageResponse, any Error>!
-    @ImagePipelineActor var _continuation: UnsafeContinuation<ImageResponse, any Error>?
+    nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
+    @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
@@ -261,7 +256,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
                 continuation.finish()
             }
             _streamContinuations.removeAll()
-            _continuation?.resume(with: result)
+            _continuation?.resume(returning: result)
         default:
             break
         }
