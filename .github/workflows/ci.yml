@@ -17,6 +17,8 @@ permissions:
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
+  # Locally ci.sh logs to a temp directory; CI needs a fixed path to upload from.
+  NUKE_CI_OUTPUT_DIR: .build/ci
 
 jobs:
   # The job matrix lives in .scripts/ci.sh, not here — `make ci` runs exactly
