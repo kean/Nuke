@@ -108,11 +108,22 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
         public internal(set) var isCancelled = false
 
         /// The priority of the task.
-        public internal(set) var priority: ImageRequest.Priority
+        public internal(set) var priority: ImageRequest.Priority = .normal
 
         /// The download progress. Contains zeros until the download starts and
         /// the total resource size is known.
         public internal(set) var progress = Progress(completed: 0, total: 0)
+
+        /// Initializes the status describing a task that has just started.
+        ///
+        /// The pipeline creates the status for you – use this initializer to
+        /// construct one for tests and SwiftUI previews of the code that
+        /// consumes it.
+        public init() {}
+
+        init(priority: ImageRequest.Priority) {
+            self.priority = priority
+        }
     }
 
     // MARK: - Async/Await

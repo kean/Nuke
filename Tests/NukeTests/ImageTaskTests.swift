@@ -245,6 +245,17 @@ struct ImageTaskTests {
 
     // MARK: - Status
 
+    @Test func statusCanBeCreatedByClients() {
+        // Given a status built without a pipeline
+        let status = ImageTask.Status()
+
+        // Then
+        #expect(status.result == nil)
+        #expect(!status.isCancelled)
+        #expect(status.priority == .normal)
+        #expect(status.progress == ImageTask.Progress(completed: 0, total: 0))
+    }
+
     @Test func statusResultIsSetWhenTheTaskFinishes() async throws {
         // Given
         let task = pipeline.imageTask(with: Test.request)
