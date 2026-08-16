@@ -580,77 +580,6 @@ struct FetchImageTests {
         #expect(!image.isLoading)
     }
 
-    // MARK: - Publisher
-
-    @Test func publisherImageLoaded() async throws {
-        let expectation = TestExpectation()
-        let cancellable = image.$result.dropFirst().sink { _ in
-            expectation.fulfill()
-        }
-
-        image.load(pipeline.imagePublisher(with: Test.request))
-        await expectation.wait()
-
-        let result = try #require(image.result)
-        #expect(result.isSuccess)
-        #expect(image.image != nil)
-        withExtendedLifetime(cancellable) {}
-    }
-
-    @Test func publisherIsLoadingUpdated() async {
-        #expect(!image.isLoading)
-
-        let expectation = TestExpectation()
-        let cancellable = image.$result.dropFirst().sink { _ in
-            expectation.fulfill()
-        }
-
-        image.load(pipeline.imagePublisher(with: Test.request))
-        #expect(image.isLoading)
-
-        await expectation.wait()
-        #expect(!image.isLoading)
-        withExtendedLifetime(cancellable) {}
-    }
-
-    @Test func publisherFailurePropagatesError() async throws {
-        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
-
-        let expectation = TestExpectation()
-        let cancellable = image.$result.dropFirst().sink { _ in
-            expectation.fulfill()
-        }
-
-        image.load(pipeline.imagePublisher(with: Test.request))
-        await expectation.wait()
-
-        let result = try #require(image.result)
-        #expect(result.isFailure)
-        #expect(image.image == nil)
-        #expect(!image.isLoading)
-        withExtendedLifetime(cancellable) {}
-    }
-
-    @Test func publisherFinishingWithoutValueLeavesResultEmpty() {
-        image.load(Empty<ImageResponse, Error>(completeImmediately: true))
-
-        #expect(image.result == nil)
-        #expect(image.imageContainer == nil)
-        #expect(!image.isLoading)
-    }
-
-    @Test func publisherMemoryCacheLookup() throws {
-        pipeline.cache[Test.request] = Test.container
-
-        image.load(pipeline.imagePublisher(with: Test.request))
-
-        let result = try #require(image.result)
-        #expect(result.isSuccess)
-        let response = try #require(result.value)
-        #expect(response.cacheType == .memory)
-        #expect(image.image != nil)
-    }
-
     // MARK: - Cancellation
 
     @Test func requestCancelledWhenTargetGetsDeallocated() async {
@@ -660,7 +589,7 @@ struct FetchImageTests {
         localImage!.pipeline = pipeline
 
         let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
-        localImage!.load(pipeline.imagePublisher(with: Test.request))
+        localImage!.load(Test.request)
         await startExpectation.wait()
 
         await notification(ImagePipelineObserver.didCancelTask, object: observer) {

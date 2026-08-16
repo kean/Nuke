@@ -37,7 +37,7 @@ final class AsyncImageView: UIImageView {
 }
 ```
 
-> Tip: The recommended way to load images with ``ImagePipeline`` is by using Async/Await API. But the pipeline also has API that works with closures and Combine publishers.
+> Tip: The recommended way to load images with ``ImagePipeline`` is by using Async/Await API. But the pipeline also has API that works with closures.
 
 ## Caching
 
@@ -114,11 +114,6 @@ If progressive decoding is enabled, the pipeline attempts to produce previews as
 - ``image(for:)-(ImageRequest)``
 - ``imageTask(with:)-(URL)``
 - ``imageTask(with:)-(ImageRequest)``
-
-### Loading Images (Combine)
-
-- ``imagePublisher(with:)-(URL)``
-- ``imagePublisher(with:)-(ImageRequest)``
 
 ### Loading Images (Closures)
 

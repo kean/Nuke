@@ -56,9 +56,9 @@ struct ImageView: View {
 
 ### Loading Images
 
-- ``load(_:)-9my9q``
-- ``load(_:)-53ybw``
-- ``load(_:)-6pey2``
+- ``load(_:)-(URL?)``
+- ``load(_:)-(ImageRequest?)``
+- ``load(_:)-(()->ImageResponse)``
 - ``cancel()``
 - ``reset()``
 

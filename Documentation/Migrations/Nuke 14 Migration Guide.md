@@ -43,6 +43,30 @@ var request = ImageRequest(url: url)
 request.userInfo = ["key": "value"]
 ```
 
+## Removed Combine Support
+
+The Combine APIs are gone. Use the Async/Await APIs instead.
+
+| Removed | Replacement |
+|---|---|
+| `ImagePipeline.imagePublisher(with:)` | `ImagePipeline.image(for:)` or `ImagePipeline.imageTask(with:)` |
+| `FetchImage.load(_:)` taking a `Publisher` | `FetchImage.load(_:)` taking an async closure |
+
+```swift
+// Nuke 13
+cancellable = ImagePipeline.shared.imagePublisher(with: url)
+    .sink(receiveCompletion: { _ in }, receiveValue: { response in
+        imageView.image = response.image
+    })
+
+// Nuke 14
+imageView.image = try await ImagePipeline.shared.image(for: url)
+```
+
+To observe progressively decoded previews, which the publisher used to emit as intermediate values, use `ImageTask.previews`.
+
+`FetchImage` remains an `ObservableObject`, so observing it from SwiftUI is unchanged.
+
 ## `Float` to `CGFloat`
 
 The public scale and size APIs now use `CGFloat`, matching the types you get from UIKit and SwiftUI.

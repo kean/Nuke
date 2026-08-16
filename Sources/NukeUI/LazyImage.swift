@@ -5,7 +5,6 @@
 import Foundation
 import Nuke
 import SwiftUI
-import Combine
 
 public typealias ImageRequest = Nuke.ImageRequest
 

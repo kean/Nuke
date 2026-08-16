@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import SwiftUI
-import Combine
+import Combine // For `ObservableObject` and `@Published`
 import Nuke
 
 /// An observable object that simplifies image loading in SwiftUI.
@@ -87,8 +87,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
 
     private var imageTask: ImageTask?
-    private var lastResponse: ImageResponse?
-    private var cancellable: AnyCancellable?
+    private var asyncTask: Task<Void, Never>?
 
     /// Incremented every time the current request is cancelled or superseded.
     /// Used to discard the results of the async/await-based loads: `Task`
@@ -98,6 +97,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     deinit {
         imageTask?.cancel()
+        asyncTask?.cancel()
     }
 
     /// Initializes the image. To load an image, use one of the `load()` methods.
@@ -203,7 +203,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         isLoading = true
 
         let generation = loadGeneration
-        let task = Task { [weak self] in
+        asyncTask = Task { [weak self] in
             do {
                 let response = try await action()
                 guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
@@ -215,38 +215,6 @@ public final class FetchImage: ObservableObject, Identifiable {
                 handle(result: .failure(error))
             }
         }
-
-        cancellable = AnyCancellable { task.cancel() }
-    }
-
-    // MARK: Load (Combine)
-
-    /// Loads an image with the given publisher.
-    ///
-    /// - important: Some `FetchImage` features, such as progress reporting and
-    /// dynamically changing the request priority, are not available when
-    /// working with a publisher.
-    public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
-        reset()
-
-        // Not using `first()` because it should support progressive decoding
-        isLoading = true
-        cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
-            guard let self else { return }
-            self.isLoading = false
-            switch completion {
-            case .finished:
-                if let response = self.lastResponse {
-                    self.result = .success(response)
-                } // else was cancelled, do nothing
-            case .failure(let error):
-                self.result = .failure(error)
-            }
-        }, receiveValue: { [weak self] response in
-            guard let self else { return }
-            self.lastResponse = response
-            self.imageContainer = response.container
-        })
     }
 
     // MARK: Cancel
@@ -257,11 +225,10 @@ public final class FetchImage: ObservableObject, Identifiable {
         imageTask?.cancel() // Guarantees that no more callbacks will be delivered
         imageTask = nil
 
-        // publisher-based
-        cancellable = nil
-
-        // async/await-based (the task is cancelled by `cancellable`, but the
-        // action isn't guaranteed to stop, so its result has to be discarded)
+        // async/await-based (`Task` cancellation is cooperative, so the action
+        // isn't guaranteed to stop and its result has to be discarded)
+        asyncTask?.cancel()
+        asyncTask = nil
         loadGeneration &+= 1
     }
 
@@ -274,7 +241,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         clearLoadingState()
         if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
-        lastResponse = nil // publisher-only
     }
 
     private func clearLoadingState() {
