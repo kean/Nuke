@@ -67,6 +67,25 @@ To observe progressively decoded previews, which the publisher used to emit as i
 
 `FetchImage` remains an `ObservableObject`, so observing it from SwiftUI is unchanged.
 
+## Removed `ImageTask.Event.started`
+
+`ImageTask.Event.started` is gone. It was never delivered to `ImageTask.events` – the pipeline reported it to the delegate directly – so it only ever existed for `ImagePipeline.Delegate`. The delegate now has a dedicated method instead.
+
+```swift
+// Nuke 13
+func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+    switch event {
+    case .started: handleStart(task)
+    case .progress, .preview, .finished: break
+    }
+}
+
+// Nuke 14
+func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
+    handleStart(task)
+}
+```
+
 ## `Float` to `CGFloat`
 
 The public scale and size APIs now use `CGFloat`, matching the types you get from UIKit and SwiftUI.

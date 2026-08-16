@@ -203,8 +203,8 @@ public final class ImagePipeline: Sendable {
         // `removeTask` to remove it, and already started for the events to be
         // delivered in the correct order.
         task._node = tasks.append(task)
-        if !isDataTask {
-            delegate.imageTask(task, didReceiveEvent: .started, pipeline: self)
+        if !isDataTask && !isDefaultDelegate {
+            delegate.imageTaskDidStart(task, pipeline: self)
         }
         onTaskStarted?(task)
         task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
