@@ -28,7 +28,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
     public var priority: ImageRequest.Priority {
-        get { _status.withLockUnchecked { $0.priority } }
+        get { _status.withLock { $0.priority } }
         set { setPriority(newValue) }
     }
 
@@ -63,7 +63,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// after the task has already finished. Use ``Status/result`` to learn how
     /// the task actually ended.
     public var isCancelled: Bool {
-        _status.withLockUnchecked { $0.isCancelled }
+        _status.withLock { $0.isCancelled }
     }
 
     /// Returns a snapshot of everything about the task that can change while
@@ -73,7 +73,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// once per property, so the values can come from different points in time.
     /// Read the status instead when you need them to agree with each other.
     public var status: Status {
-        _status.withLockUnchecked { $0 }
+        _status.withLock { $0 }
     }
 
     /// A snapshot of the task state, captured at a single point in time.
@@ -176,7 +176,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self._status = OSAllocatedUnfairLock(uncheckedState: Status(priority: request.priority))
+        self._status = OSAllocatedUnfairLock(initialState: Status(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
@@ -187,7 +187,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        let didChange: Bool = _status.withLockUnchecked {
+        let didChange: Bool = _status.withLock {
             let didChange = !$0.isCancelled && $0.result == nil
             $0.isCancelled = true
             return didChange
@@ -199,7 +199,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
-        let didChange: Bool = _status.withLockUnchecked {
+        let didChange: Bool = _status.withLock {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
             return !$0.isCancelled && $0.result == nil
@@ -234,7 +234,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
                 _dispatch(.preview(response))
             }
         case let .progress(value):
-            _status.withLockUnchecked { $0.progress = value }
+            _status.withLock { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
             _finish(.failure(error))
@@ -260,7 +260,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         // Record the result first so that it is already visible to everyone
         // observing the terminal event.
         if case .finished(let result) = event {
-            _status.withLockUnchecked { $0.result = result }
+            _status.withLock { $0.result = result }
         }
         for continuation in _streamContinuations {
             continuation.yield(event)
@@ -333,7 +333,7 @@ extension ImageTask {
     /// - warning: Deprecated in Nuke 14.0. Use ``status`` instead.
     @available(*, deprecated, renamed: "status.progress", message: "Deprecated in Nuke 14.0. Use `status` to read the progress along with the rest of the task state captured at the same point in time.")
     public var currentProgress: Progress {
-        _status.withLockUnchecked { $0.progress }
+        _status.withLock { $0.progress }
     }
 
     /// The current state of the task.
