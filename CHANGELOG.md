@@ -27,7 +27,7 @@
 
 **API Changes**
 
-- Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize`
+- Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize` – https://github.com/kean/Nuke/pull/907
 
 # Nuke 13
 
