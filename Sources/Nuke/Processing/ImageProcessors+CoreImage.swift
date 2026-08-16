@@ -6,6 +6,7 @@
 
 import Foundation
 import CoreImage
+import os
 
 #if !os(macOS)
 import UIKit
@@ -86,11 +87,11 @@ extension ImageProcessors {
         /// A default context shared between all Core Image filters. The context
         /// has `.priorityRequestLow` option set to `true`.
         public static var context: CIContext {
-            get { _context.value }
+            get { _context.withLock { $0 } }
             set { _context.withLock { $0 = newValue } }
         }
 
-        private static let _context = Mutex(value: CIContext(options: [.priorityRequestLow: true]))
+        private static let _context = OSAllocatedUnfairLock(initialState: CIContext(options: [.priorityRequestLow: true]))
 
         static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
             guard let filter = CIFilter(name: name, parameters: parameters) else {

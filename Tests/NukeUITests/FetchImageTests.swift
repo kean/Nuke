@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 import Combine
 @testable import Nuke
 @testable import NukeUI
@@ -235,7 +236,7 @@ struct FetchImageTests {
         image.pipeline = progressivePipeline
 
         let previewExpectation = TestExpectation()
-        let sawPreview = Mutex(wrappedValue: false)
+        let sawPreview = OSAllocatedUnfairLock(initialState: false)
         let cancellable = image.$imageContainer.dropFirst().sink { container in
             if container?.isPreview == true {
                 let alreadySaw = sawPreview.withLock { value -> Bool in

@@ -5,6 +5,7 @@
 import Foundation
 import CoreGraphics
 import ImageIO
+import os
 
 #if !os(macOS)
 import UIKit
@@ -30,13 +31,13 @@ extension ImageEncoders {
             self.compressionRatio = compressionRatio
         }
 
-        private static let availability = Mutex<[AssetType: Bool]>(value: [:])
+        private static let availability = OSAllocatedUnfairLock<[AssetType: Bool]>(initialState: [:])
 
         /// Returns `true` if the encoding is available for the given format on
         /// the current hardware. Some of the most recent formats might not be
         /// available so its best to check before using them.
         public static func isSupported(type: AssetType) -> Bool {
-            if let isAvailable = availability.value[type] {
+            if let isAvailable = availability.withLock({ $0[type] }) {
                 return isAvailable
             }
             let isAvailable = CGImageDestinationCreateWithData(

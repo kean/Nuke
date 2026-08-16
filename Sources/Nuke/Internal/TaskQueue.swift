@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// A priority-aware, concurrency-limited work queue that runs on `@ImagePipelineActor`.
 ///
@@ -25,9 +26,14 @@ public final class TaskQueue: Sendable {
     /// `@ImagePipelineActor`, where `drain()` serializes. Double-drains are
     /// no-ops because the loop condition checks counts.
     nonisolated public var isSuspended: Bool {
-        get { _isSuspended.value }
+        get { _isSuspended.withLock { $0 } }
         set {
-            if _isSuspended.testAndSet(newValue), !newValue {
+            let didChange = _isSuspended.withLock {
+                guard $0 != newValue else { return false }
+                $0 = newValue
+                return true
+            }
+            if didChange, !newValue {
                 Task { @ImagePipelineActor in drain() }
             }
         }
@@ -37,7 +43,7 @@ public final class TaskQueue: Sendable {
     /// operations like image processing, it's recommended to use a lower number
     /// to avoid fully saturating the CPU.
     nonisolated public var maxConcurrentOperationCount: Int {
-        get { _maxConcurrentOperationCount.value }
+        get { _maxConcurrentOperationCount.withLock { $0 } }
         set {
             let oldValue = _maxConcurrentOperationCount.withLock {
                 let old = $0; $0 = newValue; return old
@@ -48,8 +54,8 @@ public final class TaskQueue: Sendable {
         }
     }
 
-    nonisolated private let _maxConcurrentOperationCount: Mutex<Int>
-    nonisolated private let _isSuspended = Mutex(value: false)
+    nonisolated private let _maxConcurrentOperationCount: OSAllocatedUnfairLock<Int>
+    nonisolated private let _isSuspended = OSAllocatedUnfairLock(initialState: false)
 
     /// Events emitted by the queue for observation (testing only).
     enum Event {
@@ -64,7 +70,7 @@ public final class TaskQueue: Sendable {
 
     /// Initializes the queue.
     nonisolated public init(maxConcurrentOperationCount: Int = ProcessInfo.processInfo.processorCount) {
-        self._maxConcurrentOperationCount = Mutex(value: maxConcurrentOperationCount)
+        self._maxConcurrentOperationCount = OSAllocatedUnfairLock(initialState: maxConcurrentOperationCount)
     }
 
     /// Adds work to the queue. The closure runs `@ImagePipelineActor`. The

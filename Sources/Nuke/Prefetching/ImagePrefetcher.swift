@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// Prefetches and caches images to eliminate delays when requesting the same
 /// images later.
@@ -27,13 +28,18 @@ public final class ImagePrefetcher: Sendable {
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
     nonisolated public var priority: ImageRequest.Priority {
-        get { _priority.value }
+        get { _priority.withLock { $0 } }
         set {
-            guard _priority.testAndSet(newValue) else { return }
+            let didChange = _priority.withLock {
+                guard $0 != newValue else { return false }
+                $0 = newValue
+                return true
+            }
+            guard didChange else { return }
             Task { @ImagePipelineActor in self.didUpdatePriority(to: newValue) }
         }
     }
-    private nonisolated let _priority = Mutex(value: ImageRequest.Priority.low)
+    private nonisolated let _priority = OSAllocatedUnfairLock(initialState: ImageRequest.Priority.low)
 
     /// Prefetching destination.
     @frozen public enum Destination: Sendable {
@@ -108,7 +114,7 @@ public final class ImagePrefetcher: Sendable {
     }
 
     private func _startPrefetching(with requests: [ImageRequest]) {
-        let currentPriority = _priority.value
+        let currentPriority = _priority.withLock { $0 }
         for request in requests {
             var request = request
             if currentPriority != request.priority {
