@@ -121,16 +121,6 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        /// - warning: Deprecated. The automatic downscaling implementation has
-        /// been removed. Use ``ImageRequest/ThumbnailOptions`` to control the
-        /// decoded image size on a per-request basis instead.
-        @available(*, deprecated, message: "Automatic decoded image size limiting has been removed. Use ImageRequest.ThumbnailOptions to control decoded image size per request.")
-        public var maximumDecodedImageSize: Int? {
-            get { _maximumDecodedImageSize }
-            set { _maximumDecodedImageSize = newValue }
-        }
-        private var _maximumDecodedImageSize: Int?
-
         /// The maximum response data size in bytes allowed before the download
         /// is automatically cancelled. Downloads that exceed this limit fail
         /// with ``ImagePipeline/Error/dataDownloadExceededMaximumSize``. `nil`

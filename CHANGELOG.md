@@ -25,6 +25,10 @@
 
 - Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
 
+**API Changes**
+
+- Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize`
+
 # Nuke 13
 
 ## WIP
