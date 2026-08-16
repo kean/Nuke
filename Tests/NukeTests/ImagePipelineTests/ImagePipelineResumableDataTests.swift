@@ -26,10 +26,8 @@ struct ImagePipelineResumableDataTests {
         // Expect the progress for the first part of the download to be reported.
         var initialProgress: [ImageTask.Progress] = []
         do {
-            let task = pipeline.imageTask(with: Test.request)
-            for await progress in task.progress {
-                initialProgress.append(progress)
-            }
+            let (task, progress) = await pipeline.recordProgress(for: Test.request)
+            initialProgress = progress
             _ = try await task.response
         } catch {
             // Expected failure
@@ -43,11 +41,7 @@ struct ImagePipelineResumableDataTests {
 
         // Expect progress closure to continue reporting the progress of the
         // entire download
-        var remainingProgress: [ImageTask.Progress] = []
-        let task2 = pipeline.imageTask(with: Test.request)
-        for await progress in task2.progress {
-            remainingProgress.append(progress)
-        }
+        let (task2, remainingProgress) = await pipeline.recordProgress(for: Test.request)
         _ = try await task2.response
 
         #expect(remainingProgress == [
