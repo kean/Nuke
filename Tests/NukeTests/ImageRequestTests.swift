@@ -56,7 +56,8 @@ struct ImageRequestTests {
 
     @Test func userInfoKey() {
         // WHEN
-        let request = ImageRequest(url: Test.url, userInfo: [.init("a"): 1])
+        var request = ImageRequest(url: Test.url)
+        request.userInfo = [.init("a"): 1]
 
         // THEN
         #expect(request.userInfo["a"] != nil)

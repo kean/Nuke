@@ -28,6 +28,7 @@
 **API Changes**
 
 - Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize` – https://github.com/kean/Nuke/pull/907
+- Remove the soft-deprecated `userInfo` parameter from the `ImageRequest` initializers. It's still available as a property – https://github.com/kean/Nuke/pull/909
 
 # Nuke 13
 

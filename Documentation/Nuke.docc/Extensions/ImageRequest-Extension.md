@@ -26,9 +26,9 @@ let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 
 ### Initializers
 
-- ``init(url:processors:priority:options:userInfo:)``
-- ``init(urlRequest:processors:priority:options:userInfo:)``
-- ``init(id:data:processors:priority:options:userInfo:)``
+- ``init(url:processors:priority:options:)``
+- ``init(urlRequest:processors:priority:options:)``
+- ``init(id:data:processors:priority:options:)``
 - ``init(stringLiteral:)``
 
 ### Options

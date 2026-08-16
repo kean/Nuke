@@ -144,7 +144,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -157,16 +156,14 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         url: URL?,
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
-        options: Options = [],
-        userInfo: [UserInfoKey: any Sendable]? = nil
+        options: Options = []
     ) {
         self.ref = Container(
             resource: Resource.url(url),
             originalImageID: url?.absoluteString,
             processors: processors,
             priority: priority,
-            options: options,
-            userInfo: userInfo
+            options: options
         )
     }
 
@@ -177,7 +174,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -190,16 +186,14 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         urlRequest: URLRequest,
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
-        options: Options = [],
-        userInfo: [UserInfoKey: any Sendable]? = nil
+        options: Options = []
     ) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
             originalImageID: urlRequest.url?.absoluteString,
             processors: processors,
             priority: priority,
-            options: options,
-            userInfo: userInfo
+            options: options
         )
     }
 
@@ -228,22 +222,19 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     public init(
         id: String,
         data: @Sendable @escaping () async throws -> Data,
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
-        options: Options = [],
-        userInfo: [UserInfoKey: any Sendable]? = nil
+        options: Options = []
     ) {
         self.ref = Container(
             resource: .data(fetch: data),
             originalImageID: id,
             processors: processors,
             priority: priority,
-            options: options,
-            userInfo: userInfo
+            options: options
         )
     }
 
@@ -253,7 +244,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// Use this initializer to process images already in memory or integrate
     /// with systems that provide pre-decoded images, such as the Photos framework.
     ///
-    /// - note: Unlike ``init(id:data:processors:priority:options:userInfo:)``, the image is never stored in the disk
+    /// - note: Unlike ``init(id:data:processors:priority:options:)``, the image is never stored in the disk
     /// cache because no raw data is available.
     ///
     /// - parameters:
@@ -262,22 +253,19 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///   - processors: Processors to be applied to the image. See <doc:image-processing> to learn more.
     ///   - priority: The priority of the request.
     ///   - options: Image loading options.
-    ///   - userInfo: Soft-deprecated in Nuke 13.0, but still available as a dedicated property.
     public init(
         id: String,
         image: @Sendable @escaping () async throws -> ImageContainer,
         processors: [any ImageProcessing] = [],
         priority: Priority = .normal,
-        options: Options = [],
-        userInfo: [UserInfoKey: any Sendable]? = nil
+        options: Options = []
     ) {
         self.ref = Container(
             resource: .image(fetch: image),
             originalImageID: id,
             processors: processors,
             priority: priority,
-            options: options,
-            userInfo: userInfo
+            options: options
         )
     }
 
@@ -518,13 +506,12 @@ extension ImageRequest {
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
 
-        init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: any Sendable]?) {
+        init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
             self.options = options
             self.originalImageID = originalImageID
-            self.userInfo = userInfo
         }
 
         /// Creates a copy.

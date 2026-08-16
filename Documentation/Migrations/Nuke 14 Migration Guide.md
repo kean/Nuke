@@ -29,3 +29,16 @@ The APIs deprecated in Nuke 13 have been removed.
 | `ImageDecodingContext.maximumDecodedImageSize` | `ImageRequest.ThumbnailOptions` |
 
 The automatic downscaling implementation behind `maximumDecodedImageSize` was removed in Nuke 13, so setting it already had no effect. Use `ImageRequest.ThumbnailOptions` to control the decoded image size on a per-request basis instead.
+
+## Removed `userInfo` from `ImageRequest` Initializers
+
+The `userInfo` parameter, soft-deprecated in Nuke 13, is gone from the `ImageRequest` initializers. The options it used to carry now have dedicated type-safe properties, and `userInfo` itself remains available as a property for custom values.
+
+```swift
+// Before
+let request = ImageRequest(url: url, userInfo: ["key": "value"])
+
+// After
+var request = ImageRequest(url: url)
+request.userInfo = ["key": "value"]
+```
