@@ -37,6 +37,23 @@ struct ImagePipelineTaskDelegateTests {
         ])
     }
 
+    @Test func startIsReportedThroughTheDedicatedDelegateMethod() async throws {
+        // WHEN
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
+        let task = pipeline.imageTask(with: Test.request)
+        var events: [ImageTask.Event] = []
+        for await event in task.events {
+            events.append(event)
+        }
+        await completed.wait()
+
+        // THEN the start is reported to `imageTaskDidStart` before any of the
+        // events observed by the task stream
+        #expect(delegate.startedTaskCount == 1)
+        #expect(Array(delegate.events.prefix(2)) == [ImageTaskEvent.created, .started])
+        #expect(events.count == delegate.events.count - 2)
+    }
+
     @Test func progressUpdateEvents() async throws {
         let request = ImageRequest(url: Test.url)
         dataLoader.results[Test.url] = .success(

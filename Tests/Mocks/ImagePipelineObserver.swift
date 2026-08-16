@@ -34,12 +34,14 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
         append(.created)
     }
 
+    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
+        startedTaskCount += 1
+        append(.started)
+        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+    }
+
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
         switch event {
-        case .started:
-            startedTaskCount += 1
-            append(.started)
-            NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         case .progress(let progress):
             append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
         case .preview(let response):

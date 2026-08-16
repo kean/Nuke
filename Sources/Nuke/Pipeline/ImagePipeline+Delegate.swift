@@ -101,6 +101,9 @@ extension ImagePipeline {
         /// immediately on the caller's queue.
         func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
 
+        /// Gets called when the task is started by the pipeline.
+        func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)
+
         /// Gets called when the task receives an event.
         func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
     }
@@ -159,6 +162,8 @@ extension ImagePipeline.Delegate {
     }
 
     public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
+
+    public func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {}
 
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 }

@@ -36,7 +36,6 @@ extension ImagePipeline {
                 // events are called on the callback queue.
                 guard !task.isCancelled else { return }
                 switch event {
-                case .started: break
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .finished(let result):

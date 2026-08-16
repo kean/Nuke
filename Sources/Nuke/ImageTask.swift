@@ -132,8 +132,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// An event produced during the runtime of the task.
     @frozen public enum Event: Sendable {
-        /// The task was started by the pipeline.
-        case started
         /// The download progress was updated.
         case progress(Progress)
         /// The pipeline generated a progressive scan of the image.
