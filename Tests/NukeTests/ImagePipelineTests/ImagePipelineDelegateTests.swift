@@ -38,11 +38,11 @@ struct ImagePipelineDelegateTests {
         )
 
         // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
-        let requestA = ImageRequest(
+        var requestA = ImageRequest(
             url: imageURLMedium,
-            processors: [.resize(width: 44)],
-            userInfo: ["imageId": "image-01-small"]
+            processors: [.resize(width: 44)]
         )
+        requestA.userInfo = ["imageId": "image-01-small"]
         _ = try await pipeline.image(for: requestA)
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
@@ -51,10 +51,8 @@ struct ImagePipelineDelegateTests {
         #expect(image.sizeInPixels.width == 44 * Screen.scale)
 
         // GIVEN a request for a small image
-        let requestB = ImageRequest(
-            url: imageURLSmall,
-            userInfo: ["imageId": "image-01-small"]
-        )
+        var requestB = ImageRequest(url: imageURLSmall)
+        requestB.userInfo = ["imageId": "image-01-small"]
 
         // WHEN/THEN the image is returned from the disk cache
         let responseB = try await pipeline.imageTask(with: requestB).response
