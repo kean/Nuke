@@ -23,7 +23,7 @@
 
 **Requirements**
 
-- Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0
+- Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
 
 # Nuke 13
 
