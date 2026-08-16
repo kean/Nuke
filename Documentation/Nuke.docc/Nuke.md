@@ -20,7 +20,8 @@ To install Nuke, use Swift Package Manager.
 
 | Nuke | Date         | Swift | Xcode | Platforms                                                   |
 |------|--------------|-------|-------|-------------------------------------------------------------|
-| 13.0 | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 13.0, visionOS 1.0  |
+| 14.0 | TBD          | 6.2   | 26.0  | iOS 16.0, watchOS 9.0, macOS 13.0, tvOS 16.0, visionOS 1.0  |
+| 13.0 | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
 | 12.0 | Mar 4, 2023  | 5.7   | 14.1  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 
 ## Topics
