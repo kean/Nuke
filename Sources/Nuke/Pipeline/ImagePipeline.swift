@@ -176,7 +176,7 @@ public final class ImagePipeline: Sendable {
             delegate.imageTaskCreated(task, pipeline: self)
         }
         task._task = Task { @ImagePipelineActor in
-            try await withUnsafeThrowingContinuation { continuation in
+            await withUnsafeContinuation { continuation in
                 task._continuation = continuation
                 self.startImageTask(task, isDataTask: isDataTask)
             }
