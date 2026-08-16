@@ -130,9 +130,7 @@ struct ImageTaskTests {
         #expect(rhs.contains { if case .finished(.success) = $0 { return true } else { return false } })
     }
 
-    /// Subscribing after the task is already finished produces an empty stream:
-    /// the terminal event is not replayed.
-    @Test func subscribingAfterTheTaskFinishesProducesAnEmptyStream() async throws {
+    @Test func subscribingAfterTheTaskFinishesReplaysTheTerminalEvent() async throws {
         // Given
         let task = pipeline.imageTask(with: Test.request)
         _ = try await task.response
@@ -144,10 +142,11 @@ struct ImageTaskTests {
         }
 
         // Then
-        #expect(events.isEmpty)
+        #expect(events.count == 1)
+        #expect(events.contains { if case .finished(.success) = $0 { return true } else { return false } })
     }
 
-    @Test func subscribingAfterTheTaskIsCancelledProducesAnEmptyStream() async throws {
+    @Test func subscribingAfterTheTaskIsCancelledReplaysTheTerminalEvent() async throws {
         // Given
         dataLoader.isSuspended = true
         let task = await withSuspendedDataLoading(for: pipeline, expectedCount: 1) {
@@ -165,7 +164,62 @@ struct ImageTaskTests {
         }
 
         // Then
-        #expect(events.isEmpty)
+        #expect(events.count == 1)
+        #expect(events.contains { if case .finished(.failure(.cancelled)) = $0 { return true } else { return false } })
+    }
+
+    /// A memory cache hit finishes the task synchronously, while the pipeline
+    /// is still starting it, so even a subscription made immediately after
+    /// creating the task can arrive late.
+    @Test func subscribingImmediatelyDeliversTheTerminalEventOnMemoryCacheHit() async throws {
+        // Given
+        let imageCache = MockImageCache()
+        imageCache[Test.request] = Test.container
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // When
+        let task = pipeline.imageTask(with: Test.request)
+        var events: [ImageTask.Event] = []
+        for await event in task.events {
+            events.append(event)
+        }
+
+        // Then
+        #expect(events.count == 1)
+        #expect(events.contains { if case .finished(.success) = $0 { return true } else { return false } })
+    }
+
+    @Test func subscribingMidDownloadPrimesTheStreamWithTheCurrentProgress() async throws {
+        // Given a task that already received one chunk of the image
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let task = pipeline.imageTask(with: Test.request)
+        while task.status.progress.completed == 0 {
+            await Task.yield()
+        }
+        let progress = task.status.progress
+
+        // When the stream is created after the first chunk is delivered
+        async let recorded = task.events.reduce(into: [ImageTask.Event]()) { $0.append($1) }
+        while await task._streamContinuations.isEmpty {
+            await Task.yield()
+        }
+        dataLoader.resumeServingChunks(dataLoader.chunks.count)
+
+        // Then it starts with the progress reported before it was created
+        let events = await recorded
+        var firstProgress: ImageTask.Progress?
+        if case .progress(let value) = try #require(events.first) {
+            firstProgress = value
+        }
+        #expect(firstProgress == progress)
+        #expect(events.contains { if case .finished(.success) = $0 { return true } else { return false } })
     }
 
     // MARK: - Status

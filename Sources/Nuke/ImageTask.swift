@@ -145,6 +145,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: - Events
 
     /// The events sent by the pipeline during the task execution.
+    ///
+    /// Each access creates an independent stream that ends with the terminal
+    /// ``Event/finished(_:)`` event. Subscribing is safe at any point in the
+    /// task lifetime: a stream created after the task has already finished
+    /// replays the terminal event, and a stream created mid-download starts
+    /// with the current ``Event/progress(_:)`` value, if any.
     public var events: AsyncStream<Event> { makeStream() }
 
     /// An event produced during the runtime of the task.
@@ -308,15 +314,24 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 extension ImageTask {
     /// Creates a new stream of events for this task.
     ///
-    /// - note: Each call creates an independent stream. Subscribing after the
-    /// task has already finished or been cancelled produces an empty stream —
-    /// no `.finished` terminal event is replayed. Subscribe before the task
-    /// completes if you need to observe this event.
+    /// A subscription reaches the pipeline actor asynchronously, so the task
+    /// can finish before it is registered – a memory cache hit, for example,
+    /// finishes the task while the pipeline is still starting it. To make sure
+    /// no subscriber misses the outcome, a stream created after the task
+    /// finished replays the terminal event recorded in ``Status/result``.
     private func makeStream() -> AsyncStream<Event> {
         AsyncStream { continuation in
             Task { @ImagePipelineActor in
-                guard !self._isFinished else {
+                let status = self.status
+                if let result = status.result {
+                    continuation.yield(.finished(result))
                     return continuation.finish()
+                }
+                // Prime the stream with the progress reported so far so that a
+                // progress bar attached mid-download doesn't sit at zero until
+                // the next chunk arrives.
+                if status.progress.completed > 0 || status.progress.total > 0 {
+                    continuation.yield(.progress(status.progress))
                 }
                 self._streamContinuations.append(continuation)
             }
