@@ -212,7 +212,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // If the image hasn't been fully loaded yet, give decoder a chance
         // to decode the data chunk. In case `expectedContentLength` is `0`,
         // progressive decoding doesn't run.
-        guard data.count < response.expectedContentLength else { return }
+        guard data.count < response.expectedContentLength + resumedDataCount else { return }
         send(value: (data, response))
     }
 
