@@ -25,6 +25,10 @@
 
 - Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
 
+**Concurrency & Data Race Safety**
+
+- Fix a crash in `_os_unfair_lock_corruption_abort` on Intel Macs by building the internal locks on `OSAllocatedUnfairLock`, which owns the lock's storage, instead of an `os_unfair_lock` the compiler is free to copy – https://github.com/kean/Nuke/pull/905
+
 # Nuke 13
 
 ## WIP

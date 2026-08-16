@@ -144,10 +144,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    private var nonisolatedState: NonisolatedState
+    private let nonisolatedState: Mutex<NonisolatedState>
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
-    private let lock: os_unfair_lock_t
     private weak var pipeline: ImagePipeline?
 
     // Set once during creation, then read-only from `response` getter.
@@ -158,21 +157,13 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
-    deinit {
-        lock.deinitialize(count: 1)
-        lock.deallocate()
-    }
-
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.nonisolatedState = NonisolatedState(priority: request.priority)
+        self.nonisolatedState = Mutex(value: NonisolatedState(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
-
-        lock = .allocate(capacity: 1)
-        lock.initialize(to: os_unfair_lock())
     }
 
     /// Marks task as being cancelled.
@@ -317,9 +308,7 @@ extension ImageTask {
     }
 
     private func withNonisolatedStateLock<T>(_ closure: (inout NonisolatedState) -> T) -> T {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        return closure(&nonisolatedState)
+        nonisolatedState.withLock(closure)
     }
 
     /// Contains the state synchronized using the internal lock.
