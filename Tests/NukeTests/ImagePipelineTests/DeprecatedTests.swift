@@ -36,16 +36,16 @@ struct DeprecationTests {
     @Test func loadImageWithRequest() async {
         dataLoader.isSuspended = true
         let taskRef = Ref<ImageTask?>(nil)
-        let stateInsideCallback = Ref<ImageTask.State>(.running)
+        let resultInsideCallback = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
         let result: Result<ImageResponse, ImagePipeline.Error> = await withCheckedContinuation { continuation in
             taskRef.value = pipeline.loadImage(with: Test.request) { result in
-                stateInsideCallback.value = taskRef.value!.state
+                resultInsideCallback.value = taskRef.value!.status.result
                 continuation.resume(returning: result)
             }
             dataLoader.isSuspended = false
         }
         #expect(result.isSuccess)
-        #expect(stateInsideCallback.value == .completed)
+        #expect(resultInsideCallback.value?.isSuccess == true)
     }
 
     @Test func loadImageCompletionOnMainThread() async {
@@ -93,7 +93,7 @@ struct DeprecationTests {
                 continuation.resume(returning: task)
             }
         }
-        #expect(task.state == .cancelled)
+        #expect(task.isCancelled)
     }
 
     @Test func loadImageCancellationCompletionNotCalled() async {
@@ -110,7 +110,7 @@ struct DeprecationTests {
         // Flush any DispatchQueue.main.async callbacks
         await MainActor.run {}
         #expect(!completionCalled.value)
-        #expect(task.state == .cancelled)
+        #expect(task.isCancelled)
     }
 
     // MARK: - loadData
