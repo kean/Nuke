@@ -36,6 +36,7 @@
 **Bug Fixes**
 
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
+- Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 
 # Nuke 13
 
