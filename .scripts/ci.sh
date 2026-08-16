@@ -1,15 +1,15 @@
 #!/bin/bash
 set -o pipefail
 
-# Usage: ci.sh [--list | --group <group> | <job-id>]
-#   (no args)          Run every job
-#   --list             Print all job IDs and groups
-#   --group <group>    Run every job in a CI group (this is what GitHub Actions calls)
-#   <job-id>           Run a single job (see --list)
+# Usage: ci.sh [--list | <selector>]
+#   (no args)     Run every job
+#   --list        Print every job, with the group and action it can be selected by
+#   <selector>    Run every job matching a job id, a group, or an action
 #
 # This script is the single source of truth for the CI matrix. The GitHub
-# workflow does nothing except invoke `--group` for each of its five macOS jobs,
-# so `make ci` locally runs exactly what CI runs.
+# workflow does nothing except pass it a group name, so `make ci` runs exactly
+# what CI runs. This is what stops the drift that left `validate.sh` unused for
+# four years.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -62,22 +62,14 @@ JOBS=(
     "lint|lint|lint|SwiftLint|—"
 )
 
-# Note: `GROUPS` is a read-only bash builtin — this must not be named that.
-CI_GROUPS=(ios-core ios-ui tvos macos platforms lint)
-
-# ── Parse arguments ───────────────────────────────────────────────────────────
+# ── Arguments ─────────────────────────────────────────────────────────────────
 LIST_MODE=false
-JOB_FILTER=""
-GROUP_FILTER=""
+SELECTOR=""
 case "${1:-}" in
-    --list)  LIST_MODE=true ;;
-    --group) GROUP_FILTER="${2:-}"
-             if [ -z "$GROUP_FILTER" ]; then
-                 echo "error: --group requires a group name" >&2; exit 2
-             fi ;;
-    "")      ;;
-    -*)      echo "error: unknown option '$1'" >&2; exit 2 ;;
-    *)       JOB_FILTER="$1" ;;
+    --list) LIST_MODE=true ;;
+    "")     ;;
+    -*)     echo "error: unknown option '$1'" >&2; exit 2 ;;
+    *)      SELECTOR="$1" ;;
 esac
 
 # ── Colors ────────────────────────────────────────────────────────────────────
@@ -92,330 +84,220 @@ fi
 # GitHub Actions renders collapsible groups from ::group:: markers.
 _IS_CI="${GITHUB_ACTIONS:-false}"
 
-# The live dashboard replaces the raw output stream on an interactive terminal.
-# CI keeps the full stream, and NUKE_CI_VERBOSE=1 forces it locally too.
-DASH_TAIL="${NUKE_CI_TAIL:-8}"
-DASH_HEIGHT=$(( DASH_TAIL + 4 ))
-DASH_ACTIVE=false
-if [ -t 1 ] && [ "$_IS_CI" != "true" ] && [ -z "$NUKE_CI_VERBOSE" ] && ! $LIST_MODE; then
-    DASH_ACTIVE=true
-fi
-
-# ── Result tracking ───────────────────────────────────────────────────────────
-JOB_NAMES=()
-JOB_ACTIONS=()
-JOB_STATUSES=()
-JOB_LOG_PATHS=()
-JOB_XCRESULT_PATHS=()
-JOB_TEST_SUMMARIES=()
-JOB_DURATIONS=()
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
-sanitize_name() {
-    echo "$1" | tr ' /()·' '_____' | tr -cd '[:alnum:]_-'
-}
-
 format_duration() {
-    local secs="$1"
-    if [ "$secs" -ge 60 ]; then
-        printf "%dm %ds" $(( secs / 60 )) $(( secs % 60 ))
+    if [ "$1" -ge 60 ]; then
+        printf "%dm %ds" $(( $1 / 60 )) $(( $1 % 60 ))
     else
-        printf "%ds" "$secs"
+        printf "%ds" "$1"
     fi
 }
 
 # Swift Testing prints one authoritative tally per attempt:
 #   "Test run with 940 tests in 74 suites passed after 1.463 seconds."
-# Take the last one, because -retry-tests-on-failure re-runs the whole suite and
-# summing every "Test x() passed" line across attempts double-counts. XCTest's
-# "Executed N tests, with M failures" line is the fallback for targets still on it.
+# Take the first, which is the full suite: -retry-tests-on-failure re-runs only
+# the tests that failed, so a later tally counts a subset. Note that this greps
+# the raw log — xcbeautify drops the tally from the prettified stream.
 parse_test_results() {
-    local log_file="$1" job_status="$2"
-    local total failed line
+    local log="$1" status="$2" total failed
+    total=$(grep -oE "Test run with [0-9]+ test" "$log" 2>/dev/null | head -1 | grep -oE "[0-9]+")
+    [ -z "$total" ] && { echo "—"; return; }
 
-    line=$(grep -E "Test run with [0-9]+ test" "$log_file" 2>/dev/null | tail -1)
-    if [ -n "$line" ]; then
-        total=$(echo "$line" | grep -oE "with [0-9]+ test" | grep -oE "[0-9]+")
-    else
-        line=$(grep -E "Executed [0-9]+ test" "$log_file" 2>/dev/null | tail -1)
-        [ -z "$line" ] && { echo "—"; return; }
-        total=$(echo "$line" | grep -oE "[0-9]+ test" | grep -oE "[0-9]+")
-    fi
-    total=${total:-0}
-    [ "$total" -eq 0 ] && { echo "—"; return; }
-
-    # Individual failure lines span every attempt, which is what we want: if the
-    # job still passed, each one was rescued by a retry, i.e. a flaky test.
-    failed=$(grep -cE "Test .*\(.*\) failed after" "$log_file" 2>/dev/null | tr -d ' ')
+    # Failure lines span every attempt, which is what we want: if the job still
+    # passed, each one was rescued by a retry, i.e. a flaky test.
+    failed=$(grep -cE "Test .*\(.*\) failed after" "$log" 2>/dev/null | tr -d ' ')
     failed=${failed:-0}
-    if [ "$failed" -eq 0 ]; then
-        failed=$(echo "$line" | grep -oE "with [0-9]+ failure" | grep -oE "[0-9]+")
-        failed=${failed:-0}
-    fi
 
-    if [ "$failed" -eq 0 ]; then
-        echo "$total run · $total ✓"
-    elif [ "$job_status" -eq 0 ]; then
+    if [ "$failed" -gt 0 ] && [ "$status" -eq 0 ]; then
         # xcodebuild exited 0 despite failures, so -retry-tests-on-failure
         # rescued them. Surface it — a silent retry is a hidden flaky test.
-        echo "$total run · $((total - failed)) ✓ · $failed flaky ⚠️"
+        echo "$total run · $(( total - failed )) ✓ · $failed flaky ⚠️"
+    elif [ "$failed" -gt 0 ]; then
+        echo "$total run · $(( total - failed )) ✓ · $failed ✗"
+    elif [ "$status" -eq 0 ]; then
+        echo "$total run · $total ✓"
     else
-        echo "$total run · $((total - failed)) ✓ · $failed ✗"
+        # No test reported a failure, yet xcodebuild failed: a hung test killed
+        # by its time limit, a crashed runner, or a build error. Don't claim a
+        # clean tally — the log is the only place to find out which.
+        echo "$total run · run did not complete ✗"
     fi
 }
 
 # Pick the newest available simulator matching a name pattern. Resolving at
 # runtime is what keeps this working across runner-image updates — pinning
-# "OS=26.4.1" is what forced the repeated ci.yml churn in the past.
-find_simulator() {
-    xcrun simctl list devices available 2>/dev/null \
+# "OS=26.4.1" is what forced the repeated ci.yml churn in the past. Booting it up
+# front rather than letting xcodebuild do it lazily avoids the first-test-run
+# flakiness that commit a439c17a worked around.
+resolve_simulator() {
+    local name
+    name=$(xcrun simctl list devices available 2>/dev/null \
         | grep -E "^\s+${1}" \
         | tail -1 \
         | sed 's/^[[:space:]]*//' \
-        | sed 's/ ([0-9A-Fa-f]\{8\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{12\}).*//'
-}
-
-# Booting the simulator up front rather than letting xcodebuild do it lazily
-# avoids the first-test-run flakiness that commit a439c17a worked around.
-ensure_booted() {
-    local name="$1"
+        | sed 's/ ([0-9A-Fa-f]\{8\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{12\}).*//')
+    name=${name:-$2}
     xcrun simctl boot "$name" >/dev/null 2>&1 || true
     xcrun simctl bootstatus "$name" -b >/dev/null 2>&1 || true
+    echo "$name"
 }
 
+# Sets DEST. Tests need a concrete simulator; compile-only jobs use a generic
+# destination so they never pay the simulator boot cost. Assigning to a global
+# rather than echoing is what keeps the per-platform cache: a command
+# substitution would resolve and re-boot in a subshell for every job.
 _IOS_SIM=""; _TV_SIM=""
-resolve_simulator() {
-    case "$1" in
-        iOS)
-            if [ -z "$_IOS_SIM" ]; then
-                _IOS_SIM=$(find_simulator "iPhone [0-9]")
-                _IOS_SIM=${_IOS_SIM:-"iPhone 17 Pro"}
-                ensure_booted "$_IOS_SIM"
-            fi
-            echo "$_IOS_SIM" ;;
-        tvOS)
-            if [ -z "$_TV_SIM" ]; then
-                _TV_SIM=$(find_simulator "Apple TV")
-                _TV_SIM=${_TV_SIM:-"Apple TV"}
-                ensure_booted "$_TV_SIM"
-            fi
-            echo "$_TV_SIM" ;;
-    esac
-}
-
-# Tests need a concrete simulator; compile-only jobs use a generic destination
-# so they never pay the simulator boot cost.
-destination_for() {
-    local action="$1" platform="$2"
-    if [ "$action" = "build" ]; then
-        echo "generic/platform=$platform"
+set_destination() {
+    if [ "$1" = "build" ]; then
+        DEST="generic/platform=$2"
         return
     fi
-    case "$platform" in
-        iOS)   echo "platform=iOS Simulator,name=$(resolve_simulator iOS)" ;;
-        tvOS)  echo "platform=tvOS Simulator,name=$(resolve_simulator tvOS)" ;;
-        macOS) echo "platform=macOS" ;;
-        *)     echo "generic/platform=$platform" ;;
+    case "$2" in
+        iOS)
+            [ -z "$_IOS_SIM" ] && _IOS_SIM=$(resolve_simulator "iPhone [0-9]" "iPhone 17 Pro")
+            DEST="platform=iOS Simulator,name=$_IOS_SIM" ;;
+        tvOS)
+            [ -z "$_TV_SIM" ] && _TV_SIM=$(resolve_simulator "Apple TV" "Apple TV")
+            DEST="platform=tvOS Simulator,name=$_TV_SIM" ;;
+        macOS) DEST="platform=macOS" ;;
+        *)     DEST="generic/platform=$2" ;;
     esac
 }
 
 # xcbeautify is preinstalled on GitHub's macOS images and is the normal local
-# setup, but the script must still work without it. Colour is disabled under the
-# dashboard so the tail window can be truncated to width without cutting an
-# escape sequence in half.
+# setup, but the script must still work without it.
 prettify() {
-    if command -v xcbeautify >/dev/null 2>&1; then
-        if $DASH_ACTIVE; then xcbeautify --disable-colored-output; else xcbeautify; fi
-    else
-        cat
-    fi
+    if command -v xcbeautify >/dev/null 2>&1; then xcbeautify; else cat; fi
 }
 
-# ── Live dashboard ────────────────────────────────────────────────────────────
+# ── Progress line ─────────────────────────────────────────────────────────────
 #
-# A fixed-height block pinned below the scrolling result lines:
+# An interactive run hides the build output and repaints one line in place:
 #
-#     ⠹  ███████░░░░░░░░░  9/22  40%  4m 21s
-#     ▸ Nuke · iOS  test  ·  platform=iOS Simulator,name=iPhone 17 Pro
+#     ⠹  9/22  40%  4m 21s  ·  Nuke · iOS  test
 #
-#     │ <last DASH_TAIL lines of output>
-#
-# The block is exactly DASH_HEIGHT lines, so repainting is "cursor up
-# DASH_HEIGHT, rewrite every line". dash_close erases it and leaves the cursor
-# at its top, which is how completed jobs get printed above it.
-#
-# Nothing in the paint path may fork: it runs once per line of build output.
+# Finished jobs are printed above it, so the scrollback reads as the final
+# summary being built up. CI keeps the full output stream, and NUKE_CI_VERBOSE=1
+# forces it locally too.
 
-_DASH_OPEN=false
-_TERM_COLS=80
+PROGRESS=false
+if [ -t 1 ] && [ "$_IS_CI" != "true" ] && [ -z "$NUKE_CI_VERBOSE" ] && ! $LIST_MODE; then
+    PROGRESS=true
+fi
+
+_SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+CI_START=$SECONDS
 JOBS_TOTAL=0
 JOBS_DONE=0
 CURRENT_JOB=""
-CI_START_SECONDS=$SECONDS
-RING=()
 
-_SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-
-# stty rather than tput, because tput reports stale values inside the pipeline
-# subshell where the painting happens.
-refresh_term_cols() {
-    local size
-    size=$(stty size </dev/tty 2>/dev/null) || size="24 80"
-    _TERM_COLS="${size##* }"
-    case "$_TERM_COLS" in
-        ''|*[!0-9]*) _TERM_COLS=80 ;;
-    esac
-    # A pty with no real geometry reports 0; don't let that collapse the window.
-    [ "$_TERM_COLS" -lt 40 ] && _TERM_COLS=80
-}
-
-dash_open() {
-    $DASH_ACTIVE || return 0
-    $_DASH_OPEN && return 0
-    local i
-    for ((i = 0; i < DASH_HEIGHT; i++)); do printf '\n'; done
-    _DASH_OPEN=true
-}
-
-dash_close() {
-    $DASH_ACTIVE || return 0
-    $_DASH_OPEN || return 0
-    local buf i
-    buf=$'\033['"$DASH_HEIGHT"'A'
-    for ((i = 0; i < DASH_HEIGHT; i++)); do buf+=$'\033[2K\n'; done
-    buf+=$'\033['"$DASH_HEIGHT"'A'
-    printf '%s' "$buf"
-    _DASH_OPEN=false
-}
-
-ring_push() {
-    RING+=("${1%$'\r'}")
-    if [ "${#RING[@]}" -gt "$DASH_TAIL" ]; then
-        RING=("${RING[@]:1}")
-    fi
-}
-
-dash_paint() {
-    $_DASH_OPEN || return 0
-
-    local spin_idx="$1"
-    local width=16 pct=0 filled=0 bar="" i
-    if [ "$JOBS_TOTAL" -gt 0 ]; then
-        pct=$(( JOBS_DONE * 100 / JOBS_TOTAL ))
-        filled=$(( JOBS_DONE * width / JOBS_TOTAL ))
-    fi
-    for ((i = 0; i < width; i++)); do
-        if ((i < filled)); then bar+="█"; else bar+="░"; fi
-    done
-
-    # Inlined rather than calling format_duration: a command substitution here
-    # would fork once per line of build output.
-    local elapsed=$(( SECONDS - CI_START_SECONDS )) dur
+# Nothing in here may fork: it runs once per line of build output.
+paint() {
+    local elapsed=$(( SECONDS - CI_START )) dur pct=0
     if [ "$elapsed" -ge 60 ]; then
         printf -v dur "%dm %02ds" $(( elapsed / 60 )) $(( elapsed % 60 ))
     else
         printf -v dur "%ds" "$elapsed"
     fi
-
-    local inner=$(( _TERM_COLS - 6 ))
-    [ "$inner" -lt 20 ] && inner=20
-
-    local buf=$'\033['"$DASH_HEIGHT"'A'
-    buf+=$'\033[2K\n'
-    buf+=$'\033[2K'"  ${CYAN}${_SPINNER[$((spin_idx % 10))]}${RESET}  ${bar}  ${BOLD}${JOBS_DONE}/${JOBS_TOTAL}${RESET}  ${pct}%  ${DIM}${dur}${RESET}"$'\n'
-    buf+=$'\033[2K'"  ${BLUE}${BOLD}▸${RESET} ${CURRENT_JOB}"$'\n'
-    buf+=$'\033[2K\n'
-
-    local n=${#RING[@]} idx line
-    for ((i = 0; i < DASH_TAIL; i++)); do
-        idx=$(( i - (DASH_TAIL - n) ))
-        line=""
-        if [ "$idx" -ge 0 ] && [ "$idx" -lt "$n" ]; then
-            line="${RING[$idx]}"
-            line="${line:0:$inner}"
-        fi
-        buf+=$'\033[2K'"  ${DIM}│ ${line}${RESET}"$'\n'
-    done
-
-    printf '%s' "$buf"
+    [ "$JOBS_TOTAL" -gt 0 ] && pct=$(( JOBS_DONE * 100 / JOBS_TOTAL ))
+    printf '\r\033[2K  %s  %s%d/%d%s  %s%d%%  %s%s  %s' \
+        "${CYAN}${_SPINNER[$(( $1 % 10 ))]}${RESET}" \
+        "$BOLD" "$JOBS_DONE" "$JOBS_TOTAL" "$RESET" \
+        "$DIM" "$pct" "$dur" "$RESET" "$CURRENT_JOB"
 }
 
-# Terminal stage of a job's pipeline: swallow the output, keep the last
-# DASH_TAIL lines, and repaint on each one.
+erase_progress() {
+    $PROGRESS && printf '\r\033[2K'
+}
+
+# Terminal stage of a job's pipeline when the progress line is showing: swallow
+# the build output and tick the spinner on every line.
 #
-# The read is blocking on purpose. `read -t 1` would let the clock tick during
-# a silent compile, but bash 3.2 — which is what /bin/bash is on macOS —
-# returns 1 on timeout, indistinguishable from EOF, so the sink exited at the
-# first quiet second and killed the build with SIGPIPE.
-dash_sink() {
+# The read is blocking on purpose. `read -t 1` would let the clock tick during a
+# silent compile, but bash 3.2 — which is what /bin/bash is on macOS — returns 1
+# on timeout, indistinguishable from EOF, so the sink exited at the first quiet
+# second and killed the build with SIGPIPE.
+progress_sink() {
     local line spin=0
-    RING=()
-    dash_paint 0
+    paint 0
     while IFS= read -r line; do
-        ring_push "$line"
         spin=$(( spin + 1 ))
-        dash_paint "$spin"
+        paint "$spin"
     done
     return 0
 }
 
-# ── Summary ───────────────────────────────────────────────────────────────────
+# ── Results ───────────────────────────────────────────────────────────────────
+JOB_IDS=()
+JOB_LABELS=()
+JOB_STATUSES=()
+JOB_SUMMARIES=()
+JOB_DURATIONS=()
+
+# One row of the running tally, in the same shape as the final summary.
+# A negative status means the job could not run at all — see the lint case.
+print_result_row() {
+    local label="$1" status="$2" summary="$3" duration="$4" icon detail
+    if [ "$status" -lt 0 ]; then   icon="${YELLOW}⏭️${RESET} "
+    elif [ "$status" -eq 0 ]; then icon="${GREEN}✅${RESET}"
+    else                           icon="${RED}❌${RESET}"; fi
+    printf -v detail "%-34s  %s" "$label" "$summary"
+    printf "  %b  %-56s %s(%s)%s\n" "$icon" "$detail" "$DIM" "$(format_duration "$duration")" "$RESET"
+}
+
 _INTERRUPTED=false
 
 print_summary() {
-    $LIST_MODE && return
-    local total_count=${#JOB_NAMES[@]}
-    [ "$total_count" -eq 0 ] && return
+    local total=${#JOB_IDS[@]} i
+    [ "$total" -eq 0 ] && return
 
-    local pass_count=0 i
-    for i in "${!JOB_NAMES[@]}"; do
-        [ "${JOB_STATUSES[$i]}" -eq 0 ] && pass_count=$((pass_count + 1))
+    local passed=0 failed=0 skipped=0
+    for i in "${!JOB_IDS[@]}"; do
+        if [ "${JOB_STATUSES[$i]}" -lt 0 ]; then   skipped=$(( skipped + 1 ))
+        elif [ "${JOB_STATUSES[$i]}" -eq 0 ]; then passed=$(( passed + 1 ))
+        else                                       failed=$(( failed + 1 )); fi
     done
 
-    # Under the dashboard every job already printed its row as it finished, so
-    # only the failures are worth repeating — with the logs needed to debug them.
-    if ! $DASH_ACTIVE; then
+    # With the progress line, every job already printed its row as it finished.
+    if ! $PROGRESS; then
         echo
-        for i in "${!JOB_NAMES[@]}"; do
-            print_result_row "${JOB_NAMES[$i]}" "${JOB_ACTIONS[$i]}" \
-                "${JOB_STATUSES[$i]}" "${JOB_TEST_SUMMARIES[$i]}" "${JOB_DURATIONS[$i]}"
+        for i in "${!JOB_IDS[@]}"; do
+            print_result_row "${JOB_LABELS[$i]}" "${JOB_STATUSES[$i]}" \
+                "${JOB_SUMMARIES[$i]}" "${JOB_DURATIONS[$i]}"
         done
     fi
 
-    local printed_header=false
-    for i in "${!JOB_NAMES[@]}"; do
-        [ "${JOB_STATUSES[$i]}" -eq 0 ] && continue
-        if ! $printed_header; then echo; printed_header=true; fi
-        printf "  %s%s%s\n" "$RED$BOLD" "${JOB_NAMES[$i]}" "$RESET"
-        printf "      %slog:      %s%s\n" "$DIM" "${JOB_LOG_PATHS[$i]%.log}.txt" "$RESET"
-        [ -n "${JOB_XCRESULT_PATHS[$i]}" ] && \
-            printf "      %sxcresult: %s%s\n" "$DIM" "${JOB_XCRESULT_PATHS[$i]}" "$RESET"
+    # Failures are worth repeating, with the logs needed to debug them.
+    local printed_header=false xcresult
+    for i in "${!JOB_IDS[@]}"; do
+        [ "${JOB_STATUSES[$i]}" -le 0 ] && continue
+        $printed_header || { echo; printed_header=true; }
+        printf "  %s%s%s\n" "$RED$BOLD" "${JOB_LABELS[$i]}" "$RESET"
+        printf "      %slog:      %s%s\n" "$DIM" "$OUTPUT_DIR/${JOB_IDS[$i]}.txt" "$RESET"
+        xcresult="$OUTPUT_DIR/${JOB_IDS[$i]}.xcresult"
+        [ -d "$xcresult" ] && printf "      %sxcresult: %s%s\n" "$DIM" "$xcresult" "$RESET"
     done
 
-    local total_dur=0 d
-    for d in "${JOB_DURATIONS[@]}"; do total_dur=$((total_dur + d)); done
-
+    local ran=$(( passed + failed )) plural="s"
+    [ "$passed" -eq 1 ] && plural=""
     echo
-    local failed=$(( total_count - pass_count ))
     if $_INTERRUPTED; then
-        printf "  %s%s%d/%d completed before interrupt ⚠️%s  %s(%s)%s\n" \
-            "$YELLOW" "$BOLD" "$pass_count" "$total_count" "$RESET" \
-            "$DIM" "$(format_duration $total_dur)" "$RESET"
-    elif [ "$failed" -eq 0 ]; then
-        printf "  %s%sAll %d jobs passed ✅%s  %s(%s)%s\n" \
-            "$GREEN" "$BOLD" "$total_count" "$RESET" \
-            "$DIM" "$(format_duration $total_dur)" "$RESET"
+        printf "  %s%s%d/%d completed before interrupt ⚠️%s" "$YELLOW" "$BOLD" "$total" "$JOBS_TOTAL" "$RESET"
+    elif [ "$failed" -gt 0 ]; then
+        printf "  %s%s%d/%d passed — %d failed ❌%s" "$RED" "$BOLD" "$passed" "$ran" "$failed" "$RESET"
+    elif [ "$passed" -gt 0 ]; then
+        printf "  %s%sAll %d job%s passed ✅%s" "$GREEN" "$BOLD" "$passed" "$plural" "$RESET"
     else
-        printf "  %s%s%d/%d passed — %d failed ❌%s  %s(%s)%s\n" \
-            "$RED" "$BOLD" "$pass_count" "$total_count" "$failed" "$RESET" \
-            "$DIM" "$(format_duration $total_dur)" "$RESET"
+        printf "  %s%sNothing ran ⚠️%s" "$YELLOW" "$BOLD" "$RESET"
     fi
+    [ "$skipped" -gt 0 ] && printf "  %s· %d skipped%s" "$DIM" "$skipped" "$RESET"
+    printf "  %s(%s)%s\n" "$DIM" "$(format_duration $(( SECONDS - CI_START )))" "$RESET"
     printf "  %slogs: %s%s\n\n" "$DIM" "$OUTPUT_DIR" "$RESET"
 }
 
 on_interrupt() {
     _INTERRUPTED=true
-    dash_close
+    erase_progress
     printf "\n%s%s  Interrupted — showing partial results...%s\n" "$YELLOW" "$BOLD" "$RESET"
     print_summary
     exit 130
@@ -423,143 +305,106 @@ on_interrupt() {
 trap on_interrupt INT TERM
 
 # ── Job runner ────────────────────────────────────────────────────────────────
-record_result() {
-    JOB_NAMES+=("$1"); JOB_ACTIONS+=("$2"); JOB_STATUSES+=("$3")
-    JOB_LOG_PATHS+=("$4"); JOB_XCRESULT_PATHS+=("$5")
-    JOB_TEST_SUMMARIES+=("$6"); JOB_DURATIONS+=("$7")
-}
-
-# One row of the running tally, in the same shape as the final summary so the
-# scrollback reads as the summary being built up.
-print_result_row() {
-    local label="$1" action="$2" status="$3" test_summary="$4" duration="$5"
-    local icon detail
-    if [ "$status" -eq 0 ]; then icon="${GREEN}✅${RESET}"; else icon="${RED}❌${RESET}"; fi
-    if [ "$action" = "test" ]; then
-        printf -v detail "%-34s  %s" "$label" "$test_summary"
-    else
-        printf -v detail "%s" "$label"
-    fi
-    printf "  %b  %-56s %s(%s)%s\n" "$icon" "$detail" "$DIM" "$(format_duration "$duration")" "$RESET"
-}
 
 # Runs a command with its output teed to the raw log (which parse_test_results
-# greps), prettified into a readable log, and then either shown in the dashboard
-# tail window or streamed as-is.
+# greps), prettified into a readable log, and then either swallowed by the
+# progress line or streamed as-is.
 run_streamed() {
-    local raw="$1" pretty="$2"; shift 2
+    local id="$1"; shift
     local rc=0
-    if $DASH_ACTIVE; then
-        "$@" 2>&1 | tee "$raw" | prettify | tee "$pretty" | dash_sink || rc=$?
+    if $PROGRESS; then
+        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify | tee "$OUTPUT_DIR/$id.txt" | progress_sink || rc=$?
     else
-        "$@" 2>&1 | tee "$raw" | prettify | tee "$pretty" || rc=$?
+        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify | tee "$OUTPUT_DIR/$id.txt" || rc=$?
     fi
     return $rc
 }
 
 run_job() {
     local id="$1" action="$2" scheme="$3" platform="$4"
-    local label
 
+    local label
     case "$action" in
         lint) label="SwiftLint" ;;
         spm)  label="swift build --build-tests" ;;
         *)    label="$scheme · $platform" ;;
     esac
 
-    mkdir -p "$OUTPUT_DIR"
-
-    local log_file pretty_log xcresult_path safe_name
-    safe_name=$(sanitize_name "$id")
-    log_file="$OUTPUT_DIR/${safe_name}.log"
-    pretty_log="$OUTPUT_DIR/${safe_name}.txt"
-    xcresult_path=""
-
-    local dest=""
+    DEST=""
     case "$action" in
-        build) dest=$(destination_for build "$platform") ;;
-        test)  dest=$(destination_for test "$platform") ;;
+        build|test) set_destination "$action" "$platform" ;;
     esac
 
-    if $DASH_ACTIVE; then
-        CURRENT_JOB="${BOLD}${label}${RESET}${DIM}  ${action}${dest:+  ·  $dest}${RESET}"
-        refresh_term_cols
-        dash_open
+    if $PROGRESS; then
+        CURRENT_JOB="${BOLD}${label}${RESET}${DIM}  ${action}${RESET}"
     else
         echo
         [ "$_IS_CI" = "true" ] && echo "::group::$id — $label"
         printf "%s%s▸ %-8s %s%s\n" "$BOLD" "$BLUE" "$action" "$label" "$RESET"
         printf "%s  job: %s%s\n" "$DIM" "$id" "$RESET"
-        [ -n "$dest" ] && printf "%s  destination: %s%s\n" "$DIM" "$dest" "$RESET"
+        [ -n "$DEST" ] && printf "%s  destination: %s%s\n" "$DIM" "$DEST" "$RESET"
     fi
 
-    local exit_code=0 start_time end_time
-    start_time=$(date +%s)
+    local exit_code=0 summary="" start=$SECONDS
+    rm -rf "$OUTPUT_DIR/$id.xcresult"
 
     case "$action" in
         lint)
             # Not --strict yet: SwiftLint has never gated CI, so the existing
             # warnings need clearing first. Tighten once they are.
             if command -v swiftlint >/dev/null 2>&1; then
-                run_streamed "$log_file" "$pretty_log" \
-                    env -C "$PROJECT_ROOT" swiftlint lint || exit_code=$?
+                run_streamed "$id" env -C "$PROJECT_ROOT" swiftlint lint || exit_code=$?
             else
-                echo "swiftlint not installed — skipping (brew install swiftlint)" > "$log_file"
+                # A negative status marks the job skipped rather than passed —
+                # reporting green for a job that never ran is how CI goes stale.
+                exit_code=-1
+                summary="not installed — brew install swiftlint"
             fi
             ;;
         spm)
-            run_streamed "$log_file" "$pretty_log" \
-                env -C "$PROJECT_ROOT" swift build --build-tests || exit_code=$?
+            run_streamed "$id" env -C "$PROJECT_ROOT" swift build --build-tests || exit_code=$?
             ;;
         build)
-            xcresult_path="$OUTPUT_DIR/${safe_name}.xcresult"
-            rm -rf "$xcresult_path"
-            run_streamed "$log_file" "$pretty_log" \
+            run_streamed "$id" \
                 xcodebuild build \
                     -project "$PROJECT" \
                     -scheme "$scheme" \
-                    -destination "$dest" \
-                    -resultBundlePath "$xcresult_path" || exit_code=$?
+                    -destination "$DEST" \
+                    -resultBundlePath "$OUTPUT_DIR/$id.xcresult" || exit_code=$?
             ;;
         test)
-            xcresult_path="$OUTPUT_DIR/${safe_name}.xcresult"
-            rm -rf "$xcresult_path"
-            run_streamed "$log_file" "$pretty_log" \
+            # The suites carry their own `.timeLimit` trait, so a hung test is
+            # caught by Swift Testing rather than by an xcodebuild allowance.
+            run_streamed "$id" \
                 xcodebuild test \
                     -project "$PROJECT" \
                     -scheme "$scheme" \
-                    -destination "$dest" \
-                    -resultBundlePath "$xcresult_path" \
+                    -destination "$DEST" \
+                    -resultBundlePath "$OUTPUT_DIR/$id.xcresult" \
                     -parallel-testing-enabled NO \
-                    -test-timeouts-enabled YES \
-                    -default-test-execution-time-allowance 120 \
                     -retry-tests-on-failure || exit_code=$?
             ;;
     esac
 
-    end_time=$(date +%s)
-    if [ "$_IS_CI" = "true" ]; then echo "::endgroup::"; fi
+    [ "$_IS_CI" = "true" ] && echo "::endgroup::"
 
-    local test_summary="" duration=$(( end_time - start_time ))
-    [ "$action" = "test" ] && test_summary=$(parse_test_results "$log_file" "$exit_code")
+    local duration=$(( SECONDS - start ))
+    [ "$action" = "test" ] && summary=$(parse_test_results "$OUTPUT_DIR/$id.log" "$exit_code")
 
-    record_result "$label" "$action" "$exit_code" "$log_file" \
-        "$xcresult_path" "$test_summary" "$duration"
-
+    JOB_IDS+=("$id"); JOB_LABELS+=("$label"); JOB_STATUSES+=("$exit_code")
+    JOB_SUMMARIES+=("$summary"); JOB_DURATIONS+=("$duration")
     JOBS_DONE=$(( JOBS_DONE + 1 ))
-    if $DASH_ACTIVE; then
-        dash_close
-        print_result_row "$label" "$action" "$exit_code" "$test_summary" "$duration"
+
+    if $PROGRESS; then
+        erase_progress
+        print_result_row "$label" "$exit_code" "$summary" "$duration"
     fi
 }
 
 # ── List mode ─────────────────────────────────────────────────────────────────
 if $LIST_MODE; then
-    echo
-    printf "%sGroups%s (make ci-group-<name>, one GitHub job each)\n\n" "$BOLD" "$RESET"
-    for g in "${CI_GROUPS[@]}"; do printf "  %s\n" "$g"; done
-    echo
-    printf "%sJobs%s (make ci-<id>)\n" "$BOLD" "$RESET"
+    printf "\n%sJobs%s  %sgrouped by CI group — pass any id, group, or action to make ci-<name>%s\n" \
+        "$BOLD" "$RESET" "$DIM" "$RESET"
     last_group=""
     for entry in "${JOBS[@]}"; do
         IFS='|' read -r id group action scheme platform <<< "$entry"
@@ -567,45 +412,40 @@ if $LIST_MODE; then
             printf "\n  %s%s%s\n" "$DIM" "$group" "$RESET"
             last_group="$group"
         fi
-        printf "    %-32s %s %s\n" "$id" "$action" "$scheme · $platform"
+        printf "    %-32s %-6s %s\n" "$id" "$action" "$scheme · $platform"
     done
     echo
     exit 0
 fi
 
 # ── Job selection ─────────────────────────────────────────────────────────────
-# Resolved up front so the progress bar knows the denominator.
+# Resolved up front so the progress line knows the denominator.
 SELECTED=()
 for entry in "${JOBS[@]}"; do
     IFS='|' read -r id group action scheme platform <<< "$entry"
-    if [ -n "$JOB_FILTER" ] && [ "$id" != "$JOB_FILTER" ]; then continue; fi
-    if [ -n "$GROUP_FILTER" ] && [ "$group" != "$GROUP_FILTER" ]; then continue; fi
-    SELECTED+=("$entry")
-done
-JOBS_TOTAL=${#SELECTED[@]}
-
-# ── Header ────────────────────────────────────────────────────────────────────
-if [ "$JOBS_TOTAL" -gt 0 ]; then
-    echo
-    printf "  %sNuke CI%s  %s%d job" "$BOLD" "$RESET" "$DIM" "$JOBS_TOTAL"
-    [ "$JOBS_TOTAL" -eq 1 ] || printf "s"
-    [ -n "$GROUP_FILTER" ] && printf " · group %s" "$GROUP_FILTER"
-    printf "%s\n" "$RESET"
-    printf "  %slogs: %s%s\n" "$DIM" "$OUTPUT_DIR" "$RESET"
-    echo
-    mkdir -p "$OUTPUT_DIR"
-    [ -n "$OUTPUT_ROOT" ] && ln -sfn "$OUTPUT_DIR" "$OUTPUT_ROOT/latest"
-fi
-
-# ── Dispatch ──────────────────────────────────────────────────────────────────
-if [ "$JOBS_TOTAL" -eq 0 ]; then
-    if [ -n "$GROUP_FILTER" ]; then
-        printf "%sNo group '%s'. Run 'make ci-list' to see all groups.%s\n" "$YELLOW" "$GROUP_FILTER" "$RESET" >&2
-    else
-        printf "%sNo job '%s'. Run 'make ci-list' to see all job IDs.%s\n" "$YELLOW" "$JOB_FILTER" "$RESET" >&2
+    if [ -z "$SELECTOR" ] || [ "$SELECTOR" = "$id" ] || [ "$SELECTOR" = "$group" ] || [ "$SELECTOR" = "$action" ]; then
+        SELECTED+=("$entry")
     fi
+done
+
+if [ "${#SELECTED[@]}" -eq 0 ]; then
+    printf "%sNothing matches '%s'. Run 'make ci-list' to see every job, group, and action.%s\n" \
+        "$YELLOW" "$SELECTOR" "$RESET" >&2
     exit 1
 fi
+JOBS_TOTAL=${#SELECTED[@]}
+
+# ── Run ───────────────────────────────────────────────────────────────────────
+mkdir -p "$OUTPUT_DIR"
+[ -n "$OUTPUT_ROOT" ] && ln -sfn "$OUTPUT_DIR" "$OUTPUT_ROOT/latest"
+
+echo
+printf "  %sNuke CI%s  %s%d job" "$BOLD" "$RESET" "$DIM" "$JOBS_TOTAL"
+[ "$JOBS_TOTAL" -eq 1 ] || printf "s"
+[ -n "$SELECTOR" ] && printf " · %s" "$SELECTOR"
+printf "%s\n" "$RESET"
+printf "  %slogs: %s%s\n" "$DIM" "$OUTPUT_DIR" "$RESET"
+echo
 
 for entry in "${SELECTED[@]}"; do
     IFS='|' read -r id group action scheme platform <<< "$entry"
@@ -614,9 +454,7 @@ done
 
 print_summary
 
-failed=0
 for status in "${JOB_STATUSES[@]}"; do
-    [ "$status" -ne 0 ] && failed=$((failed + 1))
+    [ "$status" -gt 0 ] && exit 1
 done
-[ "$failed" -gt 0 ] && exit 1
 exit 0

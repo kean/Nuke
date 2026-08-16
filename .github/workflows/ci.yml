@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.group }}
-        run: .scripts/ci.sh --group ${{ matrix.group }}
+        run: .scripts/ci.sh ${{ matrix.group }}
       # Backward compatibility against the oldest supported Xcode. Folded into
       # the (short) macOS job rather than given its own runner, to stay within
       # the 5 concurrent macOS job budget.
@@ -55,7 +55,7 @@ jobs:
         if: matrix.group == 'macos'
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
-        run: .scripts/ci.sh --group macos
+        run: .scripts/ci.sh macos
       - name: Upload xcresult bundles
         if: failure()
         uses: actions/upload-artifact@v7
@@ -65,13 +65,12 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # On a Linux runner, so linting costs no macOS concurrency.
   lint:
     name: SwiftLint
     runs-on: ubuntu-latest
     container: ghcr.io/realm/swiftlint:0.65.0
     steps:
       - uses: actions/checkout@v7
-      # Not --strict yet: SwiftLint has never gated CI, so the existing warnings
-      # need clearing first. Tighten to `--strict` once they are.
-      - name: Run SwiftLint
-        run: swiftlint lint
+      - name: Run lint
+        run: .scripts/ci.sh lint

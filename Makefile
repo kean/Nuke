@@ -1,41 +1,34 @@
 .PHONY: ci ci-list test build lint spm help
 
-SCRIPTS := .scripts
+CI := bash .scripts/ci.sh
 
 ## Run every CI job (build, test, lint) for every scheme and platform
 ci:
-	@bash $(SCRIPTS)/ci.sh
+	@$(CI)
 
-## List all CI groups and job IDs
+## List every job, group, and action
 ci-list:
-	@bash $(SCRIPTS)/ci.sh --list
+	@$(CI) --list
 
-## Run one GitHub job's worth of work, e.g. make ci-group-ios-core
-ci-group-%:
-	@bash $(SCRIPTS)/ci.sh --group $*
-
-## Run a single CI job by ID, e.g. make ci-test-nuke-ios (see: make ci-list)
+## Run one job, group, or action, e.g. make ci-macos or make ci-test-nuke-ios
 ci-%:
-	@bash $(SCRIPTS)/ci.sh $*
+	@$(CI) $*
 
-## Run all unit tests (iOS, macOS, tvOS)
+## Run all unit tests (iOS, tvOS, macOS)
 test:
-	@bash $(SCRIPTS)/ci.sh --group ios-core
-	@bash $(SCRIPTS)/ci.sh --group ios-ui
-	@bash $(SCRIPTS)/ci.sh --group macos
-	@bash $(SCRIPTS)/ci.sh --group tvos
+	@$(CI) test
 
 ## Compile every scheme for every platform (no tests)
 build:
-	@bash $(SCRIPTS)/ci.sh --group platforms
+	@$(CI) build
 
 ## Run SwiftLint
 lint:
-	@bash $(SCRIPTS)/ci.sh lint
+	@$(CI) lint
 
 ## Build the SPM package including tests
 spm:
-	@bash $(SCRIPTS)/ci.sh spm-build
+	@$(CI) spm
 
 ## Show available targets
 help:
