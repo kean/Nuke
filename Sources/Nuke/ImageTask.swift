@@ -212,7 +212,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
         guard didChange else { return }
         Task { @ImagePipelineActor in
-            self.pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
+            // Read the priority instead of capturing `newValue`: the hops are
+            // unordered, so a stale value could land last.
+            self.pipeline?.imageTaskUpdatePriorityCalled(self, priority: self.priority)
         }
     }
 
