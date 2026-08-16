@@ -140,9 +140,7 @@ struct ImageTaskTests {
         async let first = task.events.reduce(into: [ImageTask.Event]()) { $0.append($1) }
         async let second = task.events.reduce(into: [ImageTask.Event]()) { $0.append($1) }
 
-        while await task._streamContinuations.count < 2 {
-            await Task.yield()
-        }
+        await task.waitUntilObserved(count: 2)
         dataLoader.isSuspended = false
 
         // Then both observe the terminal event
@@ -228,9 +226,7 @@ struct ImageTaskTests {
 
         // When the stream is created after the first chunk is delivered
         async let recorded = task.events.reduce(into: [ImageTask.Event]()) { $0.append($1) }
-        while await task._streamContinuations.isEmpty {
-            await Task.yield()
-        }
+        await task.waitUntilObserved()
         dataLoader.resumeServingChunks(dataLoader.chunks.count)
 
         // Then it starts with the progress reported before it was created
@@ -241,6 +237,48 @@ struct ImageTaskTests {
         }
         #expect(firstProgress == progress)
         #expect(events.contains { if case .finished(.success) = $0 { return true } else { return false } })
+    }
+
+    // MARK: - Progress Stream
+
+    @Test func progressStreamKeepsOnlyTheMostRecentUpdate() async throws {
+        // Given a task with a subscribed, but not yet read, progress stream
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let task = pipeline.imageTask(with: Test.request)
+        let progress = task.progress
+        while task.status.progress.completed == 0 {
+            await Task.yield()
+        }
+        await task.waitUntilObserved()
+
+        // When the rest of the image is downloaded before the stream is read
+        dataLoader.resumeServingChunks(dataLoader.chunks.count)
+        _ = try await task.response
+
+        // Then the stream reports the current progress and not the values that
+        // the download passed through while nobody was reading it
+        var recorded: [ImageTask.Progress] = []
+        for await value in progress {
+            recorded.append(value)
+        }
+        #expect(recorded == [task.status.progress])
+    }
+
+    @Test func subscribingToProgressAfterTheTaskFinishesFinishesTheStream() async throws {
+        // Given
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.response
+
+        // When/Then the stream finishes without reporting any updates
+        var recorded: [ImageTask.Progress] = []
+        for await value in task.progress {
+            recorded.append(value)
+        }
+        #expect(recorded.isEmpty)
     }
 
     // MARK: - Status

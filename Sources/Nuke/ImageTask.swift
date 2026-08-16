@@ -167,8 +167,13 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     /// The stream of progress updates.
     ///
     /// A convenience over ``events``: every access creates a new subscription.
-    public var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
-        events.compactMap {
+    ///
+    /// - note: Unlike ``events``, the stream keeps only the most recent update.
+    /// Each value is a complete snapshot of the download, so a consumer that
+    /// can't keep up – a progress bar driven by the main actor – picks up where
+    /// the download is now instead of replaying the values it missed.
+    public var progress: AsyncStream<Progress> {
+        makeStream(bufferingPolicy: .bufferingNewest(1)) {
             if case .progress(let value) = $0 { return value }
             return nil
         }
@@ -180,8 +185,8 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     /// A convenience over ``events``: every access creates a new subscription.
     ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
-    public var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
-        events.compactMap {
+    public var previews: AsyncStream<ImageResponse> {
+        makeStream {
             if case .preview(let value) = $0 { return value }
             return nil
         }
@@ -214,7 +219,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     ///
     /// - note: A stream buffers the events that the consumer hasn't picked up
     /// yet, so a slow consumer never misses one.
-    public var events: AsyncStream<Event> { makeStream() }
+    public var events: AsyncStream<Event> { makeStream { $0 } }
 
     /// An event produced during the runtime of the task.
     @frozen public enum Event: Sendable {
@@ -238,7 +243,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
-    @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+    @ImagePipelineActor var _observers = ContiguousArray<@Sendable (Event) -> Void>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
@@ -344,18 +349,12 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
         if case .finished(let result) = event {
             _status.withLock { $0.result = result }
         }
-        for continuation in _streamContinuations {
-            continuation.yield(event)
+        for observer in _observers {
+            observer(event)
         }
-        switch event {
-        case .finished(let result):
-            for continuation in _streamContinuations {
-                continuation.finish()
-            }
-            _streamContinuations.removeAll()
+        if case .finished(let result) = event {
+            _observers.removeAll()
             _continuation?.resume(returning: result)
-        default:
-            break
         }
 
         onEvent?(event, self)
@@ -396,28 +395,46 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
 // MARK: - ImageTask (Private)
 
 extension ImageTask {
-    /// Creates a new stream of events for this task.
+    /// Creates a new stream with the values that `transform` produces for the
+    /// events sent by the task, and finishes it when the task finishes.
+    ///
+    /// The events are transformed when they are sent, not when they are read,
+    /// so the values the stream isn't interested in never reach its buffer and
+    /// each stream can pick the buffering policy that suits it.
     ///
     /// A subscription reaches the pipeline actor asynchronously, so the task
     /// can finish before it is registered – a memory cache hit, for example,
     /// finishes the task while the pipeline is still starting it. To make sure
     /// no subscriber misses the outcome, a stream created after the task
     /// finished replays the terminal event recorded in ``Status/result``.
-    private func makeStream() -> AsyncStream<Event> {
-        AsyncStream { continuation in
+    private func makeStream<Value: Sendable>(
+        bufferingPolicy: AsyncStream<Value>.Continuation.BufferingPolicy = .unbounded,
+        transform: @escaping @Sendable (Event) -> Value?
+    ) -> AsyncStream<Value> {
+        AsyncStream(bufferingPolicy: bufferingPolicy) { continuation in
             Task { @ImagePipelineActor in
                 let status = self.status
                 if let result = status.result {
-                    continuation.yield(.finished(result))
+                    if let value = transform(.finished(result)) {
+                        continuation.yield(value)
+                    }
                     return continuation.finish()
                 }
                 // Prime the stream with the progress reported so far so that a
                 // progress bar attached mid-download doesn't sit at zero until
                 // the next chunk arrives.
-                if status.progress.completed > 0 || status.progress.total > 0 {
-                    continuation.yield(.progress(status.progress))
+                if status.progress.completed > 0 || status.progress.total > 0,
+                   let value = transform(.progress(status.progress)) {
+                    continuation.yield(value)
                 }
-                self._streamContinuations.append(continuation)
+                self._observers.append { event in
+                    if let value = transform(event) {
+                        continuation.yield(value)
+                    }
+                    if case .finished = event {
+                        continuation.finish()
+                    }
+                }
             }
         }
     }

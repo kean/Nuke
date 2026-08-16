@@ -246,10 +246,8 @@ struct ImagePipelineAsyncAwaitTests {
         // WHEN
         var recordedProgress: [ImageTask.Progress] = []
         do {
-            let task = pipeline.imageTask(with: Test.url)
-            for await progress in task.progress {
-                recordedProgress.append(progress)
-            }
+            let (task, progress) = await pipeline.recordProgress(for: ImageRequest(url: Test.url))
+            recordedProgress = progress
             _ = try await task.image
         } catch {
             // Do nothing

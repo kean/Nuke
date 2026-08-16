@@ -33,6 +33,7 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
+- `ImageTask/progress` and `ImageTask/previews` now return an `AsyncStream` instead of leaking the sequence type they are built from. `progress` also keeps only the most recent update for a consumer that can't keep up with the download – https://github.com/kean/Nuke/pull/924
 
 **Bug Fixes**
 

@@ -33,6 +33,44 @@ func withSuspendedDataLoading<T>(
     return result
 }
 
+// MARK: - ImageTask
+
+extension ImageTask {
+    /// Waits until the given number of streams created for the task are
+    /// registered with the pipeline, which happens asynchronously.
+    @ImagePipelineActor func waitUntilObserved(count: Int = 1) async {
+        while _observers.count < count {
+            await Task.yield()
+        }
+    }
+}
+
+extension ImagePipeline {
+    /// Starts a task for the given request and records every progress update
+    /// that it reports.
+    ///
+    /// Data loading stays suspended until the recording stream is registered
+    /// with the pipeline, which happens asynchronously: a stream created after
+    /// the download starts misses the updates that preceded it.
+    ///
+    /// The updates are read from `events`, which buffers all of them, and not
+    /// from `progress`, which keeps only the most recent one when the consumer
+    /// can't keep up with the download.
+    func recordProgress(for request: ImageRequest) async -> (task: ImageTask, progress: [ImageTask.Progress]) {
+        let queue = configuration.dataLoadingQueue
+        queue.isSuspended = true
+        let task = imageTask(with: request)
+        async let progress = task.events.reduce(into: [ImageTask.Progress]()) { values, event in
+            if case .progress(let value) = event {
+                values.append(value)
+            }
+        }
+        await task.waitUntilObserved()
+        queue.isSuspended = false
+        return (task, await progress)
+    }
+}
+
 // MARK: - Image Comparison
 
 func isEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage) -> Bool {

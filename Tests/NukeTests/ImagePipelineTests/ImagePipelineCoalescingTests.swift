@@ -238,11 +238,7 @@ struct ImagePipelineCoalescingTests {
         )
 
         // When/Then
-        let task = pipeline.imageTask(with: Test.url)
-        var progressValues: [ImageTask.Progress] = []
-        for await progress in task.progress {
-            progressValues.append(progress)
-        }
+        let (task, progressValues) = await pipeline.recordProgress(for: ImageRequest(url: Test.url))
         _ = try? await task.response
 
         #expect(progressValues == [
