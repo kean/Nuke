@@ -634,10 +634,4 @@ extension DataCache {
     var contents: [URL] {
         return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
     }
-
-    func withSuspendedIO(_ closure: () -> Void) {
-        queue.suspend()
-        closure()
-        queue.resume()
-    }
 }
