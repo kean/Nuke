@@ -55,7 +55,7 @@ extension ImageDecoders {
         /// Initializes the decoder from the given decoding context, reading the
         /// request's scale, thumbnail options, and preview policy.
         public init?(context: ImageDecodingContext) {
-            self.scale = CGFloat(context.request.scale)
+            self.scale = context.request.scale
             self.thumbnail = context.request.thumbnail
             self.previewPolicy = context.previewPolicy
         }

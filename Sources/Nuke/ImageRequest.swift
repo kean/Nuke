@@ -109,9 +109,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// The display scale of the image. By default, `1`.
-    public var scale: Float {
-        get { ref.scale }
-        set { mutate { $0.scale = newValue } }
+    public var scale: CGFloat {
+        get { CGFloat(ref.scale) }
+        set { mutate { $0.scale = Float(newValue) } }
     }
 
     /// Thumbnail options. When set, the pipeline generates a thumbnail instead
@@ -397,7 +397,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         ///
         /// This option performs slightly faster than ``ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)``
         /// because it doesn't need to read the image size.
-        public init(maxPixelSize: Float) {
+        public init(maxPixelSize: CGFloat) {
             self.size = ImageTargetSize(maxPixelSize: maxPixelSize)
         }
 
