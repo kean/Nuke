@@ -19,7 +19,7 @@ Nuke can also drive progressive decoding, animated image rendering, drawing vect
 | GIF | ``AssetType/gif`` | ✅ | ✅ | Automatic (single preview) | ✅ (data attached) |
 | HEIC | ``AssetType/heic`` | ✅ | ✅ | Opt-in | First frame only |
 | WebP | ``AssetType/webp`` | ✅ | ❌ | Opt-in | First frame only |
-| AVIF | – | ✅ | ✅ recent OS only | Opt-in | First frame only |
+| AVIF | ``AssetType/avif`` | ✅ | ✅ recent OS only | Opt-in | First frame only |
 | JPEG XL | ``AssetType/jxl`` | ✅ iOS 17, macOS 14 | ❌ | Opt-in | – |
 | JPEG 2000 | ``AssetType/jpeg2000`` | ✅ | ✅ | Opt-in | – |
 | TIFF | ``AssetType/tiff`` | ✅ | ✅ | Opt-in | – |
@@ -51,7 +51,7 @@ AssetType.png.utType?.preferredMIMEType // "image/png"
 
 The sniffer returns one of the types declared on ``AssetType`` and nothing else. A few consequences are worth knowing:
 
-- **AVIF, HEIF (`mif1`), and CUR decode but sniff as `nil`.** ISO base media files are matched by their major brand, and the AVIF and bare-HEIF brands aren't in the table. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
+- **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched by their major brand, and the bare-HEIF brand isn't in the table. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
 - **A sniffed type describes the bytes, not the semantics.** Most camera RAW formats – DNG, CR2, NEF, ARW – are TIFF containers, so they sniff as ``AssetType/tiff``.
 - **A `nil` type is not an error.** Only two places in the pipeline read the type: GIF detection in ``ImageDecoders/Default``, and `AssetType.isVideo` in `NukeVideo`.
 - **Video types are recognized without `NukeVideo`.** ``AssetType/mp4``, ``AssetType/m4v``, and ``AssetType/mov`` are always sniffable, but only `ImageDecoders.Video` can decode them, and you have to register it yourself.
@@ -106,20 +106,17 @@ Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` retu
 
 ## AVIF
 
-[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every OS Nuke supports.
-
-``AssetType`` doesn't sniff AVIF: the format is an ISO base media container with an `avif` major brand, which isn't one of the recognized brands. Images decode normally, but ``ImageContainer/type`` is `nil`.
+[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every OS Nuke supports. Files with the `avif` and `avis` major brands sniff as ``AssetType/avif``.
 
 AVIF encoding arrived later than decoding and is only available on recent OS versions, so check before using it:
 
 ```swift
-let avif: AssetType = "public.avif"
-if ImageEncoders.ImageIO.isSupported(type: avif) {
-    let data = ImageEncoders.ImageIO(type: avif).encode(image)
+if ImageEncoders.ImageIO.isSupported(type: .avif) {
+    let data = ImageEncoders.ImageIO(type: .avif).encode(image)
 }
 ```
 
-> Note: There is no ``AssetType`` constant for AVIF, and `UTType` doesn't declare one either, so the identifier has to be spelled out.
+> Note: `UTType` declares no `avif` constant of its own, but the system does register the `public.avif` identifier, so ``AssetType/utType`` still bridges.
 
 ## JPEG XL
 

@@ -216,6 +216,21 @@ struct AssetTypeTests {
         #expect(AssetType(makeISOBaseMedia(brand: brand)) == .heic)
     }
 
+    // MARK: AVIF
+
+    @Test func detectAVIF() {
+        let data = makeISOBaseMedia(brand: "avif")
+        #expect(AssetType(data[0..<11]) == nil)
+        #expect(AssetType(data[0..<12]) == .avif)
+        #expect(AssetType(data) == .avif)
+    }
+
+    @Test(arguments: ["avif", "avis"])
+    func detectAVIFBrands(brand: String) {
+        // `avis` is the brand an AVIF image sequence uses.
+        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .avif)
+    }
+
     // MARK: Edge Cases
 
     @Test func detectEmptyData() {
@@ -228,9 +243,9 @@ struct AssetTypeTests {
         #expect(AssetType(data) == nil)
     }
 
-    @Test(arguments: ["mif1", "msf1", "avif", "avis", "M4A ", "3gp4"])
+    @Test(arguments: ["mif1", "msf1", "M4A ", "3gp4"])
     func detectUnsupportedISOBaseMediaBrands(brand: String) {
-        // HEIF, AVIF, MPEG-4 audio, and 3GPP aren't formats the decoders
+        // Bare HEIF, MPEG-4 audio, and 3GPP aren't formats the decoders
         // support, so the brands they use are not recognized.
         #expect(AssetType(makeISOBaseMedia(brand: brand)) == nil)
     }
@@ -247,6 +262,7 @@ struct AssetTypeTests {
         #expect(AssetType.tiff.utType == .tiff)
         #expect(AssetType.jpeg2000.utType == UTType("public.jpeg-2000"))
         #expect(AssetType.jxl.utType == UTType("public.jpeg-xl"))
+        #expect(AssetType.avif.utType == UTType("public.avif"))
         #expect(AssetType.webp.utType == .webP)
         #expect(AssetType.mp4.utType == .mpeg4Movie)
         #expect(AssetType.m4v.utType == UTType("com.apple.m4v-video"))
@@ -256,7 +272,7 @@ struct AssetTypeTests {
     @Test func builtInTypesUseTheIdentifiersTheSystemDeclares() {
         // A type the system doesn't declare can't be bridged, so every built-in
         // type has to use the identifier the system registers for the format.
-        let types: [AssetType] = [.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .webp, .mp4, .m4v, .mov]
+        let types: [AssetType] = [.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .avif, .webp, .mp4, .m4v, .mov]
         for type in types {
             #expect(type.utType?.identifier == type.rawValue)
         }
@@ -280,7 +296,7 @@ struct AssetTypeTests {
         for type in [AssetType.mp4, .m4v, .mov] {
             #expect(type.utType?.conforms(to: .movie) == true)
         }
-        for type in [AssetType.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .webp] {
+        for type in [AssetType.png, .jpeg, .gif, .heic, .ico, .bmp, .tiff, .jpeg2000, .jxl, .avif, .webp] {
             #expect(type.utType?.conforms(to: .image) == true)
             #expect(type.utType?.conforms(to: .movie) == false)
         }
@@ -326,7 +342,7 @@ struct AssetTypeTests {
     /// the headers the system itself writes, and to make sure the decoder
     /// reports a type for every format it decodes. There is no JPEG XL encoder,
     /// so that format is covered by the unit tests only.
-    @Test(arguments: [AssetType.png, .jpeg, .gif, .heic, .bmp, .tiff, .jpeg2000])
+    @Test(arguments: [AssetType.png, .jpeg, .gif, .heic, .bmp, .tiff, .jpeg2000, .avif])
     func detectDataProducedByImageIO(type: AssetType) throws {
         guard let data = encode(Test.data(name: "fixture", extension: "png"), as: type) else {
             return // The platform has no encoder for this format
