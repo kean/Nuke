@@ -70,12 +70,12 @@ Apart from the subscript, ``ImagePipeline/Cache-swift.struct`` also has methods 
 let cache = pipeline.cache
 let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)
 
-cache.cachedImage(for: request) // From any cache layer
-cache.cachedImage(for: request, caches: [.memory]) // Only memory
-cache.cachedImage(for: request, caches: [.disk]) // Only disk (decodes data)
+await cache.cachedImage(for: request) // From any cache layer
+await cache.cachedImage(for: request, caches: [.memory]) // Only memory
+await cache.cachedImage(for: request, caches: [.disk]) // Only disk (decodes data)
 
-let data = cache.cachedData(for: request)
-cache.containsData(for: request) // Fast contains check 
+let data = await cache.cachedData(for: request)
+await cache.containsData(for: request) // Fast contains check 
 
 // Stores image in the memory cache and stores an encoded
 // image in the disk cache

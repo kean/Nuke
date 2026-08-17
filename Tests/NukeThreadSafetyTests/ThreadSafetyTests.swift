@@ -112,7 +112,7 @@ struct ThreadSafetyTests {
 
     // MARK: - DataCache
 
-    @Test func dataCacheThreadSafety() throws {
+    @Test func dataCacheThreadSafety() async throws {
         let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { $0 })
 
         let data = Data(repeating: 1, count: 256 * 1024)
@@ -120,23 +120,21 @@ struct ThreadSafetyTests {
         for idx in 0..<500 {
             cache["\(idx)"] = data
         }
-        cache.flush()
+        await cache.flush()
 
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 5
-
-        for _ in 0..<5 {
-            for idx in 0..<500 {
-                queue.addOperation {
-                    _ = cache["\(idx)"]
-                }
-                queue.addOperation {
-                    cache["\(idx)"] = data
-                    cache.flush()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<5 {
+                for idx in 0..<500 {
+                    group.addTask {
+                        _ = cache["\(idx)"]
+                    }
+                    group.addTask {
+                        cache["\(idx)"] = data
+                        await cache.flush()
+                    }
                 }
             }
         }
-        queue.waitUntilAllOperationsAreFinished()
     }
 
     @Test func dataCacheMultipleThreadAccess() async throws {

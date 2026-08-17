@@ -96,16 +96,16 @@ let dataCache = try DataCache(name: "my-cache")
 dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
 
 dataCache.storeData(data, for: "key")
-if dataCache.containsData(for: "key") {
+if await dataCache.containsData(for: "key") {
     print("Data is cached")
 }
-let data = dataCache.cachedData(for: "key")
+let data = await dataCache.cachedData(for: "key")
 // or let data = dataCache["key"]
 dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. For a synchronous write, use ``DataCache/flush()``.
+``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
 
 > Tip: To share a disk cache between your app and an extension (e.g. a Notification Service Extension), point ``DataCache`` at a directory inside a shared app group container. Set ``DataCache/isSweepEnabled`` to `false` in the extension so that only the main app enforces size limits.
 >
@@ -130,8 +130,7 @@ dataCache.removeAll()
 
 ```swift
 dataCache.storeData(data, for: "key")
-dataCache.flush()
-// or dataCache.flush(for: "key")
+await dataCache.flush()
 
 let url = dataCache.url(for: "key")
 // Access file directly

@@ -7,12 +7,20 @@ import Foundation
 /// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: AsyncPipelineTask<ImageResponse> {
     override func start() {
-        if let data = pipeline.cache.cachedData(for: request) {
-            let container = ImageContainer(image: .init(), data: data)
-            let response = ImageResponse(container: container, request: request)
-            self.send(value: response, isCompleted: true)
-        } else {
-            self.loadData()
+        guard pipeline.cache.canReadCachedData(for: request) else {
+            return loadData()
+        }
+        Task { @ImagePipelineActor [weak self] in
+            guard let self else { return }
+            let data = await pipeline.cache.cachedData(for: request)
+            guard !isDisposed else { return }
+            if let data {
+                let container = ImageContainer(image: .init(), data: data)
+                let response = ImageResponse(container: container, request: request)
+                send(value: response, isCompleted: true)
+            } else {
+                loadData()
+            }
         }
     }
 

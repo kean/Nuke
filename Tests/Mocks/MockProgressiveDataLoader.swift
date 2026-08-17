@@ -9,15 +9,20 @@ import Nuke
 // per one `resume()` call.
 final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     let urlResponse: HTTPURLResponse
-    var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
+    // The tests drive the loader from multiple threads, so the mock has to be
+    // thread safe.
+    private let lock = NSLock()
+    private var _chunks: [Data]
     private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
     private var _completion: (@Sendable (Error?) -> Void)?
 
+    var chunks: [Data] { lock.withLock { _chunks } }
+
     init() {
         self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
-        self.chunks = Array(_createChunks(for: data, size: data.count / 3))
+        self._chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
     func loadData(
@@ -25,8 +30,10 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
+        lock.withLock {
             self._didReceiveData = didReceiveData
-        self._completion = completion
+            self._completion = completion
+        }
         // Serve the first chunk immediately
         DispatchQueue.main.async {
             self.serveNextChunk()
@@ -40,25 +47,24 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         }
     }
 
-    func serveNextChunk() {
-        guard let chunk = chunks.first else { return }
-        chunks.removeFirst()
-        _didReceiveData?(chunk, urlResponse)
-        if chunks.isEmpty {
-            _completion?(nil)
+    /// Returns `true` if the served chunk was the last one.
+    @discardableResult private func serveNextChunk() -> Bool {
+        let (chunk, didReceiveData, completion): (Data?, (@Sendable (Data, URLResponse) -> Void)?, (@Sendable (Error?) -> Void)?) = lock.withLock {
+            guard !_chunks.isEmpty else { return (nil, nil, nil) }
+            let chunk = _chunks.removeFirst()
+            return (chunk, _didReceiveData, _chunks.isEmpty ? _completion : nil)
         }
+        guard let chunk else { return false }
+        didReceiveData?(chunk, urlResponse)
+        completion?(nil)
+        return completion != nil
     }
 
     // Serves the next chunk.
     func resume(_ completed: @escaping @Sendable () -> Void = {}) {
         DispatchQueue.main.async {
-            if let chunk = self.chunks.first {
-                self.chunks.removeFirst()
-                self._didReceiveData?(chunk, self.urlResponse)
-                if self.chunks.isEmpty {
-                    self._completion?(nil)
-                    completed()
-                }
+            if self.serveNextChunk() {
+                completed()
             }
         }
     }

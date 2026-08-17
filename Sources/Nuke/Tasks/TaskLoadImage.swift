@@ -18,13 +18,26 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 return // The final image is loaded
             }
         }
-        if let data = pipeline.cache.cachedData(for: request) {
-            decodeCachedData(data)
-        } else if request.thumbnail != nil, request.processors.isEmpty,
-                  let data = pipeline.cache.cachedData(for: request.withoutThumbnail()) {
-            decodeCachedData(data)
+        if pipeline.cache.canReadCachedData(for: request) {
+            loadCachedData()
         } else {
             fetchImage()
+        }
+    }
+
+    private func loadCachedData() {
+        Task { @ImagePipelineActor [weak self] in
+            guard let self else { return }
+            var data = await pipeline.cache.cachedData(for: request)
+            if data == nil, request.thumbnail != nil, request.processors.isEmpty {
+                data = await pipeline.cache.cachedData(for: request.withoutThumbnail())
+            }
+            guard !isDisposed else { return }
+            if let data {
+                decodeCachedData(data)
+            } else {
+                fetchImage()
+            }
         }
     }
 
