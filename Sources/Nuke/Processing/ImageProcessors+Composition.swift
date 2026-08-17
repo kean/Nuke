@@ -45,8 +45,13 @@ extension ImageProcessors {
 
         /// Returns combined identifier of all the underlying processors.
         public var identifier: String {
-            processors.map({ $0.identifier }).joined()
+            processors.map({ $0.identifier }).joined(separator: Composition.separator)
         }
+
+        /// Separates the individual identifiers to make sure that different
+        /// combinations never produce the same string, e.g. `["a", "bc"]` and
+        /// `["ab", "c"]`.
+        static let separator = "+"
 
         /// Creates a combined hash of all the given processors.
         public func hash(into hasher: inout Hasher) {

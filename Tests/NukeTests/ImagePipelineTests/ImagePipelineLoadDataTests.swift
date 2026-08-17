@@ -160,7 +160,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN nothing is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") == nil)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)
     }
@@ -179,7 +179,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -197,8 +197,8 @@ struct ImagePipelineLoadDataTests {
         // THEN
         // only original image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -219,7 +219,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN nothing is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -238,7 +238,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -256,8 +256,8 @@ struct ImagePipelineLoadDataTests {
         // THEN
         // only original image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -278,7 +278,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN nothing is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") == nil)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)
     }
@@ -297,7 +297,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") == nil)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)
     }
@@ -315,8 +315,8 @@ struct ImagePipelineLoadDataTests {
         // THEN
         // only original image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") == nil)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)
     }
@@ -337,7 +337,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN nothing is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -356,7 +356,7 @@ struct ImagePipelineLoadDataTests {
 
         // THEN original image data is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
@@ -374,8 +374,8 @@ struct ImagePipelineLoadDataTests {
         // THEN
         // only original image is stored in disk cache
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++p1") == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "++") != nil)
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }

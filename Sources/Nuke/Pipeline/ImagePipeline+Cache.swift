@@ -204,7 +204,14 @@ extension ImagePipeline.Cache {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return customKey
         }
-        return "\(request.imageID ?? "")\(request.thumbnail?.identifier ?? "")\(ImageProcessors.Composition(request.processors).identifier)"
+        // The components are always separated to make sure that different
+        // requests never produce the same key, e.g. an image ID that ends with
+        // the same characters that the next component starts with.
+        return [
+            request.imageID ?? "",
+            request.thumbnail?.identifier ?? "",
+            ImageProcessors.Composition(request.processors).identifier
+        ].joined(separator: ImageProcessors.Composition.separator)
     }
 
     // MARK: Misc

@@ -303,20 +303,20 @@ struct ImagePipelineTests {
 
     @Test func cacheKeyForRequest() {
         let request = Test.request
-        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg++")
     }
 
     @Test func cacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg1")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg++1")
     }
 
     @Test func cacheKeyForRequestWithThumbnail() {
         let request = ImageRequest(url: Test.url).with {
             $0.thumbnail = .init(maxPixelSize: 400)
         }
-        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg+com.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue+")
     }
 
     @Test func cacheKeyForRequestWithThumbnailFlexibleSize() {
@@ -327,7 +327,7 @@ struct ImagePipelineTests {
                 contentMode: .aspectFit
             )
         }
-        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg+com.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue+")
     }
 
     // MARK: - Invalidate

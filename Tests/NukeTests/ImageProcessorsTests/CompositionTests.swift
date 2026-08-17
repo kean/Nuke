@@ -88,6 +88,17 @@ struct ImageProcessorsCompositionTests {
         #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
     }
 
+    @Test func identifiersWithProcessorsThatConcatenateToTheSameString() {
+        // GIVEN processors whose identifiers concatenate to the same string
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "resize-"), MockImageProcessor(id: "largeblur")])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "resize-large"), MockImageProcessor(id: "blur")])
+
+        // THEN
+        #expect(lhs != rhs)
+        #expect(lhs.identifier != rhs.identifier)
+        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
+    }
+
     @Test func identifiersEmptyProcessors() {
         // GIVEN empty processors
         let lhs = ImageProcessors.Composition([])
