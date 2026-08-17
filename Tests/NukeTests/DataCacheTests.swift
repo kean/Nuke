@@ -82,14 +82,14 @@ struct DataCacheTests {
         }
     }
 
-    @Test func addAndFlush() {
+    @Test func addAndFlush() async {
         // Given
         cache.withSuspendedIO {
             cache["key"] = blob
         }
 
         // When
-        cache.flush()
+        await cache.flush()
 
         // Then
         #expect(cache.contents.count == 1)
@@ -110,10 +110,10 @@ struct DataCacheTests {
         }
     }
 
-    @Test func replaceFlushed() {
+    @Test func replaceFlushed() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         cache.withSuspendedIO {
             cache["key"] = otherBlob
@@ -125,7 +125,7 @@ struct DataCacheTests {
         }
 
         // Flush and test that data on disk was updated.
-        cache.flush()
+        await cache.flush()
         #expect(cache.contents.count == 1)
         #expect((try? Data(contentsOf: cache.contents.first!)) == otherBlob)
         #expect(cache["key"] == otherBlob)
@@ -133,38 +133,38 @@ struct DataCacheTests {
 
     // MARK: Removal
 
-    @Test func removeNonExistent() {
+    @Test func removeNonExistent() async {
         cache["key"] = nil
-        cache.flush()
+        await cache.flush()
     }
 
     // - Remove + write (new) staged -> remove from staging
-    @Test func removeFromStaging() {
+    @Test func removeFromStaging() async {
         cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = nil
             #expect(cache["key"] == nil)
         }
-        cache.flush()
+        await cache.flush()
         #expect(cache["key"] == nil)
     }
 
     // - Remove + write (new) staged -> remove from staging
-    @Test func removeReplaced() {
+    @Test func removeReplaced() async {
         cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = otherBlob
             cache["key"] = nil
         }
-        cache.flush()
+        await cache.flush()
         #expect(cache["key"] == nil)
         #expect(cache.contents.count == 0)
     }
 
     // - Remove + write (replace) staged -> schedule removal
-    @Test func removeReplacedFlushed() {
+    @Test func removeReplacedFlushed() async {
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         cache.withSuspendedIO {
             cache["key"] = otherBlob
@@ -173,15 +173,15 @@ struct DataCacheTests {
             #expect((try? Data(contentsOf: cache.contents.first!)) == blob)
         }
 
-        cache.flush() // Should still perform deletion of "blob"
+        await cache.flush() // Should still perform deletion of "blob"
         #expect(cache.contents.count == 0)
     }
 
     // - Remove + flushed -> schedule removal
-    @Test func removeFlushed() {
+    @Test func removeFlushed() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         cache.withSuspendedIO {
             cache["key"] = nil
@@ -190,7 +190,7 @@ struct DataCacheTests {
             #expect(cache.contents.count == 1)
             #expect((try? Data(contentsOf: cache.contents.first!)) == blob)
         }
-        cache.flush()
+        await cache.flush()
 
         #expect(cache["key"] == nil)
 
@@ -199,29 +199,29 @@ struct DataCacheTests {
     }
 
     // - Remove + removal staged -> noop
-    @Test func removeWhenRemovalAlreadyScheduled() {
+    @Test func removeWhenRemovalAlreadyScheduled() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         // When
         cache["key"] = nil
         cache["key"] = nil
-        cache.flush()
+        await cache.flush()
 
         // Then
         #expect(cache.contents.count == 0)
     }
 
-    @Test func removeAndThenReplace() {
+    @Test func removeAndThenReplace() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         // When
         cache["key"] = nil
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         // Then
         #expect(cache["key"] == blob)
@@ -244,10 +244,10 @@ struct DataCacheTests {
         }
     }
 
-    @Test func removeAllFlushed() {
+    @Test func removeAllFlushed() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         // When
         cache.withSuspendedIO {
@@ -256,14 +256,14 @@ struct DataCacheTests {
         }
     }
 
-    @Test func removeAllFlushedAndFlush() {
+    @Test func removeAllFlushedAndFlush() async {
         // Given
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
 
         // When
         cache.removeAll()
-        cache.flush()
+        await cache.flush()
 
         // Then
         #expect(cache["key"] == nil)
@@ -301,72 +301,61 @@ struct DataCacheTests {
 
     // MARK: DataCaching
 
-    @Test func getCachedDataHitFromStaging() {
-        // Given
-        cache.flush() // Index is loaded
-
-        cache.withSuspendedIO {
-            // Given
-            cache["key"] = blob
-
-            // When/Then
-            let data = cache.cachedData(for: "key")
-            #expect(data == blob)
-        }
-    }
-
-    @Test func getCachedData() {
-        // Given
+    @Test func getCachedDataHitFromStaging() async {
+        // Given data that is only in the staging area
+        cache.suspendIO()
         cache["key"] = blob
-        cache.flush()
 
         // When/Then
-        let data = cache.cachedData(for: "key")
+        let data = await cache.cachedData(for: "key")
+        #expect(data == blob)
+
+        cache.resumeIO()
+    }
+
+    @Test func getCachedData() async {
+        // Given
+        cache["key"] = blob
+        await cache.flush()
+
+        // When/Then
+        let data = await cache.cachedData(for: "key")
         #expect(data == blob)
     }
 
     // MARK: Flush
 
-    @Test func flush() {
+    @Test func flush() async {
         // Given
-        cache.flushInterval = .seconds(20)
-        cache["key"] = blob
+        cache.withSuspendedIO {
+            cache["key"] = blob
+        }
 
         // When
-        cache.flush()
+        await cache.flush()
 
         // Then
         #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
-    @Test func flushForKey() {
+    @Test func flushWaitsForPendingWrites() async {
         // Given
-        cache.flushInterval = .seconds(20)
-        cache["key"] = blob
-
-        // When
-        cache.flush(for: "key")
-
-        // Then
-        #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
-    }
-
-    @Test func flushForKey2() {
-        // Given
-        cache.flushInterval = .seconds(20)
+        cache.suspendIO()
         cache["key1"] = blob
-        cache["key2"] = blob
+        cache["key2"] = otherBlob
 
-        // When
-        cache.flush(for: "key1")
+        // When the I/O is resumed while a flush is pending
+        async let pending: Void = cache.flush()
+        cache.resumeIO()
+        await pending
 
-        // Then only flushes content for the specific key
-        #expect(cache.contents == [cache.url(for: "key1")].compactMap { $0 })
+        // Then
+        #expect(cache.contents.count == 2)
     }
 
     // MARK: Sweep
 
-    @Test func sweep() {
+    @Test func sweep() async {
         // GIVEN
         let mb = 1024 * 1024 // allocated size is usually about 4 KB on APFS, so use 1 MB just to be sure
         cache.sizeLimit = mb * 3
@@ -374,44 +363,44 @@ struct DataCacheTests {
         cache["key2"] = Data(repeating: 1, count: mb)
         cache["key3"] = Data(repeating: 1, count: mb)
         cache["key4"] = Data(repeating: 1, count: mb)
-        cache.flush()
+        await cache.flush()
 
         // WHEN
-        cache.sweep()
+        await cache.sweep()
 
         // THEN
         #expect(cache.totalSize == mb * 2)
     }
 
-    @Test func sweepReducesTotalCount() {
+    @Test func sweepReducesTotalCount() async {
         // GIVEN - 5 entries, limit fits only 3
         let mb = 1024 * 1024
         cache.sizeLimit = mb * 3
         for i in 1...5 {
             cache["key\(i)"] = Data(repeating: UInt8(i), count: mb)
         }
-        cache.flush()
+        await cache.flush()
 
         // WHEN
-        cache.sweep()
+        await cache.sweep()
 
         // THEN - at most 3 MB worth of entries remain
         #expect(cache.totalCount <= 3)
         #expect(cache.totalSize <= mb * 3)
     }
 
-    @Test func sweepIsNoOpWhenUnderLimit() {
+    @Test func sweepIsNoOpWhenUnderLimit() async {
         // GIVEN - total size well under the limit
         let mb = 1024 * 1024
         cache.sizeLimit = mb * 10
         cache["small1"] = Data(repeating: 1, count: mb)
         cache["small2"] = Data(repeating: 2, count: mb)
-        cache.flush()
+        await cache.flush()
 
         let countBefore = cache.totalCount
 
         // WHEN
-        cache.sweep()
+        await cache.sweep()
 
         // THEN - nothing is removed
         #expect(cache.totalCount == countBefore)
@@ -419,58 +408,62 @@ struct DataCacheTests {
 
     // MARK: Inspection
 
-    @Test func containsData() {
+    @Test func containsData() async {
         // GIVEN
         cache["key"] = blob
-        cache.flush(for: "key")
+        await cache.flush()
 
         // WHEN/THEN
-        #expect(cache.containsData(for: "key"))
+        #expect(await cache.containsData(for: "key"))
     }
 
-    @Test func containsDataInStaging() {
+    @Test func containsDataInStaging() async {
         // GIVEN
-        cache.flushInterval = .seconds(20)
+        cache.suspendIO()
         cache["key"] = blob
 
         // WHEN/THEN
-        #expect(cache.containsData(for: "key"))
+        #expect(await cache.containsData(for: "key"))
+
+        cache.resumeIO()
     }
 
-    @Test func containsDataAfterRemoval() {
+    @Test func containsDataAfterRemoval() async {
         // GIVEN
-        cache.flushInterval = .seconds(20)
         cache["key"] = blob
-        cache.flush(for: "key")
+        await cache.flush()
+        cache.suspendIO()
         cache["key"] = nil
 
         // WHEN/THEN
-        #expect(!cache.containsData(for: "key"))
+        #expect(await !cache.containsData(for: "key"))
+
+        cache.resumeIO()
     }
 
-    @Test func totalCount() {
+    @Test func totalCount() async {
         #expect(cache.totalCount == 0)
 
         cache["1"] = "1".data(using: .utf8)
-        cache.flush()
+        await cache.flush()
 
         #expect(cache.totalCount == 1)
     }
 
-    @Test func totalSize() {
+    @Test func totalSize() async {
         #expect(cache.totalSize == 0)
 
         cache["1"] = "1".data(using: .utf8)
-        cache.flush()
+        await cache.flush()
 
         #expect(cache.totalSize > 0)
     }
 
-    @Test func totalAllocatedSize() {
+    @Test func totalAllocatedSize() async {
         #expect(cache.totalAllocatedSize == 0)
 
         cache["1"] = "1".data(using: .utf8)
-        cache.flush()
+        await cache.flush()
 
         // Depends on the file system.
         #expect(cache.totalAllocatedSize > 0)
@@ -478,14 +471,14 @@ struct DataCacheTests {
 
     // MARK: Resilience
 
-    @Test func whenDirectoryDeletedCacheAutomaticallyRecreatesIt() throws {
+    @Test func whenDirectoryDeletedCacheAutomaticallyRecreatesIt() async throws {
         cache["1"] = "2".data(using: .utf8)
-        cache.flush()
+        await cache.flush()
 
         try FileManager.default.removeItem(at: cache.path)
 
         cache["1"] = "2".data(using: .utf8)
-        cache.flush()
+        await cache.flush()
 
         let url = try #require(cache.url(for: "1"))
         let data = try Data(contentsOf: url)
@@ -494,29 +487,29 @@ struct DataCacheTests {
 
     // MARK: Default Filename Generator
 
-    @Test func initWithPathUsingDefaultFilenameGenerator() throws {
+    @Test func initWithPathUsingDefaultFilenameGenerator() async throws {
         let name = UUID().uuidString
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
             .appendingPathComponent(name, isDirectory: true)
         let cache = try DataCache(path: path)
 
         cache["http://example.com/image.png"] = blob
-        cache.flush()
+        await cache.flush()
 
-        #expect(cache.containsData(for: "http://example.com/image.png"))
+        #expect(await cache.containsData(for: "http://example.com/image.png"))
         #expect(cache.filename(for: "http://example.com/image.png") != nil)
     }
 
     // MARK: Invalid Keys
 
-    @Test func cachedDataForEmptyKey() throws {
+    @Test func cachedDataForEmptyKey() async throws {
         let cache = try DataCache(name: UUID().uuidString)
-        #expect(cache.cachedData(for: "") == nil)
+        #expect(await cache.cachedData(for: "") == nil)
     }
 
-    @Test func containsDataForEmptyKey() throws {
+    @Test func containsDataForEmptyKey() async throws {
         let cache = try DataCache(name: UUID().uuidString)
-        #expect(!cache.containsData(for: ""))
+        #expect(await !cache.containsData(for: ""))
     }
 
     @Test func urlForEmptyKey() throws {
@@ -526,7 +519,7 @@ struct DataCacheTests {
 
     // MARK: Metadata
 
-@Test func scheduledSweepUpdatesMetadata() async throws {
+    @Test func scheduledSweepUpdatesMetadata() async throws {
         let expectation = TestExpectation()
         let cache = try DataCache(
             name: UUID().uuidString,
@@ -544,7 +537,7 @@ struct DataCacheTests {
         _ = cache
     }
 
-    @Test func initWithExistingMetadataSkipsSweep() throws {
+    @Test func initWithExistingMetadataSkipsSweep() async throws {
         let name = UUID().uuidString
         let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
         let path = root.appendingPathComponent(name, isDirectory: true)
@@ -559,71 +552,71 @@ struct DataCacheTests {
         let cache = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
 
         cache["key"] = blob
-        cache.flush()
+        await cache.flush()
         #expect(cache["key"] == blob)
     }
 
     // MARK: Sweep Edge Cases
 
-    @Test func sweepWhenSizeUnderLimit() throws {
+    @Test func sweepWhenSizeUnderLimit() async throws {
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
         cache.sizeLimit = 1024 * 1024 * 100
         cache["a"] = Data(repeating: 1, count: 100)
-        cache.flush()
+        await cache.flush()
 
-        cache.sweep()
-        #expect(cache.containsData(for: "a"))
+        await cache.sweep()
+        #expect(await cache.containsData(for: "a"))
     }
 
-    @Test func sweepWhenEmpty() throws {
+    @Test func sweepWhenEmpty() async throws {
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
-        cache.sweep()
+        await cache.sweep()
         #expect(cache.totalCount == 0)
     }
 
     // MARK: Large Data
 
-    @Test func storeLargeData() {
+    @Test func storeLargeData() async {
         // GIVEN - a 500 KB payload (well above typical image sizes used in other tests)
         let largeData = Data(repeating: 0xAB, count: 500_000)
 
         // WHEN
         cache["large-key"] = largeData
-        cache.flush()
+        await cache.flush()
 
         // THEN - data survives the flush and is retrieved intact
-        let retrieved = cache.cachedData(for: "large-key")
+        let retrieved = await cache.cachedData(for: "large-key")
         #expect(retrieved?.count == largeData.count)
     }
 
-    @Test func storeLargeDataReplacedBySmallData() {
+    @Test func storeLargeDataReplacedBySmallData() async {
         // GIVEN - write a large blob, then overwrite with a small blob
         let largeData = Data(repeating: 0xFF, count: 500_000)
         let smallData = Data(repeating: 0x01, count: 100)
 
         cache["key"] = largeData
-        cache.flush()
+        await cache.flush()
 
         cache["key"] = smallData
-        cache.flush()
+        await cache.flush()
 
         // THEN - the latest (small) payload wins
-        let retrieved = cache.cachedData(for: "key")
+        let retrieved = await cache.cachedData(for: "key")
         #expect(retrieved?.count == smallData.count)
     }
 
     // MARK: Store Data for Invalid Key
 
-    @Test func storeDataForEmptyKeyIsNoOp() throws {
+    @Test func storeDataForEmptyKeyIsNoOp() async throws {
         let cache = try DataCache(name: UUID().uuidString)
         cache.storeData(blob!, for: "")
-        cache.flush()
+        await cache.flush()
 
         #expect(cache.totalCount == 0)
     }

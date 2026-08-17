@@ -149,163 +149,163 @@ struct ImagePipelineCacheTests {
 
     // MARK: Cached Image
 
-    @Test func getCachedImageDefaultFromMemoryCache() {
+    @Test func getCachedImageDefaultFromMemoryCache() async {
         // GIVEN
         let request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
-        let image = cache.cachedImage(for: request)
+        let image = await cache.cachedImage(for: request)
 
         // THEN
         #expect(image != nil)
     }
 
-    @Test func getCachedImageDefaultFromDiskCache() {
+    @Test func getCachedImageDefaultFromDiskCache() async {
         // GIVEN
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
-        let image = cache.cachedImage(for: request)
+        let image = await cache.cachedImage(for: request)
 
         // THEN
         #expect(image != nil)
     }
 
-    @Test func getCachedImageDefaultFromDiskCacheWhenOptionEnabled() {
+    @Test func getCachedImageDefaultFromDiskCacheWhenOptionEnabled() async {
         // GIVEN
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
-        let image = cache.cachedImage(for: request, caches: [.disk])
+        let image = await cache.cachedImage(for: request, caches: [.disk])
 
         // THEN returns nil because queries only memory cache by default
         #expect(image != nil)
     }
 
-    @Test func getCachedImageDefaultNotStored() {
+    @Test func getCachedImageDefaultNotStored() async {
         // GIVEN
         let request = Test.request
 
         // WHEN
-        let image = cache.cachedImage(for: request)
+        let image = await cache.cachedImage(for: request)
 
         // THEN
         #expect(image == nil)
     }
 
-    @Test func getCachedImageDefaultFromMemoryCacheWhenCachePolicyPreventsLookup() {
+    @Test func getCachedImageDefaultFromMemoryCacheWhenCachePolicyPreventsLookup() async {
         // GIVEN
         var request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
         request.options = [.reloadIgnoringCachedData]
-        let image = cache.cachedImage(for: request)
+        let image = await cache.cachedImage(for: request)
 
         // THEN
         #expect(image == nil)
     }
 
-    @Test func getCachedImageDefaultFromDiskCacheWhenCachePolicyPreventsLookup() {
+    @Test func getCachedImageDefaultFromDiskCacheWhenCachePolicyPreventsLookup() async {
         // GIVEN
         var request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
         request.options = [.reloadIgnoringCachedData]
-        let image = cache.cachedImage(for: request, caches: [.disk])
+        let image = await cache.cachedImage(for: request, caches: [.disk])
 
         // THEN
         #expect(image == nil)
     }
 
-    @Test func getCachedImageOnlyFromMemoryStoredInMemory() {
+    @Test func getCachedImageOnlyFromMemoryStoredInMemory() async {
         // GIVEN
         let request = Test.request
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
-        let image = cache.cachedImage(for: request, caches: [.memory])
+        let image = await cache.cachedImage(for: request, caches: [.memory])
 
         // THEN
         #expect(image != nil)
     }
 
-    @Test func getCachedImageOnlyFromMemoryStoredOnDisk() {
+    @Test func getCachedImageOnlyFromMemoryStoredOnDisk() async {
         // GIVEN
         let request = Test.request
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
-        let image = cache.cachedImage(for: request, caches: [.memory])
+        let image = await cache.cachedImage(for: request, caches: [.memory])
 
         // THEN
         #expect(image == nil)
     }
 
-    @Test func disableDiskCacheReads() {
+    @Test func disableDiskCacheReads() async {
         // GIVEN
         cache.storeCachedData(Test.data, for: Test.request)
         let request = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
 
         // THEN
-        #expect(cache.cachedData(for: request) == nil)
+        #expect(await cache.cachedData(for: request) == nil)
     }
 
-    @Test func disableDiskCacheWrites() {
+    @Test func disableDiskCacheWrites() async {
         // GIVEN
         let request = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
         cache.storeCachedData(Test.data, for: request)
 
         // THEN
-        #expect(cache.cachedData(for: Test.request) == nil)
+        #expect(await cache.cachedData(for: Test.request) == nil)
     }
 
     // MARK: Store Cached Image
 
-    @Test func storeCachedImageMemoryCache() {
+    @Test func storeCachedImageMemoryCache() async {
         // WHEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
 
         // THEN
-        #expect(cache.cachedImage(for: request) != nil)
+        #expect(await cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    @Test func storeCachedImageInDiskCache() {
+    @Test func storeCachedImageInDiskCache() async {
         // WHEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.disk])
 
         // THEN
-        #expect(cache.cachedImage(for: request) != nil)
+        #expect(await cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    @Test func storeCachedImageInBothLayers() {
+    @Test func storeCachedImageInBothLayers() async {
         // WHEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
 
         // THEN
-        #expect(cache.cachedImage(for: request) != nil)
+        #expect(await cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    @Test func storeCachedImagePreviewIsNotStoredInDiskCache() {
+    @Test func storeCachedImagePreviewIsNotStoredInDiskCache() async {
         // GIVEN a progressive preview
         let request = Test.request
         let preview = ImageContainer(image: Test.image, isPreview: true)
@@ -314,12 +314,12 @@ struct ImagePipelineCacheTests {
         cache.storeCachedImage(preview, for: request)
 
         // THEN it never reaches the disk cache
-        #expect(cache.cachedData(for: request) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
-        #expect(!cache.containsData(for: request))
+        #expect(await cache.cachedData(for: request) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await !cache.containsData(for: request))
     }
 
-    @Test func storeCachedImagePreviewIsNotStoredInDiskCacheWhenDiskIsTheOnlyLayer() {
+    @Test func storeCachedImagePreviewIsNotStoredInDiskCacheWhenDiskIsTheOnlyLayer() async {
         // GIVEN a progressive preview
         let request = Test.request
         let preview = ImageContainer(image: Test.image, isPreview: true)
@@ -328,11 +328,11 @@ struct ImagePipelineCacheTests {
         cache.storeCachedImage(preview, for: request, caches: [.disk])
 
         // THEN nothing is written to either layer
-        #expect(cache.cachedData(for: request) == nil)
+        #expect(await cache.cachedData(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
     }
 
-    @Test func storeCachedImageNonPreviewIsStoredInDiskCache() {
+    @Test func storeCachedImageNonPreviewIsStoredInDiskCache() async {
         // GIVEN a final image
         let request = Test.request
 
@@ -340,11 +340,11 @@ struct ImagePipelineCacheTests {
         cache.storeCachedImage(Test.container, for: request)
 
         // THEN it is written to the disk cache
-        #expect(cache.cachedData(for: request) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+        #expect(await cache.cachedData(for: request) != nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    @Test func storeCachedImagePreviewInMemoryCacheWhenEnabled() throws {
+    @Test func storeCachedImagePreviewInMemoryCacheWhenEnabled() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.isStoringPreviewsInMemoryCache = true
@@ -355,12 +355,12 @@ struct ImagePipelineCacheTests {
         pipeline.cache.storeCachedImage(ImageContainer(image: Test.image, isPreview: true), for: request)
 
         // THEN the memory cache behavior is unchanged, the disk cache is untouched
-        let image = try #require(pipeline.cache.cachedImage(for: request, caches: [.memory]))
+        let image = try #require(await pipeline.cache.cachedImage(for: request, caches: [.memory]))
         #expect(image.isPreview)
-        #expect(pipeline.cache.cachedData(for: request) == nil)
+        #expect(await pipeline.cache.cachedData(for: request) == nil)
     }
 
-    @Test func storeCachedImagePreviewInMemoryCacheWhenDisabled() {
+    @Test func storeCachedImagePreviewInMemoryCacheWhenDisabled() async {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.isStoringPreviewsInMemoryCache = false
@@ -371,40 +371,40 @@ struct ImagePipelineCacheTests {
         pipeline.cache.storeCachedImage(ImageContainer(image: Test.image, isPreview: true), for: request)
 
         // THEN it's stored in neither layer
-        #expect(pipeline.cache.cachedImage(for: request, caches: [.memory]) == nil)
-        #expect(pipeline.cache.cachedData(for: request) == nil)
+        #expect(await pipeline.cache.cachedImage(for: request, caches: [.memory]) == nil)
+        #expect(await pipeline.cache.cachedData(for: request) == nil)
     }
 
     // MARK: Cached Data
 
-    @Test func storeCachedData() {
+    @Test func storeCachedData() async {
         // WHEN
         let request = Test.request
         cache.storeCachedData(Test.data, for: request)
 
         // THEN
-        #expect(cache.cachedImage(for: request) != nil)
+        #expect(await cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) != nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
-    @Test func storeCacheImageWhenMemoryCacheWriteDisabled() {
+    @Test func storeCacheImageWhenMemoryCacheWriteDisabled() async {
         // WHEN
         var request = Test.request
         request.options.insert(.disableMemoryCacheWrites)
         cache.storeCachedImage(Test.container, for: request, caches: [.memory])
 
         // THEN
-        #expect(cache.cachedImage(for: request) == nil)
+        #expect(await cache.cachedImage(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    @Test func storeCacheDataWhenNoDataCache() {
+    @Test func storeCacheDataWhenNoDataCache() async {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.dataCache = nil
@@ -414,76 +414,76 @@ struct ImagePipelineCacheTests {
         pipeline.cache.storeCachedData(Test.data, for: Test.request)
 
         // THEN just make sure it doesn't do anything weird
-        #expect(pipeline.cache.cachedData(for: Test.request) == nil)
+        #expect(await pipeline.cache.cachedData(for: Test.request) == nil)
     }
 
-    @Test func getCachedDataWhenNoDataCache() {
+    @Test func getCachedDataWhenNoDataCache() async {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.dataCache = nil
         }
 
         // THEN just make sure it doesn't do anything weird
-        #expect(pipeline.cache.cachedData(for: Test.request) == nil)
+        #expect(await pipeline.cache.cachedData(for: Test.request) == nil)
         pipeline.cache.removeCachedData(for: Test.request)
     }
 
     // MARK: Contains
 
-    @Test func containsWhenStoredInMemoryCache() {
+    @Test func containsWhenStoredInMemoryCache() async {
         // GIVEN
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.memory])
 
         // WHEN/THEN
-        #expect(cache.containsCachedImage(for: Test.request))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        #expect(!cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        #expect(await cache.containsCachedImage(for: Test.request))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(await !cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    @Test func containsWhenStoredInDiskCache() {
+    @Test func containsWhenStoredInDiskCache() async {
         // GIVEN
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
 
         // WHEN/THEN
-        #expect(cache.containsCachedImage(for: Test.request))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        #expect(!cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        #expect(await cache.containsCachedImage(for: Test.request))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(await !cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    @Test func containsStoredInBoth() {
+    @Test func containsStoredInBoth() async {
         // GIVEN
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.all])
 
         // WHEN/THEN
-        #expect(cache.containsCachedImage(for: Test.request))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.all]))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.memory]))
-        #expect(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+        #expect(await cache.containsCachedImage(for: Test.request))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.all]))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        #expect(await cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
-    @Test func containsData() {
+    @Test func containsData() async {
         // GIVEN
         cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
 
         // WHEN/THEN
-        #expect(cache.containsData(for: Test.request))
+        #expect(await cache.containsData(for: Test.request))
     }
 
-    @Test func containsDataWithNoDataCache() {
+    @Test func containsDataWithNoDataCache() async {
         // GIVEN
         let pipeline = pipeline.reconfigured {
             $0.dataCache = nil
         }
 
         // WHEN/THEN
-        #expect(!pipeline.cache.containsData(for: Test.request))
+        #expect(await !pipeline.cache.containsData(for: Test.request))
     }
 
     // MARK: Remove
 
-    @Test func removeFromMemoryCache() {
+    @Test func removeFromMemoryCache() async {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
@@ -492,11 +492,11 @@ struct ImagePipelineCacheTests {
         cache.removeCachedImage(for: request)
 
         // THEN
-        #expect(cache.cachedImage(for: request) == nil)
+        #expect(await cache.cachedImage(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
     }
 
-    @Test func removeFromDiskCache() {
+    @Test func removeFromDiskCache() async {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.disk])
@@ -505,11 +505,11 @@ struct ImagePipelineCacheTests {
         cache.removeCachedImage(for: request, caches: [.disk])
 
         // THEN
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    @Test func removeFromAllCaches() {
+    @Test func removeFromAllCaches() async {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
@@ -518,16 +518,16 @@ struct ImagePipelineCacheTests {
         cache.removeCachedImage(for: request, caches: [.memory, .disk])
 
         // THEN
-        #expect(cache.cachedImage(for: request) == nil)
+        #expect(await cache.cachedImage(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
     // MARK: Remove All
 
-    @Test func removeAll() {
+    @Test func removeAll() async {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
@@ -536,14 +536,14 @@ struct ImagePipelineCacheTests {
         cache.removeAll()
 
         // THEN
-        #expect(cache.cachedImage(for: request) == nil)
+        #expect(await cache.cachedImage(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    @Test func removeAllWithAllStatic() {
+    @Test func removeAllWithAllStatic() async {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.all])
@@ -552,11 +552,11 @@ struct ImagePipelineCacheTests {
         cache.removeAll()
 
         // THEN
-        #expect(cache.cachedImage(for: request) == nil)
+        #expect(await cache.cachedImage(for: request) == nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
 
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
+        #expect(await cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(await diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
     // MARK: Keys
@@ -588,7 +588,7 @@ struct ImagePipelineCacheTests {
 
     // MARK: Decoding Cached Data
 
-    @Test func cachedImageIsNilWhenNoDecoderIsRegistered() {
+    @Test func cachedImageIsNilWhenNoDecoderIsRegistered() async {
         // GIVEN data stored on disk and a pipeline that can't decode it
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in nil }
@@ -596,22 +596,22 @@ struct ImagePipelineCacheTests {
         pipeline.cache.storeCachedData(Test.data, for: Test.request)
 
         // THEN the data is there, but it can't be turned into an image
-        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
-        #expect(pipeline.cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
+        #expect(await pipeline.cache.cachedData(for: Test.request) != nil)
+        #expect(await pipeline.cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
     }
 
-    @Test func cachedImageIsNilWhenTheCachedDataIsCorrupted() {
+    @Test func cachedImageIsNilWhenTheCachedDataIsCorrupted() async {
         // GIVEN
         cache.storeCachedData(Data("not-an-image".utf8), for: Test.request)
 
         // THEN
-        #expect(cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
+        #expect(await cache.cachedImage(for: Test.request, caches: [.disk]) == nil)
     }
 
     // MARK: - Image Orientation
 
 #if canImport(UIKit)
-    @Test func thatImageOrientationIsPreserved() throws {
+    @Test func thatImageOrientationIsPreserved() async throws {
         // GIVEN opaque jpeg with orientation
         let image = Test.image(named: "right-orientation", extension: "jpeg")
         let cgImage = try #require(image.cgImage)
@@ -621,7 +621,7 @@ struct ImagePipelineCacheTests {
         // WHEN
         let pipeline = ImagePipeline(configuration: .withDataCache)
         pipeline.cache.storeCachedImage(ImageContainer(image: image), for: Test.request, caches: [.disk])
-        let cached = try #require(pipeline.cache.cachedImage(for: Test.request, caches: [.disk])?.image)
+        let cached = try #require(await pipeline.cache.cachedImage(for: Test.request, caches: [.disk])?.image)
 
         // THEN orientation is preserved
         let cachedCGImage = try #require(cached.cgImage)
@@ -629,7 +629,7 @@ struct ImagePipelineCacheTests {
         #expect(cached.imageOrientation == .right)
     }
 
-    @Test func thatImageOrientationIsPreservedForProcessedImages() throws {
+    @Test func thatImageOrientationIsPreservedForProcessedImages() async throws {
         // GIVEN opaque jpeg with orientation
         let image = Test.image(named: "right-orientation", extension: "jpeg")
         let cgImage = try #require(image.cgImage)
@@ -641,7 +641,7 @@ struct ImagePipelineCacheTests {
         // WHEN
         let pipeline = ImagePipeline(configuration: .withDataCache)
         pipeline.cache.storeCachedImage(ImageContainer(image: resized), for: Test.request, caches: [.disk])
-        let cached = try #require(pipeline.cache.cachedImage(for: Test.request, caches: [.disk])?.image)
+        let cached = try #require(await pipeline.cache.cachedImage(for: Test.request, caches: [.disk])?.image)
 
         // THEN orientation is preserved
         let cachedCGImage = try #require(cached.cgImage)

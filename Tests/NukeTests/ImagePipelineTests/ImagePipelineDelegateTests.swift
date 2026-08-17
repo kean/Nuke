@@ -46,7 +46,7 @@ struct ImagePipelineDelegateTests {
         _ = try await pipeline.image(for: requestA)
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
-        let data = try #require(dataCache.cachedData(for: "image-01-small"))
+        let data = try #require(await dataCache.cachedData(for: "image-01-small"))
         let image = try #require(PlatformImage(data: data))
         #expect(image.sizeInPixels.width == 44 * Screen.scale)
 

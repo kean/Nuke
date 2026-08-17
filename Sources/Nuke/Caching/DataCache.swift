@@ -63,13 +63,6 @@ public final class DataCache: DataCaching, Sendable {
         set { state.withLock { $0.trimRatio = newValue } }
     }
 
-    /// The delay between the moment a change is staged and the moment it is
-    /// written to disk. `1` second by default.
-    var flushInterval: Duration {
-        get { state.withLock { $0.flushInterval } }
-        set { state.withLock { $0.flushInterval = newValue } }
-    }
-
     /// A function that generates a filename for the given key. A good candidate
     /// is a hash function with low collision probability, such as SHA1.
     ///
@@ -81,22 +74,39 @@ public final class DataCache: DataCaching, Sendable {
     /// All of the mutable state, guarded by a single lock.
     private let state = OSAllocatedUnfairLock(initialState: State())
 
-    /// Serializes the changes applied to the filesystem. Reads never acquire it,
-    /// so they continue to run in parallel with the writes and with each other.
-    private let ioLock = NSLock()
-
     private let filenameGenerator: FilenameGenerator
     private let sweepDelay: Duration
     private let onSweepCompleted: (@Sendable () -> Void)?
 
     private struct State {
         var staging = Staging()
-        var isFlushScheduled = false
+        /// The single task that performs all of the disk I/O, or `nil` when
+        /// the cache is idle. At most one writer exists at any time: it drains
+        /// the pending work in a loop and exits when there is none left.
+        ///
+        /// - invariant: If there is pending work, the writer exists, unless
+        /// the I/O is suspended (testing only).
+        var writer: Task<Void, Never>?
+        /// Prevents the writer from starting (testing only).
+        var isWriterSuspended = false
+        /// A sweep was scheduled on launch and runs only if one hasn't been
+        /// performed recently (see ``DataCache/sweepInterval``).
+        var isSweepScheduled = false
+        /// A sweep was explicitly requested with ``DataCache/sweep()``.
+        var isSweepRequested = false
         var sizeLimit = 1024 * 1024 * 150
         var sweepInterval: TimeInterval = 1800
         var isSweepEnabled = true
         var trimRatio = 0.7
-        var flushInterval = Duration.seconds(1)
+
+        var hasPendingWork: Bool {
+            !staging.isEmpty || isSweepScheduled || isSweepRequested
+        }
+    }
+
+    private enum WriterJob {
+        case flush(Staging)
+        case sweep(isScheduled: Bool)
     }
 
     private struct Metadata: Codable {
@@ -154,7 +164,10 @@ public final class DataCache: DataCaching, Sendable {
     // MARK: DataCaching
 
     /// Retrieves data for the given key.
-    public func cachedData(for key: String) -> Data? {
+    ///
+    /// If the data is still in the staging area, it is returned without
+    /// suspending. Otherwise, the file is read from disk in the background.
+    public func cachedData(for key: String) async -> Data? {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case let .add(data):
@@ -163,17 +176,16 @@ public final class DataCache: DataCaching, Sendable {
                 return nil
             }
         }
-        guard var url = url(for: key), let data = try? Data(contentsOf: url) else {
+        guard let url = url(for: key) else {
             return nil
         }
-        var values = URLResourceValues()
-        values.contentAccessDate = Date()
-        try? url.setResourceValues(values)
-        return data
+        return await performInBackground {
+            DataCache.data(at: url)
+        }
     }
 
     /// Returns `true` if the cache contains the data for the given key.
-    public func containsData(for key: String) -> Bool {
+    public func containsData(for key: String) async -> Bool {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case .add:
@@ -185,7 +197,9 @@ public final class DataCache: DataCaching, Sendable {
         guard let url = url(for: key) else {
             return false
         }
-        return FileManager.default.fileExists(atPath: url.path)
+        return await performInBackground {
+            FileManager.default.fileExists(atPath: url.path)
+        }
     }
 
     private func change(for key: String) -> Staging.ChangeType? {
@@ -210,21 +224,16 @@ public final class DataCache: DataCaching, Sendable {
         stage { $0.removeAll() }
     }
 
-    /// Registers a change and schedules a flush unless one is already scheduled.
     private func stage(_ change: @Sendable (inout Staging) -> Void) {
-        let flushInterval: Duration? = state.withLock {
-            change(&$0.staging)
-            guard !$0.isFlushScheduled else { return nil }
-            $0.isFlushScheduled = true
-            return $0.flushInterval
-        }
-        guard let flushInterval else { return }
-        // `self` is captured strongly on purpose: the staged data has to reach
-        // the disk even if the client releases the cache in the meantime.
-        Task.detached(priority: .utility) { [self] in
-            try? await Task.sleep(for: flushInterval)
-            state.withLock { $0.isFlushScheduled = false }
-            flush()
+        scheduleWork { change(&$0.staging) }
+    }
+
+    /// Registers pending work and starts the writer unless one is already running.
+    private func scheduleWork(_ change: @Sendable (inout State) -> Void) {
+        state.withLock {
+            change(&$0)
+            guard $0.writer == nil, !$0.isWriterSuspended, $0.hasPendingWork else { return }
+            $0.writer = makeWriter()
         }
     }
 
@@ -234,9 +243,24 @@ public final class DataCache: DataCaching, Sendable {
     /// the existing entry. Reads and writes are backed by a staging area, so
     /// they can occur in parallel without blocking. All writes are flushed to
     /// disk asynchronously.
+    ///
+    /// - important: Unless the data is in the staging area, the getter performs
+    /// synchronous disk I/O on the calling thread. Prefer
+    /// ``cachedData(for:)`` in async contexts.
     public subscript(key: String) -> Data? {
         get {
-            cachedData(for: key)
+            if let change = change(for: key) {
+                switch change { // Change wasn't flushed to disk yet
+                case let .add(data):
+                    return data
+                case .remove:
+                    return nil
+                }
+            }
+            guard let url = url(for: key) else {
+                return nil
+            }
+            return DataCache.data(at: url)
         }
         set {
             if let data = newValue {
@@ -245,6 +269,18 @@ public final class DataCache: DataCaching, Sendable {
                 removeData(for: key)
             }
         }
+    }
+
+    /// Reads the file and updates its content access date used by the LRU sweep.
+    private static func data(at url: URL) -> Data? {
+        var url = url
+        guard let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+        var values = URLResourceValues()
+        values.contentAccessDate = Date()
+        try? url.setResourceValues(values)
+        return data
     }
 
     // MARK: Managing URLs
@@ -263,40 +299,127 @@ public final class DataCache: DataCaching, Sendable {
 
     // MARK: Flush Changes
 
-    /// Synchronously waits on the caller's thread until all outstanding disk I/O
-    /// operations are finished.
-    public func flush() {
-        ioLock.withLock {
-            let staging = state.withLock { $0.staging }
-            guard !staging.isEmpty else { return }
-            autoreleasepool {
-                if staging.changeRemoveAll != nil {
-                    performRemoveAll()
-                }
-                for change in staging.changes.values {
-                    perform(change)
-                }
-            }
-            state.withLock { $0.staging.flushed(staging) }
-        }
+    /// Waits until all outstanding disk operations — the pending writes,
+    /// removals, and sweeps — are finished.
+    public func flush() async {
+        await drain { _ in }
     }
 
-    /// Synchronously waits on the caller's thread until all outstanding disk I/O
-    /// operations for the given key are finished.
-    public func flush(for key: String) {
-        ioLock.withLock {
-            guard let change = state.withLock({ $0.staging.changes[key] }) else { return }
-            perform(change)
-            state.withLock { $0.staging.flushed(change) }
+    /// Performs a cache sweep, removing the least recently used items that no
+    /// longer fit in the cache, and waits for it to finish.
+    public func sweep() async {
+        await drain { $0.isSweepRequested = true }
+    }
+
+    /// Registers the pending work and waits until the writer drains all of it.
+    private func drain(_ change: @Sendable (inout State) -> Void) async {
+        scheduleWork(change)
+        while true {
+            if let writer = state.withLock({ $0.writer }) {
+                // Awaiting the task escalates its priority to the caller's, so
+                // an explicit `flush()` isn't stuck behind the utility QoS.
+                await writer.value
+                continue // The exited writer may have left new work behind
+            }
+            guard state.withLock({ $0.hasPendingWork }) else {
+                return
+            }
+            // The I/O is suspended (testing only) — wait until it is resumed.
+            await Task.yield()
         }
     }
 
     /// Suspends the disk I/O for the duration of the closure (testing only).
+    ///
+    /// - important: Assumes the writer is idle when the closure is invoked. The
+    /// writer never starts while the I/O is suspended.
     func withSuspendedIO(_ closure: () -> Void) {
-        ioLock.withLock(closure)
+        suspendIO()
+        closure()
+        resumeIO()
+    }
+
+    /// Prevents the writer from starting until ``resumeIO()`` (testing only).
+    func suspendIO() {
+        state.withLock { $0.isWriterSuspended = true }
+    }
+
+    /// Lifts the ``suspendIO()`` suspension and restarts the writer if any
+    /// work accumulated in the meantime (testing only).
+    func resumeIO() {
+        state.withLock {
+            $0.isWriterSuspended = false
+            guard $0.writer == nil, $0.hasPendingWork else { return }
+            $0.writer = makeWriter()
+        }
+    }
+
+    // MARK: - Writer
+
+    /// Creates the single task that performs all of the disk mutations. The
+    /// task drains the pending work in a loop and exits when there is none
+    /// left. The work staged while a write is in progress is picked up by the
+    /// next iteration, so the writes batch up automatically under load.
+    private func makeWriter() -> Task<Void, Never> {
+        // `self` is captured strongly on purpose: the staged data has to reach
+        // the disk even if the client releases the cache in the meantime. The
+        // task exits once the work is drained, releasing the cache with it.
+        Task.detached(priority: .utility) { [self] in
+            while let job = nextJob() {
+                switch job {
+                case let .flush(staging):
+                    performChanges(staging)
+                case let .sweep(isScheduled):
+                    if isScheduled {
+                        guard isSweepNeeded() else { break }
+                        performSweep()
+                        updateMetadata { $0.lastSweepDate = Date() }
+                        onSweepCompleted?()
+                    } else {
+                        performSweep()
+                    }
+                }
+            }
+        }
+    }
+
+    private func nextJob() -> WriterJob? {
+        state.withLock {
+            guard !$0.isWriterSuspended else {
+                // Exit and leave the pending work behind: it is picked up when
+                // the writer is restarted by `resumeIO()`.
+                $0.writer = nil
+                return nil
+            }
+            if !$0.staging.isEmpty {
+                return .flush($0.staging)
+            }
+            if $0.isSweepRequested {
+                $0.isSweepRequested = false
+                return .sweep(isScheduled: false)
+            }
+            if $0.isSweepScheduled {
+                $0.isSweepScheduled = false
+                return .sweep(isScheduled: true)
+            }
+            $0.writer = nil
+            return nil
+        }
     }
 
     // MARK: - I/O
+
+    private func performChanges(_ staging: Staging) {
+        autoreleasepool {
+            if staging.changeRemoveAll != nil {
+                performRemoveAll()
+            }
+            for change in staging.changes.values {
+                perform(change)
+            }
+        }
+        state.withLock { $0.staging.flushed(staging) }
+    }
 
     private func perform(_ change: Staging.Change) {
         guard let url = url(for: change.key) else {
@@ -336,10 +459,8 @@ public final class DataCache: DataCaching, Sendable {
         // priority is subject to timer coalescing and can be delayed by seconds.
         Task.detached(priority: .utility) { [weak self] in
             try? await Task.sleep(for: sweepDelay)
-            guard let self, isSweepEnabled, isSweepNeeded() else { return }
-            sweep()
-            updateMetadata { $0.lastSweepDate = Date() }
-            onSweepCompleted?()
+            guard let self, isSweepEnabled else { return }
+            scheduleWork { $0.isSweepScheduled = true }
         }
     }
 
@@ -350,29 +471,25 @@ public final class DataCache: DataCaching, Sendable {
         return Date().timeIntervalSince(lastSweepDate) >= sweepInterval
     }
 
-    /// Synchronously performs a cache sweep and removes the least recently used
-    /// items that no longer fit in the cache.
-    public func sweep() {
-        ioLock.withLock {
-            var items = contents(keys: [.contentAccessDateKey, .totalFileAllocatedSizeKey])
-            var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
-            let (sizeLimit, trimRatio) = state.withLock { ($0.sizeLimit, $0.trimRatio) }
-            guard size > sizeLimit else {
-                return // All good, no need to perform any work.
-            }
-            let targetSizeLimit = Int(Double(sizeLimit) * trimRatio)
+    private func performSweep() {
+        var items = contents(keys: [.contentAccessDateKey, .totalFileAllocatedSizeKey])
+        var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
+        let (sizeLimit, trimRatio) = state.withLock { ($0.sizeLimit, $0.trimRatio) }
+        guard size > sizeLimit else {
+            return // All good, no need to perform any work.
+        }
+        let targetSizeLimit = Int(Double(sizeLimit) * trimRatio)
 
-            // Most recently accessed items first
-            let past = Date.distantPast
-            items.sort { // Sort in place
-                ($0.meta.contentAccessDate ?? past) > ($1.meta.contentAccessDate ?? past)
-            }
+        // Most recently accessed items first
+        let past = Date.distantPast
+        items.sort { // Sort in place
+            ($0.meta.contentAccessDate ?? past) > ($1.meta.contentAccessDate ?? past)
+        }
 
-            // Remove the items until it satisfies both size and count limits.
-            while size > targetSizeLimit, let item = items.popLast() {
-                size -= (item.meta.totalFileAllocatedSize ?? 0)
-                try? FileManager.default.removeItem(at: item.url)
-            }
+        // Remove the items until it satisfies both size and count limits.
+        while size > targetSizeLimit, let item = items.popLast() {
+            size -= (item.meta.totalFileAllocatedSize ?? 0)
+            try? FileManager.default.removeItem(at: item.url)
         }
     }
 

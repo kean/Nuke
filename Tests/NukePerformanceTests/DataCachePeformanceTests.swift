@@ -25,26 +25,25 @@ final class DataCachePeformanceTests {
     // MARK: - Write
 
     @Test
-    func writeWithFlush() {
+    func writeWithFlush() async {
         let data = Array(0..<count).map { _ in generateRandomData() }
 
-        measure {
+        await measure { [cache] in
             for index in data.indices {
                 cache["\(index)"] = data[index]
             }
-            cache.flush()
+            await cache.flush()
         }
     }
 
     @Test
-    func writeWithFlushIndividual() {
+    func writeWithFlushIndividual() async {
         let data = Array(0..<200).map { _ in generateRandomData() }
 
-        measure {
+        await measure { [cache] in
             for index in data.indices {
-                let key = "\(index)"
-                cache[key] = data[index]
-                cache.flush(for: key)
+                cache["\(index)"] = data[index]
+                await cache.flush()
             }
         }
     }
@@ -63,12 +62,12 @@ final class DataCachePeformanceTests {
     // MARK: - Read
 
     @Test
-    func readFlushedPerformance() {
-        populate()
+    func readFlushedPerformance() async {
+        await populate()
 
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 2
-        measure { [cache] in
+        measure { [cache, count] in
             for idx in 0..<count {
                 queue.addOperation {
                     _ = cache["\(idx)"]
@@ -79,8 +78,8 @@ final class DataCachePeformanceTests {
     }
 
     @Test
-    func readFlushedPerformanceSync() {
-        populate()
+    func readFlushedPerformanceSync() async {
+        await populate()
 
         measure {
             for idx in 0..<count {
@@ -89,13 +88,24 @@ final class DataCachePeformanceTests {
         }
     }
 
+    @Test
+    func readFlushedPerformanceAsync() async {
+        await populate()
+
+        await measure { [cache, count] in
+            for idx in 0..<count {
+                _ = await cache.cachedData(for: "\(idx)")
+            }
+        }
+    }
+
     // MARK: - Helpers
 
-    func populate() {
+    func populate() async {
         for idx in 0..<count {
             cache["\(idx)"] = generateRandomData()
         }
-        cache.flush()
+        await cache.flush()
     }
 }
 
