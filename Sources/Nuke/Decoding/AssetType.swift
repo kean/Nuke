@@ -62,6 +62,12 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     /// Native decoding support only available on the following platforms: macOS 14,
     /// iOS 17, watchOS 10, tvOS 17.
     public static let jxl: AssetType = "public.jpeg-xl"
+
+    /// AVIF (AV1 Image File Format).
+    ///
+    /// Image I/O decodes AVIF on every platform Nuke supports. Encoding arrived
+    /// later – check ``ImageEncoders/ImageIO/isSupported(type:)`` before using it.
+    public static let avif: AssetType = "public.avif"
 }
 
 extension AssetType {
@@ -160,13 +166,15 @@ extension AssetType {
 
     /// Returns the type of an ISO base media file with the given major brand,
     /// or `nil` if the brand is unknown or belongs to an unsupported format,
-    /// such as HEIF (`mif1`), AVIF (`avif`), or MPEG-4 audio (`M4A `).
+    /// such as HEIF (`mif1`) or MPEG-4 audio (`M4A `).
     ///
     /// The brands are registered at https://mp4ra.org/registered-types/brands.
     private static func _makeISOBaseMedia(majorBrand: String?) -> AssetType? {
         switch majorBrand {
         case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
             return .heic
+        case "avif", "avis":
+            return .avif
         case "isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "mmp4", "avc1", "dash":
             return .mp4
         case "M4V ", "M4VH", "M4VP":
