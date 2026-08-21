@@ -90,16 +90,16 @@ private func checkAccessCachedImages05() {
     _ = image
 }
 
-private func checkAccessCachedImages06() async {
+private func checkAccessCachedImages06() {
     let cache = pipeline.cache
     let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)
 
-    _ = await cache.cachedImage(for: request) // From any cache layer
-    _ = await cache.cachedImage(for: request, caches: [.memory]) // Only memory
-    _ = await cache.cachedImage(for: request, caches: [.disk]) // Only disk (decodes data)
+    _ = cache.cachedImage(for: request) // From any cache layer
+    _ = cache.cachedImage(for: request, caches: [.memory]) // Only memory
+    _ = cache.cachedImage(for: request, caches: [.disk]) // Only disk (decodes data)
 
-    let data = await cache.cachedData(for: request)
-    _ = await cache.containsData(for: request) // Fast contains check
+    let data = cache.cachedData(for: request)
+    _ = cache.containsData(for: request) // Fast contains check
 
     // Stores image in the memory cache and stores an encoded
     // image in the disk cache
@@ -168,16 +168,16 @@ private func checkCacheLayers03() {
     }
 }
 
-private func checkCacheLayers04() async throws {
+private func checkCacheLayers04() throws {
     let dataCache = try DataCache(name: "my-cache")
 
     dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
 
     dataCache.storeData(data, for: "key")
-    if await dataCache.containsData(for: "key") {
+    if dataCache.containsData(for: "key") {
         print("Data is cached")
     }
-    let data = await dataCache.cachedData(for: "key")
+    let data = dataCache.cachedData(for: "key")
     // or let data = dataCache["key"]
     dataCache.removeData(for: "key")
     dataCache.removeAll()

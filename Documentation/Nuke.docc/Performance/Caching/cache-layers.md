@@ -96,10 +96,10 @@ let dataCache = try DataCache(name: "my-cache")
 dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
 
 dataCache.storeData(data, for: "key")
-if await dataCache.containsData(for: "key") {
+if dataCache.containsData(for: "key") {
     print("Data is cached")
 }
-let data = await dataCache.cachedData(for: "key")
+let data = dataCache.cachedData(for: "key")
 // or let data = dataCache["key"]
 dataCache.removeData(for: "key")
 dataCache.removeAll()

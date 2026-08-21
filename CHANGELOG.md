@@ -33,7 +33,6 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
-- `DataCaching` reads are now `async`: `cachedData(for:)` and `containsData(for:)`. The pipeline no longer performs the disk I/O on the shared `ImagePipelineActor`, and the matching `ImagePipeline/Cache` methods, including `cachedImage(for:caches:)`, are `async` as well – https://github.com/kean/Nuke/pull/925
 - Remove `DataCache/queue`. The cache no longer uses GCD: the staged changes are drained by a single writer `Task`, and the mutable state is guarded by a single lock, making `DataCache` `Sendable`. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `flush(for:)` is removed – https://github.com/kean/Nuke/pull/925
 
 **Bug Fixes**

@@ -49,14 +49,14 @@ extension ImagePipeline.Cache {
     ///   - request: The request. Make sure to remove the processors if you want
     ///   to retrieve an original image (if it's stored).
     ///   - caches: `[.all]`, by default.
-    public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) async -> ImageContainer? {
+    public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) -> ImageContainer? {
         if caches.contains(.memory) {
             if let image = cachedImageFromMemoryCache(for: request) {
                 return image
             }
         }
         if caches.contains(.disk) {
-            if let data = await cachedData(for: request),
+            if let data = cachedData(for: request),
                let image = decodeImageData(data, for: request) {
                 return image
             }
@@ -104,13 +104,13 @@ extension ImagePipeline.Cache {
     }
 
     /// Returns `true` if any of the caches contain the image.
-    public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) async -> Bool {
+    public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool {
         if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
             return true
         }
         if caches.contains(.disk), let dataCache = dataCache(for: request) {
             let key = makeDataCacheKey(for: request)
-            return await dataCache.containsData(for: key)
+            return dataCache.containsData(for: key)
         }
         return false
     }
@@ -148,7 +148,7 @@ extension ImagePipeline.Cache {
     // MARK: Cached Data
 
     /// Returns cached data for the given request.
-    public func cachedData(for request: ImageRequest) async -> Data? {
+    public func cachedData(for request: ImageRequest) -> Data? {
         guard !request.options.contains(.disableDiskCacheReads) else {
             return nil
         }
@@ -156,14 +156,7 @@ extension ImagePipeline.Cache {
             return nil
         }
         let key = makeDataCacheKey(for: request)
-        return await dataCache.cachedData(for: key)
-    }
-
-    /// Returns `true` if the disk cache lookup for the request can possibly
-    /// succeed. Allows the callers to avoid the asynchronous lookup when the
-    /// pipeline has no disk cache attached.
-    func canReadCachedData(for request: ImageRequest) -> Bool {
-        !request.options.contains(.disableDiskCacheReads) && dataCache(for: request) != nil
+        return dataCache.cachedData(for: key)
     }
 
     /// Stores data for the given request.
@@ -180,11 +173,11 @@ extension ImagePipeline.Cache {
     }
 
     /// Returns `true` if the data cache contains data for the given image.
-    public func containsData(for request: ImageRequest) async -> Bool {
+    public func containsData(for request: ImageRequest) -> Bool {
         guard let dataCache = dataCache(for: request) else {
             return false
         }
-        return await dataCache.containsData(for: makeDataCacheKey(for: request))
+        return dataCache.containsData(for: makeDataCacheKey(for: request))
     }
 
     /// Removes cached data for the given request.

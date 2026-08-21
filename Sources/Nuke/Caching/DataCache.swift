@@ -164,10 +164,7 @@ public final class DataCache: DataCaching, Sendable {
     // MARK: DataCaching
 
     /// Retrieves data for the given key.
-    ///
-    /// If the data is still in the staging area, it is returned without
-    /// suspending. Otherwise, the file is read from disk in the background.
-    public func cachedData(for key: String) async -> Data? {
+    public func cachedData(for key: String) -> Data? {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case let .add(data):
@@ -176,16 +173,17 @@ public final class DataCache: DataCaching, Sendable {
                 return nil
             }
         }
-        guard let url = url(for: key) else {
+        guard var url = url(for: key), let data = try? Data(contentsOf: url) else {
             return nil
         }
-        return await performInBackground {
-            DataCache.data(at: url)
-        }
+        var values = URLResourceValues()
+        values.contentAccessDate = Date()
+        try? url.setResourceValues(values)
+        return data
     }
 
     /// Returns `true` if the cache contains the data for the given key.
-    public func containsData(for key: String) async -> Bool {
+    public func containsData(for key: String) -> Bool {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case .add:
@@ -197,9 +195,7 @@ public final class DataCache: DataCaching, Sendable {
         guard let url = url(for: key) else {
             return false
         }
-        return await performInBackground {
-            FileManager.default.fileExists(atPath: url.path)
-        }
+        return FileManager.default.fileExists(atPath: url.path)
     }
 
     private func change(for key: String) -> Staging.ChangeType? {
@@ -243,24 +239,9 @@ public final class DataCache: DataCaching, Sendable {
     /// the existing entry. Reads and writes are backed by a staging area, so
     /// they can occur in parallel without blocking. All writes are flushed to
     /// disk asynchronously.
-    ///
-    /// - important: Unless the data is in the staging area, the getter performs
-    /// synchronous disk I/O on the calling thread. Prefer
-    /// ``cachedData(for:)`` in async contexts.
     public subscript(key: String) -> Data? {
         get {
-            if let change = change(for: key) {
-                switch change { // Change wasn't flushed to disk yet
-                case let .add(data):
-                    return data
-                case .remove:
-                    return nil
-                }
-            }
-            guard let url = url(for: key) else {
-                return nil
-            }
-            return DataCache.data(at: url)
+            cachedData(for: key)
         }
         set {
             if let data = newValue {
@@ -269,18 +250,6 @@ public final class DataCache: DataCaching, Sendable {
                 removeData(for: key)
             }
         }
-    }
-
-    /// Reads the file and updates its content access date used by the LRU sweep.
-    private static func data(at url: URL) -> Data? {
-        var url = url
-        guard let data = try? Data(contentsOf: url) else {
-            return nil
-        }
-        var values = URLResourceValues()
-        values.contentAccessDate = Date()
-        try? url.setResourceValues(values)
-        return data
     }
 
     // MARK: Managing URLs

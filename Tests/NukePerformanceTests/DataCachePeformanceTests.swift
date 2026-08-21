@@ -88,17 +88,6 @@ final class DataCachePeformanceTests {
         }
     }
 
-    @Test
-    func readFlushedPerformanceAsync() async {
-        await populate()
-
-        await measure { [cache, count] in
-            for idx in 0..<count {
-                _ = await cache.cachedData(for: "\(idx)")
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     func populate() async {
