@@ -69,7 +69,7 @@ struct ImagePrefetcherTests {
 
         // THEN image saved in both caches
         #expect(pipeline.cache[Test.request] != nil)
-        #expect(await pipeline.cache.cachedData(for: Test.request) != nil)
+        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
     }
 
     @Test func startPrefetchingWithTwoEquivalentURLs() async {
@@ -183,7 +183,7 @@ struct ImagePrefetcherTests {
 
         // THEN image saved in both caches
         #expect(localPipeline.cache[Test.request] == nil)
-        #expect(await localPipeline.cache.cachedData(for: Test.request) != nil)
+        #expect(localPipeline.cache.cachedData(for: Test.request) != nil)
     }
 
     // MARK: Pause

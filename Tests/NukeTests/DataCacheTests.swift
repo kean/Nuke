@@ -301,16 +301,15 @@ struct DataCacheTests {
 
     // MARK: DataCaching
 
-    @Test func getCachedDataHitFromStaging() async {
+    @Test func getCachedDataHitFromStaging() {
         // Given data that is only in the staging area
-        cache.suspendIO()
-        cache["key"] = blob
+        cache.withSuspendedIO {
+            cache["key"] = blob
 
-        // When/Then
-        let data = await cache.cachedData(for: "key")
-        #expect(data == blob)
-
-        cache.resumeIO()
+            // When/Then
+            let data = cache.cachedData(for: "key")
+            #expect(data == blob)
+        }
     }
 
     @Test func getCachedData() async {
@@ -319,7 +318,7 @@ struct DataCacheTests {
         await cache.flush()
 
         // When/Then
-        let data = await cache.cachedData(for: "key")
+        let data = cache.cachedData(for: "key")
         #expect(data == blob)
     }
 
@@ -414,31 +413,30 @@ struct DataCacheTests {
         await cache.flush()
 
         // WHEN/THEN
-        #expect(await cache.containsData(for: "key"))
+        #expect(cache.containsData(for: "key"))
     }
 
-    @Test func containsDataInStaging() async {
+    @Test func containsDataInStaging() {
         // GIVEN
-        cache.suspendIO()
-        cache["key"] = blob
+        cache.withSuspendedIO {
+            cache["key"] = blob
 
-        // WHEN/THEN
-        #expect(await cache.containsData(for: "key"))
-
-        cache.resumeIO()
+            // WHEN/THEN
+            #expect(cache.containsData(for: "key"))
+        }
     }
 
     @Test func containsDataAfterRemoval() async {
         // GIVEN
         cache["key"] = blob
         await cache.flush()
-        cache.suspendIO()
-        cache["key"] = nil
 
-        // WHEN/THEN
-        #expect(await !cache.containsData(for: "key"))
+        cache.withSuspendedIO {
+            cache["key"] = nil
 
-        cache.resumeIO()
+            // WHEN/THEN
+            #expect(!cache.containsData(for: "key"))
+        }
     }
 
     @Test func totalCount() async {
@@ -496,20 +494,20 @@ struct DataCacheTests {
         cache["http://example.com/image.png"] = blob
         await cache.flush()
 
-        #expect(await cache.containsData(for: "http://example.com/image.png"))
+        #expect(cache.containsData(for: "http://example.com/image.png"))
         #expect(cache.filename(for: "http://example.com/image.png") != nil)
     }
 
     // MARK: Invalid Keys
 
-    @Test func cachedDataForEmptyKey() async throws {
+    @Test func cachedDataForEmptyKey() throws {
         let cache = try DataCache(name: UUID().uuidString)
-        #expect(await cache.cachedData(for: "") == nil)
+        #expect(cache.cachedData(for: "") == nil)
     }
 
-    @Test func containsDataForEmptyKey() async throws {
+    @Test func containsDataForEmptyKey() throws {
         let cache = try DataCache(name: UUID().uuidString)
-        #expect(await !cache.containsData(for: ""))
+        #expect(!cache.containsData(for: ""))
     }
 
     @Test func urlForEmptyKey() throws {
@@ -568,7 +566,7 @@ struct DataCacheTests {
         await cache.flush()
 
         await cache.sweep()
-        #expect(await cache.containsData(for: "a"))
+        #expect(cache.containsData(for: "a"))
     }
 
     @Test func sweepWhenEmpty() async throws {
@@ -591,7 +589,7 @@ struct DataCacheTests {
         await cache.flush()
 
         // THEN - data survives the flush and is retrieved intact
-        let retrieved = await cache.cachedData(for: "large-key")
+        let retrieved = cache.cachedData(for: "large-key")
         #expect(retrieved?.count == largeData.count)
     }
 
@@ -607,7 +605,7 @@ struct DataCacheTests {
         await cache.flush()
 
         // THEN - the latest (small) payload wins
-        let retrieved = await cache.cachedData(for: "key")
+        let retrieved = cache.cachedData(for: "key")
         #expect(retrieved?.count == smallData.count)
     }
 
