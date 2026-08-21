@@ -33,7 +33,7 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
-- Remove `DataCache/queue`. The cache no longer uses GCD: the staged changes are drained by a single writer `Task`, and the mutable state is guarded by a single lock, making `DataCache` `Sendable`. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `flush(for:)` is removed – https://github.com/kean/Nuke/pull/925
+- `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock, and the staged changes are drained by a single writer `Task`. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
 
 **Bug Fixes**
 
@@ -41,7 +41,8 @@
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
-- Fix a data race on the `DataCache` configuration properties, and stop `DataCache.init` from reading its metadata file on the calling thread – https://github.com/kean/Nuke/pull/925
+- Fix a data race on the `DataCache` configuration properties, which the sweep reads on a background thread while they can be written from any thread – https://github.com/kean/Nuke/pull/925
+- Fix `DataCache.init` reading and decoding its metadata file on the calling thread, which is typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
 
 # Nuke 13
 
