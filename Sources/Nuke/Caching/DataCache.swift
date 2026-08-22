@@ -63,6 +63,17 @@ public final class DataCache: DataCaching, Sendable {
         set { state.withLock { $0.trimRatio = newValue } }
     }
 
+    /// The window the writer waits through before draining the staging area,
+    /// giving the changes that arrive in quick succession a chance to batch up
+    /// into a single pass over the disk. `1` second by default.
+    ///
+    /// The window throttles only the automatic drain. ``flush()`` and
+    /// ``sweep()`` perform the work themselves and are never held up by it.
+    var flushInterval: Duration {
+        get { state.withLock { $0.flushInterval } }
+        set { state.withLock { $0.flushInterval = newValue } }
+    }
+
     /// A function that generates a filename for the given key. A good candidate
     /// is a hash function with low collision probability, such as SHA1.
     ///
@@ -113,6 +124,7 @@ public final class DataCache: DataCaching, Sendable {
         var isSweepScheduled = false
         var sizeLimit = 1024 * 1024 * 150
         var sweepInterval: TimeInterval = 1800
+        var flushInterval: Duration = .seconds(1)
         var isSweepEnabled = true
         var trimRatio = 0.7
 
@@ -346,9 +358,31 @@ public final class DataCache: DataCaching, Sendable {
         Task.detached(priority: .utility) { [self] in
             var hasMoreWork = true
             while hasMoreWork {
+                await throttle()
                 hasMoreWork = await performIO { self.performNextJob() }
             }
         }
+    }
+
+    /// Waits through ``flushInterval`` before the staged changes are drained.
+    ///
+    /// Without it, the writer starts on the very first staged change and the
+    /// batching depends on how slow the disk happens to be: a trickle of writes
+    /// spaced further apart than a single disk operation gets a task hop, a
+    /// snapshot, and a separate pass over the disk each. The window puts a
+    /// floor on it – the changes made within it are written in one pass, and
+    /// the repeated writes to the same key are collapsed into one.
+    ///
+    /// Only the automatic drain is throttled. ``flush()`` and ``sweep()``
+    /// perform the work themselves, so awaiting them never waits on the window.
+    private func throttle() async {
+        let interval = state.withLock { $0.staging.isEmpty ? nil : $0.flushInterval }
+        guard let interval, interval > .zero else {
+            return // Nothing staged: the sweep and the final empty pass don't wait
+        }
+        // Cancellation must not cost the staged data its trip to the disk, so
+        // the writer skips the window instead of bailing out.
+        try? await Task.sleep(for: interval)
     }
 
     /// Runs the blocking work on ``ioQueue`` without occupying a thread from
