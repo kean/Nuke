@@ -33,7 +33,7 @@
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
-- `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock, and the staged changes are drained by a single writer `Task`. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
+- `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
 - Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
 
 **Bug Fixes**
