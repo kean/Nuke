@@ -23,8 +23,8 @@ final class DataCacheTests {
     }
 
     deinit {
-        // The writer has to be stopped first: a test that leaves changes staged
-        // ends with a writer waiting through the flush interval, and it would
+        // The I/O has to be stopped first: a test that leaves changes staged
+        // ends with a drain scheduled after the flush interval, and it would
         // re-create the directory to write them after it is removed here.
         cache.suspendIO()
         try? FileManager.default.removeItem(at: cache.path)
@@ -349,9 +349,9 @@ final class DataCacheTests {
         #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
-    @Test func flushWritesTheChangesTheWriterHasNotDrainedYet() async {
-        // GIVEN two changes staged behind a window the writer is still waiting
-        // through
+    @Test func flushWritesTheChangesTheDrainHasNotPickedUpYet() async {
+        // GIVEN two changes staged behind an interval the automatic drain is
+        // still waiting through
         cache.flushInterval = .seconds(20)
         cache["key1"] = blob
         cache["key2"] = otherBlob
@@ -360,7 +360,7 @@ final class DataCacheTests {
         await cache.flush()
 
         // THEN the flush performed the work itself instead of waiting for the
-        // writer to get to it
+        // automatic drain to get to it
         #expect(cache.contents.count == 2)
     }
 
@@ -407,14 +407,14 @@ final class DataCacheTests {
 
     // MARK: Throttling
 
-    @Test func writerDrainsTheStagedChangesWithoutAnExplicitFlush() async throws {
-        // GIVEN a window short enough to keep the test quick
+    @Test func stagedChangesAreDrainedWithoutAnExplicitFlush() async throws {
+        // GIVEN an interval short enough to keep the test quick
         cache.flushInterval = .milliseconds(10)
 
         // WHEN
         cache["key"] = blob
 
-        // THEN the writer gets to it on its own once the window is over
+        // THEN the drain gets to it on its own once the interval is over
         while cache.contents.isEmpty {
             try await Task.sleep(for: .milliseconds(10))
         }
@@ -422,7 +422,7 @@ final class DataCacheTests {
     }
 
     @Test func writesWithinTheFlushIntervalAreCoalesced() async {
-        // GIVEN a window long enough that the writer can't drain within it
+        // GIVEN an interval long enough that the drain can't run within it
         cache.flushInterval = .seconds(20)
 
         // WHEN
@@ -434,7 +434,7 @@ final class DataCacheTests {
         #expect(cache.contents.isEmpty)
         #expect(cache.cachedData(for: "key1") == blob)
 
-        // AND an explicit flush isn't held up by the window
+        // AND an explicit flush isn't held up by the interval
         await cache.flush()
         #expect(cache.contents.count == 2)
     }

@@ -63,13 +63,13 @@ public final class DataCache: DataCaching, Sendable {
         set { state.withLock { $0.trimRatio = newValue } }
     }
 
-    /// The window the writer waits through before draining the staging area,
-    /// giving the changes that arrive in quick succession a chance to batch up
-    /// into a single pass over the disk. `1` second by default.
+    /// The interval between the automatic drains of the staging area, giving
+    /// the changes that arrive in quick succession a chance to batch up into a
+    /// single pass over the disk. `1` second by default.
     ///
-    /// The window throttles only the automatic drain. ``flush()`` and
+    /// The interval throttles only the automatic drain. ``flush()`` and
     /// ``sweep()`` perform the work themselves and are never held up by it.
-    var flushInterval: Duration {
+    var flushInterval: DispatchTimeInterval {
         get { state.withLock { $0.flushInterval } }
         set { state.withLock { $0.flushInterval = newValue } }
     }
@@ -86,58 +86,36 @@ public final class DataCache: DataCaching, Sendable {
     private let state = OSAllocatedUnfairLock(initialState: State())
 
     private let filenameGenerator: FilenameGenerator
-    private let sweepDelay: Duration
+    private let sweepDelay: DispatchTimeInterval
     private let onSweepCompleted: (@Sendable () -> Void)?
 
-    /// The queue that all of the blocking disk I/O runs on.
+    /// The serial queue that all of the disk I/O runs on.
     ///
-    /// The cache is driven by Swift concurrency, but the file operations
-    /// themselves are synchronous and can block for a long time. Performing
-    /// them directly in a task would occupy one of the few threads in the
-    /// cooperative pool for the entire duration of a write, so the writer hops
-    /// onto a dispatch queue instead – blocking work is what GCD threads are
-    /// for. The queue is serial, so the disk operations never overlap.
+    /// The file operations are synchronous and can block for a long time, which
+    /// is what GCD threads are for: running them in a task would occupy one of
+    /// the few threads in the cooperative pool for the entire duration of a
+    /// write. The queue is serial, so the disk operations never overlap.
     ///
-    /// - note: `.default`, not `.utility`. A block submitted with `async` never
-    /// gets its priority escalated, so at `.utility` the caller of ``flush()``
-    /// ends up waiting on throttled I/O. The previous implementation could
-    /// afford `.utility` because it used `sync`, which donates the QoS.
-    ///
-    /// - note: When the deployment target reaches iOS 17, replace the queue
-    /// with an actor that uses `DispatchSerialQueue` as its `SerialExecutor`.
-    /// The I/O keeps running on a GCD thread, but without the manual hops.
-    private let ioQueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.io", qos: .default)
+    /// - important: The queue has no QoS of its own. The automatic drain is
+    /// submitted at `.utility`, while ``flush()`` and ``sweep()`` are submitted
+    /// with no QoS class so that they run at the priority of the task awaiting
+    /// them. A QoS assigned to the queue overrides the one assigned to the
+    /// blocks and would flatten both cases into one.
+    private let ioQueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.io")
 
     private struct State {
+        /// The changes that are yet to reach the disk.
         var staging = Staging()
-        /// The single task that drives the disk I/O, or `nil` when the cache
-        /// is idle. At most one writer exists at any time: it drains the
-        /// pending work in a loop and exits when there is none left.
-        ///
-        /// - invariant: If there is pending work, the writer exists, unless
-        /// the I/O is suspended (testing only).
-        var writer: Task<Void, Never>?
-        /// Prevents the writer from starting (testing only).
-        var isWriterSuspended = false
-        /// A sweep was scheduled on launch and runs only if one hasn't been
-        /// performed recently (see ``DataCache/sweepInterval``).
-        var isSweepScheduled = false
+        /// A drain is already scheduled on ``ioQueue``. There is never more
+        /// than one of them in flight.
+        var isFlushScheduled = false
+        /// Prevents the automatic drain from running (testing only).
+        var isIOSuspended = false
         var sizeLimit = 1024 * 1024 * 150
         var sweepInterval: TimeInterval = 1800
-        var flushInterval: Duration = .seconds(1)
+        var flushInterval: DispatchTimeInterval = .seconds(1)
         var isSweepEnabled = true
         var trimRatio = 0.7
-
-        var hasPendingWork: Bool {
-            !staging.isEmpty || isSweepScheduled
-        }
-    }
-
-    private enum WriterJob {
-        case flush(Staging)
-        /// The sweep scheduled on launch. It runs only if a sweep hasn't been
-        /// performed recently.
-        case sweep
     }
 
     private struct Metadata: Codable {
@@ -166,7 +144,7 @@ public final class DataCache: DataCaching, Sendable {
     convenience init(
         name: String,
         filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:),
-        sweepDelay: Duration,
+        sweepDelay: DispatchTimeInterval,
         onSweepCompleted: @escaping @Sendable () -> Void
     ) throws {
         try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, onSweepCompleted: onSweepCompleted)
@@ -175,7 +153,7 @@ public final class DataCache: DataCaching, Sendable {
     private init(
         path: URL,
         filenameGenerator: @escaping FilenameGenerator,
-        sweepDelay: Duration,
+        sweepDelay: DispatchTimeInterval,
         onSweepCompleted: (@Sendable () -> Void)?
     ) throws {
         self.path = path
@@ -252,15 +230,9 @@ public final class DataCache: DataCaching, Sendable {
     }
 
     private func stage(_ change: @Sendable (inout Staging) -> Void) {
-        scheduleWork { change(&$0.staging) }
-    }
-
-    /// Registers pending work and starts the writer unless one is already running.
-    private func scheduleWork(_ change: @Sendable (inout State) -> Void) {
         state.withLock {
-            change(&$0)
-            guard $0.writer == nil, !$0.isWriterSuspended, $0.hasPendingWork else { return }
-            $0.writer = makeWriter()
+            change(&$0.staging)
+            scheduleNextFlush(&$0)
         }
     }
 
@@ -301,8 +273,9 @@ public final class DataCache: DataCaching, Sendable {
 
     /// Writes the changes staged so far and waits for them to reach the disk.
     ///
-    /// The call performs the work itself rather than waiting for the writer to
-    /// drain the cache, so the changes staged after it don't hold it up.
+    /// The call performs the work itself instead of waiting for the automatic
+    /// drain, so neither the flush interval nor the changes staged after it
+    /// hold it up.
     public func flush() async {
         await performIO { self.performPendingChanges() }
     }
@@ -316,80 +289,78 @@ public final class DataCache: DataCaching, Sendable {
         }
     }
 
-    /// Suspends the writer for the duration of the closure (testing only).
+    /// Schedules the drain of the staging area unless one is already scheduled.
     ///
-    /// - important: Assumes the writer is idle when the closure is invoked. The
-    /// writer never starts while the I/O is suspended.
+    /// The window gives the changes that arrive in quick succession a chance to
+    /// batch up: they are written in a single pass over the disk, and the
+    /// repeated writes to the same key are collapsed into one.
+    ///
+    /// - important: Must be called with the lock held.
+    private func scheduleNextFlush(_ state: inout State) {
+        guard !state.isFlushScheduled, !state.isIOSuspended, !state.staging.isEmpty else { return }
+        state.isFlushScheduled = true
+        // `self` is captured strongly on purpose: the staged data has to reach
+        // the disk even if the client releases the cache in the meantime.
+        ioQueue.asyncAfter(deadline: .now() + state.flushInterval, qos: .utility) {
+            self.flushChangesIfNeeded()
+        }
+    }
+
+    /// Writes the changes staged so far. Runs on ``ioQueue``.
+    private func flushChangesIfNeeded() {
+        // Create a snapshot of the recently made changes. The drain is no
+        // longer scheduled, so the changes staged from here on schedule the
+        // next one instead of joining the snapshot.
+        let staging: Staging? = state.withLock {
+            $0.isFlushScheduled = false
+            guard !$0.isIOSuspended else {
+                return nil // The changes are picked up by `resumeIO()`
+            }
+            return $0.staging.isEmpty ? nil : $0.staging
+        }
+        guard let staging else { return }
+
+        // Apply the snapshot to disk
+        performChanges(staging)
+
+        // Drain whatever was staged while the snapshot was being written
+        state.withLock { scheduleNextFlush(&$0) }
+    }
+
+    /// Suspends the automatic drain for the duration of the closure (testing only).
     func withSuspendedIO(_ closure: () -> Void) {
         suspendIO()
         closure()
         resumeIO()
     }
 
-    /// Prevents the writer from starting until ``resumeIO()``. A writer that is
-    /// already running exits without performing the work it has left.
+    /// Prevents the automatic drain from running until ``resumeIO()``. The
+    /// changes stay in the staging area until then, but ``flush()`` still
+    /// writes them.
     func suspendIO() {
-        state.withLock { $0.isWriterSuspended = true }
+        state.withLock { $0.isIOSuspended = true }
     }
 
-    /// Lifts the ``suspendIO()`` suspension and restarts the writer if any
-    /// work accumulated in the meantime.
+    /// Lifts the ``suspendIO()`` suspension and schedules a drain if any
+    /// changes accumulated in the meantime.
     private func resumeIO() {
         state.withLock {
-            $0.isWriterSuspended = false
-            guard $0.writer == nil, $0.hasPendingWork else { return }
-            $0.writer = makeWriter()
+            $0.isIOSuspended = false
+            scheduleNextFlush(&$0)
         }
     }
 
-    // MARK: - Writer
-
-    /// Creates the single task that drives all of the disk mutations. The task
-    /// drains the pending work in a loop and exits when there is none left. The
-    /// work staged while a write is in progress is picked up by the next
-    /// iteration, so the writes batch up automatically under load.
-    ///
-    /// Each iteration is a separate hop onto ``ioQueue`` so that ``flush()``
-    /// can interleave with the writer instead of queueing behind a drain that
-    /// a steady stream of writes can keep going indefinitely.
-    private func makeWriter() -> Task<Void, Never> {
-        // `self` is captured strongly on purpose: the staged data has to reach
-        // the disk even if the client releases the cache in the meantime. The
-        // task exits once the work is drained, releasing the cache with it.
-        Task.detached(priority: .utility) { [self] in
-            var hasMoreWork = true
-            while hasMoreWork {
-                await throttle()
-                hasMoreWork = await performIO { self.performNextJob() }
-            }
-        }
-    }
-
-    /// Waits through ``flushInterval`` before the staged changes are drained.
-    ///
-    /// Without it, the writer starts on the very first staged change and the
-    /// batching depends on how slow the disk happens to be: a trickle of writes
-    /// spaced further apart than a single disk operation gets a task hop, a
-    /// snapshot, and a separate pass over the disk each. The window puts a
-    /// floor on it – the changes made within it are written in one pass, and
-    /// the repeated writes to the same key are collapsed into one.
-    ///
-    /// Only the automatic drain is throttled. ``flush()`` and ``sweep()``
-    /// perform the work themselves, so awaiting them never waits on the window.
-    private func throttle() async {
-        let interval = state.withLock { $0.staging.isEmpty ? nil : $0.flushInterval }
-        guard let interval, interval > .zero else {
-            return // Nothing staged: the sweep and the final empty pass don't wait
-        }
-        // Cancellation must not cost the staged data its trip to the disk, so
-        // the writer skips the window instead of bailing out.
-        try? await Task.sleep(for: interval)
-    }
+    // MARK: - I/O
 
     /// Runs the blocking work on ``ioQueue`` without occupying a thread from
     /// the cooperative pool while it executes.
     ///
-    /// There is one continuation per job, not per file, so its cost is
+    /// The work carries no QoS class of its own, so GCD runs it at the QoS of
+    /// the submitting context – the priority of the task that awaits it. It is
+    /// the donation `sync` used to perform, and it matters because the
+    /// automatic drain is throttled to `.utility` and an awaited flush is not.
+    ///
+    /// There is one continuation per call, not per file, so its cost is
     /// negligible next to the disk operations it wraps.
     private func performIO<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
         await withCheckedContinuation { continuation in
@@ -398,52 +369,6 @@ public final class DataCache: DataCaching, Sendable {
             }
         }
     }
-
-    /// Performs the next chunk of the pending work, returning `false` when
-    /// there is none left.
-    ///
-    /// - important: Runs on ``ioQueue``. The staging area is snapshotted here,
-    /// on the queue, so that the snapshot can't go stale while it waits for its
-    /// turn to be written.
-    private func performNextJob() -> Bool {
-        guard let job = nextJob() else { return false }
-        perform(job)
-        return true
-    }
-
-    private func perform(_ job: WriterJob) {
-        switch job {
-        case let .flush(staging):
-            performChanges(staging)
-        case .sweep:
-            guard isSweepNeeded() else { return }
-            performSweep()
-            updateMetadata { $0.lastSweepDate = Date() }
-            onSweepCompleted?()
-        }
-    }
-
-    private func nextJob() -> WriterJob? {
-        state.withLock {
-            guard !$0.isWriterSuspended else {
-                // Exit and leave the pending work behind: it is picked up when
-                // the writer is restarted by `resumeIO()`.
-                $0.writer = nil
-                return nil
-            }
-            if !$0.staging.isEmpty {
-                return .flush($0.staging)
-            }
-            if $0.isSweepScheduled {
-                $0.isSweepScheduled = false
-                return .sweep
-            }
-            $0.writer = nil
-            return nil
-        }
-    }
-
-    // MARK: - I/O
 
     /// Writes the changes staged so far. Runs on ``ioQueue``.
     private func performPendingChanges() {
@@ -494,16 +419,16 @@ public final class DataCache: DataCaching, Sendable {
 
     // MARK: Sweep
 
+    /// Schedules the sweep that runs on launch. It is performed only if one
+    /// hasn't been performed recently (see ``DataCache/sweepInterval``).
     private func scheduleSweep() {
-        let sweepDelay = self.sweepDelay
         // Add a bit of a delay to free the resources during launch.
-        //
-        // - important: `.utility`, not `.background`: `Task.sleep` at background
-        // priority is subject to timer coalescing and can be delayed by seconds.
-        Task.detached(priority: .utility) { [weak self] in
-            try? await Task.sleep(for: sweepDelay)
-            guard let self, isSweepEnabled else { return }
-            scheduleWork { $0.isSweepScheduled = true }
+        ioQueue.asyncAfter(deadline: .now() + sweepDelay, qos: .utility) { [weak self] in
+            guard let self, isSweepEnabled, isSweepNeeded() else { return }
+            performPendingChanges() // The sweep has to see the staged writes
+            performSweep()
+            updateMetadata { $0.lastSweepDate = Date() }
+            onSweepCompleted?()
         }
     }
 
