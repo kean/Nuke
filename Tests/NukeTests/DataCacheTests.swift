@@ -352,6 +352,44 @@ struct DataCacheTests {
         #expect(cache.contents.count == 2)
     }
 
+    @Test func flushReturnsUnderSustainedWriteTraffic() async {
+        // GIVEN a steady stream of writes that never lets the cache go idle
+        let cache = self.cache
+        let traffic = Task.detached {
+            var index = 0
+            while !Task.isCancelled {
+                cache["traffic\(index)"] = blob
+                index += 1
+                await Task.yield()
+            }
+        }
+        cache["key"] = blob
+
+        // WHEN
+        await cache.flush() // Waits only for "key", not for the traffic
+
+        // THEN
+        #expect(cache.containsData(for: "key"))
+        traffic.cancel()
+        _ = await traffic.value
+    }
+
+    @Test func concurrentFlushesAllReturn() async {
+        // GIVEN
+        cache.suspendIO()
+        cache["key1"] = blob
+        cache["key2"] = otherBlob
+
+        // WHEN two flushes are pending at the same time
+        async let first: Void = cache.flush()
+        async let second: Void = cache.flush()
+        cache.resumeIO()
+        _ = await (first, second)
+
+        // THEN
+        #expect(cache.contents.count == 2)
+    }
+
     // MARK: Sweep
 
     @Test func sweep() async {
@@ -403,6 +441,42 @@ struct DataCacheTests {
 
         // THEN - nothing is removed
         #expect(cache.totalCount == countBefore)
+    }
+
+    @Test func sweepWaitsForThePendingWrites() async {
+        // GIVEN - 5 entries staged but not flushed, limit fits only 3
+        let mb = 1024 * 1024
+        cache.sizeLimit = mb * 3
+        for index in 1...5 {
+            cache["key\(index)"] = Data(repeating: UInt8(index), count: mb)
+        }
+
+        // WHEN the sweep runs without an explicit flush first
+        await cache.sweep()
+
+        // THEN the writes reached the disk before the sweep measured the size
+        #expect(cache.totalCount <= 3)
+        #expect(cache.totalSize <= mb * 3)
+    }
+
+    @Test func sweepReturnsUnderSustainedWriteTraffic() async {
+        // GIVEN a steady stream of writes that never lets the staging area drain
+        let cache = self.cache
+        let traffic = Task.detached {
+            var index = 0
+            while !Task.isCancelled {
+                cache["traffic\(index)"] = blob
+                index += 1
+                await Task.yield()
+            }
+        }
+
+        // WHEN
+        await cache.sweep() // The writes must not starve the sweep
+
+        // THEN
+        traffic.cancel()
+        _ = await traffic.value
     }
 
     // MARK: Inspection
