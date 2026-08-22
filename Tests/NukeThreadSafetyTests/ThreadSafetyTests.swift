@@ -122,17 +122,32 @@ struct ThreadSafetyTests {
         }
         await cache.flush()
 
-        await withTaskGroup(of: Void.self) { group in
-            for _ in 0..<5 {
-                for idx in 0..<500 {
-                    group.addTask {
-                        _ = cache["\(idx)"]
-                    }
-                    group.addTask {
-                        cache["\(idx)"] = data
-                        await cache.flush()
-                    }
+        // The point of the test is to race the accessors, not to measure the
+        // throughput, so keep the same number of operations in flight the
+        // OperationQueue this replaced allowed.
+        let maxConcurrentTaskCount = 5
+        var operations: [@Sendable () async -> Void] = []
+        for _ in 0..<5 {
+            for idx in 0..<500 {
+                operations.append {
+                    _ = cache["\(idx)"]
                 }
+                operations.append {
+                    cache["\(idx)"] = data
+                    await cache.flush()
+                }
+            }
+        }
+
+        await withTaskGroup(of: Void.self) { group in
+            var running = 0
+            for operation in operations {
+                if running == maxConcurrentTaskCount {
+                    await group.next()
+                    running -= 1
+                }
+                group.addTask(operation: operation)
+                running += 1
             }
         }
     }

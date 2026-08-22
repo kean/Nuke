@@ -326,14 +326,15 @@ public final class DataCache: DataCaching, Sendable {
         resumeIO()
     }
 
-    /// Prevents the writer from starting until ``resumeIO()`` (testing only).
+    /// Prevents the writer from starting until ``resumeIO()``. A writer that is
+    /// already running exits without performing the work it has left.
     func suspendIO() {
         state.withLock { $0.isWriterSuspended = true }
     }
 
     /// Lifts the ``suspendIO()`` suspension and restarts the writer if any
-    /// work accumulated in the meantime (testing only).
-    func resumeIO() {
+    /// work accumulated in the meantime.
+    private func resumeIO() {
         state.withLock {
             $0.isWriterSuspended = false
             guard $0.writer == nil, $0.hasPendingWork else { return }

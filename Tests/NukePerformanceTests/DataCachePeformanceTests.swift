@@ -15,7 +15,6 @@ final class DataCachePeformanceTests {
 
     init() throws {
         cache = try DataCache(name: UUID().uuidString)
-        _ = cache["key"] // Wait till index is loaded.
     }
 
     deinit {
@@ -36,8 +35,10 @@ final class DataCachePeformanceTests {
         }
     }
 
+    /// Stores one item at a time and waits for it to reach the disk, the way a
+    /// caller that needs the data on the disk before it moves on would.
     @Test
-    func writeWithFlushIndividual() async {
+    func writeWithFlushAfterEachItem() async {
         let data = Array(0..<200).map { _ in generateRandomData() }
 
         await measure { [cache] in

@@ -9,9 +9,10 @@ import Security
 
 private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
+private let trafficKeyCount = 10
 
 @Suite(.timeLimit(.minutes(5)))
-struct DataCacheTests {
+final class DataCacheTests {
     private let cache: DataCache
 
     init() throws {
@@ -19,6 +20,14 @@ struct DataCacheTests {
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
+    }
+
+    deinit {
+        // The writer has to be stopped first: a test that leaves changes staged
+        // ends with a writer waiting through the flush interval, and it would
+        // re-create the directory to write them after it is removed here.
+        cache.suspendIO()
+        try? FileManager.default.removeItem(at: cache.path)
     }
 
     // MARK: Init
@@ -29,6 +38,7 @@ struct DataCacheTests {
 
         // When
         let cache = try DataCache(name: name, filenameGenerator: { $0 })
+        defer { try? FileManager.default.removeItem(at: cache.path) }
 
         // Then
         #expect(cache.path.lastPathComponent == name)
@@ -42,6 +52,7 @@ struct DataCacheTests {
 
         // When
         let cache = try DataCache(path: path, filenameGenerator: { $0 })
+        defer { try? FileManager.default.removeItem(at: cache.path) }
 
         // Then
         #expect(cache.path == path)
@@ -52,6 +63,7 @@ struct DataCacheTests {
 
     @Test func defaultKeyEncoder() throws {
         let cache = try DataCache(name: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         let filename = cache.filename(for: "http://test.com")
         #expect(filename == "50334ee0b51600df6397ce93ceed4728c37fee4e")
     }
@@ -337,28 +349,30 @@ struct DataCacheTests {
         #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
-    @Test func flushWaitsForPendingWrites() async {
-        // Given
-        cache.suspendIO()
+    @Test func flushWritesTheChangesTheWriterHasNotDrainedYet() async {
+        // GIVEN two changes staged behind a window the writer is still waiting
+        // through
+        cache.flushInterval = .seconds(20)
         cache["key1"] = blob
         cache["key2"] = otherBlob
 
-        // When the I/O is resumed while a flush is pending
-        async let pending: Void = cache.flush()
-        cache.resumeIO()
-        await pending
+        // WHEN
+        await cache.flush()
 
-        // Then
+        // THEN the flush performed the work itself instead of waiting for the
+        // writer to get to it
         #expect(cache.contents.count == 2)
     }
 
     @Test func flushReturnsUnderSustainedWriteTraffic() async {
-        // GIVEN a steady stream of writes that never lets the cache go idle
+        // GIVEN a steady stream of writes that never lets the cache go idle.
+        // The keys are recycled so that the traffic can't grow the cache
+        // without a bound for as long as the test runs.
         let cache = self.cache
         let traffic = Task.detached {
             var index = 0
             while !Task.isCancelled {
-                cache["traffic\(index)"] = blob
+                cache["traffic\(index % trafficKeyCount)"] = blob
                 index += 1
                 await Task.yield()
             }
@@ -366,24 +380,25 @@ struct DataCacheTests {
         cache["key"] = blob
 
         // WHEN
-        await cache.flush() // Waits only for "key", not for the traffic
+        await cache.flush() // Must return instead of chasing the traffic
 
         // THEN
         #expect(cache.containsData(for: "key"))
         traffic.cancel()
         _ = await traffic.value
+        await cache.flush() // Drain what the traffic left behind
     }
 
     @Test func concurrentFlushesAllReturn() async {
         // GIVEN
-        cache.suspendIO()
+        let cache = self.cache
+        cache.flushInterval = .seconds(20)
         cache["key1"] = blob
         cache["key2"] = otherBlob
 
         // WHEN two flushes are pending at the same time
         async let first: Void = cache.flush()
         async let second: Void = cache.flush()
-        cache.resumeIO()
         _ = await (first, second)
 
         // THEN
@@ -391,6 +406,20 @@ struct DataCacheTests {
     }
 
     // MARK: Throttling
+
+    @Test func writerDrainsTheStagedChangesWithoutAnExplicitFlush() async throws {
+        // GIVEN a window short enough to keep the test quick
+        cache.flushInterval = .milliseconds(10)
+
+        // WHEN
+        cache["key"] = blob
+
+        // THEN the writer gets to it on its own once the window is over
+        while cache.contents.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
+    }
 
     @Test func writesWithinTheFlushIntervalAreCoalesced() async {
         // GIVEN a window long enough that the writer can't drain within it
@@ -480,12 +509,14 @@ struct DataCacheTests {
     }
 
     @Test func sweepReturnsUnderSustainedWriteTraffic() async {
-        // GIVEN a steady stream of writes that never lets the staging area drain
+        // GIVEN a steady stream of writes that never lets the staging area
+        // drain. The keys are recycled so that the traffic can't grow the cache
+        // without a bound for as long as the test runs.
         let cache = self.cache
         let traffic = Task.detached {
             var index = 0
             while !Task.isCancelled {
-                cache["traffic\(index)"] = blob
+                cache["traffic\(index % trafficKeyCount)"] = blob
                 index += 1
                 await Task.yield()
             }
@@ -497,6 +528,7 @@ struct DataCacheTests {
         // THEN
         traffic.cancel()
         _ = await traffic.value
+        await cache.flush() // Drain what the traffic left behind
     }
 
     // MARK: Inspection
@@ -584,6 +616,7 @@ struct DataCacheTests {
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
             .appendingPathComponent(name, isDirectory: true)
         let cache = try DataCache(path: path)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
 
         cache["http://example.com/image.png"] = blob
         await cache.flush()
@@ -596,16 +629,19 @@ struct DataCacheTests {
 
     @Test func cachedDataForEmptyKey() throws {
         let cache = try DataCache(name: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.cachedData(for: "") == nil)
     }
 
     @Test func containsDataForEmptyKey() throws {
         let cache = try DataCache(name: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(!cache.containsData(for: ""))
     }
 
     @Test func urlForEmptyKey() throws {
         let cache = try DataCache(name: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.url(for: "") == nil)
     }
 
@@ -619,6 +655,7 @@ struct DataCacheTests {
             sweepDelay: .milliseconds(0),
             onSweepCompleted: { expectation.fulfill() }
         )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         await expectation.wait()
 
         let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
@@ -642,6 +679,7 @@ struct DataCacheTests {
         )
 
         let cache = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
+        defer { try? FileManager.default.removeItem(at: cache.path) }
 
         cache["key"] = blob
         await cache.flush()
@@ -655,6 +693,7 @@ struct DataCacheTests {
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.sizeLimit = 1024 * 1024 * 100
         cache["a"] = Data(repeating: 1, count: 100)
         await cache.flush()
@@ -668,6 +707,7 @@ struct DataCacheTests {
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) }
         )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         await cache.sweep()
         #expect(cache.totalCount == 0)
     }
@@ -707,6 +747,7 @@ struct DataCacheTests {
 
     @Test func storeDataForEmptyKeyIsNoOp() async throws {
         let cache = try DataCache(name: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.storeData(blob!, for: "")
         await cache.flush()
 
