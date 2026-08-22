@@ -390,6 +390,26 @@ struct DataCacheTests {
         #expect(cache.contents.count == 2)
     }
 
+    // MARK: Throttling
+
+    @Test func writesWithinTheFlushIntervalAreCoalesced() async {
+        // GIVEN a window long enough that the writer can't drain within it
+        cache.flushInterval = .seconds(20)
+
+        // WHEN
+        cache["key1"] = blob
+        cache["key2"] = otherBlob
+
+        // THEN the changes wait in the staging area instead of reaching the
+        // disk one by one
+        #expect(cache.contents.isEmpty)
+        #expect(cache.cachedData(for: "key1") == blob)
+
+        // AND an explicit flush isn't held up by the window
+        await cache.flush()
+        #expect(cache.contents.count == 2)
+    }
+
     // MARK: Sweep
 
     @Test func sweep() async {
