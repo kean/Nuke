@@ -96,11 +96,12 @@ public final class DataCache: DataCaching, Sendable {
     /// the few threads in the cooperative pool for the entire duration of a
     /// write. The queue is serial, so the disk operations never overlap.
     ///
-    /// - important: The queue has no QoS of its own. The automatic drain is
-    /// submitted at `.utility`, while ``flush()`` and ``sweep()`` are submitted
-    /// with no QoS class so that they run at the priority of the task awaiting
-    /// them. A QoS assigned to the queue overrides the one assigned to the
-    /// blocks and would flatten both cases into one.
+    /// - important: The queue has no QoS of its own. The automatic drain and
+    /// the access date updates are submitted at `.utility`, while ``flush()``
+    /// and ``sweep()`` are submitted with no QoS class so that they run at the
+    /// priority of the task awaiting them. A QoS assigned to the queue
+    /// overrides the one assigned to the blocks and would flatten both cases
+    /// into one.
     private let ioQueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.io")
 
     private struct State {
@@ -111,11 +112,20 @@ public final class DataCache: DataCaching, Sendable {
         var isFlushScheduled = false
         /// Prevents the automatic drain from running (testing only).
         var isIOSuspended = false
+        /// The keys whose access date is yet to reach the disk.
+        var pendingTouches = Set<String>()
+        /// The number of the access date updates written (testing only).
+        var accessDateUpdateCount = 0
         var sizeLimit = 1024 * 1024 * 150
         var sweepInterval: TimeInterval = 1800
         var flushInterval: DispatchTimeInterval = .seconds(1)
         var isSweepEnabled = true
         var trimRatio = 0.7
+
+        /// There is something for the drain to write.
+        var hasPendingWork: Bool {
+            !staging.isEmpty || !pendingTouches.isEmpty
+        }
     }
 
     private struct Metadata: Codable {
@@ -182,12 +192,10 @@ public final class DataCache: DataCaching, Sendable {
                 return nil
             }
         }
-        guard var url = url(for: key), let data = try? Data(contentsOf: url) else {
+        guard let url = url(for: key), let data = try? Data(contentsOf: url) else {
             return nil
         }
-        var values = URLResourceValues()
-        values.contentAccessDate = Date()
-        try? url.setResourceValues(values)
+        touchAccessDate(for: key)
         return data
     }
 
@@ -205,6 +213,24 @@ public final class DataCache: DataCaching, Sendable {
             return false
         }
         return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    /// Refreshes the access date that the LRU sweep ranks the entries by.
+    ///
+    /// The update is a syscall that can block like any other file operation,
+    /// so it joins the staged changes instead of running on the thread that
+    /// reads the data, which can be the main one. The reads that arrive within
+    /// the same window are written in a single pass.
+    private func touchAccessDate(for key: String) {
+        state.withLock {
+            $0.pendingTouches.insert(key)
+            scheduleNextFlush(&$0)
+        }
+    }
+
+    /// The number of the access date updates written (testing only).
+    var accessDateUpdateCount: Int {
+        state.withLock { $0.accessDateUpdateCount }
     }
 
     private func change(for key: String) -> Staging.ChangeType? {
@@ -297,7 +323,7 @@ public final class DataCache: DataCaching, Sendable {
     ///
     /// - important: Must be called with the lock held.
     private func scheduleNextFlush(_ state: inout State) {
-        guard !state.isFlushScheduled, !state.isIOSuspended, !state.staging.isEmpty else { return }
+        guard !state.isFlushScheduled, !state.isIOSuspended, state.hasPendingWork else { return }
         state.isFlushScheduled = true
         // `self` is captured strongly on purpose: the staged data has to reach
         // the disk even if the client releases the cache in the meantime.
@@ -311,17 +337,17 @@ public final class DataCache: DataCaching, Sendable {
         // Create a snapshot of the recently made changes. The drain is no
         // longer scheduled, so the changes staged from here on schedule the
         // next one instead of joining the snapshot.
-        let staging: Staging? = state.withLock {
+        let work: PendingWork? = state.withLock {
             $0.isFlushScheduled = false
             guard !$0.isIOSuspended else {
                 return nil // The changes are picked up by `resumeIO()`
             }
-            return $0.staging.isEmpty ? nil : $0.staging
+            return $0.hasPendingWork ? takePendingWork(&$0) : nil
         }
-        guard let staging else { return }
+        guard let work else { return }
 
         // Apply the snapshot to disk
-        performChanges(staging)
+        performChanges(work)
 
         // Drain whatever was staged while the snapshot was being written
         state.withLock { scheduleNextFlush(&$0) }
@@ -370,14 +396,27 @@ public final class DataCache: DataCaching, Sendable {
         }
     }
 
-    /// Writes the changes staged so far. Runs on ``ioQueue``.
-    private func performPendingChanges() {
-        let staging = state.withLock { $0.staging }
-        guard !staging.isEmpty else { return }
-        performChanges(staging)
+    /// The changes and the access dates that are yet to reach the disk.
+    private typealias PendingWork = (staging: Staging, touches: Set<String>)
+
+    /// - important: Must be called with the lock held.
+    private func takePendingWork(_ state: inout State) -> PendingWork {
+        let touches = state.pendingTouches
+        state.pendingTouches.removeAll()
+        return (state.staging, touches)
     }
 
-    private func performChanges(_ staging: Staging) {
+    /// Writes the changes staged so far. Runs on ``ioQueue``.
+    private func performPendingChanges() {
+        let work: PendingWork? = state.withLock {
+            $0.hasPendingWork ? takePendingWork(&$0) : nil
+        }
+        guard let work else { return }
+        performChanges(work)
+    }
+
+    private func performChanges(_ work: PendingWork) {
+        let staging = work.staging
         autoreleasepool {
             if staging.changeRemoveAll != nil {
                 performRemoveAll()
@@ -385,8 +424,20 @@ public final class DataCache: DataCaching, Sendable {
             for change in staging.changes.values {
                 perform(change)
             }
+            performTouches(work.touches)
         }
         state.withLock { $0.staging.flushed(staging) }
+    }
+
+    private func performTouches(_ keys: Set<String>) {
+        guard !keys.isEmpty else { return }
+        var values = URLResourceValues()
+        values.contentAccessDate = Date()
+        for key in keys {
+            guard var url = url(for: key) else { continue }
+            try? url.setResourceValues(values)
+        }
+        state.withLock { $0.accessDateUpdateCount += keys.count }
     }
 
     private func perform(_ change: Staging.Change) {
