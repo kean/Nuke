@@ -386,6 +386,39 @@ struct ImageViewLoadingOptionsTests {
     }
 #endif
 
+    // MARK: - Sendable
+
+    @Test func optionsAreSendable() async {
+        // GIVEN options configured on the main actor
+        var options = ImageLoadingOptions(placeholder: Test.image)
+        options.processors = [ImageProcessors.Resize(width: 100)]
+        options.transition = .custom { view, image in
+            view.nuke_display(image: image, data: nil)
+        }
+#if os(iOS) || os(tvOS) || os(visionOS)
+        options.contentModes = ImageLoadingOptions.ContentModes(
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .scaleAspectFit
+        )
+        options.tintColors = ImageLoadingOptions.TintColors(
+            success: .red,
+            failure: .green,
+            placeholder: .blue
+        )
+#endif
+        let sendable = options
+
+        // WHEN a compile-time check: the options are created on the main actor,
+        // where `ImageLoadingOptions.shared` lives, but aren't confined to it.
+        let isProgressiveRenderingEnabled = await Task.detached {
+            sendable.isProgressiveRenderingEnabled
+        }.value
+
+        // THEN
+        #expect(isProgressiveRenderingEnabled)
+    }
+
     // MARK: - Misc
 
 #if os(iOS) || os(tvOS) || os(visionOS)
