@@ -74,5 +74,31 @@ To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)-718dg`` met
 
 The prefetcher automatically cancels all of the outstanding tasks when deallocated. All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used even from the main thread during scrolling.
 
+## Observing the prefetcher
+
+``ImagePrefetcher/events`` reports what the prefetcher is doing: which requests it started, how each one finished, and when it ran out of work. It's the place to measure how well prefetching is working – how many of the scheduled requests were already cached, and which ones failed.
+
+```swift
+for await event in prefetcher.events {
+    switch event {
+    case .didStartPrefetching(let request):
+        metrics.recordPrefetchStarted(for: request)
+    case .didFinishPrefetching(let request, let result):
+        metrics.recordPrefetchFinished(for: request, result: result)
+    case .didComplete:
+        break
+    }
+}
+```
+
+If all you need is to know when the prefetcher is done, use ``ImagePrefetcher/waitUntilIdle()``, which returns on the first ``ImagePrefetcher/Event/didComplete``:
+
+```swift
+prefetcher.startPrefetching(with: urls)
+await prefetcher.waitUntilIdle()
+```
+
+There is also ``ImagePrefetcher/didComplete``, a closure called on the main queue under the same conditions.
+
 > Important: Prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination: ``ImagePrefetcher/Destination/diskCache``. It doesn't require image decoding and processing and therefore uses less CPU. The images are stored on disk, so they also take up less memory. This policy doesn't work with ``ImagePipeline/DataCachePolicy/storeEncodedImages`` cache policy and other policies that affect `loadData()`. 
 

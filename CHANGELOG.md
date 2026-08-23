@@ -77,6 +77,7 @@
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 - Creating data cache keys is up to 3x faster – https://github.com/kean/Nuke/pull/979
 - Decompression is up to 45% faster on iOS, tvOS, and visionOS: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay` is now enabled by default – https://github.com/kean/Nuke/pull/990
+- Add `ImagePrefetcher/events`, a stream reporting which requests the prefetcher started, how each one finished, and when it ran out of work, and `ImagePrefetcher/waitUntilIdle()` built on top of it – https://github.com/kean/Nuke/pull/930
 
 **Bug Fixes**
 
@@ -109,6 +110,7 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `ImagePrefetcher/didComplete` being called while another batch was already scheduled – https://github.com/kean/Nuke/pull/930
 
 **Documentation**
 
