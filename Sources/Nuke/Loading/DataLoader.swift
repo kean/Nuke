@@ -111,7 +111,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     }
 
     /// Errors produced by ``DataLoader``.
-    public enum Error: Swift.Error, CustomStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
 
