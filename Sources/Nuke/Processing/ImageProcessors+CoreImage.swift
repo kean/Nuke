@@ -28,9 +28,8 @@ extension ImageProcessors {
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, @unchecked Sendable {
-        // The `Sendable` conformance is unchecked because of `Filter.custom`: a
-        // `CIFilter` is a mutable object owned by the client, so no amount of
-        // care taken here can make it safe to share. `Filter.named` is checked.
+        // Unchecked because of `Filter.custom`: the client owns the `CIFilter`
+        // and can mutate it at any time. `Filter.named` is checked.
         let filter: Filter
         public let identifier: String
 
@@ -42,11 +41,9 @@ extension ImageProcessors {
         /// Initializes the processor with a name of the `CIFilter` and its parameters.
         ///
         /// - parameter name: The name of the `CIFilter` to apply.
-        /// - parameter parameters: The parameters for the filter. The values are
-        /// passed to `CIFilter` as-is, but have to be `Sendable`: the processor
-        /// can be shared by the requests running on different threads. The types
-        /// Core Image filters commonly take – `CIImage`, `CIColor`, `CIVector`,
-        /// `CGImage`, `NSNumber` – all are.
+        /// - parameter parameters: The parameters for the filter. The types Core
+        /// Image filters commonly take – `CIImage`, `CIColor`, `CIVector`,
+        /// `CGImage`, `NSNumber` – all are `Sendable`.
         /// - parameter identifier: Uniquely identifies the processor.
         public init(name: String, parameters: [String: any Sendable], identifier: String) {
             self.filter = .named(name, parameters: parameters)
@@ -150,24 +147,13 @@ extension ImageProcessors {
             }
         }
 
-        /// Errors produced by ``CoreImageFilter``.
-        ///
-        /// The errors reach the client wrapped in
-        /// ``ImagePipeline/Error/processingFailed(processor:context:error:)``,
-        /// crossing isolation boundaries on the way, so they capture the
-        /// descriptions of the objects that failed rather than the objects
-        /// themselves, which aren't `Sendable`.
+        /// Errors produced by ``CoreImageFilter``. The cases capture the
+        /// descriptions of the objects that failed, not the objects themselves,
+        /// which aren't `Sendable`.
         public enum Error: Swift.Error, CustomStringConvertible, Sendable {
-            /// Failed to create a `CIFilter` with the given name and parameters.
             case failedToCreateFilter(name: String, parameters: String)
-
-            /// The input image has neither a `CIImage` nor a `CGImage` representation.
             case inputImageIsEmpty(inputImage: String)
-
-            /// The filter with the given name produced no output image.
             case failedToApplyFilter(name: String)
-
-            /// Failed to render the output image with the given extent into a `CGImage`.
             case failedToCreateOutputCGImage(extent: CGRect, image: String)
 
             public var description: String {

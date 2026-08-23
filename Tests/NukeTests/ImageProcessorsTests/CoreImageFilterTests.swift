@@ -184,7 +184,7 @@ struct ImageProcessorsCoreImageFilterTests {
         // `ImagePipeline.Error.processingFailed(processor:context:error:)`
         let description = await Task { @Sendable in error.description }.value
 
-        // THEN it carries the message, but none of the objects that produced it
+        // THEN
         #expect(description == "Failed to create filter named yo with parameters: [\"inputIntensity\": 0.5]")
     }
 
