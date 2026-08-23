@@ -215,7 +215,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Decompression is up to 45% faster on the iOS simulator: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay`, which also applies to tvOS and visionOS, is now enabled by default – https://github.com/kean/Nuke/pull/990
 - Creating data cache keys is up to 3x faster – https://github.com/kean/Nuke/pull/979
 - Decompression is up to 45% faster on iOS, tvOS, and visionOS: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay` is now enabled by default – https://github.com/kean/Nuke/pull/990
-- Add `ImagePrefetcher/events`, a stream reporting which requests the prefetcher started, how each one finished, and when it ran out of work, and `ImagePrefetcher/waitUntilIdle()` built on top of it – https://github.com/kean/Nuke/pull/930
+- Add `ImagePrefetcher/events`, a stream reporting which requests the prefetcher started, how each one finished, and when it ran out of work, and `ImagePrefetcher/waitUntilIdle()` built on top of it – https://github.com/kean/Nuke/pull/931
 
 ### Bug Fixes
 
@@ -254,6 +254,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `LazyImage` starting a new request with the `pipeline`, `onStart`, and `onCompletion` from when the view last appeared, and ignoring a change of the pipeline alone – https://github.com/kean/Nuke/pull/1037
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher/didComplete` being called while another batch was already scheduled – https://github.com/kean/Nuke/pull/930
+- Fix `ImagePrefetcher/didComplete` being called while another batch was already scheduled – https://github.com/kean/Nuke/pull/931
 
 ### Documentation
 
