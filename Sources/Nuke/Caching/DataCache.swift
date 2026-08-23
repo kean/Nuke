@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// An LRU disk cache that stores data in separate files.
 ///
@@ -30,43 +31,48 @@ import Foundation
 ///
 /// - important: It's possible to have more than one instance of ``DataCache`` with
 /// the same path but it is not recommended.
-public final class DataCache: DataCaching, @unchecked Sendable {
+public final class DataCache: DataCaching, Sendable {
+    /// The path for the directory managed by the cache.
+    public let path: URL
+
     /// Size limit in bytes. `150 MB` by default.
     ///
     /// Changes to the size limit will take effect when the next LRU sweep is run.
-    public var sizeLimit: Int = 1024 * 1024 * 150
+    public var sizeLimit: Int {
+        get { state.withLock { $0.sizeLimit } }
+        set { state.withLock { $0.sizeLimit = newValue } }
+    }
+
+    /// The time interval between cache sweeps. The default value is 30 minutes.
+    public var sweepInterval: TimeInterval {
+        get { state.withLock { $0.sweepInterval } }
+        set { state.withLock { $0.sweepInterval = newValue } }
+    }
+
+    /// If `false`, the automatic LRU sweep is disabled. The default value is `true`.
+    public var isSweepEnabled: Bool {
+        get { state.withLock { $0.isSweepEnabled } }
+        set { state.withLock { $0.isSweepEnabled = newValue } }
+    }
 
     /// When performing a sweep, the cache will remove entries until the size of
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio`. `0.7`
     /// by default.
-    var trimRatio = 0.7
-
-    /// The path for the directory managed by the cache.
-    public let path: URL
-
-    /// The time interval between cache sweeps. The default value is 30 minutes.
-    public var sweepInterval: TimeInterval = 1800
-
-    /// If `false`, the automatic LRU sweep is disabled. The default value is `true`.
-    public var isSweepEnabled: Bool = true
-
-    // Staging
-
-    private let lock = NSLock()
-    private var staging = Staging()
-    private var isFlushNeeded = false
-    private var isFlushScheduled = false
-
-    var flushInterval: DispatchTimeInterval = .seconds(1)
-    var sweepDelay: DispatchTimeInterval = .seconds(5)
-    var onSweepCompleted: (@Sendable () -> Void)?
-
-    private struct Metadata: Codable {
-        var lastSweepDate: Date?
+    var trimRatio: Double {
+        get { state.withLock { $0.trimRatio } }
+        set { state.withLock { $0.trimRatio = newValue } }
     }
 
-    /// The queue used for disk I/O.
-    public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", qos: .utility)
+    /// The interval between the automatic drains of the staging area, giving
+    /// the changes that arrive in quick succession a chance to batch up into a
+    /// single pass over the disk. `1` second by default.
+    ///
+    /// The interval throttles only the automatic drain. ``flush()`` and
+    /// ``sweep()`` perform the work themselves and are never held up by it.
+    var flushInterval: DispatchTimeInterval {
+        get { state.withLock { $0.flushInterval } }
+        set { state.withLock { $0.flushInterval = newValue } }
+    }
 
     /// A function that generates a filename for the given key. A good candidate
     /// is a hash function with low collision probability, such as SHA1.
@@ -76,7 +82,47 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// allow certain characters.
     public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
+    /// All of the mutable state, guarded by a single lock.
+    private let state = OSAllocatedUnfairLock(initialState: State())
+
     private let filenameGenerator: FilenameGenerator
+    private let sweepDelay: DispatchTimeInterval
+    private let onSweepCompleted: (@Sendable () -> Void)?
+
+    /// The serial queue that all of the disk I/O runs on.
+    ///
+    /// The file operations are synchronous and can block for a long time, which
+    /// is what GCD threads are for: running them in a task would occupy one of
+    /// the few threads in the cooperative pool for the entire duration of a
+    /// write. The queue is serial, so the disk operations never overlap.
+    ///
+    /// - important: The queue has no QoS of its own. The automatic drain is
+    /// submitted at `.utility`, while ``flush()`` and ``sweep()`` are submitted
+    /// with no QoS class so that they run at the priority of the task awaiting
+    /// them. A QoS assigned to the queue overrides the one assigned to the
+    /// blocks and would flatten both cases into one.
+    private let ioQueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.io")
+
+    private struct State {
+        /// The changes that are yet to reach the disk.
+        var staging = Staging()
+        /// A drain is already scheduled on ``ioQueue``. There is never more
+        /// than one of them in flight.
+        var isFlushScheduled = false
+        /// Prevents the automatic drain from running (testing only).
+        var isIOSuspended = false
+        var sizeLimit = 1024 * 1024 * 150
+        var sweepInterval: TimeInterval = 1800
+        var flushInterval: DispatchTimeInterval = .seconds(1)
+        var isSweepEnabled = true
+        var trimRatio = 0.7
+    }
+
+    private struct Metadata: Codable {
+        var lastSweepDate: Date?
+    }
+
+    // MARK: Initializers
 
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
@@ -84,64 +130,44 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(name: String, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
-        // This should be replaced with URL.cachesDirectory on iOS 16, which never fails
-        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-        }
-        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
+        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
     }
 
     /// Creates a cache instance with a given path.
     /// - parameter path: The path of the directory in which the cache is stored.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
-    public init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
-        self.path = path
-        self.filenameGenerator = filenameGenerator
-        try self.didInit()
+    public convenience init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
+        try self.init(path: path, filenameGenerator: filenameGenerator, sweepDelay: .seconds(5), onSweepCompleted: nil)
     }
 
-    init(
+    convenience init(
         name: String,
         filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:),
         sweepDelay: DispatchTimeInterval,
-        onSweepCompleted: @Sendable @escaping () -> Void
+        onSweepCompleted: @escaping @Sendable () -> Void
     ) throws {
-        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-        }
-        self.path = root.appendingPathComponent(name, isDirectory: true)
+        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, onSweepCompleted: onSweepCompleted)
+    }
+
+    private init(
+        path: URL,
+        filenameGenerator: @escaping FilenameGenerator,
+        sweepDelay: DispatchTimeInterval,
+        onSweepCompleted: (@Sendable () -> Void)?
+    ) throws {
+        self.path = path
         self.filenameGenerator = filenameGenerator
         self.sweepDelay = sweepDelay
         self.onSweepCompleted = onSweepCompleted
-        try self.didInit()
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        scheduleSweep()
     }
 
     /// A ``FilenameGenerator`` implementation that uses SHA1 to generate a
     /// filename from the given key.
     public static func filename(for key: String) -> String? {
         key.isEmpty ? nil : key.sha1
-    }
-
-    private func didInit() throws {
-        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        scheduleSweep()
-    }
-
-    private func scheduleSweep() {
-        if let lastSweepDate = getMetadata().lastSweepDate,
-           Date().timeIntervalSince(lastSweepDate) < sweepInterval {
-            return // Already completed recently
-        }
-        // Add a bit of a delay to free the resources during launch
-        queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
-            guard let self, self.isSweepEnabled else { return }
-            self.performSweep()
-            self.updateMetadata {
-                $0.lastSweepDate = Date()
-            }
-            self.onSweepCompleted?()
-        }
     }
 
     // MARK: DataCaching
@@ -156,10 +182,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
                 return nil
             }
         }
-        guard var url = url(for: key) else {
-            return nil
-        }
-        guard let data = try? Data(contentsOf: url) else {
+        guard var url = url(for: key), let data = try? Data(contentsOf: url) else {
             return nil
         }
         var values = URLResourceValues()
@@ -185,31 +208,31 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func change(for key: String) -> Staging.ChangeType? {
-        lock.withLock { staging.change(for: key) }
+        state.withLock { $0.staging.change(for: key) }
     }
 
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asynchronously.
     public func storeData(_ data: Data, for key: String) {
-        stage { staging.add(data: data, for: key) }
+        stage { $0.add(data: data, for: key) }
     }
 
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asynchronously.
     public func removeData(for key: String) {
-        stage { staging.removeData(for: key) }
+        stage { $0.removeData(for: key) }
     }
 
     /// Removes all items. The method returns instantly, the data is removed
     /// asynchronously.
     public func removeAll() {
-        stage { staging.removeAllStagedChanges() }
+        stage { $0.removeAll() }
     }
 
-    private func stage(_ change: () -> Void) {
-        lock.withLock {
-            change()
-            setNeedsFlushChanges()
+    private func stage(_ change: @Sendable (inout Staging) -> Void) {
+        state.withLock {
+            change(&$0.staging)
+            scheduleNextFlush(&$0)
         }
     }
 
@@ -248,75 +271,124 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     // MARK: Flush Changes
 
-    /// Synchronously waits on the caller's thread until all outstanding disk I/O
-    /// operations are finished.
-    public func flush() {
-        queue.sync { self.flushChangesIfNeeded() }
+    /// Writes the changes staged so far and waits for them to reach the disk.
+    ///
+    /// The call performs the work itself instead of waiting for the automatic
+    /// drain, so neither the flush interval nor the changes staged after it
+    /// hold it up.
+    public func flush() async {
+        await performIO { self.performPendingChanges() }
     }
 
-    /// Synchronously waits on the caller's thread until all outstanding disk I/O
-    /// operations for the given key are finished.
-    public func flush(for key: String) {
-        queue.sync {
-            guard let change = lock.withLock({ staging.changes[key] }) else { return }
-            perform(change)
-            lock.withLock { staging.flushed(change) }
+    /// Performs a cache sweep, removing the least recently used items that no
+    /// longer fit in the cache, and waits for it to finish.
+    public func sweep() async {
+        await performIO {
+            self.performPendingChanges() // The sweep has to see the staged writes
+            self.performSweep()
         }
     }
 
-    private func setNeedsFlushChanges() {
-        guard !isFlushNeeded else { return }
-        isFlushNeeded = true
-        scheduleNextFlush()
+    /// Schedules the drain of the staging area unless one is already scheduled.
+    ///
+    /// The window gives the changes that arrive in quick succession a chance to
+    /// batch up: they are written in a single pass over the disk, and the
+    /// repeated writes to the same key are collapsed into one.
+    ///
+    /// - important: Must be called with the lock held.
+    private func scheduleNextFlush(_ state: inout State) {
+        guard !state.isFlushScheduled, !state.isIOSuspended, !state.staging.isEmpty else { return }
+        state.isFlushScheduled = true
+        // `self` is captured strongly on purpose: the staged data has to reach
+        // the disk even if the client releases the cache in the meantime.
+        ioQueue.asyncAfter(deadline: .now() + state.flushInterval, qos: .utility) {
+            self.flushChangesIfNeeded()
+        }
     }
 
-    private func scheduleNextFlush() {
-        guard !isFlushScheduled else { return }
-        isFlushScheduled = true
-        queue.asyncAfter(deadline: .now() + flushInterval) { self.flushChangesIfNeeded() }
-    }
-
+    /// Writes the changes staged so far. Runs on ``ioQueue``.
     private func flushChangesIfNeeded() {
-        // Create a snapshot of the recently made changes
-        let staging: Staging? = lock.withLock {
-            guard isFlushNeeded else { return nil }
-            isFlushNeeded = false
-            return self.staging
+        // Create a snapshot of the recently made changes. The drain is no
+        // longer scheduled, so the changes staged from here on schedule the
+        // next one instead of joining the snapshot.
+        let staging: Staging? = state.withLock {
+            $0.isFlushScheduled = false
+            guard !$0.isIOSuspended else {
+                return nil // The changes are picked up by `resumeIO()`
+            }
+            return $0.staging.isEmpty ? nil : $0.staging
         }
         guard let staging else { return }
 
         // Apply the snapshot to disk
-        performChanges(for: staging)
+        performChanges(staging)
 
-        // Update the staging area and schedule the next flush if needed
-        lock.lock()
-        self.staging.flushed(staging)
-        isFlushScheduled = false
-        if isFlushNeeded {
-            scheduleNextFlush()
+        // Drain whatever was staged while the snapshot was being written
+        state.withLock { scheduleNextFlush(&$0) }
+    }
+
+    /// Suspends the automatic drain for the duration of the closure (testing only).
+    func withSuspendedIO(_ closure: () -> Void) {
+        suspendIO()
+        closure()
+        resumeIO()
+    }
+
+    /// Prevents the automatic drain from running until ``resumeIO()``. The
+    /// changes stay in the staging area until then, but ``flush()`` still
+    /// writes them.
+    func suspendIO() {
+        state.withLock { $0.isIOSuspended = true }
+    }
+
+    /// Lifts the ``suspendIO()`` suspension and schedules a drain if any
+    /// changes accumulated in the meantime.
+    private func resumeIO() {
+        state.withLock {
+            $0.isIOSuspended = false
+            scheduleNextFlush(&$0)
         }
-        lock.unlock()
     }
 
     // MARK: - I/O
 
-    private func performChanges(for staging: Staging) {
+    /// Runs the blocking work on ``ioQueue`` without occupying a thread from
+    /// the cooperative pool while it executes.
+    ///
+    /// The work carries no QoS class of its own, so GCD runs it at the QoS of
+    /// the submitting context – the priority of the task that awaits it. It is
+    /// the donation `sync` used to perform, and it matters because the
+    /// automatic drain is throttled to `.utility` and an awaited flush is not.
+    ///
+    /// There is one continuation per call, not per file, so its cost is
+    /// negligible next to the disk operations it wraps.
+    private func performIO<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            ioQueue.async {
+                continuation.resume(returning: work())
+            }
+        }
+    }
+
+    /// Writes the changes staged so far. Runs on ``ioQueue``.
+    private func performPendingChanges() {
+        let staging = state.withLock { $0.staging }
+        guard !staging.isEmpty else { return }
+        performChanges(staging)
+    }
+
+    private func performChanges(_ staging: Staging) {
         autoreleasepool {
-            if let change = staging.changeRemoveAll {
-                perform(change)
+            if staging.changeRemoveAll != nil {
+                performRemoveAll()
             }
             for change in staging.changes.values {
                 perform(change)
             }
         }
+        state.withLock { $0.staging.flushed(staging) }
     }
 
-    private func perform(_ change: Staging.ChangeRemoveAll) {
-        try? FileManager.default.removeItem(at: self.path)
-        try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-    }
-
-    /// Performs the IO for the given change.
     private func perform(_ change: Staging.Change) {
         guard let url = url(for: change.key) else {
             return
@@ -325,36 +397,55 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         case let .add(data):
             do {
                 try data.write(to: url)
-            } catch let error as NSError {
-                guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
-                try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                try? data.write(to: url) // re-create a directory and try again
+            } catch let error as NSError where error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain {
+                createDirectory() // The directory is gone, re-create it and try again
+                try? data.write(to: url)
+            } catch {
+                // There is nothing we can do about it
             }
         case .remove:
             try? FileManager.default.removeItem(at: url)
         }
     }
 
-    // MARK: Sweep
-
-    /// Synchronously performs a cache sweep and removes the least recently used
-    /// items that no longer fit in the cache.
-    public func sweep() {
-        queue.sync { self.performSweep() }
+    private func performRemoveAll() {
+        try? FileManager.default.removeItem(at: path)
+        createDirectory()
     }
 
-    /// Discards the least recently used items first.
+    private func createDirectory() {
+        try? FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+    }
+
+    // MARK: Sweep
+
+    /// Schedules the sweep that runs on launch. It is performed only if one
+    /// hasn't been performed recently (see ``DataCache/sweepInterval``).
+    private func scheduleSweep() {
+        // Add a bit of a delay to free the resources during launch.
+        ioQueue.asyncAfter(deadline: .now() + sweepDelay, qos: .utility) { [weak self] in
+            guard let self, isSweepEnabled, isSweepNeeded() else { return }
+            performPendingChanges() // The sweep has to see the staged writes
+            performSweep()
+            updateMetadata { $0.lastSweepDate = Date() }
+            onSweepCompleted?()
+        }
+    }
+
+    private func isSweepNeeded() -> Bool {
+        guard let lastSweepDate = getMetadata().lastSweepDate else {
+            return true
+        }
+        return Date().timeIntervalSince(lastSweepDate) >= sweepInterval
+    }
+
     private func performSweep() {
         var items = contents(keys: [.contentAccessDateKey, .totalFileAllocatedSizeKey])
-        guard !items.isEmpty else {
-            return
-        }
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
-
+        let (sizeLimit, trimRatio) = state.withLock { ($0.sizeLimit, $0.trimRatio) }
         guard size > sizeLimit else {
             return // All good, no need to perform any work.
         }
-
         let targetSizeLimit = Int(Double(sizeLimit) * trimRatio)
 
         // Most recently accessed items first
@@ -455,6 +546,11 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 private struct Staging {
     private(set) var changes = [String: Change]()
     private(set) var changeRemoveAll: ChangeRemoveAll?
+    private var nextChangeId = 0
+
+    var isEmpty: Bool {
+        changes.isEmpty && changeRemoveAll == nil
+    }
 
     struct ChangeRemoveAll {
         let id: Int
@@ -470,8 +566,6 @@ private struct Staging {
         case add(Data)
         case remove
     }
-
-    private var nextChangeId = 0
 
     // MARK: Changes
 
@@ -497,7 +591,7 @@ private struct Staging {
         changes[key] = Change(key: key, id: nextChangeId, type: .remove)
     }
 
-    mutating func removeAllStagedChanges() {
+    mutating func removeAll() {
         nextChangeId += 1
         changeRemoveAll = ChangeRemoveAll(id: nextChangeId)
         changes.removeAll()
@@ -516,7 +610,7 @@ private struct Staging {
 
     mutating func flushed(_ change: Change) {
         if let index = changes.index(forKey: change.key),
-            changes[index].value.id == change.id {
+           changes[index].value.id == change.id {
             changes.remove(at: index)
         }
     }

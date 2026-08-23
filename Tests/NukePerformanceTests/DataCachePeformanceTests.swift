@@ -15,7 +15,6 @@ final class DataCachePeformanceTests {
 
     init() throws {
         cache = try DataCache(name: UUID().uuidString)
-        _ = cache["key"] // Wait till index is loaded.
     }
 
     deinit {
@@ -25,26 +24,27 @@ final class DataCachePeformanceTests {
     // MARK: - Write
 
     @Test
-    func writeWithFlush() {
+    func writeWithFlush() async {
         let data = Array(0..<count).map { _ in generateRandomData() }
 
-        measure {
+        await measure { [cache] in
             for index in data.indices {
                 cache["\(index)"] = data[index]
             }
-            cache.flush()
+            await cache.flush()
         }
     }
 
+    /// Stores one item at a time and waits for it to reach the disk, the way a
+    /// caller that needs the data on the disk before it moves on would.
     @Test
-    func writeWithFlushIndividual() {
+    func writeWithFlushAfterEachItem() async {
         let data = Array(0..<200).map { _ in generateRandomData() }
 
-        measure {
+        await measure { [cache] in
             for index in data.indices {
-                let key = "\(index)"
-                cache[key] = data[index]
-                cache.flush(for: key)
+                cache["\(index)"] = data[index]
+                await cache.flush()
             }
         }
     }
@@ -63,12 +63,12 @@ final class DataCachePeformanceTests {
     // MARK: - Read
 
     @Test
-    func readFlushedPerformance() {
-        populate()
+    func readFlushedPerformance() async {
+        await populate()
 
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 2
-        measure { [cache] in
+        measure { [cache, count] in
             for idx in 0..<count {
                 queue.addOperation {
                     _ = cache["\(idx)"]
@@ -79,8 +79,8 @@ final class DataCachePeformanceTests {
     }
 
     @Test
-    func readFlushedPerformanceSync() {
-        populate()
+    func readFlushedPerformanceSync() async {
+        await populate()
 
         measure {
             for idx in 0..<count {
@@ -89,13 +89,117 @@ final class DataCachePeformanceTests {
         }
     }
 
+    /// Reads that the staging area serves without going to the disk.
+    @Test
+    func readFromStaging() {
+        // Small payloads: the staging lookup is the subject, not the blobs it
+        // holds on to until the automatic drain gets to them.
+        let data = Array(0..<count).map { _ in generateRandomData(count: 1024) }
+        for index in data.indices {
+            cache["\(index)"] = data[index] // No flush: the changes stay staged
+        }
+
+        measure { [cache, count] in
+            for index in 0..<count {
+                _ = cache["\(index)"]
+            }
+        }
+    }
+
+    /// The existence check that skips reading the file in.
+    @Test
+    func containsData() async {
+        await populate()
+
+        measure { [cache, count] in
+            var hits = 0
+            for index in 0..<count where cache.containsData(for: "\(index)") {
+                hits += 1
+            }
+            return hits
+        }
+    }
+
+    // MARK: - Sweep
+
+    /// The LRU pass that runs on launch: it enumerates the directory, reads the
+    /// resource values of every entry, sorts them, and removes the tail.
+    @Test
+    func sweep() async {
+        await populate()
+        cache.sizeLimit = Int.max // Measure the walk, not the removals
+
+        await measure { [cache] in
+            await cache.sweep()
+        }
+    }
+
+    /// The same pass when it's over the limit and has files to delete.
+    @Test
+    func sweepWithEviction() async {
+        let data = Array(0..<count).map { _ in generateRandomData() }
+
+        // Each iteration re-populates what the previous one evicted. Subtract
+        // the `writeWithFlush` numbers to isolate the sweep itself.
+        await measure { [cache, count] in
+            for index in 0..<count {
+                cache["\(index)"] = data[index]
+            }
+            await cache.flush()
+            cache.sizeLimit = cache.totalAllocatedSize / 2
+            await cache.sweep()
+        }
+    }
+
+    // MARK: - Concurrency
+
+    /// Readers racing a writer for the lock that guards the staging area.
+    @Test
+    func concurrentReadsAndWrites() async {
+        await populate()
+
+        await measure { [cache, count] in
+            await withTaskGroup(of: Void.self) { group in
+                for _ in 0..<7 {
+                    group.addTask {
+                        for index in 0..<count {
+                            _ = cache["\(index)"]
+                        }
+                    }
+                }
+                group.addTask {
+                    for index in 0..<count {
+                        cache["\(index)"] = Data(repeating: UInt8(index % 256), count: 1024)
+                    }
+                }
+            }
+            await cache.flush()
+        }
+    }
+
+    // MARK: - Keys
+
+    /// `filename(for:)` runs on every cache lookup, so its SHA1 is on the hot path.
+    @Test
+    func defaultFilenameGeneration() {
+        let keys = (0..<count).map { "http://example.com/image-\($0).jpeg" }
+
+        measure {
+            var sink = 0
+            for key in keys {
+                sink &+= DataCache.filename(for: key)?.count ?? 0
+            }
+            return sink
+        }
+    }
+
     // MARK: - Helpers
 
-    func populate() {
+    func populate() async {
         for idx in 0..<count {
             cache["\(idx)"] = generateRandomData()
         }
-        cache.flush()
+        await cache.flush()
     }
 }
 

@@ -112,7 +112,7 @@ struct ThreadSafetyTests {
 
     // MARK: - DataCache
 
-    @Test func dataCacheThreadSafety() throws {
+    @Test func dataCacheThreadSafety() async throws {
         let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { $0 })
 
         let data = Data(repeating: 1, count: 256 * 1024)
@@ -120,23 +120,36 @@ struct ThreadSafetyTests {
         for idx in 0..<500 {
             cache["\(idx)"] = data
         }
-        cache.flush()
+        await cache.flush()
 
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 5
-
+        // The point of the test is to race the accessors, not to measure the
+        // throughput, so keep the same number of operations in flight the
+        // OperationQueue this replaced allowed.
+        let maxConcurrentTaskCount = 5
+        var operations: [@Sendable () async -> Void] = []
         for _ in 0..<5 {
             for idx in 0..<500 {
-                queue.addOperation {
+                operations.append {
                     _ = cache["\(idx)"]
                 }
-                queue.addOperation {
+                operations.append {
                     cache["\(idx)"] = data
-                    cache.flush()
+                    await cache.flush()
                 }
             }
         }
-        queue.waitUntilAllOperationsAreFinished()
+
+        await withTaskGroup(of: Void.self) { group in
+            var running = 0
+            for operation in operations {
+                if running == maxConcurrentTaskCount {
+                    await group.next()
+                    running -= 1
+                }
+                group.addTask(operation: operation)
+                running += 1
+            }
+        }
     }
 
     @Test func dataCacheMultipleThreadAccess() async throws {

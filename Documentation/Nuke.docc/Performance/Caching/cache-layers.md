@@ -105,7 +105,7 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. For a synchronous write, use ``DataCache/flush()``.
+``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
 
 > Tip: To share a disk cache between your app and an extension (e.g. a Notification Service Extension), point ``DataCache`` at a directory inside a shared app group container. Set ``DataCache/isSweepEnabled`` to `false` in the extension so that only the main app enforces size limits.
 >
@@ -130,8 +130,7 @@ dataCache.removeAll()
 
 ```swift
 dataCache.storeData(data, for: "key")
-dataCache.flush()
-// or dataCache.flush(for: "key")
+await dataCache.flush()
 
 let url = dataCache.url(for: "key")
 // Access file directly

@@ -185,12 +185,11 @@ private func checkCacheLayers04() throws {
     _ = data
 }
 
-private func checkCacheLayers05() throws {
+private func checkCacheLayers05() async throws {
     let dataCache = try DataCache(name: "my-cache")
 
     dataCache.storeData(data, for: "key")
-    dataCache.flush()
-    // or dataCache.flush(for: "key")
+    await dataCache.flush()
 
     let url = dataCache.url(for: "key")
     // Access file directly
