@@ -74,6 +74,16 @@ public final class ImagePrefetcher: Sendable {
     private var tasks = [TaskLoadImageKey: PrefetchTask]()
     let queue: TaskQueue // internal for testing
 
+    /// The number of batches that were scheduled but haven't reached the
+    /// pipeline actor yet. They count as outstanding work: without it,
+    /// ``waitUntilIdle()`` called right after ``startPrefetching(with:)-718dg``
+    /// would return before the batch it is waiting for even starts.
+    private nonisolated let _pendingBatchCount = OSAllocatedUnfairLock(initialState: 0)
+
+    private var isIdle: Bool {
+        tasks.isEmpty && _pendingBatchCount.withLock { $0 } == 0
+    }
+
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
     /// - parameters:
@@ -91,6 +101,11 @@ public final class ImagePrefetcher: Sendable {
     }
 
     nonisolated deinit {
+        // Nothing else is going to produce an event, and a stream that never
+        // finishes leaves whoever iterates it suspended forever.
+        for continuation in streamContinuations.values {
+            continuation.finish()
+        }
         let tasks = self.tasks.values
         Task { @ImagePipelineActor in
             for task in tasks {
@@ -117,12 +132,14 @@ public final class ImagePrefetcher: Sendable {
     ///
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     nonisolated public func startPrefetching(with requests: [ImageRequest]) {
+        _pendingBatchCount.withLock { $0 += 1 }
         Task { @ImagePipelineActor in
             self._startPrefetching(with: requests)
         }
     }
 
     private func _startPrefetching(with requests: [ImageRequest]) {
+        _pendingBatchCount.withLock { $0 -= 1 }
         let currentPriority = _priority.withLock { $0 }
         for request in requests {
             var request = request
@@ -148,25 +165,33 @@ public final class ImagePrefetcher: Sendable {
         let operation = queue.add { [weak self] in
             let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: isDataTask)
             task.imageTask = imageTask
-            _ = try? await imageTask.response
-            self?._remove(task)
+            let result: Result<ImageResponse, ImagePipeline.Error>
+            do throws(ImagePipeline.Error) {
+                result = .success(try await imageTask.response)
+            } catch {
+                result = .failure(error)
+            }
+            self?._remove(task, result: result)
         }
         operation.priority = request.priority.taskPriority
         task.operation = operation
         tasks[key] = task
+        _dispatch(.didStartPrefetching(request))
     }
 
-    private func _remove(_ task: PrefetchTask) {
+    private func _remove(_ task: PrefetchTask, result: Result<ImageResponse, ImagePipeline.Error>) {
         guard tasks[task.key] === task else { return }
         tasks[task.key] = nil
+        _dispatch(.didFinishPrefetching(task.request, result))
         sendCompletionIfNeeded()
     }
 
     private func sendCompletionIfNeeded() {
-        guard tasks.isEmpty, let callback = didComplete else {
-            return
+        guard isIdle else { return }
+        _dispatch(.didComplete)
+        if let callback = didComplete {
+            DispatchQueue.main.async(execute: callback)
         }
-        DispatchQueue.main.async(execute: callback)
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding
@@ -187,8 +212,14 @@ public final class ImagePrefetcher: Sendable {
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
     nonisolated public func stopPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
+            // Nothing to complete if the prefetcher was already idle, and the
+            // collection view calls this on every scroll.
+            let wasBusy = !self.tasks.isEmpty
             for request in requests {
                 self._stopPrefetching(with: request)
+            }
+            if wasBusy {
+                self.sendCompletionIfNeeded()
             }
         }
     }
@@ -196,14 +227,130 @@ public final class ImagePrefetcher: Sendable {
     private func _stopPrefetching(with request: ImageRequest) {
         if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
             task.cancel()
+            _dispatch(.didFinishPrefetching(task.request, .failure(.cancelled)))
         }
     }
 
     /// Stops all prefetching tasks.
     nonisolated public func stopPrefetching() {
         Task { @ImagePipelineActor in
-            self.tasks.values.forEach { $0.cancel() }
+            let wasBusy = !self.tasks.isEmpty
+            for task in self.tasks.values {
+                task.cancel()
+                self._dispatch(.didFinishPrefetching(task.request, .failure(.cancelled)))
+            }
             self.tasks.removeAll()
+            if wasBusy {
+                self.sendCompletionIfNeeded()
+            }
+        }
+    }
+
+    // MARK: - Events
+
+    /// An event produced by the prefetcher.
+    @frozen public enum Event: Sendable {
+        /// The prefetcher started prefetching the given request.
+        ///
+        /// Not sent for the requests the prefetcher skips: the images that are
+        /// already in the memory cache, and the requests equivalent to the ones
+        /// it is already prefetching.
+        case didStartPrefetching(ImageRequest)
+
+        /// The prefetcher finished prefetching the given request, successfully
+        /// or not. Sent exactly once for every ``Event/didStartPrefetching(_:)``.
+        ///
+        /// The requests cancelled with ``ImagePrefetcher/stopPrefetching(with:)-8cdam``
+        /// finish with ``ImagePipeline/Error/cancelled``.
+        case didFinishPrefetching(ImageRequest, Result<ImageResponse, ImagePipeline.Error>)
+
+        /// The prefetcher ran out of outstanding work – the stream equivalent
+        /// of ``ImagePrefetcher/didComplete``, sent under the same conditions.
+        case didComplete
+    }
+
+    /// The stream of events produced by the prefetcher.
+    ///
+    /// ```swift
+    /// for await event in prefetcher.events {
+    ///     if case .didFinishPrefetching(let request, .failure(let error)) = event {
+    ///         report(error, for: request)
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Every access creates a new independent stream. Unlike a task, which has
+    /// an outcome to replay, a prefetcher outlives its batches: a stream only
+    /// delivers the events produced after it is created, and it finishes only
+    /// when the prefetcher is deallocated. Stop iterating, or cancel the task
+    /// that iterates, to unsubscribe earlier.
+    ///
+    /// - note: A stream buffers the events that the consumer hasn't picked up
+    /// yet, so a slow consumer never misses one.
+    /// - note: Subscribing reaches the pipeline actor asynchronously, so the
+    /// events produced in between are missed. Use ``waitUntilIdle()`` instead
+    /// of watching for ``Event/didComplete`` right after scheduling a batch.
+    nonisolated public var events: AsyncStream<Event> {
+        AsyncStream { continuation in
+            Task { @ImagePipelineActor in
+                self._subscribe(continuation)
+            }
+        }
+    }
+
+    /// Waits until the prefetcher runs out of outstanding work, returning
+    /// immediately if it is already idle.
+    ///
+    /// ```swift
+    /// prefetcher.startPrefetching(with: urls)
+    /// await prefetcher.waitUntilIdle()
+    /// ```
+    ///
+    /// A convenience over ``events``: it returns on the first
+    /// ``Event/didComplete``. Unlike subscribing to the stream, it is safe to
+    /// call right after scheduling a batch – the batches that haven't reached
+    /// the pipeline actor yet count as outstanding work.
+    ///
+    /// - important: The prefetcher is shared by everything that schedules work
+    /// on it, so this waits for all of the outstanding batches, not only for
+    /// the ones scheduled by the caller.
+    public func waitUntilIdle() async {
+        guard !isIdle else { return }
+        for await event in _makeStream() {
+            if case .didComplete = event {
+                return
+            }
+        }
+    }
+
+    private var streamContinuations = [Int: AsyncStream<Event>.Continuation]()
+    private var nextStreamId = 0
+
+    var subscriptionCount: Int { streamContinuations.count } // internal for testing
+
+    /// Creates a stream and subscribes it synchronously, which the async
+    /// ``events`` path can't do – that's what makes ``waitUntilIdle()`` safe
+    /// to call right after scheduling a batch.
+    private func _makeStream() -> AsyncStream<Event> {
+        AsyncStream { continuation in
+            _subscribe(continuation)
+        }
+    }
+
+    private func _subscribe(_ continuation: AsyncStream<Event>.Continuation) {
+        nextStreamId += 1
+        let id = nextStreamId
+        streamContinuations[id] = continuation
+        continuation.onTermination = { [weak self] _ in
+            Task { @ImagePipelineActor in
+                self?.streamContinuations[id] = nil
+            }
+        }
+    }
+
+    private func _dispatch(_ event: Event) {
+        for continuation in streamContinuations.values {
+            continuation.yield(event)
         }
     }
 

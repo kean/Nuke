@@ -35,6 +35,7 @@
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
 - `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
 - Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
+- Add `ImagePrefetcher/events`, a stream reporting which requests the prefetcher started, how each one finished, and when it ran out of work, and `ImagePrefetcher/waitUntilIdle()` built on top of it – https://github.com/kean/Nuke/pull/930
 
 **Bug Fixes**
 
@@ -46,6 +47,7 @@
 - Fix `DataCache.init` reading and decoding its metadata file on the calling thread, which is typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
 - Fix a data race on `DataLoader/prefersIncrementalDelivery`, which the loader reads when it creates a task while it can be written from any thread – https://github.com/kean/Nuke/pull/928
 - Fix a data race on `ImagePrefetcher/didComplete`, which the prefetcher reads on the pipeline actor while it can be written from any thread – https://github.com/kean/Nuke/pull/929
+- Fix `ImagePrefetcher/didComplete` not being called when the outstanding requests are cancelled with `stopPrefetching`, and being called while another batch was already scheduled – https://github.com/kean/Nuke/pull/930
 
 # Nuke 13
 
