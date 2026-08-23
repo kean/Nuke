@@ -40,6 +40,19 @@ struct ImageProcessorsCoreImageFilterTests {
         _ = output // image was produced successfully
     }
 
+    @Test func applyFilterWithAnImageParameter() throws {
+        // GIVEN a filter that takes a `CIImage` parameter
+        let input = Test.image(named: "fixture-tiny.jpeg")
+        let background = CIImage(cgImage: try #require(input.cgImage))
+        let processor = ImageProcessors.CoreImageFilter(name: "CISourceOverCompositing", parameters: [kCIInputBackgroundImageKey: background], identifier: "composite")
+
+        // WHEN
+        let output = try #require(processor.process(input))
+
+        // THEN
+        _ = output // image was produced successfully
+    }
+
     @Test func applyFilterWithInvalidName() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")

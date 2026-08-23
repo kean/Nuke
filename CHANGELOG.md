@@ -37,6 +37,7 @@
 - Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
 - `DataLoader/Error` now conforms to `Sendable`. It was the only public error type that didn't, despite crossing isolation boundaries wrapped in `ImagePipeline/Error/dataLoadingFailed(error:)` – https://github.com/kean/Nuke/pull/933
 - `ImageProcessors/CoreImageFilter/Error` is now `Sendable` instead of `@unchecked Sendable`: its cases carry a filter name and descriptions instead of the `CIFilter`, `CIImage`, and `[String: Any]` payloads, which escaped the processing queue wrapped in `ImagePipeline/Error/processingFailed(processor:context:error:)` – https://github.com/kean/Nuke/pull/934
+- `ImageProcessors/CoreImageFilter` now takes `[String: any Sendable]` filter parameters instead of `[String: Any]`, matching the rest of the public API. The types Core Image filters commonly take – `CIImage`, `CIColor`, `CIVector`, `CGImage`, `NSNumber` – are all `Sendable` – https://github.com/kean/Nuke/pull/934
 
 **Bug Fixes**
 
