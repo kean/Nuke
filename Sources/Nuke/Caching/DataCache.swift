@@ -9,7 +9,8 @@ import os
 ///
 /// ``DataCache`` uses LRU cleanup policy (least recently used items are removed
 /// first). The elements stored in the cache are automatically discarded if
-/// the size limit is reached. The sweeps are performed periodically.
+/// the size limit is reached. The sweeps are performed periodically for as
+/// long as the cache is alive, see ``DataCache/sweepInterval``.
 ///
 /// DataCache always writes and removes data asynchronously. It also allows for
 /// reading and writing data in parallel. It is implemented using a staging
@@ -44,12 +45,18 @@ public final class DataCache: DataCaching, Sendable {
     }
 
     /// The time interval between cache sweeps. The default value is 30 minutes.
+    ///
+    /// The first sweep runs shortly after the initialization and is skipped if
+    /// one was already performed within the interval, e.g. by the previous launch.
     public var sweepInterval: TimeInterval {
         get { state.withLock { $0.sweepInterval } }
         set { state.withLock { $0.sweepInterval = newValue } }
     }
 
     /// If `false`, the automatic LRU sweep is disabled. The default value is `true`.
+    ///
+    /// The scheduled sweeps are skipped while it is off, so turning it back on
+    /// resumes them within ``sweepInterval``.
     public var isSweepEnabled: Bool {
         get { state.withLock { $0.isSweepEnabled } }
         set { state.withLock { $0.isSweepEnabled = newValue } }
@@ -86,7 +93,6 @@ public final class DataCache: DataCaching, Sendable {
     private let state = OSAllocatedUnfairLock(initialState: State())
 
     private let filenameGenerator: FilenameGenerator
-    private let sweepDelay: DispatchTimeInterval
     private let onSweepCompleted: (@Sendable () -> Void)?
 
     /// The serial queue that all of the disk I/O runs on.
@@ -148,30 +154,34 @@ public final class DataCache: DataCaching, Sendable {
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
-        try self.init(path: path, filenameGenerator: filenameGenerator, sweepDelay: .seconds(5), onSweepCompleted: nil)
+        try self.init(path: path, filenameGenerator: filenameGenerator, sweepDelay: .seconds(5), sweepInterval: nil, onSweepCompleted: nil)
     }
 
     convenience init(
         name: String,
         filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:),
         sweepDelay: DispatchTimeInterval,
+        sweepInterval: TimeInterval? = nil,
         onSweepCompleted: @escaping @Sendable () -> Void
     ) throws {
-        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, onSweepCompleted: onSweepCompleted)
+        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, sweepInterval: sweepInterval, onSweepCompleted: onSweepCompleted)
     }
 
     private init(
         path: URL,
         filenameGenerator: @escaping FilenameGenerator,
         sweepDelay: DispatchTimeInterval,
+        sweepInterval: TimeInterval?,
         onSweepCompleted: (@Sendable () -> Void)?
     ) throws {
         self.path = path
         self.filenameGenerator = filenameGenerator
-        self.sweepDelay = sweepDelay
         self.onSweepCompleted = onSweepCompleted
+        if let sweepInterval { // Testing only
+            state.withLock { $0.sweepInterval = sweepInterval }
+        }
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        scheduleSweep()
+        scheduleSweep(deadline: .now() + sweepDelay)
     }
 
     /// A ``FilenameGenerator`` implementation that uses SHA1 to generate a
@@ -470,17 +480,25 @@ public final class DataCache: DataCaching, Sendable {
 
     // MARK: Sweep
 
-    /// Schedules the sweep that runs on launch. It is performed only if one
-    /// hasn't been performed recently (see ``DataCache/sweepInterval``).
-    private func scheduleSweep() {
-        // Add a bit of a delay to free the resources during launch.
-        ioQueue.asyncAfter(deadline: .now() + sweepDelay, qos: .utility) { [weak self] in
-            guard let self, isSweepEnabled, isSweepNeeded() else { return }
-            performPendingChanges() // The sweep has to see the staged writes
-            performSweep()
-            updateMetadata { $0.lastSweepDate = Date() }
-            onSweepCompleted?()
+    /// Schedules the next sweep. The first one runs after a small delay to free
+    /// the resources during launch, the rest every ``DataCache/sweepInterval``.
+    private func scheduleSweep(deadline: DispatchTime) {
+        // `self` is captured weakly: the repeating sweep must not keep the cache alive.
+        ioQueue.asyncAfter(deadline: deadline, qos: .utility) { [weak self] in
+            guard let self else { return }
+            performScheduledSweep()
+            scheduleSweep(deadline: .now() + sweepInterval) // Also when skipped
         }
+    }
+
+    /// Performs the sweep unless it is disabled or one has already been
+    /// performed within the last ``DataCache/sweepInterval``. Runs on ``ioQueue``.
+    private func performScheduledSweep() {
+        guard isSweepEnabled, isSweepNeeded() else { return }
+        performPendingChanges() // The sweep has to see the staged writes
+        performSweep()
+        updateMetadata { $0.lastSweepDate = Date() }
+        onSweepCompleted?()
     }
 
     private func isSweepNeeded() -> Bool {

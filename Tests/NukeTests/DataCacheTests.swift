@@ -11,6 +11,29 @@ private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
 private let trafficKeyCount = 10
 
+/// Counts the sweeps that a cache performs and lets a test wait for them.
+private final class SweepCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int { lock.withLock { count } }
+
+    func record() {
+        lock.withLock { count += 1 }
+    }
+
+    func wait(for target: Int, timeout: Duration = .seconds(10)) async {
+        let deadline = ContinuousClock.now + timeout
+        while value < target {
+            guard ContinuousClock.now < deadline else {
+                Issue.record("Timed out waiting for \(target) sweeps, performed \(value)")
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+}
+
 @Suite(.timeLimit(.minutes(5)))
 final class DataCacheTests {
     private let cache: DataCache
@@ -853,6 +876,73 @@ final class DataCacheTests {
         // THEN the sweep never ran, so it never stamped its metadata either
         let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
         #expect(!FileManager.default.fileExists(atPath: metadataURL.path))
+    }
+
+    @Test func scheduledSweepRepeatsOnTheSweepInterval() async throws {
+        // GIVEN a cache that sweeps every 50 ms
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+
+        // THEN the sweeps keep coming instead of stopping after the first one
+        await counter.wait(for: 3)
+        cache.isSweepEnabled = false
+    }
+
+    @Test func periodicSweepTrimsTheDataWrittenAfterTheFirstSweep() async throws {
+        // GIVEN a long-lived cache that has already performed its first sweep
+        let mb = 1024 * 1024
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.sizeLimit = mb * 3
+        await counter.wait(for: 1)
+
+        // WHEN more data than the limit fits is written after that sweep
+        for index in 1...5 {
+            cache["key\(index)"] = Data(repeating: UInt8(index), count: mb)
+        }
+        await cache.flush()
+
+        // THEN one of the sweeps that follow brings the cache back under it
+        await counter.wait(for: counter.value + 2)
+        #expect(cache.totalSize <= mb * 3)
+        cache.isSweepEnabled = false
+    }
+
+    @Test func scheduledSweepResumesWhenItIsReEnabled() async throws {
+        // GIVEN a cache with the sweep turned off before the first one runs
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(50),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.isSweepEnabled = false
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(counter.value == 0)
+
+        // WHEN it's turned back on
+        cache.isSweepEnabled = true
+
+        // THEN the sweeps that were skipped didn't take the schedule with them
+        await counter.wait(for: 1)
+        cache.isSweepEnabled = false
     }
 
     @Test func scheduledSweepRunsWhenTheLastOneIsOlderThanTheInterval() async throws {
