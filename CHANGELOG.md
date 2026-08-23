@@ -47,6 +47,7 @@
 - Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit, which can be the main thread. The update now joins the staged changes, so the reads that arrive within the same window are written in a single pass – https://github.com/kean/Nuke/pull/927
 - Fix a data race on `DataLoader/prefersIncrementalDelivery`, which the loader reads when it creates a task while it can be written from any thread – https://github.com/kean/Nuke/pull/928
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval`, letting a long-running app grow the cache past its `DataCache/sizeLimit` until the next launch – https://github.com/kean/Nuke/pull/930
+- Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 
 # Nuke 13
 
