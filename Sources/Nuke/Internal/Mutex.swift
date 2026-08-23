@@ -25,6 +25,17 @@ final class Mutex<T>: @unchecked Sendable {
         return _value
     }
 
+    /// Replaces the value, and releases the old one after unlocking: its
+    /// `deinit` can run any code, including code that reads this mutex.
+    func replace(with newValue: T) {
+        let oldValue = withLock { (value: inout T) -> T in
+            let oldValue = value
+            value = newValue
+            return oldValue
+        }
+        withExtendedLifetime(oldValue) {}
+    }
+
     func withLock<U>(_ closure: (inout T) -> U) -> U {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }

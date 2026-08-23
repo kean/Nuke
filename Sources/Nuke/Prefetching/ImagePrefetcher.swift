@@ -52,7 +52,16 @@ public final class ImagePrefetcher: Sendable {
     /// The closure that gets called when the prefetching completes for all the
     /// scheduled requests. The closure is always called on completion,
     /// regardless of whether the requests succeed or some fail.
-    nonisolated(unsafe) public var didComplete: (@MainActor @Sendable () -> Void)?
+    ///
+    /// The closure runs every time the prefetcher runs out of outstanding work,
+    /// which includes the batches that finish without starting a single task:
+    /// an empty list of requests, or one where every image is already in the
+    /// memory cache.
+    nonisolated public var didComplete: (@MainActor @Sendable () -> Void)? {
+        get { _didComplete.value }
+        set { _didComplete.replace(with: newValue) }
+    }
+    private nonisolated let _didComplete = Mutex<(@MainActor @Sendable () -> Void)?>(value: nil)
 
     private let pipeline: ImagePipeline
     private let destination: Destination
