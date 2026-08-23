@@ -265,6 +265,7 @@ struct ImagePipelineAsyncAwaitTests {
     @Test func thatProgressivePreviewsAreDelivered() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
+        dataLoader.servesFirstChunkAutomatically = false
         let pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
@@ -274,7 +275,9 @@ struct ImagePipelineAsyncAwaitTests {
         // WHEN
         var recordedPreviews: [ImageResponse] = []
         let task = pipeline.imageTask(with: Test.url)
-        for try await preview in task.previews {
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
+        for try await preview in stream {
             recordedPreviews.append(preview)
             dataLoader.resume()
         }

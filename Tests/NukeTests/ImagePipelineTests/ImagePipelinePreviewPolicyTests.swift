@@ -14,6 +14,7 @@ struct ImagePipelinePreviewPolicyTests {
     @Test func progressiveJPEGDeliversPreviews() async throws {
         // GIVEN a progressive JPEG served in chunks with manual resume
         let dataLoader = MockProgressiveDataLoader()
+        dataLoader.servesFirstChunkAutomatically = false
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
@@ -23,8 +24,10 @@ struct ImagePipelinePreviewPolicyTests {
 
         // WHEN loading the image and collecting previews
         let task = pipeline.imageTask(with: Test.url)
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
         var previews: [ImageResponse] = []
-        for try await preview in task.previews {
+        for try await preview in stream {
             previews.append(preview)
             dataLoader.resume()
         }
@@ -95,6 +98,7 @@ struct ImagePipelinePreviewPolicyTests {
         // GIVEN a delegate that forces .incremental for all images
         let delegate = PreviewPolicyDelegate(policy: .incremental)
         let dataLoader = MockBaselineDataLoader()
+        dataLoader.servesFirstChunkAutomatically = false
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
@@ -104,8 +108,10 @@ struct ImagePipelinePreviewPolicyTests {
 
         // WHEN loading the image
         let task = pipeline.imageTask(with: Test.url)
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
         var previews: [ImageResponse] = []
-        for try await preview in task.previews {
+        for try await preview in stream {
             previews.append(preview)
             dataLoader.resume()
         }
@@ -367,6 +373,12 @@ private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
     private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
     private var _completion: (@Sendable (Error?) -> Void)?
 
+    /// See `MockProgressiveDataLoader/servesFirstChunkAutomatically`.
+    var servesFirstChunkAutomatically = true
+
+    private var isLoading = false
+    private var pendingResumeCount = 0
+
     init() {
         self.urlResponse = HTTPURLResponse(
             url: Test.url,
@@ -382,22 +394,38 @@ private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
                   completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
         self._didReceiveData = didReceiveData
         self._completion = completion
-        // Serve the first chunk immediately
         DispatchQueue.main.async {
-            self.resume()
+            self.isLoading = true
+            if self.servesFirstChunkAutomatically {
+                self.serveNextChunk()
+            }
+            let pending = self.pendingResumeCount
+            self.pendingResumeCount = 0
+            for _ in 0..<pending {
+                self.serveNextChunk()
+            }
         }
         return AnonymousCancellable {}
     }
 
     func resume() {
         DispatchQueue.main.async {
-            if let chunk = self.chunks.first {
-                self.chunks.removeFirst()
-                self._didReceiveData?(chunk, self.urlResponse)
-                if self.chunks.isEmpty {
-                    self._completion?(nil)
-                }
+            guard self.isLoading else {
+                // `loadData` hasn't been called yet, and serving now would drop
+                // the chunk – there is nobody to hand it to.
+                self.pendingResumeCount += 1
+                return
             }
+            self.serveNextChunk()
+        }
+    }
+
+    private func serveNextChunk() {
+        guard let chunk = chunks.first else { return }
+        chunks.removeFirst()
+        _didReceiveData?(chunk, urlResponse)
+        if chunks.isEmpty {
+            _completion?(nil)
         }
     }
 }
