@@ -350,6 +350,14 @@ struct DataLoaderTests {
         #expect(error.description.contains("404"))
     }
 
+    @Test func errorIsSendable() async {
+        let error = DataLoader.Error.statusCodeUnacceptable(404)
+        // A compile-time check: the error crosses isolation boundaries wrapped
+        // in `ImagePipeline.Error.dataLoadingFailed(error:)`.
+        let description = await Task { @Sendable in error.description }.value
+        #expect(description.contains("404"))
+    }
+
     // MARK: - Large Data
 
     @Test func loadLargeData() async throws {
