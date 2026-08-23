@@ -125,6 +125,7 @@ struct ImagePipelineTaskDelegateTests {
     @Test func intermediateResponseEventsDelivered() async throws {
         // GIVEN a pipeline with progressive decoding
         let dataLoader = MockProgressiveDataLoader()
+        dataLoader.servesFirstChunkAutomatically = false
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
@@ -134,7 +135,9 @@ struct ImagePipelineTaskDelegateTests {
 
         // WHEN
         let task = pipeline.imageTask(with: Test.url)
-        for try await _ in task.previews {
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
+        for try await _ in stream {
             dataLoader.resume()
         }
         _ = try await task.response
