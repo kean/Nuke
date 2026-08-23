@@ -334,6 +334,93 @@ final class DataCacheTests {
         #expect(data == blob)
     }
 
+    @Test func readingDataUpdatesTheAccessDate() async throws {
+        // GIVEN an entry with a stale access date
+        cache["key"] = blob
+        await cache.flush()
+        let past = Date().addingTimeInterval(-1000)
+        try setAccessDate(past, for: "key")
+
+        // WHEN
+        #expect(cache.cachedData(for: "key") == blob)
+        await cache.flush() // The update runs on the I/O queue
+
+        // THEN
+        #expect(cache.accessDateUpdateCount == 1)
+        #expect(try accessDate(for: "key") > past)
+    }
+
+    @Test func theAccessDateUpdatesWithinTheFlushIntervalAreCoalesced() async {
+        // GIVEN an entry on disk and an interval long enough that the drain
+        // can't run within it
+        cache["key"] = blob
+        await cache.flush()
+        cache.flushInterval = .seconds(20)
+
+        // WHEN it is read repeatedly
+        for _ in 0..<10 {
+            #expect(cache.cachedData(for: "key") == blob)
+        }
+        await cache.flush()
+
+        // THEN the reads perform a single update between them
+        #expect(cache.accessDateUpdateCount == 1)
+    }
+
+    @Test func theAccessDateIsUpdatedAgainByTheReadsThatFollowTheDrain() async {
+        // GIVEN an entry that was already read once
+        cache["key"] = blob
+        await cache.flush()
+        _ = cache.cachedData(for: "key")
+        await cache.flush()
+
+        // WHEN it is read again
+        _ = cache.cachedData(for: "key")
+        await cache.flush()
+
+        // THEN the date doesn't go stale for as long as the entry is in use
+        #expect(cache.accessDateUpdateCount == 2)
+    }
+
+    @Test func theAccessDateIsRefreshedWithoutAnExplicitFlush() async throws {
+        // GIVEN an entry on disk and an interval short enough to keep the test quick
+        cache["key"] = blob
+        await cache.flush()
+        cache.flushInterval = .milliseconds(10)
+
+        // WHEN the read is the only thing that needs to reach the disk
+        _ = cache.cachedData(for: "key")
+
+        // THEN the drain gets to it on its own
+        while cache.accessDateUpdateCount == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    @Test func readingDataFromStagingDoesNotUpdateTheAccessDate() async {
+        // GIVEN data that is only in the staging area
+        cache.withSuspendedIO {
+            cache["key"] = blob
+
+            // WHEN/THEN there is no file to update
+            #expect(cache.cachedData(for: "key") == blob)
+        }
+        await cache.flush()
+        #expect(cache.accessDateUpdateCount == 0)
+    }
+
+    private func setAccessDate(_ date: Date, for key: String) throws {
+        var url = try #require(cache.url(for: key))
+        var values = URLResourceValues()
+        values.contentAccessDate = date
+        try url.setResourceValues(values)
+    }
+
+    private func accessDate(for key: String) throws -> Date {
+        let url = try #require(cache.url(for: key))
+        return try #require(url.resourceValues(forKeys: [.contentAccessDateKey]).contentAccessDate)
+    }
+
     // MARK: Flush
 
     @Test func flush() async {
