@@ -463,35 +463,332 @@ struct ImagePrefetcherTests {
         #expect(count.withLock { $0 } == 1)
     }
 
+    // MARK: Events
+
+    @Test func eventsAreSentForASuccessfulPrefetch() async {
+        // WHEN
+        let events = await recordEvents {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        // THEN the request is reported as started, then finished, and the
+        // prefetcher reports itself complete
+        #expect(events.count == 3)
+        guard case .didStartPrefetching(let started) = events.first else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+        #expect(started.url == Test.url)
+        guard case .didFinishPrefetching(let finished, let result) = events[1] else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+        #expect(finished.url == Test.url)
+        #expect((try? result.get()) != nil)
+        guard case .didComplete = events[2] else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+    }
+
+    @Test func didFinishPrefetchingReportsTheFailure() async {
+        // GIVEN a request that fails
+        dataLoader.results[Test.url] = .failure(NSError(domain: "t", code: 42))
+
+        // WHEN
+        let events = await recordEvents {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        // THEN
+        guard case .didFinishPrefetching(_, .failure(let error))? = events.first(where: \.isDidFinishPrefetching) else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+        guard case .dataLoadingFailed = error else {
+            Issue.record("Unexpected error: \(error)")
+            return
+        }
+    }
+
+    @Test func didFinishPrefetchingReportsCancellation() async {
+        // GIVEN a request that stays outstanding
+        dataLoader.isSuspended = true
+
+        // WHEN it is cancelled
+        let events = await recordEvents {
+            prefetcher.startPrefetching(with: [Test.url])
+            prefetcher.stopPrefetching(with: [Test.url])
+        }
+
+        // THEN the cancelled request still finishes, with `.cancelled`, and the
+        // prefetcher reports itself complete
+        guard case .didFinishPrefetching(_, .failure(let error))? = events.first(where: \.isDidFinishPrefetching) else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+        guard case .cancelled = error else {
+            Issue.record("Unexpected error: \(error)")
+            return
+        }
+    }
+
+    @Test func noStartEventForAnImageInTheMemoryCache() async {
+        // GIVEN an image that is already in the memory cache
+        imageCache[Test.request] = Test.container
+
+        // WHEN
+        let events = await recordEvents {
+            prefetcher.startPrefetching(with: [Test.request])
+        }
+
+        // THEN the prefetcher skips it and only reports the completion
+        #expect(events.count == 1)
+        guard case .didComplete = events.first else {
+            Issue.record("Unexpected events: \(events)")
+            return
+        }
+    }
+
+    @Test func noStartEventForADuplicateRequest() async {
+        // WHEN the same URL is scheduled twice
+        let events = await recordEvents {
+            dataLoader.isSuspended = true
+            prefetcher.startPrefetching(with: [Test.url])
+            prefetcher.startPrefetching(with: [Test.url])
+            dataLoader.isSuspended = false
+        }
+
+        // THEN it is only prefetched once
+        #expect(events.count { $0.isDidStartPrefetching } == 1)
+        #expect(events.count { $0.isDidFinishPrefetching } == 1)
+    }
+
+    @Test func everyStreamIsIndependent() async {
+        // GIVEN two subscriptions
+        let first = prefetcher.events
+        let second = prefetcher.events
+        await pipelineActorFlush()
+
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+
+        // THEN both receive the same events
+        #expect(await collect(first).count == 3)
+        #expect(await collect(second).count == 3)
+    }
+
+    @Test func unsubscribingReleasesTheContinuation() async {
+        // GIVEN a subscription that already received a batch
+        _ = await recordEvents {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        // THEN the continuation doesn't outlive the iteration
+        await pipelineActorFlush()
+        #expect(await prefetcher.subscriptionCount == 0)
+    }
+
+    @Test func theStreamFinishesWhenThePrefetcherIsDeallocated() async {
+        // GIVEN a subscription to a prefetcher nothing else holds on to
+        var localPrefetcher: ImagePrefetcher? = ImagePrefetcher(pipeline: pipeline)
+        let events = localPrefetcher!.events
+        await pipelineActorFlush()
+
+        // WHEN the prefetcher is deallocated
+        autoreleasepool {
+            localPrefetcher = nil
+        }
+
+        // THEN the stream finishes instead of leaving the iteration suspended
+        var recorded: [ImagePrefetcher.Event] = []
+        for await event in events {
+            recorded.append(event)
+        }
+        #expect(recorded.isEmpty)
+    }
+
+    // MARK: WaitUntilIdle
+
+    @Test func waitUntilIdleReturnsImmediatelyWhenIdle() async {
+        // WHEN nothing was ever scheduled
+        await prefetcher.waitUntilIdle()
+
+        // THEN it returns without subscribing at all
+        #expect(await prefetcher.subscriptionCount == 0)
+    }
+
+    @Test func waitUntilIdleWaitsForTheScheduledBatch() async {
+        // WHEN waiting right after scheduling, before the batch reaches the
+        // pipeline actor
+        prefetcher.startPrefetching(with: [Test.url])
+        await prefetcher.waitUntilIdle()
+
+        // THEN it waits for the batch instead of returning immediately
+        #expect(pipeline.cache[Test.request] != nil)
+        #expect(observer.startedTaskCount == 1)
+    }
+
+    @Test func waitUntilIdleWaitsForABatchScheduledAtALowerPriority() async {
+        // GIVEN a batch scheduled from a background priority context, whose
+        // job the pipeline actor runs after the higher priority ones
+        await Task.detached(priority: .background) { [prefetcher] in
+            prefetcher.startPrefetching(with: [Test.url])
+        }.value
+
+        // WHEN waiting from a high priority context
+        await Task.detached(priority: .high) { [prefetcher] in
+            await prefetcher.waitUntilIdle()
+        }.value
+
+        // THEN it still waits for the batch
+        #expect(pipeline.cache[Test.request] != nil)
+        #expect(observer.startedTaskCount == 1)
+    }
+
+    @Test func waitUntilIdleReturnsWhenEverythingIsCancelled() async {
+        // GIVEN an outstanding request
+        dataLoader.isSuspended = true
+        prefetcher.startPrefetching(with: [Test.url])
+        await pipelineActorFlush()
+
+        // WHEN all of the prefetching is stopped
+        prefetcher.stopPrefetching()
+
+        // THEN the prefetcher reports itself idle rather than waiting forever
+        await prefetcher.waitUntilIdle()
+        #expect(pipeline.cache[Test.request] == nil)
+    }
+
+    @Test func waitUntilIdleReleasesItsSubscription() async {
+        // WHEN
+        dataLoader.isSuspended = true
+        prefetcher.startPrefetching(with: [Test.url])
+        Task { @ImagePipelineActor in self.dataLoader.isSuspended = false }
+        await prefetcher.waitUntilIdle()
+
+        // THEN the internal stream is torn down
+        await pipelineActorFlush()
+        #expect(await prefetcher.subscriptionCount == 0)
+    }
+
+    @Test func waitUntilIdleCanBeCalledConcurrently() async {
+        // WHEN multiple callers wait at the same time
+        prefetcher.startPrefetching(with: [Test.url, Self.otherURL])
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<4 {
+                group.addTask { [prefetcher] in await prefetcher.waitUntilIdle() }
+            }
+        }
+
+        // THEN they all return and clean up after themselves
+        #expect(pipeline.cache[Test.request] != nil)
+        await pipelineActorFlush()
+        #expect(await prefetcher.subscriptionCount == 0)
+    }
+
+    @Test func waitUntilIdleIsCancellable() async {
+        // GIVEN a prefetcher that never becomes idle
+        dataLoader.isSuspended = true
+        prefetcher.startPrefetching(with: [Test.url])
+        await pipelineActorFlush()
+
+        // WHEN the waiting task is cancelled
+        let task = Task { [prefetcher] in await prefetcher.waitUntilIdle() }
+        while await prefetcher.subscriptionCount == 0 {
+            await Task.yield()
+        }
+        task.cancel()
+        await task.value
+
+        // THEN it returns and releases the subscription
+        await pipelineActorFlush()
+        #expect(await prefetcher.subscriptionCount == 0)
+
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
+    // MARK: Helpers
+
+    /// Subscribes to the prefetcher events, runs `work`, and returns everything
+    /// the prefetcher sent up to and including ``ImagePrefetcher/Event/didComplete``.
+    private func recordEvents(_ work: () -> Void) async -> [ImagePrefetcher.Event] {
+        let events = prefetcher.events
+        // Subscribing reaches the pipeline actor asynchronously – let it land
+        // before scheduling any work, or the events race the subscription.
+        await pipelineActorFlush()
+        work()
+        return await collect(events)
+    }
+
+    /// Collects the events up to and including the first `.didComplete`. The
+    /// stream never finishes on its own.
+    private func collect(_ events: AsyncStream<ImagePrefetcher.Event>) async -> [ImagePrefetcher.Event] {
+        var recorded: [ImagePrefetcher.Event] = []
+        for await event in events {
+            recorded.append(event)
+            if case .didComplete = event {
+                break
+            }
+        }
+        return recorded
+    }
+
+    /// Waits for a round trip through the pipeline actor, which is where the
+    /// prefetcher does all of its work.
+    private func pipelineActorFlush() async {
+        await Task { @ImagePipelineActor in }.value
+    }
+
+    @Test func didCompleteIsCalledWhenPrefetchingIsStopped() async {
+        // GIVEN an outstanding request
+        dataLoader.isSuspended = true
+        let expectation = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in expectation.fulfill() }
+        let events = prefetcher.events
+        await pipelineActorFlush()
+        prefetcher.startPrefetching(with: [Test.url])
+        var iterator = events.makeAsyncIterator()
+        _ = await iterator.next() // .didStartPrefetching
+
+        // WHEN the outstanding request is cancelled
+        prefetcher.stopPrefetching()
+
+        // THEN the prefetcher still reports itself complete – it has no
+        // outstanding requests left
+        await expectation.wait()
+    }
+
+    @Test func didCompleteIsNotSentWhileAnotherBatchIsScheduled() async {
+        // GIVEN two batches that complete without starting a task, followed by
+        // one that starts a task
+        imageCache[Test.request] = Test.container
+        imageCache[ImageRequest(url: Self.otherURL)] = Test.container
+        let events = prefetcher.events
+        await pipelineActorFlush()
+
+        // WHEN they are scheduled back to back
+        prefetcher.startPrefetching(with: [Test.url])
+        prefetcher.startPrefetching(with: [Self.otherURL])
+        prefetcher.startPrefetching(with: [Self.thirdURL])
+
+        // THEN the prefetcher doesn't report itself complete while the batches
+        // that follow are still on their way to the pipeline actor
+        var completions = 0
+        for await event in events {
+            if case .didComplete = event {
+                completions += 1
+            }
+            if case .didFinishPrefetching = event {
+                break
+            }
+        }
+        #expect(completions == 0)
+    }
+
     private static let otherURL = URL(string: "http://test.com/example-2.jpeg")!
     private static let thirdURL = URL(string: "http://test.com/example-3.jpeg")!
-
-    // MARK: Empty Inputs
-
-    @Test func startPrefetchingWithEmptyURLArray() {
-        // WHEN - prefetching is started with an empty URL list
-        prefetcher.startPrefetching(with: [URL]())
-
-        // THEN - no tasks are created and nothing crashes
-        #expect(observer.startedTaskCount == 0)
-    }
-
-    @Test func startPrefetchingWithEmptyRequestArray() {
-        // WHEN - prefetching is started with an empty request list
-        prefetcher.startPrefetching(with: [ImageRequest]())
-
-        // THEN - no tasks are created and nothing crashes
-        #expect(observer.startedTaskCount == 0)
-    }
-
-    @Test func stopPrefetchingWithEmptyArrayIsNoOp() {
-        // GIVEN - nothing is currently being prefetched
-        // WHEN - stopping with an empty list
-        prefetcher.stopPrefetching(with: [URL]())
-
-        // THEN - no crash, no state change
-        #expect(observer.startedTaskCount == 0)
-    }
 
     // MARK: Misc
 
@@ -513,5 +810,17 @@ struct ImagePrefetcherTests {
                 localPrefetcher = nil
             }
         }
+    }
+}
+
+private extension ImagePrefetcher.Event {
+    var isDidStartPrefetching: Bool {
+        if case .didStartPrefetching = self { return true }
+        return false
+    }
+
+    var isDidFinishPrefetching: Bool {
+        if case .didFinishPrefetching = self { return true }
+        return false
     }
 }
