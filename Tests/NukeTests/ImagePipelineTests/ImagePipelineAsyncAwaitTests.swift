@@ -63,15 +63,21 @@ struct ImagePipelineAsyncAwaitTests {
     @Test func cancellation() async throws {
         dataLoader.queue.isSuspended = true
 
+        // Observe before starting: the notification is posted from `loadData`,
+        // and a run that registers too late never cancels the task, which then
+        // never finishes – the data loading queue stays suspended.
+        let didStartLoading = TestExpectation()
+        let observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            didStartLoading.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
         let pipeline = self.pipeline
-        let dataLoader = self.dataLoader
         let task = Task {
             try await pipeline.image(for: Test.url)
         }
-
-        let observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-            task.cancel()
-        }
+        await didStartLoading.wait()
+        task.cancel()
 
         var caughtError: ImagePipeline.Error?
         do {
@@ -80,7 +86,6 @@ struct ImagePipelineAsyncAwaitTests {
             caughtError = error
         }
         #expect(caughtError == .cancelled)
-        NotificationCenter.default.removeObserver(observer)
     }
 
     @Test func cancelFromTaskCreated() async throws {
@@ -176,10 +181,16 @@ struct ImagePipelineAsyncAwaitTests {
     @Test func cancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
-        let task = pipeline.imageTask(with: Test.url)
+        // Observe before starting – see `cancellation()`.
+        let didStartLoading = TestExpectation()
         let observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-            task.cancel()
+            didStartLoading.fulfill()
         }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        let task = pipeline.imageTask(with: Test.url)
+        await didStartLoading.wait()
+        task.cancel()
         dataLoader.queue.isSuspended = false
 
         var caughtError: ImagePipeline.Error?
@@ -190,7 +201,6 @@ struct ImagePipelineAsyncAwaitTests {
         }
         #expect(caughtError == .cancelled)
         #expect(task.isCancelled)
-        NotificationCenter.default.removeObserver(observer)
     }
 
     // MARK: - Load Data

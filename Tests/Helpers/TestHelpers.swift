@@ -78,8 +78,13 @@ extension ImageTask {
     /// until the subscription exists.
     func subscribedPreviews() async -> AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
         let previews = self.previews
+        // Accessing `previews` schedules the registration on the pipeline
+        // actor, so this hop normally lands after it. Don't spin waiting for
+        // the exception: a busy-wait would starve the very actor it is
+        // waiting for, and the rest of the suite with it.
+        await Task { @ImagePipelineActor in }.value
         while await _streamContinuations.isEmpty {
-            await Task.yield()
+            try? await Task.sleep(for: .milliseconds(1))
         }
         return previews
     }
