@@ -95,7 +95,7 @@ extension ImageProcessors {
 
         static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
             guard let filter = CIFilter(name: name, parameters: parameters) else {
-                throw Error.failedToCreateFilter(name: name, parameters: parameters)
+                throw Error.failedToCreateFilter(name: name, parameters: "\(parameters)")
             }
             // The filter is created here and is used exclusively by this call
             return try _apply(filter: filter, to: image)
@@ -122,14 +122,14 @@ extension ImageProcessors {
                 if let image = image.cgImage {
                     return CoreImage.CIImage(cgImage: image)
                 }
-                throw Error.inputImageIsEmpty(inputImage: image)
+                throw Error.inputImageIsEmpty(inputImage: "\(image)")
             }
             filter.setValue(try getCIImage(), forKey: kCIInputImageKey)
             guard let outputImage = filter.outputImage else {
-                throw Error.failedToApplyFilter(filter: filter)
+                throw Error.failedToApplyFilter(name: filter.name)
             }
             guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
-                throw Error.failedToCreateOutputCGImage(image: outputImage)
+                throw Error.failedToCreateOutputCGImage(extent: outputImage.extent, image: "\(outputImage)")
             }
             return PlatformImage.make(cgImage: imageRef, source: image)
         }
@@ -143,11 +143,25 @@ extension ImageProcessors {
             }
         }
 
-        public enum Error: Swift.Error, CustomStringConvertible, @unchecked Sendable {
-            case failedToCreateFilter(name: String, parameters: [String: Any])
-            case inputImageIsEmpty(inputImage: PlatformImage)
-            case failedToApplyFilter(filter: CIFilter)
-            case failedToCreateOutputCGImage(image: CIImage)
+        /// Errors produced by ``CoreImageFilter``.
+        ///
+        /// The errors reach the client wrapped in
+        /// ``ImagePipeline/Error/processingFailed(processor:context:error:)``,
+        /// crossing isolation boundaries on the way, so they capture the
+        /// descriptions of the objects that failed rather than the objects
+        /// themselves, which aren't `Sendable`.
+        public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+            /// Failed to create a `CIFilter` with the given name and parameters.
+            case failedToCreateFilter(name: String, parameters: String)
+
+            /// The input image has neither a `CIImage` nor a `CGImage` representation.
+            case inputImageIsEmpty(inputImage: String)
+
+            /// The filter with the given name produced no output image.
+            case failedToApplyFilter(name: String)
+
+            /// Failed to render the output image with the given extent into a `CGImage`.
+            case failedToCreateOutputCGImage(extent: CGRect, image: String)
 
             public var description: String {
                 switch self {
@@ -155,10 +169,10 @@ extension ImageProcessors {
                     return "Failed to create filter named \(name) with parameters: \(parameters)"
                 case let .inputImageIsEmpty(inputImage):
                     return "Failed to create input CIImage for \(inputImage)"
-                case let .failedToApplyFilter(filter):
-                    return "Failed to apply filter: \(filter.name)"
-                case let .failedToCreateOutputCGImage(image):
-                    return "Failed to create output image for extent: \(image.extent) from \(image)"
+                case let .failedToApplyFilter(name):
+                    return "Failed to apply filter: \(name)"
+                case let .failedToCreateOutputCGImage(extent, image):
+                    return "Failed to create output image for extent: \(extent) from \(image)"
                 }
             }
         }
