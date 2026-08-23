@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading, @unchecked Sendable {
@@ -12,7 +13,15 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 
     /// Determines whether to deliver a partial response body in increments. By
     /// default, `false`.
-    public var prefersIncrementalDelivery = false
+    ///
+    /// - note: The value is read when each task is created, which can happen on
+    /// any thread, so the access is synchronized.
+    public var prefersIncrementalDelivery: Bool {
+        get { _prefersIncrementalDelivery.withLock { $0 } }
+        set { _prefersIncrementalDelivery.withLock { $0 = newValue } }
+    }
+
+    private let _prefersIncrementalDelivery = OSAllocatedUnfairLock(initialState: false)
 
     /// The delegate that gets called for the callbacks handled by the data loader.
     /// You can use it for observing the session events and modifying some of the

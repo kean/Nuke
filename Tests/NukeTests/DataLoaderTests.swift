@@ -270,6 +270,56 @@ struct DataLoaderTests {
         for try await _ in loader.loadData(with: URLRequest(url: url)) {}
     }
 
+    @Test func prefersIncrementalDeliveryIsUpdated() async throws {
+        let loader = makeDataLoader()
+
+        loader.prefersIncrementalDelivery = true
+        #expect(loader.prefersIncrementalDelivery == true)
+
+        loader.prefersIncrementalDelivery = false
+        #expect(loader.prefersIncrementalDelivery == false)
+    }
+
+    /// The loader reads `prefersIncrementalDelivery` when each task is created,
+    /// which happens on the thread that starts the request, so writing it from
+    /// another thread has to be synchronized – otherwise the thread sanitizer
+    /// aborts the test run.
+    @Test func prefersIncrementalDeliveryIsToggledWhileLoadingData() async throws {
+        // Given
+        let loader = makeDataLoader()
+        let urls = (0..<50).map { mockURL("incr-toggle-\($0)") }
+        for url in urls {
+            registerMock(url: url, chunks: [Data("x".utf8)])
+        }
+
+        let writer = Task.detached {
+            var isEnabled = true
+            while !Task.isCancelled {
+                isEnabled.toggle()
+                loader.prefersIncrementalDelivery = isEnabled
+                await Task.yield()
+            }
+        }
+
+        // When loading data while the flag is being toggled
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    var received = Data()
+                    for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
+                        received.append(chunk)
+                    }
+                    #expect(received == Data("x".utf8))
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
+    }
+
     // MARK: - Static Validation Helper
 
     @Test func staticValidateAccepts200() {
