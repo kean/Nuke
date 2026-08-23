@@ -386,7 +386,11 @@ private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
             httpVersion: "HTTP/1.1",
             headerFields: ["Content-Length": "\(data.count)"]
         )!
-        self.chunks = Array(_createChunks(for: data, size: data.count / 3))
+        // Use two equal chunks so the first chunk contains at least half
+        // the file. Image I/O needs roughly 50 % of a baseline JPEG to
+        // produce a partial image via CGImageSourceCreateImageAtIndex; 1/3
+        // is sometimes too little on newer macOS releases.
+        self.chunks = Array(_createChunks(for: data, size: data.count / 2))
     }
 
     func loadData(with request: URLRequest,
