@@ -861,6 +861,42 @@ final class DataCacheTests {
         #expect(cache["key"] == blob)
     }
 
+    @Test func manualSweepUpdatesMetadata() async throws {
+        // WHEN performing the sweep manually
+        await cache.sweep()
+
+        // THEN it records the date the same way the scheduled one does
+        let date = try #require(lastSweepDate(at: cache.path))
+        #expect(Date().timeIntervalSince(date) < 5)
+    }
+
+    @Test func scheduledSweepIsSkippedAfterAManualOne() async throws {
+        // GIVEN a cache swept manually
+        let name = UUID().uuidString
+        let cache = try DataCache(
+            name: name,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .seconds(100), // Long enough to never fire during the test
+            onSweepCompleted: {}
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        await cache.sweep()
+        let dateAfterManualSweep = try #require(lastSweepDate(at: cache.path))
+
+        // WHEN the app launches again shortly after
+        let other = try DataCache(
+            name: name,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            onSweepCompleted: { Issue.record("the sweep ran within `sweepInterval` of the manual one") }
+        )
+        try await Task.sleep(for: .milliseconds(300))
+
+        // THEN the launch sweep sees the recent one and skips, leaving the date be
+        #expect(lastSweepDate(at: cache.path) == dateAfterManualSweep)
+        _ = other
+    }
+
     @Test func scheduledSweepIsSkippedWhenDisabled() async throws {
         let cache = try DataCache(
             name: UUID().uuidString,
@@ -969,6 +1005,14 @@ final class DataCacheTests {
 
         // THEN the stale date doesn't hold the sweep back
         await expectation.wait(timeout: .seconds(5))
+    }
+
+    private func lastSweepDate(at path: URL) -> Date? {
+        struct CacheMetadata: Codable { var lastSweepDate: Date? }
+        guard let data = try? Data(contentsOf: path.appendingPathComponent(".data-cache-info")) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(CacheMetadata.self, from: data).lastSweepDate
     }
 
     // MARK: Sweep Edge Cases

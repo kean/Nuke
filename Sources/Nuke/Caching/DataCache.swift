@@ -318,11 +318,11 @@ public final class DataCache: DataCaching, Sendable {
 
     /// Performs a cache sweep, removing the least recently used items that no
     /// longer fit in the cache, and waits for it to finish.
+    ///
+    /// The sweep counts as a recent one: the next scheduled sweep skips it if it
+    /// happens within ``DataCache/sweepInterval``.
     public func sweep() async {
-        await performIO {
-            self.performPendingChanges() // The sweep has to see the staged writes
-            self.performSweep()
-        }
+        await performIO { self.performSweepAndRecordIt() }
     }
 
     /// Schedules the drain of the staging area unless one is already scheduled.
@@ -495,10 +495,16 @@ public final class DataCache: DataCaching, Sendable {
     /// performed within the last ``DataCache/sweepInterval``. Runs on ``ioQueue``.
     private func performScheduledSweep() {
         guard isSweepEnabled, isSweepNeeded() else { return }
+        performSweepAndRecordIt()
+        onSweepCompleted?()
+    }
+
+    /// Performs the sweep and records its completion in the metadata file so
+    /// that the next scheduled sweep can skip it.
+    private func performSweepAndRecordIt() {
         performPendingChanges() // The sweep has to see the staged writes
         performSweep()
         updateMetadata { $0.lastSweepDate = Date() }
-        onSweepCompleted?()
     }
 
     private func isSweepNeeded() -> Bool {
