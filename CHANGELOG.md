@@ -36,6 +36,7 @@
 - `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
 - Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
 - `DataLoader/Error` now conforms to `Sendable`. It was the only public error type that didn't, despite crossing isolation boundaries wrapped in `ImagePipeline/Error/dataLoadingFailed(error:)` – https://github.com/kean/Nuke/pull/933
+- `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`. They were the only non-`Sendable` value types left in the public API, even though `ImageLoadingOptions/shared` is `@MainActor`. The `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable`, which is where it already ran – https://github.com/kean/Nuke/pull/935
 
 **Bug Fixes**
 
