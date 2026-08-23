@@ -44,6 +44,7 @@
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 - Fix a data race on the `DataCache` configuration properties, which the sweep reads on a background thread while they can be written from any thread – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache.init` reading and decoding its metadata file on the calling thread, which is typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
+- Fix a data race on `DataLoader/prefersIncrementalDelivery`, which the loader reads when it creates a task while it can be written from any thread – https://github.com/kean/Nuke/pull/928
 
 # Nuke 13
 
