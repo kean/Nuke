@@ -151,9 +151,16 @@ extension ImageProcessors {
         /// descriptions of the objects that failed, not the objects themselves,
         /// which aren't `Sendable`.
         public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+            /// Failed to create a `CIFilter` with the given name and parameters.
             case failedToCreateFilter(name: String, parameters: String)
+
+            /// The input image has neither a `CIImage` nor a `CGImage` representation.
             case inputImageIsEmpty(inputImage: String)
+
+            /// The filter with the given name produced no output image.
             case failedToApplyFilter(name: String)
+
+            /// Failed to render the output image with the given extent into a `CGImage`.
             case failedToCreateOutputCGImage(extent: CGRect, image: String)
 
             public var description: String {
