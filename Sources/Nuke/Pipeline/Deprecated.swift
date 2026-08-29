@@ -4,6 +4,81 @@
 
 import Foundation
 
+// MARK: - Removed in Nuke 14
+//
+// Removed APIs are kept as unavailable stubs that name their replacement: the
+// message goes straight into the compiler error, and `renamed:` also becomes an
+// Xcode fix-it. They are deleted two major versions after the removal.
+
+/// - warning: Renamed to ``ImagePipeline/Delegate``.
+@available(*, unavailable, renamed: "ImagePipeline.Delegate")
+public typealias ImagePipelineDelegate = ImagePipeline.Delegate
+
+extension ImageRequest {
+    @available(*, unavailable, renamed: "imageID")
+    public var imageId: String? {
+        get { fatalError() }
+        set { fatalError() }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
+    public init(url: URL?, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
+        fatalError()
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
+    public init(urlRequest: URLRequest, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
+        fatalError()
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
+    public init(id: String, data: @Sendable @escaping () async throws -> Data, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
+        fatalError()
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
+    public init(id: String, image: @Sendable @escaping () async throws -> ImageContainer, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
+        fatalError()
+    }
+}
+
+extension ImageRequest.UserInfoKey {
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `ImageRequest.imageID`.")
+    public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `ImageRequest.scale`.")
+    public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `ImageRequest.thumbnail`.")
+    public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbnail"
+}
+
+extension ImagePipeline.Configuration {
+    @available(*, unavailable, message: "Removed in Nuke 14. Automatic downscaling is gone; use `ImageRequest.ThumbnailOptions` per request.")
+    public var maximumDecodedImageSize: Int? {
+        get { fatalError() }
+        set { fatalError() }
+    }
+}
+
+extension ImageDecodingContext {
+    @available(*, unavailable, message: "Removed in Nuke 14. Automatic downscaling is gone; use `ImageRequest.ThumbnailOptions` per request.")
+    public var maximumDecodedImageSize: Int? {
+        get { fatalError() }
+        set { fatalError() }
+    }
+}
+
+extension ImagePipeline {
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
+    nonisolated public func imagePublisher(with url: URL) -> Never { fatalError() }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
+    nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError() }
+}
+
+// MARK: - Soft-deprecated in Nuke 12.9
+
 extension ImagePipeline {
     // MARK: - Loading Images (Closures)
 
