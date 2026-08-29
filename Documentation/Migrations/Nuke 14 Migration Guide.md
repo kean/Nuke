@@ -211,6 +211,42 @@ The protocol used to describe where its methods run in a doc comment – "perfor
 
 A plain method still satisfies an isolated requirement, so most conformers need no changes – only a method with a *conflicting* isolation is now rejected. A `@MainActor` delegate, which previously failed to conform at all, now works.
 
+## `FetchImage.Progress` Replaced by `ImageTask.Progress`
+
+`NukeUI` had a progress type of its own: a nested `ObservableObject` inside another `ObservableObject`, which needed a separate `@ObservedObject` to observe. `FetchImage.progress` and `LazyImageState.progress` now return `ImageTask.Progress` – the same value type the pipeline reports – and `FetchImage` publishes the updates itself.
+
+| API | Nuke 13 | Nuke 14 |
+|---|---|---|
+| `FetchImage.progress`, `LazyImageState.progress` | `FetchImage.Progress`, a class | `ImageTask.Progress`, a struct |
+
+```swift
+// Nuke 13
+LazyImage(url: url) { state in
+    if state.isLoading {
+        DownloadProgressView(progress: state.progress)
+    }
+}
+
+struct DownloadProgressView: View {
+    @ObservedObject var progress: FetchImage.Progress
+
+    var body: some View {
+        ProgressView(value: progress.fraction)
+    }
+}
+
+// Nuke 14
+LazyImage(url: url) { state in
+    if state.isLoading {
+        ProgressView(value: state.progress.fraction)
+    }
+}
+```
+
+`FetchImage.Progress` is now a deprecated typealias for `ImageTask.Progress` and is removed in Nuke 15.
+
+The updates are still only published if you use them: reading `progress` opts the object into publishing them, so a view that doesn't display the progress isn't invalidated every time a chunk of data arrives.
+
 ## `NukeUI` surfaces `ImagePipeline.Error`
 
 The pipeline finishes every task with an `ImagePipeline.Error`, so `NukeUI` no longer erases it to `any Error`. Branching on a case no longer needs a cast.

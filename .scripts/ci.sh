@@ -57,7 +57,7 @@ JOBS=(
     "build-nukevideo-ios|platforms|build|NukeVideo|iOS"
     "build-nukevideo-macos|platforms|build|NukeVideo|macOS"
     "build-nukevideo-tvos|platforms|build|NukeVideo|tvOS"
-    "spm-build|platforms|spm|Package|SPM"
+    "spm-test|platforms|spm|Package|SPM"
 
     "lint|lint|lint|SwiftLint|—"
 )
@@ -421,7 +421,7 @@ run_job() {
     local label
     case "$action" in
         lint) label="SwiftLint" ;;
-        spm)  label="swift build --build-tests" ;;
+        spm)  label="swift test" ;;
         *)    label="$scheme · $platform" ;;
     esac
 
@@ -460,7 +460,7 @@ run_job() {
             fi
             ;;
         spm)
-            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift build --build-tests || exit_code=$?
+            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift test || exit_code=$?
             ;;
         build)
             run_streamed "$id" xcodebuild \

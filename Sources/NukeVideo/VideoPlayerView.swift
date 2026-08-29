@@ -200,6 +200,16 @@ public final class VideoPlayerView: _PlatformBaseView {
 
 #if os(iOS) || os(tvOS) || os(visionOS)
     override public func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+
+        if newWindow != nil && shouldResumeOnInterruption {
+            player?.play()
+        }
+    }
+#elseif os(macOS)
+    override public func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+
         if newWindow != nil && shouldResumeOnInterruption {
             player?.play()
         }

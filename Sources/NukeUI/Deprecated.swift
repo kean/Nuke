@@ -5,6 +5,13 @@
 import Combine
 import Nuke
 
+// MARK: - Deprecated in Nuke 14
+
+extension FetchImage {
+    @available(*, deprecated, message: "Renamed to `ImageTask.Progress`, which `FetchImage/progress` now returns. It's a struct, so a view that observed it with `@ObservedObject` now reads the value directly.")
+    public typealias Progress = ImageTask.Progress
+}
+
 // MARK: - Removed in Nuke 14
 //
 // Removed APIs are kept as unavailable stubs that name their replacement: the
