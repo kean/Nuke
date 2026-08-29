@@ -2,10 +2,6 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-#if !os(watchOS)
-import AVKit
-#endif
-
 import Foundation
 
 #if !os(macOS)

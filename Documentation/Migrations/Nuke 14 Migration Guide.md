@@ -14,6 +14,30 @@ The minimum supported platforms have been raised.
 
 Apps that need to support earlier OS versions can stay on Nuke 13.x, which continues to receive fixes.
 
+## `NukeExtensions` Folded into `NukeUI`
+
+The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and `Nuke_ImageDisplaying` – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
+
+`NukeExtensions` still exists as an empty module that re-exports `NukeUI`, so existing code keeps compiling. It will be removed in Nuke 15.
+
+```swift
+// Before
+import NukeExtensions
+
+// After
+import NukeUI
+```
+
+If you referenced the functions by module name, update the prefix:
+
+```swift
+// Before
+NukeExtensions.loadImage(with: url, into: imageView)
+
+// After
+NukeUI.loadImage(with: url, into: imageView)
+```
+
 ## Removed Deprecated APIs
 
 The APIs deprecated in Nuke 13 have been removed.

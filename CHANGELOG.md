@@ -45,10 +45,12 @@
 - `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of taking a completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
 - `NukeUI`, `NukeExtensions`, and `NukeVideo` now re-export `Nuke`, so importing them is enough. The `NukeUI.ImageRequest` typealias is removed – https://github.com/kean/Nuke/pull/946
 - `ImagePipeline/Delegate` now declares the isolation of every method instead of documenting it: `willLoadData`, `willCache`, `imageTaskDidStart`, and `imageTask(_:didReceiveEvent:pipeline:)` run on `ImagePipelineActor`, and the rest are `nonisolated` – https://github.com/kean/Nuke/pull/945
+- `NukeExtensions` is folded into `NukeUI`. The image view extensions now ship in `NukeUI`, and `NukeExtensions` is an empty module that re-exports it, scheduled for removal in Nuke 15 – https://github.com/kean/Nuke/pull/947
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 
 **Bug Fixes**
 
+- Remove an unused `AVKit` import from `Nuke`, which linked AVKit, AVFoundation, and their dependencies into every app – https://github.com/kean/Nuke/pull/947
 - Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled` – https://github.com/kean/Nuke/pull/901
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit – https://github.com/kean/Nuke/pull/916
@@ -61,6 +63,10 @@
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/930
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
+
+**Documentation**
+
+- Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
 
 # Nuke 13
 
