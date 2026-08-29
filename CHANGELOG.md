@@ -45,6 +45,7 @@
 - `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of taking a completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
 - `NukeUI`, `NukeExtensions`, and `NukeVideo` now re-export `Nuke`, so importing them is enough. The `NukeUI.ImageRequest` typealias is removed – https://github.com/kean/Nuke/pull/946
 - `ImagePipeline/Delegate` now declares the isolation of every method instead of documenting it: `willLoadData`, `willCache`, `imageTaskDidStart`, and `imageTask(_:didReceiveEvent:pipeline:)` run on `ImagePipelineActor`, and the rest are `nonisolated` – https://github.com/kean/Nuke/pull/945
+- `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 
 **Bug Fixes**
 
