@@ -38,6 +38,7 @@
 - `DataLoader/Error` now conforms to `Sendable`. It was the only public error type that didn't, despite crossing isolation boundaries wrapped in `ImagePipeline/Error/dataLoadingFailed(error:)` – https://github.com/kean/Nuke/pull/933
 - `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`. They were the only non-`Sendable` value types left in the public API, even though `ImageLoadingOptions/shared` is `@MainActor`. The `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable`, which is where it already ran – https://github.com/kean/Nuke/pull/935
 - `ImageDecodingContext/init(request:data:isCompleted:urlResponse:cacheType:previewPolicy:)` now takes `previewPolicy`. It was the only property you couldn't set at initialization – https://github.com/kean/Nuke/pull/936
+- `ImageProcessingOptions/Border/width` is renamed to `widthInPixels`. The initializer converts the given width to pixels, so the property never returned what the caller passed – https://github.com/kean/Nuke/pull/938
 
 **Bug Fixes**
 
