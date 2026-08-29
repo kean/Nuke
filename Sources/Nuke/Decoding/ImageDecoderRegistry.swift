@@ -89,15 +89,20 @@ public struct ImageDecodingContext: Sendable {
     public var isCompleted: Bool
     public var urlResponse: URLResponse?
     public var cacheType: ImageResponse.CacheType?
-    /// The preview policy for progressive decoding. Set by the pipeline
-    /// delegate for partial data; defaults to `.incremental`.
-    public var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
+    /// The strategy a decoder uses to produce previews from the partially
+    /// downloaded data.
+    ///
+    /// The pipeline resolves it with
+    /// ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)`` and only for
+    /// the contexts where ``isCompleted`` is `false`.
+    public var previewPolicy: ImagePipeline.PreviewPolicy
 
-    public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil) {
+    public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil, previewPolicy: ImagePipeline.PreviewPolicy = .incremental) {
         self.request = request
         self.data = data
         self.isCompleted = isCompleted
         self.urlResponse = urlResponse
         self.cacheType = cacheType
+        self.previewPolicy = previewPolicy
     }
 }
