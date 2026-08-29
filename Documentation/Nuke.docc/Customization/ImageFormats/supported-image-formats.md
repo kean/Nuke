@@ -15,11 +15,11 @@ Nuke can also drive progressive decoding, animated image rendering, drawing vect
 | Format | ``AssetType`` | Decode | Encode | Previews | Animation |
 | --- | --- | --- | --- | --- | --- |
 | JPEG | ``AssetType/jpeg`` | ✅ | ✅ | Automatic (progressive JPEG) | – |
-| PNG | ``AssetType/png`` | ✅ | ✅ | Opt-in | First frame only |
-| GIF | ``AssetType/gif`` | ✅ | ✅ | Automatic (single preview) | ✅ (data attached) |
-| HEIC | ``AssetType/heic`` | ✅ | ✅ | Opt-in | First frame only |
-| WebP | ``AssetType/webp`` | ✅ | ❌ | Opt-in | First frame only |
-| AVIF | ``AssetType/avif`` | ✅ | ✅ recent OS only | Opt-in | First frame only |
+| PNG | ``AssetType/png`` | ✅ | ✅ | Opt-in | ✅ APNG |
+| GIF | ``AssetType/gif`` | ✅ | ✅ | Automatic (single preview) | ✅ |
+| HEIC | ``AssetType/heic`` | ✅ | ✅ | Opt-in | ✅ image sequences |
+| WebP | ``AssetType/webp`` | ✅ | ❌ | Opt-in | ✅ |
+| AVIF | ``AssetType/avif`` | ✅ | ✅ recent OS only | Opt-in | ✅ image sequences |
 | JPEG XL | ``AssetType/jxl`` | ✅ iOS 17, macOS 14 | ❌ | Opt-in | – |
 | JPEG 2000 | ``AssetType/jpeg2000`` | ✅ | ✅ | Opt-in | – |
 | TIFF | ``AssetType/tiff`` | ✅ | ✅ | Opt-in | – |
@@ -36,7 +36,7 @@ Reading the columns:
 - **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every OS Nuke supports (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
 - **Encode** – whether the format can be used with ``ImageEncoders/ImageIO``. ``ImageEncoders/Default`` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder.
 - **Previews** – behavior once ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``, and whether Image I/O can produce anything from a partial file is format-dependent.
-- **Animation** – "First frame only" means the built-in decoder produces a still image even when the file has multiple frames. See <doc:supported-image-formats#Animated-Images>.
+- **Animation** – whether the pipeline recognizes the format as animated and attaches ``ImageContainer/data`` so that it can be played. A `–` means the format has no animated flavor. See <doc:supported-image-formats#Animated-Images>.
 
 > Tip: The matrix reflects what Apple's frameworks ship today. Both halves are queryable at runtime: `CGImageSourceCopyTypeIdentifiers()` for decoding, ``ImageEncoders/ImageIO/isSupported(type:)`` for encoding.
 
@@ -53,7 +53,7 @@ The sniffer returns one of the types declared on ``AssetType`` and nothing else.
 
 - **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched by their major brand, and the bare-HEIF brand isn't in the table. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
 - **A sniffed type describes the bytes, not the semantics.** Most camera RAW formats – DNG, CR2, NEF, ARW – are TIFF containers, so they sniff as ``AssetType/tiff``.
-- **A `nil` type is not an error.** Only two places in the pipeline read the type: GIF detection in ``ImageDecoders/Default``, and `AssetType.isVideo` in `NukeVideo`.
+- **A `nil` type is not an error.** Only two places in the pipeline read the type: animation detection in ``ImageDecoders/Default``, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still.
 - **Video types are recognized without `NukeVideo`.** ``AssetType/mp4``, ``AssetType/m4v``, and ``AssetType/mov`` are always sniffable, but only `ImageDecoders.Video` can decode them, and you have to register it yourself.
 
 ## Progressive JPEG
@@ -102,7 +102,7 @@ To render HEIF images, you can use `UIImageView`/`NSImageView`/`WKInterfaceImage
 
 [WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, tvOS 14, and watchOS 7, so it's available on every OS version Nuke supports.
 
-Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` returns `false` for ``AssetType/webp`` on every current platform, and animated WebP decodes to its first frame.
+Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` returns `false` for ``AssetType/webp`` on every current platform. Animated WebP decodes to its first frame and carries its data, like every other animation – see <doc:supported-image-formats#Animated-Images>.
 
 ## AVIF
 
@@ -150,76 +150,31 @@ request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 512)
 let image = try await ImagePipeline.shared.image(for: request)
 ```
 
-## GIF
+## Animated Images
 
-**Decoding**
+Image I/O decodes the first frame of an animation and stops. The pipeline can't decode every frame instead – a 1000×1000 animation with 60 frames is 240 MB of bitmaps – so it does the one thing that keeps every option open: it attaches the encoded data to the image.
 
-``ImageDecoders/Default`` automatically recognizes GIFs. It creates an image container (``ImageContainer``) with the first frame of the GIF as a placeholder and attaches the original image data to the container so that you can perform just-in-time decoding at rendering time.
+``ImageDecoders/Default`` does that for every image it recognizes as animated – GIF, APNG, animated WebP, and HEIC and AVIF image sequences – by reading the container header rather than counting frames, which would mean parsing the whole file on every decode. The still frame is in ``ImageContainer/image``, the animation is in ``ImageContainer/data``:
 
-**Encoding**
+```swift
+let response = try await ImagePipeline.shared.imageTask(with: url).response
+response.container.image // The first frame
+response.container.data  // The whole animation, if it is one
+```
 
-Image I/O can write GIF, but ``ImageEncoders/ImageIO`` writes a single frame – it has no way to express an animation.
+Every GIF gets its data attached, animated or not.
+
+Two cases deliberately produce a still image with no data: a **processed** image, because the data describes what went into the processor rather than what came out, and a **thumbnail** request, because the data is the full-size animation the request asked to avoid.
 
 **Rendering**
 
-To render animated GIFs, please consider using one of the open-source GIF rendering engines, like [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or other.
+`NukeUI` plays them. ``LazyImage`` and `LazyImageView` do it with no setup, and `AnimatedImagePlayer` is there when you want to control playback or measure it. See [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages).
 
-**Gifu Example**
+Anything that can take encoded bytes works just as well – [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or your own view – because ``ImageContainer/data`` is all any of them need.
 
-```swift
-/// A custom image view that supports downloading and displaying animated images.
-final class ImageView: UIView {
-    private let imageView: GIFImageView
-    private let spinner: UIActivityIndicatorView
-    private var task: Task<Void, Never>?
+**Formats Image I/O can't read**
 
-    /* Initializers skipped */
-
-    func setImage(with url: URL) {
-        prepareForReuse()
-
-        if let container = ImagePipeline.shared.cache[url] {
-            display(container)
-            if !container.isPreview {
-                return
-            }
-        }
-
-        spinner.startAnimating()
-        task = Task { [weak self] in
-            defer { self?.spinner.stopAnimating() }
-            guard let response = try? await ImagePipeline.shared.imageTask(with: url).response else {
-                return
-            }
-            self?.display(response.container)
-        }
-    }
-
-    private func display(_ container: ImageContainer) {
-        if let data = container.data {
-            imageView.animate(withGIFData: data)
-        } else {
-            imageView.image = container.image
-        }
-    }
-
-    private func prepareForReuse() {
-        task?.cancel()
-        spinner.stopAnimating()
-        imageView.prepareForReuse()
-    }
-}
-```
-
-To see this code in action, check out the [demo project](https://github.com/kean/NukeDemo).
-
-> `GIF` is not the most efficient format for transferring and displaying animated images. Consider using [short videos instead](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/). You can find a PoC available in the [demo project](https://github.com/kean/NukeDemo) that uses Nuke to load, cache and display an `MP4` video.
-
-## Animated Images
-
-GIF is the only format the built-in decoder treats as animated. ``ImageDecoders/Default`` attaches ``ImageContainer/data`` for GIFs and nothing else, so animated WebP, animated AVIF, HEICS, and APNG all decode to a single still frame.
-
-To animate one of those formats, register a decoder that attaches the data, then hand it to a rendering engine that understands the format:
+For a format the system can't decode at all, register ``ImageDecoders/Empty``: it puts a blank placeholder in ``ImageContainer/image`` and the original bytes in ``ImageContainer/data``, leaving the rendering engine to do the decoding.
 
 ```swift
 ImageDecoderRegistry.shared.register { context in
@@ -227,7 +182,13 @@ ImageDecoderRegistry.shared.register { context in
 }
 ```
 
-``ImageDecoders/Empty`` puts a blank placeholder in ``ImageContainer/image`` and the original bytes in ``ImageContainer/data``, leaving the rendering engine to do the decoding. It's the same pattern to use for any format Image I/O can't read at all. Learn more in <doc:image-decoding>.
+Learn more in <doc:image-decoding>.
+
+**Encoding**
+
+Image I/O can write GIF and APNG, but ``ImageEncoders/ImageIO`` writes a single frame – it has no way to express an animation.
+
+> GIF is not the most efficient format for transferring and displaying animated images. Consider using [short videos instead](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/): they are a fraction of the size and are decoded by dedicated hardware. `NukeVideo` plays them.
 
 ## SVG
 

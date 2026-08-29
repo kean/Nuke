@@ -49,6 +49,9 @@
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 - `FetchImage/progress` and `LazyImageState/progress` now return `ImageTask/Progress`, which `FetchImage` publishes itself, instead of the nested `FetchImage.Progress` observable object that needed its own `@ObservedObject`. The old type is deprecated – https://github.com/kean/Nuke/pull/953
 - Add `ImagePipeline/Error/isCancelled` – https://github.com/kean/Nuke/pull/952
+- `NukeUI` now plays animated images: `LazyImage` and `LazyImageView` animate GIF, APNG, animated WebP, and animated HEIC with no setup. Adds `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageSource`, and `LazyImageState/animatedImage`
+- `ImageDecoders/Default` now attaches `ImageContainer/data` to every animated image, not only to GIFs, and no longer attaches it to a thumbnail request
+- Processing an image now clears `ImageContainer/data`, which described the image that went into the processor rather than the one that came out
 
 **Bug Fixes**
 
@@ -71,6 +74,7 @@
 
 - Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
 - Fix the code samples in the SwiftUI, UIKit, Objective-C, and Performance articles, and compile them in CI – https://github.com/kean/Nuke/pull/955
+- Add an article on animated images, and update the format documentation, which recommended third-party GIF rendering engines
 
 # Nuke 13
 

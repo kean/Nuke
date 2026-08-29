@@ -90,9 +90,11 @@ ImageDecoderRegistry.shared.unregister(token)
 
 The decoders in Nuke work at download time - regular decoders produce images as data arrives, while progressive decoders can produce multiple previews before delivering the final images. But there are scenarios when decoding at download time doesn't work: for example, for animated images.
 
-For animated images, it is not feasible to decode all of the frames and put them in memory as bitmaps at download time – it will consume too much memory. You have to postpone decoding to rendering time. When the image is displayed, a rendering engine, like [Gifu](https://github.com/kaishin/Gifu) or others, will decode and cache image frames on demand.
+For animated images, it is not feasible to decode all of the frames and put them in memory as bitmaps at download time – it will consume too much memory. Decoding has to be postponed to rendering time, where a rendering engine decodes the frames on demand and keeps only a few of them around.
 
-> GIF is not an efficient format. It is recommended to use short MP4 clips instead. See [Nuke Demo](https://github.com/kean/NukeDemo) for an example.
+``ImageDecoders/Default`` prepares for that by attaching the encoded data to the images it recognizes as animated, and `NukeUI` does the rendering – see [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages). ``ImageContainer/data`` is also all that a third-party engine like [Gifu](https://github.com/kaishin/Gifu) needs.
+
+> GIF is not an efficient format. It is recommended to use short MP4 clips instead, which `NukeVideo` plays.
 
 ## Built-In Image Decoders
 

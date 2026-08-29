@@ -101,7 +101,9 @@ ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33)
 
 For a complete list of options, see ``ImageLoadingOptions``. Some options, such as ``ImageLoadingOptions/isProgressiveRenderingEnabled`` will be covered later.
 
-> Built-in extensions for image views are designed to get you up and running as quickly as possible. But if you want to have more control, or use some of the advanced features, like animated images, it is recommended to use `ImagePipeline` directly.
+> Built-in extensions for image views are designed to get you up and running as quickly as possible. If you want more control, use ``ImagePipeline`` directly.
+
+> Tip: To play animated images, load them into an ``AnimatedImageView`` instead of a plain `UIImageView` – everything else stays the same. See <doc:AnimatedImages>.
 
 ## Progressive Decoding
 
