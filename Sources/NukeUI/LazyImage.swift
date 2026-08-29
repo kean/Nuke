@@ -24,7 +24,7 @@ public struct LazyImage<Content: View>: View {
     private var pipeline: ImagePipeline = .shared
     private var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
     private var onDisappearBehavior: DisappearBehavior? = .cancel
-    private var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
+    private var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
 
     // MARK: Initializers
 
@@ -137,7 +137,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     /// Gets called when the current request is completed.
-    public consuming func onCompletion(_ closure: @escaping @MainActor @Sendable (Result<ImageResponse, Error>) -> Void) -> Self {
+    public consuming func onCompletion(_ closure: @escaping @MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void) -> Self {
         map { $0.onCompletion = closure }
     }
 

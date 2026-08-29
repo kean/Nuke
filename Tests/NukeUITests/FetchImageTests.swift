@@ -54,7 +54,7 @@ struct FetchImageTests {
 
     @Test func nilURLFailsWithRequestMissing() async throws {
         let expectation = TestExpectation()
-        var capturedError: Error?
+        var capturedError: ImagePipeline.Error?
         image.onCompletion = { result in
             if case .failure(let error) = result { capturedError = error }
             expectation.fulfill()
@@ -62,7 +62,7 @@ struct FetchImageTests {
         image.load(nil as URL?)
         await expectation.wait()
 
-        let error = try #require(capturedError as? ImagePipeline.Error)
+        let error = try #require(capturedError)
         #expect(error == .imageRequestMissing)
         #expect(image.image == nil)
         #expect(!image.isLoading)
@@ -70,7 +70,7 @@ struct FetchImageTests {
 
     @Test func nilRequestFailsWithRequestMissing() async throws {
         let expectation = TestExpectation()
-        var capturedError: Error?
+        var capturedError: ImagePipeline.Error?
         image.onCompletion = { result in
             if case .failure(let error) = result { capturedError = error }
             expectation.fulfill()
@@ -78,7 +78,7 @@ struct FetchImageTests {
         image.load(nil as ImageRequest?)
         await expectation.wait()
 
-        let error = try #require(capturedError as? ImagePipeline.Error)
+        let error = try #require(capturedError)
         #expect(error == .imageRequestMissing)
     }
 
@@ -287,9 +287,22 @@ struct FetchImageTests {
 
         let result = try #require(image.result)
         #expect(result.isFailure)
-        #expect(result.error is LoadError)
+        // The action isn't a pipeline, so its error is wrapped the same way
+        // the pipeline wraps the errors of the async `ImageRequest` sources.
+        let error = try #require(result.error)
+        #expect(error.dataLoadingError is LoadError)
         #expect(image.image == nil)
         #expect(!image.isLoading)
+    }
+
+    @Test func asyncLoadPreservesPipelineError() async throws {
+        let expectation = TestExpectation()
+        image.onCompletion = { _ in expectation.fulfill() }
+        image.load { throw ImagePipeline.Error.dataDownloadExceededMaximumSize }
+        await expectation.wait()
+
+        let result = try #require(image.result)
+        #expect(result.error == .dataDownloadExceededMaximumSize)
     }
 
     @Test func asyncLoadIsLoadingUpdated() async {
@@ -324,7 +337,7 @@ struct FetchImageTests {
         let started = TestExpectation()
         let actionReturned = TestExpectation()
 
-        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completions = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
         image.onCompletion = { completions.value.append($0) }
 
         // The action ignores cancellation, like most non-Nuke async work.
@@ -351,7 +364,7 @@ struct FetchImageTests {
         let started = TestExpectation()
         let actionReturned = TestExpectation()
 
-        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completions = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
         image.onCompletion = { completions.value.append($0) }
 
         image.load {
@@ -380,7 +393,7 @@ struct FetchImageTests {
         let staleStarted = TestExpectation()
         let staleActionReturned = TestExpectation()
 
-        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completions = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
         let completed = TestExpectation()
         image.onCompletion = {
             completions.value.append($0)
@@ -422,7 +435,7 @@ struct FetchImageTests {
         let staleActionReturned = TestExpectation()
         let newerStarted = TestExpectation()
 
-        let completions = Ref<[Result<ImageResponse, Error>]>([])
+        let completions = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
         let completed = TestExpectation()
         image.onCompletion = {
             completions.value.append($0)

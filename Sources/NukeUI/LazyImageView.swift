@@ -157,10 +157,10 @@ public final class LazyImageView: _PlatformBaseView {
     public var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request fails.
-    public var onFailure: (@MainActor @Sendable (Error) -> Void)?
+    public var onFailure: (@MainActor @Sendable (ImagePipeline.Error) -> Void)?
 
     /// Gets called when the request is completed.
-    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
 
     // MARK: Other Options
 
@@ -325,7 +325,7 @@ public final class LazyImageView: _PlatformBaseView {
                 }
             },
             completion: { [weak self] result in
-                self?.handle(result: result.mapError { $0 }, isSync: false)
+                self?.handle(result: result, isSync: false)
             }
         )
         imageTask = task
@@ -340,7 +340,7 @@ public final class LazyImageView: _PlatformBaseView {
         display(preview.container, isFromMemory: false)
     }
 
-    private func handle(result: Result<ImageResponse, Error>, isSync: Bool) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool) {
         switch result {
         case .success: resetIfNeeded(clearImage: false)
         case .failure: resetIfNeeded()

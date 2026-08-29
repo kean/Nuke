@@ -65,7 +65,7 @@ struct LazyImageViewTests {
     }
 
     @Test func nilRequestProducesFailure() async throws {
-        var capturedError: Error?
+        var capturedError: ImagePipeline.Error?
         let expectation = TestExpectation()
         view.onCompletion = { result in
             if case .failure(let error) = result {
@@ -77,7 +77,7 @@ struct LazyImageViewTests {
         view.request = nil
         await expectation.wait()
 
-        let error = try #require(capturedError as? ImagePipeline.Error)
+        let error = try #require(capturedError)
         #expect(error == .imageRequestMissing)
         #expect(view.imageView.image == nil)
     }
@@ -192,7 +192,7 @@ struct LazyImageViewTests {
 
     @Test func onCompletionCalledOnSuccess() async throws {
         let expectation = TestExpectation()
-        var capturedResult: Result<ImageResponse, Error>?
+        var capturedResult: Result<ImageResponse, ImagePipeline.Error>?
         view.onCompletion = { result in
             capturedResult = result
             expectation.fulfill()
@@ -209,7 +209,7 @@ struct LazyImageViewTests {
         dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
 
         let expectation = TestExpectation()
-        var capturedError: Error?
+        var capturedError: ImagePipeline.Error?
         view.onFailure = { error in
             capturedError = error
             expectation.fulfill()
@@ -225,7 +225,7 @@ struct LazyImageViewTests {
         dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
 
         let expectation = TestExpectation()
-        var capturedResult: Result<ImageResponse, Error>?
+        var capturedResult: Result<ImageResponse, ImagePipeline.Error>?
         view.onCompletion = { result in
             capturedResult = result
             expectation.fulfill()
