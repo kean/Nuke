@@ -39,7 +39,7 @@ struct ImagePipelineProgressiveDecodingTests {
             $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
             $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue = TaskQueue(maxConcurrentOperationCount: 1)
+            $0.imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 1)
         }
     }
 

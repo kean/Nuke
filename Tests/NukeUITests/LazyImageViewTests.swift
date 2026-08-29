@@ -695,7 +695,7 @@ struct LazyImageViewTests {
             $0.imageCache = nil
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
         }
         // The reset is deferred until a new image is ready, so it is applied
         // when the first preview is displayed.
@@ -788,7 +788,7 @@ struct LazyImageViewTests {
             $0.imageCache = nil
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
         }
     }
 
