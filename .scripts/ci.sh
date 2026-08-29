@@ -212,7 +212,8 @@ JOBS_TOTAL=0
 JOBS_DONE=0
 CURRENT_JOB=""
 
-# Nothing in here may fork: it runs once per line of build output.
+# Runs on the ticker's timer, so it stays cheap and reads only what is fixed
+# for the life of a job.
 paint() {
     local elapsed=$(( SECONDS - CI_START )) dur pct=0
     if [ "$elapsed" -ge 60 ]; then
@@ -231,21 +232,40 @@ erase_progress() {
     $PROGRESS && printf '\r\033[2K'
 }
 
-# Terminal stage of a job's pipeline when the progress line is showing: swallow
-# the build output and tick the spinner on every line.
+# The line is repainted on a timer, not on each line of build output. Driving it
+# from the output meant that any silent stretch — a long compile, or the
+# `simctl diagnose` that used to follow every test job — froze the spinner, the
+# clock, and the percentage at whatever they last showed, which reads as a hang
+# rather than as slow.
 #
-# The read is blocking on purpose. `read -t 1` would let the clock tick during a
-# silent compile, but bash 3.2 — which is what /bin/bash is on macOS — returns 1
-# on timeout, indistinguishable from EOF, so the sink exited at the first quiet
-# second and killed the build with SIGPIPE.
-progress_sink() {
-    local line spin=0
-    paint 0
-    while IFS= read -r line; do
-        spin=$(( spin + 1 ))
-        paint "$spin"
-    done
-    return 0
+# A timer is also what lets the output be dropped outright. The previous sink had
+# to consume it line by line, and could not use `read -t 1` to keep the clock
+# moving: bash 3.2 — which is what /bin/bash is on macOS — returns 1 from a
+# timed-out read, indistinguishable from EOF, so the sink exited at the first
+# quiet second and killed the build with SIGPIPE.
+#
+# One painter per job, at one fork per tick. `sleep` is the only option for a
+# sub-second delay here, since bash 3.2 rejects a fractional `read -t`.
+_TICKER_PID=""
+
+start_ticker() {
+    $PROGRESS || return
+    (
+        spin=0
+        while :; do
+            paint "$spin"
+            spin=$(( spin + 1 ))
+            sleep 0.2
+        done
+    ) &
+    _TICKER_PID=$!
+}
+
+stop_ticker() {
+    [ -n "$_TICKER_PID" ] || return
+    kill "$_TICKER_PID" 2>/dev/null
+    wait "$_TICKER_PID" 2>/dev/null
+    _TICKER_PID=""
 }
 
 # ── Results ───────────────────────────────────────────────────────────────────
@@ -275,10 +295,42 @@ print_result_row() {
 }
 
 _INTERRUPTED=false
+_JOB_PID=""
+
+# Every process the running job started, deepest first. A terminal Ctrl-C only
+# signals the foreground process group, and xcodebuild puts some of its helpers
+# in a group of their own — `simctl diagnose` was the worst of them, holding a
+# finished test job open for its own 600s timeout, which is why `test` now passes
+# `-collect-test-diagnostics never`. Walking the tree is what makes a cancelled
+# run leave nothing behind regardless.
+descendants() {
+    local child
+    for child in $(pgrep -P "$1" 2>/dev/null); do
+        descendants "$child"
+        printf '%s ' "$child"
+    done
+}
+
+# Collect the pids before signalling anything: killing the parent first reparents
+# its children onto launchd, where the walk can no longer reach them.
+stop_job() {
+    [ -n "$_JOB_PID" ] || return
+    local pids
+    pids="$(descendants "$_JOB_PID")$_JOB_PID"
+    kill -TERM $pids 2>/dev/null
+    sleep 1
+    kill -KILL $pids 2>/dev/null
+    _JOB_PID=""
+}
 
 print_summary() {
     local total=${#JOB_IDS[@]} i
-    [ "$total" -eq 0 ] && return
+    # An interrupt still gets a summary with nothing in it: the tally reads
+    # "0/22 completed before interrupt" and, more usefully, still names the log
+    # directory. Ctrl-C during the first job otherwise printed no trace of it.
+    if [ "$total" -eq 0 ] && ! $_INTERRUPTED; then
+        return
+    fi
 
     local passed=0 failed=0 skipped=0
     for i in "${!JOB_IDS[@]}"; do
@@ -326,8 +378,13 @@ print_summary() {
 
 on_interrupt() {
     _INTERRUPTED=true
+    # A second Ctrl-C lands while the sweep is running; without this it re-enters
+    # and the partial summary is lost.
+    trap '' INT TERM
+    stop_ticker
     erase_progress
-    printf "\n%s%s  Interrupted — showing partial results...%s\n" "$YELLOW" "$BOLD" "$RESET"
+    printf "\n%s%s  Interrupted — stopping the running job...%s\n" "$YELLOW" "$BOLD" "$RESET"
+    stop_job
     print_summary
     exit 130
 }
@@ -336,17 +393,25 @@ trap on_interrupt INT TERM
 # ── Job runner ────────────────────────────────────────────────────────────────
 
 # Runs a command with its output teed to the raw log (which parse_test_results
-# greps), prettified into a readable log, and then either swallowed by the
-# progress line or streamed as-is. $2 is the tool whose output this is, which is
-# what decides whether xcbeautify gets to touch it.
+# greps) and prettified into a readable log, then either dropped — the progress
+# line is showing in its place — or streamed as-is. $2 is the tool whose output
+# this is, which is what decides whether xcbeautify gets to touch it.
+#
+# The pipeline runs as a background subshell for two reasons: _JOB_PID then names
+# the whole job, so stop_job can find every process under it, and bash runs a
+# trap during `wait` rather than holding it until the foreground command returns,
+# so a Ctrl-C is acted on at once. `wait` still yields the pipefail status.
 run_streamed() {
     local id="$1" tool="$2"; shift 2
     local rc=0
     if $PROGRESS; then
-        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" | tee "$OUTPUT_DIR/$id.txt" | progress_sink || rc=$?
+        ( "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" > "$OUTPUT_DIR/$id.txt" ) &
     else
-        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" | tee "$OUTPUT_DIR/$id.txt" || rc=$?
+        ( "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" | tee "$OUTPUT_DIR/$id.txt" ) &
     fi
+    _JOB_PID=$!
+    wait "$_JOB_PID" || rc=$?
+    _JOB_PID=""
     return $rc
 }
 
@@ -379,6 +444,7 @@ run_job() {
 
     local exit_code=0 summary="" start=$SECONDS
     rm -rf "$OUTPUT_DIR/$id.xcresult"
+    start_ticker
 
     case "$action" in
         lint)
@@ -428,6 +494,7 @@ run_job() {
             ;;
     esac
 
+    stop_ticker
     [ "$_IS_CI" = "true" ] && echo "::endgroup::"
 
     local duration=$(( SECONDS - start ))
