@@ -193,6 +193,11 @@ public final class DataCache: DataCaching, Sendable {
     // MARK: DataCaching
 
     /// Retrieves data for the given key.
+    ///
+    /// If the entry is still in the staging area, it is returned instantly.
+    /// Otherwise, the data is read from disk synchronously.
+    ///
+    /// - important: Can require disk IO, avoid using from the main thread.
     public func cachedData(for key: String) -> Data? {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
@@ -210,6 +215,11 @@ public final class DataCache: DataCaching, Sendable {
     }
 
     /// Returns `true` if the cache contains the data for the given key.
+    ///
+    /// If the entry is still in the staging area, the method returns instantly.
+    /// Otherwise, it checks the disk synchronously.
+    ///
+    /// - important: Can require disk IO, avoid using from the main thread.
     public func containsData(for key: String) -> Bool {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
@@ -275,9 +285,12 @@ public final class DataCache: DataCaching, Sendable {
     /// Accesses the data associated with the given key for reading and writing.
     ///
     /// When you assign data for a key that already exists, the cache overwrites
-    /// the existing entry. Reads and writes are backed by a staging area, so
-    /// they can occur in parallel without blocking. All writes are flushed to
-    /// disk asynchronously.
+    /// the existing entry. Writes are staged in memory and flushed to disk
+    /// asynchronously, so they return instantly. A read is served from the
+    /// staging area if the entry is still there, and hits the disk otherwise.
+    ///
+    /// - important: Reads can require disk IO, avoid using them from the main
+    /// thread.
     public subscript(key: String) -> Data? {
         get {
             cachedData(for: key)
