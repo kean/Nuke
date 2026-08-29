@@ -48,6 +48,7 @@
 
 **Bug Fixes**
 
+- Remove an unused `AVKit` import from `Nuke`, which linked AVKit, AVFoundation, and their dependencies into every app – https://github.com/kean/Nuke/pull/947
 - Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled` – https://github.com/kean/Nuke/pull/901
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit – https://github.com/kean/Nuke/pull/916
