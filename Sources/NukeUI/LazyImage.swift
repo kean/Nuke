@@ -3,10 +3,10 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Nuke
 import SwiftUI
 
-public typealias ImageRequest = Nuke.ImageRequest
+// NukeUI's API is written in Nuke types, so `import NukeUI` is enough to use it.
+@_exported import Nuke
 
 /// A view that asynchronously loads and displays an image.
 ///
