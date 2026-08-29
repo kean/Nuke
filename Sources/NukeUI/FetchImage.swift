@@ -38,27 +38,24 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var transaction = Transaction(animation: nil)
 
     /// The progress of the current image download.
-    public var progress: Progress {
-        if _progress == nil {
-            _progress = Progress()
-        }
-        return _progress!
+    ///
+    /// - note: The updates are only published to the observers if you read the
+    /// property, so the views that don't display the progress aren't
+    /// invalidated every time a chunk of data arrives.
+    public var progress: ImageTask.Progress {
+        isProgressObserved = true
+        return _progress
     }
 
-    private var _progress: Progress?
+    private static let noProgress = ImageTask.Progress(completed: 0, total: 0)
 
-    /// The download progress.
-    public final class Progress: ObservableObject {
-        /// The number of bytes that the task has received.
-        @Published public internal(set) var completed: Int64 = 0
+    // Set the first time `progress` is read; see the property for the reason.
+    private var isProgressObserved = false
 
-        /// A best-guess upper bound on the number of bytes of the resource.
-        @Published public internal(set) var total: Int64 = 0
-
-        /// Returns the fraction of the completion.
-        public var fraction: Float {
-            guard total > 0 else { return 0 }
-            return min(1, Float(completed) / Float(total))
+    private var _progress = FetchImage.noProgress {
+        willSet {
+            guard isProgressObserved else { return }
+            objectWillChange.send()
         }
     }
 
@@ -162,8 +159,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                         self.handle(preview: response)
                     }
                 } else {
-                    self._progress?.completed = completed
-                    self._progress?.total = total
+                    self._progress = ImageTask.Progress(completed: completed, total: total)
                 }
             },
             completion: { [weak self] result in
@@ -250,6 +246,6 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     private func clearLoadingState() {
         if isLoading { isLoading = false }
-        if _progress != nil { _progress = nil }
+        if _progress != Self.noProgress { _progress = Self.noProgress }
     }
 }

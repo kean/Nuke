@@ -175,29 +175,9 @@ struct FetchImageTests {
 
     // MARK: - Progress
 
-    @Test func progressLazilyAllocatedAndStable() {
-        let progress1 = image.progress
-        let progress2 = image.progress
-        #expect(progress1 === progress2)
-    }
-
-    @Test func progressFractionWhenTotalIsZero() {
-        let progress = FetchImage.Progress()
-        #expect(progress.fraction == 0)
-    }
-
-    @Test func progressFractionMidLoad() {
-        let progress = FetchImage.Progress()
-        progress.total = 100
-        progress.completed = 25
-        #expect(progress.fraction == 0.25)
-    }
-
-    @Test func progressFractionClampedToOne() {
-        let progress = FetchImage.Progress()
-        progress.total = 100
-        progress.completed = 150
-        #expect(progress.fraction == 1)
+    @Test func progressStartsEmpty() {
+        #expect(image.progress == ImageTask.Progress(completed: 0, total: 0))
+        #expect(image.progress.fraction == 0)
     }
 
     @Test func progressIsReportedDuringLoad() async {
@@ -211,15 +191,56 @@ struct FetchImageTests {
         image.onCompletion = { _ in expectation.fulfill() }
         image.load(Test.request)
 
-        // Allocate progress after load() — the internal reset() clears any prior allocation.
-        _ = image.progress
-
         dataLoader.isSuspended = false
         await expectation.wait()
 
         #expect(image.progress.completed == 20)
         #expect(image.progress.total == 20)
         #expect(image.progress.fraction == 1)
+    }
+
+    /// The updates are published by `FetchImage` itself, but only if the
+    /// progress is read: the views that don't display it aren't invalidated.
+    @Test func progressUpdatesInvalidateTheObjectOnlyWhenObserved() async {
+        func countInvalidations(observingProgress: Bool) async -> Int {
+            let image = FetchImage()
+            image.pipeline = ImagePipeline {
+                $0.dataLoader = MockDataLoader()
+                $0.imageCache = nil
+            }
+            if observingProgress {
+                _ = image.progress
+            }
+
+            let count = OSAllocatedUnfairLock(initialState: 0)
+            let cancellable = image.objectWillChange.sink { _ in
+                count.withLock { $0 += 1 }
+            }
+
+            let expectation = TestExpectation()
+            image.onCompletion = { _ in expectation.fulfill() }
+            image.load(Test.request)
+            await expectation.wait()
+
+            _ = cancellable
+            return count.withLock { $0 }
+        }
+
+        let observed = await countInvalidations(observingProgress: true)
+        let ignored = await countInvalidations(observingProgress: false)
+        #expect(observed > ignored)
+    }
+
+    @Test func progressIsClearedOnReset() async {
+        let expectation = TestExpectation()
+        image.onCompletion = { _ in expectation.fulfill() }
+        image.load(Test.request)
+        await expectation.wait()
+        #expect(image.progress.completed > 0)
+
+        image.reset()
+
+        #expect(image.progress == ImageTask.Progress(completed: 0, total: 0))
     }
 
     // MARK: - Progressive Decoding
@@ -583,9 +604,6 @@ struct FetchImageTests {
 
         #expect(image.imageContainer != nil)
         #expect(image.result != nil)
-
-        // Touch progress so its allocation is exercised by reset.
-        _ = image.progress
 
         image.reset()
 

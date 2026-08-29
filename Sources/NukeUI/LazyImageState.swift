@@ -23,7 +23,7 @@ public protocol LazyImageState {
     var isLoading: Bool { get }
 
     /// The progress of the image download.
-    var progress: FetchImage.Progress { get }
+    var progress: ImageTask.Progress { get }
 }
 
 extension LazyImageState {
