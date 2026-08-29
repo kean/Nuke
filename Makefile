@@ -1,4 +1,4 @@
-.PHONY: ci ci-list test build lint spm help
+.PHONY: ci ci-list test build lint spm snippets help
 
 CI := bash .scripts/ci.sh
 
@@ -29,6 +29,10 @@ lint:
 ## Run the SPM package tests (NukeVideo)
 spm:
 	@$(CI) spm
+
+## Compile the code samples from the DocC articles
+snippets:
+	@$(CI) snippets
 
 ## Show available targets
 help:

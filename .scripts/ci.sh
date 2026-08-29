@@ -58,6 +58,7 @@ JOBS=(
     "build-nukevideo-macos|platforms|build|NukeVideo|macOS"
     "build-nukevideo-tvos|platforms|build|NukeVideo|tvOS"
     "spm-test|platforms|spm|Package|SPM"
+    "snippets-ios|platforms|snippets|DocumentationSnippets|iOS"
 
     "lint|lint|lint|SwiftLint|—"
 )
@@ -428,6 +429,8 @@ run_job() {
     DEST=""; DEST_NAME=""
     case "$action" in
         build|test) set_destination "$action" "$platform" ;;
+        # Compile-only, like build: a generic destination, no simulator boot.
+        snippets)   set_destination "build" "$platform" ;;
     esac
 
     if $PROGRESS; then
@@ -466,6 +469,18 @@ run_job() {
             run_streamed "$id" xcodebuild \
                 xcodebuild build \
                     -project "$PROJECT" \
+                    -scheme "$scheme" \
+                    -destination "$DEST" \
+                    -resultBundlePath "$OUTPUT_DIR/$id.xcresult" || exit_code=$?
+            ;;
+        snippets)
+            # The samples from the DocC articles, as their own package. Built for
+            # iOS rather than through the root package's `swift build`, which only
+            # covers macOS — the UIKit and Objective-C samples are compiled out
+            # there, and those are exactly the ones that drifted.
+            run_streamed "$id" xcodebuild \
+                env -C "$PROJECT_ROOT/Tests/DocumentationSnippets" \
+                xcodebuild build \
                     -scheme "$scheme" \
                     -destination "$DEST" \
                     -resultBundlePath "$OUTPUT_DIR/$id.xcresult" || exit_code=$?
@@ -521,7 +536,7 @@ if $LIST_MODE; then
             printf "\n  %s%s%s\n" "$DIM" "$group" "$RESET"
             last_group="$group"
         fi
-        printf "    %-32s %-6s %s\n" "$id" "$action" "$scheme · $platform"
+        printf "    %-32s %-8s %s\n" "$id" "$action" "$scheme · $platform"
     done
     echo
     exit 0

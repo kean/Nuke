@@ -43,7 +43,7 @@ jobs:
           - group: macos
             name: Tests (macOS)
           - group: platforms
-            name: Build (watchOS, visionOS, NukeVideo) + Tests (SPM)
+            name: Build (watchOS, visionOS, NukeVideo, Snippets) + Tests (SPM)
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.group }}

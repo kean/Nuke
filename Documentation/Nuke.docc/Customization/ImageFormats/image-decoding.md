@@ -8,7 +8,7 @@ At the core of the decoding infrastructure is the ``ImageDecoding`` protocol.
 public protocol ImageDecoding: Sendable {
     /// Returns `true` if you want the decoding to be performed on the
     /// decoding queue. If `false`, decoding is performed synchronously
-    /// on the pipeline operation queue. By default, `true`.
+    /// on the pipeline's actor. By default, `true`.
     var isAsynchronous: Bool { get }
 
     /// Produces an image from the given image data.
@@ -48,7 +48,7 @@ The pipeline uses ``ImageDecoderRegistry`` to find the decoder.  The decoder is 
 >
 > You can also take advantage of ``ImageRequest/userInfo``. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.
 
-The decoding is performed in the background on the operation queue provided in ``ImagePipeline/Configuration-swift.struct``. There is always only one decoding request at a time. The pipeline doesn't call ``ImageDecoding/decodePartiallyDownloadedData(_:)-9budu`` again until you are finished with the previous chunk.
+The decoding is performed in the background on ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``. There is always only one decoding request at a time. The pipeline doesn't call ``ImageDecoding/decodePartiallyDownloadedData(_:)-9budu`` again until you are finished with the previous chunk.
 
 ## Registering Decoders
 

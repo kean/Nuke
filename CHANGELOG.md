@@ -70,6 +70,7 @@
 **Documentation**
 
 - Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
+- Fix the code samples in the SwiftUI, UIKit, Objective-C, and Performance articles, and compile them in CI – https://github.com/kean/Nuke/pull/955
 
 # Nuke 13
 
