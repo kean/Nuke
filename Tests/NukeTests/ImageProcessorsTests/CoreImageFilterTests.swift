@@ -40,6 +40,19 @@ struct ImageProcessorsCoreImageFilterTests {
         _ = output // image was produced successfully
     }
 
+    @Test func applyFilterWithAnImageParameter() throws {
+        // GIVEN a filter that takes a `CIImage` parameter
+        let input = Test.image(named: "fixture-tiny.jpeg")
+        let background = CIImage(cgImage: try #require(input.cgImage))
+        let processor = ImageProcessors.CoreImageFilter(name: "CISourceOverCompositing", parameters: [kCIInputBackgroundImageKey: background], identifier: "composite")
+
+        // WHEN
+        let output = try #require(processor.process(input))
+
+        // THEN
+        _ = output // image was produced successfully
+    }
+
     @Test func applyFilterWithInvalidName() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
@@ -149,15 +162,30 @@ struct ImageProcessorsCoreImageFilterTests {
     @Test func errorDescriptions() throws {
         typealias Error = ImageProcessors.CoreImageFilter.Error
 
-        #expect("\(Error.failedToCreateFilter(name: "CIYo", parameters: [:]))" == "Failed to create filter named CIYo with parameters: [:]")
+        #expect("\(Error.failedToCreateFilter(name: "CIYo", parameters: "[:]"))" == "Failed to create filter named CIYo with parameters: [:]")
 
-        #expect("\(Error.inputImageIsEmpty(inputImage: PlatformImage()))".hasPrefix("Failed to create input CIImage for "))
+        #expect("\(Error.inputImageIsEmpty(inputImage: "\(PlatformImage())"))".hasPrefix("Failed to create input CIImage for "))
 
-        let filter = try #require(CIFilter(name: "CISepiaTone"))
-        #expect("\(Error.failedToApplyFilter(filter: filter))" == "Failed to apply filter: CISepiaTone")
+        #expect("\(Error.failedToApplyFilter(name: "CISepiaTone"))" == "Failed to apply filter: CISepiaTone")
 
         let image = CIImage(cgImage: try #require(Test.image(named: "fixture-tiny.jpeg").cgImage))
-        #expect("\(Error.failedToCreateOutputCGImage(image: image))".hasPrefix("Failed to create output image for extent: "))
+        #expect("\(Error.failedToCreateOutputCGImage(extent: image.extent, image: "\(image)"))".hasPrefix("Failed to create output image for extent: "))
+    }
+
+    @Test func errorIsSendable() async throws {
+        // GIVEN an error thrown by the processor
+        let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "yo")
+        let thrown = #expect(throws: ImageProcessors.CoreImageFilter.Error.self) {
+            try processor.processThrowing(Test.image(named: "fixture-tiny.jpeg"))
+        }
+        let error = try #require(thrown)
+
+        // WHEN it crosses an isolation boundary, as it does wrapped in
+        // `ImagePipeline.Error.processingFailed(processor:context:error:)`
+        let description = await Task { @Sendable in error.description }.value
+
+        // THEN
+        #expect(description == "Failed to create filter named yo with parameters: [\"inputIntensity\": 0.5]")
     }
 
     @Test func applyCustomFilter() throws {

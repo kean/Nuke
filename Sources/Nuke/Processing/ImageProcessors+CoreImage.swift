@@ -28,20 +28,24 @@ extension ImageProcessors {
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, @unchecked Sendable {
+        // Unchecked because of `Filter.custom`: the client owns the `CIFilter`
+        // and can mutate it at any time. `Filter.named` is checked.
         let filter: Filter
         public let identifier: String
 
         enum Filter {
-            case named(String, parameters: [String: Any])
+            case named(String, parameters: [String: any Sendable])
             case custom(CIFilter)
         }
 
         /// Initializes the processor with a name of the `CIFilter` and its parameters.
         ///
         /// - parameter name: The name of the `CIFilter` to apply.
-        /// - parameter parameters: The parameters for the filter.
+        /// - parameter parameters: The parameters for the filter. The types Core
+        /// Image filters commonly take – `CIImage`, `CIColor`, `CIVector`,
+        /// `CGImage`, `NSNumber` – all are `Sendable`.
         /// - parameter identifier: Uniquely identifies the processor.
-        public init(name: String, parameters: [String: Any], identifier: String) {
+        public init(name: String, parameters: [String: any Sendable], identifier: String) {
             self.filter = .named(name, parameters: parameters)
             self.identifier = identifier
         }
@@ -93,9 +97,9 @@ extension ImageProcessors {
 
         private static let _context = OSAllocatedUnfairLock(initialState: CIContext(options: [.priorityRequestLow: true]))
 
-        static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
+        static func applyFilter(named name: String, parameters: [String: any Sendable] = [:], to image: PlatformImage) throws -> PlatformImage {
             guard let filter = CIFilter(name: name, parameters: parameters) else {
-                throw Error.failedToCreateFilter(name: name, parameters: parameters)
+                throw Error.failedToCreateFilter(name: name, parameters: "\(parameters)")
             }
             // The filter is created here and is used exclusively by this call
             return try _apply(filter: filter, to: image)
@@ -122,14 +126,14 @@ extension ImageProcessors {
                 if let image = image.cgImage {
                     return CoreImage.CIImage(cgImage: image)
                 }
-                throw Error.inputImageIsEmpty(inputImage: image)
+                throw Error.inputImageIsEmpty(inputImage: "\(image)")
             }
             filter.setValue(try getCIImage(), forKey: kCIInputImageKey)
             guard let outputImage = filter.outputImage else {
-                throw Error.failedToApplyFilter(filter: filter)
+                throw Error.failedToApplyFilter(name: filter.name)
             }
             guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
-                throw Error.failedToCreateOutputCGImage(image: outputImage)
+                throw Error.failedToCreateOutputCGImage(extent: outputImage.extent, image: "\(outputImage)")
             }
             return PlatformImage.make(cgImage: imageRef, source: image)
         }
@@ -143,11 +147,21 @@ extension ImageProcessors {
             }
         }
 
-        public enum Error: Swift.Error, CustomStringConvertible, @unchecked Sendable {
-            case failedToCreateFilter(name: String, parameters: [String: Any])
-            case inputImageIsEmpty(inputImage: PlatformImage)
-            case failedToApplyFilter(filter: CIFilter)
-            case failedToCreateOutputCGImage(image: CIImage)
+        /// Errors produced by ``CoreImageFilter``. The cases capture the
+        /// descriptions of the objects that failed, not the objects themselves,
+        /// which aren't `Sendable`.
+        public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+            /// Failed to create a `CIFilter` with the given name and parameters.
+            case failedToCreateFilter(name: String, parameters: String)
+
+            /// The input image has neither a `CIImage` nor a `CGImage` representation.
+            case inputImageIsEmpty(inputImage: String)
+
+            /// The filter with the given name produced no output image.
+            case failedToApplyFilter(name: String)
+
+            /// Failed to render the output image with the given extent into a `CGImage`.
+            case failedToCreateOutputCGImage(extent: CGRect, image: String)
 
             public var description: String {
                 switch self {
@@ -155,10 +169,10 @@ extension ImageProcessors {
                     return "Failed to create filter named \(name) with parameters: \(parameters)"
                 case let .inputImageIsEmpty(inputImage):
                     return "Failed to create input CIImage for \(inputImage)"
-                case let .failedToApplyFilter(filter):
-                    return "Failed to apply filter: \(filter.name)"
-                case let .failedToCreateOutputCGImage(image):
-                    return "Failed to create output image for extent: \(image.extent) from \(image)"
+                case let .failedToApplyFilter(name):
+                    return "Failed to apply filter: \(name)"
+                case let .failedToCreateOutputCGImage(extent, image):
+                    return "Failed to create output image for extent: \(extent) from \(image)"
                 }
             }
         }
