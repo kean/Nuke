@@ -8,6 +8,23 @@ import os
 
 extension ImagePipeline {
     /// The pipeline configuration.
+    ///
+    /// - important: `Configuration` is a struct, but the task queues it holds –
+    /// ``dataLoadingQueue``, ``imageDecodingQueue``, ``imageEncodingQueue``,
+    /// ``imageProcessingQueue``, and ``imageDecompressingQueue`` – are instances
+    /// of ``TaskQueue``, which is a class. Copying a configuration shares these
+    /// queues instead of duplicating them, so changing a queue on a copy also
+    /// changes it for the pipeline the configuration came from:
+    ///
+    /// ```swift
+    /// var configuration = ImagePipeline.shared.configuration
+    /// configuration.imageProcessingQueue.maxConcurrentOperationCount = 1
+    /// // ImagePipeline.shared is now throttled as well
+    /// ```
+    ///
+    /// To change the queues for a new pipeline without affecting an existing
+    /// one, start from a fresh configuration – `Configuration()` or one of the
+    /// predefined configurations – each of which creates its own queues.
     public struct Configuration: Sendable {
         // MARK: - Dependencies
 

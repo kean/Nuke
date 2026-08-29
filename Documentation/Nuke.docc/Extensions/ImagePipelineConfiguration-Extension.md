@@ -43,6 +43,8 @@ To learn more about caching, see <doc:caching>.
 
 ### Operation Queues
 
+``TaskQueue`` is a class, so copies of a configuration share the same queues. Changing a queue obtained from `ImagePipeline.shared.configuration` also changes it for the shared pipeline.
+
 - ``dataLoadingQueue``
 - ``imageProcessingQueue``
 - ``imageDecompressingQueue``
