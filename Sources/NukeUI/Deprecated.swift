@@ -24,3 +24,8 @@ extension FetchImage {
         fatalError()
     }
 }
+
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+@available(*, unavailable, renamed: "ImageDisplaying", message: "Renamed in Nuke 14. The protocol is no longer `@objc`, so it no longer needs a prefix. Rename `nuke_display(image:data:)` to `display(image:data:)` in your conformances.")
+public typealias Nuke_ImageDisplaying = ImageDisplaying
+#endif

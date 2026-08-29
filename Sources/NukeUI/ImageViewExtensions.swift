@@ -17,54 +17,56 @@ import AppKit.NSImage
 /// Displays images. Add the conformance to this protocol to your views to make
 /// them compatible with Nuke image loading extensions.
 ///
-/// The protocol is defined as `@objc` to make it possible to override its
-/// methods in extensions (e.g. you can override `nuke_display(image:data:)` in
-/// a `UIImageView` subclass like `Gifu.ImageView`).
-///
-/// The protocol and its methods have prefixes to make sure they don't clash
-/// with other similar methods and protocols in the Objective-C runtime.
+/// The built-in conformances are declared in extensions, and Swift can only
+/// override a member declared in an extension if it's exposed to the
+/// Objective-C runtime. That's why they are `@objc`, and why their selector has
+/// a prefix that keeps it from clashing with other methods in the runtime. It
+/// makes it possible to override `display(image:data:)` in a `UIImageView`
+/// subclass, like `Gifu.ImageView` does.
 @MainActor
-@objc public protocol Nuke_ImageDisplaying {
+public protocol ImageDisplaying: AnyObject {
     /// Display a given image.
-    @objc func nuke_display(image: PlatformImage?, data: Data?)
+    func display(image: PlatformImage?, data: Data?)
 
 #if os(macOS)
-    @objc var layer: CALayer? { get }
+    var layer: CALayer? { get }
 #endif
 }
 
-extension Nuke_ImageDisplaying {
+extension ImageDisplaying {
     func display(_ container: ImageContainer) {
-        nuke_display(image: container.image, data: container.data)
+        display(image: container.image, data: container.data)
     }
 }
 
 #if os(macOS)
-extension Nuke_ImageDisplaying {
+extension ImageDisplaying {
     public var layer: CALayer? { nil }
 }
 #endif
 
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
-/// A `UIView` that implements the `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
+/// A `UIView` that implements the ``ImageDisplaying`` protocol.
+public typealias ImageDisplayingView = UIView & ImageDisplaying
 
-extension UIImageView: Nuke_ImageDisplaying {
+extension UIImageView: ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data? = nil) {
+    @objc(nuke_displayWithImage:data:)
+    open func display(image: UIImage?, data: Data? = nil) {
         self.image = image
     }
 }
 #elseif os(macOS)
 import Cocoa
-/// An `NSObject` that implements the `ImageDisplaying` protocol.
+/// An `NSObject` that implements the ``ImageDisplaying`` protocol.
 /// Can support `NSView` and `NSCell`. The latter can return nil for layer.
-public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying
+public typealias ImageDisplayingView = NSObject & ImageDisplaying
 
-extension NSImageView: Nuke_ImageDisplaying {
+extension NSImageView: ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: NSImage?, data: Data? = nil) {
+    @objc(nuke_displayWithImage:data:)
+    open func display(image: NSImage?, data: Data? = nil) {
         self.image = image
     }
 }
@@ -73,9 +75,10 @@ extension NSImageView: Nuke_ImageDisplaying {
 #if os(tvOS)
 import TVUIKit
 
-extension TVPosterView: Nuke_ImageDisplaying {
+extension TVPosterView: ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data? = nil) {
+    @objc(nuke_displayWithImage:data:)
+    open func display(image: UIImage?, data: Data? = nil) {
         self.image = image
     }
 }
@@ -263,7 +266,7 @@ private final class ImageViewController {
         // Handle a scenario where request is `nil` (in the same way as a failure)
         guard var request else {
             if options.isPrepareForReuseEnabled {
-                imageView.nuke_display(image: nil, data: nil)
+                imageView.display(image: nil, data: nil)
             }
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
             handle(result: result, isFromMemory: true)
@@ -289,7 +292,7 @@ private final class ImageViewController {
         if let placeholder = options.placeholder {
             display(ImageContainer(image: placeholder), true, .placeholder)
         } else if options.isPrepareForReuseEnabled {
-            imageView.nuke_display(image: nil, data: nil) // Remove previously displayed images (if any)
+            imageView.display(image: nil, data: nil) // Remove previously displayed images (if any)
         }
 
         task = pipeline.loadImage(with: request, progress: { [weak self] response, completedCount, totalCount in
@@ -401,7 +404,7 @@ extension ImageViewController {
             duration: params.duration,
             options: params.options.union(.transitionCrossDissolve),
             animations: {
-                imageView.nuke_display(image: image.image, data: image.data)
+                imageView.display(image: image.image, data: image.data)
             },
             completion: nil
         )

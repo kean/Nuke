@@ -16,7 +16,7 @@ Apps that need to support earlier OS versions can stay on Nuke 13.x, which conti
 
 ## `NukeExtensions` Folded into `NukeUI`
 
-The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and `Nuke_ImageDisplaying` – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
+The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and `ImageDisplaying` – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
 
 `NukeExtensions` still exists as an empty module that re-exports `NukeUI`, so existing code keeps compiling. It will be removed in Nuke 15.
 
@@ -37,6 +37,38 @@ NukeExtensions.loadImage(with: url, into: imageView)
 // After
 NukeUI.loadImage(with: url, into: imageView)
 ```
+
+## `Nuke_ImageDisplaying` Renamed to `ImageDisplaying`
+
+The protocol and its requirement dropped their Objective-C prefixes.
+
+```swift
+// Before
+extension MyImageView: Nuke_ImageDisplaying {
+    func nuke_display(image: UIImage?, data: Data?) {
+        self.image = image
+    }
+}
+
+// After
+extension MyImageView: ImageDisplaying {
+    func display(image: UIImage?, data: Data?) {
+        self.image = image
+    }
+}
+```
+
+The protocol is no longer `@objc`. The prefixes were there to keep it from clashing with other protocols and methods in the Objective-C runtime, but only the built-in conformances ever needed to be visible to it: they are declared in extensions of `UIImageView`, `NSImageView`, and `TVPosterView`, and Swift can only override a member declared in an extension if it's `@objc`. Those conformances keep the `nuke_displayWithImage:data:` selector they had in Nuke 13, so overriding the method in a subclass still works, and an Objective-C subclass needs no changes at all.
+
+```swift
+// Before
+override func nuke_display(image: UIImage?, data: Data?)
+
+// After
+override func display(image: UIImage?, data: Data?)
+```
+
+`ImageDisplayingView`, `loadImage(with:into:)`, and `cancelRequest(for:)` are unchanged, so code that only uses the built-in `UIImageView` and `NSImageView` support needs no changes.
 
 ## Removed Deprecated APIs
 

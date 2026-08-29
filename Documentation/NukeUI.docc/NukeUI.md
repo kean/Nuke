@@ -28,7 +28,7 @@ The module also provides <doc:ImageViewExtensions> – a set of global functions
 - ``loadImage(with:options:into:completion:)-(URL?,_,_,_)``
 - ``cancelRequest(for:)``
 - ``ImageLoadingOptions``
-- ``Nuke_ImageDisplaying``
+- ``ImageDisplaying``
 - ``ImageDisplayingView``
 
 ### Helpers
