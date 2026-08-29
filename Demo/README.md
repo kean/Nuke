@@ -29,6 +29,7 @@ The sections mirror the [documentation](https://kean-docs.github.io/nuke/documen
 |--|--|
 | **Image Processing** | The built-in processors and two ways to write your own |
 | **Image Formats** | JPEG, PNG, WebP, animated GIF, and MP4 via `ImageDecoders.Video` |
+| **Animated Images** | GIF, APNG, and animated WebP with a live overlay: the frame buffer, decode times, and dropped frames |
 | **Progressive JPEG** | Progressive decoding, with a throttled data loader that makes the scans visible |
 | **Pipeline Delegate** | `willLoadData(for:urlRequest:pipeline:)` and a live log of the pipeline events |
 

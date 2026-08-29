@@ -36,6 +36,9 @@ struct DemoMenu: View {
                     DemoLink("Image Formats", "JPEG, PNG, GIF, WebP, and MP4") {
                         ImageFormatsDemo()
                     }
+                    DemoLink("Animated Images", "GIF, APNG, and WebP with a diagnostics overlay") {
+                        AnimatedImagesDemo()
+                    }
                     DemoLink("Progressive JPEG", "Progressive decoding side by side with baseline") {
                         ProgressiveDecodingDemo()
                     }
