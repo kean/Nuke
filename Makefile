@@ -26,7 +26,7 @@ build:
 lint:
 	@$(CI) lint
 
-## Build the SPM package including tests
+## Run the SPM package tests (NukeVideo)
 spm:
 	@$(CI) spm
 
