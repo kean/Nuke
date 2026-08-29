@@ -8,7 +8,7 @@ import Foundation
 import TVUIKit
 #endif
 @testable import Nuke
-@testable import NukeExtensions
+@testable import NukeUI
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
@@ -55,7 +55,7 @@ struct ImageViewExtensionsTests {
 
     @Test func imageLoadedWithURL() async {
         let expectation = TestExpectation()
-        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { _ in
+        NukeUI.loadImage(with: Test.url, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
         await expectation.wait()
@@ -67,7 +67,7 @@ struct ImageViewExtensionsTests {
 
         let expectation = TestExpectation()
         let request: ImageRequest? = nil
-        NukeExtensions.loadImage(with: request, options: options, into: imageView) {
+        NukeUI.loadImage(with: request, options: options, into: imageView) {
             #expect($0.error == .imageRequestMissing)
             expectation.fulfill()
         }
@@ -80,14 +80,14 @@ struct ImageViewExtensionsTests {
         var options = options
         options.failureImage = failureImage
         let request: ImageRequest? = nil
-        NukeExtensions.loadImage(with: request, options: options, into: imageView)
+        NukeUI.loadImage(with: request, options: options, into: imageView)
         #expect(imageView.image === failureImage)
     }
 
     // MARK: - Managing Tasks
 
     @Test func taskReturned() {
-        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         #expect(task != nil)
         #expect(task?.request.urlRequest == Test.request.urlRequest)
     }
@@ -95,7 +95,7 @@ struct ImageViewExtensionsTests {
     @Test func taskIsNilWhenImageInMemoryCache() {
         let request = Test.request
         imageCache[request] = ImageContainer(image: PlatformImage())
-        let task = NukeExtensions.loadImage(with: request, options: options, into: imageView)
+        let task = NukeUI.loadImage(with: request, options: options, into: imageView)
         #expect(task == nil)
     }
 
@@ -103,7 +103,7 @@ struct ImageViewExtensionsTests {
 
     @Test func viewPreparedForReuse() {
         imageView.image = Test.image
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         #expect(imageView.image == nil)
     }
 
@@ -112,7 +112,7 @@ struct ImageViewExtensionsTests {
         imageView.image = image
         var options = options
         options.isPrepareForReuseEnabled = false
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         #expect(imageView.image == image)
     }
 
@@ -121,7 +121,7 @@ struct ImageViewExtensionsTests {
     @Test func memoryCacheUsed() {
         let image = Test.image
         imageCache[Test.request] = ImageContainer(image: image)
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         #expect(imageView.image == image)
     }
 
@@ -129,7 +129,7 @@ struct ImageViewExtensionsTests {
         imageCache[Test.request] = Test.container
         var request = Test.request
         request.options.insert(.disableMemoryCacheReads)
-        NukeExtensions.loadImage(with: request, options: options, into: imageView)
+        NukeUI.loadImage(with: request, options: options, into: imageView)
         #expect(imageView.image == nil)
     }
 
@@ -138,7 +138,7 @@ struct ImageViewExtensionsTests {
     @Test func completionCalled() async {
         var didCallCompletion = false
         let expectation = TestExpectation()
-        NukeExtensions.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             options: options,
             into: imageView,
@@ -160,7 +160,7 @@ struct ImageViewExtensionsTests {
         imageCache[Test.request] = Test.container
 
         var didCallCompletion = false
-        NukeExtensions.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             options: options,
             into: imageView,
@@ -184,7 +184,7 @@ struct ImageViewExtensionsTests {
         let expectation = TestExpectation()
 
         // WHEN loading an image into a view
-        NukeExtensions.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             options: options,
             into: imageView,
@@ -211,13 +211,13 @@ struct ImageViewExtensionsTests {
 
         // Given an image view with an associated image task
         let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.url, options: options, into: imageView)
         await startExpectation.wait()
 
         // Expect the task to get cancelled
         // When asking Nuke to cancel the request for the view
         await notification(ImagePipelineObserver.didCancelTask, object: observer) {
-            NukeExtensions.cancelRequest(for: imageView)
+            NukeUI.cancelRequest(for: imageView)
         }
     }
 
@@ -226,13 +226,13 @@ struct ImageViewExtensionsTests {
 
         // Given an image view with an associated image task
         let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.url, options: options, into: imageView)
         await startExpectation.wait()
 
         // When starting loading a new image
         // Expect previous task to get cancelled
         let cancelExpectation = TestExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.url, options: options, into: imageView)
         await cancelExpectation.wait()
     }
 
@@ -243,7 +243,7 @@ struct ImageViewExtensionsTests {
         // gets deallocated immediately.
         var localImageView: _ImageView? = _ImageView()
         let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
-        NukeExtensions.loadImage(with: Test.url, options: options, into: localImageView!)
+        NukeUI.loadImage(with: Test.url, options: options, into: localImageView!)
         await startExpectation.wait()
 
         // Expect the task to be cancelled automatically

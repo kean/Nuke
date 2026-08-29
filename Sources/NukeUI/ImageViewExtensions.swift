@@ -3,9 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-
-// NukeExtensions' API is written in Nuke types, so `import NukeExtensions` is enough to use it.
-@_exported import Nuke
+import Nuke
 
 #if !os(macOS)
 import UIKit.UIImage

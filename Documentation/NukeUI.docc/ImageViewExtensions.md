@@ -4,16 +4,16 @@ Learn about extensions for image views.
 
 ## Overview
 
-Nuke provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using Nuke's `ImagePipeline` directly.
+NukeUI provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using ``LazyImageView`` or Nuke's `ImagePipeline` directly.
 
-> Tip: For SwiftUI support, check out **NukeUI** module. It also includes custom image views for UIKit and AppKit designed to be a better replacement for global functions in `NukeExtensions`.
+> Tip: These functions were part of the separate `NukeExtensions` module before Nuke 14.
 
 ## Image View
 
 Download and display an image in an image view with a single line of code:
 
 ```swift
-NukeExtensions.loadImage(with: url, into: imageView)
+NukeUI.loadImage(with: url, into: imageView)
 ```
 
 If the image is stored in the memory cache, it is displayed immediately with no animations. If not, the image is first loaded using an image pipeline.
@@ -25,13 +25,13 @@ Before loading a new image, the view is prepared for reuse by canceling any outs
 ```swift
 func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     // ...
-NukeExtensions.loadImage(with: url, into: cell.imageView)
+NukeUI.loadImage(with: url, into: cell.imageView)
 }
 ```
 
 What works for `UITableView`, also does for a `UICollectionView`. You can see `UICollectionView` in action in the [demo project](https://github.com/kean/NukeDemo).
 
-> When the view is deallocated, an associated request also gets canceled automatically. To manually cancel the request, call ``NukeExtensions/cancelRequest(for:)``.
+> When the view is deallocated, an associated request also gets canceled automatically. To manually cancel the request, call ``NukeUI/cancelRequest(for:)``.
 
 ## ImageLoadingOptions
 
@@ -42,10 +42,10 @@ let options = ImageLoadingOptions(
     placeholder: UIImage(named: "placeholder"),
     transition: .fadeIn(duration: 0.33)
 )
-NukeExtensions.loadImage(with: url, options: options, into: imageView)
+NukeUI.loadImage(with: url, options: options, into: imageView)
 ```
 
-> Tip: The extensions have a limited set of options. If you need more, check out `LazyImageView` from **NukeUI**.
+> Tip: The extensions have a limited set of options. If you need more, use ``LazyImageView``.
 
 ### Placeholder
 
@@ -125,4 +125,4 @@ Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
 
 ## Customizing Requests
 
-All the examples from this guide used ``NukeExtensions/loadImage(with:options:into:completion:)-(URL?,_,_,_)`` with a `URL`. But you can have even more control over the image download by using `ImageRequest`. To learn more about `ImageRequest`, see the main Nuke documentation.
+All the examples from this guide used ``NukeUI/loadImage(with:options:into:completion:)-(URL?,_,_,_)`` with a `URL`. But you can have even more control over the image download by using `ImageRequest`. To learn more about `ImageRequest`, see the main Nuke documentation.
