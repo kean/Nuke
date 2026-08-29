@@ -5,7 +5,7 @@
 import Testing
 import Foundation
 @testable import Nuke
-@testable import NukeExtensions
+@testable import NukeUI
 
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
@@ -81,7 +81,7 @@ struct ImageViewLoadingOptionsTests {
         options.placeholder = placeholder
 
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.image == placeholder)
@@ -150,7 +150,7 @@ struct ImageViewLoadingOptionsTests {
 
         // When
         let expectation = TestExpectation()
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
 
@@ -172,7 +172,7 @@ struct ImageViewLoadingOptionsTests {
         mockCache[Test.request] = Test.container
 
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.contentMode == .scaleAspectFill)
@@ -217,7 +217,7 @@ struct ImageViewLoadingOptionsTests {
 
         // When
         let expectation = TestExpectation()
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
 
@@ -240,7 +240,7 @@ struct ImageViewLoadingOptionsTests {
         mockCache[Test.request] = Test.container
 
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.tintColor == .blue)
@@ -302,7 +302,7 @@ struct ImageViewLoadingOptionsTests {
         options.placeholder = placeholder
 
         // When
-        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.image == placeholder)

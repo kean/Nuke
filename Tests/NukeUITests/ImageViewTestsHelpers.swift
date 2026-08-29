@@ -5,7 +5,7 @@
 import Testing
 import Foundation
 @testable import Nuke
-@testable import NukeExtensions
+@testable import NukeUI
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
@@ -16,7 +16,7 @@ func loadImageAndWait(
     into imageView: ImageDisplayingView
 ) async {
     let expectation = TestExpectation()
-    NukeExtensions.loadImage(
+    NukeUI.loadImage(
         with: request,
         options: options,
         into: imageView,
@@ -33,7 +33,7 @@ func loadImageExpectingSuccess(
     into imageView: ImageDisplayingView
 ) async {
     let expectation = TestExpectation()
-    NukeExtensions.loadImage(
+    NukeUI.loadImage(
         with: request,
         options: options,
         into: imageView,
