@@ -23,6 +23,17 @@ struct ImageDecodersEmptyTests {
         #expect(decoder.isProgressive == true)
     }
 
+    @Test func assetTypeDefaultIsNil() {
+        let decoder = ImageDecoders.Empty()
+        #expect(decoder.assetType == nil)
+    }
+
+    @Test func assetTypeWhenProvided() {
+        let decoder = ImageDecoders.Empty(assetType: .png, isProgressive: true)
+        #expect(decoder.assetType == .png)
+        #expect(decoder.isProgressive == true)
+    }
+
     @Test func decodeReturnsContainerWithData() throws {
         let decoder = ImageDecoders.Empty()
         let data = Data("test-data".utf8)

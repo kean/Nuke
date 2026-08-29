@@ -9,7 +9,7 @@ extension ImageDecoders {
     /// data to the image container.
     public struct Empty: ImageDecoding, Sendable {
         public let isProgressive: Bool
-        private let assetType: AssetType?
+        public let assetType: AssetType?
 
         public var isAsynchronous: Bool { false }
 
