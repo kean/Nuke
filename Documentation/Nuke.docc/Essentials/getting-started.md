@@ -88,6 +88,8 @@ Learn more in NukeUI [documentation](https://kean-docs.github.io/nukeui/document
 
 - **<doc:swiftui>** — Use `LazyImage` and `FetchImage` in SwiftUI apps
 - **<doc:uikit>** — Load images into `UIImageView` and handle cell reuse
+- **<doc:errors>** — Handle the typed `ImagePipeline.Error` and filter out cancellations
 - **<doc:caching>** — Understand the three cache layers and how to configure them
 - **<doc:performance-guide>** — Prefetching, decompression, coalescing, and more
 - **<doc:image-processing>** — Resize, blur, and apply custom processors
+- **<doc:where-work-runs>** — `ImagePipelineActor`, the task queues, and delegate isolation

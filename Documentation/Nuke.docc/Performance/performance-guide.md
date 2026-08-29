@@ -2,6 +2,16 @@
 
 Learn about the performance features in Nuke and how to make the most of them.
 
+## Do This First
+
+Most of what makes Nuke fast is already on: coalescing, background decompression, resumable downloads, and rate limiting all work without configuration. Five things are worth doing deliberately, and the rest of this guide explains why.
+
+1. **Enable the aggressive disk cache.** ``DataCache`` is faster than `URLCache`, works offline, and doesn't need the server to send `cache-control` – see <doc:caching> and the *Caching* section below.
+2. **Downsample before you decode.** A 6000×4000 bitmap costs 92 MB of memory. ``ImageRequest/ThumbnailOptions`` gets you a thumbnail straight out of the decoder, up to 4x faster than ``ImageProcessors/Resize`` – see *Downsample Images* below.
+3. **Prefetch ahead of the scroll.** ``ImagePrefetcher`` turns "loading" into "already there" for lists and grids – see <doc:prefetching>.
+4. **Prefetch with the same processors you display with.** Otherwise the memory cache fills with images you'll never show – see *Prefetching* below.
+5. **Measure before tuning anything else.** Turn on ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` and look at the `os_signpost` Instrument – see *Measure* below.
+
 ## Caching
 
 Images can take a lot of space. By using Nuke, you can ensure that when you download an image, it will be cached so that you don't have to download it again. Nuke provides three different caching layers.
@@ -119,7 +129,7 @@ Once enabled, you’ll first see a blurry low-quality version of the full image,
 
 ## Request Priorities
 
-Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributes its work on ``TaskQueue`` instances dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible.
+Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributes its work on ``TaskQueue`` instances dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. See <doc:where-work-runs> for the five queues, their defaults, and how to change them.
 
 Cancelling an ``ImageTask`` frees its associated network and CPU resources immediately. Thanks to coalescing, the underlying work is only cancelled when all requests sharing it have been cancelled — so cancelling one request doesn't affect others loading the same image.
 

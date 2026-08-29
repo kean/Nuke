@@ -50,6 +50,15 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     }
 
     /// The download progress.
+    ///
+    /// This is the only progress type in Nuke: the pipeline, ``ImageTask``, and
+    /// the `NukeUI` views all report this struct. Read the latest value from
+    /// ``ImageTask/Status/progress``, observe the updates as a stream with
+    /// ``ImageTask/progress-swift.property``, or, in `NukeUI`, read
+    /// `FetchImage.progress`, `LazyImageState.progress`, or
+    /// `LazyImageView.onProgress`.
+    ///
+    /// - seealso: ``ImageTask/progress-swift.property``
     public struct Progress: Hashable, Sendable {
         /// The number of bytes that the task has received.
         public let completed: Int64
@@ -112,6 +121,8 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
 
         /// The download progress. Contains zeros until the download starts and
         /// the total resource size is known.
+        ///
+        /// - seealso: ``ImageTask/Progress-swift.struct``
         public internal(set) var progress = Progress(completed: 0, total: 0)
 
         /// Initializes the status describing a task that has just started.
@@ -167,6 +178,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     /// The stream of progress updates.
     ///
     /// A convenience over ``events``: every access creates a new subscription.
+    /// Each element is an ``ImageTask/Progress-swift.struct``; for the latest
+    /// value as a snapshot instead of a stream, read ``Status/progress``.
+    ///
+    /// - seealso: ``ImageTask/Progress-swift.struct``
     public var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress> {
         events.compactMap {
             if case .progress(let value) = $0 { return value }
