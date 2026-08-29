@@ -7,24 +7,30 @@ import Foundation
 extension ImagePipeline {
     /// A delegate that allows you to customize the pipeline dynamically on a per-request basis.
     ///
-    /// - important: The delegate methods are performed on the pipeline queue in the
-    /// background.
+    /// The isolation of every method is declared in its signature. The methods that
+    /// ask the delegate for a customization – the factories, the cache key, the
+    /// policies, and the decompression – are `nonisolated`, so the pipeline can call
+    /// them from whichever context needs the answer, including the synchronous
+    /// ``ImagePipeline/Cache-swift.struct`` API. The methods that report to the
+    /// delegate run on ``ImagePipelineActor``, where a delegate can keep state
+    /// without a lock. ``Delegate/imageTaskCreated(_:pipeline:)`` is the exception:
+    /// it is called immediately, in the context that created the task.
     public protocol Delegate: AnyObject, Sendable {
         // MARK: Misc
 
         /// Returns image decoder for the given context.
-        func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
+        nonisolated func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
 
         /// Returns image encoder for the given context.
-        func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
+        nonisolated func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
 
         /// Returns the preview policy for progressive decoding of the given request.
-        func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
+        nonisolated func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy
 
         // MARK: Data Loading
 
         /// Returns data loader for the given request.
-        func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
+        nonisolated func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
 
         /// Intercepts the URL request just before data loading begins, allowing
         /// you to modify or replace it.
@@ -51,18 +57,18 @@ extension ImagePipeline {
         // MARK: Caching
 
         /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
-        func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
+        nonisolated func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
 
         /// Returns disk cache for the given request. Return `nil` to prevent cache
         /// reads and writes.
-        func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
+        nonisolated func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
 
         /// Returns a cache key identifying the image produced for the given request
         /// (including image processors). The key is used for both in-memory and
         /// on-disk caches.
         ///
         /// Return `nil` to use a default key.
-        func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
+        nonisolated func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
 
         /// Gets called when the pipeline is about to save data for the given request.
         ///
@@ -84,25 +90,25 @@ extension ImagePipeline {
         // MARK: Decompression
 
         /// Returns `true` if the pipeline should decompress the given response.
-        ///
-        /// Called on a background queue managed by the pipeline.
-        func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
+        nonisolated func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
 
         /// Decompresses the given image response.
         ///
         /// Called on a background queue managed by the pipeline.
-        func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
+        nonisolated func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
 
         // MARK: ImageTask
 
-        /// Gets called when the task is created. Unlike other methods, it is called
-        /// immediately on the caller's queue.
-        func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
+        /// Gets called when the task is created. Unlike the other task events, it
+        /// is called immediately, in the context that created the task.
+        nonisolated func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
 
         /// Gets called when the task is started by the pipeline.
+        @ImagePipelineActor
         func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)
 
         /// Gets called when the task receives an event.
+        @ImagePipelineActor
         func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
     }
 }
@@ -117,11 +123,7 @@ extension ImagePipeline.Delegate {
     }
 
     @ImagePipelineActor
-    public func willLoadData(
-        for request: ImageRequest,
-        urlRequest: URLRequest,
-        pipeline: ImagePipeline
-    ) async throws -> URLRequest {
+    public func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
         urlRequest
     }
 
@@ -162,8 +164,10 @@ extension ImagePipeline.Delegate {
 
     public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
 
+    @ImagePipelineActor
     public func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {}
 
+    @ImagePipelineActor
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 }
 
