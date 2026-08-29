@@ -108,13 +108,13 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             try await loadData(with: urlRequest, dataLoader: dataLoader)
 
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            dataTaskDidFinish()
+            await dataTaskDidFinish()
         } catch {
             signpost(self, "LoadImageData", .end, "Failed")
             if let error = error as? ImagePipeline.Error {
-                dataTaskDidFinish(error: error)
+                await dataTaskDidFinish(error: error)
             } else {
-                dataTaskDidFinish(error: .dataLoadingFailed(error: error))
+                await dataTaskDidFinish(error: .dataLoadingFailed(error: error))
             }
         }
     }
@@ -216,7 +216,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         send(value: (data, response))
     }
 
-    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) {
+    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
         guard !isDisposed else { return }
 
         if let error {
@@ -232,7 +232,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         // Store in data cache
-        storeDataInCacheIfNeeded(data)
+        await storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
     }
@@ -258,18 +258,18 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         guard !isDisposed else { return }
         do {
             let data = try await fetch()
-            asyncDataDidFinish(data)
+            await asyncDataDidFinish(data)
         } catch {
             send(error: .dataLoadingFailed(error: error))
         }
     }
 
-    private func asyncDataDidFinish(_ data: Data) {
+    private func asyncDataDidFinish(_ data: Data) async {
         guard !data.isEmpty else {
             send(error: .dataIsEmpty)
             return
         }
-        storeDataInCacheIfNeeded(data)
+        await storeDataInCacheIfNeeded(data)
         send(value: (data, nil), isCompleted: true)
     }
 
@@ -293,17 +293,15 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 }
 
 extension AsyncPipelineTask where Value == (Data, URLResponse?) {
-    func storeDataInCacheIfNeeded(_ data: Data) {
+    func storeDataInCacheIfNeeded(_ data: Data) async {
         let request = makeSanitizedRequest()
         guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
             return
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
-            guard let data = $0 else { return }
-            // Important! Storing directly ignoring `ImageRequest.Options`.
-            dataCache.storeData(data, for: key)
-        }
+        guard let data = await pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) else { return }
+        // Important! Storing directly ignoring `ImageRequest.Options`.
+        dataCache.storeData(data, for: key)
     }
 
     /// Returns a request that doesn't contain any information non-related
