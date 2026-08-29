@@ -20,6 +20,9 @@ let package = Package(
         .target(name: "Nuke"),
         .target(name: "NukeUI", dependencies: ["Nuke"]),
         .target(name: "NukeVideo", dependencies: ["Nuke"]),
-        .target(name: "NukeExtensions", dependencies: ["Nuke"])
+        .target(name: "NukeExtensions", dependencies: ["Nuke"]),
+        // The other modules are tested from Nuke.xcodeproj; NukeVideo has no
+        // test target there, so this one keeps its API covered.
+        .testTarget(name: "NukeVideoTests", dependencies: ["NukeVideo"])
     ]
 )

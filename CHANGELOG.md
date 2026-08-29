@@ -43,6 +43,7 @@
 - `ImageDecodingContext/init(request:data:isCompleted:urlResponse:cacheType:previewPolicy:)` now takes `previewPolicy` – https://github.com/kean/Nuke/pull/936
 - `TaskQueue/maxConcurrentOperationCount` and the matching initializer parameter are renamed to `maxConcurrentTaskCount`; the old names are deprecated – https://github.com/kean/Nuke/pull/942
 - `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of taking a completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
+- `NukeUI`, `NukeExtensions`, and `NukeVideo` now re-export `Nuke`, so importing them is enough. The `NukeUI.ImageRequest` typealias is removed – https://github.com/kean/Nuke/pull/946
 - `ImagePipeline/Delegate` now declares the isolation of every method instead of documenting it: `willLoadData`, `willCache`, `imageTaskDidStart`, and `imageTask(_:didReceiveEvent:pipeline:)` run on `ImagePipelineActor`, and the rest are `nonisolated` – https://github.com/kean/Nuke/pull/945
 
 **Bug Fixes**

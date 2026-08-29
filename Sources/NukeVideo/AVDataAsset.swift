@@ -4,7 +4,9 @@
 
 import AVKit
 import Foundation
-import Nuke
+
+// NukeVideo extends Nuke types, so `import NukeVideo` is enough to use it.
+@_exported import Nuke
 
 extension AssetType {
     /// Returns `true` if the asset represents a video file.
