@@ -1,0 +1,212 @@
+// The MIT License (MIT)
+//
+// Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
+
+import Foundation
+import Nuke
+import SwiftUI
+
+/// A SwiftUI view that plays an animated image.
+///
+/// ``LazyImage`` displays animated images with it automatically, so you only
+/// need it when you write your own content closure:
+///
+/// ```swift
+/// LazyImage(url: url) { state in
+///     if let animatedImage = state.animatedImage {
+///         AnimatedImage(animatedImage)
+///     } else if let image = state.image {
+///         image.resizable().scaledToFit()
+///     }
+/// }
+/// ```
+///
+/// The view sizes itself the way `Image` does: at the natural size of the
+/// animation until you call ``resizable(contentMode:)``, after which it takes
+/// the size it is offered and the usual layout modifiers apply.
+///
+/// ```swift
+/// AnimatedImage(source).resizable().scaledToFit()
+/// ```
+///
+/// Playback stops while the view is off screen and picks up where it left off
+/// when it comes back. To control it yourself – or to read the diagnostics –
+/// create an ``AnimatedImagePlayer`` and use ``init(player:)``.
+@MainActor
+public struct AnimatedImage: View {
+    private let source: AnimatedImageSource
+    private let player: AnimatedImagePlayer?
+    private var contentMode: ContentMode = .fit
+    private var isResizable = false
+
+    /// Plays the given animated image.
+    public init(_ source: AnimatedImageSource) {
+        self.source = source
+        self.player = nil
+    }
+
+    /// Displays the frames of a player you own.
+    ///
+    /// The view drives playback the same way it does for a player of its own:
+    /// it plays while the view is on screen and pauses when it isn't.
+    public init(player: AnimatedImagePlayer) {
+        self.source = player.source
+        self.player = player
+    }
+
+    /// Plays the image if the pipeline recognized it as animated.
+    ///
+    /// - returns: `nil` for anything that isn't an animated image, which is the
+    /// signal to display ``ImageContainer/image`` as a still.
+    public init?(container: ImageContainer) {
+        guard let source = AnimatedImageSource(container: container) else {
+            return nil
+        }
+        self.init(source)
+    }
+
+    /// Lets the animation be resized to the space it is given, the way
+    /// `Image.resizable()` does.
+    ///
+    /// - parameter contentMode: How the frames fill the view once it has been
+    /// sized. `.fit` by default.
+    public consuming func resizable(contentMode: ContentMode = .fit) -> Self {
+        var copy = self
+        copy.isResizable = true
+        copy.contentMode = contentMode
+        return copy
+    }
+
+    public var body: some View {
+#if os(watchOS)
+        AnimatedImageRenderer(source: source, player: player, contentMode: contentMode, isResizable: isResizable)
+#else
+        AnimatedImageRepresentable(source: source, player: player, contentMode: contentMode, isResizable: isResizable)
+#endif
+    }
+}
+
+#if !os(watchOS)
+
+#if os(macOS)
+private typealias _PlatformViewRepresentable = NSViewRepresentable
+#else
+private typealias _PlatformViewRepresentable = UIViewRepresentable
+#endif
+
+/// Wraps ``AnimatedImageView``, which updates the image it displays directly
+/// instead of going through the SwiftUI update cycle 20 times a second.
+private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
+    let source: AnimatedImageSource
+    let player: AnimatedImagePlayer?
+    let contentMode: ContentMode
+    let isResizable: Bool
+
+    private func makeView() -> AnimatedImageView {
+        let view = AnimatedImageView()
+#if os(macOS)
+        view.imageScaling = contentMode == .fill ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
+        view.animates = false // The player, not AppKit, drives the frames
+#else
+        view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
+        view.clipsToBounds = true
+        // Without this the intrinsic size of the first frame wins every layout
+        // argument and the view refuses to shrink.
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+#endif
+        update(view)
+        return view
+    }
+
+    private func update(_ view: AnimatedImageView) {
+        if let player {
+            view.player = player
+        } else {
+            view.animatedImage = source
+        }
+    }
+
+    /// Reports the size the animation wants, so that the view behaves like an
+    /// `Image` rather than collapsing or filling everything it is offered.
+    private func size(for proposal: ProposedViewSize) -> CGSize? {
+        let size = source.size
+        guard size.width > 0, size.height > 0 else { return nil }
+        guard isResizable else {
+            return size // Same as an `Image` without `resizable()`
+        }
+        switch (proposal.width, proposal.height) {
+        case (nil, nil): return size
+        case let (width?, nil): return CGSize(width: width, height: width * size.height / size.width)
+        case let (nil, height?): return CGSize(width: height * size.width / size.height, height: height)
+        case let (width?, height?): return CGSize(width: width, height: height)
+        }
+    }
+
+#if os(macOS)
+    func makeNSView(context: Context) -> AnimatedImageView { makeView() }
+    func updateNSView(_ view: AnimatedImageView, context: Context) { update(view) }
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: AnimatedImageView, context: Context) -> CGSize? {
+        size(for: proposal)
+    }
+#else
+    func makeUIView(context: Context) -> AnimatedImageView { makeView() }
+    func updateUIView(_ view: AnimatedImageView, context: Context) { update(view) }
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: AnimatedImageView, context: Context) -> CGSize? {
+        size(for: proposal)
+    }
+#endif
+}
+
+#else
+
+/// The watchOS renderer. There is no `UIViewRepresentable` there, so the frames
+/// go through SwiftUI state – which is affordable at the frame rates and image
+/// sizes a watch deals with.
+private struct AnimatedImageRenderer: View {
+    let source: AnimatedImageSource
+    let player: AnimatedImagePlayer?
+    let contentMode: ContentMode
+    let isResizable: Bool
+
+    @StateObject private var model = AnimatedImageModel()
+
+    var body: some View {
+        content
+            .onAppear {
+                model.setPlayer(player ?? AnimatedImagePlayer(source: source))
+                model.player?.play()
+            }
+            .onDisappear { model.player?.pause() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let image = model.image {
+            if isResizable {
+                Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
+            } else {
+                Image(uiImage: image)
+            }
+        } else {
+            Color.clear.frame(width: source.size.width, height: source.size.height)
+        }
+    }
+}
+
+@MainActor
+private final class AnimatedImageModel: ObservableObject {
+    @Published private(set) var image: PlatformImage?
+    private(set) var player: AnimatedImagePlayer?
+
+    func setPlayer(_ player: AnimatedImagePlayer) {
+        guard self.player !== player else { return }
+        self.player = player
+        image = player.image
+        player.onFrame = { [weak self] in self?.image = $0 }
+    }
+}
+
+#endif

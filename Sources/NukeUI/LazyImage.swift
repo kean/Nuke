@@ -166,7 +166,9 @@ public struct LazyImage<Content: View>: View {
 
     @ViewBuilder
     private func makeDefaultContent(for state: LazyImageState) -> some View {
-        if let image = state.image {
+        if let animatedImage = state.animatedImage {
+            AnimatedImage(animatedImage)
+        } else if let image = state.image {
             image
         } else {
             Color(.secondarySystemBackground)

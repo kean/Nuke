@@ -24,9 +24,22 @@ public protocol LazyImageState {
 
     /// The progress of the image download.
     var progress: ImageTask.Progress { get }
+
+    /// Returns the fetched image as an animation, if it is one.
+    ///
+    /// Pass it to ``AnimatedImage`` to play it. The value is `nil` for every
+    /// image that isn't animated, which is the signal to display ``image``.
+    var animatedImage: AnimatedImageSource? { get }
 }
 
 extension LazyImageState {
+    /// Parses the container every time it is read. ``FetchImage`` – the state
+    /// the views actually use – overrides it with a value parsed once, when the
+    /// response arrives.
+    public var animatedImage: AnimatedImageSource? {
+        imageContainer.flatMap(AnimatedImageSource.init(container:))
+    }
+
     /// Returns the current error.
     public var error: ImagePipeline.Error? {
         if case .failure(let error) = result {

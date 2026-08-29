@@ -12,11 +12,13 @@ import SwiftUI
 ///
 /// The decoders are selected by ``ImageDecoderRegistry`` based on the image
 /// data, so a single request works for any of these formats.
+///
+/// See ``AnimatedImagesDemo`` for what NukeUI does with the animated ones.
 struct ImageFormatsDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                DemoIntro("Nuke uses ImageIO, which supports JPEG, PNG, GIF, WebP, HEIF, and more. Animated images and videos are decoded into an `ImageContainer` that carries the original data alongside the first frame, so you can hand it to any view that can play it.")
+                DemoIntro("Nuke uses ImageIO, which supports JPEG, PNG, GIF, WebP, HEIF, and more. An animated image is decoded into an `ImageContainer` that carries the original data alongside the first frame, and NukeUI plays it. The Animated Images screen goes into what that costs.")
 
                 Group {
                     DemoExample("JPEG", caption: "Decoded and decompressed in the background") {
@@ -31,10 +33,10 @@ struct ImageFormatsDemo: View {
                         image(for: DemoImages.webp)
                     }
 
-                    DemoExample("Animated GIF", caption: "container.type == .gif, rendered from container.data") {
+                    DemoExample("Animated GIF", caption: "state.animatedImage, played by NukeUI") {
                         LazyImage(url: DemoImages.gif) { state in
-                            if let container = state.imageContainer, container.type == .gif, let data = container.data {
-                                AnimatedImage(data: data)
+                            if let animatedImage = state.animatedImage {
+                                AnimatedImage(animatedImage).resizable(contentMode: .fill)
                             } else if let image = state.image {
                                 image.resizable().scaledToFill()
                             } else {
@@ -43,6 +45,12 @@ struct ImageFormatsDemo: View {
                         }
                         .frame(height: 240)
                         .clipped()
+                    }
+
+                    DemoExample("Animated PNG", caption: "The default LazyImage content plays animations on its own") {
+                        LazyImage(url: DemoImages.apng)
+                            .frame(height: 240)
+                            .clipped()
                     }
 
                     DemoExample("Video", caption: "ImageDecoders.Video from the NukeVideo module") {

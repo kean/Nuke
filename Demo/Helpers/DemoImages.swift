@@ -22,6 +22,17 @@ enum DemoImages {
 
     static let gif = URL(string: "https://cloud.githubusercontent.com/assets/1567433/6505557/77ff05ac-c2e7-11e4-9a09-ce5b7995cad0.gif")!
 
+    /// An APNG. The pipeline recognizes it as animated and NukeUI plays it with
+    /// the same code path as a GIF.
+    static let apng = URL(string: "https://upload.wikimedia.org/wikipedia/commons/1/14/Animated_PNG_example_bouncing_beach_ball.png")!
+
+    /// An animated WebP.
+    static let animatedWebP = URL(string: "https://www.gstatic.com/webp/animated/1.webp")!
+
+    /// A long, large GIF. Its frames don't all fit in the default buffer, so it
+    /// is the one that shows the sliding window doing its job.
+    static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
+
     static let webp = URL(string: "https://kean.github.io/images/misc/4.webp")!
 
     static let video = URL(string: "https://kean.github.io/videos/cat_video.mp4")!

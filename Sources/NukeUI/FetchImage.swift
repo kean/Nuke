@@ -27,7 +27,16 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - note: In case the pipeline has the `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
-    @Published public private(set) var imageContainer: ImageContainer?
+    @Published public private(set) var imageContainer: ImageContainer? {
+        didSet { animatedImage = imageContainer.flatMap(AnimatedImageSource.init(container:)) }
+    }
+
+    /// Returns the fetched image as an animation, if it is one.
+    ///
+    /// The image is parsed once, when the response arrives, rather than every
+    /// time a view reads it – parsing means counting the frames of the
+    /// container and reading the delay of each one.
+    public private(set) var animatedImage: AnimatedImageSource?
 
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading = false
