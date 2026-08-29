@@ -97,8 +97,8 @@ struct ImageViewIntegrationTests {
     // MARK: - Data Passed
 
 #if os(iOS) || os(visionOS)
-    private final class MockView: UIView, Nuke_ImageDisplaying {
-        func nuke_display(image: PlatformImage?, data: Data?) {
+    private final class MockView: UIView, ImageDisplaying {
+        func display(image: PlatformImage?, data: Data?) {
             recordedData.append(data)
         }
 

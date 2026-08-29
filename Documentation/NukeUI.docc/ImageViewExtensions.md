@@ -109,19 +109,17 @@ Nuke supports progressive JPEG out of the box.
 
 ## Custom Views
 
-You can use image view extensions with custom views by implementing ``Nuke_ImageDisplaying`` protocol.
-
-> The name of the protocol has a prefix because it's an Objective-C protocol. Objective-C runtime allows you to override methods declared in extensions in subclasses.
+You can use image view extensions with custom views by implementing ``ImageDisplaying`` protocol.
 
 ```swift
-extension UIImageView: Nuke_ImageDisplaying {
-    open func nuke_display(image: UIImage?, data: Data?) {
+extension MyImageView: ImageDisplaying {
+    func display(image: UIImage?, data: Data?) {
         self.image = image
     }
 }
 ```
 
-Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
+Nuke provides built-in implementations for `UIImageView` and `NSImageView`. They are declared in extensions and exposed to the Objective-C runtime under a prefixed selector, which is what makes it possible to override `display(image:data:)` in a subclass.
 
 ## Customizing Requests
 

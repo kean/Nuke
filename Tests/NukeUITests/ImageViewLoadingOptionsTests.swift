@@ -393,7 +393,7 @@ struct ImageViewLoadingOptionsTests {
         var options = ImageLoadingOptions(placeholder: Test.image)
         options.processors = [ImageProcessors.Resize(width: 100)]
         options.transition = .custom { view, image in
-            view.nuke_display(image: image, data: nil)
+            view.display(image: image, data: nil)
         }
 #if os(iOS) || os(tvOS) || os(visionOS)
         options.contentModes = ImageLoadingOptions.ContentModes(

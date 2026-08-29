@@ -252,6 +252,37 @@ struct ImageViewExtensionsTests {
             localImageView = nil
         }
     }
+
+    // MARK: - ImageDisplaying
+
+    @Test func subclassOverridesDisplay() async {
+        // GIVEN a subclass that overrides the built-in `UIImageView` conformance,
+        // which is only possible because the conformance is exposed to the
+        // Objective-C runtime
+        let imageView = MockSubclassedImageView()
+
+        // WHEN
+        await loadImageExpectingSuccess(with: Test.request, options: options, into: imageView)
+
+        // THEN the override runs instead of the built-in implementation
+        #expect(imageView.lastDisplayedImage != nil)
+        #expect(imageView.image == nil)
+    }
+
+    @Test func displayKeepsPrefixedSelector() {
+        // The selector is unchanged since Nuke 8 so that the Objective-C
+        // subclasses that override it keep working
+        let selector = #selector(_ImageView.display(image:data:))
+        #expect(NSStringFromSelector(selector) == "nuke_displayWithImage:data:")
+    }
+}
+
+private final class MockSubclassedImageView: _ImageView {
+    var lastDisplayedImage: PlatformImage?
+
+    override func display(image: PlatformImage?, data: Data?) {
+        lastDisplayedImage = image
+    }
 }
 
 #endif

@@ -46,6 +46,7 @@
 - `NukeUI`, `NukeExtensions`, and `NukeVideo` now re-export `Nuke`, so importing them is enough. The `NukeUI.ImageRequest` typealias is removed – https://github.com/kean/Nuke/pull/946
 - `ImagePipeline/Delegate` now declares the isolation of every method instead of documenting it: `willLoadData`, `willCache`, `imageTaskDidStart`, and `imageTask(_:didReceiveEvent:pipeline:)` run on `ImagePipelineActor`, and the rest are `nonisolated` – https://github.com/kean/Nuke/pull/945
 - `NukeExtensions` is folded into `NukeUI`. The image view extensions now ship in `NukeUI`, and `NukeExtensions` is an empty module that re-exports it, scheduled for removal in Nuke 15 – https://github.com/kean/Nuke/pull/947
+- `Nuke_ImageDisplaying` is renamed to `ImageDisplaying` and `nuke_display(image:data:)` to `display(image:data:)`. The protocol is no longer `@objc`, but the built-in conformances keep their `nuke_displayWithImage:data:` selector, so subclasses can still override them – https://github.com/kean/Nuke/pull/950
 
 **Bug Fixes**
 
