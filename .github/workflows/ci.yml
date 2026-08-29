@@ -69,6 +69,7 @@ jobs:
   lint:
     name: SwiftLint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     container: ghcr.io/realm/swiftlint:0.65.0
     steps:
       - uses: actions/checkout@v7

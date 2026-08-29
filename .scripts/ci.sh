@@ -399,12 +399,22 @@ run_job() {
         test)
             # The suites carry their own `.timeLimit` trait, so a hung test is
             # caught by Swift Testing rather than by an xcodebuild allowance.
+            #
+            # -collect-test-diagnostics never: the default, on-failure, shells
+            # out to `simctl diagnose` to stage a full simulator sysdiagnose into
+            # the result bundle, and it fires on runs where nothing failed. It
+            # runs under its own 600s timeout, in its own process group — so a
+            # Ctrl-C does not reach it — which turned a NukeUI job whose tests
+            # take 2s into a 610s one, for a 62MB bundle. Off, the same job is 6s
+            # and 1.3MB. The xcresult still carries the failures, logs, and
+            # attachments a Nuke test is actually debugged from.
             run_streamed "$id" xcodebuild \
                 xcodebuild test \
                     -project "$PROJECT" \
                     -scheme "$scheme" \
                     -destination "$DEST" \
                     -resultBundlePath "$OUTPUT_DIR/$id.xcresult" \
+                    -collect-test-diagnostics never \
                     -parallel-testing-enabled NO \
                     -retry-tests-on-failure || exit_code=$?
             ;;
