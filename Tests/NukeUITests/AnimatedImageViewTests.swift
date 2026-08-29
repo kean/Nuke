@@ -91,6 +91,27 @@ struct AnimatedImageViewTests {
         #expect(player.isPlaying == false)
     }
 
+#if canImport(UIKit)
+    @Test func usesTheScaleOfTheImageBeingDisplayed() throws {
+        let image = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
+
+        view.nuke_display(image: image, data: Test.animatedGIF())
+
+        let player = try #require(view.player)
+        #expect(player.options.scale == 2)
+    }
+
+    @Test func doesNotInheritTheScaleOfThePreviousImage() throws {
+        let scaled = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
+        view.nuke_display(image: scaled, data: Test.animatedGIF(frameCount: 4))
+
+        view.nuke_display(image: Test.image, data: Test.animatedGIF(frameCount: 6))
+
+        let player = try #require(view.player)
+        #expect(player.options.scale == 1)
+    }
+#endif
+
     // MARK: Playback and the Window
 
     @Test func doesNotPlayOutsideAWindow() throws {

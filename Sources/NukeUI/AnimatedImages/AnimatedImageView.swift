@@ -43,11 +43,7 @@ public final class AnimatedImageView: _PlatformImageView {
     /// ``isPlaybackEnabled`` is off.
     public var animatedImage: AnimatedImageSource? {
         get { _animatedImage }
-        set {
-            guard _animatedImage !== newValue else { return }
-            _animatedImage = newValue
-            player = newValue.map(makePlayer)
-        }
+        set { setAnimatedImage(newValue, scale: scale(of: image)) }
     }
 
     /// The player driving ``animatedImage``, or `nil` when there is nothing to
@@ -126,8 +122,10 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func display(image: PlatformImage?, data: Data?) {
         // Setting `animatedImage` first would show the poster frame after the
-        // animation has already started on a fast decode.
-        self.animatedImage = data.flatMap(AnimatedImageSource.init(data:))
+        // animation has already started on a fast decode. The scale has to be
+        // passed in rather than read back from the view: `self.image` is still
+        // whatever the view was showing before this call.
+        setAnimatedImage(data.flatMap(AnimatedImageSource.init(data:)), scale: scale(of: image))
         if animatedImage == nil || player?.image == nil {
             self.image = image
         }
@@ -166,15 +164,29 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // MARK: Private
 
-    private func makePlayer(for source: AnimatedImageSource) -> AnimatedImagePlayer {
-        var options = playerOptions
+    private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
+        guard _animatedImage !== source else { return }
+        _animatedImage = source
+        player = source.map { makePlayer(for: $0, scale: scale) }
+    }
+
+    /// The scale of the image the animation is replacing, or `nil` where the
+    /// platform image has none.
+    private func scale(of image: PlatformImage?) -> CGFloat? {
 #if canImport(UIKit)
+        image?.scale
+#else
+        nil
+#endif
+    }
+
+    private func makePlayer(for source: AnimatedImageSource, scale: CGFloat?) -> AnimatedImagePlayer {
+        var options = playerOptions
         // Match the scale of the still image the decoder produced, or the
         // animation changes size the moment it starts playing.
-        if options.scale == 1, let image, image.scale != 1 {
-            options.scale = image.scale
+        if options.scale == 1, let scale, scale != 1 {
+            options.scale = scale
         }
-#endif
         return AnimatedImagePlayer(source: source, options: options)
     }
 
