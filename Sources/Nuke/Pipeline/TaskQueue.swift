@@ -202,3 +202,24 @@ public final class TaskQueue: Sendable {
         }
     }
 }
+
+// MARK: - TaskQueue (Deprecated)
+
+extension TaskQueue {
+    /// The maximum number of concurrently running tasks.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``maxConcurrentTaskCount`` instead.
+    @available(*, deprecated, renamed: "maxConcurrentTaskCount", message: "Deprecated in Nuke 14.0. The queue no longer has operations behind it. Use `maxConcurrentTaskCount` instead.")
+    nonisolated public var maxConcurrentOperationCount: Int {
+        get { maxConcurrentTaskCount }
+        set { maxConcurrentTaskCount = newValue }
+    }
+
+    /// Initializes the queue.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``init(maxConcurrentTaskCount:)`` instead.
+    @available(*, deprecated, renamed: "init(maxConcurrentTaskCount:)", message: "Deprecated in Nuke 14.0. The queue no longer has operations behind it. Use `init(maxConcurrentTaskCount:)` instead.")
+    nonisolated public convenience init(maxConcurrentOperationCount: Int) {
+        self.init(maxConcurrentTaskCount: maxConcurrentOperationCount)
+    }
+}
