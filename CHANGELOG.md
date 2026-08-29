@@ -63,7 +63,7 @@
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/930
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
-- Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/950
+- Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
 
 **Documentation**
 
