@@ -13,7 +13,7 @@ import AppKit.NSImage
 #endif
 
 /// A set of options that control how the image is loaded and displayed.
-public struct ImageLoadingOptions {
+public struct ImageLoadingOptions: Sendable {
     /// Shared options.
     @MainActor public static var shared = ImageLoadingOptions()
 
@@ -74,7 +74,7 @@ public struct ImageLoadingOptions {
 
     /// Custom content modes to be used for each image type (placeholder, success,
     /// failure).
-    public struct ContentModes {
+    public struct ContentModes: Sendable {
         /// Content mode to be used for the loaded image.
         public var success: UIView.ContentMode
         /// Content mode to be used when displaying a `failureImage`.
@@ -105,7 +105,7 @@ public struct ImageLoadingOptions {
 
     /// Custom tint color to be used for each image type (placeholder, success,
     /// failure).
-    public struct TintColors {
+    public struct TintColors: Sendable {
         /// Tint color to be used for the loaded image.
         public var success: UIColor?
         /// Tint color to be used when displaying a `failureImage`.
@@ -181,13 +181,13 @@ public struct ImageLoadingOptions {
 #endif
 
     /// An animated image transition.
-    public struct Transition {
+    public struct Transition: Sendable {
         var style: Style
 
 #if os(iOS) || os(tvOS) || os(visionOS)
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
-            case custom((ImageDisplayingView, UIImage) -> Void)
+            case custom(@MainActor @Sendable (ImageDisplayingView, UIImage) -> Void)
         }
 
         struct Parameters { // internal representation
@@ -202,13 +202,13 @@ public struct ImageLoadingOptions {
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
-        public static func custom(_ closure: @escaping (ImageDisplayingView, UIImage) -> Void) -> Transition {
+        public static func custom(_ closure: @escaping @MainActor @Sendable (ImageDisplayingView, UIImage) -> Void) -> Transition {
             Transition(style: .custom(closure))
         }
 #elseif os(macOS)
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
-            case custom((ImageDisplayingView, NSImage) -> Void)
+            case custom(@MainActor @Sendable (ImageDisplayingView, NSImage) -> Void)
         }
 
         struct Parameters { // internal representation
@@ -221,7 +221,7 @@ public struct ImageLoadingOptions {
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
-        public static func custom(_ closure: @escaping (ImageDisplayingView, NSImage) -> Void) -> Transition {
+        public static func custom(_ closure: @escaping @MainActor @Sendable (ImageDisplayingView, NSImage) -> Void) -> Transition {
             Transition(style: .custom(closure))
         }
 #else

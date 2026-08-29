@@ -35,6 +35,8 @@
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
 - `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
 - Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
+- `DataLoader/Error` now conforms to `Sendable`. It was the only public error type that didn't, despite crossing isolation boundaries wrapped in `ImagePipeline/Error/dataLoadingFailed(error:)` – https://github.com/kean/Nuke/pull/933
+- `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`. They were the only non-`Sendable` value types left in the public API, even though `ImageLoadingOptions/shared` is `@MainActor`. The `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable`, which is where it already ran – https://github.com/kean/Nuke/pull/935
 
 **Bug Fixes**
 
@@ -44,8 +46,11 @@
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 - Fix a data race on the `DataCache` configuration properties, which the sweep reads on a background thread while they can be written from any thread – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache.init` reading and decoding its metadata file on the calling thread, which is typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
+- Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit, which can be the main thread. The update now joins the staged changes, so the reads that arrive within the same window are written in a single pass – https://github.com/kean/Nuke/pull/927
 - Fix a data race on `DataLoader/prefersIncrementalDelivery`, which the loader reads when it creates a task while it can be written from any thread – https://github.com/kean/Nuke/pull/928
 - Fix a data race on `ImagePrefetcher/didComplete`, which the prefetcher reads on the pipeline actor while it can be written from any thread – https://github.com/kean/Nuke/pull/929
+- Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval`, letting a long-running app grow the cache past its `DataCache/sizeLimit` until the next launch – https://github.com/kean/Nuke/pull/930
+- Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 
 # Nuke 13
 

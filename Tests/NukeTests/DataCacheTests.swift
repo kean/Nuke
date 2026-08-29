@@ -11,6 +11,29 @@ private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
 private let trafficKeyCount = 10
 
+/// Counts the sweeps that a cache performs and lets a test wait for them.
+private final class SweepCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int { lock.withLock { count } }
+
+    func record() {
+        lock.withLock { count += 1 }
+    }
+
+    func wait(for target: Int, timeout: Duration = .seconds(10)) async {
+        let deadline = ContinuousClock.now + timeout
+        while value < target {
+            guard ContinuousClock.now < deadline else {
+                Issue.record("Timed out waiting for \(target) sweeps, performed \(value)")
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+}
+
 @Suite(.timeLimit(.minutes(5)))
 final class DataCacheTests {
     private let cache: DataCache
@@ -332,6 +355,93 @@ final class DataCacheTests {
         // When/Then
         let data = cache.cachedData(for: "key")
         #expect(data == blob)
+    }
+
+    @Test func readingDataUpdatesTheAccessDate() async throws {
+        // GIVEN an entry with a stale access date
+        cache["key"] = blob
+        await cache.flush()
+        let past = Date().addingTimeInterval(-1000)
+        try setAccessDate(past, for: "key")
+
+        // WHEN
+        #expect(cache.cachedData(for: "key") == blob)
+        await cache.flush() // The update runs on the I/O queue
+
+        // THEN
+        #expect(cache.accessDateUpdateCount == 1)
+        #expect(try accessDate(for: "key") > past)
+    }
+
+    @Test func theAccessDateUpdatesWithinTheFlushIntervalAreCoalesced() async {
+        // GIVEN an entry on disk and an interval long enough that the drain
+        // can't run within it
+        cache["key"] = blob
+        await cache.flush()
+        cache.flushInterval = .seconds(20)
+
+        // WHEN it is read repeatedly
+        for _ in 0..<10 {
+            #expect(cache.cachedData(for: "key") == blob)
+        }
+        await cache.flush()
+
+        // THEN the reads perform a single update between them
+        #expect(cache.accessDateUpdateCount == 1)
+    }
+
+    @Test func theAccessDateIsUpdatedAgainByTheReadsThatFollowTheDrain() async {
+        // GIVEN an entry that was already read once
+        cache["key"] = blob
+        await cache.flush()
+        _ = cache.cachedData(for: "key")
+        await cache.flush()
+
+        // WHEN it is read again
+        _ = cache.cachedData(for: "key")
+        await cache.flush()
+
+        // THEN the date doesn't go stale for as long as the entry is in use
+        #expect(cache.accessDateUpdateCount == 2)
+    }
+
+    @Test func theAccessDateIsRefreshedWithoutAnExplicitFlush() async throws {
+        // GIVEN an entry on disk and an interval short enough to keep the test quick
+        cache["key"] = blob
+        await cache.flush()
+        cache.flushInterval = .milliseconds(10)
+
+        // WHEN the read is the only thing that needs to reach the disk
+        _ = cache.cachedData(for: "key")
+
+        // THEN the drain gets to it on its own
+        while cache.accessDateUpdateCount == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    @Test func readingDataFromStagingDoesNotUpdateTheAccessDate() async {
+        // GIVEN data that is only in the staging area
+        cache.withSuspendedIO {
+            cache["key"] = blob
+
+            // WHEN/THEN there is no file to update
+            #expect(cache.cachedData(for: "key") == blob)
+        }
+        await cache.flush()
+        #expect(cache.accessDateUpdateCount == 0)
+    }
+
+    private func setAccessDate(_ date: Date, for key: String) throws {
+        var url = try #require(cache.url(for: key))
+        var values = URLResourceValues()
+        values.contentAccessDate = date
+        try url.setResourceValues(values)
+    }
+
+    private func accessDate(for key: String) throws -> Date {
+        let url = try #require(cache.url(for: key))
+        return try #require(url.resourceValues(forKeys: [.contentAccessDateKey]).contentAccessDate)
     }
 
     // MARK: Flush
@@ -751,6 +861,42 @@ final class DataCacheTests {
         #expect(cache["key"] == blob)
     }
 
+    @Test func manualSweepUpdatesMetadata() async throws {
+        // WHEN performing the sweep manually
+        await cache.sweep()
+
+        // THEN it records the date the same way the scheduled one does
+        let date = try #require(lastSweepDate(at: cache.path))
+        #expect(Date().timeIntervalSince(date) < 5)
+    }
+
+    @Test func scheduledSweepIsSkippedAfterAManualOne() async throws {
+        // GIVEN a cache swept manually
+        let name = UUID().uuidString
+        let cache = try DataCache(
+            name: name,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .seconds(100), // Long enough to never fire during the test
+            onSweepCompleted: {}
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        await cache.sweep()
+        let dateAfterManualSweep = try #require(lastSweepDate(at: cache.path))
+
+        // WHEN the app launches again shortly after
+        let other = try DataCache(
+            name: name,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            onSweepCompleted: { Issue.record("the sweep ran within `sweepInterval` of the manual one") }
+        )
+        try await Task.sleep(for: .milliseconds(300))
+
+        // THEN the launch sweep sees the recent one and skips, leaving the date be
+        #expect(lastSweepDate(at: cache.path) == dateAfterManualSweep)
+        _ = other
+    }
+
     @Test func scheduledSweepIsSkippedWhenDisabled() async throws {
         let cache = try DataCache(
             name: UUID().uuidString,
@@ -766,6 +912,73 @@ final class DataCacheTests {
         // THEN the sweep never ran, so it never stamped its metadata either
         let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
         #expect(!FileManager.default.fileExists(atPath: metadataURL.path))
+    }
+
+    @Test func scheduledSweepRepeatsOnTheSweepInterval() async throws {
+        // GIVEN a cache that sweeps every 50 ms
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+
+        // THEN the sweeps keep coming instead of stopping after the first one
+        await counter.wait(for: 3)
+        cache.isSweepEnabled = false
+    }
+
+    @Test func periodicSweepTrimsTheDataWrittenAfterTheFirstSweep() async throws {
+        // GIVEN a long-lived cache that has already performed its first sweep
+        let mb = 1024 * 1024
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.sizeLimit = mb * 3
+        await counter.wait(for: 1)
+
+        // WHEN more data than the limit fits is written after that sweep
+        for index in 1...5 {
+            cache["key\(index)"] = Data(repeating: UInt8(index), count: mb)
+        }
+        await cache.flush()
+
+        // THEN one of the sweeps that follow brings the cache back under it
+        await counter.wait(for: counter.value + 2)
+        #expect(cache.totalSize <= mb * 3)
+        cache.isSweepEnabled = false
+    }
+
+    @Test func scheduledSweepResumesWhenItIsReEnabled() async throws {
+        // GIVEN a cache with the sweep turned off before the first one runs
+        let counter = SweepCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(50),
+            sweepInterval: 0.05,
+            onSweepCompleted: { counter.record() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.isSweepEnabled = false
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(counter.value == 0)
+
+        // WHEN it's turned back on
+        cache.isSweepEnabled = true
+
+        // THEN the sweeps that were skipped didn't take the schedule with them
+        await counter.wait(for: 1)
+        cache.isSweepEnabled = false
     }
 
     @Test func scheduledSweepRunsWhenTheLastOneIsOlderThanTheInterval() async throws {
@@ -792,6 +1005,14 @@ final class DataCacheTests {
 
         // THEN the stale date doesn't hold the sweep back
         await expectation.wait(timeout: .seconds(5))
+    }
+
+    private func lastSweepDate(at path: URL) -> Date? {
+        struct CacheMetadata: Codable { var lastSweepDate: Date? }
+        guard let data = try? Data(contentsOf: path.appendingPathComponent(".data-cache-info")) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(CacheMetadata.self, from: data).lastSweepDate
     }
 
     // MARK: Sweep Edge Cases
