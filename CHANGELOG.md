@@ -23,40 +23,41 @@
 
 **Requirements**
 
-- Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904. The internal locks now use `OSAllocatedUnfairLock` instead of the hand-rolled `os_unfair_lock_t` allocations – https://github.com/kean/Nuke/pull/908
+- Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
+- Replace the hand-rolled `os_unfair_lock_t` allocations with `OSAllocatedUnfairLock` – https://github.com/kean/Nuke/pull/908
 
 **API Changes**
 
 - Remove previously deprecated APIs: `ImagePipelineDelegate` typealias, `ImageRequest.imageId`, `ImageRequest.UserInfoKey.imageIdKey`, `ImageRequest.UserInfoKey.scaleKey`, `ImageRequest.UserInfoKey.thumbnailKey`, `ImagePipeline.Configuration.maximumDecodedImageSize`, and `ImageDecodingContext.maximumDecodedImageSize` – https://github.com/kean/Nuke/pull/907
-- Remove the soft-deprecated `userInfo` parameter from the `ImageRequest` initializers. It's still available as a property – https://github.com/kean/Nuke/pull/909
+- Remove the soft-deprecated `userInfo` parameter from the `ImageRequest` initializers; it's still available as a property – https://github.com/kean/Nuke/pull/909
 - `ImageRequest.scale` and `ImageRequest.ThumbnailOptions.init(maxPixelSize:)` now use `CGFloat` – https://github.com/kean/Nuke/pull/910
 - Remove Combine support: `ImagePipeline.imagePublisher(with:)` and `FetchImage.load(_:)` that takes a publisher. Use the Async/Await APIs instead – https://github.com/kean/Nuke/pull/911
 - Remove `ImageTask/Event/started`, which `ImageTask/events` never yielded, and add `ImagePipeline/Delegate/imageTaskDidStart(_:pipeline:)` in its place – https://github.com/kean/Nuke/pull/914
 - `ImageTask` now conforms to `Identifiable` – https://github.com/kean/Nuke/pull/922
-- `DataCache` is now `Sendable` instead of `@unchecked Sendable`: all of its mutable state, including the configuration properties, is guarded by a single lock. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
-- Add `AssetType/avif`. Image I/O decodes AVIF on every supported platform, but `AssetType/init(_:)` didn't recognize the `avif` and `avis` brands, so `ImageContainer/type` was `nil` – https://github.com/kean/Nuke/pull/926
-- `DataLoader/Error` now conforms to `Sendable`. It was the only public error type that didn't, despite crossing isolation boundaries wrapped in `ImagePipeline/Error/dataLoadingFailed(error:)` – https://github.com/kean/Nuke/pull/933
-- `ImageProcessors/CoreImageFilter/Error` is now `Sendable` instead of `@unchecked Sendable`: its cases carry a filter name and descriptions instead of the `CIFilter`, `CIImage`, and `[String: Any]` payloads, which escaped the processing queue wrapped in `ImagePipeline/Error/processingFailed(processor:context:error:)` – https://github.com/kean/Nuke/pull/934
-- `ImageProcessors/CoreImageFilter` now takes `[String: any Sendable]` filter parameters instead of `[String: Any]`, matching the rest of the public API. The types Core Image filters commonly take – `CIImage`, `CIColor`, `CIVector`, `CGImage`, `NSNumber` – are all `Sendable` – https://github.com/kean/Nuke/pull/934
-- `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`. They were the only non-`Sendable` value types left in the public API, even though `ImageLoadingOptions/shared` is `@MainActor`. The `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable`, which is where it already ran – https://github.com/kean/Nuke/pull/935
-- `ImageDecodingContext/init(request:data:isCompleted:urlResponse:cacheType:previewPolicy:)` now takes `previewPolicy`. It was the only property you couldn't set at initialization – https://github.com/kean/Nuke/pull/936
-- `TaskQueue/maxConcurrentOperationCount` and the matching initializer parameter are renamed to `maxConcurrentTaskCount`, which is what the queue's own docs and the five `ImagePipeline/Configuration` queue properties already call it. The old names are deprecated – https://github.com/kean/Nuke/pull/942
-- `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of handing out an escaping, non-`Sendable` completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
+- `DataCache` is now `Sendable` instead of `@unchecked Sendable`. `DataCache/flush()` and `DataCache/sweep()` are now `async`, and `DataCache/queue` and `flush(for:)` are removed – https://github.com/kean/Nuke/pull/925
+- Add `AssetType/avif` and detect the `avif` and `avis` brands, which `ImageContainer/type` previously reported as `nil` – https://github.com/kean/Nuke/pull/926
+- `DataLoader/Error` now conforms to `Sendable` – https://github.com/kean/Nuke/pull/933
+- `ImageProcessors/CoreImageFilter/Error` is now `Sendable` instead of `@unchecked Sendable`: its cases carry a filter name and descriptions instead of the `CIFilter`, `CIImage`, and `[String: Any]` payloads – https://github.com/kean/Nuke/pull/934
+- `ImageProcessors/CoreImageFilter` now takes `[String: any Sendable]` filter parameters instead of `[String: Any]` – https://github.com/kean/Nuke/pull/934
+- `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`, and the `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable` – https://github.com/kean/Nuke/pull/935
+- `ImageDecodingContext/init(request:data:isCompleted:urlResponse:cacheType:previewPolicy:)` now takes `previewPolicy` – https://github.com/kean/Nuke/pull/936
+- `TaskQueue/maxConcurrentOperationCount` and the matching initializer parameter are renamed to `maxConcurrentTaskCount`; the old names are deprecated – https://github.com/kean/Nuke/pull/942
+- `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of taking a completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
 
 **Bug Fixes**
 
-- Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled`, which the pipeline reads on every signpost while it can be written from any thread – https://github.com/kean/Nuke/pull/901
+- Fix a data race on `ImagePipeline/Configuration/isSignpostLoggingEnabled` – https://github.com/kean/Nuke/pull/901
 - Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
-- Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit. A new stream now replays the terminal event and starts with the current progress – https://github.com/kean/Nuke/pull/916
+- Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit – https://github.com/kean/Nuke/pull/916
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
-- Fix a data race on the `DataCache` configuration properties, which the sweep reads on a background thread while they can be written from any thread – https://github.com/kean/Nuke/pull/925
-- Fix `DataCache.init` reading and decoding its metadata file on the calling thread, which is typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
-- Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit, which can be the main thread. The update now joins the staged changes, so the reads that arrive within the same window are written in a single pass – https://github.com/kean/Nuke/pull/927
-- Fix a data race on `DataLoader/prefersIncrementalDelivery`, which the loader reads when it creates a task while it can be written from any thread – https://github.com/kean/Nuke/pull/928
-- Fix a data race on `ImagePrefetcher/didComplete`, which the prefetcher reads on the pipeline actor while it can be written from any thread – https://github.com/kean/Nuke/pull/929
-- Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval`, letting a long-running app grow the cache past its `DataCache/sizeLimit` until the next launch – https://github.com/kean/Nuke/pull/930
+- Fix a data race on the `DataCache` configuration properties – https://github.com/kean/Nuke/pull/925
+- Fix `DataCache.init` reading and decoding its metadata file on the calling thread, typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
+- Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit – https://github.com/kean/Nuke/pull/927
+- Fix a data race on `DataLoader/prefersIncrementalDelivery` – https://github.com/kean/Nuke/pull/928
+- Fix a data race on `ImagePrefetcher/didComplete` – https://github.com/kean/Nuke/pull/929
+- Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/930
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
-- Fix `DataCache` writing entries non-atomically. Reads run on the calling thread, so a read that arrived while the drain overwrote the same key returned a truncated file. The data now goes to a temporary file that is renamed over the destination – https://github.com/kean/Nuke/pull/937
+- Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
 
 # Nuke 13
 
