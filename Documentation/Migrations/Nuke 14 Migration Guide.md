@@ -104,3 +104,21 @@ request.scale = Float(traitCollection.displayScale)
 // Nuke 14
 request.scale = traitCollection.displayScale
 ```
+
+## `willCache` is now `async`
+
+`ImagePipeline.Delegate.willCache(data:image:for:pipeline:)` returns the data to store instead of taking a completion closure. Return `nil` to prevent caching.
+
+```swift
+// Nuke 13
+func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+    completion(shouldStore(request) ? data : nil)
+}
+
+// Nuke 14
+func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
+    shouldStore(request) ? data : nil
+}
+```
+
+The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.

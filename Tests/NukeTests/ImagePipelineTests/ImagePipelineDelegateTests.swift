@@ -60,6 +60,8 @@ struct ImagePipelineDelegateTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
+    // MARK: - willCache
+
     @Test func dataIsStoredInCache() async throws {
         // WHEN
         _ = try await pipeline.image(for: Test.request)
@@ -77,6 +79,46 @@ struct ImagePipelineDelegateTests {
 
         // THEN
         #expect(dataCache.store.isEmpty)
+    }
+
+    @Test func willCacheReturningNilPreventsStoringData() async throws {
+        // GIVEN a delegate that returns `nil` from `willCache`
+        delegate.willCacheTransform = { _ in nil }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN nothing is written to the disk cache
+        #expect(dataCache.store.isEmpty)
+        #expect(dataCache.writeCount == 0)
+    }
+
+    @Test func willCacheReturningModifiedDataStoresModifiedData() async throws {
+        // GIVEN a delegate that replaces the data passed to `willCache`
+        let modifiedData = Data("modified".utf8)
+        delegate.willCacheTransform = { _ in modifiedData }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN the modified data is what ends up in the disk cache
+        #expect(dataCache.store.count == 1)
+        #expect(dataCache.store.values.first == modifiedData)
+    }
+
+    @Test func willCacheReturningNilPreventsStoringEncodedImage() async throws {
+        // GIVEN a delegate that returns `nil` from `willCache` and a request
+        // that makes the pipeline store a processed (re-encoded) image
+        delegate.willCacheTransform = { _ in nil }
+        let request = ImageRequest(url: Test.url, processors: [.resize(width: 44)])
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN nothing is written to the disk cache
+        #expect(dataCache.store.isEmpty)
+        #expect(dataCache.writeCount == 0)
     }
 
     // MARK: - willLoadData
@@ -180,6 +222,9 @@ struct ImagePipelineDelegateTests {
 private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     var isCacheEnabled = true
 
+    /// Applied to the data passed to `willCache`. Return `nil` to prevent caching.
+    var willCacheTransform: ((Data) -> Data?)?
+
     // willLoadData tracking
     var willLoadDataCallCount = 0
     var willLoadDataRequest: URLRequest?
@@ -192,8 +237,9 @@ private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecke
         request.userInfo["imageId"] as? String
     }
 
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
-        completion(isCacheEnabled ? data : nil)
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
+        guard isCacheEnabled else { return nil }
+        return willCacheTransform.map { $0(data) } ?? data
     }
 
     func willLoadData(

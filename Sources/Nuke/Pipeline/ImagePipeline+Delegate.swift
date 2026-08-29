@@ -65,11 +65,11 @@ extension ImagePipeline {
         func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
 
         /// Gets called when the pipeline is about to save data for the given request.
-        /// The implementation must call the completion closure passing `non-nil` data
-        /// to enable caching or `nil` to prevent it.
         ///
         /// This method is called only if the request parameters and data caching policy
         /// of the pipeline already allow caching.
+        ///
+        /// The default implementation returns `data` unchanged.
         ///
         /// - parameters:
         ///   - data: Either the original data or the encoded image in case of storing
@@ -77,11 +77,9 @@ extension ImagePipeline {
         ///   - image: Non-nil in case storing an encoded image.
         ///   - request: The request for which image is being stored.
         ///   - pipeline: The pipeline that is about to store the data.
-        ///   - completion: The implementation must call the completion closure
-        ///   passing `non-nil` data to enable caching or `nil` to prevent it. You can
-        ///   safely call it synchronously. The callback gets called on the background
-        ///   thread.
-        func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
+        /// - returns: The data to store. Return `nil` to prevent caching.
+        @ImagePipelineActor
+        func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data?
 
         // MARK: Decompression
 
@@ -147,8 +145,9 @@ extension ImagePipeline.Delegate {
         nil
     }
 
-    public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
-        completion(data)
+    @ImagePipelineActor
+    public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
+        data
     }
 
     public func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool {
