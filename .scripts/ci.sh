@@ -255,6 +255,14 @@ JOB_STATUSES=()
 JOB_SUMMARIES=()
 JOB_DURATIONS=()
 
+# Pad to a column width. `printf %-34s` counts bytes, so every label carrying a
+# "·" and every summary carrying a "✓" came up short by a column or three.
+pad() {
+    local width=$(( $2 - ${#1} ))
+    [ "$width" -lt 0 ] && width=0
+    printf "%s%*s" "$1" "$width" ""
+}
+
 # One row of the running tally, in the same shape as the final summary.
 # A negative status means the job could not run at all — see the lint case.
 print_result_row() {
@@ -262,8 +270,8 @@ print_result_row() {
     if [ "$status" -lt 0 ]; then   icon="${YELLOW}⏭️${RESET} "
     elif [ "$status" -eq 0 ]; then icon="${GREEN}✅${RESET}"
     else                           icon="${RED}❌${RESET}"; fi
-    printf -v detail "%-34s  %s" "$label" "$summary"
-    printf "  %b  %-56s %s(%s)%s\n" "$icon" "$detail" "$DIM" "$(format_duration "$duration")" "$RESET"
+    detail="$(pad "$label" 34)  $summary"
+    printf "  %b  %s %s(%s)%s\n" "$icon" "$(pad "$detail" 56)" "$DIM" "$(format_duration "$duration")" "$RESET"
 }
 
 _INTERRUPTED=false
