@@ -766,6 +766,42 @@ final class DataCacheTests {
         #expect(String(data: data, encoding: .utf8) == "2")
     }
 
+    /// A read that misses the staging shortcut falls through to the disk on the
+    /// caller's thread, which can run while the drain writes the same key. The
+    /// write has to be atomic: one that truncates in place hands the reader a
+    /// prefix of the file.
+    @Test func concurrentReadNeverSeesAPartiallyWrittenFile() async throws {
+        // Big enough that the write is not over before a reader can catch it.
+        let size = 4 * 1024 * 1024
+        let first = Data(repeating: 1, count: size)
+        let second = Data(repeating: 2, count: size)
+
+        cache["key"] = first
+        await cache.flush()
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<4 {
+                group.addTask { [cache] in
+                    for _ in 0..<250 {
+                        guard let data = cache["key"] else { continue }
+                        // Both values are the same length, so a torn read is
+                        // always short. Check the bytes too, in case it is not.
+                        if data.count != size || (data != first && data != second) {
+                            Issue.record("Read a partially written file: \(data.count) of \(size) bytes")
+                            return
+                        }
+                    }
+                }
+            }
+            group.addTask { [cache] in
+                for index in 0..<60 {
+                    cache["key"] = index.isMultiple(of: 2) ? second : first
+                    await cache.flush()
+                }
+            }
+        }
+    }
+
     // MARK: Persistence
 
     @Test func flushedDataIsVisibleToANewInstanceAtTheSamePath() async throws {

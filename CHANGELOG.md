@@ -51,6 +51,7 @@
 - Fix a data race on `ImagePrefetcher/didComplete`, which the prefetcher reads on the pipeline actor while it can be written from any thread – https://github.com/kean/Nuke/pull/929
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval`, letting a long-running app grow the cache past its `DataCache/sizeLimit` until the next launch – https://github.com/kean/Nuke/pull/930
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
+- Fix `DataCache` writing entries non-atomically. Reads run on the calling thread, so a read that arrived while the drain overwrote the same key returned a truncated file. The data now goes to a temporary file that is renamed over the destination – https://github.com/kean/Nuke/pull/937
 
 # Nuke 13
 
