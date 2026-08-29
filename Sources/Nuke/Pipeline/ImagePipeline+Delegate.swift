@@ -171,4 +171,34 @@ extension ImagePipeline.Delegate {
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 }
 
+/// The pipeline invokes the delegate hooks through these methods: they skip the
+/// hooks entirely when the pipeline is created without a custom delegate.
+extension ImagePipeline {
+    @ImagePipelineActor
+    func willLoadData(for request: ImageRequest, urlRequest: URLRequest) async throws -> URLRequest {
+        guard !isDefaultDelegate else { return urlRequest }
+        return try await delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: self)
+    }
+
+    @ImagePipelineActor
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest) async -> Data? {
+        isDefaultDelegate ? data : await delegate.willCache(data: data, image: image, for: request, pipeline: self)
+    }
+
+    nonisolated func imageTaskCreated(_ task: ImageTask, isDataTask: Bool) {
+        guard !isDataTask && !isDefaultDelegate else { return }
+        delegate.imageTaskCreated(task, pipeline: self)
+    }
+
+    func imageTaskDidStart(_ task: ImageTask, isDataTask: Bool) {
+        guard !isDataTask && !isDefaultDelegate else { return }
+        delegate.imageTaskDidStart(task, pipeline: self)
+    }
+
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, isDataTask: Bool) {
+        guard !isDataTask && !isDefaultDelegate else { return }
+        delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
+    }
+}
+
 final class ImagePipelineDefaultDelegate: ImagePipeline.Delegate {}
