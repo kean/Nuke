@@ -180,9 +180,15 @@ set_destination() {
 }
 
 # xcbeautify is preinstalled on GitHub's macOS images and is the normal local
-# setup, but the script must still work without it.
+# setup, but the script must still work without it. It only understands
+# xcodebuild: it drops every line of a `swift build` and scrambles SwiftLint's
+# output, so those two stream as they are.
 prettify() {
-    if command -v xcbeautify >/dev/null 2>&1; then xcbeautify; else cat; fi
+    if [ "$1" = "xcodebuild" ] && command -v xcbeautify >/dev/null 2>&1; then
+        xcbeautify
+    else
+        cat
+    fi
 }
 
 # ── Progress line ─────────────────────────────────────────────────────────────
@@ -323,14 +329,15 @@ trap on_interrupt INT TERM
 
 # Runs a command with its output teed to the raw log (which parse_test_results
 # greps), prettified into a readable log, and then either swallowed by the
-# progress line or streamed as-is.
+# progress line or streamed as-is. $2 is the tool whose output this is, which is
+# what decides whether xcbeautify gets to touch it.
 run_streamed() {
-    local id="$1"; shift
+    local id="$1" tool="$2"; shift 2
     local rc=0
     if $PROGRESS; then
-        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify | tee "$OUTPUT_DIR/$id.txt" | progress_sink || rc=$?
+        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" | tee "$OUTPUT_DIR/$id.txt" | progress_sink || rc=$?
     else
-        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify | tee "$OUTPUT_DIR/$id.txt" || rc=$?
+        "$@" 2>&1 | tee "$OUTPUT_DIR/$id.log" | prettify "$tool" | tee "$OUTPUT_DIR/$id.txt" || rc=$?
     fi
     return $rc
 }
@@ -370,7 +377,7 @@ run_job() {
             # Not --strict yet: SwiftLint has never gated CI, so the existing
             # warnings need clearing first. Tighten once they are.
             if command -v swiftlint >/dev/null 2>&1; then
-                run_streamed "$id" env -C "$PROJECT_ROOT" swiftlint lint || exit_code=$?
+                run_streamed "$id" swiftlint env -C "$PROJECT_ROOT" swiftlint lint || exit_code=$?
             else
                 # A negative status marks the job skipped rather than passed —
                 # reporting green for a job that never ran is how CI goes stale.
@@ -379,10 +386,10 @@ run_job() {
             fi
             ;;
         spm)
-            run_streamed "$id" env -C "$PROJECT_ROOT" swift build --build-tests || exit_code=$?
+            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift build --build-tests || exit_code=$?
             ;;
         build)
-            run_streamed "$id" \
+            run_streamed "$id" xcodebuild \
                 xcodebuild build \
                     -project "$PROJECT" \
                     -scheme "$scheme" \
@@ -392,7 +399,7 @@ run_job() {
         test)
             # The suites carry their own `.timeLimit` trait, so a hung test is
             # caught by Swift Testing rather than by an xcodebuild allowance.
-            run_streamed "$id" \
+            run_streamed "$id" xcodebuild \
                 xcodebuild test \
                     -project "$PROJECT" \
                     -scheme "$scheme" \
