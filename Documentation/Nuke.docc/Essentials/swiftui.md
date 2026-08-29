@@ -4,7 +4,7 @@ Display images in SwiftUI using the NukeUI module.
 
 ## Overview
 
-[NukeUI](https://github.com/kean/NukeUI) is a companion module that provides SwiftUI components built on top of ``ImagePipeline``. Add it to your project via Swift Package Manager alongside Nuke.
+NukeUI provides SwiftUI components built on top of ``ImagePipeline``. It ships in the same package as Nuke, so there is nothing extra to install – add the `NukeUI` library to your target and `import NukeUI`.
 
 ## LazyImage
 
@@ -28,46 +28,37 @@ struct AvatarView: View {
 
 ## Handling Loading and Failure States
 
-Use the `content` closure to customize how each phase is displayed.
+Use the `content` closure to customize what is displayed for each state. The closure receives a `LazyImageState` with `image`, `error`, `isLoading`, `progress`, and the underlying `result`.
 
 ```swift
-LazyImage(url: url) { phase in
-    switch phase {
-    case .success(let image):
+LazyImage(url: url) { state in
+    if let image = state.image {
         image.resizable().scaledToFill()
-    case .failure:
+    } else if state.error != nil {
         Image(systemName: "photo")
             .foregroundStyle(.secondary)
-    case .empty:
+    } else {
         ProgressView()
-    @unknown default:
-        EmptyView()
     }
 }
 .frame(width: 320, height: 200)
 .clipped()
 ```
 
+> Note: Unlike `AsyncImage`, `LazyImage` doesn't pass a phase enum to the closure – it passes the state itself, so you can read the download progress or the underlying ``ImageResponse`` while the view is on screen.
+
 ## Transitions
 
-Apply transitions to the displayed image using the `.transition` modifier.
+To animate the state changes, pass a `Transaction`. It's applied when the image is displayed.
 
 ```swift
-LazyImage(url: url)
-    .transition(.opacity)
-```
-
-For a cross-fade from a placeholder, use `.animation` on the phase view:
-
-```swift
-LazyImage(url: url) { phase in
-    if let image = phase.image {
+LazyImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.33))) { state in
+    if let image = state.image {
         image.resizable().scaledToFill()
     } else {
         Color.secondary.opacity(0.2)
     }
 }
-.animation(.easeInOut(duration: 0.3), value: phase.image != nil)
 ```
 
 ## Image Processors
@@ -81,18 +72,26 @@ LazyImage(request: ImageRequest(
 ))
 ```
 
+You can also set them on the view, in which case they only apply if the request doesn't define its own.
+
+```swift
+LazyImage(url: url)
+    .processors([.resize(width: 320)])
+    .priority(.high)
+```
+
 > Tip: Using `processors` ensures the resized image is stored in the memory cache at the display size, reducing memory pressure. See <doc:image-processing> to learn more.
 
 ## Using a Custom Pipeline
 
-To use a pipeline other than ``ImagePipeline/shared``, pass it via the environment.
+To use a pipeline other than ``ImagePipeline/shared``, set it on the view.
 
 ```swift
-ContentView()
-    .environment(\.imagePipeline, myPipeline)
+LazyImage(url: url)
+    .pipeline(myPipeline)
 ```
 
-All `LazyImage` views in that subtree will use `myPipeline` automatically.
+> Tip: There is no environment-based mechanism for this – `pipeline(_:)` is set per view. If most of your app uses a single custom pipeline, assign it to ``ImagePipeline/shared`` at launch instead of passing it to every view.
 
 ## FetchImage for Custom Views
 
@@ -119,4 +118,4 @@ struct CustomImageView: View {
 }
 ```
 
-`FetchImage` automatically cancels the in-flight request when the view disappears and restarts it when the view reappears.
+`reset()` cancels the in-flight request and clears the loaded image. Use `cancel()` instead if you want to stop the download but keep displaying what was already loaded.

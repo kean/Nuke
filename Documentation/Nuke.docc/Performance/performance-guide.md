@@ -34,10 +34,13 @@ This response is cacheable, and will be *fresh* for 1 hour. When the response be
 
 If your server uses unique URLs for images for which the contents never change, consider enabling ``DataCache`` (see ``ImagePipeline/Configuration-swift.struct/withDataCache`` that also takes care of disabling the default `URLCache`). It's a fast persistent cache with non-blocking writes that allows reads to be parallel to writes and each other. It also works offline and reduces pressure on `URLSession`.
 
-> Tip: By default, ``DataCache`` stores only the original image data. To also cache processed images, set a data cache policy that enables it. ``ImagePipeline/DataCachePolicy/automatic`` is a good default: it stores original data for unprocessed requests and processed images for requests with processors.
+> Tip: By default, ``DataCache`` stores only the original image data (``ImagePipeline/DataCachePolicy/storeOriginalData``). To also cache processed images, set ``ImagePipeline/Configuration-swift.struct/dataCachePolicy`` on the configuration. ``ImagePipeline/DataCachePolicy/automatic`` is a good default: it stores original data for unprocessed requests and processed images for requests with processors.
 
 ```swift
-ImagePipeline.shared = ImagePipeline(configuration: .withDataCache(dataCachePolicy: .automatic))
+var configuration = ImagePipeline.Configuration.withDataCache()
+configuration.dataCachePolicy = .automatic
+
+ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
 > Tip: To save disk space, see `ImageEncoders.ImageIO` and `ImageEncoder.isHEIFPreferred` option for HEIF support.
@@ -89,11 +92,11 @@ Thanks to coalescing (enabled by default), the pipeline avoids doing any duplica
 let url = URL(string: "https://example.com/image")
 
 // Only one network request is made for both of these
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
+let blurred = pipeline.imageTask(with: ImageRequest(url: url, processors: [
     .resize(size: CGSize(width: 44, height: 44)),
     .gaussianBlur(radius: 8)
 ]))
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
+let thumbnail = pipeline.imageTask(with: ImageRequest(url: url, processors: [
     .resize(size: CGSize(width: 44, height: 44))
 ]))
 ```
@@ -116,7 +119,7 @@ Once enabled, you’ll first see a blurry low-quality version of the full image,
 
 ## Request Priorities
 
-Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributes its work on [operation queues](https://developer.apple.com/documentation/foundation/operationqueue) dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible.
+Nuke is fully asynchronous and performs well under stress. ``ImagePipeline`` distributes its work on ``TaskQueue`` instances dedicated to a specific type of work, such as processing and decoding. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible.
 
 Cancelling an ``ImageTask`` frees its associated network and CPU resources immediately. Thanks to coalescing, the underlying work is only cancelled when all requests sharing it have been cancelled — so cancelling one request doesn't affect others loading the same image.
 

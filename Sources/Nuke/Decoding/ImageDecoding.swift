@@ -13,7 +13,7 @@ import Foundation
 public protocol ImageDecoding: Sendable {
     /// Returns `true` if you want the decoding to be performed on the decoding
     /// queue (see ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``). If `false`, the decoding will be
-    /// performed synchronously on the pipeline operation queue. By default, `true`.
+    /// performed synchronously on the pipeline's actor. By default, `true`.
     var isAsynchronous: Bool { get }
 
     /// Produces an image from the given image data.
