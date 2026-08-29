@@ -59,7 +59,19 @@ struct ImageProcessingOptionsTests {
 #else
         let border = ImageProcessingOptions.Border(color: .blue)
 #endif
-        #expect(border.width > 0)
+        #expect(border.widthInPixels > 0)
+    }
+
+    @Test func borderWidthInPixelsIsUsedAsIs() {
+        let border = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
+        #expect(border.widthInPixels == 2)
+    }
+
+    /// The width used to be stored in pixels but reported by a property named
+    /// `width`, so it didn't return what the caller passed in.
+    @Test func borderWidthInPointsIsConvertedToPixels() {
+        let border = ImageProcessingOptions.Border(color: .red, width: 2, unit: .points)
+        #expect(border.widthInPixels == 2 * Screen.scale)
     }
 
     @Test func bordersWithSameColorAndWidthAreEqual() {

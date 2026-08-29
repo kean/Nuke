@@ -38,29 +38,38 @@ public enum ImageProcessingOptions: Sendable {
     /// consider adding border to a view layer. This should be your primary
     /// option regardless.
     public struct Border: Hashable, CustomStringConvertible, Sendable {
-        public let width: CGFloat
+        /// The border width in pixels.
+        ///
+        /// The initializer converts the given width to pixels using the unit
+        /// you pass, so this is not necessarily the value you passed in.
+        public let widthInPixels: CGFloat
+
+        @available(*, deprecated, renamed: "widthInPixels", message: "Deprecated in Nuke 14.0. Renamed to `widthInPixels` to reflect what it returns: the width converted to pixels, not the value passed to the initializer.")
+        public var width: CGFloat { widthInPixels }
 
 #if canImport(UIKit)
         public let color: UIColor
 
         /// - parameters:
         ///   - color: Border color.
-        ///   - width: Border width.
-        ///   - unit: Unit of the width.
+        ///   - width: Border width, in the given unit.
+        ///   - unit: Unit of the width. The width is converted to pixels and
+        ///   is available as ``widthInPixels``.
         public init(color: UIColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
-            self.width = width.converted(to: unit)
+            self.widthInPixels = width.converted(to: unit)
         }
 #else
         public let color: NSColor
 
         /// - parameters:
         ///   - color: Border color.
-        ///   - width: Border width.
-        ///   - unit: Unit of the width.
+        ///   - width: Border width, in the given unit.
+        ///   - unit: Unit of the width. The width is converted to pixels and
+        ///   is available as ``widthInPixels``.
         public init(color: NSColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
-            self.width = width.converted(to: unit)
+            self.widthInPixels = width.converted(to: unit)
         }
 #endif
 
@@ -70,7 +79,7 @@ public enum ImageProcessingOptions: Sendable {
             // processors that draw borders, so the fallback has to stay
             // distinct per color instead of collapsing every such color onto
             // the same – and, in the case of "#00000000", already taken – value.
-            "Border(color: \(color.hex ?? String(describing: color)), width: \(width) pixels)"
+            "Border(color: \(color.hex ?? String(describing: color)), width: \(widthInPixels) pixels)"
         }
     }
 

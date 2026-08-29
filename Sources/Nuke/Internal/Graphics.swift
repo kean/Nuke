@@ -123,7 +123,7 @@ struct ImageProcessingExtensions {
         if let border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
-            ctx.setLineWidth(border.width)
+            ctx.setLineWidth(border.widthInPixels)
             ctx.strokePath()
         }
         guard let outputCGImage = ctx.makeImage() else {
