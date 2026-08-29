@@ -61,6 +61,10 @@
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
 
+**Documentation**
+
+- Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
+
 # Nuke 13
 
 ## Nuke 13.2.0
