@@ -24,8 +24,6 @@ struct PrefetchingDemo: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            DemoIntro("Prefetching downloads the images before they appear on screen. Use the same requests for prefetching and for display – otherwise the prefetcher fills the cache with images you never show.")
-
             Picker("Kind", selection: $kind) {
                 ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
             }
@@ -39,7 +37,24 @@ struct PrefetchingDemo: View {
                 SwiftUIPrefetchingDemo()
             }
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Prefetching",
+        "`ImagePrefetcher` downloads images before they appear on screen. It runs the requests at a low priority and limits how many are in flight, so it never gets in the way of the images the user is actually looking at.",
+        code: """
+        prefetcher.startPrefetching(with: urls)
+        prefetcher.stopPrefetching(with: urls)
+        """,
+        points: [
+            .init("Same request", "Prefetch with the request you display with. If they differ by so much as a processor, the prefetcher fills the cache with images you never show."),
+            .init("UIKit", "`UICollectionViewDataSourcePrefetching` tells you exactly which items to start and which ones to stop."),
+            .init("SwiftUI", "There is no equivalent, so the demo derives the window from `onAppear` and `onDisappear`."),
+            .init("Pausing", "`isPaused` holds the queue when the screen goes away. The outstanding requests finish and the rest wait, so coming back is instant."),
+            .init("Destination", "Prefetch into the memory cache for images that are about to be shown, or into the disk cache for ones that might be.")
+        ]
+    )
 }
 
 // MARK: - UIKit

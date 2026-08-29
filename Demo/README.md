@@ -13,6 +13,8 @@ the images are loaded over the network from public URLs.
 ## Screens
 
 The sections mirror the [documentation](https://kean-docs.github.io/nuke/documentation/nuke).
+Every screen has a question mark in the navigation bar that explains what it
+shows, with the API it is about and the details worth knowing.
 
 ### Essentials
 

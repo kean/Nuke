@@ -17,8 +17,6 @@ struct ImageProcessingDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                DemoIntro("Processors run on a background queue and the result is stored in the memory cache, so the work is done only once. Requests with different processors share the same download.")
-
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(Self.examples) { example in
                         DemoExample(example.title, caption: example.caption) {
@@ -35,9 +33,27 @@ struct ImageProcessingDemo: View {
                 }
                 .padding(.horizontal, 16)
             }
-            .padding(.bottom, 32)
+            .padding(.vertical, 16)
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Image Processing",
+        "Processors run on a background queue and the result goes into the memory cache, so the work is done only once. Requests that differ only in their processors still share a single download.",
+        code: """
+        ImageRequest(url: url, processors: [
+            .resize(width: 320),
+            .circle()
+        ])
+        """,
+        points: [
+            .init("Built in", "Resize, circle, rounded corners, blur, and any Core Image filter."),
+            .init("Custom", "Conform to `ImageProcessing`. The `identifier` is what the caches key on, so it has to describe the parameters."),
+            .init("Order", "Resize first. Everything after it works on fewer pixels."),
+            .init("Caching", "The processed image is what is stored in the memory cache. The original is not kept around.")
+        ]
+    )
 
     private struct Example: Identifiable {
         let id: String

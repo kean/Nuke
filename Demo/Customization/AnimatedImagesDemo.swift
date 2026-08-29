@@ -31,8 +31,6 @@ struct AnimatedImagesDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                DemoIntro("NukeUI decodes the frames of an animated image off the main thread and keeps a bounded number of them in memory. Change the buffer and watch the overlay: when the whole animation fits, every frame is decoded once; when it doesn't, the decoder keeps working for as long as the animation plays.")
-
                 picker
                 stage
                 if isShowingDiagnostics, let player {
@@ -42,15 +40,37 @@ struct AnimatedImagesDemo: View {
                 transport
                 settingsSection
             }
-            .padding(.bottom, 32)
+            .padding(.vertical, 16)
         }
         .task(id: reloadID) { await load() }
-
         .onReceive(timer) { _ in
             guard let player else { return }
             diagnostics = player.diagnostics
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Animated Images",
+        "NukeUI decodes the frames of an animated image off the main thread and keeps a bounded number of them in memory. Change the buffer and watch the overlay: when the whole animation fits, every frame is decoded once; when it does not, the decoder keeps working for as long as the animation plays.",
+        code: """
+        // Plays animated images on its own
+        LazyImage(url: url)
+
+        // Or, for control and diagnostics
+        let player = AnimatedImagePlayer(
+            source: source
+        )
+        AnimatedImage(player: player)
+        """,
+        points: [
+            .init("Wall clock", "Playback follows the clock rather than the decoder, so an animation always takes as long as it says it does. A frame that is not ready in time is skipped instead of stretching the timeline."),
+            .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
+            .init("Buffer map", "The bar at the top of the overlay is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
+            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one. The button does the same thing by hand."),
+            .init("Diagnostics", "Everything in the overlay comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself.")
+        ]
+    )
 
     /// Everything that requires the animation to be loaded again from scratch.
     private var reloadID: String {

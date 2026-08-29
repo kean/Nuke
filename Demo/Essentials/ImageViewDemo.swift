@@ -10,11 +10,25 @@ import UIKit
 /// including placeholders, failure images, transitions, and cell reuse.
 struct ImageViewDemo: View {
     var body: some View {
-        VStack(spacing: 0) {
-            DemoIntro("`loadImage(with:options:into:)` loads an image into any `UIImageView`. It prepares the view for reuse and cancels the previous request, so it is safe to call it directly from `cellForItemAt`. The first cell uses a URL that always fails to show the failure image.")
-            ViewControllerView { ImageViewDemoViewController() }
-        }
+        ViewControllerView { ImageViewDemoViewController() }
+            .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "UIImageView",
+        "`loadImage(with:options:into:)` loads an image into any `UIImageView`. It prepares the view for reuse and cancels the request the view had before, so it is safe to call it directly from `cellForItemAt`.",
+        code: """
+        loadImage(with: request,
+                  options: options,
+                  into: cell.imageView)
+        """,
+        points: [
+            .init("Options", "`ImageLoadingOptions` carries the placeholder, the failure image, the transition, the content modes, and the tint colors."),
+            .init("Failure", "The first cell uses a URL that always fails, which is what puts the failure image on screen."),
+            .init("Downsampling", "Every cell asks for the image at its own size. A bitmap of the full photo is many times larger, and it is the bitmap that the memory cache holds."),
+            .init("Reuse", "Nothing else is needed for cell reuse: the previous image is removed and the previous request is cancelled on every call.")
+        ]
+    )
 }
 
 private final class ImageViewDemoViewController: PhotoGridViewController {

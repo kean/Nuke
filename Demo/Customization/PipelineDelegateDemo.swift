@@ -18,8 +18,6 @@ struct PipelineDelegateDemo: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            DemoIntro("The delegate customizes the pipeline per request. This one injects a header in `willLoadData` and records every task event. The caches are disabled so that each reload goes to the network.")
-
             HStack(spacing: 2) {
                 ForEach(model.photos, id: \.self) { url in
                     LazyImage(url: url) { state in
@@ -46,7 +44,23 @@ struct PipelineDelegateDemo: View {
                 Image(systemName: "arrow.clockwise")
             }
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Pipeline Delegate",
+        "`ImagePipeline.Delegate` customizes the pipeline per request. The one on this screen injects an HTTP header in `willLoadData` and records every event that the tasks produce.",
+        code: """
+        ImagePipeline(delegate: MyPipelineDelegate())
+        """,
+        points: [
+            .init("Per request", "Every callback receives the `ImageRequest`, so the delegate can treat avatars differently from photos."),
+            .init("willLoadData", "`willLoadData(for:urlRequest:pipeline:)` hands you the `URLRequest` before it is sent and takes back the one to use. It is async and throwing, so it can wait for a token to be refreshed, and throwing from it cancels the request."),
+            .init("Events", "`imageTask(_:didReceiveEvent:pipeline:)` reports the progress, the previews, and the outcome of every task, which is what fills the log below."),
+            .init("Caching", "The delegate also decides what is cached and under which key, including whether the original data is written to the disk cache."),
+            .init("No caches here", "The demo disables them so that every reload actually goes to the network.")
+        ]
+    )
 }
 
 private struct PipelineEventLogView: View {

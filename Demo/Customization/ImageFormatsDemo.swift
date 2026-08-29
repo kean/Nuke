@@ -18,8 +18,6 @@ struct ImageFormatsDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                DemoIntro("Nuke uses ImageIO, which supports JPEG, PNG, GIF, WebP, HEIF, and more. An animated image is decoded into an `ImageContainer` that carries the original data alongside the first frame, and NukeUI plays it. The Animated Images screen goes into what that costs.")
-
                 Group {
                     DemoExample("JPEG", caption: "Decoded and decompressed in the background") {
                         image(for: DemoImages.landscape)
@@ -67,9 +65,26 @@ struct ImageFormatsDemo: View {
                 }
                 .padding(.horizontal, 16)
             }
-            .padding(.bottom, 32)
+            .padding(.vertical, 16)
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Image Formats",
+        "Nuke decodes with Image I/O, which covers JPEG, PNG, GIF, WebP, HEIF, and more. The decoder is chosen from the data itself, so the same request works for every format.",
+        code: """
+        ImageDecoderRegistry.shared.register {
+            MyDecoder(context: $0)
+        }
+        """,
+        points: [
+            .init("Animated images", "The container keeps the encoded data alongside the first frame, and NukeUI plays it. The Animated Images screen shows what that costs."),
+            .init("Video", "`ImageDecoders.Video` from the NukeVideo module turns an MP4 into an `AVAsset` and puts it in `ImageContainer.userInfo`."),
+            .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. The closure sees the first chunk of the data and decides whether it can decode it."),
+            .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread.")
+        ]
+    )
 
     private func image(for url: URL) -> some View {
         LazyImage(url: url) { state in

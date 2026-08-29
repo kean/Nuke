@@ -15,11 +15,26 @@ import UIKit
 /// delay when the screen is opened.
 struct StressTestDemo: View {
     var body: some View {
-        VStack(spacing: 0) {
-            DemoIntro("Scroll as fast as you can. Every cell starts a request and the cell it replaces cancels one. The rate limiter smooths out the bursts, and the resize processor keeps the images small.")
-            ViewControllerView { StressTestViewController() }
-        }
+        ViewControllerView { StressTestViewController() }
+            .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Stress Test",
+        "Scroll as fast as you can. Every cell that appears starts a request and every cell it replaces cancels one, which is hundreds of requests a second. Nothing here is cached and nothing is coalesced, so each one goes through the entire pipeline.",
+        code: """
+        ImagePipeline {
+            $0.imageCache = nil
+            $0.isTaskCoalescingEnabled = false
+        }
+        """,
+        points: [
+            .init("Rate limiter", "It absorbs the bursts that a scroll view creates so that `URLSession` never sees them, and it adds no delay when the screen is opened."),
+            .init("Cancellation", "A request that is cancelled before it starts costs nothing. That is what makes fast scrolling survivable."),
+            .init("Downsampling", "The resize processor keeps the bitmaps at the size of the cell, which is the difference between megabytes and kilobytes per image."),
+            .init("Not a benchmark", "Every cache is disabled on purpose. A real app would serve most of these from memory.")
+        ]
+    )
 }
 
 private final class StressTestViewController: PhotoGridViewController {

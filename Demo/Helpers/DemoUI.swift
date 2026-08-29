@@ -4,22 +4,133 @@
 
 import SwiftUI
 
-/// A short paragraph explaining what the screen demonstrates.
-struct DemoIntro: View {
-    private let text: String
+/// The explanation of a demo screen: a summary, a snippet of the API it is
+/// about, and the details that are worth knowing.
+///
+/// It is presented in a sheet from the question mark in the toolbar rather than
+/// at the top of the screen, where it competed with the demo itself for space.
+struct DemoInfo {
+    let title: String
+    let summary: LocalizedStringKey
+    var code: String?
+    var points: [Point] = []
 
-    init(_ text: String) {
-        self.text = text
+    init(_ title: String, _ summary: LocalizedStringKey, code: String? = nil, points: [Point] = []) {
+        self.title = title
+        self.summary = summary
+        self.code = code
+        self.points = points
+    }
+
+    /// One thing worth knowing about the screen.
+    struct Point: Identifiable {
+        let title: String
+        let text: LocalizedStringKey
+
+        var id: String { title }
+
+        init(_ title: String, _ text: LocalizedStringKey) {
+            self.title = title
+            self.text = text
+        }
+    }
+}
+
+extension View {
+    /// Adds a question mark button to the toolbar that presents ``DemoInfo``.
+    func demoInfo(_ info: DemoInfo) -> some View {
+        modifier(DemoInfoModifier(info: info))
+    }
+}
+
+private struct DemoInfoModifier: ViewModifier {
+    let info: DemoInfo
+
+    @State private var isPresented = false
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresented = true
+                    } label: {
+                        Image(systemName: "questionmark")
+                    }
+                    .accessibilityLabel("About This Screen")
+                }
+            }
+            .sheet(isPresented: $isPresented) {
+                DemoInfoSheet(info: info)
+            }
+    }
+}
+
+private struct DemoInfoSheet: View {
+    let info: DemoInfo
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text(info.summary)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+
+                    if let code = info.code {
+                        DemoCodeBlock(code)
+                    }
+
+                    if !info.points.isEmpty {
+                        VStack(alignment: .leading, spacing: 20) {
+                            ForEach(info.points) { point in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(point.title)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(point.text)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+            }
+            .navigationTitle(info.title)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// A snippet of Swift, shown the way the documentation shows it.
+struct DemoCodeBlock: View {
+    private let code: String
+
+    init(_ code: String) {
+        self.code = code
     }
 
     var body: some View {
-        Text(text)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemBackground))
+        ScrollView(.horizontal, showsIndicators: false) {
+            Text(code)
+                .font(.system(.footnote, design: .monospaced))
+                .textSelection(.enabled)
+                .padding(14)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
