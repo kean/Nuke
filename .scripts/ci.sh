@@ -124,41 +124,56 @@ parse_test_results() {
     fi
 }
 
-# Pick the newest available simulator matching a name pattern. Resolving at
-# runtime is what keeps this working across runner-image updates — pinning
-# "OS=26.4.1" is what forced the repeated ci.yml churn in the past. Booting it up
-# front rather than letting xcodebuild do it lazily avoids the first-test-run
-# flakiness that commit a439c17a worked around.
+# Pick the newest available simulator matching a name pattern, boot it, and set
+# SIM_SELECTOR and SIM_NAME. Resolving at runtime is what keeps this working
+# across runner-image updates — pinning "OS=26.4.1" is what forced the repeated
+# ci.yml churn in the past. The selector is a UDID rather than a name because a
+# machine with several installed runtimes has several devices sharing a name, and
+# xcodebuild is then free to pick a different one than the one booted here.
+# Booting up front rather than letting xcodebuild do it lazily avoids the
+# first-test-run flakiness that commit a439c17a worked around.
 resolve_simulator() {
-    local name
-    name=$(xcrun simctl list devices available 2>/dev/null \
-        | grep -E "^\s+${1}" \
-        | tail -1 \
-        | sed 's/^[[:space:]]*//' \
-        | sed 's/ ([0-9A-Fa-f]\{8\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{4\}-[0-9A-Fa-f]\{12\}).*//')
-    name=${name:-$2}
-    xcrun simctl boot "$name" >/dev/null 2>&1 || true
-    xcrun simctl bootstatus "$name" -b >/dev/null 2>&1 || true
-    echo "$name"
+    local line udid
+    line=$(xcrun simctl list devices available 2>/dev/null | grep -E "^[[:space:]]+${1}" | tail -1)
+    udid=$(printf '%s' "$line" | grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}' | head -1)
+    if [ -z "$udid" ]; then
+        # Nothing matched. Fall back to the name so that xcodebuild reports what
+        # is missing, rather than failing on an empty destination.
+        SIM_SELECTOR="name=$2"; SIM_NAME="$2"
+        return
+    fi
+    SIM_SELECTOR="id=$udid"
+    SIM_NAME=$(printf '%s' "$line" | sed 's/^[[:space:]]*//' | sed "s/ ($udid).*//")
+    xcrun simctl boot "$udid" >/dev/null 2>&1 || true
+    xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || true
 }
 
-# Sets DEST. Tests need a concrete simulator; compile-only jobs use a generic
-# destination so they never pay the simulator boot cost. Assigning to a global
-# rather than echoing is what keeps the per-platform cache: a command
-# substitution would resolve and re-boot in a subshell for every job.
-_IOS_SIM=""; _TV_SIM=""
+# Sets DEST, plus DEST_NAME for the simulator platforms. Tests need a concrete
+# simulator; compile-only jobs use a generic destination so they never pay the
+# simulator boot cost. Caching in globals rather than echoing is what keeps it to
+# one boot per platform: a command substitution would resolve and re-boot in a
+# subshell for every job.
+_IOS_DEST=""; _IOS_NAME=""
+_TV_DEST="";  _TV_NAME=""
 set_destination() {
+    DEST_NAME=""
     if [ "$1" = "build" ]; then
         DEST="generic/platform=$2"
         return
     fi
     case "$2" in
         iOS)
-            [ -z "$_IOS_SIM" ] && _IOS_SIM=$(resolve_simulator "iPhone [0-9]" "iPhone 17 Pro")
-            DEST="platform=iOS Simulator,name=$_IOS_SIM" ;;
+            if [ -z "$_IOS_DEST" ]; then
+                resolve_simulator "iPhone [0-9]" "iPhone 17 Pro"
+                _IOS_DEST="platform=iOS Simulator,$SIM_SELECTOR"; _IOS_NAME="$SIM_NAME"
+            fi
+            DEST="$_IOS_DEST"; DEST_NAME="$_IOS_NAME" ;;
         tvOS)
-            [ -z "$_TV_SIM" ] && _TV_SIM=$(resolve_simulator "Apple TV" "Apple TV")
-            DEST="platform=tvOS Simulator,name=$_TV_SIM" ;;
+            if [ -z "$_TV_DEST" ]; then
+                resolve_simulator "Apple TV" "Apple TV"
+                _TV_DEST="platform=tvOS Simulator,$SIM_SELECTOR"; _TV_NAME="$SIM_NAME"
+            fi
+            DEST="$_TV_DEST"; DEST_NAME="$_TV_NAME" ;;
         macOS) DEST="platform=macOS" ;;
         *)     DEST="generic/platform=$2" ;;
     esac
@@ -330,7 +345,7 @@ run_job() {
         *)    label="$scheme · $platform" ;;
     esac
 
-    DEST=""
+    DEST=""; DEST_NAME=""
     case "$action" in
         build|test) set_destination "$action" "$platform" ;;
     esac
@@ -342,7 +357,9 @@ run_job() {
         [ "$_IS_CI" = "true" ] && echo "::group::$id — $label"
         printf "%s%s▸ %-8s %s%s\n" "$BOLD" "$BLUE" "$action" "$label" "$RESET"
         printf "%s  job: %s%s\n" "$DIM" "$id" "$RESET"
-        [ -n "$DEST" ] && printf "%s  destination: %s%s\n" "$DIM" "$DEST" "$RESET"
+        # The destination carries a UDID, so name the device it resolved to.
+        [ -n "$DEST" ] && printf "%s  destination: %s%s%s\n" \
+            "$DIM" "$DEST" "${DEST_NAME:+  ($DEST_NAME)}" "$RESET"
     fi
 
     local exit_code=0 summary="" start=$SECONDS
