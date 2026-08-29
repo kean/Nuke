@@ -213,7 +213,7 @@ struct ImagePipelineAsyncAwaitTests {
         let (data, response) = try await pipeline.data(for: Test.request)
 
         // THEN
-        #expect(data.count == 22788)
+        #expect(data.count == Test.data.count)
         #expect(response?.url != nil)
     }
 
