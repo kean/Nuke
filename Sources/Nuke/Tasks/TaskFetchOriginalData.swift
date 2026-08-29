@@ -98,12 +98,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
-            if !pipeline.isDefaultDelegate {
-                urlRequest = try await pipeline.delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
-                // The task can get cancelled while the delegate is suspended.
-                // `onCancelled` already ran, so there is nothing left to clean up.
-                guard !isDisposed else { return }
-            }
+            urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
+            // The task can get cancelled while the delegate is suspended.
+            // `onCancelled` already ran, so there is nothing left to clean up.
+            guard !isDisposed else { return }
 
             try await loadData(with: urlRequest, dataLoader: dataLoader)
 
@@ -299,7 +297,7 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
             return
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        guard let data = await pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) else { return }
+        guard let data = await pipeline.willCache(data: data, image: nil, for: request) else { return }
         // Important! Storing directly ignoring `ImageRequest.Options`.
         dataCache.storeData(data, for: key)
     }

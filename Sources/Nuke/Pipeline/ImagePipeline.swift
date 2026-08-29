@@ -173,9 +173,7 @@ public final class ImagePipeline: Sendable {
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         // Important to call it before `imageTaskStartCalled`
-        if !isDataTask {
-            delegate.imageTaskCreated(task, pipeline: self)
-        }
+        imageTaskCreated(task, isDataTask: isDataTask)
         task._task = Task { @ImagePipelineActor in
             await withUnsafeContinuation { continuation in
                 task._continuation = continuation
@@ -204,9 +202,7 @@ public final class ImagePipeline: Sendable {
         // `removeTask` to remove it, and already started for the events to be
         // delivered in the correct order.
         task._node = tasks.append(task)
-        if !isDataTask && !isDefaultDelegate {
-            delegate.imageTaskDidStart(task, pipeline: self)
-        }
+        imageTaskDidStart(task, isDataTask: isDataTask)
         onTaskStarted?(task)
         task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?._process($0)
@@ -240,9 +236,7 @@ public final class ImagePipeline: Sendable {
         default: break
         }
 
-        if !isDataTask && !isDefaultDelegate {
-            delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
-        }
+        imageTask(task, didReceiveEvent: event, isDataTask: isDataTask)
     }
 
     // MARK: - Task Factory (Private)

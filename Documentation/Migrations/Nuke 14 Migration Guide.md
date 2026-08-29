@@ -143,3 +143,14 @@ let pipeline = ImagePipeline {
     $0.imageProcessingQueue.maxConcurrentTaskCount = 4
 }
 ```
+
+## `ImagePipeline.Delegate` declares its isolation
+
+The protocol used to describe where its methods run in a doc comment – "performed on the pipeline queue in the background" – which was true for only half of them. The isolation is now part of each signature.
+
+| Isolation | Methods |
+|---|---|
+| `@ImagePipelineActor` | `willLoadData`, `willCache`, `imageTaskDidStart`, `imageTask(_:didReceiveEvent:)` |
+| `nonisolated` | Everything else: the factories, `cacheKey`, the policies, `decompress`, and `imageTaskCreated` |
+
+A plain method still satisfies an isolated requirement, so most conformers need no changes – only a method with a *conflicting* isolation is now rejected. A `@MainActor` delegate, which previously failed to conform at all, now works.
