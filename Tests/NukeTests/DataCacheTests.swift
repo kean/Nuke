@@ -563,6 +563,43 @@ struct DataCacheTests {
         #expect(String(data: data, encoding: .utf8) == "2")
     }
 
+    /// A read that misses the staging shortcut falls through to the disk on the
+    /// caller's thread, which can run while the flush writes the same key. The
+    /// write has to be atomic: one that truncates in place hands the reader a
+    /// prefix of the file.
+    @Test func concurrentReadNeverSeesAPartiallyWrittenFile() throws {
+        // Big enough that the write is not over before a reader can catch it.
+        let size = 4 * 1024 * 1024
+        let first = Data(repeating: 1, count: size)
+        let second = Data(repeating: 2, count: size)
+
+        cache["key"] = first
+        cache.flush()
+
+        // On GCD threads: the reads and `flush()` block, and five of them would
+        // starve the concurrency pool that the other tests run on.
+        let tornReadSize = Mutex<Int?>(wrappedValue: nil)
+        DispatchQueue.concurrentPerform(iterations: 5) { [cache] index in
+            if index == 0 {
+                for index in 0..<60 {
+                    cache["key"] = index.isMultiple(of: 2) ? second : first
+                    cache.flush()
+                }
+                return
+            }
+            for _ in 0..<250 {
+                guard let data = cache["key"] else { continue }
+                // Both values are the same length, so a torn read is
+                // always short. Check the bytes too, in case it is not.
+                if data.count != size || (data != first && data != second) {
+                    tornReadSize.withLock { $0 = data.count }
+                    return
+                }
+            }
+        }
+        #expect(tornReadSize.wrappedValue == nil, "Read a partially written file")
+    }
+
     // MARK: Default Filename Generator
 
     @Test func initWithPathUsingDefaultFilenameGenerator() throws {
