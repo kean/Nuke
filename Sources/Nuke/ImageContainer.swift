@@ -50,8 +50,15 @@ public struct ImageContainer: Sendable {
     /// Contains the original image `data`, but only if the decoder decides to
     /// attach it to the image.
     ///
-    /// The default decoder (``ImageDecoders/Default``) attaches data to GIFs to
-    /// allow to display them using a rendering engine of your choice.
+    /// The default decoder (``ImageDecoders/Default``) attaches the data of the
+    /// images it recognizes as animated – GIF, APNG, animated WebP, and
+    /// animated HEIC – because Image I/O decodes the first frame of an
+    /// animation and stops. `NukeUI` plays them; so can a rendering engine of
+    /// your choice. The data is not attached to a thumbnail request, whose
+    /// image is deliberately smaller than the animation the data holds.
+    ///
+    /// Processing an image drops the data: it describes the image that went
+    /// into the processor, not the one that came out.
     ///
     /// - note: The `data`, along with the image container itself gets stored
     /// in the memory cache.

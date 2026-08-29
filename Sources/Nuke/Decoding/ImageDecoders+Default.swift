@@ -76,7 +76,14 @@ extension ImageDecoders {
             let type = AssetType(data)
             var container = ImageContainer(image: image)
             container.type = type
-            if type == .gif {
+            // Image I/O decodes the first frame of an animation and stops, so
+            // the data has to travel with the image for anything to be able to
+            // play it. See `ImageContainer/data`.
+            //
+            // Not for a thumbnail request: the data is the full-size animation,
+            // and a renderer that played it would undo the downscaling the
+            // request asked for.
+            if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
             }
             if numberOfScans > 0 {

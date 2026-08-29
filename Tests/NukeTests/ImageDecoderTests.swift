@@ -366,4 +366,40 @@ struct ImageDecoderTests {
         // THEN - no preview produced for this tiny slice
         #expect(preview == nil)
     }
+
+    // MARK: Animated Images
+
+    @Test func attachesDataToAnimatedPNG() throws {
+        // GIVEN an APNG, which decodes to its first frame and needs its data to
+        // be playable
+        let data = try #require(Test.animatedPNG())
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .png)
+        #expect(container.data == data)
+    }
+
+    @Test func doesNotAttachDataToStaticPNG() throws {
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(Test.staticPNG())
+
+        #expect(container.data == nil)
+    }
+
+    @Test func doesNotAttachDataToAThumbnail() throws {
+        // The data is the full-size animation; playing it would undo the
+        // downscaling the request asked for.
+        let data = Test.data(name: "cat", extension: "gif")
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 32) }
+        let context = ImageDecodingContext(request: request, data: data)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .gif)
+        #expect(container.data == nil)
+    }
 }

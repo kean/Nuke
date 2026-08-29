@@ -195,4 +195,87 @@ extension AssetType {
         let start = data.index(data.startIndex, offsetBy: offset)
         return String(decoding: data[start..<data.index(start, offsetBy: count)], as: UTF8.self)
     }
+
+    /// Returns `true` if the data holds an animation.
+    ///
+    /// The answer comes from the container header rather than from Image I/O:
+    /// counting the frames means parsing the whole file, and this runs on every
+    /// image the pipeline decodes.
+    ///
+    /// The check is deliberately one-sided. A false positive costs a copy of
+    /// the data in ``ImageContainer/data`` that nothing reads; a false negative
+    /// would leave an animation stuck on its first frame, so every case that
+    /// isn't certain resolves to `true`.
+    static func isAnimated(_ data: Data, type: AssetType?) -> Bool {
+        switch type {
+        // Attaching the data to every GIF, animated or not, is long-standing
+        // behavior: it lets a GIF be handed to a renderer of your choice.
+        case .gif: true
+        case .png: _isAnimatedPNG(data)
+        case .webp: _isAnimatedWebP(data)
+        case .heic, .avif: _isImageSequence(data)
+        default: false
+        }
+    }
+
+    /// An APNG is a PNG with an `acTL` chunk, which the format requires to
+    /// appear before the first `IDAT`.
+    private static func _isAnimatedPNG(_ data: Data) -> Bool {
+        var offset = 8 // The signature
+        while let length = _uint32(at: offset, in: data),
+              let name = _string(at: offset + 4, count: 4, in: data) {
+            switch name {
+            case "acTL": return true
+            case "IDAT": return false // The pixels start here: there is no `acTL`
+            default: break
+            }
+            // A chunk is a length, a name, the payload, and a CRC. A length
+            // that doesn't fit means the file is damaged, not that it animates.
+            guard length <= UInt32(Int32.max) else { return false }
+            offset += Int(length) + 12
+        }
+        return false
+    }
+
+    /// An animated WebP is an extended-format file – one that starts with a
+    /// `VP8X` chunk – with the animation bit set in its feature flags.
+    private static func _isAnimatedWebP(_ data: Data) -> Bool {
+        guard _string(at: 12, count: 4, in: data) == "VP8X", data.count > 20 else {
+            return false
+        }
+        let flags = data[data.index(data.startIndex, offsetBy: 20)]
+        return flags & 0x02 != 0
+    }
+
+    /// An ISO base media file is an image sequence – an animated HEIC or AVIF –
+    /// when one of the brands in its `ftyp` box says so.
+    private static func _isImageSequence(_ data: Data) -> Bool {
+        guard _string(at: 4, count: 4, in: data) == "ftyp" else {
+            return false
+        }
+        // `msf1` is the generic image sequence brand; the `hev*` ones are its
+        // HEVC flavors, and `avis` is the AV1 one. The still image brands –
+        // `heic`, `heix`, `avif`, and so on – are absent by design.
+        let sequenceBrands: Set<String> = ["msf1", "hevc", "hevx", "hevm", "hevs", "avis"]
+        // The major brand comes first, then the minor version, then the list of
+        // compatible brands, which is where encoders that write a still image
+        // brand up front still declare the sequence.
+        let end = min(Int(_uint32(at: 0, in: data) ?? 16), data.count)
+        for offset in stride(from: 8, to: max(8, end), by: 4) {
+            if offset == 12 { continue } // The minor version, not a brand
+            guard let brand = _string(at: offset, count: 4, in: data) else { break }
+            if sequenceBrands.contains(brand) { return true }
+        }
+        return false
+    }
+
+    /// Decodes four big-endian bytes at the given offset, or returns `nil` if
+    /// the data is too short.
+    private static func _uint32(at offset: Int, in data: Data) -> UInt32? {
+        guard offset >= 0, data.count >= offset + 4 else {
+            return nil
+        }
+        let start = data.index(data.startIndex, offsetBy: offset)
+        return data[start..<data.index(start, offsetBy: 4)].reduce(UInt32(0)) { $0 << 8 | UInt32($1) }
+    }
 }
