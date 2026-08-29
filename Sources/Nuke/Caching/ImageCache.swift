@@ -17,8 +17,8 @@ import Cocoa
 /// device. The default count limit is set to `Int.max`.
 ///
 /// ``ImageCache`` automatically removes all stored elements when it receives a
-/// memory warning. It also automatically removes *most* stored elements
-/// when the app enters the background.
+/// memory warning. On iOS, tvOS, and visionOS, it also automatically removes
+/// *most* stored elements when the app enters the background.
 public final class ImageCache: ImageCaching {
     private let impl: Cache<ImageCacheKey, ImageContainer>
 

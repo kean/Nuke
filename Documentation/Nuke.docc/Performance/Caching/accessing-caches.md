@@ -75,7 +75,7 @@ cache.cachedImage(for: request, caches: [.memory]) // Only memory
 cache.cachedImage(for: request, caches: [.disk]) // Only disk (decodes data)
 
 let data = cache.cachedData(for: request)
-cache.containsData(for: request) // Fast contains check 
+cache.containsData(for: request) // Cheaper: doesn't read the file contents
 
 // Stores image in the memory cache and stores an encoded
 // image in the disk cache
@@ -84,6 +84,8 @@ cache.storeCachedImage(ImageContainer(image: image), for: request)
 cache.removeCachedImage(for: request)
 cache.removeAll()
 ```
+
+> Important: The disk cache methods – ``ImagePipeline/Cache-swift.struct/cachedData(for:)``, ``ImagePipeline/Cache-swift.struct/containsData(for:)``, and ``ImagePipeline/Cache-swift.struct/cachedImage(for:caches:)`` with `.disk` – perform disk I/O synchronously. Avoid calling them from the main thread. Writes are safe: the default ``DataCache`` stages them and returns immediately.
 
 ### Managing Cache Keys
 

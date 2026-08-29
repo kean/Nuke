@@ -12,9 +12,9 @@ import os
 /// the size limit is reached. The sweeps are performed periodically for as
 /// long as the cache is alive, see ``DataCache/sweepInterval``.
 ///
-/// DataCache always writes and removes data asynchronously. It also allows for
-/// reading and writing data in parallel. It is implemented using a staging
-/// area which stores changes until they are flushed to disk:
+/// DataCache always writes and removes data asynchronously: the methods stage
+/// the change and return instantly. A read is served from the staging area if
+/// the change is still there, and hits the disk otherwise:
 ///
 /// ```swift
 /// // Schedules data to be written asynchronously and returns immediately
@@ -29,6 +29,8 @@ import os
 /// // Data is nil
 /// let data = cache[key]
 /// ```
+///
+/// - important: Reads can require disk IO, avoid using them from the main thread.
 ///
 /// - important: It's possible to have more than one instance of ``DataCache`` with
 /// the same path but it is not recommended.

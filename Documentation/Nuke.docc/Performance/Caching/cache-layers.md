@@ -33,7 +33,7 @@ let image = ImageCache.shared[request]
 ImageCache.shared.removeAll()
 ```
 
-`ImageCache` automatically removes all stored elements when it receives a memory warning. It also automatically removes *most* stored elements when the app enters the background.
+`ImageCache` automatically removes all stored elements when it receives a memory warning. On iOS, tvOS, and visionOS, it also automatically removes *most* stored elements when the app enters the background.
 
 > You can implement a custom cache by conforming to the ``ImageCaching`` protocol.
 
@@ -88,7 +88,7 @@ ImagePipeline {
 
 > Important: If you enable it manually, make sure to disable the native URL cache. To do it, pass a ``DataLoader`` with a custom `URLSessionConfiguration` when creating a pipeline. Built-in ``ImagePipeline/Configuration-swift.struct/withDataCache`` configuration takes care of it automatically for you.
 
-By default, the pipeline stores only the original image data. You can change this behavior by specifying a different cache policy that was [described earlier](#cache-policy).
+By default, the pipeline stores only the original image data. You can change this behavior by specifying a different ``ImagePipeline/DataCachePolicy``.
 
 ```swift
 let dataCache = try DataCache(name: "my-cache")
@@ -105,7 +105,9 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns immediately and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
+``DataCache`` writes asynchronously: ``DataCache/storeData(_:for:)`` stages the data and returns immediately, and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
+
+> Important: Reads are not asynchronous. ``DataCache/cachedData(for:)`` and ``DataCache/containsData(for:)`` return instantly only if the entry is still in the staging area – otherwise they hit the disk synchronously. Avoid calling them from the main thread.
 
 > Tip: To share a disk cache between your app and an extension (e.g. a Notification Service Extension), point ``DataCache`` at a directory inside a shared app group container. Set ``DataCache/isSweepEnabled`` to `false` in the extension so that only the main app enforces size limits.
 >

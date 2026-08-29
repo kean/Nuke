@@ -45,6 +45,9 @@ extension ImagePipeline.Cache {
     ///
     /// - note: Respects request options such as its cache policy.
     ///
+    /// - important: Reading from the disk cache requires disk IO and decodes
+    /// the data, avoid using it from the main thread.
+    ///
     /// - parameters:
     ///   - request: The request. Make sure to remove the processors if you want
     ///   to retrieve an original image (if it's stored).
@@ -104,6 +107,9 @@ extension ImagePipeline.Cache {
     }
 
     /// Returns `true` if any of the caches contain the image.
+    ///
+    /// - important: Checking the disk cache requires disk IO, avoid using it
+    /// from the main thread.
     public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool {
         if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
             return true
@@ -148,6 +154,10 @@ extension ImagePipeline.Cache {
     // MARK: Cached Data
 
     /// Returns cached data for the given request.
+    ///
+    /// - important: Requires disk IO, avoid using from the main thread. The
+    /// default ``DataCache`` serves the data instantly only if the write is
+    /// still in its staging area.
     public func cachedData(for request: ImageRequest) -> Data? {
         guard !request.options.contains(.disableDiskCacheReads) else {
             return nil
@@ -173,6 +183,10 @@ extension ImagePipeline.Cache {
     }
 
     /// Returns `true` if the data cache contains data for the given image.
+    ///
+    /// - important: Requires disk IO, avoid using from the main thread. It is
+    /// cheaper than ``cachedData(for:)`` because it doesn't read the contents
+    /// of the file, but it is not free.
     public func containsData(for request: ImageRequest) -> Bool {
         guard let dataCache = dataCache(for: request) else {
             return false

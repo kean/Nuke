@@ -9,9 +9,15 @@ import Foundation
 /// - important: The implementation must be thread safe.
 public protocol DataCaching: Sendable {
     /// Retrieves data from cache for the given key.
+    ///
+    /// - note: The method is synchronous and is allowed to block: the pipeline
+    /// never calls it on the main thread.
     func cachedData(for key: String) -> Data?
 
     /// Returns `true` if the cache contains data for the given key.
+    ///
+    /// - note: The method is synchronous and is allowed to block: the pipeline
+    /// never calls it on the main thread.
     func containsData(for key: String) -> Bool
 
     /// Stores data for the given key.
