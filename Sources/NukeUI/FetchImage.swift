@@ -10,7 +10,7 @@ import Nuke
 @MainActor
 public final class FetchImage: ObservableObject, Identifiable {
     /// Returns the current fetch result.
-    @Published public private(set) var result: Result<ImageResponse, Error>?
+    @Published public private(set) var result: Result<ImageResponse, ImagePipeline.Error>?
 
     /// Returns the fetched image.
     public var image: Image? {
@@ -84,7 +84,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
 
     /// Gets called when the current request is completed.
-    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
 
     private var imageTask: ImageTask?
     private var asyncTask: Task<Void, Never>?
@@ -122,7 +122,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         guard var request else {
             reset()
-            handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
+            handle(result: .failure(.imageRequestMissing))
             return
         }
 
@@ -169,7 +169,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             completion: { [weak self] result in
                 guard let self else { return }
                 withTransaction(self.transaction) {
-                    self.handle(result: result.mapError { $0 })
+                    self.handle(result: result)
                 }
             }
         )
@@ -182,7 +182,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         self.imageContainer = preview.container
     }
 
-    private func handle(result: Result<ImageResponse, Error>) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
         isLoading = false
         imageTask = nil
 
@@ -197,7 +197,11 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Loads and displays an image using the given async function.
     ///
-    /// - parameter action: Fetches the image.
+    /// - parameter action: Fetches the image. An error that isn't already an
+    /// ``ImagePipeline/Error`` is reported as
+    /// ``ImagePipeline/Error/dataLoadingFailed(error:)`` wrapping it, the same
+    /// way the pipeline reports the errors thrown by the async
+    /// ``ImageRequest`` sources.
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
         isLoading = true
@@ -212,7 +216,8 @@ public final class FetchImage: ObservableObject, Identifiable {
                 }
             } catch {
                 guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
-                handle(result: .failure(error))
+                let failure = error as? ImagePipeline.Error ?? .dataLoadingFailed(error: error)
+                handle(result: .failure(failure))
             }
         }
     }
