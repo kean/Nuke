@@ -36,6 +36,7 @@ To install Nuke, use Swift Package Manager.
 - ``ImageRequest``
 - ``ImageResponse``
 - ``ImageTask``
+- ``ImagePipeline/Error``
 
 ### Customization
 
@@ -45,6 +46,8 @@ To install Nuke, use Swift Package Manager.
 - ``ImagePipeline/Delegate-swift.protocol``
 - ``AnimatedImageSource``
 - ``AnimatedImageFrameDecoding``
+- ``ImagePipelineActor``
+- ``TaskQueue``
 
 ### Performance
 

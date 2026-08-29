@@ -24,3 +24,9 @@
 
 - ``shouldDecompress(response:for:pipeline:)``
 - ``decompress(response:request:pipeline:)``
+
+### Observing Tasks
+
+- ``imageTaskCreated(_:pipeline:)``
+- ``imageTaskDidStart(_:pipeline:)``
+- ``imageTask(_:didReceiveEvent:pipeline:)``
