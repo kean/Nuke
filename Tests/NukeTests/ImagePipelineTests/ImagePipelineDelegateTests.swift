@@ -93,6 +93,33 @@ struct ImagePipelineDelegateTests {
         #expect(dataCache.writeCount == 0)
     }
 
+    @Test func willCacheReturningEmptyDataPreventsStoringData() async throws {
+        // GIVEN a delegate that returns empty data from `willCache`
+        delegate.willCacheTransform = { _ in Data() }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN nothing is written to the disk cache
+        #expect(dataCache.store.isEmpty)
+        #expect(dataCache.writeCount == 0)
+    }
+
+    @Test func willCacheReturningEmptyDataPreventsStoringEncodedImage() async throws {
+        // GIVEN a delegate that returns empty data from `willCache` and a request
+        // that makes the pipeline store a processed (re-encoded) image
+        delegate.willCacheTransform = { _ in Data() }
+        let request = ImageRequest(url: Test.url, processors: [.resize(width: 44)])
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN nothing is written to the disk cache
+        #expect(dataCache.store.isEmpty)
+        #expect(dataCache.writeCount == 0)
+    }
+
     @Test func willCacheReturningModifiedDataStoresModifiedData() async throws {
         // GIVEN a delegate that replaces the data passed to `willCache`
         let modifiedData = Data("modified".utf8)

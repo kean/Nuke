@@ -83,7 +83,7 @@ extension ImagePipeline {
         ///   - image: Non-nil in case storing an encoded image.
         ///   - request: The request for which image is being stored.
         ///   - pipeline: The pipeline that is about to store the data.
-        /// - returns: The data to store. Return `nil` to prevent caching.
+        /// - returns: The data to store. Return `nil` or empty data to prevent caching.
         @ImagePipelineActor
         func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data?
 
@@ -180,9 +180,13 @@ extension ImagePipeline {
         return try await delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: self)
     }
 
+    /// Returns `nil` if the data must not be stored, including when the delegate
+    /// returns empty data.
     @ImagePipelineActor
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest) async -> Data? {
-        isDefaultDelegate ? data : await delegate.willCache(data: data, image: image, for: request, pipeline: self)
+        guard !isDefaultDelegate else { return data }
+        let data = await delegate.willCache(data: data, image: image, for: request, pipeline: self)
+        return (data?.isEmpty ?? true) ? nil : data
     }
 
     nonisolated func imageTaskCreated(_ task: ImageTask, isDataTask: Bool) {
