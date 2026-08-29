@@ -12,7 +12,7 @@ struct TaskQueueTests {
 
     @Test func addedWorkIsExecuted() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let executed = Ref(false)
 
         // When
@@ -25,7 +25,7 @@ struct TaskQueueTests {
 
     @Test func multipleWorkItemsAllComplete() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let count = Ref(0)
 
         // When
@@ -40,7 +40,7 @@ struct TaskQueueTests {
 
     @Test func addReturnsTaskQueueOperation() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
 
         // When
         let operation = queue.add { }
@@ -51,9 +51,9 @@ struct TaskQueueTests {
 
     // MARK: - Concurrency Limit
 
-    @Test func respectsmaxConcurrentOperationCountOfOne() async {
+    @Test func respectsMaxConcurrentTaskCountOfOne() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let item1Started = TestExpectation()
         let item2Started = Ref(false)
         let gate = TestExpectation()
@@ -69,7 +69,7 @@ struct TaskQueueTests {
         // When – wait for item 1 to start
         await item1Started.wait()
 
-        // Then – item 2 hasn't started because maxConcurrentOperationCount is 1
+        // Then – item 2 hasn't started because maxConcurrentTaskCount is 1
         #expect(!item2Started.value)
 
         // Cleanup – release item 1 so the queue drains
@@ -78,9 +78,9 @@ struct TaskQueueTests {
         #expect(item2Started.value)
     }
 
-    @Test func respectsmaxConcurrentOperationCountOfTwo() async {
+    @Test func respectsMaxConcurrentTaskCountOfTwo() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 2)
+        let queue = TaskQueue(maxConcurrentTaskCount: 2)
         let item1Started = TestExpectation()
         let item2Started = TestExpectation()
         let item3Started = Ref(false)
@@ -113,9 +113,9 @@ struct TaskQueueTests {
         #expect(item3Started.value)
     }
 
-    @Test func increasingmaxConcurrentOperationCountDrainsPendingWork() async {
+    @Test func increasingMaxConcurrentTaskCountDrainsPendingWork() async {
         // Given – capacity 1, two items: one running, one blocked
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let item1Started = TestExpectation()
         let item2Started = TestExpectation()
         let gate1 = TestExpectation()
@@ -133,7 +133,7 @@ struct TaskQueueTests {
         await item1Started.wait()
 
         // When – increase capacity to 2
-        queue.maxConcurrentOperationCount = 2
+        queue.maxConcurrentTaskCount = 2
 
         // Then – item 2 starts immediately
         await item2Started.wait()
@@ -144,9 +144,9 @@ struct TaskQueueTests {
         await queue.waitUntilAllOperationsAreFinished()
     }
 
-    @Test func decreasingmaxConcurrentOperationCountLetsRunningFinish() async {
+    @Test func decreasingMaxConcurrentTaskCountLetsRunningFinish() async {
         // Given – capacity 2, two items running
-        let queue = TaskQueue(maxConcurrentOperationCount: 2)
+        let queue = TaskQueue(maxConcurrentTaskCount: 2)
         let item1Started = TestExpectation()
         let item2Started = TestExpectation()
         let item3Started = Ref(false)
@@ -169,7 +169,7 @@ struct TaskQueueTests {
         await item2Started.wait()
 
         // When – reduce capacity to 1 while 2 are running
-        queue.maxConcurrentOperationCount = 1
+        queue.maxConcurrentTaskCount = 1
 
         // Then – both running items complete
         gate1.fulfill()
@@ -180,9 +180,9 @@ struct TaskQueueTests {
         #expect(item3Started.value)
     }
 
-    @Test func settingSamemaxConcurrentOperationCountDoesNotDrain() async {
+    @Test func settingSameMaxConcurrentTaskCountDoesNotDrain() async {
         // Given – capacity 1, one item running, one pending
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let item1Started = TestExpectation()
         let item2Started = Ref(false)
         let gate = TestExpectation()
@@ -198,7 +198,7 @@ struct TaskQueueTests {
         await item1Started.wait()
 
         // When – set to the same value
-        queue.maxConcurrentOperationCount = 1
+        queue.maxConcurrentTaskCount = 1
 
         // Then – no extra drain, item 2 still pending
         #expect(!item2Started.value)
@@ -212,7 +212,7 @@ struct TaskQueueTests {
 
     @Test func highPriorityItemExecutesFirst() async {
         // Given – suspended queue so we can enqueue before any execute
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         let order = Ref<[String]>([])
@@ -235,7 +235,7 @@ struct TaskQueueTests {
 
     @Test func priorityCanBeUpdatedBeforeExecution() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         let order = Ref<[String]>([])
@@ -256,7 +256,7 @@ struct TaskQueueTests {
 
     @Test func fifoOrderWithinSamePriority() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[Int]>([])
 
@@ -274,7 +274,7 @@ struct TaskQueueTests {
 
     @Test func decreasingPriorityMovesOperationBackward() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -298,7 +298,7 @@ struct TaskQueueTests {
 
     @Test func decreasedPriorityGoesAheadOfExistingLowerPriorityItems() async {
         // Given – A(high), B(normal), C(normal)
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -320,7 +320,7 @@ struct TaskQueueTests {
 
     @Test func decreasedPriorityPrependsAcrossMultipleDrops() async {
         // Given – A(veryHigh), B(normal), C(normal)
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -342,7 +342,7 @@ struct TaskQueueTests {
 
     @Test func increasedPriorityAppendsAfterExistingHigherPriorityItems() async {
         // Given – A(normal), B(high), C(high)
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -364,7 +364,7 @@ struct TaskQueueTests {
 
     @Test func twoDecreasesPrependInOrder() async {
         // Given – A(high), B(high), C(normal)
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -387,7 +387,7 @@ struct TaskQueueTests {
 
     @Test func multiplePriorityChangesBeforeExecution() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let order = Ref<[String]>([])
 
@@ -410,7 +410,7 @@ struct TaskQueueTests {
 
     @Test func priorityChangeOfRunningOperationIsNoOp() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let started = TestExpectation()
         let gate = TestExpectation()
 
@@ -436,7 +436,7 @@ struct TaskQueueTests {
 
     @Test func cancelledOperationIsNotExecuted() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let executed = Ref(false)
 
@@ -456,7 +456,7 @@ struct TaskQueueTests {
 
     @Test func cancellingOperationRemovesItFromPending() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         let done = Ref(false)
@@ -478,7 +478,7 @@ struct TaskQueueTests {
         // Given – the queue has a free slot, so the operation is dequeued and
         // started right away, but its work doesn't run until the underlying
         // task gets scheduled
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let executed = Ref(false)
         let operation = queue.add { executed.value = true }
 
@@ -492,7 +492,7 @@ struct TaskQueueTests {
 
     @Test func runningOperationIsRetainedByTheQueue() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let started = TestExpectation()
         let gate = TestExpectation()
 
@@ -515,7 +515,7 @@ struct TaskQueueTests {
 
     @Test func cancellingAlreadyCancelledOperationIsNoop() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let operation = queue.add { }
 
         // When
@@ -528,7 +528,7 @@ struct TaskQueueTests {
 
     @Test func cancellingRunningOperationCancelsUnderlyingTask() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let started = TestExpectation()
         let taskWasCancelled = Ref(false)
         let gate = TestExpectation()
@@ -555,7 +555,7 @@ struct TaskQueueTests {
 
     @Test func cancelledItemIsSkippedDuringDrain() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         let order = Ref<[Int]>([])
@@ -577,7 +577,7 @@ struct TaskQueueTests {
 
     @Test func suspendedQueueDoesNotExecuteWork() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let executed = Ref(false)
 
@@ -590,7 +590,7 @@ struct TaskQueueTests {
 
     @Test func resumingQueueExecutesPendingWork() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let executed = Ref(false)
 
@@ -606,7 +606,7 @@ struct TaskQueueTests {
 
     @Test func suspendingAlreadySuspendedQueueIsNoop() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
 
         // When
         queue.isSuspended = true
@@ -618,7 +618,7 @@ struct TaskQueueTests {
 
     @Test func resumingAlreadyResumedQueueIsNoop() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
 
         // When
         queue.isSuspended = false
@@ -631,7 +631,7 @@ struct TaskQueueTests {
 
     @Test func throwingWorkFreesSlot() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let secondRan = Ref(false)
 
         struct TestError: Error {}
@@ -654,7 +654,7 @@ struct TaskQueueTests {
 
     @Test func priorityChangeFiresEvent() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         var didChange = false
         queue.onEvent = { event in
@@ -672,7 +672,7 @@ struct TaskQueueTests {
 
     @Test func settingSamePriorityDoesNotFireEvent() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         var changeCount = 0
         queue.onEvent = { event in
@@ -695,7 +695,7 @@ struct TaskQueueTests {
 
     @Test func cancelFiresEvent() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         var called = false
         queue.onEvent = { event in
@@ -714,7 +714,7 @@ struct TaskQueueTests {
 
     @Test func onEventEnqueuedCalledForEachAdd() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 2)
+        let queue = TaskQueue(maxConcurrentTaskCount: 2)
         var enqueuedCount = 0
         queue.onEvent = { event in
             if case .enqueued = event { enqueuedCount += 1 }
@@ -731,7 +731,7 @@ struct TaskQueueTests {
 
     @Test func onEventEnqueuedReceivesCorrectOperation() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         var enqueuedOperations = [TaskQueue.Operation]()
@@ -753,7 +753,7 @@ struct TaskQueueTests {
 
     @Test func operationCountReflectsPendingItems() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         // When
@@ -766,7 +766,7 @@ struct TaskQueueTests {
 
     @Test func operationCountIncludesRunningItems() {
         // Given – unsuspended queue, items start immediately
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
 
         // When
         queue.add { }
@@ -777,13 +777,13 @@ struct TaskQueueTests {
     }
 
     @Test func operationCountIsZeroWhenEmpty() {
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         #expect(queue.operationCount == 0)
     }
 
     @Test func operationCountDecreasesAfterCancellation() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         let op = queue.add { }
         #expect(queue.operationCount == 1)
@@ -799,7 +799,7 @@ struct TaskQueueTests {
 
     @Test func waitForOperationsHelper() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
 
         // When
@@ -816,7 +816,7 @@ struct TaskQueueTests {
 
     @Test func suspendingQueueDoesNotAffectRunningOperations() async {
         // Given – one running, one pending
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let item1Started = TestExpectation()
         let item1Finished = TestExpectation()
         let gate = TestExpectation()
@@ -852,7 +852,7 @@ struct TaskQueueTests {
 
     @Test func onEventFinishedCalledForEachCompletion() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         var finishedCount = 0
         queue.onEvent = { event in
             if case .finished = event { finishedCount += 1 }
@@ -870,14 +870,14 @@ struct TaskQueueTests {
     // MARK: - Edge Cases
 
     @Test func emptyQueueDoesNotCrash() {
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         #expect(!queue.isSuspended)
         #expect(queue.operationCount == 0)
     }
 
     @Test func waitUntilAllOperationsAreFinishedOnEmptyQueue() async {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
 
         // When/Then – returns immediately, no hang
         await queue.waitUntilAllOperationsAreFinished()
@@ -885,7 +885,7 @@ struct TaskQueueTests {
 
     @Test func addingWorkAfterQueueHasDrained() async {
         // Given – queue has already processed work
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.add { }
         await queue.waitUntilAllOperationsAreFinished()
         #expect(queue.operationCount == 0)
@@ -901,7 +901,7 @@ struct TaskQueueTests {
 
     @Test func priorityChangeOnCancelledOperationIsNoOp() {
         // Given
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         queue.isSuspended = true
         var priorityEventCount = 0
         queue.onEvent = { event in
@@ -920,7 +920,7 @@ struct TaskQueueTests {
 
     @Test func cancellingRunningOperationDoesNotChangePendingCount() async {
         // Given – one running, one pending
-        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let started = TestExpectation()
         let gate = TestExpectation()
 

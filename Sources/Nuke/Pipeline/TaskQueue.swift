@@ -42,10 +42,10 @@ public final class TaskQueue: Sendable {
     /// The default value matches the number of cores on the machine. For
     /// operations like image processing, it's recommended to use a lower number
     /// to avoid fully saturating the CPU.
-    nonisolated public var maxConcurrentOperationCount: Int {
-        get { _maxConcurrentOperationCount.withLock { $0 } }
+    nonisolated public var maxConcurrentTaskCount: Int {
+        get { _maxConcurrentTaskCount.withLock { $0 } }
         set {
-            let oldValue = _maxConcurrentOperationCount.withLock {
+            let oldValue = _maxConcurrentTaskCount.withLock {
                 let old = $0; $0 = newValue; return old
             }
             if newValue > oldValue {
@@ -54,7 +54,7 @@ public final class TaskQueue: Sendable {
         }
     }
 
-    nonisolated private let _maxConcurrentOperationCount: OSAllocatedUnfairLock<Int>
+    nonisolated private let _maxConcurrentTaskCount: OSAllocatedUnfairLock<Int>
     nonisolated private let _isSuspended = OSAllocatedUnfairLock(initialState: false)
 
     /// Events emitted by the queue for observation (testing only).
@@ -69,8 +69,8 @@ public final class TaskQueue: Sendable {
     var onEvent: ((Event) -> Void)?
 
     /// Initializes the queue.
-    nonisolated public init(maxConcurrentOperationCount: Int = ProcessInfo.processInfo.processorCount) {
-        self._maxConcurrentOperationCount = OSAllocatedUnfairLock(initialState: maxConcurrentOperationCount)
+    nonisolated public init(maxConcurrentTaskCount: Int = ProcessInfo.processInfo.processorCount) {
+        self._maxConcurrentTaskCount = OSAllocatedUnfairLock(initialState: maxConcurrentTaskCount)
     }
 
     /// Adds work to the queue. The closure runs `@ImagePipelineActor`. The
@@ -97,7 +97,7 @@ public final class TaskQueue: Sendable {
 
     private func drain() {
         guard !isSuspended else { return }
-        while runningCount < maxConcurrentOperationCount && pendingCount > 0 {
+        while runningCount < maxConcurrentTaskCount && pendingCount > 0 {
             guard let operation = dequeueHighestPriority() else { break }
             execute(operation)
         }
@@ -200,5 +200,26 @@ public final class TaskQueue: Sendable {
             queue?.operationCancelled(self)
             onCancelled?()
         }
+    }
+}
+
+// MARK: - TaskQueue (Deprecated)
+
+extension TaskQueue {
+    /// The maximum number of concurrently running tasks.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``maxConcurrentTaskCount`` instead.
+    @available(*, deprecated, renamed: "maxConcurrentTaskCount", message: "Deprecated in Nuke 14.0. The queue no longer has operations behind it. Use `maxConcurrentTaskCount` instead.")
+    nonisolated public var maxConcurrentOperationCount: Int {
+        get { maxConcurrentTaskCount }
+        set { maxConcurrentTaskCount = newValue }
+    }
+
+    /// Initializes the queue.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``init(maxConcurrentTaskCount:)`` instead.
+    @available(*, deprecated, renamed: "init(maxConcurrentTaskCount:)", message: "Deprecated in Nuke 14.0. The queue no longer has operations behind it. Use `init(maxConcurrentTaskCount:)` instead.")
+    nonisolated public convenience init(maxConcurrentOperationCount: Int) {
+        self.init(maxConcurrentTaskCount: maxConcurrentOperationCount)
     }
 }

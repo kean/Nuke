@@ -231,7 +231,7 @@ struct FetchImageTests {
             $0.imageCache = nil
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
+            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
         }
         image.pipeline = progressivePipeline
 

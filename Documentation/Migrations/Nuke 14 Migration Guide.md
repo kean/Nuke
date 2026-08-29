@@ -122,3 +122,24 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 ```
 
 The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
+
+## Renamed `TaskQueue.maxConcurrentOperationCount`
+
+`TaskQueue` has no operations behind it – every unit of work is a Swift `Task` – so it no longer carries the `OperationQueue`-era name. The old name is deprecated and keeps working.
+
+| Nuke 13 | Nuke 14 |
+|---|---|
+| `TaskQueue.maxConcurrentOperationCount` | `TaskQueue.maxConcurrentTaskCount` |
+| `TaskQueue(maxConcurrentOperationCount:)` | `TaskQueue(maxConcurrentTaskCount:)` |
+
+```swift
+// Nuke 13
+let pipeline = ImagePipeline {
+    $0.imageProcessingQueue.maxConcurrentOperationCount = 4
+}
+
+// Nuke 14
+let pipeline = ImagePipeline {
+    $0.imageProcessingQueue.maxConcurrentTaskCount = 4
+}
+```

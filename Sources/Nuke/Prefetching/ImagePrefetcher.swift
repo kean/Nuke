@@ -87,7 +87,7 @@ public final class ImagePrefetcher: Sendable {
     ) {
         self.pipeline = pipeline
         self.destination = destination
-        self.queue = TaskQueue(maxConcurrentOperationCount: maxConcurrentRequestCount)
+        self.queue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     nonisolated deinit {
