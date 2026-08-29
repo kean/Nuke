@@ -29,7 +29,7 @@ struct LazyImageTests {
 
     @Test func imageLoadedOnAppear() async throws {
         let completed = TestExpectation()
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
 
         let host = ViewHost(Test.url) { url in
             LazyImage(url: url)
@@ -47,7 +47,7 @@ struct LazyImageTests {
 
     @Test func imageLoadedWithRequest() async throws {
         let completed = TestExpectation()
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
 
         let host = ViewHost(Test.request) { request in
             LazyImage(request: request)
@@ -65,7 +65,7 @@ struct LazyImageTests {
 
     @Test func nilURLFailsWithRequestMissing() async throws {
         let completed = TestExpectation()
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
 
         let host = ViewHost(nil as URL?) { url in
             LazyImage(url: url)
@@ -78,14 +78,14 @@ struct LazyImageTests {
         await completed.wait()
 
         let received = try #require(result.value)
-        let error = try #require(received.error as? ImagePipeline.Error)
+        let error = try #require(received.error)
         #expect(error == .imageRequestMissing)
         withExtendedLifetime(host) {}
     }
 
     @Test func nilRequestFailsWithRequestMissing() async throws {
         let completed = TestExpectation()
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
 
         let host = ViewHost(nil as ImageRequest?) { request in
             LazyImage(request: request)
@@ -98,7 +98,7 @@ struct LazyImageTests {
         await completed.wait()
 
         let received = try #require(result.value)
-        let error = try #require(received.error as? ImagePipeline.Error)
+        let error = try #require(received.error)
         #expect(error == .imageRequestMissing)
         withExtendedLifetime(host) {}
     }
@@ -146,7 +146,7 @@ struct LazyImageTests {
 
     @Test func nilURLWithContentClosureReportsErrorToContent() async throws {
         let completed = TestExpectation()
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
         let sawError = Ref(false)
 
         let host = ViewHost(nil as URL?) { url in
@@ -164,7 +164,7 @@ struct LazyImageTests {
         await host.render(until: { sawError.value })
 
         let received = try #require(result.value)
-        let error = try #require(received.error as? ImagePipeline.Error)
+        let error = try #require(received.error)
         #expect(error == .imageRequestMissing)
         #expect(sawError.value)
     }
@@ -190,7 +190,7 @@ struct LazyImageTests {
     @Test func memoryCacheHitCompletesWithoutDownloading() async throws {
         pipeline.cache[Test.request] = Test.container
 
-        let result = Ref<Result<ImageResponse, Error>?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
         let host = ViewHost(Test.request) { request in
             LazyImage(request: request)
                 .pipeline(pipeline)

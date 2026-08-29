@@ -18,7 +18,7 @@ struct NukeUIExportsTests {
             .priority(.veryHigh)
             .pipeline(ImagePipeline.shared)
             .onStart { (task: ImageTask) in _ = task }
-            .onCompletion { (result: Result<ImageResponse, Error>) in _ = result }
+            .onCompletion { (result: Result<ImageResponse, ImagePipeline.Error>) in _ = result }
 
         #expect(request.priority == .high)
         withExtendedLifetime(view) {}
@@ -31,7 +31,7 @@ struct NukeUIExportsTests {
         image.processors = [ImageProcessors.Resize(width: 100)]
 
         let container: ImageContainer? = image.imageContainer
-        let result: Result<ImageResponse, Error>? = image.result
+        let result: Result<ImageResponse, ImagePipeline.Error>? = image.result
 
         #expect(container == nil)
         #expect(result == nil)

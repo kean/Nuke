@@ -178,3 +178,32 @@ The protocol used to describe where its methods run in a doc comment – "perfor
 | `nonisolated` | Everything else: the factories, `cacheKey`, the policies, `decompress`, and `imageTaskCreated` |
 
 A plain method still satisfies an isolated requirement, so most conformers need no changes – only a method with a *conflicting* isolation is now rejected. A `@MainActor` delegate, which previously failed to conform at all, now works.
+
+## `NukeUI` surfaces `ImagePipeline.Error`
+
+The pipeline finishes every task with an `ImagePipeline.Error`, so `NukeUI` no longer erases it to `any Error`. Branching on a case no longer needs a cast.
+
+| API | Nuke 13 | Nuke 14 |
+|---|---|---|
+| `FetchImage.result`, `LazyImageState.result` | `Result<ImageResponse, any Error>?` | `Result<ImageResponse, ImagePipeline.Error>?` |
+| `FetchImage.onCompletion`, `LazyImage.onCompletion(_:)`, `LazyImageView.onCompletion` | `(Result<ImageResponse, any Error>) -> Void` | `(Result<ImageResponse, ImagePipeline.Error>) -> Void` |
+| `LazyImageState.error`, `LazyImageView.onFailure` | `any Error` | `ImagePipeline.Error` |
+
+```swift
+// Nuke 13
+LazyImage(url: url) { state in
+    if let error = state.error as? ImagePipeline.Error,
+       case .dataDownloadExceededMaximumSize = error {
+        Text("Image too large")
+    }
+}
+
+// Nuke 14
+LazyImage(url: url) { state in
+    if case .dataDownloadExceededMaximumSize = state.error {
+        Text("Image too large")
+    }
+}
+```
+
+`FetchImage.load(_:)` still takes an untyped async closure. An error that isn't already an `ImagePipeline.Error` is reported as `dataLoadingFailed(error:)` wrapping it, the same way the pipeline reports the errors thrown by the async `ImageRequest` sources.
