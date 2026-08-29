@@ -152,6 +152,11 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///     priority: .high
     /// )
     /// ```
+    ///
+    /// - note: The URL is optional as a convenience: `URL(string:)` returns an
+    /// optional that can be passed directly without unwrapping. A `nil` URL
+    /// produces a request that fails with `URLError(.badURL)` — to skip loading
+    /// entirely, pass a `nil` request to `LazyImage` or `FetchImage` instead.
     public init(
         url: URL?,
         processors: [any ImageProcessing] = [],
