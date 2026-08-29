@@ -132,8 +132,8 @@ extension ImageDecodingContext {
         mock(data: Test.data)
     }
 
-    static func mock(data: Data) -> ImageDecodingContext {
-        ImageDecodingContext(request: Test.request, data: data)
+    static func mock(data: Data, previewPolicy: ImagePipeline.PreviewPolicy = .incremental) -> ImageDecodingContext {
+        ImageDecodingContext(request: Test.request, data: data, previewPolicy: previewPolicy)
     }
 }
 

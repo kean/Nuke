@@ -75,13 +75,23 @@ struct ImageDecoderTests {
         #expect(decoder.numberOfScans == 3)
     }
 
+    @Test func previewPolicyPassedToDecoder() throws {
+        let data = Test.data(name: "progressive", extension: "jpeg")
+
+        // The policy defaults to .incremental
+        #expect(ImageDecodingContext(request: Test.request, data: data).previewPolicy == .incremental)
+
+        // The policy given to the initializer reaches the decoder
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: false, previewPolicy: .thumbnail)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+        #expect(decoder.previewPolicy == .thumbnail)
+    }
 
     @Test func decodingBaselineJPEG() throws {
         let data = Test.data(name: "baseline", extension: "jpeg")
 
         // Default policy for baseline JPEG is .disabled — no previews
-        var context = ImageDecodingContext.mock(data: data)
-        context.previewPolicy = .default(for: data)
+        let context = ImageDecodingContext.mock(data: data, previewPolicy: .default(for: data))
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         let partial = decoder.decodePartiallyDownloadedData(data[0...(data.count / 2)])
@@ -97,8 +107,7 @@ struct ImageDecoderTests {
         let data = Test.data(name: "baseline", extension: "jpeg")
 
         // With .incremental policy, Image I/O produces partial top-down renders
-        var context = ImageDecodingContext.mock(data: data)
-        context.previewPolicy = .incremental
+        let context = ImageDecodingContext.mock(data: data, previewPolicy: .incremental)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         let partial = decoder.decodePartiallyDownloadedData(data[0...(data.count / 2)])
@@ -113,8 +122,7 @@ struct ImageDecoderTests {
     @Test func decodingBaselineJPEGWithThumbnailPolicy() throws {
         let data = Test.data(name: "baseline", extension: "jpeg")
 
-        var context = ImageDecodingContext.mock(data: data)
-        context.previewPolicy = .thumbnail
+        let context = ImageDecodingContext.mock(data: data, previewPolicy: .thumbnail)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         // Baseline JPEG typically has no embedded EXIF thumbnail
@@ -127,8 +135,7 @@ struct ImageDecoderTests {
     @Test func decodingProgressiveJPEGWithDisabledPolicy() throws {
         let data = Test.data(name: "progressive", extension: "jpeg")
 
-        var context = ImageDecodingContext.mock(data: data)
-        context.previewPolicy = .disabled
+        let context = ImageDecodingContext.mock(data: data, previewPolicy: .disabled)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         // No previews with .disabled policy
@@ -145,8 +152,7 @@ struct ImageDecoderTests {
         let data = Test.data(name: "fixture", extension: "png")
 
         // Default policy for PNG is .disabled — no previews
-        var context = ImageDecodingContext.mock(data: data)
-        context.previewPolicy = .default(for: data)
+        let context = ImageDecodingContext.mock(data: data, previewPolicy: .default(for: data))
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         #expect(decoder.decodePartiallyDownloadedData(data[0...100]) == nil)
@@ -287,8 +293,7 @@ struct ImageDecoderTests {
         let data = Test.data(name: "cat", extension: "gif")
         let chunk = data[...60000]
 
-        var context = ImageDecodingContext.mock(data: chunk)
-        context.previewPolicy = .disabled
+        let context = ImageDecodingContext.mock(data: chunk, previewPolicy: .disabled)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         // No previews with the .disabled policy, GIFs included
@@ -306,8 +311,7 @@ struct ImageDecoderTests {
         let data = Test.data(name: "cat", extension: "gif")
         let chunk = data[...60000]
 
-        var context = ImageDecodingContext.mock(data: chunk)
-        context.previewPolicy = .thumbnail
+        let context = ImageDecodingContext.mock(data: chunk, previewPolicy: .thumbnail)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
         // GIFs can't be decoded incrementally, so a single preview is still
