@@ -12,9 +12,9 @@
 		0C1C201D29ABBF19004B38FD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C1C201E29ABBF19004B38FD /* Nuke.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C222DE3294E2DEA00012288 /* NukeUI.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C222DE2294E2DEA00012288 /* NukeUI.docc */; };
-		0C27B3502F546A0000F96DB1 /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C27B34B2F5462D100F96DB1 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
 		0C27B34C2F5462D100F96DB1 /* NukeExtensions.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0C27B3502F546A0000F96DB1 /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C38DB1C28568FE20027F9FF /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C4F900322E4C4FB0070ECFD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
@@ -27,6 +27,12 @@
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0CDE10000000000000000008 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
+		0CDE10000000000000000009 /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
+		0CDE10000000000000000010 /* NukeVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C7584AA29A151FF00F985F8 /* NukeVideo.framework */; };
+		0CDE10000000000000000011 /* Nuke.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0CDE10000000000000000012 /* NukeUI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0CDE10000000000000000013 /* NukeVideo.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C7584AA29A151FF00F985F8 /* NukeVideo.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0CFADE0001000000000000A1 /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0CFADE0001000000000000A2 /* NukeUI.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -81,6 +87,27 @@
 			remoteGlobalIDString = 0C55FCFC28567875000FD2C9;
 			remoteInfo = NukeExtensions;
 		};
+		0CDE10000000000000000014 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C91748F1BAE99EE004A7905;
+			remoteInfo = Nuke;
+		};
+		0CDE10000000000000000015 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C38DAA128568FAE0027F9FF;
+			remoteInfo = NukeUI;
+		};
+		0CDE10000000000000000016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C75849B29A151FF00F985F8;
+			remoteInfo = NukeVideo;
+		};
 		0CFADE0001000000000000A3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
@@ -115,6 +142,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0CDE10000000000000000007 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				0CDE10000000000000000011 /* Nuke.framework in Embed Frameworks */,
+				0CDE10000000000000000012 /* NukeUI.framework in Embed Frameworks */,
+				0CDE10000000000000000013 /* NukeVideo.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -137,6 +177,7 @@
 		0CDB92801DAF9BB900002905 /* CHANGELOG.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CHANGELOG.md; sourceTree = "<group>"; };
 		0CDB92821DAF9BC600002905 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0CDB92831DAF9BCB00002905 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
+		0CDE10000000000000000001 /* NukeDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NukeDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -147,6 +188,13 @@
 				TestHelpers.swift,
 			);
 			target = 0C8D7BE71D9DC02B00D12EB7 /* NukePerformanceTests */;
+		};
+		0CDE10000000000000000023 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				README.md,
+			);
+			target = 0CDE10000000000000000003 /* NukeDemo */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -164,6 +212,7 @@
 		0C8ECF902F4BB03100C9F423 /* NukeUI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeUI; sourceTree = "<group>"; };
 		0C8ECF992F4BB03B00C9F423 /* NukeVideo */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeVideo; sourceTree = "<group>"; };
 		0C8ECFA42F4BB05300C9F423 /* NukeExtensions */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = NukeExtensions; sourceTree = "<group>"; };
+		0CDE10000000000000000002 /* Demo */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0CDE10000000000000000023 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Demo; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -244,6 +293,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0CDE10000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CDE10000000000000000008 /* Nuke.framework in Frameworks */,
+				0CDE10000000000000000009 /* NukeUI.framework in Frameworks */,
+				0CDE10000000000000000010 /* NukeVideo.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -288,6 +347,7 @@
 			children = (
 				0C096C7B1BAE9ADD007FE380 /* Sources */,
 				0C7C06551BCA87EC00089D7F /* Tests */,
+				0CDE10000000000000000002 /* Demo */,
 				0C9174911BAE99EE004A7905 /* Products */,
 				0CDB92761DAF9BA500002905 /* Documentation */,
 				0CDB927F1DAF9BA900002905 /* Metadata */,
@@ -307,6 +367,7 @@
 				0C38DAE028568FAE0027F9FF /* NukeUI.framework */,
 				0C38DB3428568FE20027F9FF /* NukeUITests.xctest */,
 				0C7584AA29A151FF00F985F8 /* NukeVideo.framework */,
+				0CDE10000000000000000001 /* NukeDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -557,6 +618,30 @@
 			productReference = 0C9174901BAE99EE004A7905 /* Nuke.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		0CDE10000000000000000003 /* NukeDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0CDE10000000000000000022 /* Build configuration list for PBXNativeTarget "NukeDemo" */;
+			buildPhases = (
+				0CDE10000000000000000004 /* Sources */,
+				0CDE10000000000000000005 /* Frameworks */,
+				0CDE10000000000000000006 /* Resources */,
+				0CDE10000000000000000007 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0CDE10000000000000000017 /* PBXTargetDependency */,
+				0CDE10000000000000000018 /* PBXTargetDependency */,
+				0CDE10000000000000000019 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0CDE10000000000000000002 /* Demo */,
+			);
+			name = NukeDemo;
+			productName = NukeDemo;
+			productReference = 0CDE10000000000000000001 /* NukeDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -618,6 +703,7 @@
 				0C55FCFC28567875000FD2C9 /* NukeExtensions */,
 				0C55FD0328567875000FD2C9 /* NukeExtensionsTests */,
 				0C75849B29A151FF00F985F8 /* NukeVideo */,
+				0CDE10000000000000000003 /* NukeDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -659,6 +745,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		0C8D7BE61D9DC02B00D12EB7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0CDE10000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -820,6 +913,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0CDE10000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -857,6 +957,21 @@
 			isa = PBXTargetDependency;
 			target = 0C55FCFC28567875000FD2C9 /* NukeExtensions */;
 			targetProxy = 0CB644AD28567FC500916267 /* PBXContainerItemProxy */;
+		};
+		0CDE10000000000000000017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C91748F1BAE99EE004A7905 /* Nuke */;
+			targetProxy = 0CDE10000000000000000014 /* PBXContainerItemProxy */;
+		};
+		0CDE10000000000000000018 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;
+			targetProxy = 0CDE10000000000000000015 /* PBXContainerItemProxy */;
+		};
+		0CDE10000000000000000019 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C75849B29A151FF00F985F8 /* NukeVideo */;
+			targetProxy = 0CDE10000000000000000016 /* PBXContainerItemProxy */;
 		};
 		0CFADE0001000000000000A4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1357,6 +1472,65 @@
 			};
 			name = Release;
 		};
+		0CDE10000000000000000020 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Nuke Demo";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0CDE10000000000000000021 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Nuke Demo";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1455,6 +1629,15 @@
 			buildConfigurations = (
 				0C9174991BAE99EE004A7905 /* Debug */,
 				0C91749A1BAE99EE004A7905 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0CDE10000000000000000022 /* Build configuration list for PBXNativeTarget "NukeDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0CDE10000000000000000020 /* Debug */,
+				0CDE10000000000000000021 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -57,6 +57,7 @@ JOBS=(
     "build-nukevideo-ios|platforms|build|NukeVideo|iOS"
     "build-nukevideo-macos|platforms|build|NukeVideo|macOS"
     "build-nukevideo-tvos|platforms|build|NukeVideo|tvOS"
+    "build-demo-ios|platforms|build|NukeDemo|iOS Simulator"
     "spm-test|platforms|spm|Package|SPM"
     "snippets-ios|platforms|snippets|DocumentationSnippets|iOS"
 

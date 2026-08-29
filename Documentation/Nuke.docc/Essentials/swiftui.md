@@ -26,6 +26,8 @@ struct AvatarView: View {
 
 `LazyImage` uses ``ImagePipeline/shared`` by default and inherits all of its caching behavior.
 
+> Note: The default content – `LazyImage(url:)` with no closure – displays the image at its natural size, just like `AsyncImage`. Use the `content` closure to make it resizable.
+
 ## Handling Loading and Failure States
 
 Use the `content` closure to customize what is displayed for each state. The closure receives a `LazyImageState` with `image`, `error`, `isLoading`, `progress`, and the underlying `result`.

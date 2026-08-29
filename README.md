@@ -53,7 +53,7 @@ struct ContentView: View {
 }
 ```
 
-The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start. Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more examples.
+The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start. The [**demo app**](Demo) in this repo covers the rest: open `Nuke.xcodeproj` and run the `NukeDemo` scheme.
 
 <a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
 <img width="747" alt="Nuke Docs and Demo" src="https://github.com/user-attachments/assets/c6bbac09-55f2-4824-a0ec-a3a467d9e9be" />
