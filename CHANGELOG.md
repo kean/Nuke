@@ -48,6 +48,7 @@
 - `NukeExtensions` is folded into `NukeUI`. The image view extensions now ship in `NukeUI`, and `NukeExtensions` is an empty module that re-exports it, scheduled for removal in Nuke 15 – https://github.com/kean/Nuke/pull/947
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 - `FetchImage/progress` and `LazyImageState/progress` now return `ImageTask/Progress`, which `FetchImage` publishes itself, instead of the nested `FetchImage.Progress` observable object that needed its own `@ObservedObject`. The old type is deprecated – https://github.com/kean/Nuke/pull/953
+- Add `ImagePipeline/Error/isCancelled` – https://github.com/kean/Nuke/pull/952
 
 **Bug Fixes**
 
@@ -64,6 +65,7 @@
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/930
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
+- Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
 
 **Documentation**
 
