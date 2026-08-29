@@ -34,6 +34,20 @@ extension ImagePipeline {
 }
 
 extension ImagePipeline.Error {
+    /// Returns `true` if the request was cancelled.
+    ///
+    /// Cancellation is an expected outcome, not a failure: every image view
+    /// that scrolls offscreen produces one. Use it to filter cancellations out
+    /// of the error UI and the logs.
+    ///
+    /// ```swift
+    /// guard !error.isCancelled else { return }
+    /// logger.error("Failed to load image: \(error)")
+    /// ```
+    public var isCancelled: Bool {
+        if case .cancelled = self { true } else { false }
+    }
+
     /// Returns underlying data loading error.
     public var dataLoadingError: Swift.Error? {
         switch self {

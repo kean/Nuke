@@ -9,6 +9,26 @@ import Foundation
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineErrorTests {
 
+    // MARK: - isCancelled
+
+    @Test func isCancelledReturnsTrueForCancelled() {
+        #expect(ImagePipeline.Error.cancelled.isCancelled)
+    }
+
+    @Test func isCancelledReturnsFalseForOtherCases() {
+        let cases: [ImagePipeline.Error] = [
+            .dataMissingInCache,
+            .dataLoadingFailed(error: URLError(.notConnectedToInternet)),
+            .dataIsEmpty,
+            .imageRequestMissing,
+            .pipelineInvalidated,
+            .dataDownloadExceededMaximumSize,
+        ]
+        for error in cases {
+            #expect(!error.isCancelled)
+        }
+    }
+
     // MARK: - dataLoadingError
 
     @Test func dataLoadingErrorReturnsUnderlyingError() {
@@ -26,6 +46,7 @@ struct ImagePipelineErrorTests {
             .imageRequestMissing,
             .pipelineInvalidated,
             .dataDownloadExceededMaximumSize,
+            .cancelled,
         ]
         for error in cases {
             #expect(error.dataLoadingError == nil)

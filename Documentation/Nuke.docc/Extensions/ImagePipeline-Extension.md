@@ -92,6 +92,19 @@ If progressive decoding is enabled, the pipeline attempts to produce previews as
 
 **Backpressure:** Every preview goes through the same processing and decompression phases as the final image. If a stage can't keep up, the pipeline waits for the current operation to finish before starting the next one. All outstanding progressive operations are canceled when the data is fully downloaded.
 
+## Error Handling
+
+The pipeline fails with a typed ``ImagePipeline/Error``. Cancellation is one of its cases, and it's by far the most common one: every image view that scrolls offscreen cancels its request. Use ``ImagePipeline/Error/isCancelled`` to filter it out before showing an error or reporting it.
+
+```swift
+do {
+    imageView.image = try await pipeline.image(for: url)
+} catch {
+    guard !error.isCancelled else { return }
+    logger.error("Failed to load image: \(error)")
+}
+```
+
 ## Topics
 
 ### Getting a Pipeline
