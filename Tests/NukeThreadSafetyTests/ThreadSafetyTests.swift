@@ -61,9 +61,16 @@ struct ThreadSafetyTests {
             queue.addOperation {
                 prefetcher.stopPrefetching(with: makeRequests())
                 prefetcher.startPrefetching(with: makeRequests())
+                // The prefetcher reads `didComplete` on the pipeline actor
+                // every time it runs out of work.
+                prefetcher.didComplete = Bool.random() ? nil : { @MainActor @Sendable in }
+                _ = prefetcher.didComplete
+                prefetcher.priority = Bool.random() ? .high : .low
+                prefetcher.isPaused = false
             }
         }
         queue.waitUntilAllOperationsAreFinished()
+        prefetcher.stopPrefetching()
     }
 
     @Test func imageCacheThreadSafety() {

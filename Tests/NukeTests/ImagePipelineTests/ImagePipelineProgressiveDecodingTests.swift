@@ -183,9 +183,12 @@ struct ImagePipelineProgressiveDecodingTests {
         )
 
         // When
+        dataLoader.servesFirstChunkAutomatically = false
         var recordedPreviews: [ImageResponse] = []
         let task = pipeline.imageTask(with: request)
-        for try await preview in task.previews {
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
+        for try await preview in stream {
             #expect(preview.image.cgImage?.width == 45)
             #expect(preview.image.cgImage?.height == 30)
             recordedPreviews.append(preview)
@@ -205,9 +208,12 @@ struct ImagePipelineProgressiveDecodingTests {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "_image_processor")])
 
         // When
+        dataLoader.servesFirstChunkAutomatically = false
         var recordedPreviews: [ImageResponse] = []
         let task = pipeline.imageTask(with: request)
-        for try await preview in task.previews {
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
+        for try await preview in stream {
             #expect(preview.image.nk_test_processorIDs.count == 1)
             #expect(preview.image.nk_test_processorIDs.first == "_image_processor")
             recordedPreviews.append(preview)
@@ -384,9 +390,12 @@ struct ImagePipelineProgressiveDecodingTests {
         let request = ImageRequest(url: Test.url).with { $0.scale = 7.0 }
 
         // WHEN/THEN
+        dataLoader.servesFirstChunkAutomatically = false
         let task = pipeline.imageTask(with: request)
+        let stream = await task.subscribedPreviews()
+        dataLoader.resume()
         var previewScale: CGFloat?
-        for try await preview in task.previews {
+        for try await preview in stream {
             previewScale = preview.image.scale
             dataLoader.resume()
         }

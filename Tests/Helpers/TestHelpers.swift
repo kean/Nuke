@@ -66,3 +66,26 @@ private func bitmapData(for image: PlatformImage) -> Data? {
     context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
     return data
 }
+
+extension ImageTask {
+    /// Returns ``ImageTask/previews``, waiting until the subscription is
+    /// registered on the pipeline actor.
+    ///
+    /// Subscribing reaches the actor asynchronously, and unlike the terminal
+    /// event, the previews produced before it lands are not replayed. A test
+    /// that serves the next chunk of data only when it receives a preview
+    /// deadlocks if it loses the first one, so it has to hold the data back
+    /// until the subscription exists.
+    func subscribedPreviews() async -> AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse> {
+        let previews = self.previews
+        // Accessing `previews` schedules the registration on the pipeline
+        // actor, so this hop normally lands after it. Don't spin waiting for
+        // the exception: a busy-wait would starve the very actor it is
+        // waiting for, and the rest of the suite with it.
+        await Task { @ImagePipelineActor in }.value
+        while await _streamContinuations.isEmpty {
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        return previews
+    }
+}

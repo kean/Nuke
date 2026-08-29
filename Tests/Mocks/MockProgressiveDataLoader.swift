@@ -15,6 +15,20 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
     private var _completion: (@Sendable (Error?) -> Void)?
 
+    /// Serves the first chunk from `loadData` without waiting for `resume()`.
+    ///
+    /// Set to `false` in the tests that serve the next chunk only when they
+    /// receive a preview: subscribing to `ImageTask/previews` reaches the
+    /// pipeline actor asynchronously and the previews produced before it lands
+    /// are not replayed, so such a test deadlocks if it loses the first one.
+    /// See `ImageTask/subscribedPreviews()`.
+    var servesFirstChunkAutomatically = true
+
+    /// Both are only ever touched on the main queue, which is what serializes
+    /// them against `loadData` running on the pipeline actor.
+    private var isLoading = false
+    private var pendingResumeCount = 0
+
     init() {
         self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
@@ -27,9 +41,17 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     ) -> any Cancellable {
             self._didReceiveData = didReceiveData
         self._completion = completion
-        // Serve the first chunk immediately
         DispatchQueue.main.async {
-            self.serveNextChunk()
+            self.isLoading = true
+            if self.servesFirstChunkAutomatically {
+                self.serveNextChunk()
+            }
+            // Serve whatever was requested before loading started.
+            let pending = self.pendingResumeCount
+            self.pendingResumeCount = 0
+            for _ in 0..<pending {
+                self.serveNextChunk()
+            }
         }
         return _NoOpCancellable()
     }
@@ -52,6 +74,12 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     // Serves the next chunk.
     func resume(_ completed: @escaping @Sendable () -> Void = {}) {
         DispatchQueue.main.async {
+            guard self.isLoading else {
+                // `loadData` hasn't been called yet, and serving now would drop
+                // the chunk – there is nobody to hand it to.
+                self.pendingResumeCount += 1
+                return
+            }
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
                 self._didReceiveData?(chunk, self.urlResponse)

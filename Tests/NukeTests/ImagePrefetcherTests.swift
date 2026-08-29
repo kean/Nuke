@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
@@ -381,6 +382,89 @@ struct ImagePrefetcherTests {
             prefetcher.startPrefetching(with: [Test.request])
         }
     }
+
+    @Test func didCompleteIsCalledWithAnEmptyBatch() async {
+        // WHEN prefetching is started with nothing to prefetch
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = { @MainActor @Sendable in
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [URL]())
+        }
+
+        // THEN the closure is still called and no tasks are started
+        #expect(observer.startedTaskCount == 0)
+    }
+
+    @Test func didCompleteIsCalledOnTheMainThread() async {
+        // WHEN the closure is set from a non-main context
+        let isMainThread = OSAllocatedUnfairLock(initialState: false)
+        await Task.detached { [prefetcher] in
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                prefetcher.didComplete = { @MainActor @Sendable in
+                    isMainThread.withLock { $0 = Thread.isMainThread }
+                    continuation.resume()
+                }
+                prefetcher.startPrefetching(with: [Test.url])
+            }
+        }.value
+
+        // THEN it is still delivered on the main thread
+        #expect(isMainThread.withLock { $0 })
+    }
+
+    @Test func didCompleteIsCalledForEveryBatch() async {
+        // GIVEN one batch that already completed
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let first = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            first.fulfill()
+        }
+        prefetcher.startPrefetching(with: [Test.url])
+        await first.wait()
+
+        // WHEN a second batch is prefetched
+        let second = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            second.fulfill()
+        }
+        prefetcher.startPrefetching(with: [Self.otherURL])
+        await second.wait()
+
+        // THEN the closure is called once per batch and the replaced closure
+        // is never called again
+        #expect(count.withLock { $0 } == 2)
+    }
+
+    @Test func didCompleteCanBeCleared() async {
+        // GIVEN one batch that already completed
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let first = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            first.fulfill()
+        }
+        prefetcher.startPrefetching(with: [Test.url])
+        await first.wait()
+
+        // WHEN the closure is removed and another batch is prefetched
+        prefetcher.didComplete = nil
+        #expect(prefetcher.didComplete == nil)
+        prefetcher.startPrefetching(with: [Self.otherURL])
+
+        // THEN the removed closure is never called again. A later batch with a
+        // fresh closure gives us a point in time to check by.
+        let second = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in second.fulfill() }
+        prefetcher.startPrefetching(with: [Self.thirdURL])
+        await second.wait()
+        #expect(count.withLock { $0 } == 1)
+    }
+
+    private static let otherURL = URL(string: "http://test.com/example-2.jpeg")!
+    private static let thirdURL = URL(string: "http://test.com/example-3.jpeg")!
 
     // MARK: Empty Inputs
 
