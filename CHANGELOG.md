@@ -40,6 +40,7 @@
 - `ImageProcessors/CoreImageFilter` now takes `[String: any Sendable]` filter parameters instead of `[String: Any]`, matching the rest of the public API. The types Core Image filters commonly take – `CIImage`, `CIColor`, `CIVector`, `CGImage`, `NSNumber` – are all `Sendable` – https://github.com/kean/Nuke/pull/934
 - `ImageLoadingOptions` and its nested `ContentModes`, `TintColors`, and `Transition` now conform to `Sendable`. They were the only non-`Sendable` value types left in the public API, even though `ImageLoadingOptions/shared` is `@MainActor`. The `ImageLoadingOptions/Transition/custom(_:)` closure is now `@MainActor @Sendable`, which is where it already ran – https://github.com/kean/Nuke/pull/935
 - `ImageDecodingContext/init(request:data:isCompleted:urlResponse:cacheType:previewPolicy:)` now takes `previewPolicy`. It was the only property you couldn't set at initialization – https://github.com/kean/Nuke/pull/936
+- `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of handing out an escaping, non-`Sendable` completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
 
 **Bug Fixes**
 
