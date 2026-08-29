@@ -23,6 +23,10 @@ public protocol LazyImageState {
     var isLoading: Bool { get }
 
     /// The progress of the image download.
+    ///
+    /// Returns `ImageTask.Progress`, the same struct the pipeline reports.
+    /// `NukeUI` no longer has a progress type of its own: `FetchImage.Progress`
+    /// is a deprecated typealias for it.
     var progress: ImageTask.Progress { get }
 }
 

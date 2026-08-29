@@ -1,5 +1,9 @@
 # ``Nuke/ImagePipeline/Delegate-swift.protocol``
 
+## Overview
+
+Every method declares its isolation in its own signature. The methods that return a customization are `nonisolated`; the ones that report to the delegate run on ``ImagePipelineActor``. See <doc:where-work-runs> for the full table and what it means for a `@MainActor` delegate.
+
 ## Topics
 
 ### Data Loading
@@ -24,3 +28,9 @@
 
 - ``shouldDecompress(response:for:pipeline:)``
 - ``decompress(response:request:pipeline:)``
+
+### Observing Tasks
+
+- ``imageTaskCreated(_:pipeline:)``
+- ``imageTaskDidStart(_:pipeline:)``
+- ``imageTask(_:didReceiveEvent:pipeline:)``

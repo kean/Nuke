@@ -151,6 +151,8 @@ public final class LazyImageView: _PlatformBaseView {
     public var onPreview: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request progress is updated.
+    ///
+    /// Receives `ImageTask.Progress`, the same struct the pipeline reports.
     public var onProgress: (@MainActor @Sendable (ImageTask.Progress) -> Void)?
 
     /// Gets called when the request finishes successfully.

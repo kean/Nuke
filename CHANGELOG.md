@@ -71,6 +71,9 @@
 
 - Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
 - Fix the code samples in the SwiftUI, UIKit, Objective-C, and Performance articles, and compile them in CI – https://github.com/kean/Nuke/pull/955
+- Add an "Errors" article covering the `ImagePipeline/Error` cases, `isCancelled`, and unwrapping `dataLoadingError` – https://github.com/kean/Nuke/pull/957
+- Add a "Where Nuke's Work Runs" article covering `ImagePipelineActor`, the five task queues, and the delegate isolation, and add `ImagePipelineActor` and `TaskQueue` to the topic tree – https://github.com/kean/Nuke/pull/957
+- Open the Performance Guide with a "Do This First" checklist – https://github.com/kean/Nuke/pull/957
 
 # Nuke 13
 

@@ -105,6 +105,8 @@ do {
 }
 ```
 
+> Tip: See <doc:errors> for what every case means and how to unwrap the underlying `URLError`.
+
 ## Topics
 
 ### Getting a Pipeline
