@@ -44,6 +44,7 @@ public struct AnimatedImage: View {
 
     /// Plays the given animated image.
     ///
+    /// - parameter source: The animation to play.
     /// - parameter poster: The still frame to show until the first frame of the
     /// animation is decoded – ``ImageContainer/image``, the image the decoder
     /// already produced. Without one the view is blank for a decode's worth of
