@@ -381,6 +381,40 @@ struct ImageDecoderTests {
         #expect(container.data == data)
     }
 
+    @Test func attachesDataToAnimatedHEIC() throws {
+        // The end of the path the two HEIC bugs lived on: the file leads with
+        // the `msf1` brand, which used to sniff as no type at all, and a type
+        // the pipeline can't name is an animation it never attaches the data to.
+        guard let data = Test.animatedHEICS() else {
+            return // Image I/O on this platform can't write a HEIC sequence
+        }
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .heic)
+        #expect(container.data == data)
+    }
+
+    @Test func attachesDataToAnimatedWebP() throws {
+        let data = Test.data(name: "animated", extension: "webp")
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .webp)
+        #expect(container.data == data)
+    }
+
+    @Test func doesNotAttachDataToStaticWebP() throws {
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(Test.data(name: "baseline", extension: "webp"))
+
+        #expect(container.type == .webp)
+        #expect(container.data == nil)
+    }
+
     @Test func doesNotAttachDataToStaticPNG() throws {
         let decoder = ImageDecoders.Default()
 
