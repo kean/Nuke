@@ -389,6 +389,95 @@ struct AnimatedImagePlayerTests {
         #expect(player.currentFrameIndex == 2)
     }
 
+    @Test func seekSurvivesTheDecodeItInterrupts() async throws {
+        // GIVEN a decoder still working on the frame the animation was on
+        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
+        )
+        let poster = try #require(player.buffer.currentDecode)
+        await decoder.release(0)
+        await poster.value
+        let firstFrame = AnimatedImageTest.firstPixel(of: player.image)
+        player.play()
+        let interrupted = try #require(player.buffer.currentDecode)
+
+        // WHEN the playhead is moved somewhere else and that decode lands after
+        player.seek(toFrame: 5)
+        await decoder.release(1)
+        await interrupted.value
+
+        // THEN the player is where it was asked to go, still showing the frame
+        // it had. Frame 1 arriving late otherwise reads as the decoder falling
+        // behind, which is the one case where the playhead moves back to meet
+        // it – and with a sliding window, where the frame a seek lands on is
+        // almost never already decoded, that undid every seek.
+        #expect(player.currentFrameIndex == 5)
+        #expect(AnimatedImageTest.firstPixel(of: player.image) == firstFrame)
+    }
+
+    @Test func restartSurvivesTheDecodeItInterrupts() async throws {
+        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
+        )
+        let poster = try #require(player.buffer.currentDecode)
+        await decoder.release(0)
+        await poster.value
+        player.play()
+        player.seek(toFrame: 3)
+        let interrupted = try #require(player.buffer.currentDecode)
+
+        player.restart()
+        await decoder.release(3)
+        await interrupted.value
+
+        #expect(player.currentFrameIndex == 0)
+    }
+
+    @Test func seekPlaysAnAnimationThatHasFinished() async {
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, loopCount: 1)
+        await player.buffer.waitUntilFull()
+        player.play()
+        for _ in 0..<3 { clock.tick(0.1) }
+        #expect(player.isFinished)
+
+        // Finished with the loops it was asked for, not with the animation:
+        // without this, seeking and playing was a silent no-op and the only way
+        // back was `restart()`, which gives up the position.
+        player.seek(toFrame: 1)
+        player.play()
+
+        #expect(player.isFinished == false)
+        #expect(player.isPlaying)
+        #expect(player.currentFrameIndex == 1)
+    }
+
+    @Test func stopsOnItsLastFrameWithASlowDecoder() async throws {
+        // GIVEN an animation that plays once, with a decoder that can't keep up
+        var options = AnimatedImagePlayer.Options.twoFrameBuffer
+        options.repeatCount = .finite(1)
+        let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 3, delays: Array(repeating: 0.1, count: 3), options: options
+        )
+        let poster = try #require(player.buffer.currentDecode)
+        await decoder.release(0)
+        await poster.value
+
+        // WHEN it runs to the end and a frame it ran past arrives afterwards
+        player.play()
+        let late = try #require(player.buffer.currentDecode)
+        for _ in 0..<3 { clock.tick(0.1) }
+        #expect(player.isFinished)
+        await decoder.release(1)
+        await late.value
+
+        // THEN it stays on the frame it stopped on. The playhead moves back to
+        // meet a late frame only while the animation is running: a player that
+        // has stopped is on the frame it is on deliberately, and one that never
+        // reaches its last frame has not played the loop it was asked for.
+        #expect(player.currentFrameIndex == 2)
+        #expect(player.isFinished)
+    }
+
     // MARK: Diagnostics
 
     @Test func reportsBufferAndDecodeStatistics() async throws {

@@ -120,7 +120,8 @@ public final class AnimatedImagePlayer {
     /// Starts or resumes playback.
     ///
     /// Does nothing if the animation has already finished; call ``restart()``
-    /// to play it again.
+    /// to play it from the beginning, or ``seek(toFrame:)`` to pick up
+    /// somewhere else.
     public func play() {
         guard !isPlaying, !isFinished else { return }
         isPlaying = true
@@ -138,7 +139,6 @@ public final class AnimatedImagePlayer {
 
     /// Returns to the first frame and starts playing.
     public func restart() {
-        isFinished = false
         completedLoopCount = 0
         seek(toFrame: 0)
         play()
@@ -150,11 +150,20 @@ public final class AnimatedImagePlayer {
     /// moves the buffer window, so the frames around the destination start
     /// decoding immediately, and the frame itself appears as soon as it is
     /// ready – which is on the next run loop pass at the earliest.
+    ///
+    /// A player that has played all of its loops can be seeked and played
+    /// again: it was finished with the loops it was asked for, not with the
+    /// animation.
     public func seek(toFrame index: Int) {
         let index = min(max(0, index), source.frameCount - 1)
+        isFinished = false
         currentFrameIndex = index
         elapsed = 0
-        buffer.setCurrentIndex(index)
+        // The frame being decoded is for somewhere the playhead has just left.
+        // Left to finish, it would arrive as a frame the animation ran past,
+        // which is the one case where the player moves the playhead back to
+        // meet the decoder – and the seek would be undone by it.
+        buffer.setCurrentIndex(index, isSeeking: true)
         display(frameAt: index)
     }
 
@@ -323,7 +332,12 @@ public final class AnimatedImagePlayer {
         // whatever is on screen while the decoder keeps burning a core. Showing
         // the late frame and moving the playhead back to it degrades playback
         // to the speed of the decoder, which is the trade a video player makes.
-        guard buffer.frame(at: currentFrameIndex) == nil else { return }
+        //
+        // Only while the animation is running, though. A player that is paused,
+        // or that has stopped on the last frame it was asked to play, is on the
+        // frame it is on deliberately, and a decode that lands afterwards is
+        // not a reason to move it.
+        guard isPlaying, buffer.frame(at: currentFrameIndex) == nil else { return }
         currentFrameIndex = index
         elapsed = 0
         display(frameAt: index)

@@ -248,8 +248,20 @@ final class AnimatedImageFrameBuffer {
     }
 
     /// Moves the window to start at the given index and refills it.
-    func setCurrentIndex(_ index: Int) {
+    ///
+    /// - parameter isSeeking: Whether the window is being moved somewhere the
+    /// animation was not heading, which drops the decode in flight. That frame
+    /// is for a place the playhead has left, and offering it would tell the
+    /// player about a frame nobody asked for. There is no stopping it
+    /// mid-`CGImageSourceCreateImageAtIndex`, so what the cancellation buys is
+    /// that the frame is never offered: the decode returns to a task that has
+    /// been cancelled and drops it.
+    func setCurrentIndex(_ index: Int, isSeeking: Bool = false) {
         currentIndex = index
+        if isSeeking {
+            task?.cancel()
+            task = nil
+        }
         evict()
         decodeNextFrame()
     }
