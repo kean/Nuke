@@ -143,10 +143,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
 
     private func makeView() -> AnimatedImageView {
         let view = AnimatedImageView()
-#if os(macOS)
-        view.imageScaling = contentMode == .fill ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
-#else
-        view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
+#if !os(macOS)
         view.clipsToBounds = true
         // Without this the intrinsic size of the first frame wins every layout
         // argument and the view refuses to shrink.
@@ -159,7 +156,15 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         return view
     }
 
+    /// The content mode is applied here rather than in ``makeView()`` because
+    /// SwiftUI reuses the view across updates: a content mode that comes from
+    /// state would otherwise be whatever it was the first time around.
     private func update(_ view: AnimatedImageView) {
+#if os(macOS)
+        view.imageScaling = contentMode == .fill ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
+#else
+        view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
+#endif
         if let player {
             view.player = player
         } else {

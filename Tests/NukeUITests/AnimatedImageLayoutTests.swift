@@ -101,3 +101,44 @@ struct AnimatedImageLayoutTests {
         #expect(size == nil)
     }
 }
+
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+
+/// Covers the other half of laying out like an `Image`: the content mode, which
+/// the platform view applies to the frames once the size is settled.
+@Suite(.timeLimit(.minutes(5))) @MainActor
+struct AnimatedImageContentModeTests {
+    @Test func followsAContentModeThatChanges() async throws {
+        // SwiftUI reuses the view across updates, so a content mode read only
+        // when the view is created is the one it keeps for good.
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let host = ViewHost(ContentMode.fit) { contentMode in
+            AnimatedImage(source).resizable(contentMode: contentMode)
+        }
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self) != nil })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        #expect(scaling(of: view) == .fit)
+
+        await host.update(.fill)
+
+        #expect(scaling(of: view) == .fill)
+    }
+
+    private func scaling(of view: AnimatedImageView) -> ContentMode? {
+#if os(macOS)
+        switch view.imageScaling {
+        case .scaleProportionallyDown: .fit
+        case .scaleProportionallyUpOrDown: .fill
+        default: nil
+        }
+#else
+        switch view.contentMode {
+        case .scaleAspectFit: .fit
+        case .scaleAspectFill: .fill
+        default: nil
+        }
+#endif
+    }
+}
+
+#endif
