@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Combine // For `ObservableObject`
 import CoreGraphics
 import Foundation
 import Nuke
@@ -28,6 +29,28 @@ import AppKit
 /// one yourself when you want to drive playback – or read
 /// ``AnimatedImagePlayer/diagnostics`` – from your own view.
 ///
+/// ## Observation
+///
+/// The player is an `ObservableObject`, so a SwiftUI view can read
+/// ``isPlaying`` and ``isFinished`` and be redrawn when they change:
+///
+/// ```swift
+/// @ObservedObject var player: AnimatedImagePlayer
+///
+/// Button(player.isPlaying ? "Pause" : "Play") {
+///     player.isPlaying ? player.pause() : player.play()
+/// }
+/// ```
+///
+/// What is published is the playback state changing – it starts, stops,
+/// finishes its loops, or something moves the playhead – and deliberately not
+/// the animation running. The frames go to the view directly, and a SwiftUI
+/// graph invalidated 20 times a second to redraw a picture the view has already
+/// drawn is the cost this whole design exists to avoid. So
+/// ``currentFrameIndex`` and ``completedLoopCount`` advance without a signal
+/// while the animation plays: watch them through ``onLoop`` and ``onFinish``,
+/// or sample ``diagnostics`` on a timer, which is what the demo app does.
+///
 /// ## Timing
 ///
 /// Playback follows the wall clock rather than the decoder. Every tick of the
@@ -43,7 +66,7 @@ import AppKit
 /// every frame, so the playhead waits for the decoder instead and the animation
 /// plays slow rather than stopping.
 @MainActor
-public final class AnimatedImagePlayer {
+public final class AnimatedImagePlayer: ObservableObject {
     /// The image being played.
     public let source: AnimatedImageSource
 
@@ -58,11 +81,11 @@ public final class AnimatedImagePlayer {
     public private(set) var image: PlatformImage?
 
     /// Whether the clock is running.
-    public private(set) var isPlaying = false
+    @Published public private(set) var isPlaying = false
 
     /// `true` when the animation has played the number of loops it was asked to
     /// and stopped on its last frame.
-    public private(set) var isFinished = false
+    @Published public private(set) var isFinished = false
 
     /// The number of loops completed since the player was created.
     public private(set) var completedLoopCount = 0
@@ -181,6 +204,12 @@ public final class AnimatedImagePlayer {
     /// animation.
     public func seek(toFrame index: Int) {
         let index = min(max(0, index), source.frameCount - 1)
+        // Assigned on every seek, whether or not it was set, because this is
+        // also what publishes the move to anything observing the player: a
+        // `@Published` property publishes on assignment, not on change.
+        // `currentFrameIndex` – the thing that actually moved – can't do it
+        // itself, because it moves on every frame of every loop, and
+        // publishing there would put the SwiftUI graph on the frame clock.
         isFinished = false
         currentFrameIndex = index
         elapsed = 0

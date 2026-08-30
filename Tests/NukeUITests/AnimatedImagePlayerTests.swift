@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Combine
 import Foundation
 import Testing
 @testable import Nuke
@@ -490,6 +491,67 @@ struct AnimatedImagePlayerTests {
         // reaches its last frame has not played the loop it was asked for.
         #expect(player.currentFrameIndex == 2)
         #expect(player.isFinished)
+    }
+
+    // MARK: Observation
+
+    @Test func publishesWhenPlaybackStartsAndStops() {
+        let (player, _) = AnimatedImageTest.makePlayer()
+        var changes = 0
+        let observer = player.objectWillChange.sink { changes += 1 }
+
+        player.play()
+        #expect(changes == 1)
+
+        player.pause()
+        #expect(changes == 2)
+
+        observer.cancel()
+    }
+
+    @Test func publishesASeek() async {
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 5)
+        await player.buffer.waitUntilFull()
+        var changes = 0
+        let observer = player.objectWillChange.sink { changes += 1 }
+
+        player.seek(toFrame: 3)
+
+        #expect(changes == 1)
+        observer.cancel()
+    }
+
+    @Test func publishesWhenTheAnimationFinishes() async {
+        var options = AnimatedImagePlayer.Options()
+        options.repeatCount = .finite(1)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 2, options: options)
+        player.play()
+        await player.buffer.waitUntilFull()
+        var changes = 0
+        let observer = player.objectWillChange.sink { changes += 1 }
+
+        for _ in 0..<2 { clock.tick(0.1) }
+
+        #expect(player.isFinished)
+        #expect(changes > 0)
+        observer.cancel()
+    }
+
+    @Test func publishesNothingWhileTheAnimationRuns() async {
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4)
+        player.play()
+        await player.buffer.waitUntilFull()
+        var changes = 0
+        let observer = player.objectWillChange.sink { changes += 1 }
+
+        for _ in 0..<6 { clock.tick(0.1) }
+
+        // Six frames and a completed loop, and nothing was published: a view
+        // observing the player is not redrawn on the frame clock.
+        #expect(player.currentFrameIndex == 2)
+        #expect(player.completedLoopCount == 1)
+        #expect(changes == 0)
+        observer.cancel()
     }
 
     // MARK: Diagnostics

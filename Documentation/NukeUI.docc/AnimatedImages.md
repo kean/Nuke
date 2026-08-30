@@ -137,6 +137,18 @@ AnimatedImage(player: player)  // SwiftUI
 
 The player exposes ``AnimatedImagePlayer/play()``, ``AnimatedImagePlayer/pause()``, ``AnimatedImagePlayer/restart()``, and ``AnimatedImagePlayer/seek(toFrame:)``, and reports what it is doing through ``AnimatedImagePlayer/currentFrameIndex``, ``AnimatedImagePlayer/completedLoopCount``, ``AnimatedImagePlayer/isPlaying``, and ``AnimatedImagePlayer/isFinished``.
 
+The player is an `ObservableObject`, so a SwiftUI control of your own can read its state and be redrawn when it changes:
+
+```swift
+@ObservedObject var player: AnimatedImagePlayer
+
+Button(player.isPlaying ? "Pause" : "Play") {
+    player.isPlaying ? player.pause() : player.play()
+}
+```
+
+What is published is the playback state changing – it starts, stops, finishes its loops, or something moves the playhead – and deliberately not the animation running. ``AnimatedImagePlayer/currentFrameIndex`` and ``AnimatedImagePlayer/completedLoopCount`` advance without a signal, because a SwiftUI graph invalidated 20 times a second to redraw a picture the animation view has already drawn is the cost this design exists to avoid. Sample ``AnimatedImagePlayer/diagnostics`` on a timer when you want to watch them move.
+
 ``AnimatedImagePlayer/onFrame`` stays yours as well. The views take the frames of a player they are given through a channel of their own, so a player already driving a scrubber of yours goes on driving it after you hand it to one.
 
 ``AnimatedImagePlayer/Options`` covers the rest: ``AnimatedImagePlayer/Options/playbackRate`` for speed, and ``AnimatedImagePlayer/Options/repeatCount`` for how many times to play. The default, ``AnimatedImagePlayer/RepeatCount/image``, honors what the file asks for, which for the vast majority of animations is "forever"; ``AnimatedImagePlayer/RepeatCount/finite(_:)`` stops on the last frame and calls ``AnimatedImagePlayer/onFinish``.
