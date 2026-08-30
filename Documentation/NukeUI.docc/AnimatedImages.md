@@ -32,7 +32,7 @@ LazyImage(url: url) { state in
 }
 ```
 
-``LazyImageState/animatedImage`` is `nil` for everything that isn't animated, which is the signal to display the still image. Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable(contentMode:)``.
+``LazyImageState/animatedImage`` is `nil` for everything that isn't animated, which is the signal to display the still image. Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable(contentMode:)``, and it lays out the way an `Image` does after that: `.fit` takes the size the frames occupy, `.fill` covers what it is offered and clips the rest.
 
 ### UIKit and AppKit
 

@@ -69,7 +69,10 @@ public struct AnimatedImage: View {
     /// `Image.resizable()` does.
     ///
     /// - parameter contentMode: How the frames fill the view once it has been
-    /// sized. `.fit` by default.
+    /// sized. `.fit` by default, which lays out like
+    /// `Image.resizable().scaledToFit()`: the view takes the size the frames
+    /// occupy rather than the box they were offered, so a background or a clip
+    /// shape wraps the animation. `.fill` covers the box and clips the rest.
     public consuming func resizable(contentMode: ContentMode = .fit) -> Self {
         var copy = self
         copy.isResizable = true
@@ -83,6 +86,42 @@ public struct AnimatedImage: View {
 #else
         AnimatedImageRepresentable(source: source, player: player, contentMode: contentMode, isResizable: isResizable)
 #endif
+    }
+}
+
+/// The size an ``AnimatedImage`` reports for a proposal.
+///
+/// A function rather than a method on the view so that the layout can be
+/// tested without a view hierarchy.
+func animatedImageSize(
+    for proposal: ProposedViewSize,
+    source size: CGSize,
+    isResizable: Bool,
+    contentMode: ContentMode
+) -> CGSize? {
+    guard size.width > 0, size.height > 0 else { return nil }
+    guard isResizable else {
+        return size // Same as an `Image` without `resizable()`
+    }
+    switch (proposal.width, proposal.height) {
+    case (nil, nil):
+        return size
+    case let (width?, nil):
+        return CGSize(width: width, height: width * size.height / size.width)
+    case let (nil, height?):
+        return CGSize(width: height * size.width / size.height, height: height)
+    case let (width?, height?):
+        // `.fill` covers what it is offered and the view clips what hangs over
+        // the edge, which is `scaledToFill()` followed by `clipped()`.
+        guard contentMode == .fit else {
+            return CGSize(width: width, height: height)
+        }
+        // `.fit` reports the size the frames actually occupy, the way
+        // `Image.resizable().scaledToFit()` does, so that a background or a
+        // clip shape wraps the animation and not the box around it.
+        let scale = min(width / size.width, height / size.height)
+        guard scale.isFinite else { return size }
+        return CGSize(width: size.width * scale, height: size.height * scale)
     }
 }
 
@@ -131,17 +170,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     /// Reports the size the animation wants, so that the view behaves like an
     /// `Image` rather than collapsing or filling everything it is offered.
     private func size(for proposal: ProposedViewSize) -> CGSize? {
-        let size = source.size
-        guard size.width > 0, size.height > 0 else { return nil }
-        guard isResizable else {
-            return size // Same as an `Image` without `resizable()`
-        }
-        switch (proposal.width, proposal.height) {
-        case (nil, nil): return size
-        case let (width?, nil): return CGSize(width: width, height: width * size.height / size.width)
-        case let (nil, height?): return CGSize(width: height * size.width / size.height, height: height)
-        case let (width?, height?): return CGSize(width: width, height: height)
-        }
+        animatedImageSize(for: proposal, source: source.size, isResizable: isResizable, contentMode: contentMode)
     }
 
 #if os(macOS)
