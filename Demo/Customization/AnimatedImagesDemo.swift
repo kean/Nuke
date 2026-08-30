@@ -70,15 +70,17 @@ struct AnimatedImagesDemo: View {
         points: [
             .init("Wall clock", "Playback follows the clock rather than the decoder, so an animation always takes as long as it says it does. A frame that is not ready in time is skipped instead of stretching the timeline."),
             .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
+            .init("Frame size", "`maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory. `AnimatedImageView` picks one from its own bounds; this screen builds the player by hand, so the size is yours to choose. The diagnostics show what the frames were authored at and what they are decoded at."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
-            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one. The button does the same thing by hand."),
+            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The buffer isn't shrunk for good: the player fills it again the next time the app becomes active, so send the demo to the background and come back to watch the map refill."),
+            .init("Layout", "`AnimatedImage` reports the size an `Image` would, so the usual layout modifiers apply. `.fit` reports the size the frames occupy rather than the box they were offered, which is what makes the rounded background wrap the animation instead of the space around it."),
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself.")
         ]
     )
 
     /// Everything that requires the animation to be loaded again from scratch.
     private var reloadID: String {
-        "\(image.rawValue)-\(settings.maxBufferSizeMB)-\(settings.isDownsamplingEnabled)-\(settings.playbackRate)-\(settings.repeatsForever)"
+        "\(image.rawValue)-\(settings.maxBufferSizeMB)-\(settings.maxPixelSize.rawValue)-\(settings.playbackRate)-\(settings.repeatsForever)"
     }
 
     // MARK: Stage
@@ -122,8 +124,7 @@ struct AnimatedImagesDemo: View {
         ZStack {
             if let player {
                 AnimatedImage(player: player)
-                    .resizable()
-                    .scaledToFit()
+                    .resizable(contentMode: settings.contentMode)
             } else if let status {
                 Text(status)
                     .font(.footnote)
@@ -178,17 +179,19 @@ private struct DemoAnimationConsole: View {
     /// so the explanation is presented from here instead.
     @Binding var isShowingInfo: Bool
 
-    /// Tall enough for the transport and the first section header under it,
-    /// which is what says there is more to pull up.
-    static let collapsedHeight: CGFloat = 140
+    /// Tall enough for the whole transport and the first section header under
+    /// it, which is what says there is more to pull up.
+    static let collapsedHeight: CGFloat = 208
     static let collapsed = PresentationDetent.height(collapsedHeight)
 
     var body: some View {
         VStack(spacing: 0) {
             transport
                 .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+                // The drag indicator sits in the first few points of the sheet;
+                // the transport starts below it rather than under it.
+                .padding(.top, 22)
+                .padding(.bottom, 16)
             list
         }
         .presentationDetents([Self.collapsed, .medium, .large], selection: $detent)
@@ -202,10 +205,35 @@ private struct DemoAnimationConsole: View {
 
     // MARK: Transport
 
+    /// The scrubber, what it is pointing at, and the buttons – in that order,
+    /// so that reading down the transport goes from the animation to the
+    /// controls rather than stepping over them.
     @ViewBuilder
     private var transport: some View {
         if let player {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
+                // Scrubbing pauses first: seeking while the clock runs would
+                // hand the frame straight back to the animation.
+                Slider(
+                    value: Binding(
+                        get: { Double(diagnostics.currentFrameIndex) },
+                        set: {
+                            player.pause()
+                            player.seek(toFrame: Int($0.rounded()))
+                        }
+                    ),
+                    in: 0...Double(max(1, player.source.frameCount - 1)),
+                    step: 1
+                ) {
+                    Text("Frame")
+                }
+
+                HStack {
+                    DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount)")
+                    Spacer()
+                    DemoMonoLabel("loop \(diagnostics.completedLoopCount)")
+                }
+
                 HStack(spacing: 12) {
                     Button {
                         if player.isPlaying {
@@ -233,28 +261,6 @@ private struct DemoAnimationConsole: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                }
-
-                // Scrubbing pauses first: seeking while the clock runs would
-                // hand the frame straight back to the animation.
-                Slider(
-                    value: Binding(
-                        get: { Double(diagnostics.currentFrameIndex) },
-                        set: {
-                            player.pause()
-                            player.seek(toFrame: Int($0.rounded()))
-                        }
-                    ),
-                    in: 0...Double(max(1, player.source.frameCount - 1)),
-                    step: 1
-                ) {
-                    Text("Frame")
-                }
-
-                HStack {
-                    DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount)")
-                    Spacer()
-                    DemoMonoLabel("loop \(diagnostics.completedLoopCount)")
                 }
             }
         } else {
@@ -287,11 +293,33 @@ private struct DemoAnimationConsole: View {
                 Slider(value: $settings.maxBufferSizeMB, in: 0.25...32) {
                     Text("Budget")
                 }
-                Toggle("Downsample to 240 px", isOn: $settings.isDownsamplingEnabled)
+                LabeledContent("Frame size") {
+                    DemoMonoLabel(settings.maxPixelSize.subtitle)
+                }
+                Picker("Frame size", selection: $settings.maxPixelSize) {
+                    ForEach(DemoMaxPixelSize.allCases) {
+                        Text($0.title).tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             } header: {
                 Text("Frame Buffer")
             } footer: {
-                Text("The memory the decoded frames may use. Drop it below what the animation needs and the buffer becomes a sliding window.")
+                Text("The memory the decoded frames may use, and the longest side they are decoded at. Drop the budget below what the animation needs and the buffer becomes a sliding window; drop the frame size and every frame costs the square of the scale less.")
+            }
+
+            Section {
+                Picker("Content mode", selection: $settings.contentMode) {
+                    Text("Fit").tag(ContentMode.fit)
+                    Text("Fill").tag(ContentMode.fill)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            } header: {
+                Text("Layout")
+            } footer: {
+                Text("AnimatedImage sizes itself the way Image does. Fit takes the size the frames occupy, so a background or a clip shape wraps the animation; fill covers the space it is offered and clips what hangs over the edge.")
             }
 
             Section {
@@ -365,7 +393,7 @@ private struct DemoDiagnosticsPanel: View {
     private var grid: some View {
         VStack(spacing: 6) {
             DiagnosticsRow("frame", "\(diagnostics.currentFrameIndex + 1)/\(diagnostics.frameCount)  ·  loop \(diagnostics.completedLoopCount)")
-            DiagnosticsRow("buffer", "\(diagnostics.bufferedFrameCount)/\(diagnostics.bufferCapacity) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount))")
+            DiagnosticsRow("buffer", "\(diagnostics.bufferedFrameCount)/\(diagnostics.bufferCapacity) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount)) of \(demoByteCount(player.options.maxBufferSize))")
             DiagnosticsRow("decoded", "\(diagnostics.decodedFrameCount) frames")
             DiagnosticsRow("decode", "\(milliseconds(diagnostics.lastDecodeDuration)) last  ·  \(milliseconds(diagnostics.averageDecodeDuration)) avg  ·  \(milliseconds(diagnostics.maxDecodeDuration)) max")
             DiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate))")
@@ -373,11 +401,45 @@ private struct DemoDiagnosticsPanel: View {
             DiagnosticsRow(
                 "missed",
                 "\(diagnostics.skippedFrameCount) behind  ·  \(diagnostics.bufferMissCount) not ready",
-                isWarning: diagnostics.skippedFrameCount > 0 || diagnostics.bufferMissCount > 0
+                tint: diagnostics.skippedFrameCount > 0 || diagnostics.bufferMissCount > 0 ? .orange : nil
             )
-            DiagnosticsRow("size", "\(Int(player.source.size.width))×\(Int(player.source.size.height)) px  ·  \(demoByteCount(player.source.bytesPerFrame))/frame")
+            DiagnosticsRow("size", size, tint: decodedSize == nil ? nil : .accentColor)
+            DiagnosticsRow("cost", "\(demoByteCount(bytesPerDecodedFrame))/frame  ·  \(demoByteCount(player.source.data.count)) encoded")
             DiagnosticsRow("length", "\(seconds(player.source.duration))  ·  \(player.source.loopCount == 0 ? "loops forever" : "\(player.source.loopCount) loops")")
         }
+    }
+
+    /// The canvas the animation declares, and – when the frames are being
+    /// scaled down – the size they are actually decoded at.
+    private var size: String {
+        let canvas = "\(pixels(player.source.size)) px"
+        guard let decodedSize else { return canvas }
+        return "\(canvas) → \(pixels(decodedSize)) px"
+    }
+
+    /// The size of the frames on screen, when it isn't the canvas size.
+    ///
+    /// Read off the frame the player is showing rather than computed from
+    /// ``AnimatedImagePlayer/Options/maxPixelSize``, so it is what the decoder
+    /// produced and not what it was asked for.
+    private var decodedSize: CGSize? {
+        guard let image = player.image?.cgImage else { return nil }
+        let size = CGSize(width: image.width, height: image.height)
+        return size == player.source.size ? nil : size
+    }
+
+    /// What one frame costs in memory. Measured off the buffer when it holds
+    /// anything, because the bitmaps are padded to a row width the compositor
+    /// likes and the canvas arithmetic doesn't know about that.
+    private var bytesPerDecodedFrame: Int {
+        guard diagnostics.bufferedFrameCount > 0 else {
+            return player.source.bytesPerFrame
+        }
+        return diagnostics.bufferedByteCount / diagnostics.bufferedFrameCount
+    }
+
+    private func pixels(_ size: CGSize) -> String {
+        "\(Int(size.width))×\(Int(size.height))"
     }
 
     private func milliseconds(_ value: TimeInterval) -> String {
@@ -428,12 +490,15 @@ private struct BufferMap: View {
 private struct DiagnosticsRow: View {
     private let title: String
     private let value: String
-    private let isWarning: Bool
+    /// Set for the numbers worth looking at right now: orange for the frames
+    /// playback couldn't keep up with, the accent color for a setting that is
+    /// visibly doing something.
+    private let tint: Color?
 
-    init(_ title: String, _ value: String, isWarning: Bool = false) {
+    init(_ title: String, _ value: String, tint: Color? = nil) {
         self.title = title
         self.value = value
-        self.isWarning = isWarning
+        self.tint = tint
     }
 
     var body: some View {
@@ -442,7 +507,7 @@ private struct DiagnosticsRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 62, alignment: .leading)
             Text(value)
-                .foregroundStyle(isWarning ? Color.orange : Color.primary)
+                .foregroundStyle(tint ?? Color.primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.system(.caption, design: .monospaced))
@@ -490,18 +555,42 @@ private enum DemoAnimation: String, CaseIterable {
 private struct DemoAnimationSettings {
     var maxBufferSizeMB: Double = 10
     var playbackRate: Double = 1
-    var isDownsamplingEnabled = false
+    var maxPixelSize: DemoMaxPixelSize = .full
     var repeatsForever = true
+    /// The only setting here that isn't a player option: it belongs to the
+    /// view, so changing it doesn't reload the animation.
+    var contentMode: ContentMode = .fit
 
     var playerOptions: AnimatedImagePlayer.Options {
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = Int(maxBufferSizeMB * 1_048_576)
         options.playbackRate = playbackRate
-        options.maxPixelSize = isDownsamplingEnabled ? 240 : nil
+        options.maxPixelSize = maxPixelSize.value
         options.repeatCount = repeatsForever ? .infinite : .image
         options.scale = 1
         return options
     }
+}
+
+/// The longest side the frames are decoded at.
+///
+/// The biggest memory lever there is: a frame costs the square of the scale, so
+/// decoding at half the size is a quarter of the memory and four times as many
+/// frames in the same budget. ``AnimatedImageView`` derives one from its own
+/// size; a player built by hand, like this screen's, takes what it is given.
+private enum DemoMaxPixelSize: Int, CaseIterable, Identifiable {
+    case full = 0
+    case small = 120
+    case medium = 240
+    case large = 480
+
+    var id: Int { rawValue }
+
+    var title: String { self == .full ? "Full" : "\(rawValue)" }
+
+    var subtitle: String { self == .full ? "as authored" : "\(rawValue) px" }
+
+    var value: CGFloat? { self == .full ? nil : CGFloat(rawValue) }
 }
 
 #Preview {
