@@ -89,7 +89,7 @@ struct AnimatedImagesDemo: View {
         GeometryReader { proxy in
             VStack(spacing: 12) {
                 Picker("Image", selection: $image) {
-                    ForEach(DemoAnimation.allCases, id: \.self) {
+                    ForEach(DemoAnimation.available, id: \.self) {
                         Text($0.title).tag($0)
                     }
                 }
@@ -146,8 +146,12 @@ struct AnimatedImagesDemo: View {
         player = nil
         status = nil
         diagnostics = AnimatedImagePlayer.Diagnostics()
+        guard let url = image.url else {
+            status = "There is no \(image.title) image on this platform."
+            return
+        }
         do {
-            let response = try await ImagePipeline.shared.imageTask(with: image.url).response
+            let response = try await ImagePipeline.shared.imageTask(with: url).response
             guard let source = AnimatedImageSource(container: response.container) else {
                 status = "\(image.title) loaded, but it isn't an animated image."
                 return
@@ -531,22 +535,29 @@ private struct DemoMonoLabel: View {
 // MARK: - Model
 
 private enum DemoAnimation: String, CaseIterable {
-    case gif, apng, webp, large
+    case gif, apng, webp, heic, large
+
+    /// The ones there is actually an image for on this platform.
+    static var available: [DemoAnimation] {
+        allCases.filter { $0.url != nil }
+    }
 
     var title: String {
         switch self {
         case .gif: "GIF"
         case .apng: "APNG"
         case .webp: "WebP"
+        case .heic: "HEIC"
         case .large: "Large"
         }
     }
 
-    var url: URL {
+    var url: URL? {
         switch self {
         case .gif: DemoImages.gif
         case .apng: DemoImages.apng
         case .webp: DemoImages.animatedWebP
+        case .heic: DemoImages.animatedHEIC
         case .large: DemoImages.largeGIF
         }
     }

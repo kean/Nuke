@@ -2,12 +2,17 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import CoreGraphics
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 /// The images used across the demo.
 ///
 /// Everything is loaded over the network so that the demo exercises the same
 /// code paths an app does: `URLSession`, disk cache, decoding, and processing.
+/// The one exception is ``animatedHEIC``, which is written on the spot – and
+/// still goes through all of it, from a `file:` URL.
 enum DemoImages {
     /// A large landscape photo. Used by the screens that show a single image.
     static let landscape = URL(string: "https://user-images.githubusercontent.com/1567433/59150453-178bbb80-8a24-11e9-94ca-fd8dff6e2a9a.jpeg")!
@@ -32,6 +37,77 @@ enum DemoImages {
     /// A long, large GIF. Its frames don't all fit in the default buffer, so it
     /// is the one that shows the sliding window doing its job.
     static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
+
+    /// An animated HEIC – a HEIF image sequence – written the first time it is
+    /// asked for, or `nil` where Image I/O has no encoder for one.
+    ///
+    /// The only image here that isn't a URL somebody else is hosting. Animated
+    /// HEIC has no well-known one, and the format is worth having on the screen
+    /// precisely because it is the one an app is most likely to get wrong: the
+    /// file leads with the `msf1` brand, and Image I/O reports it as
+    /// `public.heics` rather than `public.heic`.
+    static let animatedHEIC: URL? = makeAnimatedHEIC()
+
+    private static func makeAnimatedHEIC() -> URL? {
+        let directory = FileManager.default.temporaryDirectory
+        let url = directory.appendingPathComponent("nuke-demo-orbit.heics")
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        let type = UTType("public.heics") ?? .heic
+        let frameCount = 30
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data, type.identifier as CFString, frameCount, nil
+        ) else {
+            return nil
+        }
+        CGImageDestinationSetProperties(destination, [
+            kCGImagePropertyHEICSDictionary: [kCGImagePropertyHEICSLoopCount: 0]
+        ] as CFDictionary)
+        for index in 0..<frameCount {
+            guard let frame = makeOrbitFrame(index: index, of: frameCount) else { continue }
+            CGImageDestinationAddImage(destination, frame, [
+                kCGImagePropertyHEICSDictionary: [
+                    kCGImagePropertyHEICSDelayTime: 0.05,
+                    kCGImagePropertyHEICSUnclampedDelayTime: 0.05
+                ]
+            ] as CFDictionary)
+        }
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
+        try? (data as Data).write(to: url)
+        return url
+    }
+
+    /// One frame of a dot going around a ring, so that it is obvious at a
+    /// glance whether the thing on screen is playing or stuck on a still.
+    private static func makeOrbitFrame(index: Int, of count: Int) -> CGImage? {
+        let side = 400
+        guard let context = CGContext(
+            data: nil,
+            width: side,
+            height: side,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else {
+            return nil
+        }
+        let angle = 2 * CGFloat.pi * CGFloat(index) / CGFloat(count)
+        context.setFillColor(gray: 0.1, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+        let center = CGFloat(side) / 2
+        context.setStrokeColor(gray: 0.25, alpha: 1)
+        context.setLineWidth(8)
+        context.strokeEllipse(in: CGRect(x: center - 130, y: center - 130, width: 260, height: 260))
+        context.setFillColor(CGColor(red: 1 - CGFloat(index) / CGFloat(count), green: 0.4, blue: CGFloat(index) / CGFloat(count), alpha: 1))
+        let dot = CGPoint(x: center + cos(angle) * 130, y: center + sin(angle) * 130)
+        context.fillEllipse(in: CGRect(x: dot.x - 34, y: dot.y - 34, width: 68, height: 68))
+        return context.makeImage()
+    }
 
     static let webp = URL(string: "https://kean.github.io/images/misc/4.webp")!
 
