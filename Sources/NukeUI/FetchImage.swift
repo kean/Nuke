@@ -28,7 +28,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     @Published public private(set) var imageContainer: ImageContainer? {
-        didSet { animatedImage = imageContainer.flatMap(AnimatedImageSource.init(container:)) }
+        didSet { animatedImage = imageContainer.flatMap(AnimatedImageSource.cached(container:)) }
     }
 
     /// Returns the fetched image as an animation, if it is one.

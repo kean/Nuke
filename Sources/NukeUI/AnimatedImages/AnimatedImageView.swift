@@ -125,7 +125,7 @@ public final class AnimatedImageView: _PlatformImageView {
         // animation has already started on a fast decode. The scale has to be
         // passed in rather than read back from the view: `self.image` is still
         // whatever the view was showing before this call.
-        setAnimatedImage(data.flatMap(AnimatedImageSource.init(data:)), scale: scale(of: image))
+        setAnimatedImage(data.flatMap(AnimatedImageSource.cached(data:)), scale: scale(of: image))
         if animatedImage == nil || player?.image == nil {
             self.image = image
         }

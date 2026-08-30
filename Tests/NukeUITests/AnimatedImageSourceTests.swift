@@ -97,6 +97,32 @@ struct AnimatedImageSourceTests {
         #expect(source.frameCount == 4)
     }
 
+    // MARK: Caching
+
+    @Test func reusesTheParsedAnimationForTheSameData() throws {
+        let container = ImageContainer(image: Test.image, type: .gif, data: Test.animatedGIF())
+
+        let first = try #require(AnimatedImageSource.cached(container: container))
+        let second = try #require(AnimatedImageSource.cached(container: container))
+
+        // Parsing walks the metadata of every frame, and a list scrolled back
+        // to an animation displays the same data again.
+        #expect(first === second)
+    }
+
+    @Test func parsesEachAnimationOnItsOwn() throws {
+        let first = try #require(AnimatedImageSource.cached(data: Test.animatedGIF(frameCount: 4)))
+        let second = try #require(AnimatedImageSource.cached(data: Test.animatedGIF(frameCount: 6)))
+
+        #expect(first !== second)
+        #expect(second.frameCount == 6)
+    }
+
+    @Test func cachingReturnsNilForDataThatIsNotAnimated() {
+        #expect(AnimatedImageSource.cached(data: Test.data) == nil)
+        #expect(AnimatedImageSource.cached(container: Test.container) == nil)
+    }
+
     // MARK: Derived Values
 
     @Test func computesFrameRateAndFrameSize() throws {

@@ -120,6 +120,22 @@ public final class AnimatedImageSource: Sendable {
         self.init(data: data)
     }
 
+    /// Returns the animation for the given data, parsing it only if it hasn't
+    /// been parsed recently.
+    ///
+    /// Parsing walks the properties of every frame, and the pipeline hands the
+    /// same data to a view every time a memory-cached image is displayed, so
+    /// scrolling back to an animation in a list would otherwise pay for it
+    /// again. The views go through here; ``init(data:)`` always parses.
+    static func cached(data: Data) -> AnimatedImageSource? {
+        AnimatedImageSourceCache.shared.source(for: data)
+    }
+
+    /// Returns the animation attached to the container, if there is one.
+    static func cached(container: ImageContainer) -> AnimatedImageSource? {
+        container.data.flatMap(cached(data:))
+    }
+
     private static func size(of source: CGImageSource) -> CGSize {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Double,
@@ -230,5 +246,34 @@ enum AnimatedImageFormat: CaseIterable {
             return nil
         }
         return properties[dictionaryKey] as? [CFString: Any]
+    }
+}
+
+/// The animations parsed most recently, keyed by the data they came from.
+///
+/// `NSCache` rather than a dictionary: it is thread-safe, it evicts under
+/// memory pressure, and the entries are worth exactly nothing when the system
+/// needs the memory back. The cost of an entry is the data the source holds on
+/// to, which the image cache is usually holding as well.
+private final class AnimatedImageSourceCache: @unchecked Sendable {
+    static let shared = AnimatedImageSourceCache()
+
+    private let cache = NSCache<NSData, AnimatedImageSource>()
+
+    init() {
+        cache.countLimit = 32
+        cache.totalCostLimit = 16 * 1_048_576
+    }
+
+    func source(for data: Data) -> AnimatedImageSource? {
+        let key = data as NSData
+        if let source = cache.object(forKey: key) {
+            return source
+        }
+        guard let source = AnimatedImageSource(data: data) else {
+            return nil
+        }
+        cache.setObject(source, forKey: key, cost: data.count)
+        return source
     }
 }
