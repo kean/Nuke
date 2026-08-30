@@ -493,6 +493,34 @@ struct AnimatedImagePlayerTests {
         #expect(player.isFinished)
     }
 
+    // MARK: Decode Priority
+
+    @Test func decodesTheFrameItIsWaitingOnAheadOfTheRestOfTheWindow() async {
+        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
+
+        // Nothing is on screen until frame 0 lands.
+        #expect(await decoder.priority(of: 0) == .userInitiated)
+
+        player.play()
+        await decoder.release(0)
+
+        // The rest of the window is read-ahead: a screen full of animations
+        // filling their buffers should queue behind the app's own work.
+        #expect(await decoder.priority(of: 1) == .utility)
+    }
+
+    @Test func decodesTheFrameASeekLandedOnAheadOfTheRestOfTheWindow() async {
+        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 8)
+        player.play()
+        await decoder.release(0)
+        #expect(await decoder.priority(of: 1) == .utility)
+
+        player.seek(toFrame: 5)
+
+        // The seek made frame 5 the one nothing can be shown without.
+        #expect(await decoder.priority(of: 5) == .userInitiated)
+    }
+
     // MARK: Observation
 
     @Test func publishesWhenPlaybackStartsAndStops() {

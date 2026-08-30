@@ -40,6 +40,12 @@ extension AnimatedImagePlayer.Options {
     }
 }
 
+/// The priority a decode runs at.
+///
+/// Spelled out because `Nuke` has a `TaskPriority` of its own and the test
+/// target imports both.
+typealias DecodePriority = _Concurrency.TaskPriority
+
 /// A decoder that produces a frame only once the test releases it.
 ///
 /// A player that outruns its decoder is otherwise a race: the test would have
@@ -48,12 +54,15 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     private let decoder: AnimatedImageFrameDecoder
     private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
     private var released: Set<Int> = []
+    private var startedPriorities: [Int: DecodePriority] = [:]
+    private var priorityWaiters: [Int: CheckedContinuation<DecodePriority, Never>] = [:]
 
     init(data: Data, maxPixelSize: CGFloat? = nil) {
         self.decoder = AnimatedImageFrameDecoder(data: data, maxPixelSize: maxPixelSize)
     }
 
     func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame? {
+        recordPriority(Task.currentPriority, at: index)
         if released.remove(index) == nil {
             await withCheckedContinuation { gates[index] = $0 }
         }
@@ -67,6 +76,24 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
         } else {
             released.insert(index)
         }
+    }
+
+    /// The priority the decode of the given frame was started at, waiting for
+    /// it to start if it hasn't yet.
+    ///
+    /// Read here rather than off the task the buffer holds, because awaiting a
+    /// task escalates it to the priority of whatever is waiting – which is the
+    /// one thing a test about priorities must not do.
+    func priority(of index: Int) async -> DecodePriority {
+        if let priority = startedPriorities[index] {
+            return priority
+        }
+        return await withCheckedContinuation { priorityWaiters[index] = $0 }
+    }
+
+    private func recordPriority(_ priority: DecodePriority, at index: Int) {
+        startedPriorities[index] = priority
+        priorityWaiters.removeValue(forKey: index)?.resume(returning: priority)
     }
 }
 

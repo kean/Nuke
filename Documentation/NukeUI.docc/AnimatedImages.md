@@ -119,6 +119,8 @@ imageView.playerOptions = options
 
 A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each. Playback paused in place keeps its frames: resuming shouldn't stall.
 
+Every budget here is per player, though – there is nothing global about it, and a screen with twenty animations can hold twenty of them at once, which is the reason downsampling is the first lever on this list and not the last. The decoding is at least kept out of the way: a player decodes one frame at a time, and every frame except the one the animation is actually waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
+
 ## Controlling Playback
 
 Create the player yourself when you want to control it – or read its diagnostics:

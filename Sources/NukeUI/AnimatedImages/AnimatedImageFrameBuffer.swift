@@ -339,7 +339,7 @@ final class AnimatedImageFrameBuffer {
             return
         }
         let decoder = self.decoder
-        task = Task { [weak self] in
+        task = Task(priority: priority(forFrameAt: index)) { [weak self] in
             let frame = await decoder.decode(at: index)
             // The cancellation check comes first: `removeAll` clears the handle
             // itself, so a cancelled decode that cleared it again would drop
@@ -354,6 +354,21 @@ final class AnimatedImageFrameBuffer {
             }
             self.decodeNextFrame()
         }
+    }
+
+    /// The priority to decode the frame at the given index at.
+    ///
+    /// Only the frame the animation is on is urgent: there is nothing to show
+    /// until it lands. Everything else is read-ahead, and read-ahead at the
+    /// priority the main actor hands down is what turns a grid of animations
+    /// into twenty CPU-bound decodes competing with the app's own async work on
+    /// a pool about as wide as the core count.
+    ///
+    /// Dropping behind is self-correcting: a read-ahead frame that isn't there
+    /// when it comes due is decoded again as the frame the animation is on,
+    /// which is to say at the higher priority.
+    private func priority(forFrameAt index: Int) -> TaskPriority {
+        index == currentIndex ? .userInitiated : .utility
     }
 
     private func nextMissingIndex() -> Int? {
