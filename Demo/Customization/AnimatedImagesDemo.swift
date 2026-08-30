@@ -24,14 +24,19 @@ struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = DemoAnimationSettings()
     @State private var player: AnimatedImagePlayer?
+    /// The still the decoder produced, handed to the view so that the canvas
+    /// isn't blank for as long as the first frame takes to decode.
+    @State private var poster: UIImage?
     @State private var diagnostics = AnimatedImagePlayer.Diagnostics()
     @State private var status: String?
     @State private var isShowingDiagnostics = true
     @State private var isShowingInfo = false
     @State private var detent: PresentationDetent = DemoAnimationConsole.collapsed
 
-    /// Sampling the player rather than observing it: the diagnostics change on
-    /// every frame, and a view that redrew that often would be measuring itself.
+    /// Sampling the diagnostics rather than observing them: they change on every
+    /// frame, and a view that redrew that often would be measuring itself. The
+    /// player publishes the things that don't – it starts, it stops, it
+    /// finishes – so the transport doesn't wait for a tick to catch up.
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -62,19 +67,18 @@ struct AnimatedImagesDemo: View {
         LazyImage(url: url)
 
         // Or, for control and diagnostics
-        let player = AnimatedImagePlayer(
-            source: source
-        )
-        AnimatedImage(player: player)
+        let player = AnimatedImagePlayer(source: source)
+        AnimatedImage(player: player, poster: response.image)
         """,
         points: [
             .init("Wall clock", "Playback follows the clock rather than the decoder, so an animation always takes as long as it says it does. A frame that is not ready in time is skipped instead of stretching the timeline."),
             .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
             .init("Frame size", "`maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory. `AnimatedImageView` picks one from its own bounds; this screen builds the player by hand, so the size is yours to choose. The diagnostics show what the frames were authored at and what they are decoded at."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
-            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The buffer isn't shrunk for good: the player fills it again the next time the app becomes active, so send the demo to the background and come back to watch the map refill."),
+            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The buffer isn't shrunk for good: the window it was sized for comes back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the map refill."),
+            .init("Handing over from the still", "Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
             .init("Layout", "`AnimatedImage` reports the size an `Image` would, so the usual layout modifiers apply. `.fit` reports the size the frames occupy rather than the box they were offered, which is what makes the rounded background wrap the animation instead of the space around it."),
-            .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself.")
+            .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")
         ]
     )
 
@@ -123,7 +127,7 @@ struct AnimatedImagesDemo: View {
     private var canvas: some View {
         ZStack {
             if let player {
-                AnimatedImage(player: player)
+                AnimatedImage(player: player, poster: poster)
                     .resizable(contentMode: settings.contentMode)
             } else if let status {
                 Text(status)
@@ -144,6 +148,7 @@ struct AnimatedImagesDemo: View {
 
     private func load() async {
         player = nil
+        poster = nil
         status = nil
         diagnostics = AnimatedImagePlayer.Diagnostics()
         guard let url = image.url else {
@@ -156,8 +161,15 @@ struct AnimatedImagesDemo: View {
                 status = "\(image.title) loaded, but it isn't an animated image."
                 return
             }
-            let player = AnimatedImagePlayer(source: source, options: settings.playerOptions)
+            var options = settings.playerOptions
+            // The scale of the image the pipeline decoded. `AnimatedImageView`
+            // does this for the players it makes; a player built by hand has to
+            // be told, or the animation changes size the moment it takes over
+            // from the still.
+            options.scale = response.image.scale
+            let player = AnimatedImagePlayer(source: source, options: options)
             player.play()
+            self.poster = response.image
             self.player = player
             self.diagnostics = player.diagnostics
         } catch {
@@ -209,64 +221,10 @@ private struct DemoAnimationConsole: View {
 
     // MARK: Transport
 
-    /// The scrubber, what it is pointing at, and the buttons – in that order,
-    /// so that reading down the transport goes from the animation to the
-    /// controls rather than stepping over them.
     @ViewBuilder
     private var transport: some View {
         if let player {
-            VStack(spacing: 12) {
-                // Scrubbing pauses first: seeking while the clock runs would
-                // hand the frame straight back to the animation.
-                Slider(
-                    value: Binding(
-                        get: { Double(diagnostics.currentFrameIndex) },
-                        set: {
-                            player.pause()
-                            player.seek(toFrame: Int($0.rounded()))
-                        }
-                    ),
-                    in: 0...Double(max(1, player.source.frameCount - 1)),
-                    step: 1
-                ) {
-                    Text("Frame")
-                }
-
-                HStack {
-                    DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount)")
-                    Spacer()
-                    DemoMonoLabel("loop \(diagnostics.completedLoopCount)")
-                }
-
-                HStack(spacing: 12) {
-                    Button {
-                        if player.isPlaying {
-                            player.pause()
-                        } else if player.isFinished {
-                            player.restart()
-                        } else {
-                            player.play()
-                        }
-                    } label: {
-                        Label(
-                            player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"),
-                            systemImage: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill")
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button {
-                        // The same call the player makes for itself when the
-                        // system issues a memory warning.
-                        player.reduceMemoryUsage()
-                    } label: {
-                        Label("Free Memory", systemImage: "memorychip")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
+            DemoAnimationTransport(player: player, diagnostics: diagnostics)
         } else {
             Text("Loading…")
                 .font(.subheadline)
@@ -375,6 +333,74 @@ private extension View {
             presentationBackgroundInteraction(.enabled(upThrough: .medium))
         } else {
             self
+        }
+    }
+}
+
+/// The scrubber, what it is pointing at, and the buttons – in that order, so
+/// that reading down the transport goes from the animation to the controls
+/// rather than stepping over them.
+///
+/// A view of its own so that it can observe the player. The button reads
+/// `isPlaying` and `isFinished` straight off it and is redrawn when they
+/// change, which is what the player publishes; the numbers beside the scrubber
+/// move on every frame and come from the sampled diagnostics instead.
+private struct DemoAnimationTransport: View {
+    @ObservedObject var player: AnimatedImagePlayer
+    let diagnostics: AnimatedImagePlayer.Diagnostics
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Scrubbing pauses first: seeking while the clock runs would hand
+            // the frame straight back to the animation.
+            Slider(
+                value: Binding(
+                    get: { Double(diagnostics.currentFrameIndex) },
+                    set: {
+                        player.pause()
+                        player.seek(toFrame: Int($0.rounded()))
+                    }
+                ),
+                in: 0...Double(max(1, player.source.frameCount - 1)),
+                step: 1
+            ) {
+                Text("Frame")
+            }
+
+            HStack {
+                DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount)")
+                Spacer()
+                DemoMonoLabel("loop \(diagnostics.completedLoopCount)")
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    if player.isPlaying {
+                        player.pause()
+                    } else if player.isFinished {
+                        player.restart()
+                    } else {
+                        player.play()
+                    }
+                } label: {
+                    Label(
+                        player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"),
+                        systemImage: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill")
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    // The same call the player makes for itself when the system
+                    // issues a memory warning.
+                    player.reduceMemoryUsage()
+                } label: {
+                    Label("Free Memory", systemImage: "memorychip")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
         }
     }
 }
@@ -578,7 +604,6 @@ private struct DemoAnimationSettings {
         options.playbackRate = playbackRate
         options.maxPixelSize = maxPixelSize.value
         options.repeatCount = repeatsForever ? .infinite : .image
-        options.scale = 1
         return options
     }
 }
