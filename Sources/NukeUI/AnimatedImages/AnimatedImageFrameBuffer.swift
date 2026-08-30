@@ -252,9 +252,12 @@ final class AnimatedImageFrameBuffer {
         let decoder = self.decoder
         task = Task { [weak self] in
             let frame = await decoder.decode(at: index)
-            guard let self else { return }
+            // The cancellation check comes first: `removeAll` clears the handle
+            // itself, so a cancelled decode that cleared it again would drop
+            // the handle of the decode that started in its place and let a
+            // third one begin alongside it.
+            guard let self, !Task.isCancelled else { return }
             self.task = nil
-            guard !Task.isCancelled else { return }
             if let frame {
                 self.insert(frame, at: index)
             } else {
