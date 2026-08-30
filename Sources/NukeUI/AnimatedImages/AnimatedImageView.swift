@@ -308,11 +308,17 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func updatePlaybackState() {
         guard let player else { return }
-        let shouldPlay = isPlaybackEnabled && (window != nil || !isPlaybackPausedWhenOffscreen)
-        if shouldPlay {
+        let isOnScreen = window != nil || !isPlaybackPausedWhenOffscreen
+        if isPlaybackEnabled && isOnScreen {
             player.play()
         } else {
             player.pause()
+            if !isOnScreen {
+                // Nobody is watching, so the window of decoded frames is a
+                // memory budget spent on frames nobody will see. A player
+                // paused in place keeps them: resuming shouldn't stall.
+                player.keepsFullBuffer = false
+            }
         }
     }
 }

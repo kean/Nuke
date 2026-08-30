@@ -175,7 +175,10 @@ private struct AnimatedImageRenderer: View {
     var body: some View {
         content
             .onAppear { install() }
-            .onDisappear { model.player?.pause() }
+            .onDisappear {
+                model.player?.pause()
+                model.player?.keepsFullBuffer = false
+            }
             // The view is reused when the image behind it changes – a new URL
             // loaded into the same `LazyImage`, say – and without this it would
             // keep playing the animation it was given first.

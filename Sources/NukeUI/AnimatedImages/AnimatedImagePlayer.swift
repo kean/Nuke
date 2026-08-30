@@ -82,7 +82,7 @@ public final class AnimatedImagePlayer {
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
     private var counters = Counters()
-    private var memoryWarningObserver: NotificationObserver?
+    private var notificationObservers: [NotificationObserver] = []
 
     /// Creates a player for the given image.
     public convenience init(source: AnimatedImageSource, options: Options = Options()) {
@@ -108,7 +108,7 @@ public final class AnimatedImagePlayer {
         // though – a player that never plays should not hold a full buffer.
         buffer.fillsWindow = false
         buffer.setCurrentIndex(0)
-        registerForMemoryWarnings()
+        registerForApplicationNotifications()
     }
 
     // The clock and the notification observer both stop themselves when the
@@ -165,9 +165,28 @@ public final class AnimatedImagePlayer {
     ///
     /// Called automatically when the system issues a memory warning. Playback
     /// continues: the frames are decoded again as they are needed, which costs
-    /// CPU and is the trade the system is asking for.
+    /// CPU and is the trade the system is asking for. The buffer returns to its
+    /// full size the next time the app becomes active, so a player that lives
+    /// for a session doesn't pay for one warning forever.
     public func reduceMemoryUsage() {
         buffer.reduceCapacity(to: 2)
+    }
+
+    /// Whether the player keeps a full window of decoded frames. `true` by
+    /// default.
+    ///
+    /// Set it to `false` for a player nobody is watching – a view that has
+    /// scrolled off screen. It keeps the frame on display and the one after it
+    /// and gives the rest of the window back, so a list of animations that have
+    /// been scrolled past doesn't hold a memory budget each for frames nobody
+    /// is going to see. ``play()`` sets it back to `true`.
+    ///
+    /// ``AnimatedImageView`` does this for you when it pauses because it left
+    /// its window – but not when playback is paused in place, where the frames
+    /// are worth keeping so that resuming doesn't stall.
+    public var keepsFullBuffer: Bool {
+        get { buffer.fillsWindow }
+        set { buffer.fillsWindow = newValue }
     }
 
     // MARK: Diagnostics
@@ -337,13 +356,18 @@ public final class AnimatedImagePlayer {
         return ticksPerSecond <= 30 ? ticksPerSecond : 0
     }
 
-    private func registerForMemoryWarnings() {
+    private func registerForApplicationNotifications() {
 #if os(iOS) || os(tvOS) || os(visionOS)
-        memoryWarningObserver = NotificationObserver(
-            name: UIApplication.didReceiveMemoryWarningNotification
-        ) { [weak self] in
-            self?.reduceMemoryUsage()
-        }
+        notificationObservers = [
+            NotificationObserver(name: UIApplication.didReceiveMemoryWarningNotification) { [weak self] in
+                self?.reduceMemoryUsage()
+            },
+            // Coming back to the foreground is the clearest signal there is
+            // that whatever the memory warning was about is over.
+            NotificationObserver(name: UIApplication.didBecomeActiveNotification) { [weak self] in
+                self?.buffer.restoreCapacity()
+            }
+        ]
 #endif
     }
 

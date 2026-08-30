@@ -161,6 +161,34 @@ struct AnimatedImageFrameBufferTests {
         #expect(buffer.frame(at: 2) == nil)
     }
 
+    @Test func restoreCapacityUndoesAReduction() async throws {
+        // A buffer shrunk by one memory warning would otherwise stay shrunk for
+        // the life of the player, re-decoding every frame of every loop.
+        let source = try makeSource(frameCount: 8)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        buffer.setCurrentIndex(0)
+        await buffer.waitUntilFull()
+        buffer.reduceCapacity(to: 2)
+        #expect(buffer.count == 2)
+
+        buffer.restoreCapacity()
+        await buffer.waitUntilFull()
+
+        #expect(buffer.capacity == 8)
+        #expect(buffer.count == 8)
+    }
+
+    @Test func restoreCapacityNeverGrowsPastTheAnimation() async throws {
+        let source = try makeSource(frameCount: 20, size: CGSize(width: 32, height: 32))
+        var options = AnimatedImagePlayer.Options()
+        options.maxBufferSize = 5 * source.bytesPerFrame
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+
+        buffer.restoreCapacity()
+
+        #expect(buffer.capacity == 5)
+    }
+
     @Test func reduceCapacityNeverGrowsTheBuffer() async throws {
         let source = try makeSource(frameCount: 4)
         let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())

@@ -136,9 +136,8 @@ struct AnimatedImageSourceTests {
     }
 
     @Test @MainActor func parsesDataItHasNotSeenBeforeOffTheMainThread() async throws {
-        // A frame count no other test uses, so that this really is the first
-        // time the cache is asked about this animation.
-        let data = Test.animatedGIF(frameCount: 19)
+        let frameCount = unseenFrameCount()
+        let data = Test.animatedGIF(frameCount: frameCount)
 
         var task: Task<Void, Never>?
         let source = await withCheckedContinuation { continuation in
@@ -151,12 +150,22 @@ struct AnimatedImageSourceTests {
         // and counting the frames of a large animation is a frame's worth of
         // main-thread time.
         #expect(task != nil)
-        #expect(source?.frameCount == 19)
+        #expect(source?.frameCount == frameCount)
 
         // Now that it is parsed, the answer comes back without a hop.
         let again = AnimatedImageSource.parse(data: data) { _ in }
         #expect(again == nil)
     }
+
+    /// A frame count nothing has parsed yet, so that the cache really is being
+    /// asked about the animation for the first time – including when the suite
+    /// runs more than once in a process.
+    @MainActor private func unseenFrameCount() -> Int {
+        AnimatedImageSourceTests.unseenFrameCounts += 1
+        return AnimatedImageSourceTests.unseenFrameCounts
+    }
+
+    @MainActor private static var unseenFrameCounts = 19
 
     // MARK: Derived Values
 

@@ -434,4 +434,23 @@ struct AnimatedImagePlayerTests {
         #expect(player.diagnostics.bufferedFrameCount == 2)
         #expect(player.diagnostics.bufferedByteCount == 2 * bytesPerFrame)
     }
+
+    @Test func releasingTheBufferHoldsTheFrameOnScreenAndTheNextOne() async throws {
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8)
+        player.play()
+        await player.buffer.waitUntilFull()
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+
+        player.pause()
+        player.keepsFullBuffer = false
+
+        // What a view that has scrolled off screen costs: a still, and the
+        // frame that lets playback resume without a stall.
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImageFrameBuffer.idleCapacity)
+
+        player.play()
+        await player.buffer.waitUntilFull()
+
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+    }
 }

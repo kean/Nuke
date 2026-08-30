@@ -168,6 +168,10 @@ final class AnimatedImageFrameBuffer {
 
     private var windowCapacity: Int
 
+    /// The window the animation was sized for. ``reduceCapacity(to:)`` shrinks
+    /// away from it and ``restoreCapacity()`` returns to it.
+    private let maxWindowCapacity: Int
+
     private let decoder: any AnimatedImageFrameDecoding
     private let frameCount: Int
     private var frames: [Int: CGImage] = [:]
@@ -200,6 +204,7 @@ final class AnimatedImageFrameBuffer {
         self.decoder = decoder ?? AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
         self.frameCount = source.frameCount
         self.windowCapacity = AnimatedImageFrameBuffer.capacity(for: source, options: options)
+        self.maxWindowCapacity = windowCapacity
     }
 
     deinit {
@@ -256,6 +261,18 @@ final class AnimatedImageFrameBuffer {
     func reduceCapacity(to newCapacity: Int) {
         windowCapacity = max(Self.idleCapacity, min(windowCapacity, newCapacity))
         evict()
+    }
+
+    /// Returns the window to the size the animation was sized for.
+    ///
+    /// Without it a buffer shrunk once stays shrunk for the life of the player:
+    /// an animation that is on screen all session – a sticker, a spinner –
+    /// would re-decode every frame of every loop forever because of a single
+    /// memory warning, long after the pressure that caused it was over.
+    func restoreCapacity() {
+        guard windowCapacity < maxWindowCapacity else { return }
+        windowCapacity = maxWindowCapacity
+        decodeNextFrame()
     }
 
     /// Drops every decoded frame and stops the decoding in flight.

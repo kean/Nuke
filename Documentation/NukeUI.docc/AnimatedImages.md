@@ -93,7 +93,7 @@ That gives two regimes:
 
 Each frame is decoded and then drawn into a bitmap the player owns, which moves the decompression that would otherwise happen on the main thread – during a frame, while scrolling – onto a background actor, and produces a bitmap in the layout the compositor wants.
 
-A player that has not started playing is a third regime: it decodes the first frame so that there is something to show, holds two frames at most, and fills the rest of the window when ``AnimatedImagePlayer/play()`` is called. A list of animations that are all showing their first frame – ``AnimatedImageView/isPlaybackEnabled`` set to `false`, say – costs a couple of bitmaps each rather than a full budget each.
+A player that has not started playing – or one that has stopped because nobody is watching – is a third regime: it decodes the first frame so that there is something to show, holds two frames at most, and fills the rest of the window when ``AnimatedImagePlayer/play()`` is called. A list of animations that are all showing their first frame – ``AnimatedImageView/isPlaybackEnabled`` set to `false`, say – costs a couple of bitmaps each rather than a full budget each.
 
 ## Memory
 
@@ -111,7 +111,9 @@ imageView.playerOptions = options
 
 **Size the buffer.** Raising ``AnimatedImagePlayer/Options/maxBufferSize`` trades memory for CPU – past the point where the whole animation fits, each frame is decoded once and never again. Lowering it does the opposite. The buffer never holds fewer than two frames: with one, the next frame could only start decoding after the current one was dropped, and playback would stall on every frame.
 
-**Let it respond to pressure.** A player shrinks its buffer to the minimum on a memory warning, and refills as playback continues. ``AnimatedImagePlayer/reduceMemoryUsage()`` does the same thing on demand.
+**Let it respond to pressure.** A player shrinks its buffer to the minimum on a memory warning, and refills as playback continues. The window it was sized for comes back the next time the app becomes active, so one warning doesn't cost an animation a decode per frame for the rest of the session. ``AnimatedImagePlayer/reduceMemoryUsage()`` shrinks it on demand.
+
+A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each. Playback paused in place keeps its frames: resuming shouldn't stall.
 
 ## Controlling Playback
 

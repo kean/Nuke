@@ -226,6 +226,34 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+    @Test func releasesTheBufferWhenItLeavesTheWindow() async throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+
+        view.removeFromSuperview()
+
+        // Off screen, the animation is worth two frames, not a whole budget.
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImageFrameBuffer.idleCapacity)
+        host.close()
+    }
+
+    @Test func keepsTheBufferWhenPlaybackIsPausedInPlace() async throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+
+        view.isPlaybackEnabled = false
+
+        // Still on screen: resuming should not have to decode it all again.
+        #expect(player.isPlaying == false)
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+        host.close()
+    }
+
     @Test func playsOutsideAWindowWhenAsked() throws {
         view.isPlaybackPausedWhenOffscreen = false
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
