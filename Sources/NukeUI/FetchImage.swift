@@ -28,15 +28,21 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     @Published public private(set) var imageContainer: ImageContainer? {
-        didSet { animatedImage = imageContainer.flatMap(AnimatedImageSource.cached(container:)) }
+        didSet { updateAnimatedImage() }
     }
 
     /// Returns the fetched image as an animation, if it is one.
     ///
     /// The image is parsed once, when the response arrives, rather than every
     /// time a view reads it – parsing means counting the frames of the
-    /// container and reading the delay of each one.
-    public private(set) var animatedImage: AnimatedImageSource?
+    /// container and reading the delay of each one, which for a large animation
+    /// is a frame's worth of main-thread time. An animation seen before is
+    /// ready the moment ``imageContainer`` is; a new one is parsed off the main
+    /// thread and set when it lands, with the still image on screen until then.
+    @Published public private(set) var animatedImage: AnimatedImageSource?
+
+    /// The parse in flight, if any. Exists for the tests.
+    var animatedImageTask: Task<Void, Never>?
 
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading = false
@@ -104,6 +110,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     deinit {
         imageTask?.cancel()
         asyncTask?.cancel()
+        animatedImageTask?.cancel()
     }
 
     /// Initializes the image. To load an image, use one of the `load()` methods.
@@ -180,6 +187,24 @@ public final class FetchImage: ObservableObject, Identifiable {
         )
         imageTask = task
         onStart?(task)
+    }
+
+    private func updateAnimatedImage() {
+        animatedImageTask?.cancel()
+        animatedImageTask = nil
+        guard let data = imageContainer?.data else {
+            if animatedImage != nil { animatedImage = nil }
+            return
+        }
+        let task = AnimatedImageSource.parse(data: data) { [weak self] source in
+            self?.animatedImage = source
+        }
+        if task != nil {
+            // Still being parsed: there is no animation to show yet, and the
+            // image the decoder produced holds the place until there is.
+            animatedImage = nil
+        }
+        animatedImageTask = task
     }
 
     private func handle(preview: ImageResponse) {

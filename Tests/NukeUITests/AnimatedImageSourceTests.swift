@@ -123,7 +123,7 @@ struct AnimatedImageSourceTests {
         #expect(AnimatedImageSource.cached(container: Test.container) == nil)
     }
 
-    @Test func remembersThatDataIsNotAnimated() {
+    @Test func remembersThatDataIsNotAnimated() throws {
         // A single-frame GIF still arrives with its data attached – whether it
         // is animated is what the parse answers – so a list of static GIFs
         // would pay for the scan on every cell without this.
@@ -131,7 +131,31 @@ struct AnimatedImageSourceTests {
 
         #expect(AnimatedImageSource.cached(data: data) == nil)
 
-        #expect(AnimatedImageSourceCache.shared.isKnownStatic(data))
+        let parsed = try #require(AnimatedImageSourceCache.shared.parsed(for: data))
+        #expect(parsed == nil)
+    }
+
+    @Test @MainActor func parsesDataItHasNotSeenBeforeOffTheMainThread() async throws {
+        // A frame count no other test uses, so that this really is the first
+        // time the cache is asked about this animation.
+        let data = Test.animatedGIF(frameCount: 19)
+
+        var task: Task<Void, Never>?
+        let source = await withCheckedContinuation { continuation in
+            task = AnimatedImageSource.parse(data: data) {
+                continuation.resume(returning: $0)
+            }
+        }
+
+        // A task rather than an answer: there was nothing parsed to hand back,
+        // and counting the frames of a large animation is a frame's worth of
+        // main-thread time.
+        #expect(task != nil)
+        #expect(source?.frameCount == 19)
+
+        // Now that it is parsed, the answer comes back without a hop.
+        let again = AnimatedImageSource.parse(data: data) { _ in }
+        #expect(again == nil)
     }
 
     // MARK: Derived Values

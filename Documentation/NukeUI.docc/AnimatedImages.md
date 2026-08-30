@@ -61,6 +61,8 @@ Three pieces, one per concern.
 
 ``AnimatedImageSource`` parses the container: the frame count, the delay of each frame, the loop count, and the canvas size. It decodes nothing – Image I/O answers all of that from the container – and it returns `nil` for anything that isn't animated, including a single-frame GIF.
 
+Parsing is not free: counting the frames of a GIF means walking it, and the delays are read one frame at a time, which for a 40 MB animation is 20 ms. So the views parse off the main thread and remember the result, animation or not. An image seen before – a cell scrolled back to – is ready the moment it is displayed; a new one shows the still the decoder produced until its animation lands.
+
 ``AnimatedImagePlayer`` owns the frame buffer and the clock. It decodes frames on a background actor, one at a time, in playback order, and hands the current one to a view.
 
 The view displays what it is given. ``AnimatedImageView`` and ``AnimatedImage`` both create a player of their own unless you hand them one.

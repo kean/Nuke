@@ -19,10 +19,17 @@ import UIKit
 struct AnimatedImageViewTests {
     let view = AnimatedImageView()
 
+    /// Displays the image and waits for the animation to be parsed, which the
+    /// view does off the main thread the first time it sees one.
+    private func display(_ data: Data?, image: PlatformImage? = Test.image) async {
+        view.nuke_display(image: image, data: data)
+        await view.pendingParse?.value
+    }
+
     // MARK: Displaying
 
     @Test func playsAnimatedData() async throws {
-        view.nuke_display(image: Test.image, data: Test.animatedGIF())
+        await display(Test.animatedGIF())
 
         let player = try #require(view.player)
         #expect(player.source.frameCount == 4)
@@ -30,27 +37,27 @@ struct AnimatedImageViewTests {
         #expect(view.image != nil)
     }
 
-    @Test func showsStillImageForNonAnimatedData() {
-        view.nuke_display(image: Test.image, data: nil)
+    @Test func showsStillImageForNonAnimatedData() async {
+        await display(nil)
 
         #expect(view.player == nil)
         #expect(view.animatedImage == nil)
         #expect(view.image != nil)
     }
 
-    @Test func showsStillImageForSingleFrameGIF() {
+    @Test func showsStillImageForSingleFrameGIF() async {
         // Every GIF arrives with its data attached, so a still one has to be
         // recognized here rather than turned into a one-frame animation.
-        view.nuke_display(image: Test.image, data: Test.animatedGIF(frameCount: 1))
+        await display(Test.animatedGIF(frameCount: 1))
 
         #expect(view.player == nil)
         #expect(view.image != nil)
     }
 
-    @Test func showsThePosterFrameBeforeTheFirstFrameIsDecoded() {
+    @Test func showsThePosterFrameBeforeTheFirstFrameIsDecoded() async {
         let poster = Test.image
 
-        view.nuke_display(image: poster, data: Test.animatedGIF())
+        await display(Test.animatedGIF(), image: poster)
 
         // The still the decoder produced is on screen right away; the player
         // replaces it when it has a frame of its own.
@@ -58,10 +65,10 @@ struct AnimatedImageViewTests {
     }
 
     @Test func replacesThePreviousAnimation() async throws {
-        view.nuke_display(image: Test.image, data: Test.animatedGIF(frameCount: 4))
+        await display(Test.animatedGIF(frameCount: 4))
         let first = try #require(view.player)
 
-        view.nuke_display(image: Test.image, data: Test.animatedGIF(frameCount: 6))
+        await display(Test.animatedGIF(frameCount: 6))
 
         let second = try #require(view.player)
         #expect(first !== second)
@@ -79,8 +86,8 @@ struct AnimatedImageViewTests {
         #expect(view.player === player)
     }
 
-    @Test func prepareForReuseStopsEverything() throws {
-        view.nuke_display(image: Test.image, data: Test.animatedGIF())
+    @Test func prepareForReuseStopsEverything() async throws {
+        await display(Test.animatedGIF())
         let player = try #require(view.player)
 
         view.prepareForReuse()
@@ -92,20 +99,20 @@ struct AnimatedImageViewTests {
     }
 
 #if canImport(UIKit)
-    @Test func usesTheScaleOfTheImageBeingDisplayed() throws {
+    @Test func usesTheScaleOfTheImageBeingDisplayed() async throws {
         let image = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
 
-        view.nuke_display(image: image, data: Test.animatedGIF())
+        await display(Test.animatedGIF(), image: image)
 
         let player = try #require(view.player)
         #expect(player.options.scale == 2)
     }
 
-    @Test func doesNotInheritTheScaleOfThePreviousImage() throws {
+    @Test func doesNotInheritTheScaleOfThePreviousImage() async throws {
         let scaled = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
-        view.nuke_display(image: scaled, data: Test.animatedGIF(frameCount: 4))
+        await display(Test.animatedGIF(frameCount: 4), image: scaled)
 
-        view.nuke_display(image: Test.image, data: Test.animatedGIF(frameCount: 6))
+        await display(Test.animatedGIF(frameCount: 6))
 
         let player = try #require(view.player)
         #expect(player.options.scale == 1)

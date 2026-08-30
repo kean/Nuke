@@ -43,7 +43,10 @@ public final class AnimatedImageView: _PlatformImageView {
     /// ``isPlaybackEnabled`` is off.
     public var animatedImage: AnimatedImageSource? {
         get { _animatedImage }
-        set { setAnimatedImage(newValue, scale: scale(of: image)) }
+        set {
+            cancelPendingParse()
+            setAnimatedImage(newValue, scale: scale(of: image))
+        }
     }
 
     /// The player driving ``animatedImage``, or `nil` when there is nothing to
@@ -56,6 +59,8 @@ public final class AnimatedImageView: _PlatformImageView {
     public var player: AnimatedImagePlayer? {
         didSet {
             guard oldValue !== player else { return }
+            // A player set from outside wins over a parse still on its way.
+            cancelPendingParse()
             oldValue?.pause()
             oldValue?.onFrame = nil
             _animatedImage = player?.source
@@ -68,6 +73,9 @@ public final class AnimatedImageView: _PlatformImageView {
     }
 
     private var _animatedImage: AnimatedImageSource?
+
+    /// The parse in flight, if any. Exists for the tests.
+    var pendingParse: Task<Void, Never>?
 
     /// The options the view creates its players with.
     ///
@@ -138,14 +146,29 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
 
     private func display(image: PlatformImage?, data: Data?) {
-        // Setting `animatedImage` first would show the poster frame after the
-        // animation has already started on a fast decode. The scale has to be
-        // passed in rather than read back from the view: `self.image` is still
-        // whatever the view was showing before this call.
-        setAnimatedImage(data.flatMap(AnimatedImageSource.cached(data:)), scale: scale(of: image))
+        // The scale has to be passed in rather than read back from the view:
+        // `self.image` is still whatever the view was showing before this call.
+        let scale = scale(of: image)
+        cancelPendingParse()
+        // An animation seen before is parsed before this returns, so setting it
+        // first is what keeps a fast decode from being covered by the poster
+        // frame. One that has to be parsed lands later, and the poster is what
+        // holds the place until it does.
+        if let data {
+            pendingParse = AnimatedImageSource.parse(data: data) { [weak self] source in
+                self?.setAnimatedImage(source, scale: scale)
+            }
+        } else {
+            setAnimatedImage(nil, scale: scale)
+        }
         if animatedImage == nil || player?.image == nil {
             self.image = image
         }
+    }
+
+    private func cancelPendingParse() {
+        pendingParse?.cancel()
+        pendingParse = nil
     }
 
     /// Stops the animation and clears the view.

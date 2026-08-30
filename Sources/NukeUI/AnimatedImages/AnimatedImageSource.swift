@@ -136,6 +136,40 @@ public final class AnimatedImageSource: Sendable {
         container.data.flatMap(cached(data:))
     }
 
+    /// Parses the data off the main thread and calls back with the animation,
+    /// or `nil` if there isn't one.
+    ///
+    /// The answer arrives synchronously – the completion runs before this
+    /// returns – when the data has been parsed before, which in a list is every
+    /// display after the first. Otherwise the parse runs on a cooperative
+    /// thread: counting the frames of a container and reading the delay of each
+    /// one is a frame's worth of main-thread time for a large animation, and
+    /// something is always on screen to hold the place in the meantime.
+    ///
+    /// - returns: The task doing the parsing, or `nil` if there was nothing to
+    /// do. Cancel it to drop a result that is no longer wanted; the completion
+    /// isn't called after that.
+    @MainActor
+    static func parse(
+        data: Data,
+        completion: @escaping @MainActor (AnimatedImageSource?) -> Void
+    ) -> Task<Void, Never>? {
+        if let parsed = AnimatedImageSourceCache.shared.parsed(for: data) {
+            completion(parsed)
+            return nil
+        }
+        return Task.detached(priority: .userInitiated) {
+            let source = AnimatedImageSource.cached(data: data)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                // Cancellation can only come from the main actor, so by the
+                // time this runs it has either happened or it hasn't.
+                guard !Task.isCancelled else { return }
+                completion(source)
+            }
+        }
+    }
+
     private static func size(of source: CGImageSource) -> CGSize {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Double,
@@ -288,9 +322,14 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
         return source
     }
 
-    /// `true` when the data has been parsed and remembered as a still image.
-    /// Exists for the tests.
-    func isKnownStatic(_ data: Data) -> Bool {
-        cache.object(forKey: data as NSData) is NSNull
+    /// What has already been parsed for the given data.
+    ///
+    /// The outer optional says whether the data has been parsed at all, the
+    /// inner one whether it turned out to be animated.
+    func parsed(for data: Data) -> AnimatedImageSource?? {
+        guard let entry = cache.object(forKey: data as NSData) else {
+            return nil
+        }
+        return .some(entry as? AnimatedImageSource)
     }
 }

@@ -11,10 +11,10 @@ import Testing
 
 @Suite(.serialized)
 struct AnimatedImagePerformanceTests {
-    /// Parsing runs on the main thread when a response arrives, so what it
-    /// costs is what a scroll view pays the first time it shows an animated
-    /// cell. The views go through a cache, so displaying the same image again
-    /// does not pay it twice – this measures the miss.
+    /// Parsing is what stands between a response arriving and the animation
+    /// playing. The views run it off the main thread and go through a cache, so
+    /// this is neither a frame's budget nor a cost paid twice – but it is still
+    /// the latency of the first display of every animation.
     @Test func parseAnimatedImage() {
         let data = Test.data(name: "cat", extension: "gif")
 

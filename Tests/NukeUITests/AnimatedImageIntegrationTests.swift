@@ -72,6 +72,25 @@ struct AnimatedImageIntegrationTests {
         #expect(image.animatedImage == nil)
     }
 
+    @Test func fetchImageReusesAnAnimationItHasSeenBefore() async throws {
+        // Parsing is off the main thread, but only when there is a parse to do:
+        // an animation already in the cache arrives with the image, and a list
+        // scrolled back to one does not blink through the still.
+        let data = Test.animatedGIF(frameCount: 18)
+        _ = AnimatedImageSource.cached(data: data)
+        serve(data)
+        let image = FetchImage()
+        image.pipeline = pipeline
+        let expectation = TestExpectation()
+        image.onCompletion = { _ in expectation.fulfill() }
+
+        image.load(Test.request)
+        await expectation.wait()
+
+        #expect(image.animatedImageTask == nil)
+        #expect(image.animatedImage?.frameCount == 18)
+    }
+
     // MARK: Processing
 
     @Test func processedAnimationIsDisplayedAsAStill() async throws {
@@ -101,6 +120,7 @@ struct AnimatedImageIntegrationTests {
 
         view.url = Test.url
         await expectation.wait()
+        await view.imageView.pendingParse?.value
 
         let player = try #require(view.imageView.player)
         #expect(player.source.frameCount == 3)
@@ -130,6 +150,7 @@ struct AnimatedImageIntegrationTests {
         view.onCompletion = { _ in expectation.fulfill() }
         view.url = Test.url
         await expectation.wait()
+        await view.imageView.pendingParse?.value
         #expect(view.imageView.player != nil)
 
         view.reset()
@@ -154,6 +175,8 @@ struct AnimatedImageIntegrationTests {
         image.onCompletion = { _ in expectation.fulfill() }
         image.load(Test.request)
         await expectation.wait()
+        // An animation it hasn't seen before is parsed off the main thread.
+        await image.animatedImageTask?.value
         _ = try #require(image.result?.value)
     }
 }
