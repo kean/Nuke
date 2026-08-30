@@ -33,7 +33,7 @@ import SwiftUI
 /// when it comes back, and it never starts on its own while Accessibility ›
 /// Motion › Auto-Play Animated Images is off – the view shows the first frame
 /// as a still instead. To control it yourself – or to read the diagnostics –
-/// create an ``AnimatedImagePlayer`` and use ``init(player:)``.
+/// create an ``AnimatedImagePlayer`` and use ``init(player:poster:)``.
 @MainActor
 public struct AnimatedImage: View {
     private let source: AnimatedImageSource

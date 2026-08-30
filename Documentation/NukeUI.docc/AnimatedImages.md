@@ -53,7 +53,7 @@ NukeUI.loadImage(with: url, into: imageView)
 
 A plain `UIImageView` shows the still frame instead; playing an animation is the one thing it can't do.
 
-On macOS there is one content mode `NSImageView` doesn't have: `imageScaling` only ever fits the image inside the view, never covers it. ``AnimatedImageView/isAspectFillEnabled`` is that missing mode – the view draws the frames itself while it is on – and it is what ``AnimatedImage/resizable(contentMode:)`` uses for `.fill`, so the SwiftUI view fills on every platform.
+On macOS there is one content mode `NSImageView` doesn't have: `imageScaling` only ever fits the image inside the view, never covers it. `AnimatedImageView.isAspectFillEnabled` is that missing mode – the view draws the frames itself while it is on – and it is what ``AnimatedImage/resizable(contentMode:)`` uses for `.fill`, so the SwiftUI view fills on every platform.
 
 The view plays only while it is in a window, so an animation in a cell that scrolls out of sight stops decoding frames and picks up where it left off when it comes back. Call ``AnimatedImageView/prepareForReuse()`` from your cell's `prepareForReuse()`.
 
@@ -157,7 +157,7 @@ The **Animated Images** screen in the demo app puts all of it on screen, with a 
 
 Two cases where an animation deliberately becomes a still, both because the alternative is worse:
 
-- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data. Otherwise you would see the original animation playing over a processed still.
+- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data. Otherwise you would see the original animation playing over a processed still. This is a change: the data used to survive processing, so a resize processor and a renderer of your own would play the original animation, at its original size, on top of the processed image. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep the data – one that processes the frames, or that keeps the two in step some other way.
 - **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size; the data is the full-size animation, and playing it would undo that.
 
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.

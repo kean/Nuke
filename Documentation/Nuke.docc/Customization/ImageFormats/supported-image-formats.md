@@ -168,7 +168,7 @@ Two cases deliberately produce a still image with no data: a **processed** image
 
 **Rendering**
 
-`NukeUI` plays them. ``LazyImage`` and `LazyImageView` do it with no setup, and `AnimatedImagePlayer` is there when you want to control playback or measure it. See [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages).
+`NukeUI` plays them. `LazyImage` and `LazyImageView` do it with no setup, and `AnimatedImagePlayer` is there when you want to control playback or measure it. See [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages).
 
 Anything that can take encoded bytes works just as well – [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or your own view – because ``ImageContainer/data`` is all any of them need.
 
