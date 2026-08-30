@@ -69,6 +69,8 @@ The view displays what it is given. ``AnimatedImageView`` and ``AnimatedImage`` 
 
 Playback follows the wall clock rather than the decoder. Every tick of the display link adds the elapsed time to a budget, and the player advances through as many frames as the budget covers. An animation that takes three seconds on paper takes three seconds on screen, even if the main thread stalls or the decoder falls behind; what gives is the number of frames actually shown, not the duration. It is the same trade-off a video player makes, and it is the reason two animations started together stay in step.
 
+There is one animation the wall clock can't be held for: one whose frames take longer to decode than they are shown for, which is what a very large animation in a sliding window comes to. Every frame there arrives after the playhead has passed it, so skipping the late ones would mean skipping all of them. The player shows the frame and moves the playhead back to it instead, and the animation plays slow rather than stopping.
+
 Two corrections are applied to the delays the file declares, and both are what browsers do:
 
 - A missing or non-positive delay becomes 0.1 s.

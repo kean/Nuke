@@ -37,6 +37,11 @@ import AppKit
 /// the decoder falls behind. What suffers when the decoder can't keep up is the
 /// number of frames actually shown (``Diagnostics/skippedFrameCount``), not the
 /// duration – the same trade-off a video player makes.
+///
+/// The one animation that can't hold to the wall clock is one whose frames take
+/// longer to decode than they are shown for. Skipping there would mean skipping
+/// every frame, so the playhead waits for the decoder instead and the animation
+/// plays slow rather than stopping.
 @MainActor
 public final class AnimatedImagePlayer {
     /// The image being played.
@@ -84,11 +89,16 @@ public final class AnimatedImagePlayer {
         self.init(source: source, options: options, clock: makeAnimatedImageClock())
     }
 
-    init(source: AnimatedImageSource, options: Options, clock: any AnimatedImageClock) {
+    init(
+        source: AnimatedImageSource,
+        options: Options,
+        clock: any AnimatedImageClock,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
+    ) {
         self.source = source
         self.options = options
         self.clock = clock
-        self.buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        self.buffer = AnimatedImageFrameBuffer(source: source, options: options, decoder: decoder)
 
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
         clock.onTick = { [weak self] in self?.tick($0) }
@@ -283,8 +293,22 @@ public final class AnimatedImagePlayer {
     }
 
     private func frameDidDecode(at index: Int) {
-        guard index == currentFrameIndex else { return }
+        guard displayedFrameIndex != index else { return }
+        guard index != currentFrameIndex else {
+            return display(frameAt: index)
+        }
+        // The frame decoded after the playhead had already gone past it. If the
+        // frame the playhead is on isn't decoded either, dropping this one
+        // would leave nothing to show: the next decode starts at the playhead,
+        // takes just as long, and is just as late, and the animation stops on
+        // whatever is on screen while the decoder keeps burning a core. Showing
+        // the late frame and moving the playhead back to it degrades playback
+        // to the speed of the decoder, which is the trade a video player makes.
+        guard buffer.frame(at: currentFrameIndex) == nil else { return }
+        currentFrameIndex = index
+        elapsed = 0
         display(frameAt: index)
+        buffer.setCurrentIndex(index)
     }
 
     private func makeImage(_ cgImage: CGImage) -> PlatformImage {

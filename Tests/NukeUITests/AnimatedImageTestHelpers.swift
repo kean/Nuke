@@ -40,6 +40,36 @@ extension AnimatedImagePlayer.Options {
     }
 }
 
+/// A decoder that produces a frame only once the test releases it.
+///
+/// A player that outruns its decoder is otherwise a race: the test would have
+/// to make the frames big enough to decode slowly and hope they stay slow.
+actor GatedFrameDecoder: AnimatedImageFrameDecoding {
+    private let decoder: AnimatedImageFrameDecoder
+    private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var released: Set<Int> = []
+
+    init(data: Data, maxPixelSize: CGFloat? = nil) {
+        self.decoder = AnimatedImageFrameDecoder(data: data, maxPixelSize: maxPixelSize)
+    }
+
+    func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame? {
+        if released.remove(index) == nil {
+            await withCheckedContinuation { gates[index] = $0 }
+        }
+        return await decoder.decode(at: index)
+    }
+
+    /// Lets the decode of the given frame finish, whether or not it has started.
+    func release(_ index: Int) {
+        if let gate = gates.removeValue(forKey: index) {
+            gate.resume()
+        } else {
+            released.insert(index)
+        }
+    }
+}
+
 @MainActor
 enum AnimatedImageTest {
     /// Builds a player driven by a clock the test owns.
@@ -54,6 +84,21 @@ enum AnimatedImageTest {
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
         return (AnimatedImagePlayer(source: source, options: options, clock: clock), clock)
+    }
+
+    /// Builds a player whose decoder hands over one frame at a time.
+    static func makeGatedPlayer(
+        frameCount: Int = 8,
+        delays: [TimeInterval]? = nil,
+        size: CGSize = CGSize(width: 8, height: 8),
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
+    ) -> (player: AnimatedImagePlayer, clock: ManualClock, decoder: GatedFrameDecoder) {
+        let data = Test.animatedGIF(frameCount: frameCount, delays: delays, size: size)
+        let source = AnimatedImageSource(data: data)!
+        let clock = ManualClock()
+        let decoder = GatedFrameDecoder(data: data)
+        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, decoder: decoder)
+        return (player, clock, decoder)
     }
 
     /// The size of one decoded frame in memory.

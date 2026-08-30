@@ -6,13 +6,23 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
+/// Produces the frames of an animated image.
+///
+/// The one implementation that ships is ``AnimatedImageFrameDecoder``. The
+/// tests substitute one they release a frame at a time: a player that outruns
+/// its decoder is otherwise a race, and the test would have to make the frames
+/// slow enough to decode and hope.
+protocol AnimatedImageFrameDecoding: Sendable {
+    func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame?
+}
+
 /// Decodes the frames of an animated image, one at a time, off the main thread.
 ///
 /// It is an actor because `CGImageSource` is not safe to use concurrently and
 /// because decoding one frame at a time in playback order is what the buffer
 /// wants anyway: decoding several frames in parallel would finish the ones that
 /// are needed last just as soon as the one that is needed next.
-actor AnimatedImageFrameDecoder {
+actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
     private let source: CGImageSource?
     private let maxPixelSize: CGFloat?
 
@@ -158,7 +168,7 @@ final class AnimatedImageFrameBuffer {
 
     private var windowCapacity: Int
 
-    private let decoder: AnimatedImageFrameDecoder
+    private let decoder: any AnimatedImageFrameDecoding
     private let frameCount: Int
     private var frames: [Int: CGImage] = [:]
     /// The frames the decoder refused. Without this, a truncated animation
@@ -180,8 +190,14 @@ final class AnimatedImageFrameBuffer {
     /// `true` when there is nothing left to decode in the current window.
     var isFull: Bool { nextMissingIndex() == nil }
 
-    init(source: AnimatedImageSource, options: AnimatedImagePlayer.Options) {
-        self.decoder = AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
+    /// - parameter decoder: The decoder to pull the frames from. The tests pass
+    /// one of their own; everything else takes the default.
+    init(
+        source: AnimatedImageSource,
+        options: AnimatedImagePlayer.Options,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
+    ) {
+        self.decoder = decoder ?? AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
         self.frameCount = source.frameCount
         self.windowCapacity = AnimatedImageFrameBuffer.capacity(for: source, options: options)
     }
@@ -309,15 +325,26 @@ final class AnimatedImageFrameBuffer {
         totalDecodeDuration += frame.duration
         maxDecodeDuration = max(maxDecodeDuration, frame.duration)
 
-        // The window may have moved on while this frame was being decoded – a
-        // late frame nobody will display is not worth the memory.
-        guard isInWindow(index), frames[index] == nil else {
+        guard frames[index] == nil else {
             return
         }
         frames[index] = frame.image
         byteCount += frame.byteCount
+        // The window may have moved past this frame while it was being decoded.
+        // It is offered anyway: the player is the one that knows whether it has
+        // anything better to show, and it moves the window back if it doesn't.
         onFrame?(index)
+        // Whatever the player decided, the frame is over the budget by now if
+        // it is still outside the window.
+        evict()
     }
+
+    /// The decode in flight, if there is one.
+    ///
+    /// Exists for the tests, which hold a decode open and need to wait for the
+    /// frame it produces to land – and so cannot use ``waitUntilFull()``,
+    /// which waits for the whole window.
+    var currentDecode: Task<Void, Never>? { task }
 
     /// Waits until the window is full or until there is nothing left to decode.
     ///

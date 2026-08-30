@@ -207,6 +207,35 @@ struct AnimatedImagePlayerTests {
         #expect(AnimatedImageTest.firstPixel(of: player.image) != stale)
     }
 
+    @Test func playsAtTheSpeedOfADecoderThatCannotKeepUp() async throws {
+        // GIVEN an animation whose window holds two frames, so that nothing can
+        // be decoded far enough ahead
+        let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
+        )
+        let first = try #require(player.buffer.currentDecode)
+        await decoder.release(0)
+        await first.value
+        let poster = AnimatedImageTest.firstPixel(of: player.image)
+
+        // WHEN a frame takes longer to decode than the frames before it are
+        // shown for, so the playhead runs past it
+        player.play()
+        let late = try #require(player.buffer.currentDecode)
+        for _ in 0..<3 { clock.tick(0.1) }
+        #expect(player.currentFrameIndex == 3)
+        #expect(player.diagnostics.bufferMissCount == 3)
+        await decoder.release(1)
+        await late.value
+
+        // THEN the frame is displayed and the playhead moves back to it. Held
+        // to the wall clock, every frame after this one would decode just as
+        // late and be dropped just as well, and the animation would stop.
+        #expect(player.currentFrameIndex == 1)
+        #expect(player.diagnostics.displayedFrameCount == 2)
+        #expect(AnimatedImageTest.firstPixel(of: player.image) != poster)
+    }
+
     // MARK: Frames
 
     @Test func showsADifferentImageForEachFrame() async {
