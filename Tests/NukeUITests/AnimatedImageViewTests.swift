@@ -408,6 +408,38 @@ struct AnimatedImageViewTests {
         #expect(view.image != nil)
     }
 
+    @Test func leavesTheFrameHandlerOfThePlayerItIsGivenAlone() async throws {
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let player = AnimatedImagePlayer(source: source)
+        var frames = 0
+        player.onFrame = { _ in frames += 1 }
+
+        view.player = player
+        await player.buffer.waitUntilFull()
+
+        // A player driving something of yours – a scrubber, a frame counter –
+        // goes on driving it after a view is given it to display.
+        #expect(frames > 0)
+        #expect(view.image != nil)
+    }
+
+    @Test func keepsTheFrameHandlerOfAPlayerItHasLetGoOf() async throws {
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let player = AnimatedImagePlayer(source: source)
+        var frames = 0
+        player.onFrame = { _ in frames += 1 }
+        view.player = player
+        await player.buffer.waitUntilFull()
+
+        view.player = nil
+        let before = frames
+        // Frame 1: the view left the player outside a window, so it is holding
+        // the frame on screen and the one after it, and nothing further along.
+        player.seek(toFrame: 1)
+
+        #expect(frames > before)
+    }
+
 #if os(macOS)
     // MARK: AppKit
 

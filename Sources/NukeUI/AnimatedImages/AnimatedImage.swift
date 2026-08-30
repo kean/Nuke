@@ -326,10 +326,10 @@ private final class AnimatedImageModel: ObservableObject {
     func setPlayer(_ player: AnimatedImagePlayer) {
         guard self.player !== player else { return }
         self.player?.pause()
-        self.player?.onFrame = nil
+        self.player?.onFrameForDisplay = nil
         self.player = player
         image = player.image
-        player.onFrame = { [weak self] in self?.image = $0 }
+        player.onFrameForDisplay = { [weak self] in self?.image = $0 }
     }
 }
 

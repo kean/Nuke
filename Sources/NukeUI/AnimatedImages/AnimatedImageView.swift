@@ -63,9 +63,9 @@ public final class AnimatedImageView: _PlatformImageView {
             cancelPendingParse()
             sourcePendingDownsampling = nil
             oldValue?.pause()
-            oldValue?.onFrame = nil
+            oldValue?.onFrameForDisplay = nil
             _animatedImage = player?.source
-            player?.onFrame = { [weak self] in self?.image = $0 }
+            player?.onFrameForDisplay = { [weak self] in self?.image = $0 }
             if let image = player?.image {
                 self.image = image
             }

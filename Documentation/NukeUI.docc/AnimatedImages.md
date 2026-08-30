@@ -137,6 +137,8 @@ AnimatedImage(player: player)  // SwiftUI
 
 The player exposes ``AnimatedImagePlayer/play()``, ``AnimatedImagePlayer/pause()``, ``AnimatedImagePlayer/restart()``, and ``AnimatedImagePlayer/seek(toFrame:)``, and reports what it is doing through ``AnimatedImagePlayer/currentFrameIndex``, ``AnimatedImagePlayer/completedLoopCount``, ``AnimatedImagePlayer/isPlaying``, and ``AnimatedImagePlayer/isFinished``.
 
+``AnimatedImagePlayer/onFrame`` stays yours as well. The views take the frames of a player they are given through a channel of their own, so a player already driving a scrubber of yours goes on driving it after you hand it to one.
+
 ``AnimatedImagePlayer/Options`` covers the rest: ``AnimatedImagePlayer/Options/playbackRate`` for speed, and ``AnimatedImagePlayer/Options/repeatCount`` for how many times to play. The default, ``AnimatedImagePlayer/RepeatCount/image``, honors what the file asks for, which for the vast majority of animations is "forever"; ``AnimatedImagePlayer/RepeatCount/finite(_:)`` stops on the last frame and calls ``AnimatedImagePlayer/onFinish``.
 
 To show an animation as a still – a list where animations play only after the user asks for them – set ``AnimatedImageView/isPlaybackEnabled`` to `false`. The first frame is displayed and no frames beyond it are ever decoded.

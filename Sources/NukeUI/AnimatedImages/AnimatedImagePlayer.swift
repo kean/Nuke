@@ -68,6 +68,11 @@ public final class AnimatedImagePlayer {
     public private(set) var completedLoopCount = 0
 
     /// Called every time a new frame is ready to be displayed.
+    ///
+    /// It stays yours. ``AnimatedImageView`` and ``AnimatedImage`` take the
+    /// frames of a player they are given through a channel of their own, so
+    /// handing one of them a player you drive a scrubber with doesn't quietly
+    /// replace the handler that drives it.
     public var onFrame: ((PlatformImage) -> Void)?
 
     /// Called with the number of completed loops every time the animation
@@ -76,6 +81,14 @@ public final class AnimatedImagePlayer {
 
     /// Called when the animation stops because it has played all of its loops.
     public var onFinish: (() -> Void)?
+
+    /// The handler the views display the frames through.
+    ///
+    /// Separate from ``onFrame`` because there is only one of that and it
+    /// belongs to whoever made the player. A view that installed itself there
+    /// would replace whatever was already in it – with no diagnostic, and
+    /// nothing to put back.
+    var onFrameForDisplay: ((PlatformImage) -> Void)?
 
     let buffer: AnimatedImageFrameBuffer
     private let clock: any AnimatedImageClock
@@ -351,6 +364,7 @@ public final class AnimatedImagePlayer {
         counters.displayedFrameCount += 1
         let image = makeImage(cgImage)
         self.image = image
+        onFrameForDisplay?(image)
         onFrame?(image)
     }
 
