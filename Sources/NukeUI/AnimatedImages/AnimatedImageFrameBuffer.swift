@@ -133,10 +133,30 @@ extension CGImage {
 @MainActor
 final class AnimatedImageFrameBuffer {
     /// The number of frames the buffer is allowed to hold.
-    private(set) var capacity: Int
+    var capacity: Int { fillsWindow ? windowCapacity : min(windowCapacity, Self.idleCapacity) }
+
+    /// Whether the buffer fills its whole window. `true` by default.
+    ///
+    /// A player that has not started playing sets it to `false`, which holds
+    /// the buffer at ``idleCapacity``. A list of animations that are all
+    /// showing their first frame should not each pin a full buffer's worth of
+    /// bitmaps, and the frames would be decoded for nobody.
+    var fillsWindow = true {
+        didSet {
+            guard fillsWindow != oldValue else { return }
+            evict()
+            decodeNextFrame()
+        }
+    }
+
+    /// What the buffer holds while ``fillsWindow`` is off: the frame on screen
+    /// and the one after it, so that playback starts without a stall.
+    static let idleCapacity = 2
 
     /// Called with the index of a frame as soon as it is decoded.
     var onFrame: ((Int) -> Void)?
+
+    private var windowCapacity: Int
 
     private let decoder: AnimatedImageFrameDecoder
     private let frameCount: Int
@@ -163,7 +183,7 @@ final class AnimatedImageFrameBuffer {
     init(source: AnimatedImageSource, options: AnimatedImagePlayer.Options) {
         self.decoder = AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
         self.frameCount = source.frameCount
-        self.capacity = AnimatedImageFrameBuffer.capacity(for: source, options: options)
+        self.windowCapacity = AnimatedImageFrameBuffer.capacity(for: source, options: options)
     }
 
     deinit {
@@ -192,7 +212,7 @@ final class AnimatedImageFrameBuffer {
         // decoding after the current one is dropped, and playback stalls on
         // every single frame. An animation whose frames are so large that two
         // of them exceed the budget is over the budget either way.
-        return min(source.frameCount, max(2, affordable))
+        return min(source.frameCount, max(idleCapacity, affordable))
     }
 
     /// Returns the frame at the given index if it has been decoded.
@@ -212,7 +232,7 @@ final class AnimatedImageFrameBuffer {
     /// Used to respond to memory pressure. The buffer refills to the new
     /// capacity as playback continues.
     func reduceCapacity(to newCapacity: Int) {
-        capacity = max(2, min(capacity, newCapacity))
+        windowCapacity = max(Self.idleCapacity, min(windowCapacity, newCapacity))
         evict()
     }
 

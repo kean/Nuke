@@ -89,6 +89,8 @@ That gives two regimes:
 
 Each frame is decoded and then drawn into a bitmap the player owns, which moves the decompression that would otherwise happen on the main thread – during a frame, while scrolling – onto a background actor, and produces a bitmap in the layout the compositor wants.
 
+A player that has not started playing is a third regime: it decodes the first frame so that there is something to show, holds two frames at most, and fills the rest of the window when ``AnimatedImagePlayer/play()`` is called. A list of animations that are all showing their first frame – ``AnimatedImageView/isPlaybackEnabled`` set to `false`, say – costs a couple of bitmaps each rather than a full budget each.
+
 ## Memory
 
 Three things to reach for, in the order you should reach for them.

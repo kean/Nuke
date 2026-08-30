@@ -93,8 +93,10 @@ public final class AnimatedImagePlayer {
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
         clock.onTick = { [weak self] in self?.tick($0) }
         buffer.onFrame = { [weak self] in self?.frameDidDecode(at: $0) }
-        // Start filling the buffer right away: the first frame should be on
-        // screen whether or not anything ever calls `play()`.
+        // Start decoding right away: the first frame should be on screen
+        // whether or not anything ever calls `play()`. Only the first frames
+        // though – a player that never plays should not hold a full buffer.
+        buffer.fillsWindow = false
         buffer.setCurrentIndex(0)
         registerForMemoryWarnings()
     }
@@ -112,6 +114,8 @@ public final class AnimatedImagePlayer {
     public func play() {
         guard !isPlaying, !isFinished else { return }
         isPlaying = true
+        // Now the rest of the window is worth decoding.
+        buffer.fillsWindow = true
         clock.isPaused = false
     }
 
