@@ -198,20 +198,23 @@ var imageSourceOptions: CFDictionary {
 enum AnimatedImageFormat: CaseIterable {
     case gif, png, webp, heics
 
+    /// Identifies the format by which container dictionary the image publishes.
+    ///
+    /// The dictionary is what the delays are read out of, so its presence is
+    /// the question that actually matters – and it is a more direct answer than
+    /// the type identifier, which names the still and the sequence flavors of a
+    /// format differently (`public.heic` against `public.heics`) and so has to
+    /// be kept in step with every one of them. Matching on `public.heic` left
+    /// every frame of an animated HEIC with the default delay.
+    ///
+    /// A still image publishes no container dictionary at all, so this also
+    /// answers `nil` for the images that have no animation metadata to read.
     init?(source: CGImageSource) {
-        guard let type = CGImageSourceGetType(source) as String? else {
+        guard let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any],
+              let format = AnimatedImageFormat.allCases.first(where: { properties[$0.dictionaryKey] != nil }) else {
             return nil
         }
-        switch type {
-        case AssetType.gif.rawValue: self = .gif
-        case AssetType.png.rawValue: self = .png
-        case AssetType.webp.rawValue: self = .webp
-        // Image I/O reports the still and the sequence flavors of the ISO base
-        // media formats under the same identifier and files the metadata of
-        // both under the HEICS dictionary.
-        case AssetType.heic.rawValue, AssetType.avif.rawValue: self = .heics
-        default: return nil
-        }
+        self = format
     }
 
     var dictionaryKey: CFString {

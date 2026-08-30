@@ -35,6 +35,35 @@ struct AnimatedImageSourceTests {
         #expect(abs(source.duration - 0.6) < 0.001)
     }
 
+    @Test func parsesAnimatedHEIC() throws {
+        guard let data = Test.animatedHEICS(frameCount: 3, delays: [0.25, 0.25, 0.25]) else {
+            return // Image I/O on this platform can't write a HEIC sequence
+        }
+        let source = try #require(AnimatedImageSource(data: data))
+
+        #expect(source.frameCount == 3)
+        #expect(source.type == .heic)
+        // Read from the container, not defaulted: the delays a sequence
+        // declares used to be missed because `CGImageSourceGetType` reports it
+        // as `public.heics` and the format was matched on `public.heic`, which
+        // left every frame on the 0.1 s fallback.
+        #expect(source.delays == [0.25, 0.25, 0.25])
+        // The loop count is not asserted: Image I/O's HEICS encoder reads back
+        // `1` whatever it is asked to write, so there is nothing to compare to.
+    }
+
+    @Test func parsesAnimatedWebP() throws {
+        // The one format Image I/O can't write, so the fixture is a file: four
+        // 8×8 frames at 0.1 s, looping forever.
+        let source = try #require(AnimatedImageSource(data: Test.data(name: "animated", extension: "webp")))
+
+        #expect(source.frameCount == 4)
+        #expect(source.type == .webp)
+        #expect(source.delays == Array(repeating: 0.1, count: 4))
+        #expect(source.loopCount == 0)
+        #expect(source.size == CGSize(width: 8, height: 8))
+    }
+
     @Test func parsesTheFixture() throws {
         let source = try #require(AnimatedImageSource(data: Test.data(name: "cat", extension: "gif")))
 
