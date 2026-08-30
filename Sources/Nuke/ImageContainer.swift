@@ -80,9 +80,12 @@ public struct ImageContainer: Sendable {
         self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 
+    /// Replaces the image, dropping ``data`` with it: the closure produces a
+    /// new image, and the data describes the one that went in.
     consuming func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
         var copy = self
         copy.image = try closure(copy.image)
+        copy.data = nil
         return copy
     }
 

@@ -25,6 +25,18 @@ struct ImageProcessorsAnimatedImageDataTests {
         #expect(output.image.sizeInPixels != container.image.sizeInPixels)
     }
 
+    @Test func coreImageFilterDropsTheAttachedData() throws {
+        // GIVEN a processor that implements the container method itself and so
+        // does not go through the default implementation
+        let container = ImageContainer(image: Test.image, type: .gif, data: Test.animatedGIF())
+        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+
+        let output = try processor.process(container, context: .mock)
+
+        #expect(output.data == nil)
+        #expect(output.type == .gif)
+    }
+
     @Test func processorCanKeepTheDataByImplementingTheContainerMethod() throws {
         // GIVEN a processor that knows the data still matches the image
         struct KeepsData: ImageProcessing {
