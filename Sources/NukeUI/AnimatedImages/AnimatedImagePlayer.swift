@@ -382,7 +382,15 @@ public final class AnimatedImagePlayer {
 #if canImport(UIKit)
         UIImage(cgImage: cgImage, scale: options.scale, orientation: .up)
 #else
-        NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        // `NSImage` has no scale of its own – what it has is a size in points
+        // and a bitmap in pixels, and the scale is the ratio between them. Built
+        // at the pixel size it draws twice as large as it should wherever
+        // nothing rescales it, `imageScaling` of `.scaleNone` being the case.
+        let scale = options.scale > 0 ? options.scale : 1
+        return NSImage(cgImage: cgImage, size: NSSize(
+            width: CGFloat(cgImage.width) / scale,
+            height: CGFloat(cgImage.height) / scale
+        ))
 #endif
     }
 

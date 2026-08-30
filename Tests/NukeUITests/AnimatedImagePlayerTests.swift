@@ -238,6 +238,20 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Frames
 
+    @Test func framesAreSizedForTheScaleTheyWereDecodedFor() async throws {
+        var options = AnimatedImagePlayer.Options()
+        options.scale = 2
+        let (player, _) = AnimatedImageTest.makePlayer(size: CGSize(width: 16, height: 16), options: options)
+        await player.buffer.waitUntilFull()
+
+        // A 16-pixel frame at scale 2 is 8 points across. One that reports its
+        // pixel size instead draws at twice the size wherever nothing rescales
+        // it – which on AppKit was every frame, because `NSImage` carries the
+        // scale in its size and it was being given the size in pixels.
+        let image = try #require(player.image)
+        #expect(image.size == CGSize(width: 8, height: 8))
+    }
+
     @Test func showsADifferentImageForEachFrame() async {
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3)
         await player.buffer.waitUntilFull()
