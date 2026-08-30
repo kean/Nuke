@@ -38,25 +38,38 @@ import SwiftUI
 public struct AnimatedImage: View {
     private let source: AnimatedImageSource
     private let player: AnimatedImagePlayer?
+    private let poster: PlatformImage?
     private var contentMode: ContentMode = .fit
     private var isResizable = false
 
     /// Plays the given animated image.
-    public init(_ source: AnimatedImageSource) {
+    ///
+    /// - parameter poster: The still frame to show until the first frame of the
+    /// animation is decoded – ``ImageContainer/image``, the image the decoder
+    /// already produced. Without one the view is blank for a decode's worth of
+    /// time every time an animation appears, which in a list is every cell,
+    /// including one scrolled back to. It is also where the view reads the
+    /// image scale from.
+    public init(_ source: AnimatedImageSource, poster: PlatformImage? = nil) {
         self.source = source
         self.player = nil
+        self.poster = poster
     }
 
     /// Displays the frames of a player you own.
     ///
     /// The view drives playback the same way it does for a player of its own:
     /// it plays while the view is on screen and pauses when it isn't.
-    public init(player: AnimatedImagePlayer) {
+    public init(player: AnimatedImagePlayer, poster: PlatformImage? = nil) {
         self.source = player.source
         self.player = player
+        self.poster = poster
     }
 
     /// Plays the image if the pipeline recognized it as animated.
+    ///
+    /// The still image the decoder produced is displayed until the first frame
+    /// of the animation is decoded.
     ///
     /// - returns: `nil` for anything that isn't an animated image, which is the
     /// signal to display ``ImageContainer/image`` as a still.
@@ -64,7 +77,7 @@ public struct AnimatedImage: View {
         guard let source = AnimatedImageSource.cached(container: container) else {
             return nil
         }
-        self.init(source)
+        self.init(source, poster: container.image)
     }
 
     /// Lets the animation be resized to the space it is given, the way
@@ -93,9 +106,9 @@ public struct AnimatedImage: View {
     @ViewBuilder
     private func renderer(isPlaybackEnabled: Bool) -> some View {
 #if os(watchOS)
-        AnimatedImageRenderer(source: source, player: player, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
+        AnimatedImageRenderer(source: source, player: player, poster: poster, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #else
-        AnimatedImageRepresentable(source: source, player: player, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
+        AnimatedImageRepresentable(source: source, player: player, poster: poster, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #endif
     }
 }
@@ -166,6 +179,7 @@ private typealias _PlatformViewRepresentable = UIViewRepresentable
 private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     let source: AnimatedImageSource
     let player: AnimatedImagePlayer?
+    let poster: PlatformImage?
     let contentMode: ContentMode
     let isResizable: Bool
     let isPlaybackEnabled: Bool
@@ -199,6 +213,13 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
 #else
         view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
 #endif
+        // Before the animation, and only while there is no frame to cover: the
+        // still is what holds the place until the first frame is decoded, and
+        // it is what the view reads the image scale from – a player built at
+        // the wrong scale changes size the moment it starts playing.
+        if let poster, view.player?.image == nil {
+            view.image = poster
+        }
         if let player {
             view.player = player
         } else {
@@ -235,6 +256,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
 private struct AnimatedImageRenderer: View {
     let source: AnimatedImageSource
     let player: AnimatedImagePlayer?
+    let poster: PlatformImage?
     let contentMode: ContentMode
     let isResizable: Bool
     let isPlaybackEnabled: Bool
@@ -275,7 +297,9 @@ private struct AnimatedImageRenderer: View {
 
     @ViewBuilder
     private var content: some View {
-        if let image = model.image {
+        // The still the decoder produced holds the place until the first frame
+        // of the animation is decoded.
+        if let image = model.image ?? poster {
             if isResizable {
                 Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
             } else {

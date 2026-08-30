@@ -176,6 +176,38 @@ struct AnimatedImageIntegrationTests {
     }
 #endif
 
+    @Test func animatedImageShowsTheStillUntilTheFirstFrameIsDecoded() async throws {
+        // A decoder held open, so that the first frame never arrives and what
+        // is on screen is only ever the still the pipeline already produced.
+        let (player, _, _) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
+        let poster = Test.image
+        let host = ViewHost(player) { AnimatedImage(player: $0, poster: poster) }
+
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self) != nil })
+
+        // Without the still, every animated cell – including one scrolled back
+        // to, where the animation is already parsed – is blank for as long as
+        // the first frame takes to decode.
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        #expect(view.image === poster)
+        #expect(player.image == nil)
+    }
+
+#if canImport(UIKit)
+    @Test func animatedImageTakesItsScaleFromTheStill() async throws {
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let poster = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
+        let host = ViewHost(source) { AnimatedImage($0, poster: poster) }
+
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
+
+        // The still is what the view reads the scale from, so an animation
+        // without one plays at scale 1 and changes size when it starts.
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        #expect(view.player?.options.scale == 2)
+    }
+#endif
+
     // MARK: Helpers
 
     private func serve(_ data: Data) {

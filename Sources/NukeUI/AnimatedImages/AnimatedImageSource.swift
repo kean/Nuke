@@ -136,6 +136,12 @@ public final class AnimatedImageSource: Sendable {
         container.data.flatMap(cached(data:))
     }
 
+    /// Whether the data has been parsed before, which is what says whether
+    /// ``parse(data:completion:)`` will answer before it returns.
+    static func isParsed(data: Data) -> Bool {
+        AnimatedImageSourceCache.shared.parsed(for: data) != nil
+    }
+
     /// Parses the data off the main thread and calls back with the animation,
     /// or `nil` if there isn't one.
     ///

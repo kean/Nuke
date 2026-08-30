@@ -207,18 +207,27 @@ public final class AnimatedImageView: _PlatformImageView {
         // `self.image` is still whatever the view was showing before this call.
         let scale = scale(of: image)
         cancelPendingParse()
-        // An animation seen before is parsed before this returns, so setting it
-        // first is what keeps a fast decode from being covered by the poster
-        // frame. One that has to be parsed lands later, and the poster is what
-        // holds the place until it does.
+        // An animation this image has shown before is parsed before this
+        // returns – it may well be the same one, played by the same player –
+        // so it is left to the parse to replace what is on screen, and a fast
+        // decode is never covered by the poster frame.
+        //
+        // Anything else is stopped now. What is playing belongs to the image
+        // being replaced, and a parse that lands later would leave it running
+        // under the new image's poster until it did.
+        if data.map(AnimatedImageSource.isParsed) != true {
+            setAnimatedImage(nil, scale: scale)
+        }
         if let data {
+            // Set after the clear above: `player` treats a player assigned from
+            // outside as winning over a parse on its way, and cancels it.
             pendingParse = AnimatedImageSource.parse(data: data) { [weak self] source in
                 self?.setAnimatedImage(source, scale: scale)
             }
-        } else {
-            setAnimatedImage(nil, scale: scale)
         }
-        if animatedImage == nil || player?.image == nil {
+        // Only while there is no frame to cover, so that an animation already
+        // on screen doesn't flash its poster to show what it is already past.
+        if player?.image == nil {
             self.image = image
         }
     }

@@ -98,6 +98,29 @@ struct AnimatedImageViewTests {
         #expect(first.isPlaying == false)
     }
 
+    @Test func showsTheStillOfTheNextImageWhileItsAnimationIsParsed() async throws {
+        // GIVEN an animation on screen
+        await display(Test.animatedGIF(frameCount: 4))
+        let first = try #require(view.player)
+
+        // WHEN a different one arrives whose animation has to be parsed
+        let poster = Test.image
+        let data = Test.animatedGIF(frameCount: 6, size: CGSize(width: 13, height: 11))
+        view.nuke_display(image: poster, data: data)
+        let parse = try #require(view.pendingParse) // Not seen before, so not immediate
+
+        // THEN the animation that isn't this image's is gone and its own still
+        // holds the place. It used to keep playing under the new image until
+        // the parse landed, because the view only asked whether there was an
+        // animation, not whether it was this one.
+        #expect(view.image === poster)
+        #expect(view.player == nil)
+        #expect(first.isPlaying == false)
+
+        await parse.value
+        #expect(view.animatedImage?.frameCount == 6)
+    }
+
     @Test func keepsThePlayerWhenTheSameSourceIsSetAgain() throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
         view.animatedImage = source
