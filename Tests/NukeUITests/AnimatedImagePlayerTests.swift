@@ -524,6 +524,27 @@ struct AnimatedImagePlayerTests {
         #expect(player.diagnostics.bufferedByteCount == 2 * bytesPerFrame)
     }
 
+    @Test func givesTheBufferBackOnceTheMemoryPressureHasPassed() async throws {
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8, memoryPressureGracePeriod: 0.01)
+        player.play()
+        await player.buffer.waitUntilFull()
+
+        player.reduceMemoryUsage()
+        #expect(player.diagnostics.bufferCapacity == 2)
+
+        // A memory warning arrives while the app is active, usually on the very
+        // screen the animation is on. Waiting for the app to be backgrounded
+        // and come back is waiting for something that mostly doesn't happen,
+        // and an animation that is up all session – a sticker, a spinner –
+        // would re-decode every frame of every loop for the rest of it.
+        for _ in 0..<200 where player.diagnostics.bufferCapacity == 2 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(player.diagnostics.bufferCapacity == 8)
+        await player.buffer.waitUntilFull()
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+    }
+
     @Test func releasingTheBufferHoldsTheFrameOnScreenAndTheNextOne() async throws {
         let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8)
         player.play()

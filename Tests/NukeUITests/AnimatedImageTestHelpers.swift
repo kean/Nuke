@@ -78,12 +78,19 @@ enum AnimatedImageTest {
         delays: [TimeInterval]? = nil,
         loopCount: Int = 0,
         size: CGSize = CGSize(width: 8, height: 8),
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        memoryPressureGracePeriod: TimeInterval = AnimatedImagePlayer.defaultMemoryPressureGracePeriod
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
         let data = Test.animatedGIF(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
-        return (AnimatedImagePlayer(source: source, options: options, clock: clock), clock)
+        let player = AnimatedImagePlayer(
+            source: source,
+            options: options,
+            clock: clock,
+            memoryPressureGracePeriod: memoryPressureGracePeriod
+        )
+        return (player, clock)
     }
 
     /// Builds a player whose decoder hands over one frame at a time.

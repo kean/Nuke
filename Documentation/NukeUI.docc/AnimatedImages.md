@@ -115,7 +115,7 @@ imageView.playerOptions = options
 
 **Size the buffer.** Raising ``AnimatedImagePlayer/Options/maxBufferSize`` trades memory for CPU – past the point where the whole animation fits, each frame is decoded once and never again. Lowering it does the opposite. The buffer never holds fewer than two frames: with one, the next frame could only start decoding after the current one was dropped, and playback would stall on every frame.
 
-**Let it respond to pressure.** A player shrinks its buffer to the minimum on a memory warning, and refills as playback continues. The window it was sized for comes back the next time the app becomes active, so one warning doesn't cost an animation a decode per frame for the rest of the session. ``AnimatedImagePlayer/reduceMemoryUsage()`` shrinks it on demand.
+**Let it respond to pressure.** A player shrinks its buffer to the minimum on a memory warning, and refills as playback continues. The window it was sized for comes back a minute later, or sooner if the app is backgrounded and returns – a warning arrives while the app is active, on the screen the animation is on, so waiting for a trip to the background would cost an animation that is up all session a decode per frame for the rest of it. ``AnimatedImagePlayer/reduceMemoryUsage()`` shrinks it on demand.
 
 A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each. Playback paused in place keeps its frames: resuming shouldn't stall.
 

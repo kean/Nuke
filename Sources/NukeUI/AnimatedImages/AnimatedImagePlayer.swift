@@ -79,10 +79,20 @@ public final class AnimatedImagePlayer {
 
     let buffer: AnimatedImageFrameBuffer
     private let clock: any AnimatedImageClock
+    private let memoryPressureGracePeriod: TimeInterval
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
     private var counters = Counters()
     private var notificationObservers: [NotificationObserver] = []
+    private var bufferRestore: Task<Void, Never>?
+
+    /// How long a buffer stays shrunk after a memory warning: 60 seconds.
+    ///
+    /// The system decides what to kill in far less than that, so a minute is
+    /// long enough for the pressure to be over, and short enough that an
+    /// animation that is on screen all session doesn't spend the rest of it
+    /// re-decoding every frame of every loop.
+    static let defaultMemoryPressureGracePeriod: TimeInterval = 60
 
     /// Creates a player for the given image.
     public convenience init(source: AnimatedImageSource, options: Options = Options()) {
@@ -93,11 +103,13 @@ public final class AnimatedImagePlayer {
         source: AnimatedImageSource,
         options: Options,
         clock: any AnimatedImageClock,
-        decoder: (any AnimatedImageFrameDecoding)? = nil
+        decoder: (any AnimatedImageFrameDecoding)? = nil,
+        memoryPressureGracePeriod: TimeInterval = AnimatedImagePlayer.defaultMemoryPressureGracePeriod
     ) {
         self.source = source
         self.options = options
         self.clock = clock
+        self.memoryPressureGracePeriod = memoryPressureGracePeriod
         self.buffer = AnimatedImageFrameBuffer(source: source, options: options, decoder: decoder)
 
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
@@ -175,10 +187,21 @@ public final class AnimatedImagePlayer {
     /// Called automatically when the system issues a memory warning. Playback
     /// continues: the frames are decoded again as they are needed, which costs
     /// CPU and is the trade the system is asking for. The buffer returns to its
-    /// full size the next time the app becomes active, so a player that lives
+    /// full size once the pressure has had time to pass, so a player that lives
     /// for a session doesn't pay for one warning forever.
     public func reduceMemoryUsage() {
         buffer.reduceCapacity(to: 2)
+        // Waiting for the app to be backgrounded and come back is waiting for
+        // something that mostly doesn't happen: a memory warning arrives while
+        // the app is active, and usually on the screen the animation is on. A
+        // sticker or a spinner would re-decode every frame of every loop from
+        // the first warning of the session to the end of it.
+        bufferRestore?.cancel()
+        bufferRestore = Task { [weak self, memoryPressureGracePeriod] in
+            try? await Task.sleep(for: .seconds(memoryPressureGracePeriod))
+            guard !Task.isCancelled else { return }
+            self?.buffer.restoreCapacity()
+        }
     }
 
     /// Whether the player keeps a full window of decoded frames. `true` by
@@ -390,6 +413,7 @@ public final class AnimatedImagePlayer {
             // Coming back to the foreground is the clearest signal there is
             // that whatever the memory warning was about is over.
             NotificationObserver(name: UIApplication.didBecomeActiveNotification) { [weak self] in
+                self?.bufferRestore?.cancel()
                 self?.buffer.restoreCapacity()
             }
         ]
