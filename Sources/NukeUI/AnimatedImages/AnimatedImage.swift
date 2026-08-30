@@ -161,7 +161,11 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     /// state would otherwise be whatever it was the first time around.
     private func update(_ view: AnimatedImageView) {
 #if os(macOS)
-        view.imageScaling = contentMode == .fill ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
+        // `NSImageView` has no aspect-fill mode; the view draws that one
+        // itself. Fitting is `UpOrDown` so that a resizable animation scales up
+        // the way `.scaleAspectFit` lets it on the other platforms.
+        view.isAspectFillEnabled = contentMode == .fill
+        view.imageScaling = .scaleProportionallyUpOrDown
 #else
         view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
 #endif

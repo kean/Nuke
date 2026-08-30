@@ -121,6 +121,23 @@ public final class AnimatedImageView: _PlatformImageView {
     /// every animation at full size – a view that is going to grow, say.
     public var isAutomaticDownsamplingEnabled = true
 
+#if os(macOS)
+    /// Whether the frames cover the view, with whatever hangs over the edge
+    /// clipped. `false` by default.
+    ///
+    /// `NSImageView` has no aspect-fill scaling mode – ``imageScaling`` only
+    /// ever fits the image inside the view – so this is how you get on macOS
+    /// what `UIView.ContentMode.scaleAspectFill` gives everywhere else. The
+    /// view draws the frames itself while it is on, which is what
+    /// ``AnimatedImage/resizable(contentMode:)`` uses for `.fill`.
+    public var isAspectFillEnabled = false {
+        didSet {
+            guard isAspectFillEnabled != oldValue else { return }
+            needsDisplay = true
+        }
+    }
+#endif
+
     /// `true` while the animation is running.
     ///
     /// Deliberately not `UIImageView.isAnimating`: that property belongs to the
@@ -142,6 +159,23 @@ public final class AnimatedImageView: _PlatformImageView {
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         animates = false
+    }
+
+    /// Draws the frames covering the view, which `NSImageView` cannot be asked
+    /// to do: ``imageScaling`` has no aspect-fill mode. What hangs over the
+    /// edge is taken care of by the default clipping.
+    override public func draw(_ dirtyRect: NSRect) {
+        guard isAspectFillEnabled, let image, image.size.width > 0, image.size.height > 0 else {
+            return super.draw(dirtyRect)
+        }
+        let scale = max(bounds.width / image.size.width, bounds.height / image.size.height)
+        let drawn = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        image.draw(in: CGRect(
+            x: bounds.midX - drawn.width / 2,
+            y: bounds.midY - drawn.height / 2,
+            width: drawn.width,
+            height: drawn.height
+        ))
     }
 #endif
 

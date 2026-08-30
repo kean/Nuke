@@ -126,11 +126,8 @@ struct AnimatedImageContentModeTests {
 
     private func scaling(of view: AnimatedImageView) -> ContentMode? {
 #if os(macOS)
-        switch view.imageScaling {
-        case .scaleProportionallyDown: .fit
-        case .scaleProportionallyUpOrDown: .fill
-        default: nil
-        }
+        // `imageScaling` only ever fits, so `.fill` is the view's own drawing.
+        view.isAspectFillEnabled ? .fill : .fit
 #else
         switch view.contentMode {
         case .scaleAspectFit: .fit

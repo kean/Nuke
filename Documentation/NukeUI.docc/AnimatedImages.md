@@ -53,6 +53,8 @@ NukeUI.loadImage(with: url, into: imageView)
 
 A plain `UIImageView` shows the still frame instead; playing an animation is the one thing it can't do.
 
+On macOS there is one content mode `NSImageView` doesn't have: `imageScaling` only ever fits the image inside the view, never covers it. ``AnimatedImageView/isAspectFillEnabled`` is that missing mode – the view draws the frames itself while it is on – and it is what ``AnimatedImage/resizable(contentMode:)`` uses for `.fill`, so the SwiftUI view fills on every platform.
+
 The view plays only while it is in a window, so an animation in a cell that scrolls out of sight stops decoding frames and picks up where it left off when it comes back. Call ``AnimatedImageView/prepareForReuse()`` from your cell's `prepareForReuse()`.
 
 ## How Playback Works

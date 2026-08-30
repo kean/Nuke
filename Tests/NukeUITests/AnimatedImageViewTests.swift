@@ -305,6 +305,68 @@ struct AnimatedImageViewTests {
         // that is meant to be holding a still.
         #expect(view.animates == false)
     }
+
+    @Test func coversTheViewWithTheFrames() throws {
+        // `NSImageView` has no aspect-fill scaling mode – every value of
+        // `imageScaling` fits – so the view draws that one itself.
+        view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+        view.image = wideImage()
+
+        view.isAspectFillEnabled = true
+
+        // A 4:1 image covering a square view leaves the middle quarter of it
+        // on screen, which straddles the green and blue bands.
+        #expect(try corners(of: view) == [.green, .blue, .green, .blue])
+    }
+
+    @Test func fitsTheFramesInsideTheViewByDefault() throws {
+        view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+        view.imageScaling = .scaleProportionallyUpOrDown
+
+        view.image = wideImage()
+
+        // Letterboxed: the image is a band across the middle and the corners
+        // are the empty space above and below it.
+        #expect(try corners(of: view) == [.empty, .empty, .empty, .empty])
+    }
+
+    private enum Swatch: Equatable {
+        case empty, red, green, blue, white, other
+    }
+
+    /// The colors of the four corners of what the view draws.
+    private func corners(of view: NSView) throws -> [Swatch] {
+        let rep = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: rep)
+        let scale = CGFloat(rep.pixelsWide) / view.bounds.width
+        return [(5.0, 5.0), (95.0, 5.0), (5.0, 95.0), (95.0, 95.0)].map { x, y in
+            guard let color = rep.colorAt(x: Int(x * scale), y: Int(y * scale)) else { return .other }
+            guard color.alphaComponent > 0.5 else { return .empty }
+            let (r, g, b) = (color.redComponent, color.greenComponent, color.blueComponent)
+            switch (r > 0.5, g > 0.5, b > 0.5) {
+            case (true, false, false): return .red
+            case (false, true, false): return .green
+            case (false, false, true): return .blue
+            case (true, true, true): return .white
+            default: return .other
+            }
+        }
+    }
+
+    /// A 400×100 image in four vertical bands: red, green, blue, white.
+    private func wideImage() -> NSImage {
+        let (width, height) = (400, 100)
+        let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        let colors: [NSColor] = [.red, .green, .blue, .white]
+        for (index, color) in colors.enumerated() {
+            context.setFillColor(color.cgColor)
+            context.fill(CGRect(x: index * 100, y: 0, width: 100, height: height))
+        }
+        return NSImage(cgImage: context.makeImage()!, size: CGSize(width: width, height: height))
+    }
 #endif
 }
 
