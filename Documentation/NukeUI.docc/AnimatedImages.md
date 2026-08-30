@@ -103,7 +103,9 @@ Three things to reach for, in the order you should reach for them.
 
 **Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB.
 
-``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up – so a list gets this without asking. Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
+``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up – so a list gets this without asking. How large that is depends on the content mode: covering the view is done with the frames' shorter side, so a 400×100 animation filling a 100×100 view needs 400-pixel frames where fitting it inside the same view needs 100-pixel ones. A content mode that draws the frames at their own size, like `.center`, has no size to derive and turns the downsampling off.
+
+Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
 
 ```swift
 var options = AnimatedImagePlayer.Options()

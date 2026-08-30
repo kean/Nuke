@@ -263,7 +263,7 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func applyAutomaticDownsamplingIfNeeded() {
         guard let source = sourcePendingDownsampling,
-              let maxPixelSize = automaticMaxPixelSize else { return }
+              let maxPixelSize = automaticMaxPixelSize(for: source) else { return }
         sourcePendingDownsampling = nil
         guard maxPixelSize < max(source.size.width, source.size.height) else {
             return
@@ -271,18 +271,56 @@ public final class AnimatedImageView: _PlatformImageView {
         setPlayer(for: source, scale: player?.options.scale, maxPixelSize: maxPixelSize)
     }
 
-    /// The longest side, in pixels, the frames need to fill this view, or `nil`
-    /// when the view has no size or is decoding at a size it was given.
-    private var automaticMaxPixelSize: CGFloat? {
+    /// The longest side, in pixels, the frames need for the view to draw them
+    /// at the size the content mode asks for – or `nil` when the view has no
+    /// size yet, is decoding at a size it was given, or draws the frames at
+    /// their own size, where there is nothing to derive.
+    ///
+    /// Not simply the longest side of the view: a content mode that covers the
+    /// view does it with the frames' *shorter* side, so an animation wider than
+    /// the view needs more pixels than the view has points. A 400×100 animation
+    /// covering a 100×100 view decoded for 100 pixels would be a 100×25 frame
+    /// scaled up 4×.
+    private func automaticMaxPixelSize(for source: AnimatedImageSource) -> CGFloat? {
         guard wantsAutomaticDownsampling else { return nil }
-        let side = max(bounds.width, bounds.height)
-        guard side > 0 else { return nil }
+        let size = source.size
+        guard size.width > 0, size.height > 0, bounds.width > 0, bounds.height > 0,
+              let coversTheView = drawnFramesCoverTheView else { return nil }
+        // The rule `ImageProcessors.Resize` uses: covering takes the larger of
+        // the two scales and puts the overflow past the edge, fitting takes the
+        // smaller and leaves the rest of the view empty.
+        let horizontal = bounds.width / size.width
+        let vertical = bounds.height / size.height
+        let scale = coversTheView ? max(horizontal, vertical) : min(horizontal, vertical)
+        return max(size.width, size.height) * scale * backingScale
+    }
+
+    /// Whether the content mode covers the view with the frames rather than
+    /// fitting them inside it, or `nil` when it draws them at their own size.
+    private var drawnFramesCoverTheView: Bool? {
 #if os(macOS)
-        let scale = window?.backingScaleFactor ?? 2
+        if isAspectFillEnabled { return true }
+        switch imageScaling {
+        case .scaleProportionallyDown, .scaleProportionallyUpOrDown: return false
+        case .scaleAxesIndependently: return true // Stretched: each side on its own
+        case .scaleNone: return nil
+        @unknown default: return true
+        }
 #else
-        let scale = contentScaleFactor
+        switch contentMode {
+        case .scaleAspectFit: return false
+        case .scaleAspectFill, .scaleToFill, .redraw: return true
+        default: return nil // `.center` and the corners draw the frames unscaled
+        }
 #endif
-        return side * max(scale, 1)
+    }
+
+    private var backingScale: CGFloat {
+#if os(macOS)
+        max(window?.backingScaleFactor ?? 2, 1)
+#else
+        max(contentScaleFactor, 1)
+#endif
     }
 
     private var wantsAutomaticDownsampling: Bool {
@@ -308,7 +346,7 @@ public final class AnimatedImageView: _PlatformImageView {
     private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
         guard _animatedImage !== source else { return }
         _animatedImage = source
-        let maxPixelSize = automaticMaxPixelSize
+        let maxPixelSize = source.flatMap(automaticMaxPixelSize(for:))
         setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
         // Set after the player, whose `didSet` clears it: this is the animation
         // the next layout has to settle a size for.

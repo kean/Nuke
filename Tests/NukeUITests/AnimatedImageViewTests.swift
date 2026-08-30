@@ -26,6 +26,16 @@ struct AnimatedImageViewTests {
         await view.pendingParse?.value
     }
 
+    /// Asks the view to cover itself with the frames, which is a content mode
+    /// on UIKit and a view of its own on AppKit.
+    private func fillTheView() {
+#if os(macOS)
+        view.isAspectFillEnabled = true
+#else
+        view.contentMode = .scaleAspectFill
+#endif
+    }
+
     /// Gives the view a size and runs a layout pass over it.
     private func layOut(_ size: CGSize) {
         view.frame = CGRect(origin: .zero, size: size)
@@ -144,6 +154,39 @@ struct AnimatedImageViewTests {
         await player.buffer.waitUntilFull()
         let frame = try #require(player.image?.cgImage)
         #expect(max(frame.width, frame.height) <= Int(maxPixelSize))
+    }
+
+    @Test func decodesFramesLargeEnoughToCoverTheView() async throws {
+        // Covering the view uses the frames' shorter side, so a wide animation
+        // in a square view needs more pixels than the view has points: decoding
+        // it for the view's longest side hands the view a frame to scale up.
+        fillTheView()
+        layOut(CGSize(width: 100, height: 100))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 100)))
+
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+        let frame = try #require(player.image?.cgImage)
+        // The height is what covers the view, and it is already only just big
+        // enough, so the frames are decoded as they are.
+        #expect(frame.width == 400)
+        #expect(frame.height == 100)
+    }
+
+    @Test func doesNotDeriveASizeForFramesItDrawsUnscaled() async throws {
+        // There is no view size to decode for: the frames are drawn at their
+        // own size and the view shows whatever part of them fits.
+#if os(macOS)
+        view.imageScaling = .scaleNone
+#else
+        view.contentMode = .center
+#endif
+        layOut(CGSize(width: 20, height: 20))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+
+        #expect(try #require(view.player).options.maxPixelSize == nil)
     }
 
     @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async throws {
