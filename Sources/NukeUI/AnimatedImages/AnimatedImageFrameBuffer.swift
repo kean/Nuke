@@ -215,6 +215,12 @@ final class AnimatedImageFrameBuffer {
         return min(source.frameCount, max(idleCapacity, affordable))
     }
 
+    /// `true` while the buffer still expects to produce the frame at the given
+    /// index: it is neither decoded nor one the decoder has refused.
+    func isPending(_ index: Int) -> Bool {
+        frames[index] == nil && !failedIndexes.contains(index)
+    }
+
     /// Returns the frame at the given index if it has been decoded.
     func frame(at index: Int) -> CGImage? {
         frames[index]

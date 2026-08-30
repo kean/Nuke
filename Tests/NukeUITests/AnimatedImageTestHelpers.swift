@@ -30,6 +30,16 @@ final class ManualClock: AnimatedImageClock {
     }
 }
 
+extension AnimatedImagePlayer.Options {
+    /// A budget no frame fits in, which puts the buffer at its two-frame floor
+    /// and makes the window slide.
+    static var twoFrameBuffer: AnimatedImagePlayer.Options {
+        var options = AnimatedImagePlayer.Options()
+        options.maxBufferSize = 1
+        return options
+    }
+}
+
 @MainActor
 enum AnimatedImageTest {
     /// Builds a player driven by a clock the test owns.

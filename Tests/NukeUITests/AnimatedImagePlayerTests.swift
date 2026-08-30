@@ -55,6 +55,22 @@ struct AnimatedImagePlayerTests {
         #expect(clock.isPaused == false)
     }
 
+    @Test func doesNotAdvanceUntilTheFirstFrameIsOnScreen() async {
+        let (player, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.1, count: 4))
+        player.play()
+
+        // The clock is running, but nothing has been decoded yet: this time
+        // belongs to the frame that is still on its way.
+        clock.tick(0.5)
+        #expect(player.currentFrameIndex == 0)
+        #expect(player.completedLoopCount == 0)
+
+        await player.buffer.waitUntilFull()
+        clock.tick(0.1)
+
+        #expect(player.currentFrameIndex == 1)
+    }
+
     // MARK: Timing
 
     @Test func holdsTheFrameUntilItsDelayHasPassed() async {
@@ -164,28 +180,31 @@ struct AnimatedImagePlayerTests {
         #expect(player.completedLoopCount == 1)
     }
 
-    @Test func countsAMissWhenTheFrameIsNotDecodedYet() {
-        // Nothing has been awaited, so the decoder cannot have produced a frame.
-        let (player, clock) = AnimatedImageTest.makePlayer()
+    @Test func countsAMissWhenTheFrameIsNotDecodedYet() async {
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4, options: .twoFrameBuffer)
         player.play()
+        await player.buffer.waitUntilFull()
 
-        clock.tick(0.15)
+        // Two frames fit in the window, so the third one cannot be ready when
+        // the playhead arrives at it.
+        clock.tick(0.25)
 
-        #expect(player.currentFrameIndex == 1)
-        #expect(player.image == nil)
+        #expect(player.currentFrameIndex == 2)
         #expect(player.diagnostics.bufferMissCount == 1)
     }
 
     @Test func displaysALateFrameWhenItArrives() async {
-        let (player, clock) = AnimatedImageTest.makePlayer()
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4, options: .twoFrameBuffer)
         player.play()
-        clock.tick(0.15)
-        #expect(player.image == nil)
+        await player.buffer.waitUntilFull()
+        clock.tick(0.25)
+        let stale = AnimatedImageTest.firstPixel(of: player.image)
+        #expect(player.diagnostics.bufferMissCount == 1)
 
         await player.buffer.waitUntilFull()
 
-        #expect(player.image != nil)
-        #expect(player.currentFrameIndex == 1)
+        #expect(player.currentFrameIndex == 2)
+        #expect(AnimatedImageTest.firstPixel(of: player.image) != stale)
     }
 
     // MARK: Frames

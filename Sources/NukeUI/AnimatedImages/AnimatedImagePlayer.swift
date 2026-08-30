@@ -197,6 +197,16 @@ public final class AnimatedImagePlayer {
     private func tick(_ delta: TimeInterval) {
         guard isPlaying, !isFinished else { return }
 
+        // Playback usually starts before the first frame has been decoded.
+        // Counting that time would spend it on frames nobody sees: frame 0
+        // arrives when the playhead is already past it and is thrown away. The
+        // poster frame is on screen in the meantime, so the wait is free – and
+        // it ends either way, because a frame the decoder refuses stops being
+        // pending.
+        guard displayedFrameIndex != nil || !buffer.isPending(currentFrameIndex) else {
+            return
+        }
+
         // A clock that was starved – the app was in the background, the main
         // thread was blocked – reports the whole gap. Replaying it would make
         // the animation lurch, so the step is capped and the animation simply
