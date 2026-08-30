@@ -34,7 +34,7 @@ extension Test {
             loopCountKey: kCGImagePropertyGIFLoopCount,
             loopCount: loopCount,
             delayKeys: [kCGImagePropertyGIFDelayTime, kCGImagePropertyGIFUnclampedDelayTime]
-        )
+        )! // Image I/O writes GIF on every platform
     }
 
     /// Builds an animated PNG, or returns `nil` if Image I/O on this platform
@@ -55,12 +55,47 @@ extension Test {
             loopCount: loopCount,
             delayKeys: [kCGImagePropertyAPNGDelayTime, kCGImagePropertyAPNGUnclampedDelayTime]
         )
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+        guard let data,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
               CGImageSourceGetCount(source) == frameCount else {
             return nil
         }
         return data
     }
+
+    /// Builds an animated HEIC – a HEIF image sequence – or returns `nil` if
+    /// Image I/O on this platform can't write one.
+    ///
+    /// The one fixture whose container is written by the same encoder Apple's
+    /// own tools use, which is the point: a hand-built `ftyp` box proves what
+    /// the sniffer does with the brands a test chose, not with the ones a real
+    /// sequence carries (`msf1` up front, the codec further down the list).
+    static func animatedHEICS(
+        frameCount: Int = 4,
+        delays: [TimeInterval]? = nil,
+        loopCount: Int = 0,
+        size: CGSize = CGSize(width: 8, height: 8)
+    ) -> Data? {
+        let data = makeAnimation(
+            type: heics,
+            frameCount: frameCount,
+            delays: delays ?? Array(repeating: 0.1, count: frameCount),
+            size: size,
+            containerKey: kCGImagePropertyHEICSDictionary,
+            loopCountKey: kCGImagePropertyHEICSLoopCount,
+            loopCount: loopCount,
+            delayKeys: [kCGImagePropertyHEICSDelayTime, kCGImagePropertyHEICSUnclampedDelayTime]
+        )
+        guard let data,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              CGImageSourceGetCount(source) == frameCount else {
+            return nil
+        }
+        return data
+    }
+
+    /// The HEIF image sequence type. `UTType` has no constant for it.
+    private static let heics = UTType("public.heics") ?? .heic
 
     /// Builds a single-frame PNG of the given size.
     static func staticPNG(size: CGSize = CGSize(width: 8, height: 8)) -> Data {
@@ -73,7 +108,7 @@ extension Test {
             loopCountKey: kCGImagePropertyAPNGLoopCount,
             loopCount: 0,
             delayKeys: []
-        )
+        )! // Image I/O writes PNG on every platform
     }
 
     /// The color the frame at the given index is filled with, so that a test
@@ -92,14 +127,16 @@ extension Test {
         loopCountKey: CFString,
         loopCount: Int,
         delayKeys: [CFString]
-    ) -> Data {
+    ) -> Data? {
         let data = NSMutableData()
-        let destination = CGImageDestinationCreateWithData(
+        guard let destination = CGImageDestinationCreateWithData(
             data as CFMutableData,
             type.identifier as CFString,
             frameCount,
             nil
-        )!
+        ) else {
+            return nil // No encoder for this format on this platform
+        }
         CGImageDestinationSetProperties(destination, [
             containerKey: [loopCountKey: loopCount]
         ] as CFDictionary)
@@ -117,7 +154,9 @@ extension Test {
                 frameProperties as CFDictionary
             )
         }
-        CGImageDestinationFinalize(destination)
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
         return data as Data
     }
 

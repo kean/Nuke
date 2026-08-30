@@ -130,12 +130,12 @@ extension AssetType {
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
 
-        // ISO base media file format (HEIC, MP4, M4V, MOV): the `ftyp` box
-        // starts at byte 4 and is followed by a four-character major brand that
-        // identifies the flavor of the container.
+        // ISO base media file format (HEIC, AVIF, MP4, M4V, MOV): the `ftyp`
+        // box starts at byte 4 and is followed by the four-character brands
+        // that identify the flavor of the container.
         // https://en.wikipedia.org/wiki/ISO_base_media_file_format
         if _match([0x66, 0x74, 0x79, 0x70], offset: 4),
-           let type = _makeISOBaseMedia(majorBrand: _string(at: 8, count: 4, in: data)) {
+           let type = _makeISOBaseMedia(data) {
             return type
         }
 
@@ -164,13 +164,47 @@ extension AssetType {
         return nil
     }
 
-    /// Returns the type of an ISO base media file with the given major brand,
-    /// or `nil` if the brand is unknown or belongs to an unsupported format,
-    /// such as HEIF (`mif1`) or MPEG-4 audio (`M4A `).
+    /// Returns the type of an ISO base media file, or `nil` if none of the
+    /// brands it declares belongs to a format Nuke supports, as for bare HEIF
+    /// (`mif1`) or MPEG-4 audio (`M4A `).
+    ///
+    /// The major brand is only the first answer. A HEIC image sequence – what
+    /// Image I/O writes for `public.heics`, and what a Live Photo's video half
+    /// is – leads with `msf1`, the brand for a HEIF sequence, which says that
+    /// the file holds one but not what codec its frames use. The codec is in
+    /// the compatible brands that follow (`heic`, `hevc`), and so is the answer.
+    private static func _makeISOBaseMedia(_ data: Data) -> AssetType? {
+        for brand in _brands(in: data) {
+            if let type = _makeISOBaseMedia(brand: brand) {
+                return type
+            }
+        }
+        return nil
+    }
+
+    /// The brands an ISO base media file declares: the major brand, then the
+    /// compatible brands, which is where an encoder that leads with a
+    /// structural brand says what the file actually is.
+    ///
+    /// The `ftyp` box is a size, its name, the major brand, a minor version,
+    /// and then the compatible brands until the box ends.
+    private static func _brands(in data: Data) -> [String] {
+        // The major brand is read whatever the declared size says: a file with
+        // a damaged one still names itself.
+        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count))
+        var brands: [String] = []
+        for offset in stride(from: 8, to: end, by: 4) where offset != 12 {
+            guard let brand = _string(at: offset, count: 4, in: data) else { break }
+            brands.append(brand)
+        }
+        return brands
+    }
+
+    /// The format a single ISO base media brand belongs to.
     ///
     /// The brands are registered at https://mp4ra.org/registered-types/brands.
-    private static func _makeISOBaseMedia(majorBrand: String?) -> AssetType? {
-        switch majorBrand {
+    private static func _makeISOBaseMedia(brand: String) -> AssetType? {
+        switch brand {
         case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
             return .heic
         case "avif", "avis":
@@ -257,16 +291,7 @@ extension AssetType {
         // HEVC flavors, and `avis` is the AV1 one. The still image brands –
         // `heic`, `heix`, `avif`, and so on – are absent by design.
         let sequenceBrands: Set<String> = ["msf1", "hevc", "hevx", "hevm", "hevs", "avis"]
-        // The major brand comes first, then the minor version, then the list of
-        // compatible brands, which is where encoders that write a still image
-        // brand up front still declare the sequence.
-        let end = min(Int(_uint32(at: 0, in: data) ?? 16), data.count)
-        for offset in stride(from: 8, to: max(8, end), by: 4) {
-            if offset == 12 { continue } // The minor version, not a brand
-            guard let brand = _string(at: offset, count: 4, in: data) else { break }
-            if sequenceBrands.contains(brand) { return true }
-        }
-        return false
+        return _brands(in: data).contains(where: sequenceBrands.contains)
     }
 
     /// Decodes four big-endian bytes at the given offset, or returns `nil` if

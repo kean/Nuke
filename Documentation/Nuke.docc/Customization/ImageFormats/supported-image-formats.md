@@ -51,7 +51,7 @@ AssetType.png.utType?.preferredMIMEType // "image/png"
 
 The sniffer returns one of the types declared on ``AssetType`` and nothing else. A few consequences are worth knowing:
 
-- **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched by their major brand, and the bare-HEIF brand isn't in the table. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
+- **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched against the brands in their `ftyp` box, and the bare-HEIF brand isn't in the table – nor, in a file that declares nothing else, is anything after it. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
 - **A sniffed type describes the bytes, not the semantics.** Most camera RAW formats – DNG, CR2, NEF, ARW – are TIFF containers, so they sniff as ``AssetType/tiff``.
 - **A `nil` type is not an error.** Only two places in the pipeline read the type: animation detection in ``ImageDecoders/Default``, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still.
 - **Video types are recognized without `NukeVideo`.** ``AssetType/mp4``, ``AssetType/m4v``, and ``AssetType/mov`` are always sniffable, but only `ImageDecoders.Video` can decode them, and you have to register it yourself.
@@ -80,7 +80,7 @@ To render progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`W
 
 ``ImageDecoders/Default`` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format).
 
-Files with the `heic`, `heix`, `heim`, `heis`, `hevc`, `hevx`, `hevm`, and `hevs` brands sniff as ``AssetType/heic``. Generic HEIF files using the `mif1` brand decode too, but sniff as `nil`.
+Files with the `heic`, `heix`, `heim`, `heis`, `hevc`, `hevx`, `hevm`, and `hevs` brands sniff as ``AssetType/heic``, whether the brand is the major one or one of the compatible brands that follow it – an image sequence leads with `msf1`, which says that the file holds one without saying what codec its frames use. Generic HEIF files that declare nothing but the `mif1` brand decode too, but sniff as `nil`.
 
 **Encoding**
 

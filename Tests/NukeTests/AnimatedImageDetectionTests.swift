@@ -99,6 +99,18 @@ struct AnimatedImageDetectionTests {
         #expect(AssetType.isAnimated(data, type: .heic))
     }
 
+    @Test func detectsAnimatedHEICWrittenByImageIO() throws {
+        // The brands a real sequence carries, not the ones a test picked:
+        // Image I/O leads with `msf1`, which says the file holds a sequence
+        // without saying what codec it uses, and names the codec further down
+        // the compatible brands. Sniffing only the major brand answered `nil`
+        // here, and an animation the pipeline can't type is one it never
+        // attaches the data to.
+        let data = try #require(Test.animatedHEICS())
+        #expect(AssetType(data) == .heic)
+        #expect(AssetType.isAnimated(data, type: AssetType(data)))
+    }
+
     @Test func doesNotDetectStillHEICFixture() {
         let data = Test.data(name: "img_751", extension: "heic")
         #expect(AssetType(data) == .heic)
