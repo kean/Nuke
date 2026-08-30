@@ -5,9 +5,9 @@
 import NukeUI
 import SwiftUI
 
-/// Plays animated images with a live diagnostics overlay: what the frame buffer
-/// is holding, what each frame costs to decode, and whether playback is keeping
-/// up with the wall clock.
+/// Plays animated images with live diagnostics: what the frame buffer is
+/// holding, what each frame costs to decode, and whether playback is keeping up
+/// with the wall clock.
 ///
 /// ```swift
 /// LazyImage(url: url) // Plays animated images on its own
@@ -16,6 +16,10 @@ import SwiftUI
 /// This screen does it the long way – it creates the ``AnimatedImagePlayer``
 /// itself – because that is what gives it access to
 /// ``AnimatedImagePlayer/diagnostics``.
+///
+/// The layout is a stage and a console: the picker and the animation stay put
+/// at the top, and everything that scrolls lives in the sheet below them. The
+/// two never overlap, so there is only ever one thing to scroll.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = DemoAnimationSettings()
@@ -23,36 +27,36 @@ struct AnimatedImagesDemo: View {
     @State private var diagnostics = AnimatedImagePlayer.Diagnostics()
     @State private var status: String?
     @State private var isShowingDiagnostics = true
+    @State private var isShowingInfo = false
+    @State private var detent: PresentationDetent = DemoAnimationConsole.collapsed
 
     /// Sampling the player rather than observing it: the diagnostics change on
     /// every frame, and a view that redrew that often would be measuring itself.
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                picker
-                stage
-                if isShowingDiagnostics, let player {
-                    AnimatedImageDiagnosticsView(player: player, diagnostics: diagnostics)
-                        .padding(.horizontal, 16)
-                }
-                transport
-                settingsSection
+        stage
+            .task(id: reloadID) { await load() }
+            .onReceive(timer) { _ in
+                guard let player else { return }
+                diagnostics = player.diagnostics
             }
-            .padding(.vertical, 16)
-        }
-        .task(id: reloadID) { await load() }
-        .onReceive(timer) { _ in
-            guard let player else { return }
-            diagnostics = player.diagnostics
-        }
-        .demoInfo(Self.info)
+            .sheet(isPresented: .constant(true)) {
+                DemoAnimationConsole(
+                    player: player,
+                    diagnostics: diagnostics,
+                    settings: $settings,
+                    detent: $detent,
+                    isShowingDiagnostics: $isShowingDiagnostics,
+                    isShowingInfo: $isShowingInfo
+                )
+            }
+            .demoInfoButton(isPresented: $isShowingInfo)
     }
 
-    private static let info = DemoInfo(
+    fileprivate static let info = DemoInfo(
         "Animated Images",
-        "NukeUI decodes the frames of an animated image off the main thread and keeps a bounded number of them in memory. Change the buffer and watch the overlay: when the whole animation fits, every frame is decoded once; when it does not, the decoder keeps working for as long as the animation plays.",
+        "NukeUI decodes the frames of an animated image off the main thread and keeps a bounded number of them in memory. Change the buffer and watch the diagnostics: when the whole animation fits, every frame is decoded once; when it does not, the decoder keeps working for as long as the animation plays.",
         code: """
         // Plays animated images on its own
         LazyImage(url: url)
@@ -66,9 +70,9 @@ struct AnimatedImagesDemo: View {
         points: [
             .init("Wall clock", "Playback follows the clock rather than the decoder, so an animation always takes as long as it says it does. A frame that is not ready in time is skipped instead of stretching the timeline."),
             .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
-            .init("Buffer map", "The bar at the top of the overlay is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
+            .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
             .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one. The button does the same thing by hand."),
-            .init("Diagnostics", "Everything in the overlay comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself.")
+            .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself.")
         ]
     )
 
@@ -77,21 +81,45 @@ struct AnimatedImagesDemo: View {
         "\(image.rawValue)-\(settings.maxBufferSizeMB)-\(settings.isDownsamplingEnabled)-\(settings.playbackRate)-\(settings.repeatsForever)"
     }
 
-    // MARK: Sections
-
-    private var picker: some View {
-        Picker("Image", selection: $image) {
-            ForEach(DemoAnimation.allCases, id: \.self) {
-                Text($0.title).tag($0)
-            }
-        }
-        .pickerStyle(.segmented)
-        .padding(.horizontal, 16)
-    }
+    // MARK: Stage
 
     private var stage: some View {
+        GeometryReader { proxy in
+            VStack(spacing: 12) {
+                Picker("Image", selection: $image) {
+                    ForEach(DemoAnimation.allCases, id: \.self) {
+                        Text($0.title).tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                canvas
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .frame(height: stageHeight(in: proxy), alignment: .top)
+            .animation(.snappy, value: detent)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    /// The room the console leaves for the animation.
+    ///
+    /// The console is presented over the screen rather than beside it, so the
+    /// stage has to keep clear of it by hand. Pulling the sheet up shrinks the
+    /// animation instead of covering it, which is the point of the screen: the
+    /// settings that change the animation are no use without it in view.
+    private func stageHeight(in proxy: GeometryProxy) -> CGFloat {
+        let console = detent == DemoAnimationConsole.collapsed
+            ? DemoAnimationConsole.collapsedHeight
+            // Everything above `.medium` covers the stage anyway, so the size
+            // it settles on there is the smallest one worth laying out.
+            : proxy.size.height / 2
+        return max(200, proxy.size.height - console)
+    }
+
+    private var canvas: some View {
         ZStack {
-            Color(.secondarySystemBackground)
             if let player {
                 AnimatedImage(player: player)
                     .resizable()
@@ -106,106 +134,9 @@ struct AnimatedImagesDemo: View {
                 ProgressView()
             }
         }
-        .frame(height: 280)
-        .clipped()
-        .overlay(alignment: .topTrailing) {
-            Button {
-                isShowingDiagnostics.toggle()
-            } label: {
-                Image(systemName: isShowingDiagnostics ? "chart.bar.fill" : "chart.bar")
-                    .padding(8)
-                    .background(.thinMaterial, in: Circle())
-            }
-            .padding(8)
-        }
-    }
-
-    @ViewBuilder
-    private var transport: some View {
-        if let player {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    Button {
-                        if player.isPlaying {
-                            player.pause()
-                        } else if player.isFinished {
-                            player.restart()
-                        } else {
-                            player.play()
-                        }
-                        diagnostics = player.diagnostics
-                    } label: {
-                        Label(
-                            player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"),
-                            systemImage: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill")
-                        )
-                        .frame(width: 110)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button("Memory Warning") {
-                        // The same call the player makes for itself when the
-                        // system issues one.
-                        player.reduceMemoryUsage()
-                        diagnostics = player.diagnostics
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                // Scrubbing pauses first: seeking while the clock runs would
-                // hand the frame straight back to the animation.
-                Slider(
-                    value: Binding(
-                        get: { Double(diagnostics.currentFrameIndex) },
-                        set: {
-                            player.pause()
-                            player.seek(toFrame: Int($0.rounded()))
-                            diagnostics = player.diagnostics
-                        }
-                    ),
-                    in: 0...Double(max(1, player.source.frameCount - 1)),
-                    step: 1
-                ) {
-                    Text("Frame")
-                }
-                Text("Frame \(diagnostics.currentFrameIndex + 1) of \(player.source.frameCount)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-
-    private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            DemoExample("Frame buffer", caption: "The memory the decoded frames may use. Drop it below what the animation needs and the buffer becomes a sliding window.") {
-                VStack(alignment: .leading) {
-                    Slider(value: $settings.maxBufferSizeMB, in: 0.25...32) {
-                        Text("Buffer")
-                    }
-                    Text(String(format: "%.2f MB", settings.maxBufferSizeMB))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            DemoExample("Playback rate") {
-                VStack(alignment: .leading) {
-                    Slider(value: $settings.playbackRate, in: 0.25...4, step: 0.25) {
-                        Text("Rate")
-                    }
-                    Text(String(format: "%.2f×", settings.playbackRate))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Toggle("Downsample to 240 px", isOn: $settings.isDownsamplingEnabled)
-                .font(.subheadline)
-            Toggle("Repeat forever", isOn: $settings.repeatsForever)
-                .font(.subheadline)
-        }
-        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: Loading
@@ -230,63 +161,231 @@ struct AnimatedImagesDemo: View {
     }
 }
 
-// MARK: - Diagnostics Overlay
+// MARK: - Console
 
-/// The overlay itself: the buffer map, then the numbers behind it.
-private struct AnimatedImageDiagnosticsView: View {
+/// The transport, the diagnostics, and the settings.
+///
+/// The transport is pinned above the list rather than being its first row, so
+/// that the sheet pushed all the way down is always the same thing – the play
+/// button and the scrubber – no matter where the list is scrolled to.
+private struct DemoAnimationConsole: View {
+    let player: AnimatedImagePlayer?
+    let diagnostics: AnimatedImagePlayer.Diagnostics
+    @Binding var settings: DemoAnimationSettings
+    @Binding var detent: PresentationDetent
+    @Binding var isShowingDiagnostics: Bool
+    /// The screen's own sheet covers the one the toolbar button would present,
+    /// so the explanation is presented from here instead.
+    @Binding var isShowingInfo: Bool
+
+    /// Tall enough for the transport and the first section header under it,
+    /// which is what says there is more to pull up.
+    static let collapsedHeight: CGFloat = 140
+    static let collapsed = PresentationDetent.height(collapsedHeight)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            transport
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
+            list
+        }
+        .presentationDetents([Self.collapsed, .medium, .large], selection: $detent)
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled()
+        .demoSheetBackgroundInteraction()
+        .sheet(isPresented: $isShowingInfo) {
+            DemoInfoSheet(info: AnimatedImagesDemo.info)
+        }
+    }
+
+    // MARK: Transport
+
+    @ViewBuilder
+    private var transport: some View {
+        if let player {
+            VStack(spacing: 10) {
+                HStack(spacing: 12) {
+                    Button {
+                        if player.isPlaying {
+                            player.pause()
+                        } else if player.isFinished {
+                            player.restart()
+                        } else {
+                            player.play()
+                        }
+                    } label: {
+                        Label(
+                            player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"),
+                            systemImage: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill")
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        // The same call the player makes for itself when the
+                        // system issues a memory warning.
+                        player.reduceMemoryUsage()
+                    } label: {
+                        Label("Free Memory", systemImage: "memorychip")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                // Scrubbing pauses first: seeking while the clock runs would
+                // hand the frame straight back to the animation.
+                Slider(
+                    value: Binding(
+                        get: { Double(diagnostics.currentFrameIndex) },
+                        set: {
+                            player.pause()
+                            player.seek(toFrame: Int($0.rounded()))
+                        }
+                    ),
+                    in: 0...Double(max(1, player.source.frameCount - 1)),
+                    step: 1
+                ) {
+                    Text("Frame")
+                }
+
+                HStack {
+                    DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount)")
+                    Spacer()
+                    DemoMonoLabel("loop \(diagnostics.completedLoopCount)")
+                }
+            }
+        } else {
+            Text("Loading…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // MARK: List
+
+    private var list: some View {
+        List {
+            if let player {
+                Section {
+                    if isShowingDiagnostics {
+                        DemoDiagnosticsPanel(player: player, diagnostics: diagnostics)
+                            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    }
+                } header: {
+                    diagnosticsHeader
+                }
+            }
+
+            Section {
+                LabeledContent("Budget") {
+                    DemoMonoLabel(String(format: "%.2f MB", settings.maxBufferSizeMB))
+                }
+                Slider(value: $settings.maxBufferSizeMB, in: 0.25...32) {
+                    Text("Budget")
+                }
+                Toggle("Downsample to 240 px", isOn: $settings.isDownsamplingEnabled)
+            } header: {
+                Text("Frame Buffer")
+            } footer: {
+                Text("The memory the decoded frames may use. Drop it below what the animation needs and the buffer becomes a sliding window.")
+            }
+
+            Section {
+                LabeledContent("Rate") {
+                    DemoMonoLabel(String(format: "%.2f×", settings.playbackRate))
+                }
+                Slider(value: $settings.playbackRate, in: 0.25...4, step: 0.25) {
+                    Text("Rate")
+                }
+                Toggle("Repeat forever", isOn: $settings.repeatsForever)
+            } header: {
+                Text("Playback")
+            } footer: {
+                Text("The animation keeps its declared duration; the rate changes how fast the clock runs through it.")
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    private var diagnosticsHeader: some View {
+        Button {
+            withAnimation(.snappy) { isShowingDiagnostics.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                Text("Diagnostics")
+                Spacer(minLength: 8)
+                if diagnostics.isFullyBuffered {
+                    DemoBadge("Fully buffered", color: .green)
+                } else {
+                    DemoBadge("Sliding window", color: .orange)
+                }
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.bold))
+                    .rotationEffect(.degrees(isShowingDiagnostics ? 0 : -90))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isShowingDiagnostics ? "Hide diagnostics" : "Show diagnostics")
+    }
+}
+
+private extension View {
+    /// Keeps the stage behind the console interactive, so the animation can be
+    /// scrubbed and switched while the settings change.
+    @ViewBuilder
+    func demoSheetBackgroundInteraction() -> some View {
+        if #available(iOS 16.4, *) {
+            presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        } else {
+            self
+        }
+    }
+}
+
+// MARK: - Diagnostics
+
+/// The numbers behind the animation.
+private struct DemoDiagnosticsPanel: View {
     let player: AnimatedImagePlayer
     let diagnostics: AnimatedImagePlayer.Diagnostics
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
             BufferMap(player: player, diagnostics: diagnostics)
             Divider()
             grid
-        }
-        .padding(14)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.08)))
-    }
-
-    private var header: some View {
-        HStack {
-            Text("Diagnostics")
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-            if diagnostics.isFullyBuffered {
-                DemoBadge("Fully buffered", color: .green)
-            } else {
-                DemoBadge("Sliding window", color: .orange)
-            }
         }
     }
 
     private var grid: some View {
         VStack(spacing: 6) {
-            DiagnosticsRow("Frame", "\(diagnostics.currentFrameIndex + 1) / \(diagnostics.frameCount)")
-            DiagnosticsRow("Loops", "\(diagnostics.completedLoopCount)")
-            DiagnosticsRow("Buffered", "\(diagnostics.bufferedFrameCount) / \(diagnostics.bufferCapacity) frames · \(demoByteCount(diagnostics.bufferedByteCount))")
-            DiagnosticsRow("Decoded", "\(diagnostics.decodedFrameCount) frames")
-            DiagnosticsRow("Decode", "\(milliseconds(diagnostics.lastDecodeDuration)) last · \(milliseconds(diagnostics.averageDecodeDuration)) avg · \(milliseconds(diagnostics.maxDecodeDuration)) max")
-            DiagnosticsRow("Frame rate", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate)) fps")
-            DiagnosticsRow("Displayed", "\(diagnostics.displayedFrameCount) frames in \(seconds(diagnostics.playbackTime))")
+            DiagnosticsRow("frame", "\(diagnostics.currentFrameIndex + 1)/\(diagnostics.frameCount)  ·  loop \(diagnostics.completedLoopCount)")
+            DiagnosticsRow("buffer", "\(diagnostics.bufferedFrameCount)/\(diagnostics.bufferCapacity) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount))")
+            DiagnosticsRow("decoded", "\(diagnostics.decodedFrameCount) frames")
+            DiagnosticsRow("decode", "\(milliseconds(diagnostics.lastDecodeDuration)) last  ·  \(milliseconds(diagnostics.averageDecodeDuration)) avg  ·  \(milliseconds(diagnostics.maxDecodeDuration)) max")
+            DiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate))")
+            DiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(seconds(diagnostics.playbackTime))")
             DiagnosticsRow(
-                "Skipped",
-                "\(diagnostics.skippedFrameCount) behind · \(diagnostics.bufferMissCount) not ready",
+                "missed",
+                "\(diagnostics.skippedFrameCount) behind  ·  \(diagnostics.bufferMissCount) not ready",
                 isWarning: diagnostics.skippedFrameCount > 0 || diagnostics.bufferMissCount > 0
             )
-            DiagnosticsRow("Size", "\(Int(player.source.size.width))×\(Int(player.source.size.height)) px · \(demoByteCount(player.source.bytesPerFrame)) per frame")
-            DiagnosticsRow("Duration", "\(seconds(player.source.duration)) · \(player.source.loopCount == 0 ? "loops forever" : "\(player.source.loopCount) loops")")
+            DiagnosticsRow("size", "\(Int(player.source.size.width))×\(Int(player.source.size.height)) px  ·  \(demoByteCount(player.source.bytesPerFrame))/frame")
+            DiagnosticsRow("length", "\(seconds(player.source.duration))  ·  \(player.source.loopCount == 0 ? "loops forever" : "\(player.source.loopCount) loops")")
         }
     }
 
     private func milliseconds(_ value: TimeInterval) -> String {
-        String(format: "%.1f ms", value * 1000)
+        String(format: "%.1fms", value * 1000)
     }
 
     private func seconds(_ value: TimeInterval) -> String {
-        String(format: "%.1f s", value)
+        String(format: "%.1fs", value)
     }
 
     private func rate(_ value: Double) -> String {
@@ -309,20 +408,20 @@ private struct BufferMap: View {
             let width = max(1, (proxy.size.width - spacing * CGFloat(count - 1)) / CGFloat(count))
             HStack(spacing: spacing) {
                 ForEach(0..<count, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 1)
+                    RoundedRectangle(cornerRadius: 1.5)
                         .fill(color(for: index))
                         .frame(width: width)
                 }
             }
         }
-        .frame(height: 22)
+        .frame(height: 24)
     }
 
     private func color(for index: Int) -> Color {
         if index == diagnostics.currentFrameIndex {
             return .accentColor
         }
-        return player.isFrameBuffered(index) ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.08)
+        return player.isFrameBuffered(index) ? Color.accentColor.opacity(0.3) : Color.primary.opacity(0.07)
     }
 }
 
@@ -338,16 +437,29 @@ private struct DiagnosticsRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(title)
-                .font(.caption)
                 .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
+                .frame(width: 62, alignment: .leading)
             Text(value)
-                .font(.caption.monospacedDigit())
                 .foregroundStyle(isWarning ? Color.orange : Color.primary)
-                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .font(.system(.caption, design: .monospaced))
+    }
+}
+
+private struct DemoMonoLabel: View {
+    private let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(.caption, design: .monospaced))
+            .foregroundStyle(.secondary)
     }
 }
 

@@ -41,6 +41,19 @@ extension View {
     func demoInfo(_ info: DemoInfo) -> some View {
         modifier(DemoInfoModifier(info: info))
     }
+
+    /// Adds the question mark button without the sheet.
+    ///
+    /// iOS presents one sheet per screen and drops the second, so a screen that
+    /// keeps a sheet of its own on display has to present ``DemoInfoSheet``
+    /// from inside that sheet. This is the button for it.
+    func demoInfoButton(isPresented: Binding<Bool>) -> some View {
+        toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DemoInfoButton(isPresented: isPresented)
+            }
+        }
+    }
 }
 
 private struct DemoInfoModifier: ViewModifier {
@@ -50,23 +63,27 @@ private struct DemoInfoModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        isPresented = true
-                    } label: {
-                        Image(systemName: "questionmark")
-                    }
-                    .accessibilityLabel("About This Screen")
-                }
-            }
+            .demoInfoButton(isPresented: $isPresented)
             .sheet(isPresented: $isPresented) {
                 DemoInfoSheet(info: info)
             }
     }
 }
 
-private struct DemoInfoSheet: View {
+private struct DemoInfoButton: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            Image(systemName: "questionmark")
+        }
+        .accessibilityLabel("About This Screen")
+    }
+}
+
+struct DemoInfoSheet: View {
     let info: DemoInfo
 
     @Environment(\.dismiss) private var dismiss
