@@ -255,10 +255,17 @@ enum AnimatedImageFormat: CaseIterable {
 /// memory pressure, and the entries are worth exactly nothing when the system
 /// needs the memory back. The cost of an entry is the data the source holds on
 /// to, which the image cache is usually holding as well.
-private final class AnimatedImageSourceCache: @unchecked Sendable {
+final class AnimatedImageSourceCache: @unchecked Sendable {
     static let shared = AnimatedImageSourceCache()
 
-    private let cache = NSCache<NSData, AnimatedImageSource>()
+    /// `NSNull` for data that turned out not to be animated.
+    ///
+    /// The failures have to be remembered too. The pipeline attaches the data
+    /// to every GIF, animated or not – whether it is animated is exactly what
+    /// this parse is answering – so a list of static GIFs would otherwise
+    /// create a `CGImageSource` and count its frames on the main thread every
+    /// time a cell was displayed.
+    private let cache = NSCache<NSData, AnyObject>()
 
     init() {
         cache.countLimit = 32
@@ -267,13 +274,23 @@ private final class AnimatedImageSourceCache: @unchecked Sendable {
 
     func source(for data: Data) -> AnimatedImageSource? {
         let key = data as NSData
-        if let source = cache.object(forKey: key) {
-            return source
+        if let entry = cache.object(forKey: key) {
+            return entry as? AnimatedImageSource
         }
         guard let source = AnimatedImageSource(data: data) else {
+            // Nothing is held that the caller isn't holding already – the key
+            // is the same buffer – so the entry costs nothing and never pushes
+            // a parsed animation out.
+            cache.setObject(NSNull(), forKey: key, cost: 0)
             return nil
         }
         cache.setObject(source, forKey: key, cost: data.count)
         return source
+    }
+
+    /// `true` when the data has been parsed and remembered as a still image.
+    /// Exists for the tests.
+    func isKnownStatic(_ data: Data) -> Bool {
+        cache.object(forKey: data as NSData) is NSNull
     }
 }

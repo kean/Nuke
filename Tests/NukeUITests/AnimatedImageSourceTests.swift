@@ -123,6 +123,17 @@ struct AnimatedImageSourceTests {
         #expect(AnimatedImageSource.cached(container: Test.container) == nil)
     }
 
+    @Test func remembersThatDataIsNotAnimated() {
+        // A single-frame GIF still arrives with its data attached – whether it
+        // is animated is what the parse answers – so a list of static GIFs
+        // would pay for the scan on every cell without this.
+        let data = Test.animatedGIF(frameCount: 1)
+
+        #expect(AnimatedImageSource.cached(data: data) == nil)
+
+        #expect(AnimatedImageSourceCache.shared.isKnownStatic(data))
+    }
+
     // MARK: Derived Values
 
     @Test func computesFrameRateAndFrameSize() throws {
