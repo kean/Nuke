@@ -308,7 +308,7 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
     /// this parse is answering – so a list of static GIFs would otherwise
     /// create a `CGImageSource` and count its frames on the main thread every
     /// time a cell was displayed.
-    private let cache = NSCache<NSData, AnyObject>()
+    private let cache = NSCache<AnimatedImageDataKey, AnyObject>()
 
     init() {
         cache.countLimit = 32
@@ -316,7 +316,7 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
     }
 
     func source(for data: Data) -> AnimatedImageSource? {
-        let key = data as NSData
+        let key = AnimatedImageDataKey(data)
         if let entry = cache.object(forKey: key) {
             return entry as? AnimatedImageSource
         }
@@ -336,9 +336,49 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
     /// The outer optional says whether the data has been parsed at all, the
     /// inner one whether it turned out to be animated.
     func parsed(for data: Data) -> AnimatedImageSource?? {
-        guard let entry = cache.object(forKey: data as NSData) else {
+        guard let entry = cache.object(forKey: AnimatedImageDataKey(data)) else {
             return nil
         }
         return .some(entry as? AnimatedImageSource)
+    }
+}
+
+/// The key the parsed animations are cached under.
+///
+/// Not `NSData`, whose hash covers the first 80 bytes. Animations written by
+/// the same encoder at the same size are identical for far longer than that –
+/// the signature, the screen descriptor, the palette – so every lookup in a
+/// list of them collided, and `NSCache` fell through to comparing the contents
+/// in full: a memcmp of the whole animation, per cell displayed.
+///
+/// The hash reads the length and a fixed number of bytes spread from the first
+/// to the last instead, which costs the same and tells the images apart.
+/// Equality is unchanged – the contents, in full – so a collision is still only
+/// ever slow, never wrong.
+final class AnimatedImageDataKey: NSObject {
+    let data: Data
+    private let precomputedHash: Int
+
+    init(_ data: Data) {
+        self.data = data
+        var hasher = Hasher()
+        hasher.combine(data.count)
+        let sampleCount = min(32, data.count)
+        if sampleCount == 1 {
+            hasher.combine(data[data.startIndex])
+        } else if sampleCount > 1 {
+            for sample in 0..<sampleCount {
+                let offset = sample * (data.count - 1) / (sampleCount - 1)
+                hasher.combine(data[data.index(data.startIndex, offsetBy: offset)])
+            }
+        }
+        self.precomputedHash = hasher.finalize()
+    }
+
+    override var hash: Int { precomputedHash }
+
+    override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? AnimatedImageDataKey else { return false }
+        return precomputedHash == other.precomputedHash && data == other.data
     }
 }

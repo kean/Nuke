@@ -196,6 +196,33 @@ struct AnimatedImageSourceTests {
 
     @MainActor private static var unseenFrameCounts = 19
 
+    @Test func tellsApartDataThatSharesALongPrefix() {
+        // Two animations from the same encoder at the same size are identical
+        // for far more than the 80 bytes `NSData` hashes: the signature, the
+        // screen descriptor, the palette. Every lookup in a list of them
+        // collided and `NSCache` fell through to comparing the contents in
+        // full – a memcmp of the whole animation, per cell displayed.
+        let shared = Data(repeating: 0xAB, count: 512)
+        let first = shared + Data([0x01])
+        let second = shared + Data([0x02])
+        #expect((first as NSData).hash == (second as NSData).hash) // The old key
+
+        #expect(AnimatedImageDataKey(first).hash != AnimatedImageDataKey(second).hash)
+        #expect(AnimatedImageDataKey(first) == AnimatedImageDataKey(first))
+        #expect(AnimatedImageDataKey(first) != AnimatedImageDataKey(second))
+    }
+
+    @Test func tellsApartDataOfTheSameLengthThatDiffersInTheMiddle() {
+        var first = Data(repeating: 0xAB, count: 1024)
+        var second = first
+        first[500] = 0x01
+        second[500] = 0x02
+
+        // Equality is the contents in full, so a hash that misses the
+        // difference is only ever slow, never wrong.
+        #expect(AnimatedImageDataKey(first) != AnimatedImageDataKey(second))
+    }
+
     // MARK: Derived Values
 
     @Test func computesFrameRateAndFrameSize() throws {
