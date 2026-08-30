@@ -92,6 +92,11 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Set it to `false` to show the first frame of every animated image as a
     /// still – which is what a table full of animations should do while the
     /// user is deciding whether they want to see them move.
+    ///
+    /// It is also the hook for Accessibility › Motion › Auto-Play Animated
+    /// Images. Only SwiftUI publishes that setting – UIKit and AppKit have no
+    /// equivalent – so ``AnimatedImage`` reads it and sets this itself, and a
+    /// view used directly has to be told.
     public var isPlaybackEnabled = true {
         didSet {
             guard isPlaybackEnabled != oldValue else { return }

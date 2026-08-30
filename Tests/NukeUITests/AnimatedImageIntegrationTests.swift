@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import SwiftUI
 import Testing
 @testable import Nuke
 @testable import NukeUI
@@ -156,6 +157,22 @@ struct AnimatedImageIntegrationTests {
         view.reset()
 
         #expect(view.imageView.player == nil)
+    }
+
+    // MARK: AnimatedImage
+
+    @Test func animatedImagePlaysWithoutBeingAsked() async throws {
+        // Playback starts on its own unless Accessibility › Motion › Auto-Play
+        // Animated Images says not to, which the view reads from the SwiftUI
+        // environment – and which is on wherever the tests run.
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let host = ViewHost(source) { AnimatedImage($0) }
+
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.isPlaying == true })
+
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        #expect(view.isPlaybackEnabled)
+        #expect(view.isPlaying)
     }
 #endif
 

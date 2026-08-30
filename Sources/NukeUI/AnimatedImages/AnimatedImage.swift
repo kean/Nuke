@@ -30,7 +30,9 @@ import SwiftUI
 /// ```
 ///
 /// Playback stops while the view is off screen and picks up where it left off
-/// when it comes back. To control it yourself – or to read the diagnostics –
+/// when it comes back, and it never starts on its own while Accessibility ›
+/// Motion › Auto-Play Animated Images is off – the view shows the first frame
+/// as a still instead. To control it yourself – or to read the diagnostics –
 /// create an ``AnimatedImagePlayer`` and use ``init(player:)``.
 @MainActor
 public struct AnimatedImage: View {
@@ -81,11 +83,37 @@ public struct AnimatedImage: View {
     }
 
     public var body: some View {
+        if #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *) {
+            AutoPlayReader { renderer(isPlaybackEnabled: $0) }
+        } else {
+            renderer(isPlaybackEnabled: true)
+        }
+    }
+
+    @ViewBuilder
+    private func renderer(isPlaybackEnabled: Bool) -> some View {
 #if os(watchOS)
-        AnimatedImageRenderer(source: source, player: player, contentMode: contentMode, isResizable: isResizable)
+        AnimatedImageRenderer(source: source, player: player, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #else
-        AnimatedImageRepresentable(source: source, player: player, contentMode: contentMode, isResizable: isResizable)
+        AnimatedImageRepresentable(source: source, player: player, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #endif
+    }
+}
+
+/// Hands its content Accessibility › Motion › Auto-Play Animated Images, the
+/// system-wide answer to whether an animation may start on its own.
+///
+/// A view of its own because the environment value needs iOS 17 and the
+/// deployment target is iOS 16: an `@Environment` property on ``AnimatedImage``
+/// can't be declared behind an availability check, but a whole view can.
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
+private struct AutoPlayReader<Content: View>: View {
+    @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+
+    let content: (Bool) -> Content
+
+    var body: some View {
+        content(playAnimatedImages)
     }
 }
 
@@ -140,6 +168,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     let player: AnimatedImagePlayer?
     let contentMode: ContentMode
     let isResizable: Bool
+    let isPlaybackEnabled: Bool
 
     private func makeView() -> AnimatedImageView {
         let view = AnimatedImageView()
@@ -156,14 +185,15 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         return view
     }
 
-    /// The content mode is applied here rather than in ``makeView()`` because
-    /// SwiftUI reuses the view across updates: a content mode that comes from
-    /// state would otherwise be whatever it was the first time around.
+    /// The content mode and the playback are applied here rather than in
+    /// ``makeView()`` because SwiftUI reuses the view across updates: a value
+    /// that comes from state would otherwise be whatever it was the first time
+    /// around.
     private func update(_ view: AnimatedImageView) {
+        // Before the animation, whose arrival is what starts playback.
+        view.isPlaybackEnabled = isPlaybackEnabled
 #if os(macOS)
-        // `NSImageView` has no aspect-fill mode; the view draws that one
-        // itself. Fitting is `UpOrDown` so that a resizable animation scales up
-        // the way `.scaleAspectFit` lets it on the other platforms.
+        // `NSImageView` has no aspect-fill mode; the view draws that one itself.
         view.isAspectFillEnabled = contentMode == .fill
         view.imageScaling = .scaleProportionallyUpOrDown
 #else
@@ -207,6 +237,7 @@ private struct AnimatedImageRenderer: View {
     let player: AnimatedImagePlayer?
     let contentMode: ContentMode
     let isResizable: Bool
+    let isPlaybackEnabled: Bool
 
     @StateObject private var model = AnimatedImageModel()
 
@@ -221,11 +252,16 @@ private struct AnimatedImageRenderer: View {
             // loaded into the same `LazyImage`, say – and without this it would
             // keep playing the animation it was given first.
             .onChange(of: identity) { _ in install() }
+            .onChange(of: isPlaybackEnabled) { isEnabled in
+                if isEnabled { model.player?.play() } else { model.player?.pause() }
+            }
     }
 
     private func install() {
         model.setPlayer(player ?? AnimatedImagePlayer(source: source))
-        model.player?.play()
+        if isPlaybackEnabled {
+            model.player?.play()
+        }
     }
 
     /// What the renderer is playing, as something `onChange` can compare.

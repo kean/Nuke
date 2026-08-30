@@ -141,6 +141,8 @@ The player exposes ``AnimatedImagePlayer/play()``, ``AnimatedImagePlayer/pause()
 
 To show an animation as a still – a list where animations play only after the user asks for them – set ``AnimatedImageView/isPlaybackEnabled`` to `false`. The first frame is displayed and no frames beyond it are ever decoded.
 
+That is also where Accessibility › Motion › Auto-Play Animated Images lands. ``AnimatedImage`` reads it – it is `accessibilityPlayAnimatedImages` in the SwiftUI environment – and holds the animation on its first frame while the setting is off. Nothing is taken away: a player you own still plays when something asks it to, so a play button of your own keeps working, which is the point of the setting. UIKit and AppKit publish no equivalent, so an ``AnimatedImageView`` used outside SwiftUI has to be told.
+
 ## Diagnostics
 
 ``AnimatedImagePlayer/diagnostics`` is a snapshot of what the player and its buffer are doing. It answers the questions that are otherwise guesswork:
