@@ -26,6 +26,18 @@ struct AnimatedImageViewTests {
         await view.pendingParse?.value
     }
 
+    /// Gives the view a size and runs a layout pass over it.
+    private func layOut(_ size: CGSize) {
+        view.frame = CGRect(origin: .zero, size: size)
+#if os(macOS)
+        view.needsLayout = true
+        view.layoutSubtreeIfNeeded()
+#else
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+#endif
+    }
+
     // MARK: Displaying
 
     @Test func playsAnimatedData() async throws {
@@ -118,6 +130,74 @@ struct AnimatedImageViewTests {
         #expect(player.options.scale == 1)
     }
 #endif
+
+    // MARK: Downsampling
+
+    @Test func decodesTheFramesNoLargerThanTheView() async throws {
+        layOut(CGSize(width: 20, height: 20))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+
+        let player = try #require(view.player)
+        let maxPixelSize = try #require(player.options.maxPixelSize)
+        #expect(maxPixelSize < 400)
+        await player.buffer.waitUntilFull()
+        let frame = try #require(player.image?.cgImage)
+        #expect(max(frame.width, frame.height) <= Int(maxPixelSize))
+    }
+
+    @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async throws {
+        // A cell hasn't been laid out when the image arrives, and a SwiftUI
+        // view has no size at all when it is made.
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        #expect(view.player?.options.maxPixelSize == nil)
+
+        layOut(CGSize(width: 20, height: 20))
+
+        #expect(view.player?.options.maxPixelSize != nil)
+    }
+
+    @Test func doesNotRebuildThePlayerForAnAnimationThatAlreadyFits() async throws {
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
+        let player = try #require(view.player)
+
+        layOut(CGSize(width: 200, height: 200))
+
+        // Decoding it again would buy nothing: the frames are already smaller
+        // than the view.
+        #expect(view.player === player)
+    }
+
+    @Test func neverScalesTheFramesUp() async throws {
+        layOut(CGSize(width: 200, height: 200))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
+
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+        let frame = try #require(player.image?.cgImage)
+        #expect(frame.width == 8)
+    }
+
+    @Test func downsamplingCanBeTurnedOff() async throws {
+        view.isAutomaticDownsamplingEnabled = false
+        layOut(CGSize(width: 20, height: 20))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+
+        #expect(try #require(view.player).options.maxPixelSize == nil)
+    }
+
+    @Test func aSizeOfYourOwnWins() async throws {
+        var options = AnimatedImagePlayer.Options()
+        options.maxPixelSize = 64
+        view.playerOptions = options
+        layOut(CGSize(width: 20, height: 20))
+
+        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+
+        #expect(try #require(view.player).options.maxPixelSize == 64)
+    }
 
     // MARK: Playback and the Window
 

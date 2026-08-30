@@ -59,8 +59,9 @@ public final class AnimatedImageView: _PlatformImageView {
     public var player: AnimatedImagePlayer? {
         didSet {
             guard oldValue !== player else { return }
-            // A player set from outside wins over a parse still on its way.
+            // A player set from outside wins over anything on its way.
             cancelPendingParse()
+            sourcePendingDownsampling = nil
             oldValue?.pause()
             oldValue?.onFrame = nil
             _animatedImage = player?.source
@@ -76,6 +77,10 @@ public final class AnimatedImageView: _PlatformImageView {
 
     /// The parse in flight, if any. Exists for the tests.
     var pendingParse: Task<Void, Never>?
+
+    /// The animation whose frames are being decoded at full size because the
+    /// view had no size of its own to scale them to yet.
+    private var sourcePendingDownsampling: AnimatedImageSource?
 
     /// The options the view creates its players with.
     ///
@@ -102,6 +107,19 @@ public final class AnimatedImageView: _PlatformImageView {
             updatePlaybackState()
         }
     }
+
+    /// Whether the frames are decoded no larger than the view displays them.
+    /// `true` by default.
+    ///
+    /// It is the largest memory win there is: a 1000-pixel animation costs
+    /// 4 MB a frame, and the same animation decoded for a 120-point cell costs
+    /// 0.2 MB. The frames are never scaled up, so an animation that is already
+    /// smaller than the view is decoded as it is.
+    ///
+    /// Set ``AnimatedImagePlayer/Options/maxPixelSize`` in ``playerOptions`` to
+    /// pick the size yourself; it wins over this. Set this to `false` to decode
+    /// every animation at full size – a view that is going to grow, say.
+    public var isAutomaticDownsamplingEnabled = true
 
     /// `true` while the animation is running.
     ///
@@ -188,6 +206,55 @@ public final class AnimatedImageView: _PlatformImageView {
         image = nil
     }
 
+    // MARK: Layout
+
+    // A view that is given an animation before it is laid out – a cell, and
+    // every SwiftUI view, which has no size at all when it is made – can't know
+    // what to decode the frames for. It decodes them at full size and settles
+    // it here, at the first layout with a size, and only for an animation that
+    // is actually bigger than the view: the rebuild costs a decode, and there
+    // is nothing to win when the frames are already small enough.
+
+#if os(macOS)
+    override public func layout() {
+        super.layout()
+        applyAutomaticDownsamplingIfNeeded()
+    }
+#else
+    override public func layoutSubviews() {
+        super.layoutSubviews()
+        applyAutomaticDownsamplingIfNeeded()
+    }
+#endif
+
+    private func applyAutomaticDownsamplingIfNeeded() {
+        guard let source = sourcePendingDownsampling,
+              let maxPixelSize = automaticMaxPixelSize else { return }
+        sourcePendingDownsampling = nil
+        guard maxPixelSize < max(source.size.width, source.size.height) else {
+            return
+        }
+        setPlayer(for: source, scale: player?.options.scale, maxPixelSize: maxPixelSize)
+    }
+
+    /// The longest side, in pixels, the frames need to fill this view, or `nil`
+    /// when the view has no size or is decoding at a size it was given.
+    private var automaticMaxPixelSize: CGFloat? {
+        guard wantsAutomaticDownsampling else { return nil }
+        let side = max(bounds.width, bounds.height)
+        guard side > 0 else { return nil }
+#if os(macOS)
+        let scale = window?.backingScaleFactor ?? 2
+#else
+        let scale = contentScaleFactor
+#endif
+        return side * max(scale, 1)
+    }
+
+    private var wantsAutomaticDownsampling: Bool {
+        isAutomaticDownsamplingEnabled && playerOptions.maxPixelSize == nil
+    }
+
     // MARK: Window Changes
 
 #if os(macOS)
@@ -207,7 +274,26 @@ public final class AnimatedImageView: _PlatformImageView {
     private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
         guard _animatedImage !== source else { return }
         _animatedImage = source
-        player = source.map { makePlayer(for: $0, scale: scale) }
+        let maxPixelSize = automaticMaxPixelSize
+        setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
+        // Set after the player, whose `didSet` clears it: this is the animation
+        // the next layout has to settle a size for.
+        sourcePendingDownsampling = maxPixelSize == nil && wantsAutomaticDownsampling ? source : nil
+    }
+
+    private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {
+        player = source.map { source in
+            var options = playerOptions
+            // Match the scale of the still image the decoder produced, or the
+            // animation changes size the moment it starts playing.
+            if options.scale == 1, let scale, scale != 1 {
+                options.scale = scale
+            }
+            if options.maxPixelSize == nil {
+                options.maxPixelSize = maxPixelSize
+            }
+            return AnimatedImagePlayer(source: source, options: options)
+        }
     }
 
     /// The scale of the image the animation is replacing, or `nil` where the
@@ -218,16 +304,6 @@ public final class AnimatedImageView: _PlatformImageView {
 #else
         nil
 #endif
-    }
-
-    private func makePlayer(for source: AnimatedImageSource, scale: CGFloat?) -> AnimatedImagePlayer {
-        var options = playerOptions
-        // Match the scale of the still image the decoder produced, or the
-        // animation changes size the moment it starts playing.
-        if options.scale == 1, let scale, scale != 1 {
-            options.scale = scale
-        }
-        return AnimatedImagePlayer(source: source, options: options)
     }
 
     private func updatePlaybackState() {
