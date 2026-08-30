@@ -296,10 +296,26 @@ enum AnimatedImageFormat: CaseIterable {
 ///
 /// `NSCache` rather than a dictionary: it is thread-safe, it evicts under
 /// memory pressure, and the entries are worth exactly nothing when the system
-/// needs the memory back. The cost of an entry is the data the source holds on
-/// to, which the image cache is usually holding as well.
+/// needs the memory back.
 final class AnimatedImageSourceCache: @unchecked Sendable {
     static let shared = AnimatedImageSourceCache()
+
+    /// How many parses are remembered.
+    ///
+    /// Bounded by count alone, because a cost limit here measures the wrong
+    /// thing. What an entry actually adds is a frame count and an array of
+    /// delays: the data it holds is the same buffer the ``ImageContainer`` in
+    /// the image cache is holding, shared with it rather than copied. Charging
+    /// each entry the size of its animation filled a 16 MB budget with
+    /// animations that cost kilobytes apiece, and left a 20 MB one unable to
+    /// stay at all – so a list of more than a handful of animations re-parsed
+    /// every one of them on every scroll back, which is the exact thing this
+    /// cache exists to prevent.
+    ///
+    /// The trade is that an entry that outlives its image cache entry becomes
+    /// the last owner of that data. `NSCache` empties itself when the system
+    /// asks, which is the bound on it.
+    private static let countLimit = 200
 
     /// `NSNull` for data that turned out not to be animated.
     ///
@@ -311,8 +327,7 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
     private let cache = NSCache<AnimatedImageDataKey, AnyObject>()
 
     init() {
-        cache.countLimit = 32
-        cache.totalCostLimit = 16 * 1_048_576
+        cache.countLimit = AnimatedImageSourceCache.countLimit
     }
 
     func source(for data: Data) -> AnimatedImageSource? {
@@ -321,13 +336,10 @@ final class AnimatedImageSourceCache: @unchecked Sendable {
             return entry as? AnimatedImageSource
         }
         guard let source = AnimatedImageSource(data: data) else {
-            // Nothing is held that the caller isn't holding already – the key
-            // is the same buffer – so the entry costs nothing and never pushes
-            // a parsed animation out.
-            cache.setObject(NSNull(), forKey: key, cost: 0)
+            cache.setObject(NSNull(), forKey: key)
             return nil
         }
-        cache.setObject(source, forKey: key, cost: data.count)
+        cache.setObject(source, forKey: key)
         return source
     }
 

@@ -196,6 +196,26 @@ struct AnimatedImageSourceTests {
 
     @MainActor private static var unseenFrameCounts = 19
 
+    @Test func remembersMoreAnimationsThanAListOfThemHas() {
+        // Its own cache: the shared one outlives the suite, and this is a test
+        // about how much fits in one.
+        let cache = AnimatedImageSourceCache()
+        let animations = (0..<64).map {
+            Test.animatedGIF(frameCount: 2, size: CGSize(width: 8 + $0, height: 8))
+        }
+
+        for data in animations {
+            #expect(cache.source(for: data) != nil)
+        }
+
+        // A list scrolled back to any of them parses none of them again. The
+        // count is what bounds this cache: sized by cost, a 16 MB budget was
+        // full after a couple of large animations and a list of small ones was
+        // re-parsing from the top of the scroll on every pass.
+        let remembered = animations.filter { cache.parsed(for: $0) != nil }
+        #expect(remembered.count == animations.count)
+    }
+
     @Test func tellsApartDataThatSharesALongPrefix() {
         // Two animations from the same encoder at the same size are identical
         // for far more than the 80 bytes `NSData` hashes: the signature, the
