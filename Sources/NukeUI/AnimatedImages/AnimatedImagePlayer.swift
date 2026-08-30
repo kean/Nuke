@@ -221,6 +221,17 @@ public final class AnimatedImagePlayer {
         return diagnostics
     }
 
+    /// Whether the player decodes frames at all.
+    ///
+    /// ``AnimatedImageView`` turns it off for the moment between being given an
+    /// animation and knowing what size to decode it at, so that the frames it
+    /// is going to throw away are never decoded in the first place. Not public:
+    /// a player nobody has suspended always decodes.
+    var isDecodingEnabled: Bool {
+        get { buffer.isDecodingEnabled }
+        set { buffer.isDecodingEnabled = newValue }
+    }
+
     /// Returns `true` if the frame at the given index is decoded and in memory.
     ///
     /// Together with ``Diagnostics/bufferCapacity`` it is enough to draw what

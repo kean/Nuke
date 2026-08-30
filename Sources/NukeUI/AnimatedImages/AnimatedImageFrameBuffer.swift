@@ -159,6 +159,24 @@ final class AnimatedImageFrameBuffer {
         }
     }
 
+    /// Whether the buffer decodes at all. `true` by default.
+    ///
+    /// A view that is handed an animation before it knows what size to decode
+    /// it at turns this off until it does. The alternative is to decode a frame
+    /// at the full size of the animation and throw it away, along with the
+    /// player built to produce it, a moment later.
+    var isDecodingEnabled = true {
+        didSet {
+            guard isDecodingEnabled != oldValue else { return }
+            if isDecodingEnabled {
+                decodeNextFrame()
+            } else {
+                task?.cancel()
+                task = nil
+            }
+        }
+    }
+
     /// What the buffer holds while ``fillsWindow`` is off: the frame on screen
     /// and the one after it, so that playback starts without a stall.
     static let idleCapacity = 2
@@ -317,7 +335,7 @@ final class AnimatedImageFrameBuffer {
     /// decoder from filling the cooperative pool with frames nobody is waiting
     /// for yet.
     private func decodeNextFrame() {
-        guard task == nil, let index = nextMissingIndex() else {
+        guard isDecodingEnabled, task == nil, let index = nextMissingIndex() else {
             return
         }
         let decoder = self.decoder

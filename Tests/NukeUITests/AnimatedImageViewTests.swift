@@ -36,6 +36,19 @@ struct AnimatedImageViewTests {
 #endif
     }
 
+    /// The number of animations ``unparsedGIF(frameCount:)`` has built, so that
+    /// each one is different from every other.
+    private static var builtAnimationCount = 0
+
+    /// An animation nothing has parsed before, so that the view parses it off
+    /// the main thread instead of answering from the shared cache – which
+    /// outlives the test, and the suite, and any re-run of either.
+    private func unparsedGIF(frameCount: Int) -> Data {
+        Self.builtAnimationCount += 1
+        let size = CGSize(width: 13 + Self.builtAnimationCount, height: 11)
+        return Test.animatedGIF(frameCount: frameCount, size: size)
+    }
+
     /// Gives the view a size and runs a layout pass over it.
     private func layOut(_ size: CGSize) {
         view.frame = CGRect(origin: .zero, size: size)
@@ -105,9 +118,8 @@ struct AnimatedImageViewTests {
 
         // WHEN a different one arrives whose animation has to be parsed
         let poster = Test.image
-        let data = Test.animatedGIF(frameCount: 6, size: CGSize(width: 13, height: 11))
-        view.nuke_display(image: poster, data: data)
-        let parse = try #require(view.pendingParse) // Not seen before, so not immediate
+        view.nuke_display(image: poster, data: unparsedGIF(frameCount: 6))
+        let parse = try #require(view.pendingParse) // Never seen, so not immediate
 
         // THEN the animation that isn't this image's is gone and its own still
         // holds the place. It used to keep playing under the new image until
@@ -210,6 +222,40 @@ struct AnimatedImageViewTests {
         await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
 
         #expect(try #require(view.player).options.maxPixelSize == nil)
+    }
+
+    @Test func decodesNothingUntilItKnowsWhatSizeToDecodeFor() async throws {
+        // The view is given the animation before it has a size, which is every
+        // SwiftUI view – they are made at zero size – and every cell.
+        await display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
+        let provisional = try #require(view.player)
+
+        // Nothing has been decoded: the frames would be full size, and both
+        // they and the player that produced them are thrown away at the first
+        // layout. A frame of a large animation is a decode and a bitmap the
+        // size of the whole canvas, per cell.
+        #expect(provisional.buffer.currentDecode == nil)
+        #expect(provisional.diagnostics.decodedFrameCount == 0)
+
+        layOut(CGSize(width: 20, height: 20))
+
+        let settled = try #require(view.player)
+        #expect(settled !== provisional)
+        await settled.buffer.waitUntilFull()
+        #expect(settled.diagnostics.decodedFrameCount > 0)
+    }
+
+    @Test func decodesOnceALayoutSettlesThatThereIsNoSizeToDeriveFrom() async throws {
+        // A view laid out with no size of its own is not going to get a better
+        // answer, so the frames are decoded as they are rather than never.
+        await display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
+        let player = try #require(view.player)
+
+        layOut(.zero)
+
+        await player.buffer.waitUntilFull()
+        #expect(view.player === player)
+        #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
     @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async throws {
@@ -457,7 +503,9 @@ private final class TestWindow {
     private let window: UIWindow
 
     init(view: UIView) {
-        window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+        window = UIWindow(frame: frame)
+        view.frame = frame // A view in a window has a size, as the AppKit half does
         window.addSubview(view)
         window.isHidden = false
     }

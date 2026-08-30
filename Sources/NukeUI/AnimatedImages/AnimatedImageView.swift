@@ -276,10 +276,18 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
 
     private func applyAutomaticDownsamplingIfNeeded() {
-        guard let source = sourcePendingDownsampling,
-              let maxPixelSize = automaticMaxPixelSize(for: source) else { return }
+        guard let source = sourcePendingDownsampling else { return }
+        guard let maxPixelSize = automaticMaxPixelSize(for: source) else {
+            // Laid out and there is still nothing to derive a size from: the
+            // view has none of its own, or its content mode draws the frames as
+            // they are. This is the size they are going to be decoded at, so a
+            // player waiting for a better answer should stop waiting.
+            player?.isDecodingEnabled = true
+            return
+        }
         sourcePendingDownsampling = nil
         guard maxPixelSize < max(source.size.width, source.size.height) else {
+            player?.isDecodingEnabled = true // Already small enough as it is
             return
         }
         setPlayer(for: source, scale: player?.options.scale, maxPixelSize: maxPixelSize)
@@ -365,6 +373,21 @@ public final class AnimatedImageView: _PlatformImageView {
         // Set after the player, whose `didSet` clears it: this is the animation
         // the next layout has to settle a size for.
         sourcePendingDownsampling = maxPixelSize == nil && wantsAutomaticDownsampling ? source : nil
+        // A view with no size of its own has nothing to decode for yet, and the
+        // player it was given is the one the first layout replaces. Decoding
+        // now would produce a frame at the full size of the animation – a
+        // decode, and a bitmap the size of the whole canvas – for a player that
+        // is thrown away before it ever shows one.
+        if sourcePendingDownsampling != nil, bounds.width == 0 || bounds.height == 0 {
+            player?.isDecodingEnabled = false
+            // Whatever the layout settles is what lets it decode again, so ask
+            // for one rather than waiting to be laid out for some other reason.
+#if os(macOS)
+            needsLayout = true
+#else
+            setNeedsLayout()
+#endif
+        }
     }
 
     private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {
