@@ -175,11 +175,26 @@ private struct AnimatedImageRenderer: View {
 
     var body: some View {
         content
-            .onAppear {
-                model.setPlayer(player ?? AnimatedImagePlayer(source: source))
-                model.player?.play()
-            }
+            .onAppear { install() }
             .onDisappear { model.player?.pause() }
+            // The view is reused when the image behind it changes – a new URL
+            // loaded into the same `LazyImage`, say – and without this it would
+            // keep playing the animation it was given first.
+            .onChange(of: identity) { _ in install() }
+    }
+
+    private func install() {
+        model.setPlayer(player ?? AnimatedImagePlayer(source: source))
+        model.player?.play()
+    }
+
+    /// What the renderer is playing, as something `onChange` can compare.
+    private var identity: ObjectIdentifier {
+        if let player {
+            ObjectIdentifier(player)
+        } else {
+            ObjectIdentifier(source)
+        }
     }
 
     @ViewBuilder
@@ -190,9 +205,16 @@ private struct AnimatedImageRenderer: View {
             } else {
                 Image(uiImage: image)
             }
+        } else if isResizable {
+            Color.clear.aspectRatio(aspectRatio, contentMode: contentMode)
         } else {
             Color.clear.frame(width: source.size.width, height: source.size.height)
         }
+    }
+
+    private var aspectRatio: CGFloat? {
+        guard source.size.width > 0, source.size.height > 0 else { return nil }
+        return source.size.width / source.size.height
     }
 }
 
@@ -203,6 +225,8 @@ private final class AnimatedImageModel: ObservableObject {
 
     func setPlayer(_ player: AnimatedImagePlayer) {
         guard self.player !== player else { return }
+        self.player?.pause()
+        self.player?.onFrame = nil
         self.player = player
         image = player.image
         player.onFrame = { [weak self] in self?.image = $0 }
