@@ -106,7 +106,6 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         let view = AnimatedImageView()
 #if os(macOS)
         view.imageScaling = contentMode == .fill ? .scaleProportionallyUpOrDown : .scaleProportionallyDown
-        view.animates = false // The player, not AppKit, drives the frames
 #else
         view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
         view.clipsToBounds = true

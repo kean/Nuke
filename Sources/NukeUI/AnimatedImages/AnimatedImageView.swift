@@ -102,6 +102,23 @@ public final class AnimatedImageView: _PlatformImageView {
     /// running one stops displaying `image` at all.
     public var isPlaying: Bool { player?.isPlaying ?? false }
 
+#if os(macOS)
+    // `NSImageView.animates` is on by default, and a multi-frame `NSImage`
+    // under it plays on AppKit's own timer: the poster frame would animate
+    // beside the player, and a view with `isPlaybackEnabled` off would animate
+    // a picture it is meant to be holding still.
+
+    override public init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        animates = false
+    }
+
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        animates = false
+    }
+#endif
+
     // MARK: Displaying Images
 
     /// Displays the image, playing it if the pipeline recognized it as animated.

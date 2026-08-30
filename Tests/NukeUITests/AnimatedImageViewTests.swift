@@ -180,6 +180,17 @@ struct AnimatedImageViewTests {
         // The frame the player already has is displayed immediately.
         #expect(view.image != nil)
     }
+
+#if os(macOS)
+    // MARK: AppKit
+
+    @Test func doesNotLetAppKitPlayTheImage() {
+        // `NSImageView.animates` is on by default and plays a multi-frame
+        // `NSImage` on a timer of its own – beside the player, and under a view
+        // that is meant to be holding a still.
+        #expect(view.animates == false)
+    }
+#endif
 }
 
 /// Puts a view in a window, which is what makes it start animating.
