@@ -650,13 +650,14 @@ struct AnimatedImagePlayerTests {
     }
 
     @Test func memoryWarningShrinksTheBuffer() async throws {
-        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8)
+        let pool = AnimatedImageFramePool()
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8, pool: pool)
         player.play()
         await player.buffer.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
         let bytesPerFrame = try #require(AnimatedImageTest.bytesPerFrame(of: player))
 
-        player.reduceMemoryUsage()
+        pool.reduceMemoryUsage()
 
         #expect(player.diagnostics.bufferCapacity == 2)
         #expect(player.diagnostics.bufferedFrameCount == 2)
@@ -664,11 +665,13 @@ struct AnimatedImagePlayerTests {
     }
 
     @Test func givesTheBufferBackOnceTheMemoryPressureHasPassed() async throws {
-        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8, memoryPressureGracePeriod: 0.01)
+        let pool = AnimatedImageFramePool()
+        pool.memoryPressureGracePeriod = 0.01
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 8, pool: pool)
         player.play()
         await player.buffer.waitUntilFull()
 
-        player.reduceMemoryUsage()
+        pool.reduceMemoryUsage()
         #expect(player.diagnostics.bufferCapacity == 2)
 
         // A memory warning arrives while the app is active, usually on the very

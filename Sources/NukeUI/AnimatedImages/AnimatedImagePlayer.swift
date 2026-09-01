@@ -86,17 +86,9 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     let buffer: AnimatedImageFrameBuffer
     private let clock: any AnimatedImageClock
-    private let memoryPressureGracePeriod: TimeInterval
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
     private var counters = Counters()
-    private var notificationObservers: [NotificationObserver] = []
-    private var bufferRestore: Task<Void, Never>?
-
-    /// How long a buffer stays shrunk after a memory warning: long enough for
-    /// the pressure to pass, short enough that an animation on screen all
-    /// session doesn't re-decode every frame for the rest of it.
-    static let defaultMemoryPressureGracePeriod: TimeInterval = 60
 
     /// Creates a player for the given image.
     public convenience init(source: AnimatedImageSource, options: Options = Options()) {
@@ -108,13 +100,11 @@ public final class AnimatedImagePlayer: ObservableObject {
         options: Options,
         clock: any AnimatedImageClock,
         pool: AnimatedImageFramePool = .shared,
-        decoder: (any AnimatedImageFrameDecoding)? = nil,
-        memoryPressureGracePeriod: TimeInterval = AnimatedImagePlayer.defaultMemoryPressureGracePeriod
+        decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
         self.source = source
         self.options = options
         self.clock = clock
-        self.memoryPressureGracePeriod = memoryPressureGracePeriod
         self.buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool, decoder: decoder)
 
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
@@ -129,12 +119,10 @@ public final class AnimatedImagePlayer: ObservableObject {
         // calls `play()` – but only the first frames.
         buffer.fillsWindow = false
         buffer.setCurrentIndex(currentFrameIndex)
-        registerForApplicationNotifications()
     }
 
-    // No `deinit`: the clock and the notification observers stop themselves
-    // when the player releases them, since a `deinit` on a main-actor class
-    // can't reach back into the actor.
+    // No `deinit`: the clock stops itself when the player releases it, since a
+    // `deinit` on a main-actor class can't reach back into the actor.
 
     // MARK: Playback
 
@@ -187,25 +175,6 @@ public final class AnimatedImagePlayer: ObservableObject {
     }
 
     // MARK: Memory
-
-    /// Shrinks the frame buffer to its minimum size, dropping the decoded
-    /// frames that don't fit.
-    ///
-    /// Called automatically when the system issues a memory warning. Playback
-    /// continues: the frames are decoded again as they are needed. The buffer
-    /// returns to its full size once the pressure has had time to pass.
-    public func reduceMemoryUsage() {
-        buffer.reduceCapacity(to: 2)
-        // A memory warning usually arrives while the app is active, so waiting
-        // for a trip to the background would keep an animation that is up all
-        // session re-decoding every frame for the rest of it.
-        bufferRestore?.cancel()
-        bufferRestore = Task { [weak self, memoryPressureGracePeriod] in
-            try? await Task.sleep(for: .seconds(memoryPressureGracePeriod))
-            guard !Task.isCancelled else { return }
-            self?.buffer.restoreCapacity()
-        }
-    }
 
     /// Whether the player keeps a full window of decoded frames. `true` by
     /// default.
@@ -393,46 +362,12 @@ public final class AnimatedImagePlayer: ObservableObject {
         return ticksPerSecond <= 60 ? ticksPerSecond : 0
     }
 
-    private func registerForApplicationNotifications() {
-#if os(iOS) || os(tvOS) || os(visionOS)
-        notificationObservers = [
-            NotificationObserver(name: UIApplication.didReceiveMemoryWarningNotification) { [weak self] in
-                self?.reduceMemoryUsage()
-            },
-            // Coming back to the foreground is the clearest signal that the
-            // memory pressure is over.
-            NotificationObserver(name: UIApplication.didBecomeActiveNotification) { [weak self] in
-                self?.bufferRestore?.cancel()
-                self?.buffer.restoreCapacity()
-            }
-        ]
-#endif
-    }
-
     /// The counters the player itself keeps; the rest come from the buffer.
     private struct Counters {
         var displayedFrameCount = 0
         var skippedFrameCount = 0
         var bufferMissCount = 0
         var playbackTime: TimeInterval = 0
-    }
-}
-
-/// A notification subscription that unsubscribes when it is released.
-///
-/// The player can't do it from its own `deinit`, which isn't isolated to the
-/// main actor and so can't so much as read the token.
-private final class NotificationObserver {
-    private let token: any NSObjectProtocol
-
-    init(name: Notification.Name, handler: @escaping @MainActor () -> Void) {
-        token = NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated(handler)
-        }
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(token)
     }
 }
 

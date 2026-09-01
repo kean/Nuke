@@ -108,17 +108,12 @@ enum AnimatedImageTest {
         loopCount: Int = 0,
         size: CGSize = CGSize(width: 8, height: 8),
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        memoryPressureGracePeriod: TimeInterval = AnimatedImagePlayer.defaultMemoryPressureGracePeriod
+        pool: AnimatedImageFramePool = .shared
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
         let data = Test.animatedGIF(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
-        let player = AnimatedImagePlayer(
-            source: source,
-            options: options,
-            clock: clock,
-            memoryPressureGracePeriod: memoryPressureGracePeriod
-        )
+        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool)
         return (player, clock)
     }
 

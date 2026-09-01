@@ -158,12 +158,11 @@ final class AnimatedImageFrameBuffer {
 
     /// The number of frames the buffer would hold if the pool had the memory
     /// to spare: every frame up to the player's budget, and only
-    /// ``idleCapacity`` while nobody is watching.
+    /// ``idleCapacity`` while nobody is watching or the system is short of
+    /// memory.
     var wantedFrameCount: Int {
-        var frames = fillsWindow ? frameCount : Self.idleCapacity
-        frames = min(frames, affordableFrameCount)
-        frames = min(frames, reducedCapacity ?? frames)
-        return max(Self.idleCapacity, min(frameCount, frames))
+        let frames = fillsWindow && !pool.isUnderMemoryPressure ? frameCount : Self.idleCapacity
+        return max(Self.idleCapacity, min(frameCount, min(frames, affordableFrameCount)))
     }
 
     /// The range of frame indexes the buffer is claiming, which may run past
@@ -198,10 +197,6 @@ final class AnimatedImageFrameBuffer {
 
     /// Called with the index of a frame as soon as it is decoded.
     var onFrame: ((Int) -> Void)?
-
-    /// The ceiling ``reduceCapacity(to:)`` puts on the window under memory
-    /// pressure, until ``restoreCapacity()`` takes it off.
-    private var reducedCapacity: Int?
 
     private let pool: AnimatedImageFramePool
     private let frameCount: Int
@@ -275,30 +270,6 @@ final class AnimatedImageFrameBuffer {
     func setCurrentIndex(_ index: Int, isSeeking: Bool = false) {
         currentIndex = index
         store.didUpdateWindow(of: self, isSeeking: isSeeking)
-    }
-
-    /// Shrinks the window, dropping the frames that no longer fit.
-    ///
-    /// Used to respond to memory pressure. The buffer refills to the new
-    /// capacity as playback continues.
-    func reduceCapacity(to newCapacity: Int) {
-        // Never below the two frames playback needs.
-        reducedCapacity = max(Self.idleCapacity, min(newCapacity, reducedCapacity ?? newCapacity))
-        // What it stops asking for goes back to the pool, which is the point.
-        pool.rebalance()
-        store.didUpdateWindow(of: self, isSeeking: false)
-    }
-
-    /// Takes the ceiling a memory warning put on the window back off, leaving
-    /// the pool to size it again.
-    ///
-    /// Without it a buffer shrunk once would re-decode every frame of every
-    /// loop for the life of the player.
-    func restoreCapacity() {
-        guard reducedCapacity != nil else { return }
-        reducedCapacity = nil
-        pool.rebalance()
-        store.scheduleDecodeIfNeeded()
     }
 
     /// `true` when the buffer is claiming the frame at the given index.

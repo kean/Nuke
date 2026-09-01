@@ -150,68 +150,22 @@ struct AnimatedImageFrameBufferTests {
         #expect(buffer.decodedFrameCount == 5)
     }
 
-    @Test func reduceCapacityDropsFrames() async throws {
-        let source = try makeSource(frameCount: 8)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
-        buffer.setCurrentIndex(0)
-        await buffer.waitUntilFull()
-        #expect(buffer.count == 8)
-
-        buffer.reduceCapacity(to: 2)
-
-        #expect(buffer.capacity == 2)
-        #expect(buffer.count == 2)
-        #expect(buffer.frame(at: 0) != nil)
-        #expect(buffer.frame(at: 1) != nil)
-        #expect(buffer.frame(at: 2) == nil)
-    }
-
-    @Test func restoreCapacityUndoesAReduction() async throws {
-        // A buffer shrunk by one memory warning would otherwise stay shrunk for
-        // the life of the player, re-decoding every frame of every loop.
-        let source = try makeSource(frameCount: 8)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
-        buffer.setCurrentIndex(0)
-        await buffer.waitUntilFull()
-        buffer.reduceCapacity(to: 2)
-        #expect(buffer.count == 2)
-
-        buffer.restoreCapacity()
-        await buffer.waitUntilFull()
-
-        #expect(buffer.capacity == 8)
-        #expect(buffer.count == 8)
-    }
-
-    @Test func restoreCapacityNeverGrowsPastTheAnimation() async throws {
-        let source = try makeSource(frameCount: 20, size: CGSize(width: 32, height: 32))
-        var options = AnimatedImagePlayer.Options()
-        options.maxBufferSize = 5 * source.bytesPerFrame
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
-
-        buffer.restoreCapacity()
-
-        #expect(buffer.capacity == 5)
-    }
-
-    @Test func reduceCapacityNeverGrowsTheBuffer() async throws {
-        let source = try makeSource(frameCount: 4)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
-
-        buffer.reduceCapacity(to: 100)
-
-        #expect(buffer.capacity == 4)
-    }
-
-    @Test func reduceCapacityNeverGoesBelowTwoFrames() throws {
+    @Test func memoryPressureDropsFrames() async throws {
         // Playback needs the frame on screen and the one being decoded, however
         // hard the system is asking for memory back.
         let source = try makeSource(frameCount: 8)
         let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
+        buffer.setCurrentIndex(0)
+        await buffer.waitUntilFull()
+        #expect(buffer.count == 8)
 
-        buffer.reduceCapacity(to: 0)
+        pool.reduceMemoryUsage()
 
         #expect(buffer.capacity == AnimatedImageFrameBuffer.idleCapacity)
+        #expect(buffer.count == 2)
+        #expect(buffer.frame(at: 0) != nil)
+        #expect(buffer.frame(at: 1) != nil)
+        #expect(buffer.frame(at: 2) == nil)
     }
 
     @Test func removeAllFramesClearsTheBuffer() async throws {

@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
 /// The memory every animation on screen shares for its decoded frames.
 ///
 /// ``AnimatedImagePlayer/Options/maxBufferSize`` is per player, and a screen
@@ -30,6 +34,9 @@ import Foundation
 /// frames, so a hundred animations at once will exceed any limit. And the pool
 /// bounds the decoded frames, not the images the pipeline has cached, which is
 /// ``ImageCache``.
+///
+/// The pool is also what answers a memory warning, for every animation at once
+/// – see ``reduceMemoryUsage()``.
 @MainActor
 public final class AnimatedImageFramePool {
     /// The pool every player uses.
@@ -89,7 +96,71 @@ public final class AnimatedImageFramePool {
     /// bytes. ``defaultCostLimit`` by default.
     public init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit) {
         self.costLimit = costLimit
+        registerForApplicationNotifications()
     }
+
+    // No `deinit`: the pool every player uses lives for the process, so the
+    // notification subscriptions it takes are never worth taking back.
+
+    // MARK: Memory Pressure
+
+    /// Holds every animation at the two frames playback needs, dropping the
+    /// decoded frames that no longer fit.
+    ///
+    /// Called automatically on a memory warning. Playback continues: the frames
+    /// are decoded again as they are needed, and the windows go back to the
+    /// size the pool sized them once the pressure has had time to pass.
+    public func reduceMemoryUsage() {
+        setUnderMemoryPressure(true)
+        // A memory warning arrives while the app is active, usually on the very
+        // screen the animation is on. Waiting for a trip to the background
+        // would keep an animation that is up all session re-decoding every
+        // frame for the rest of it.
+        restore?.cancel()
+        restore = Task { [weak self, memoryPressureGracePeriod] in
+            try? await Task.sleep(for: .seconds(memoryPressureGracePeriod))
+            guard !Task.isCancelled else { return }
+            self?.setUnderMemoryPressure(false)
+        }
+    }
+
+    /// `true` while every animation is held at its two-frame floor.
+    private(set) var isUnderMemoryPressure = false
+
+    /// How long the animations stay shrunk after a memory warning: long enough
+    /// for the pressure to pass, short enough that an animation on screen all
+    /// session doesn't re-decode every frame for the rest of it. The tests
+    /// shorten it.
+    var memoryPressureGracePeriod: TimeInterval = 60
+
+    private var restore: Task<Void, Never>?
+
+    private func setUnderMemoryPressure(_ isUnderPressure: Bool) {
+        guard isUnderMemoryPressure != isUnderPressure else { return }
+        isUnderMemoryPressure = isUnderPressure
+        // Every store is handed a new share, which is what drops the frames
+        // that no longer fit and starts refilling when the ceiling comes off.
+        rebalance()
+    }
+
+    private func registerForApplicationNotifications() {
+#if os(iOS) || os(tvOS) || os(visionOS)
+        let center = NotificationCenter.default
+        center.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reduceMemoryUsage() }
+        }
+        // Coming back to the foreground is the clearest signal that the memory
+        // pressure is over.
+        center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.restore?.cancel()
+                self?.setUnderMemoryPressure(false)
+            }
+        }
+#endif
+    }
+
+    // MARK: Stores
 
     /// The frames, one set per animation and size. Held strongly so that they
     /// outlive the players; each one holds its animation weakly, which keeps

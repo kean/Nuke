@@ -138,22 +138,34 @@ struct AnimatedImageFramePoolTests {
         #expect(pool.totalCost <= pool.costLimit)
     }
 
-    @Test func aMemoryWarningLeavesTheBudgetToThePlayersThatKeptTheirFrames() throws {
-        // Only the player that was told to give its frames back does; the pool
-        // hands what it gave up to the one that wasn't.
+    @Test func aMemoryWarningHoldsEveryAnimationAtTheFloor() throws {
+        // One warning, one answer: the pool is what divides the budget, so it
+        // is what gives it back rather than every player separately.
         let pool = makePool(frames: 12)
         let first = try makeBuffer(frameCount: 20, pool: pool)
         let second = try makeBuffer(frameCount: 20, pool: pool)
+        #expect(first.capacity == 6)
 
-        first.reduceCapacity(to: 2)
+        pool.reduceMemoryUsage()
 
         #expect(first.capacity == 2)
-        #expect(second.capacity == 10)
+        #expect(second.capacity == 2)
+    }
 
-        first.restoreCapacity()
+    @Test func givesTheBudgetBackOnceTheMemoryPressureHasPassed() async throws {
+        // A buffer shrunk by one memory warning would otherwise stay shrunk for
+        // the life of the player, re-decoding every frame of every loop.
+        let pool = makePool(frames: 12)
+        pool.memoryPressureGracePeriod = 0.01
+        let buffer = try makeBuffer(frameCount: 20, pool: pool)
 
-        #expect(first.capacity == 6)
-        #expect(second.capacity == 6)
+        pool.reduceMemoryUsage()
+        #expect(buffer.capacity == 2)
+
+        for _ in 0..<200 where buffer.capacity == 2 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(buffer.capacity == 12)
     }
 
     // MARK: Diagnostics

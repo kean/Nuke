@@ -579,9 +579,9 @@ private struct DemoAnimationTransport: View {
                 .buttonStyle(.borderedProminent)
 
                 Button {
-                    // The same call the player makes for itself when the system
+                    // The same call the pool makes for itself when the system
                     // issues a memory warning.
-                    player.reduceMemoryUsage()
+                    AnimatedImageFramePool.shared.reduceMemoryUsage()
                 } label: {
                     Label("Free Memory", systemImage: "memorychip")
                         .frame(maxWidth: .infinity)
@@ -624,9 +624,7 @@ private struct DemoWallTransport: View {
                 .buttonStyle(.borderedProminent)
 
                 Button {
-                    for player in players {
-                        player.reduceMemoryUsage()
-                    }
+                    AnimatedImageFramePool.shared.reduceMemoryUsage()
                 } label: {
                     Label("Free Memory", systemImage: "memorychip")
                         .frame(maxWidth: .infinity)
