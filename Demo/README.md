@@ -32,6 +32,7 @@ shows, with the API it is about and the details worth knowing.
 | **Image Processing** | The built-in processors and two ways to write your own |
 | **Image Formats** | JPEG, PNG, WebP, animated GIF, and MP4 via `ImageDecoders.Video` |
 | **Animated Images** | GIF, APNG, WebP, and HEIC playback with live diagnostics: the frame buffer, decode times, and dropped frames |
+| **Frame Pool** | A wall of animations sharing one memory budget, and what happens when they don't all fit |
 | **Progressive JPEG** | Progressive decoding, with a throttled data loader that makes the scans visible |
 | **Pipeline Delegate** | `willLoadData(for:urlRequest:pipeline:)` and a live log of the pipeline events |
 

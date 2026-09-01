@@ -40,16 +40,6 @@ extension View {
         modifier(DemoInfoModifier(info: info))
     }
 
-    /// Adds the question mark button without the sheet, for a screen that keeps
-    /// a sheet of its own on display and has to present ``DemoInfoSheet`` from
-    /// inside it: iOS presents one sheet per screen and drops the second.
-    func demoInfoButton(isPresented: Binding<Bool>) -> some View {
-        toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                DemoInfoButton(isPresented: isPresented)
-            }
-        }
-    }
 }
 
 private struct DemoInfoModifier: ViewModifier {
@@ -59,27 +49,23 @@ private struct DemoInfoModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .demoInfoButton(isPresented: $isPresented)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresented = true
+                    } label: {
+                        Image(systemName: "questionmark")
+                    }
+                    .accessibilityLabel("About This Screen")
+                }
+            }
             .sheet(isPresented: $isPresented) {
                 DemoInfoSheet(info: info)
             }
     }
 }
 
-private struct DemoInfoButton: View {
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        Button {
-            isPresented = true
-        } label: {
-            Image(systemName: "questionmark")
-        }
-        .accessibilityLabel("About This Screen")
-    }
-}
-
-struct DemoInfoSheet: View {
+private struct DemoInfoSheet: View {
     let info: DemoInfo
 
     @Environment(\.dismiss) private var dismiss
@@ -172,6 +158,24 @@ struct DemoExample<Content: View>: View {
             }
             content
         }
+    }
+}
+
+/// A number or a measurement, in the monospaced style every figure in the demo
+/// is written in.
+struct DemoMonoLabel: View {
+    private let text: String
+    private let tint: Color?
+
+    init(_ text: String, tint: Color? = nil) {
+        self.text = text
+        self.tint = tint
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(.caption, design: .monospaced))
+            .foregroundStyle(tint ?? .secondary)
     }
 }
 
