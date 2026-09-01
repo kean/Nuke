@@ -94,6 +94,29 @@ struct AnimatedImageSourceTests {
         #expect(source.loopCount == 3)
     }
 
+    @Test func readsAGIFWithNoLoopExtensionAsPlayOnce() throws {
+        // A GIF stores its loop count in the Netscape application extension,
+        // and a GIF without that block plays once in every browser. Treating
+        // the missing count as "forever" is the one place the file and the
+        // player disagree.
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(loopCount: nil)))
+        #expect(source.loopCount == 1)
+    }
+
+    @Test func defaultsTheLoopCountPerFormat() {
+        // Image I/O fills the count in for a GIF written without the extension
+        // on some releases, so the fallback is asserted directly: "play once"
+        // is a GIF rule, and every other format keeps looping forever.
+        #expect(AnimatedImageFormat.gif.loopCount(in: [kCGImagePropertyGIFDictionary: [:] as [CFString: Any]]) == 1)
+        #expect(AnimatedImageFormat.png.loopCount(in: [kCGImagePropertyPNGDictionary: [:] as [CFString: Any]]) == 0)
+        #expect(AnimatedImageFormat.webp.loopCount(in: [kCGImagePropertyWebPDictionary: [:] as [CFString: Any]]) == 0)
+        // A declared count is read whatever the format, `0` – forever –
+        // included.
+        #expect(AnimatedImageFormat.gif.loopCount(in: [
+            kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0] as [CFString: Any]
+        ]) == 0)
+    }
+
     @Test func readsPerFrameDelays() throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 3, delays: [0.02, 0.5, 0.2])))
         #expect(source.delays == [0.02, 0.5, 0.2])

@@ -19,10 +19,13 @@ extension Test {
     ///
     /// - parameter delays: The delay of each frame, in seconds. GIF stores
     /// delays in hundredths of a second, so use multiples of `0.01`.
+    /// - parameter loopCount: The loop count to write, or `nil` to write none:
+    /// a GIF with no loop count gets no Netscape application extension at all,
+    /// which is the "play once" case.
     static func animatedGIF(
         frameCount: Int = 4,
         delays: [TimeInterval]? = nil,
-        loopCount: Int = 0,
+        loopCount: Int? = 0,
         size: CGSize = CGSize(width: 8, height: 8)
     ) -> Data {
         makeAnimation(
@@ -125,7 +128,7 @@ extension Test {
         size: CGSize,
         containerKey: CFString,
         loopCountKey: CFString,
-        loopCount: Int,
+        loopCount: Int?,
         delayKeys: [CFString]
     ) -> Data? {
         let data = NSMutableData()
@@ -137,9 +140,11 @@ extension Test {
         ) else {
             return nil // No encoder for this format on this platform
         }
-        CGImageDestinationSetProperties(destination, [
-            containerKey: [loopCountKey: loopCount]
-        ] as CFDictionary)
+        if let loopCount {
+            CGImageDestinationSetProperties(destination, [
+                containerKey: [loopCountKey: loopCount]
+            ] as CFDictionary)
+        }
         for index in 0..<frameCount {
             var frameProperties: [CFString: Any] = [:]
             if !delayKeys.isEmpty {

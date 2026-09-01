@@ -50,6 +50,10 @@ public final class AnimatedImageSource: Sendable {
 
     /// The number of times the animation repeats. `0` means "forever", which is
     /// what the vast majority of animated images specify.
+    ///
+    /// A GIF with no Netscape application extension declares no loop count at
+    /// all, and this is `1` for it: the file asks to be played once, which is
+    /// how browsers read it.
     public let loopCount: Int
 
     /// The size of the animation canvas, in pixels.
@@ -210,9 +214,19 @@ enum AnimatedImageFormat: CaseIterable {
     /// - parameter properties: The container properties of the image source.
     func loopCount(in properties: [CFString: Any]) -> Int {
         guard let container = properties[dictionaryKey] as? [CFString: Any] else {
-            return 0
+            return defaultLoopCount
         }
-        return container[Self.loopCountKey] as? Int ?? 0
+        return container[Self.loopCountKey] as? Int ?? defaultLoopCount
+    }
+
+    /// The number of loops to assume for a container that declares none.
+    ///
+    /// A GIF stores its loop count in the Netscape application extension, and
+    /// a GIF without that block asks to be played once – the semantics every
+    /// browser follows. Every other format either always declares a count or
+    /// has nowhere to put one, and there "forever" is the right guess.
+    private var defaultLoopCount: Int {
+        self == .gif ? 1 : 0
     }
 
     private func properties(in source: CGImageSource, at index: Int) -> [CFString: Any]? {
