@@ -100,7 +100,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// Creates a player for the given image.
     public convenience init(source: AnimatedImageSource, options: Options = Options()) {
-        self.init(source: source, options: options, clock: makeAnimatedImageClock())
+        self.init(source: source, options: options, clock: AnimatedImageClockDriver.shared.makeClock())
     }
 
     init(

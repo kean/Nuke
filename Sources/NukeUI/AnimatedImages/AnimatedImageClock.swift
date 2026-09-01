@@ -37,12 +37,6 @@ protocol AnimatedImageClock: AnyObject {
     var preferredFrameRate: Double { get set }
 }
 
-/// Returns the clock the players use unless a test replaces it.
-@MainActor
-func makeAnimatedImageClock() -> any AnimatedImageClock {
-    AnimatedImageClockDriver.shared.makeClock()
-}
-
 /// Returns the one clock the driver is driven by.
 @MainActor
 func makePlatformAnimatedImageClock() -> any AnimatedImageClock {
@@ -150,6 +144,10 @@ final class SharedAnimatedImageClock: AnimatedImageClock {
     // on its next tick, which a `deinit` off the main actor could not do anyway.
 }
 
+// The platform clocks below are created once, by
+// `AnimatedImageClockDriver.shared`, and live for the process. Each one is
+// retained by the run-loop source it drives, a cycle nothing needs to break.
+
 #if os(iOS) || os(tvOS) || os(visionOS)
 
 /// A clock driven by `CADisplayLink`, synchronized with the display refresh.
@@ -179,25 +177,12 @@ final class DisplayLinkClock: AnimatedImageClock {
     private var lastTimestamp: CFTimeInterval = 0
 
     init() {
-        // A display link retains its target until it is invalidated, so the
-        // target is a proxy rather than the clock itself.
-        let proxy = DisplayLinkProxy()
-        link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.onDisplayLink(_:)))
-        proxy.clock = self
+        link = CADisplayLink(target: self, selector: #selector(handle(_:)))
         link.isPaused = true
         link.add(to: .main, forMode: .common)
     }
 
-    deinit {
-        // A display link must be invalidated on the thread it was added to. A
-        // clock released anywhere else leaves the link to the proxy, which
-        // stops it on its next tick.
-        if Thread.isMainThread {
-            MainActor.assumeIsolated { link.invalidate() }
-        }
-    }
-
-    fileprivate func handle(_ link: CADisplayLink) {
+    @objc private func handle(_ link: CADisplayLink) {
         // `timestamp` is when the previous frame was displayed, so consecutive
         // values measure the time that actually passed, hitches included.
         let delta: TimeInterval
@@ -222,20 +207,6 @@ final class DisplayLinkClock: AnimatedImageClock {
             maximum: max(preferred, 120),
             preferred: preferred
         )
-    }
-}
-
-/// Breaks the retain cycle between the display link and the clock: the run
-/// loop retains the link, and the link retains its target until invalidated.
-@MainActor
-private final class DisplayLinkProxy {
-    weak var clock: DisplayLinkClock?
-
-    @objc func onDisplayLink(_ link: CADisplayLink) {
-        guard let clock else {
-            return link.invalidate() // The clock is gone: stop the run loop source
-        }
-        clock.handle(link)
     }
 }
 
@@ -274,21 +245,10 @@ final class TimerClock: AnimatedImageClock {
 
     init() {}
 
-    deinit {
-        // See `DisplayLinkClock.deinit`. A timer released off the main thread
-        // is stopped by its own block on the next fire.
-        if Thread.isMainThread {
-            MainActor.assumeIsolated { timer?.invalidate() }
-        }
-    }
-
     private func start() {
         let rate = preferredFrameRate >= 1 ? min(preferredFrameRate, 60) : 60
         lastTime = monotonicTime()
-        let timer = Timer(timeInterval: 1 / rate, repeats: true) { [weak self] timer in
-            guard let self else {
-                return timer.invalidate() // The clock is gone
-            }
+        let timer = Timer(timeInterval: 1 / rate, repeats: true) { _ in
             MainActor.assumeIsolated { self.tick() }
         }
         // `.common` keeps the animation running while a scroll view is tracked.
