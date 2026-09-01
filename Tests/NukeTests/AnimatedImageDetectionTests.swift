@@ -111,6 +111,12 @@ struct AnimatedImageDetectionTests {
         #expect(AssetType.isAnimated(data, type: AssetType(data)))
     }
 
+    @Test func detectsAnimatedAVIFFixture() {
+        let data = Test.data(name: "animated", extension: "avif")
+        #expect(AssetType(data) == .avif)
+        #expect(AssetType.isAnimated(data, type: .avif))
+    }
+
     @Test func doesNotDetectStillHEICFixture() {
         let data = Test.data(name: "img_751", extension: "heic")
         #expect(AssetType(data) == .heic)

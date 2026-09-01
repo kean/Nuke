@@ -462,6 +462,17 @@ struct ImageDecoderTests {
         #expect(container.data == data)
     }
 
+    @Test func attachesDataToAnimatedAVIF() throws {
+        let data = Test.data(name: "animated", extension: "avif")
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .avif)
+        #expect(container.data == data)
+        #expect(container.animation?.frameCount == 3)
+    }
+
     @Test func doesNotAttachDataToStaticWebP() throws {
         let decoder = ImageDecoders.Default()
 

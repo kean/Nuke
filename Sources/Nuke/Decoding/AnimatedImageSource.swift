@@ -6,7 +6,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 
-/// An animated image – a GIF, an APNG, an animated WebP, or an animated HEIC –
+/// An animated image – a GIF, an APNG, an animated WebP, HEIC, or AVIF –
 /// described by the metadata parsed from its encoded data.
 ///
 /// The type holds no decoded frames. Creating it reads the frame count, the
@@ -152,7 +152,7 @@ public final class AnimatedImageSource: Sendable {
 /// dictionary for every format, with different keys inside, so there is no
 /// generic way to ask for them.
 enum AnimatedImageFormat: CaseIterable {
-    case gif, png, webp, heics
+    case gif, png, webp, heics, avis
 
     /// Identifies the format by which container dictionary the image publishes.
     ///
@@ -175,6 +175,7 @@ enum AnimatedImageFormat: CaseIterable {
         case .png: kCGImagePropertyPNGDictionary
         case .webp: kCGImagePropertyWebPDictionary
         case .heics: kCGImagePropertyHEICSDictionary
+        case .avis: kCGImagePropertyAVISDictionary
         }
     }
 
@@ -184,6 +185,7 @@ enum AnimatedImageFormat: CaseIterable {
         case .png: kCGImagePropertyAPNGUnclampedDelayTime
         case .webp: kCGImagePropertyWebPUnclampedDelayTime
         case .heics: kCGImagePropertyHEICSUnclampedDelayTime
+        case .avis: AnimatedImageFormat.unclampedDelayTime
         }
     }
 
@@ -193,6 +195,7 @@ enum AnimatedImageFormat: CaseIterable {
         case .png: kCGImagePropertyAPNGDelayTime
         case .webp: kCGImagePropertyWebPDelayTime
         case .heics: kCGImagePropertyHEICSDelayTime
+        case .avis: AnimatedImageFormat.delayTime
         }
     }
 
@@ -202,8 +205,22 @@ enum AnimatedImageFormat: CaseIterable {
         case .png: kCGImagePropertyAPNGLoopCount
         case .webp: kCGImagePropertyWebPLoopCount
         case .heics: kCGImagePropertyHEICSLoopCount
+        case .avis: AnimatedImageFormat.loopCount
         }
     }
+
+    /// The keys inside the `{AVIS}` dictionary.
+    ///
+    /// Image I/O publishes `kCGImagePropertyAVISDictionary` and no constants
+    /// for the keys inside it. These are the strings it files them under – the
+    /// same ones `{GIF}`, `{PNG}`, `{WebP}`, and `{HEICS}` use. Getting them
+    /// wrong is silent, not fatal: every frame falls back to
+    /// ``AnimatedImageSource/defaultDelay``.
+    ///
+    /// - note: Computed rather than stored: `CFString` isn't `Sendable`.
+    private static var delayTime: CFString { "DelayTime" as CFString }
+    private static var unclampedDelayTime: CFString { "UnclampedDelayTime" as CFString }
+    private static var loopCount: CFString { "LoopCount" as CFString }
 
     /// Returns the display duration of the frame at the given index, corrected
     /// the way ``AnimatedImageSource/delays`` describes.

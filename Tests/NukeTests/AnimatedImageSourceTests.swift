@@ -65,6 +65,26 @@ struct AnimatedImageSourceTests {
         #expect(source.size == CGSize(width: 8, height: 8))
     }
 
+    @Test func parsesAnimatedAVIF() throws {
+        // Image I/O decodes `public.avis` but only encodes the still flavor,
+        // so the fixture is a file: three 8×8 frames at 0.25 s, 0.05 s, and
+        // 0.2 s.
+        let source = try #require(AnimatedImageSource(data: Test.data(name: "animated", extension: "avif")))
+
+        #expect(source.frameCount == 3)
+        #expect(source.type == .avif)
+        // Read from the `{AVIS}` container, not defaulted: the format used to
+        // be missing from `AnimatedImageFormat` altogether, which left every
+        // frame on the 0.1 s fallback. The middle frame is the one that shows
+        // it – Image I/O clamps it to exactly the fallback and files the
+        // value the file asks for under the unclamped key.
+        #expect(source.delays == [0.25, 0.05, 0.2])
+        #expect(abs(source.duration - 0.5) < 0.001)
+        #expect(source.size == CGSize(width: 8, height: 8))
+        // The loop count is not asserted: an AVIF sequence has nowhere to put
+        // one, so Image I/O reports `0` – the same value the fallback gives.
+    }
+
     @Test func parsesTheFixture() throws {
         let source = try #require(AnimatedImageSource(data: Test.data(name: "cat", extension: "gif")))
 

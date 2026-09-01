@@ -51,9 +51,9 @@ public struct ImageContainer: Sendable {
     /// attach it to the image.
     ///
     /// The default decoder (``ImageDecoders/Default``) attaches the data of the
-    /// images it recognizes as animated – GIF, APNG, animated WebP, and
-    /// animated HEIC – because Image I/O decodes only the first frame of an
-    /// animation. `NukeUI` plays them; so can a rendering engine of your
+    /// images it recognizes as animated – GIF, APNG, animated WebP, and HEIC
+    /// and AVIF sequences – because Image I/O decodes only the first frame of
+    /// an animation. `NukeUI` plays them; so can a rendering engine of your
     /// choice. The data is not attached to a thumbnail request. The
     /// recognition is a header sniff, so a single-frame GIF gets its data too;
     /// ``animation`` is the parsed answer.

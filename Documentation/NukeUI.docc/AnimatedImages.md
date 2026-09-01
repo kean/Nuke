@@ -1,6 +1,6 @@
 # Animated Images
 
-Play GIF, APNG, animated WebP, and animated HEIC.
+Play GIF, APNG, animated WebP, and HEIC and AVIF sequences.
 
 ## Overview
 
