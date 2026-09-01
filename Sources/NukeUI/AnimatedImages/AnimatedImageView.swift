@@ -160,22 +160,41 @@ public final class AnimatedImageView: _PlatformImageView {
     /// running one stops displaying `image` at all.
     public var isPlaying: Bool { player?.isPlaying ?? false }
 
-#if os(macOS)
-    // `NSImageView.animates` is on by default, and a multi-frame `NSImage`
-    // under it plays on AppKit's own timer: the poster frame would animate
-    // beside the player, and a view with `isPlaybackEnabled` off would animate
-    // a picture it is meant to be holding still.
+    /// Creates a view with a zero frame.
+    ///
+    /// Spelled out because a class that overrides the designated initializers
+    /// inherits no `init()` from the platform image view.
+    public convenience init() {
+        self.init(frame: .zero)
+    }
 
-    override public init(frame frameRect: NSRect) {
+    override public init(frame frameRect: CGRect) {
         super.init(frame: frameRect)
-        animates = false
+        commonInit()
     }
 
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
-        animates = false
+        commonInit()
     }
 
+    private func commonInit() {
+#if os(macOS)
+        // `NSImageView.animates` is on by default, and a multi-frame `NSImage`
+        // under it plays on AppKit's own timer: the poster frame would animate
+        // beside the player, and a view with `isPlaybackEnabled` off would
+        // animate a picture it is meant to be holding still.
+        animates = false
+#else
+        // Smart Invert reverses the colors of the interface and leaves the
+        // pictures in it alone – but only a view that says it is showing one is
+        // left alone, and nothing infers it. Without this every frame is played
+        // with its colors inverted.
+        accessibilityIgnoresInvertColors = true
+#endif
+    }
+
+#if os(macOS)
     /// Draws the frames covering the view, which `NSImageView` cannot be asked
     /// to do: ``imageScaling`` has no aspect-fill mode. What hangs over the
     /// edge is taken care of by the default clipping.

@@ -440,6 +440,17 @@ struct AnimatedImageViewTests {
         #expect(frames > before)
     }
 
+#if !os(macOS)
+    // MARK: UIKit
+
+    @Test func doesNotLetSmartInvertReverseTheFrames() {
+        // Smart Invert leaves the pictures in an interface alone only where a
+        // view says it is showing one, and every frame is a picture.
+        #expect(view.accessibilityIgnoresInvertColors)
+        #expect(AnimatedImageView(frame: CGRect(x: 0, y: 0, width: 10, height: 10)).accessibilityIgnoresInvertColors)
+    }
+#endif
+
 #if os(macOS)
     // MARK: AppKit
 
