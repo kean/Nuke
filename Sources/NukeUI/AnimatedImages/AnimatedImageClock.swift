@@ -45,11 +45,129 @@ protocol AnimatedImageClock: AnyObject {
 /// Returns the clock the players use unless a test replaces it.
 @MainActor
 func makeAnimatedImageClock() -> any AnimatedImageClock {
+    AnimatedImageClockDriver.shared.makeClock()
+}
+
+/// Returns the one clock the driver is actually driven by.
+@MainActor
+func makePlatformAnimatedImageClock() -> any AnimatedImageClock {
 #if os(iOS) || os(tvOS) || os(visionOS)
     DisplayLinkClock()
 #else
     TimerClock()
 #endif
+}
+
+/// The one heartbeat every animation on screen is driven by.
+///
+/// A display link is not free: it is a run-loop source, a retained target, and
+/// a frame-rate range the system reconciles with every other link in the app.
+/// A screen of animations used to mean one of them per animation, all firing on
+/// the same vsync to do the same thing. This is one of them, and the players
+/// take subscriptions to it.
+///
+/// It runs while any subscription is running and asks for the rate of the
+/// fastest of them, so an animation nobody is watching costs nothing and a slow
+/// one doesn't hold a fast one back.
+@MainActor
+final class AnimatedImageClockDriver {
+    /// The driver every player subscribes to.
+    static let shared = AnimatedImageClockDriver()
+
+    private let source: any AnimatedImageClock
+    private var subscriptions: [Subscription] = []
+
+    private struct Subscription {
+        weak var clock: SharedAnimatedImageClock?
+    }
+
+    /// - parameter source: The clock to drive the subscriptions from. The tests
+    /// pass one of their own; everything else takes the platform's.
+    init(source: any AnimatedImageClock = makePlatformAnimatedImageClock()) {
+        self.source = source
+        source.onTick = { [weak self] in self?.tick($0) }
+    }
+
+    /// Returns a clock of a player's own, driven by this one.
+    func makeClock() -> SharedAnimatedImageClock {
+        let clock = SharedAnimatedImageClock(driver: self)
+        subscriptions.append(Subscription(clock: clock))
+        return clock
+    }
+
+    /// Works out whether the clock should be running, and how fast, from the
+    /// subscriptions that are.
+    func update() {
+        subscriptions.removeAll { $0.clock == nil }
+        let running = subscriptions.compactMap(\.clock).filter { !$0.isPaused }
+        let rates = running.map(\.preferredFrameRate)
+        // The fastest animation on screen sets the rate: run slower than one of
+        // them asks for and its frames are passed over. Asking for nothing in
+        // particular is spelled `0` – it is what a display link takes to mean
+        // "whatever the display does" – so it beats any rate rather than losing
+        // to all of them.
+        source.preferredFrameRate = rates.contains(0) ? 0 : (rates.max() ?? 0)
+        source.isPaused = running.isEmpty
+    }
+
+    /// The number of clocks the driver is ticking, for the tests.
+    var runningClockCount: Int {
+        subscriptions.compactMap(\.clock).count { !$0.isPaused }
+    }
+
+    private func tick(_ delta: TimeInterval) {
+        var hasReleasedClocks = false
+        for subscription in subscriptions {
+            guard let clock = subscription.clock else {
+                hasReleasedClocks = true
+                continue
+            }
+            guard !clock.isPaused else { continue }
+            clock.onTick?(delta)
+        }
+        // A player released while it was playing leaves the driver running for
+        // nobody until something notices, and a tick is the first thing to.
+        if hasReleasedClocks {
+            update()
+        }
+    }
+}
+
+/// One player's share of ``AnimatedImageClockDriver``.
+///
+/// It holds the state a player needs of its own – whether it is running and how
+/// fast it would like to – over a clock the whole app shares.
+@MainActor
+final class SharedAnimatedImageClock: AnimatedImageClock {
+    var onTick: ((TimeInterval) -> Void)?
+
+    var isPaused = true {
+        didSet {
+            guard isPaused != oldValue else { return }
+            driver?.update()
+        }
+    }
+
+    var preferredFrameRate: Double = 0 {
+        didSet {
+            guard preferredFrameRate != oldValue, !isPaused else { return }
+            driver?.update()
+        }
+    }
+
+    private weak var driver: AnimatedImageClockDriver?
+
+    init(driver: AnimatedImageClockDriver) {
+        self.driver = driver
+    }
+
+    // No `deinit`: the driver holds its subscriptions weakly and drops this one
+    // on its next tick, which a `deinit` off the main actor could not do anyway.
+
+    func invalidate() {
+        onTick = nil
+        isPaused = true
+    }
 }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
