@@ -138,25 +138,41 @@ extension CGImage {
     }
 }
 
-/// A bounded, sliding window of decoded frames.
+/// One player's sliding window over the frames of an animation.
 ///
-/// Decoding every frame of an animation up front is the fastest way to play it
-/// and the fastest way to run out of memory: a 1000×1000 animation with 60
-/// frames is 240 MB of bitmaps. The buffer holds a window of frames starting at
-/// the one being displayed, refills it in playback order as the window moves,
-/// and drops what has fallen behind.
+/// Decoding every frame up front is the fastest way to play an animation and
+/// the fastest way to run out of memory: a 1000×1000 animation with 60 frames
+/// is 240 MB of bitmaps. So a buffer covers a window of frames starting at the
+/// one being displayed, and the frames outside it are decoded as the window
+/// reaches them.
 ///
-/// How large the window is isn't the buffer's to decide. It says what it could
-/// use – ``demand`` – and the ``AnimatedImageFramePool`` it draws from answers
-/// with a share of the memory every animation on screen is sharing, which is
-/// what keeps a screen full of animations from costing the sum of their
-/// budgets.
+/// The frames themselves belong to an ``AnimatedImageFrameStore``, which every
+/// player of the same animation at the same size shares: the buffer is a
+/// playhead and a claim on a range around it, not a private pile of bitmaps.
+/// Twenty views of one sticker are twenty buffers, one store, one decoder, and
+/// one animation's worth of memory.
 ///
-/// When the whole animation fits in the share the window covers every frame,
+/// How large the window is isn't the buffer's to decide either. It says how
+/// many frames it could use – ``wantedFrameCount`` – its store adds that up
+/// with what every other player of the same animation is asking for, and the
+/// ``AnimatedImageFramePool`` answers with a share of the memory every
+/// animation on screen is sharing.
+///
+/// When the whole animation fits in that share the window covers every frame,
 /// nothing is ever evicted, and each frame is decoded exactly once no matter
-/// how long the animation plays.
+/// how long the animation plays or how many views are playing it.
 @MainActor
 final class AnimatedImageFrameBuffer {
+    /// The animation being played.
+    ///
+    /// Held strongly: it is what keeps the store's frames from being swept, and
+    /// what the store builds its decoder out of.
+    let source: AnimatedImageSource
+
+    /// The frames of this animation at this size, shared with every other
+    /// player showing it.
+    let store: AnimatedImageFrameStore
+
     /// The number of frames the buffer is allowed to hold.
     ///
     /// Two is the floor: with one, the next frame can only start decoding after
@@ -164,26 +180,30 @@ final class AnimatedImageFrameBuffer {
     /// An animation whose frames are so large that two of them exceed the share
     /// is over it either way.
     var capacity: Int {
-        let affordable = bytesPerFrame > 0 ? allotment / bytesPerFrame : frameCount
-        let capacity = min(frameCount, max(Self.idleCapacity, affordable))
-        return min(capacity, reducedCapacity ?? capacity)
+        max(Self.idleCapacity, min(store.windowLength, wantedFrameCount))
     }
 
-    /// The memory the buffer would use if the pool had it to spare: enough for
-    /// every frame of the animation, up to the budget the player was created
-    /// with, and only ``idleCapacity`` frames while nobody is watching.
-    ///
-    /// A byte count rather than a frame count because that is what actually
-    /// matters: 60 thumbnails and 60 full-screen frames are the same number of
-    /// frames and two orders of magnitude apart in memory.
-    var demand: Int {
+    /// The number of frames the buffer would hold if the pool had the memory to
+    /// spare: every frame of the animation, up to the budget the player was
+    /// created with, and only ``idleCapacity`` while nobody is watching.
+    var wantedFrameCount: Int {
         var frames = fillsWindow ? frameCount : Self.idleCapacity
+        frames = min(frames, affordableFrameCount)
         frames = min(frames, reducedCapacity ?? frames)
-        return min(maxBufferSize, frames * bytesPerFrame)
+        return max(Self.idleCapacity, min(frameCount, frames))
     }
 
-    /// The memory the pool has allotted the buffer, in bytes.
-    private(set) var allotment = 0
+    /// The range of frame indexes the buffer is claiming, which may run past
+    /// ``frameCount`` and wrap around.
+    var window: Range<Int> {
+        currentIndex..<(currentIndex + capacity)
+    }
+
+    /// The memory the buffer's window is allowed to occupy, in bytes.
+    var allotment: Int { capacity * bytesPerFrame }
+
+    /// The frame the player is on.
+    private(set) var currentIndex = 0
 
     /// Whether the buffer fills its whole window. `true` by default.
     ///
@@ -212,10 +232,9 @@ final class AnimatedImageFrameBuffer {
         didSet {
             guard isDecodingEnabled != oldValue else { return }
             if isDecodingEnabled {
-                decodeNextFrame()
+                store.scheduleDecodeIfNeeded()
             } else {
-                task?.cancel()
-                task = nil
+                store.memberDidStopDecoding(self)
             }
         }
     }
@@ -232,29 +251,29 @@ final class AnimatedImageFrameBuffer {
     private var reducedCapacity: Int?
 
     private let pool: AnimatedImageFramePool
-    private let decoder: any AnimatedImageFrameDecoding
     private let frameCount: Int
     /// The memory one decoded frame occupies, at the size it is decoded at.
     private let bytesPerFrame: Int
-    /// The most the player is willing to spend on frames, whatever the pool
+    /// The number of frames the player is willing to hold, whatever the pool
     /// has to spare.
-    private let maxBufferSize: Int
-    private var frames: [Int: CGImage] = [:]
-    /// The frames the decoder refused. Without this, a truncated animation
-    /// would put the buffer in a loop, retrying the frame it can never produce.
-    private var failedIndexes: Set<Int> = []
-    private var currentIndex = 0
-    private var task: Task<Void, Never>?
+    private let affordableFrameCount: Int
 
     // Diagnostics
-    private(set) var byteCount = 0
     private(set) var decodedFrameCount = 0
     private(set) var lastDecodeDuration: TimeInterval = 0
     private(set) var totalDecodeDuration: TimeInterval = 0
     private(set) var maxDecodeDuration: TimeInterval = 0
 
-    /// The number of frames currently decoded.
-    var count: Int { frames.count }
+    /// The number of frames in the window that are decoded.
+    var count: Int { store.decodedFrameCount(in: window) }
+
+    /// The memory those frames occupy, in bytes.
+    ///
+    /// Frames shared with another player are counted here in full and once
+    /// again there: what each player is drawing from, not what it is costing.
+    /// ``AnimatedImageFramePool/totalCost`` is the figure that counts a shared
+    /// frame once.
+    var byteCount: Int { store.byteCount(in: window) }
 
     /// `true` when there is nothing left to decode in the current window.
     var isFull: Bool { nextMissingIndex() == nil }
@@ -267,84 +286,55 @@ final class AnimatedImageFrameBuffer {
         pool: AnimatedImageFramePool = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
-        self.decoder = decoder ?? AnimatedImageFrameDecoder(source: source, maxPixelSize: options.maxPixelSize)
+        self.source = source
         self.frameCount = source.frameCount
-        self.bytesPerFrame = AnimatedImageFrameBuffer.bytesPerFrame(for: source, options: options)
-        self.maxBufferSize = options.maxBufferSize
         self.pool = pool
-        // Last, because it is what hands the buffer its first allotment.
-        pool.register(self)
+        self.store = pool.store(for: source, maxPixelSize: options.maxPixelSize, decoder: decoder)
+        self.bytesPerFrame = store.bytesPerFrame
+        self.affordableFrameCount = bytesPerFrame > 0 ? options.maxBufferSize / bytesPerFrame : source.frameCount
+        // Last, because it is what hands the store its first allotment.
+        store.add(self)
+        pool.rebalance()
     }
 
     deinit {
-        task?.cancel()
-        // The frames go with the buffer, so what it was holding is the pool's
-        // to hand out again. It can't be told from here – a `deinit` isn't on
-        // the main actor – so it is asked to divide the budget on the next turn.
+        // The window goes with the buffer, so the frames only it was claiming
+        // are the pool's to hand out again. It can't be told from here – a
+        // `deinit` isn't on the main actor – so it is asked to divide the
+        // budget on the next turn, which is also what sweeps this member out
+        // of the store.
         pool.setNeedsRebalance()
     }
 
-    /// Returns the memory one decoded frame occupies, at the size the options
-    /// ask for it to be decoded at.
-    ///
-    /// Frames are decoded into bitmaps with 8 bits per component, so the figure
-    /// depends only on the size, not on how well the image compresses – and
-    /// downsampling pays back the square of the scale.
-    static func bytesPerFrame(for source: AnimatedImageSource, options: AnimatedImagePlayer.Options) -> Int {
-        var bytesPerFrame = source.bytesPerFrame
-        if let maxPixelSize = options.maxPixelSize, maxPixelSize > 0 {
-            let longestSide = max(source.size.width, source.size.height)
-            if longestSide > maxPixelSize {
-                let scale = maxPixelSize / longestSide
-                bytesPerFrame = Int(Double(bytesPerFrame) * Double(scale * scale))
-            }
-        }
-        return bytesPerFrame
-    }
-
-    /// Takes the share of the pool the buffer is to hold its frames in.
-    ///
-    /// Called by the pool, and only by the pool: how large the window is
-    /// depends on what every other animation on screen is asking for.
-    func setAllotment(_ bytes: Int) {
-        guard bytes != allotment else { return }
-        let previousCapacity = capacity
-        allotment = bytes
-        // The bytes move on every change anywhere in the pool; the window they
-        // buy usually doesn't, and there is nothing to do when it doesn't.
-        guard capacity != previousCapacity else { return }
-        evict()
-        decodeNextFrame()
-    }
-
-    /// `true` while the buffer still expects to produce the frame at the given
+    /// `true` while the store still expects to produce the frame at the given
     /// index: it is neither decoded nor one the decoder has refused.
     func isPending(_ index: Int) -> Bool {
-        frames[index] == nil && !failedIndexes.contains(index)
+        store.isPending(index)
     }
 
     /// Returns the frame at the given index if it has been decoded.
     func frame(at index: Int) -> CGImage? {
-        frames[index]
+        store.frame(at: index)
+    }
+
+    /// `true` when the buffer is claiming the frame at the given index and is
+    /// in a position to use it.
+    func wants(_ index: Int) -> Bool {
+        isDecodingEnabled && isInWindow(index)
     }
 
     /// Moves the window to start at the given index and refills it.
     ///
     /// - parameter isSeeking: Whether the window is being moved somewhere the
-    /// animation was not heading, which drops the decode in flight. That frame
-    /// is for a place the playhead has left, and offering it would tell the
-    /// player about a frame nobody asked for. There is no stopping it
-    /// mid-`CGImageSourceCreateImageAtIndex`, so what the cancellation buys is
-    /// that the frame is never offered: the decode returns to a task that has
-    /// been cancelled and drops it.
+    /// animation was not heading, which drops the buffer from the decode in
+    /// flight. That frame is for a place the playhead has left, and offering it
+    /// would tell the player about a frame nobody asked for. There is no
+    /// stopping it mid-`CGImageSourceCreateImageAtIndex`, so what this buys is
+    /// that the frame is never offered – and it is only cancelled outright if
+    /// no other player was waiting for it.
     func setCurrentIndex(_ index: Int, isSeeking: Bool = false) {
         currentIndex = index
-        if isSeeking {
-            task?.cancel()
-            task = nil
-        }
-        evict()
-        decodeNextFrame()
+        store.didUpdateWindow(of: self, isSeeking: isSeeking)
     }
 
     /// Shrinks the window, dropping the frames that no longer fit.
@@ -358,7 +348,7 @@ final class AnimatedImageFrameBuffer {
         // a memory warning reaches every player, and the frames they all give
         // back are what the system asked for.
         pool.rebalance()
-        evict()
+        store.didUpdateWindow(of: self, isSeeking: false)
     }
 
     /// Takes the ceiling a memory warning put on the window back off, leaving
@@ -372,25 +362,17 @@ final class AnimatedImageFrameBuffer {
         guard reducedCapacity != nil else { return }
         reducedCapacity = nil
         pool.rebalance()
-        decodeNextFrame()
+        store.scheduleDecodeIfNeeded()
     }
 
-    /// Drops every decoded frame and stops the decoding in flight.
+    /// Drops every decoded frame of the animation and stops the decode in
+    /// flight.
+    ///
+    /// The frames belong to the store, so this reaches every player of the same
+    /// animation. Nothing in playback calls it: shrinking a window is
+    /// ``reduceCapacity(to:)``, which leaves the other players alone.
     func removeAll() {
-        task?.cancel()
-        task = nil
-        frames.removeAll()
-        byteCount = 0
-    }
-
-    private func evict() {
-        guard capacity < frameCount else {
-            return // The whole animation fits: never evict, never re-decode
-        }
-        for (index, image) in frames where !isInWindow(index) {
-            frames[index] = nil
-            byteCount -= image.bytesPerRow * image.height
-        }
+        store.removeAllFrames()
     }
 
     private func isInWindow(_ index: Int) -> Bool {
@@ -398,77 +380,26 @@ final class AnimatedImageFrameBuffer {
         return offset < capacity
     }
 
-    /// Starts decoding the first frame of the window that is missing, if any.
-    ///
-    /// Only one decode is ever in flight. The next one is scheduled when it
-    /// finishes, which keeps the work in playback order and keeps a slow
-    /// decoder from filling the cooperative pool with frames nobody is waiting
-    /// for yet.
-    private func decodeNextFrame() {
-        guard isDecodingEnabled, task == nil, let index = nextMissingIndex() else {
-            return
-        }
-        let decoder = self.decoder
-        task = Task(priority: priority(forFrameAt: index)) { [weak self] in
-            let frame = await decoder.decode(at: index)
-            // The cancellation check comes first: `removeAll` clears the handle
-            // itself, so a cancelled decode that cleared it again would drop
-            // the handle of the decode that started in its place and let a
-            // third one begin alongside it.
-            guard let self, !Task.isCancelled else { return }
-            self.task = nil
-            if let frame {
-                self.insert(frame, at: index)
-            } else {
-                self.failedIndexes.insert(index)
-            }
-            self.decodeNextFrame()
-        }
-    }
-
-    /// The priority to decode the frame at the given index at.
-    ///
-    /// Only the frame the animation is on is urgent: there is nothing to show
-    /// until it lands. Everything else is read-ahead, and read-ahead at the
-    /// priority the main actor hands down is what turns a grid of animations
-    /// into twenty CPU-bound decodes competing with the app's own async work on
-    /// a pool about as wide as the core count.
-    ///
-    /// Dropping behind is self-correcting: a read-ahead frame that isn't there
-    /// when it comes due is decoded again as the frame the animation is on,
-    /// which is to say at the higher priority.
-    private func priority(forFrameAt index: Int) -> TaskPriority {
-        index == currentIndex ? .userInitiated : .utility
-    }
-
     private func nextMissingIndex() -> Int? {
         for offset in 0..<min(capacity, frameCount) {
             let index = (currentIndex + offset) % frameCount
-            if frames[index] == nil && !failedIndexes.contains(index) {
+            if store.isPending(index) {
                 return index
             }
         }
         return nil
     }
 
-    private func insert(_ frame: AnimatedImageFrameDecoder.Frame, at index: Int) {
+    /// Called by the store with every frame this buffer was waiting for.
+    func storeDidDecodeFrame(at index: Int, duration: TimeInterval) {
         decodedFrameCount += 1
-        lastDecodeDuration = frame.duration
-        totalDecodeDuration += frame.duration
-        maxDecodeDuration = max(maxDecodeDuration, frame.duration)
-
-        guard frames[index] == nil else {
-            return
-        }
-        frames[index] = frame.image
-        byteCount += frame.byteCount
+        lastDecodeDuration = duration
+        totalDecodeDuration += duration
+        maxDecodeDuration = max(maxDecodeDuration, duration)
         // The window may have moved past this frame while it was being decoded.
         // It is offered anyway: the player is the one that knows whether it has
         // anything better to show, and it moves the window back if it doesn't.
         onFrame?(index)
-        // Whatever the player decided, the frame is over the budget by now if
-        // it is still outside the window.
-        evict()
     }
 
     /// The decode in flight, if there is one.
@@ -476,14 +407,14 @@ final class AnimatedImageFrameBuffer {
     /// Exists for the tests, which hold a decode open and need to wait for the
     /// frame it produces to land – and so cannot use ``waitUntilFull()``,
     /// which waits for the whole window.
-    var currentDecode: Task<Void, Never>? { task }
+    var currentDecode: Task<Void, Never>? { store.currentDecode }
 
     /// Waits until the window is full or until there is nothing left to decode.
     ///
     /// Exists for the tests, which need a point where the state of the buffer
     /// is settled rather than a sleep long enough to probably work.
     func waitUntilFull() async {
-        while let task {
+        while let task = store.currentDecode {
             await task.value
         }
     }

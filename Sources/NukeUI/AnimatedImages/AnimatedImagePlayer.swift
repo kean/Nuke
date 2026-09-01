@@ -152,11 +152,17 @@ public final class AnimatedImagePlayer: ObservableObject {
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
         clock.onTick = { [weak self] in self?.tick($0) }
         buffer.onFrame = { [weak self] in self?.frameDidDecode(at: $0) }
+        // Fall in behind whatever is already playing this animation, so that
+        // the copies of one sticker on a screen ask for one window of frames
+        // between them instead of a window each.
+        currentFrameIndex = options.isSynchronizationEnabled
+            ? buffer.store.leadingIndex(excluding: buffer) ?? 0
+            : 0
         // Start decoding right away: the first frame should be on screen
         // whether or not anything ever calls `play()`. Only the first frames
         // though – a player that never plays should not hold a full buffer.
         buffer.fillsWindow = false
-        buffer.setCurrentIndex(0)
+        buffer.setCurrentIndex(currentFrameIndex)
         registerForApplicationNotifications()
     }
 
@@ -276,6 +282,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         diagnostics.bufferCapacity = buffer.capacity
         diagnostics.bufferedByteCount = buffer.byteCount
         diagnostics.bufferByteLimit = buffer.allotment
+        diagnostics.sharingPlayerCount = buffer.store.memberCount
         diagnostics.decodedFrameCount = buffer.decodedFrameCount
         diagnostics.lastDecodeDuration = buffer.lastDecodeDuration
         diagnostics.averageDecodeDuration = buffer.decodedFrameCount > 0
@@ -546,6 +553,22 @@ extension AnimatedImagePlayer {
         /// The scale of the images the player produces. `1` by default.
         public var scale: CGFloat = 1
 
+        /// Whether the player starts on the frame the other players of the same
+        /// animation are showing, rather than on the first one. `true` by
+        /// default.
+        ///
+        /// The same animation on screen more than over – a sticker in a grid, a
+        /// reaction beside every message – is the case the frame sharing is
+        /// worth the most in, and it is worth the most when the playheads
+        /// agree: a window of frames covers all of them at once instead of one
+        /// each. Falling in behind is also what a browser does, where every
+        /// `img` element on one animation is driven by a single decoded stream
+        /// and so plays in lockstep.
+        ///
+        /// Set it to `false` for a player that should always begin at the
+        /// beginning – an animation played once as a transition, say.
+        public var isSynchronizationEnabled = true
+
         /// The largest gap between two clock ticks the player will act on,
         /// in seconds. `1` by default.
         ///
@@ -596,9 +619,20 @@ extension AnimatedImagePlayer {
         /// is held anyway – there is no playing an animation without them.
         public var bufferByteLimit = 0
 
-        /// The number of frames decoded since the player was created. Larger
-        /// than ``frameCount`` when the buffer can't hold the whole animation
-        /// and frames are decoded again on every loop.
+        /// The number of players drawing from the same decoded frames, this
+        /// one included.
+        ///
+        /// More than one means the animation is on screen more than once and is
+        /// being decoded and held once. See ``AnimatedImageFramePool``.
+        public var sharingPlayerCount = 0
+
+        /// The number of frames this player waited for a decode of since it was
+        /// created.
+        ///
+        /// Larger than ``frameCount`` when the buffer can't hold the whole
+        /// animation and frames are decoded again on every loop. Smaller when
+        /// another player had already decoded them: a player that joins an
+        /// animation already on screen usually decodes nothing at all.
         public var decodedFrameCount = 0
         /// How long the most recent frame took to decode, in seconds.
         public var lastDecodeDuration: TimeInterval = 0

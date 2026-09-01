@@ -39,9 +39,23 @@ import Foundation
 /// frames each. And the pool bounds the frames of the animations being played,
 /// not the images the pipeline has cached, which is ``ImageCache``.
 ///
-/// - note: Frames are not shared between players. Two views playing the same
-/// animation decode it twice and hold it twice; what the pool bounds is the
-/// total.
+/// ## What Is Shared
+///
+/// The budget is divided between animations, not between players. Every player
+/// showing the same animation at the same size draws from a single set of
+/// decoded frames – one decoder, one pile of bitmaps – so a screen of the same
+/// sticker costs one sticker, and a view that comes back after scrolling away
+/// finds the frames it left behind rather than decoding them again.
+///
+/// A share is only ever divided further when the players sharing an animation
+/// have drifted apart *and* the whole of it doesn't fit: then each playhead
+/// needs its own window and they split what the animation was given. Whatever
+/// happens, one animation never costs more than the whole of it once.
+///
+/// The frames of an animation nothing is playing are kept until the pool needs
+/// the room, and go as soon as the animation itself does: they belong to the
+/// ``AnimatedImageSource`` the pipeline parsed, and last exactly as long as
+/// something – ``ImageCache``, usually – still holds it.
 @MainActor
 public final class AnimatedImageFramePool {
     /// The pool every player uses.
@@ -59,13 +73,15 @@ public final class AnimatedImageFramePool {
     }
 
     /// The memory the decoded frames occupy right now, in bytes.
+    ///
+    /// A frame two players are sharing is counted once, which is what it costs.
     public var totalCost: Int {
-        buffers.reduce(0) { $0 + ($1.buffer?.byteCount ?? 0) }
+        stores.values.reduce(0) { $0 + $1.byteCount }
     }
 
     /// The number of players drawing from the pool.
     public var playerCount: Int {
-        buffers.filter { $0.buffer != nil }.count
+        stores.values.reduce(0) { $0 + $1.memberCount }
     }
 
     /// The number of players filling a window of frames.
@@ -74,8 +90,16 @@ public final class AnimatedImageFramePool {
     /// screen – which hold the frame they are showing and the one after it. See
     /// ``AnimatedImagePlayer/keepsFullBuffer``.
     public var activePlayerCount: Int {
-        buffers.filter { $0.buffer?.fillsWindow == true }.count
+        stores.values.reduce(0) { $0 + $1.activeMemberCount }
     }
+
+    /// The number of animations the players are drawing from.
+    ///
+    /// Lower than ``playerCount`` whenever the same animation is on screen more
+    /// than once, which is the case the sharing exists for. It counts the
+    /// animations nobody is playing any more too, whose frames are being kept
+    /// for a view that comes back to them.
+    public var animationCount: Int { stores.count }
 
     /// Returns a limit computed from the amount of physical memory on the
     /// device: 5% of it, capped at 128 MB.
@@ -98,61 +122,103 @@ public final class AnimatedImageFramePool {
         self.costLimit = costLimit
     }
 
-    /// The buffers, weakly: a buffer is owned by its player, and a player that
-    /// is released takes its frames with it. The dead entries are swept the
-    /// next time the budget is divided.
-    private var buffers: [Entry] = []
+    /// The frames, one set per animation and size. Strongly, so that they
+    /// outlive the players holding them; each one only holds its animation
+    /// weakly, which is what keeps them from outliving it.
+    private var stores: [AnimatedImageFrameKey: AnimatedImageFrameStore] = [:]
 
-    private struct Entry {
-        weak var buffer: AnimatedImageFrameBuffer?
+    /// Returns the frames of the given animation at the given size, creating
+    /// them if this is the first player to ask.
+    func store(
+        for source: AnimatedImageSource,
+        maxPixelSize: CGFloat?,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
+    ) -> AnimatedImageFrameStore {
+        let key = AnimatedImageFrameKey(source: source, maxPixelSize: maxPixelSize)
+        // Identity is only as stable as the object it belongs to: an animation
+        // that has been released can leave its address to the next one, and
+        // handing that one the frames of the first would play the wrong
+        // picture. Comparing the animations themselves settles it.
+        if let store = stores[key], store.source === source {
+            return store
+        }
+        let store = AnimatedImageFrameStore(key: key, source: source, pool: self, decoder: decoder)
+        stores[key] = store
+        return store
     }
 
-    func register(_ buffer: AnimatedImageFrameBuffer) {
-        buffers.append(Entry(buffer: buffer))
-        rebalance()
-    }
-
-    /// Divides the limit between the registered buffers and hands each one its
-    /// share.
+    /// Divides the limit between the animations being played and hands each one
+    /// its share.
     ///
-    /// Called whenever what a buffer wants changes – it is created, released,
+    /// Called whenever what a player wants changes – it is created, released,
     /// starts or stops filling its window, or gives its frames back under
     /// memory pressure. Not when frames are decoded or evicted: the division is
-    /// of what the buffers ask for, not of what they are holding, or a buffer
-    /// filling its window would shrink the others as it went.
+    /// of what the players ask for, not of what they are holding, or an
+    /// animation filling its window would shrink the others as it went.
     func rebalance() {
-        buffers.removeAll { $0.buffer == nil }
-        let registered = buffers.compactMap(\.buffer).map { (buffer: $0, demand: $0.demand) }
+        sweep()
+        let registered = stores.values.map { (store: $0, demand: $0.demand) }
         guard !registered.isEmpty else { return }
 
         let total = registered.reduce(0) { $0 + $1.demand }
-        guard total > costLimit else {
+        if total > costLimit {
+            // An even split, smallest demand first, with what each animation
+            // leaves unused divided again between the ones still to come. It is
+            // the classic max-min share: the animations that fit are given
+            // exactly what they need, and the ones that don't split the rest
+            // evenly.
+            var remaining = max(0, costLimit)
+            var share = registered.count
+            var allotments: [(store: AnimatedImageFrameStore, bytes: Int)] = []
+            for entry in registered.sorted(by: { $0.demand < $1.demand }) {
+                let bytes = min(entry.demand, remaining / share)
+                allotments.append((entry.store, bytes))
+                remaining -= bytes
+                share -= 1
+            }
+            // Applied only once every share is known: an animation handed a
+            // smaller window evicts frames on the spot, and doing that while the
+            // division is half done would divide a limit that is still moving.
+            for allotment in allotments {
+                allotment.store.setAllotment(allotment.bytes)
+            }
+        } else {
             // There is enough for everybody, which is the case whenever a
             // screen isn't full of animations. Nobody is held to a share.
             for entry in registered {
-                entry.buffer.setAllotment(entry.demand)
+                entry.store.setAllotment(entry.demand)
             }
-            return
         }
+        reclaimIfNeeded()
+    }
 
-        // An even split, smallest demand first, with what each buffer leaves
-        // unused divided again between the ones still to come. It is the
-        // classic max-min share: the animations that fit are given exactly what
-        // they need, and the ones that don't split the rest evenly.
-        var remaining = max(0, costLimit)
-        var share = registered.count
-        var allotments: [(buffer: AnimatedImageFrameBuffer, bytes: Int)] = []
-        for entry in registered.sorted(by: { $0.demand < $1.demand }) {
-            let bytes = min(entry.demand, remaining / share)
-            allotments.append((entry.buffer, bytes))
-            remaining -= bytes
-            share -= 1
+    /// Drops the animations nothing refers to any more, and the players that
+    /// have been released.
+    private func sweep() {
+        stores = stores.filter { $0.value.source != nil }
+        for store in stores.values {
+            store.sweepMembers()
         }
-        // Applied only once every share is known: a buffer handed a smaller
-        // window evicts frames on the spot, and doing that while the division
-        // is half done would divide a limit that is still moving.
-        for allotment in allotments {
-            allotment.buffer.setAllotment(allotment.bytes)
+    }
+
+    /// Gives back the frames nobody's window covers, until the pool is inside
+    /// its limit again.
+    ///
+    /// The frames of an animation nothing is playing are kept rather than
+    /// dropped with the last player – that is what a view scrolling back to an
+    /// animation it has already played finds – so they are what goes first, in
+    /// the order they stopped being played in. What a live animation is holding
+    /// outside its window goes next.
+    func reclaimIfNeeded() {
+        guard totalCost > costLimit else { return }
+        for store in stores.values.filter(\.isIdle).sorted(by: { $0.lastUsed < $1.lastUsed }) {
+            store.removeAllFrames()
+            stores[store.key] = nil
+            guard totalCost > costLimit else { return }
+        }
+        for store in stores.values {
+            store.reclaim()
+            guard totalCost > costLimit else { return }
         }
     }
 

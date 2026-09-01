@@ -57,11 +57,19 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     private var startedPriorities: [Int: DecodePriority] = [:]
     private var priorityWaiters: [Int: CheckedContinuation<DecodePriority, Never>] = [:]
 
+    /// The number of times each frame has been asked for, which is what tells
+    /// a frame two players shared from one they each decoded.
+    private(set) var decodeCounts: [Int: Int] = [:]
+
+    /// The total number of decodes started.
+    var decodeCount: Int { decodeCounts.values.reduce(0, +) }
+
     init(source: AnimatedImageSource, maxPixelSize: CGFloat? = nil) {
         self.decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: maxPixelSize)
     }
 
     func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame? {
+        decodeCounts[index, default: 0] += 1
         recordPriority(Task.currentPriority, at: index)
         if released.remove(index) == nil {
             await withCheckedContinuation { gates[index] = $0 }

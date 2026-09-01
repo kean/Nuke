@@ -54,6 +54,8 @@
 - Processing an image now clears `ImageContainer/data` and `ImageContainer/animation`, which described the image that went into the processor rather than the one that came out – https://github.com/kean/Nuke/pull/958
 - `ImageDecoders/Default` now parses the animated images it recognizes and attaches the result to the new `ImageContainer/animation`, on the decoding queue and once per image instead of once per view that displays it. Adds `AnimatedImageSource` to `Nuke`, where it replaces the `NukeUI` type of the same name, and `ImagePipeline/Configuration/isAnimatedImageParsingEnabled` to turn it off – https://github.com/kean/Nuke/pull/958
 - `Nuke_ImageDisplaying` is renamed to `ImageDisplaying`, is no longer an `@objc` protocol, and its method takes an `ImageContainer` instead of an image and its data: `nuke_display(image:data:)` becomes `nuke_display(_:)`. Because the protocol is now a plain Swift one, a conformance declared in an extension can no longer be overridden by a subclass – https://github.com/kean/Nuke/pull/958
+- Every player of the same animation at the same size now shares one set of decoded frames and one decoder, so a screen of the same sticker costs one of them instead of one each, and the frames outlive the players holding them. `AnimatedImageFramePool` divides its budget between animations rather than players. Adds `AnimatedImagePlayer/Options/isSynchronizationEnabled`, `AnimatedImagePlayer/Diagnostics/sharingPlayerCount`, and `AnimatedImageFramePool/animationCount` – https://github.com/kean/Nuke/pull/958
+- Every animation is now driven by one display link instead of one per player – https://github.com/kean/Nuke/pull/958
 
 **Bug Fixes**
 

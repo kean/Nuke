@@ -332,8 +332,19 @@ public final class AnimatedImageView: _PlatformImageView {
         let horizontal = bounds.width / size.width
         let vertical = bounds.height / size.height
         let scale = coversTheView ? max(horizontal, vertical) : min(horizontal, vertical)
-        return max(size.width, size.height) * scale * backingScale
+        let maxPixelSize = max(size.width, size.height) * scale * backingScale
+        return (maxPixelSize / Self.pixelSizeStep).rounded(.up) * Self.pixelSizeStep
     }
+
+    /// The step the size the frames are decoded at is rounded up to, in pixels.
+    ///
+    /// Views that differ by a fraction of a point would otherwise each decode
+    /// the animation at a size of their own and share not one frame with each
+    /// other – and a grid, where a cell is whatever the width divided by three
+    /// comes to, is exactly where the sharing is worth the most. Rounding up
+    /// costs at most a few percent more pixels per frame and turns a column of
+    /// almost-identical cells into one set of frames.
+    private static let pixelSizeStep: CGFloat = 32
 
     /// Whether the content mode covers the view with the frames rather than
     /// fitting them inside it, or `nil` when it draws them at their own size.

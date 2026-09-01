@@ -131,7 +131,19 @@ A player nobody is watching gives its window back too. ``AnimatedImageView`` set
 
 Memory is bounded either way, but a screen full of animations that is over the pool's limit pays for it in decoding rather than in bytes: every window is a share, the smaller windows slide, and the frames behind them are decoded again on every loop. Downsampling is the first lever on this list because it is the one that makes the frames small enough for the shares to hold whole animations. The decoding is at least kept out of the way: a player decodes one frame at a time, and every frame except the one the animation is actually waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
 
-Frames are not shared between players. Two views playing the same animation decode it twice and hold it twice; what the pool bounds is the total.
+### Sharing
+
+None of that is paid twice for the same animation. Every player showing one animation at one size draws from a single set of decoded frames, produced by a single decoder – so twenty copies of a sticker cost one sticker, not twenty, and the nineteenth view to appear decodes nothing at all.
+
+A player also falls in behind whatever is already playing, so the copies of an animation on a screen sit on the same frame and one window covers all of them. Turn it off with ``AnimatedImagePlayer/Options/isSynchronizationEnabled`` for a player that should always start at the beginning. The playheads only matter while the animation has to be windowed at all: once the whole of it fits, every player has every frame and where each one is playing costs nothing. When they do scatter across an animation too large to hold, the players split what the animation was given – which is the case sharing has nothing to offer, and the one it degrades to.
+
+Two views of the same animation at *different* sizes are two sets of frames, because they hold different pixels. ``AnimatedImageView`` rounds the size it decodes for up to a step so that cells a fraction of a point apart still share.
+
+The frames outlive the players holding them. A cell that scrolls off screen and comes back finds them still in memory rather than decoding the animation again; they are given back when the pool needs the room, and go for good when the animation itself does – they last exactly as long as something, usually ``ImageCache``, still holds the ``AnimatedImageSource`` they came from.
+
+``AnimatedImagePlayer/Diagnostics/sharingPlayerCount`` reports how many players are drawing from the same frames, and ``AnimatedImageFramePool/animationCount`` how many distinct sets of frames the pool is holding.
+
+Every animation is driven by one clock, too: a display link is a run-loop source and a frame-rate range the system reconciles with every other one in the app, so there is a single one for the process rather than one per player. It runs while any animation is playing, at the rate the fastest of them asks for.
 
 ## Controlling Playback
 

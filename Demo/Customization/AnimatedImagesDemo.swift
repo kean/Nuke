@@ -118,6 +118,7 @@ struct AnimatedImagesDemo: View {
             .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
             .init("Frame pool", "The budget is also shared. Every player draws its window from `AnimatedImageFramePool`, so a wall of animations costs what the pool says rather than the sum of their budgets. Raise the count and watch every window shrink to a share; drag the pool budget and watch them all refill."),
             .init("Fair shares", "The division is not a flat split. An animation that fits entirely in less than its share takes only what it needs, and the rest goes to the ones that can use it – so a wall of small stickers and one long GIF gives the GIF everything the stickers left."),
+            .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing. The diagnostics count the sets of frames against the players drawing from them."),
             .init("Frame size", "`maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory. `AnimatedImageView` picks one from its own bounds; this screen builds the player by hand, so the size is yours to choose. The diagnostics show what the frames were authored at and what they are decoded at."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
             .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The buffer isn't shrunk for good: the window it was sized for comes back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the map refill."),
@@ -132,7 +133,7 @@ struct AnimatedImagesDemo: View {
     /// The pool budget is deliberately not here: changing it takes effect on
     /// the players that are already running, which is the thing worth seeing.
     private var reloadID: String {
-        "\(image.rawValue)-\(settings.animationCount)-\(settings.maxBufferSizeMB)-\(settings.maxPixelSize.rawValue)-\(settings.playbackRate)-\(settings.repeatsForever)"
+        "\(image.rawValue)-\(settings.animationCount)-\(settings.repeatsOneAnimation)-\(settings.maxBufferSizeMB)-\(settings.maxPixelSize.rawValue)-\(settings.playbackRate)-\(settings.repeatsForever)"
     }
 
     // MARK: Stage
@@ -205,12 +206,19 @@ struct AnimatedImagesDemo: View {
     /// The animations the wall plays: the one that is picked, and as many of
     /// the others as it takes to fill the count.
     ///
-    /// Different images rather than the same one repeated, because that is the
-    /// case the pool is for – and because Nuke decodes a frame per player, so
-    /// eight copies of one GIF would be eight copies of its frames.
+    /// Different images by default, because that is the case the pool divides a
+    /// budget for. Repeat one instead and the other half of the design shows
+    /// up: every cell draws from the same decoded frames, so the wall costs one
+    /// animation whatever the count.
     private var wallAnimations: [DemoAnimation] {
+        guard settings.animationCount > 1 else {
+            return [image]
+        }
+        guard !settings.repeatsOneAnimation else {
+            return Array(repeating: image, count: settings.animationCount)
+        }
         let available = DemoAnimation.available
-        guard settings.animationCount > 1, let start = available.firstIndex(of: image) else {
+        guard let start = available.firstIndex(of: image) else {
             return [image]
         }
         return (0..<settings.animationCount).map { available[(start + $0) % available.count] }
@@ -279,9 +287,15 @@ private struct DemoPoolDiagnostics {
     var totalCost = 0
     var playerCount = 0
     var activePlayerCount = 0
+    var animationCount = 0
 
     var fraction: Double {
         costLimit > 0 ? min(1, Double(totalCost) / Double(costLimit)) : 0
+    }
+
+    /// How many players there are for every set of decoded frames.
+    var sharing: Double {
+        animationCount > 0 ? Double(playerCount) / Double(animationCount) : 0
     }
 
     init() {}
@@ -292,6 +306,7 @@ private struct DemoPoolDiagnostics {
         totalCost = pool.totalCost
         playerCount = pool.playerCount
         activePlayerCount = pool.activePlayerCount
+        animationCount = pool.animationCount
     }
 }
 
@@ -437,6 +452,9 @@ private struct DemoAnimationConsole: View {
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
+                if settings.animationCount > 1 {
+                    Toggle("Repeat one animation", isOn: $settings.repeatsOneAnimation)
+                }
             } header: {
                 Text("Frame Pool")
             } footer: {
@@ -665,6 +683,11 @@ private struct DemoPoolMeter: View {
             .frame(height: 10)
             DiagnosticsRow("pool", "\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
             DiagnosticsRow("players", "\(pool.playerCount) sharing it  ·  \(pool.activePlayerCount) filling a window")
+            // The number worth watching on the wall: the players outnumber the
+            // animations as soon as one of them is on screen twice, and the
+            // frames are decoded and held once however many are showing it.
+            DiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
+                + (pool.sharing > 1 ? String(format: "  ·  %.1f× shared", pool.sharing) : ""))
         }
     }
 }
@@ -681,7 +704,8 @@ private struct DemoWallRow: View {
                 Text(animation.title)
                     .font(.caption.weight(.semibold))
                 Spacer(minLength: 8)
-                DemoMonoLabel("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount)) of \(demoByteCount(diagnostics.bufferByteLimit))")
+                DemoMonoLabel("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount)) of \(demoByteCount(diagnostics.bufferByteLimit))"
+                    + (diagnostics.sharingPlayerCount > 1 ? "  ·  shared ×\(diagnostics.sharingPlayerCount)" : ""))
             }
             BufferMap(player: animation.player, diagnostics: diagnostics, height: 12)
         }
@@ -878,6 +902,9 @@ private struct DemoAnimationSettings {
     /// default, so that a wall of animations reaches it.
     var poolCostLimitMB: Double = 64
     var animationCount: Int = 1
+    /// Whether the wall plays the same animation over and over rather than a
+    /// different one in every cell, which is what shows the frame sharing.
+    var repeatsOneAnimation = false
     var playbackRate: Double = 1
     var maxPixelSize: DemoMaxPixelSize = .full
     var repeatsForever = true
