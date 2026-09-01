@@ -60,9 +60,7 @@ struct AnimatedImagesDemo: View {
             // what the menu under it switches.
             .navigationTitle(image.title)
             .toolbarTitleMenu {
-                Picker("Image", selection: $image) {
-                    ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
-                }
+                ImageMenu(image: $image, current: image).equatable()
             }
             .demoInfoButton(isPresented: $isShowingInfo)
     }
@@ -121,7 +119,7 @@ struct AnimatedImagesDemo: View {
         .gesture(pinch)
         .overlay(alignment: .bottomTrailing) {
             if animation != nil {
-                zoomMenu.padding(10)
+                ZoomMenu(zoom: $zoom, current: zoom).equatable().padding(10)
             }
         }
     }
@@ -129,33 +127,70 @@ struct AnimatedImagesDemo: View {
     /// The zoom control a preview canvas has in its corner: the named sizes,
     /// then the percentages of the natural one. Whatever a pinch left the zoom
     /// at is named by its percentage and checks nothing.
-    private var zoomMenu: some View {
-        Menu {
-            ForEach(DisplayZoom.named, id: \.self) { choice in
-                zoomItem(choice)
+    ///
+    /// A view of its own, compared by the zoom alone. The screen redraws ten
+    /// times a second as the diagnostics are sampled, and a menu rebuilt that
+    /// often pulls its items out from under the tap on its way to one – so
+    /// while the zoom stands still, the menu the system is showing is left
+    /// alone.
+    private struct ZoomMenu: View, Equatable {
+        @Binding var zoom: DisplayZoom
+        /// The zoom again as a plain value: the comparison runs outside the
+        /// main actor, where a binding can't be read and a constant can.
+        let current: DisplayZoom
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.current == rhs.current
+        }
+
+        var body: some View {
+            Menu {
+                ForEach(DisplayZoom.named, id: \.self) { choice in
+                    item(choice)
+                }
+                Divider()
+                ForEach(DisplayZoom.percentages, id: \.self) { choice in
+                    item(choice)
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(zoom.title)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .imageScale(.small)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.thinMaterial, in: Capsule())
             }
-            Divider()
-            ForEach(DisplayZoom.percentages, id: \.self) { choice in
-                zoomItem(choice)
+        }
+
+        /// A toggle rather than a button, for the checkmark on the one in
+        /// effect.
+        private func item(_ choice: DisplayZoom) -> some View {
+            Toggle(isOn: Binding(get: { zoom == choice }, set: { _ in zoom = choice })) {
+                Text(choice.title)
             }
-        } label: {
-            HStack(spacing: 4) {
-                Text(zoom.title)
-                Image(systemName: "chevron.up.chevron.down")
-                    .imageScale(.small)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.thinMaterial, in: Capsule())
         }
     }
 
-    /// A toggle rather than a button, for the checkmark on the one in effect.
-    private func zoomItem(_ choice: DisplayZoom) -> some View {
-        Toggle(isOn: Binding(get: { zoom == choice }, set: { _ in zoom = choice })) {
-            Text(choice.title)
+    /// What the title's menu offers, held apart from the sampling for the same
+    /// reason as ``ZoomMenu``: equal means the open menu keeps its items.
+    private struct ImageMenu: View, Equatable {
+        @Binding var image: DemoAnimation
+        /// The image again as a plain value, for the same reason as
+        /// ``ZoomMenu/current``.
+        let current: DemoAnimation
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.current == rhs.current
+        }
+
+        var body: some View {
+            Picker("Image", selection: $image) {
+                ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
+            }
         }
     }
 
