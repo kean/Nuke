@@ -86,8 +86,16 @@ struct AnimatedImageFramePoolDemo: View {
     private var wall: some View {
         ZStack {
             if !animations.isEmpty {
-                DemoAnimationWall(animations: animations, diagnostics: diagnostics)
-                    .padding(6)
+                // Each cell wears what it is holding, so the effect of the pool
+                // is on the wall rather than only in the diagnostics: add
+                // animations and every badge drops.
+                DemoAnimationWall(animations: animations) { index, _ in
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        badge(at: index)
+                    }
+                }
+                .padding(6)
             } else if let status {
                 Text(status)
                     .font(.footnote)
@@ -101,6 +109,21 @@ struct AnimatedImageFramePoolDemo: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// What a cell is holding, in the smallest number of characters that says
+    /// it: the frames of the animation that are decoded, and what they cost.
+    @ViewBuilder
+    private func badge(at index: Int) -> some View {
+        if diagnostics.indices.contains(index) {
+            let diagnostics = diagnostics[index]
+            Text("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) · \(demoByteCount(diagnostics.bufferedByteCount))")
+                .font(.system(size: 9, design: .monospaced))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(.thinMaterial, in: Capsule())
+                .padding(4)
+        }
     }
 
     /// The room the console leaves for the wall. Beside the stage, all of it;
@@ -324,121 +347,6 @@ struct AnimatedImageFramePoolDemo: View {
             .init("Memory warnings", "The pool holds every animation at two frames when the system issues one, and the button does the same thing by hand. The windows come back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the maps refill.")
         ]
     )
-}
-
-/// What the shared pool is doing, sampled on the same timer as the players.
-private struct DemoPoolDiagnostics {
-    var costLimit = 0
-    var totalCost = 0
-    var playerCount = 0
-    var activePlayerCount = 0
-    var animationCount = 0
-
-    var fraction: Double {
-        costLimit > 0 ? min(1, Double(totalCost) / Double(costLimit)) : 0
-    }
-
-    /// How many players there are for every set of decoded frames.
-    var sharing: Double {
-        animationCount > 0 ? Double(playerCount) / Double(animationCount) : 0
-    }
-
-    init() {}
-
-    @MainActor
-    init(pool: AnimatedImageFramePool) {
-        costLimit = pool.costLimit
-        totalCost = pool.totalCost
-        playerCount = pool.playerCount
-        activePlayerCount = pool.activePlayerCount
-        animationCount = pool.animationCount
-    }
-}
-
-/// Every animation at once, laid out to fill the stage without scrolling.
-///
-/// Each cell wears what it is holding, so the effect of the pool is on the wall
-/// rather than only in the diagnostics: add animations and every badge drops.
-private struct DemoAnimationWall: View {
-    let animations: [DemoLoadedAnimation]
-    let diagnostics: [AnimatedImagePlayer.Diagnostics]
-
-    private let spacing: CGFloat = 6
-
-    var body: some View {
-        GeometryReader { proxy in
-            let columns = max(1, Int(Double(animations.count).squareRoot().rounded(.up)))
-            let rows = max(1, Int((Double(animations.count) / Double(columns)).rounded(.up)))
-            let width = max(1, (proxy.size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
-            let height = max(1, (proxy.size.height - spacing * CGFloat(rows - 1)) / CGFloat(rows))
-            VStack(spacing: spacing) {
-                ForEach(0..<rows, id: \.self) { row in
-                    HStack(spacing: spacing) {
-                        ForEach(0..<columns, id: \.self) { column in
-                            cell(at: row * columns + column, width: width, height: height)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func cell(at index: Int, width: CGFloat, height: CGFloat) -> some View {
-        if index < animations.count {
-            let animation = animations[index]
-            AnimatedImage(player: animation.player, poster: animation.poster)
-                .resizable()
-                .scaledToFill()
-                // Before the badge and the corners: filling means the frames
-                // are larger than the cell, and what hangs over the edge is
-                // the cell's to trim.
-                .frame(width: width, height: height)
-                .clipped()
-                .overlay(alignment: .bottom) { badge(at: index) }
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-        } else {
-            Color.clear.frame(width: width, height: height)
-        }
-    }
-
-    @ViewBuilder
-    private func badge(at index: Int) -> some View {
-        if diagnostics.indices.contains(index) {
-            let diagnostics = diagnostics[index]
-            Text("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) · \(demoByteCount(diagnostics.bufferedByteCount))")
-                .font(.system(size: 9, design: .monospaced))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(.thinMaterial, in: Capsule())
-                .padding(4)
-        }
-    }
-}
-
-/// What the pool is holding against what it is allowed to hold.
-private struct DemoPoolMeter: View {
-    let pool: DemoPoolDiagnostics
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.07))
-                    Capsule()
-                        .fill(pool.fraction > 0.95 ? Color.orange : Color.accentColor)
-                        .frame(width: proxy.size.width * pool.fraction)
-                }
-            }
-            .frame(height: 10)
-            DemoDiagnosticsRow("pool", "\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
-            DemoDiagnosticsRow("players", "\(pool.playerCount) sharing it  ·  \(pool.activePlayerCount) filling a window")
-            // The players outnumber the animations as soon as one of them is on
-            // screen twice.
-            DemoDiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
-                + (pool.sharing > 1 ? String(format: "  ·  %.1f× shared", pool.sharing) : ""))
-        }
-    }
 }
 
 /// One line of the wall's diagnostics: what this animation was given, and what

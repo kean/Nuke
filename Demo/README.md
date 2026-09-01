@@ -43,6 +43,7 @@ shows, with the API it is about and the details worth knowing.
 | **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid |
 | **Caching** | The memory cache, `URLCache`, and `DataCache` side by side, with the source of every image |
 | **Stress Test** | The pipeline under fast scrolling with every cache disabled |
+| **Animation Load** | A screenful of animations at once: the screen's own frame rate, what the decoders cost, and the memory the app is holding, with the buffer of every cell over it and its diagnostics a tap away |
 
 ## Structure
 
@@ -51,6 +52,6 @@ Demo
 ├── App              The app and the menu
 ├── Essentials       ImagePipeline, LazyImage, and the image views
 ├── Customization    Processing, formats, progressive decoding, delegate
-├── Performance      Prefetching, caching, stress test
+├── Performance      Prefetching, caching, stress test, animation load
 └── Helpers          Shared views, demo URLs, and a few small utilities
 ```

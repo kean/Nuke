@@ -237,7 +237,10 @@ struct DemoFailureView: View {
 }
 
 func demoByteCount(_ count: Int64) -> String {
-    ByteCountFormatter.string(fromByteCount: count, countStyle: .binary)
+    // `ByteCountFormatter` writes "Zero KB", which reads like a fault in a
+    // column of figures that are otherwise moving.
+    guard count > 0 else { return "0 KB" }
+    return ByteCountFormatter.string(fromByteCount: count, countStyle: .binary)
 }
 
 func demoByteCount(_ count: Int) -> String {
