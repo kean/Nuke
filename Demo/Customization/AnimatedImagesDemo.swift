@@ -12,6 +12,11 @@ import SwiftUI
 /// `LazyImage` plays animated images on its own; this screen creates the
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
 /// The **Frame Pool** screen is the same thing for a wall of them.
+///
+/// The layout is a stage and a console: the picker and the animation stay put,
+/// and everything that scrolls lives in an inspector – a column beside the
+/// stage where there is room for one, a sheet below it where there isn't. The
+/// two never overlap, so there is only ever one thing to scroll.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
@@ -20,35 +25,53 @@ struct AnimatedImagesDemo: View {
     /// frame, and a view that redrew that often would be measuring itself.
     @State private var diagnostics = AnimatedImagePlayer.Diagnostics()
     @State private var status: String?
+    @State private var isShowingInfo = false
+    @State private var detent: PresentationDetent = Self.collapsedConsole
+    /// What decides how the console is presented: as a sheet in a compact
+    /// width, as a column beside the stage otherwise.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        List {
-            Section {
-                Picker("Image", selection: $image) {
-                    ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                stage
-            }
+        stage
+            .task(id: reloadKey) { await load() }
+            .onReceive(timer) { _ in sample() }
+            .inspector(isPresented: .constant(true)) { console }
+            .navigationTitle("Animated Images")
+            .demoInfoButton(isPresented: $isShowingInfo)
+    }
 
-            diagnosticsSection
-            bufferSection
-            playbackSection
-        }
-        .safeAreaInset(edge: .bottom) { transport }
-        .task(id: reloadKey) { await load() }
-        .onReceive(timer) { _ in sample() }
-        .navigationTitle("Animated Images")
-        .demoInfo(Self.info)
+    /// Whether the console is a sheet below the stage rather than a column
+    /// beside it.
+    private var isConsoleSheet: Bool {
+        horizontalSizeClass == .compact
     }
 
     // MARK: Stage
 
-    @ViewBuilder
     private var stage: some View {
+        GeometryReader { proxy in
+            VStack(spacing: 12) {
+                Picker("Image", selection: $image) {
+                    ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+
+                canvas
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            // A sheet covers the bottom edge; a column leaves it to the stage.
+            .padding(.bottom, isConsoleSheet ? 0 : 16)
+            .frame(height: stageHeight(in: proxy), alignment: .top)
+            .animation(.snappy, value: detent)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    @ViewBuilder
+    private var canvas: some View {
         ZStack {
             if let animation {
                 AnimatedImage(player: animation.player, poster: animation.poster)
@@ -59,23 +82,86 @@ struct AnimatedImagesDemo: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .padding()
             } else {
                 ProgressView()
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 220, maxHeight: 220)
-        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    /// The scrubber and the buttons, pinned below the list so that they stay
-    /// reachable wherever it is scrolled to.
+    /// The room the console leaves for the animation.
+    ///
+    /// Beside the stage, all of it. Below the stage, the console is presented
+    /// over the screen rather than next to it, so the stage has to keep clear of
+    /// it by hand. Pulling the sheet up shrinks the animation instead of
+    /// covering it, which is the point of the screen: the settings that change
+    /// the animation are no use without it in view.
+    private func stageHeight(in proxy: GeometryProxy) -> CGFloat {
+        guard isConsoleSheet else {
+            return proxy.size.height
+        }
+        let console = detent == Self.collapsedConsole
+            ? Self.collapsedConsoleHeight
+            // Everything above `.medium` covers the stage anyway, so the size
+            // it settles on there is the smallest one worth laying out.
+            : proxy.size.height / 2
+        return max(200, proxy.size.height - console)
+    }
+
+    // MARK: Console
+
+    /// Tall enough for the whole transport and the first section header under
+    /// it, which is what says there is more to pull up.
+    private static let collapsedConsoleHeight: CGFloat = 208
+    private static let collapsedConsole = PresentationDetent.height(collapsedConsoleHeight)
+
+    /// The transport, the diagnostics, and the settings.
+    ///
+    /// The transport is pinned above the list rather than being its first row,
+    /// so that the sheet pushed all the way down is always the same thing – the
+    /// play button and the scrubber – no matter where the list is scrolled to.
+    /// The presentation modifiers only have a say when the inspector is a sheet.
+    private var console: some View {
+        VStack(spacing: 0) {
+            transport
+                .padding(.horizontal, 20)
+                // The drag indicator sits in the first few points of a sheet;
+                // the transport starts below it rather than under it.
+                .padding(.top, isConsoleSheet ? 22 : 12)
+                .padding(.bottom, 16)
+            List {
+                diagnosticsSection
+                bufferSection
+                playbackSection
+            }
+            .listStyle(.insetGrouped)
+        }
+        .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
+        .presentationDetents([Self.collapsedConsole, .medium, .large], selection: $detent)
+        .presentationDragIndicator(.visible)
+        // Keeps the stage behind the sheet interactive, so the animation can be
+        // scrubbed and switched while the settings change.
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled()
+        // The console covers the sheet the toolbar button would present, so the
+        // explanation is presented from inside the inspector instead.
+        .sheet(isPresented: $isShowingInfo) {
+            DemoInfoSheet(info: Self.info)
+        }
+    }
+
     @ViewBuilder
     private var transport: some View {
         if let animation {
             DemoAnimationTransport(player: animation.player, diagnostics: diagnostics)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.bar)
+        } else {
+            Text("Loading…")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -104,12 +190,14 @@ struct AnimatedImagesDemo: View {
     private var bufferSection: some View {
         Section {
             LabeledContent("Budget") {
-                DemoMonoLabel(String(format: "%.2f MB", settings.maxBufferSizeMB ?? defaultMaxBufferSizeMB) + (settings.maxBufferSizeMB == nil ? " (default)" : ""))
+                DemoMonoLabel(settings.maxBufferSizeMB.map { String(format: "%.2f MB", $0) } ?? "no ceiling (default)")
             }
+            // The far end of the slider is no ceiling at all, which is what a
+            // player has unless it is given one: whatever the pool will spare.
             Slider(value: Binding(
-                get: { settings.maxBufferSizeMB ?? defaultMaxBufferSizeMB },
-                set: { settings.maxBufferSizeMB = $0 }
-            ), in: 0.25...32) {
+                get: { settings.maxBufferSizeMB ?? Self.maxBudgetMB },
+                set: { settings.maxBufferSizeMB = $0 < Self.maxBudgetMB ? $0 : nil }
+            ), in: 0.25...Self.maxBudgetMB) {
                 Text("Budget")
             }
             LabeledContent("Frame size") {
@@ -165,10 +253,8 @@ struct AnimatedImagesDemo: View {
         diagnostics = animation?.player.diagnostics ?? AnimatedImagePlayer.Diagnostics()
     }
 
-    /// What a player gets when the budget isn't set: a fifth of the pool.
-    private var defaultMaxBufferSizeMB: Double {
-        Double(AnimatedImageFramePool.shared.defaultMaxBufferSize) / 1_048_576
-    }
+    /// The top of the budget slider, where it stands for no ceiling at all.
+    private static let maxBudgetMB: Double = 32
 
     // MARK: Model
 
@@ -221,7 +307,7 @@ struct AnimatedImagesDemo: View {
         AnimatedImage(player: player, poster: response.image)
         """,
         points: [
-            .init("Frame buffer", "The budget is in bytes of decoded frames – the canvas at four bytes a pixel, not the size of the file – and is a fifth of the frame pool's limit unless you set it. When the whole animation fits, every frame is decoded once; below that, the buffer is the frame on screen and three ahead of it, however large the budget – a window that slides re-decodes every frame each loop no matter how long it is. `maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory."),
+            .init("Frame buffer", "The budget is in bytes of decoded frames – the canvas at four bytes a pixel, not the size of the file – and a player has none of its own unless you set one. When the whole animation fits, every frame is decoded once; below that, the buffer is the frame on screen and three ahead of it, however large the budget – a window that slides re-decodes every frame each loop no matter how long it is. `maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
             .init("Handing over from the still", "Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")

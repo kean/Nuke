@@ -12,6 +12,10 @@ import SwiftUI
 /// Add animations and every window shrinks to a share; drag the budget and
 /// they all refill. Turn on "Repeat one animation" and the wall costs what a
 /// single cell did, however many cells there are.
+///
+/// The layout is the same one the **Animated Images** screen uses: a stage that
+/// stays put, and a console in an inspector – a column beside the wall where
+/// there is room for one, a sheet below it where there isn't.
 struct AnimatedImageFramePoolDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
@@ -23,88 +27,167 @@ struct AnimatedImageFramePoolDemo: View {
     /// The limit the pool had before the screen took it over, put back on the
     /// way out: the pool is shared with every other screen in the app.
     @State private var poolCostLimit: Int?
+    @State private var isShowingInfo = false
+    @State private var detent: PresentationDetent = Self.collapsedConsole
+    /// What decides how the console is presented: as a sheet in a compact
+    /// width, as a column beside the stage otherwise.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        List {
-            Section {
+        stage
+            .task(id: reloadKey) { await load() }
+            .onReceive(timer) { _ in sample() }
+            .onChange(of: settings.poolCostLimitMB) { applyPoolCostLimit() }
+            .onAppear {
+                poolCostLimit = AnimatedImageFramePool.shared.costLimit
+                applyPoolCostLimit()
+            }
+            .onDisappear {
+                if let poolCostLimit {
+                    AnimatedImageFramePool.shared.costLimit = poolCostLimit
+                }
+            }
+            .inspector(isPresented: .constant(true)) { console }
+            .navigationTitle("Frame Pool")
+            .demoInfoButton(isPresented: $isShowingInfo)
+    }
+
+    /// Whether the console is a sheet below the stage rather than a column
+    /// beside it.
+    private var isConsoleSheet: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    // MARK: Stage
+
+    private var stage: some View {
+        GeometryReader { proxy in
+            VStack(spacing: 12) {
                 Picker("Image", selection: $image) {
                     ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                .labelsHidden()
+
                 wall
             }
-
-            poolSection
-            diagnosticsSection
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            // A sheet covers the bottom edge; a column leaves it to the stage.
+            .padding(.bottom, isConsoleSheet ? 0 : 16)
+            .frame(height: stageHeight(in: proxy), alignment: .top)
+            .animation(.snappy, value: detent)
         }
-        .safeAreaInset(edge: .bottom) { transport }
-        .task(id: reloadKey) { await load() }
-        .onReceive(timer) { _ in sample() }
-        .onChange(of: settings.poolCostLimitMB) { applyPoolCostLimit() }
-        .onAppear {
-            poolCostLimit = AnimatedImageFramePool.shared.costLimit
-            applyPoolCostLimit()
-        }
-        .onDisappear {
-            if let poolCostLimit {
-                AnimatedImageFramePool.shared.costLimit = poolCostLimit
-            }
-        }
-        .navigationTitle("Frame Pool")
-        .demoInfo(Self.info)
+        .background(Color(.systemGroupedBackground))
     }
-
-    // MARK: Wall
 
     @ViewBuilder
     private var wall: some View {
         ZStack {
             if !animations.isEmpty {
                 DemoAnimationWall(animations: animations, diagnostics: diagnostics)
+                    .padding(6)
             } else if let status {
                 Text(status)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .padding()
             } else {
                 ProgressView()
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 280, maxHeight: 280)
-        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// The room the console leaves for the wall. Beside the stage, all of it;
+    /// below it, whatever the sheet isn't covering – pulling the sheet up
+    /// shrinks the wall instead of hiding it, which is the point of the screen.
+    private func stageHeight(in proxy: GeometryProxy) -> CGFloat {
+        guard isConsoleSheet else {
+            return proxy.size.height
+        }
+        let console = detent == Self.collapsedConsole
+            ? Self.collapsedConsoleHeight
+            // Everything above `.medium` covers the stage anyway, so the size
+            // it settles on there is the smallest one worth laying out.
+            : proxy.size.height / 2
+        return max(200, proxy.size.height - console)
+    }
+
+    // MARK: Console
+
+    /// Tall enough for the whole transport and the first section header under
+    /// it, which is what says there is more to pull up.
+    private static let collapsedConsoleHeight: CGFloat = 164
+    private static let collapsedConsole = PresentationDetent.height(collapsedConsoleHeight)
+
+    /// The transport, the pool settings, and the per-animation diagnostics. The
+    /// presentation modifiers only have a say when the inspector is a sheet.
+    private var console: some View {
+        VStack(spacing: 0) {
+            transport
+                .padding(.horizontal, 20)
+                // The drag indicator sits in the first few points of a sheet;
+                // the transport starts below it rather than under it.
+                .padding(.top, isConsoleSheet ? 22 : 12)
+                .padding(.bottom, 16)
+            List {
+                poolSection
+                diagnosticsSection
+            }
+            .listStyle(.insetGrouped)
+        }
+        .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
+        .presentationDetents([Self.collapsedConsole, .medium, .large], selection: $detent)
+        .presentationDragIndicator(.visible)
+        // Keeps the stage behind the sheet interactive, so the animations can be
+        // played and switched while the settings change.
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled()
+        // The console covers the sheet the toolbar button would present, so the
+        // explanation is presented from inside the inspector instead.
+        .sheet(isPresented: $isShowingInfo) {
+            DemoInfoSheet(info: Self.info)
+        }
     }
 
     /// What applies to every animation at once. There is no one playhead to
     /// scrub, so this is all a wall's transport can be.
     private var transport: some View {
-        HStack(spacing: 12) {
-            Button {
-                let isPlaying = animations.contains { $0.player.isPlaying }
-                for animation in animations {
-                    isPlaying ? animation.player.pause() : animation.player.play()
-                }
-            } label: {
-                Label("Play All", systemImage: "playpause.fill")
-                    .frame(maxWidth: .infinity)
+        VStack(spacing: 12) {
+            HStack {
+                DemoMonoLabel("\(animations.count) animations")
+                Spacer()
+                DemoMonoLabel("\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
             }
-            .buttonStyle(.borderedProminent)
 
-            Button {
-                // The same call the pool makes for itself when the system
-                // issues a memory warning.
-                AnimatedImageFramePool.shared.reduceMemoryUsage()
-            } label: {
-                Label("Free Memory", systemImage: "memorychip")
-                    .frame(maxWidth: .infinity)
+            HStack(spacing: 12) {
+                Button {
+                    let isPlaying = animations.contains { $0.player.isPlaying }
+                    for animation in animations {
+                        isPlaying ? animation.player.pause() : animation.player.play()
+                    }
+                } label: {
+                    Label("Play All", systemImage: "playpause.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    // The same call the pool makes for itself when the system
+                    // issues a memory warning.
+                    AnimatedImageFramePool.shared.reduceMemoryUsage()
+                } label: {
+                    Label("Free Memory", systemImage: "memorychip")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(.bar)
     }
 
     // MARK: Sections
