@@ -292,7 +292,7 @@ struct DemoDiagnosticsPanel: View {
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             DemoBufferMap(player: player, diagnostics: diagnostics, onScrub: onScrub)
             if let transport {
                 transport
@@ -302,31 +302,42 @@ struct DemoDiagnosticsPanel: View {
         }
     }
 
-    /// Nine lines, each short enough for the column: the figures that swing
-    /// are padded so that the words after them stay put.
+    /// The figures in clusters – playback, the decoder, the clock, the
+    /// pixels and their cost – a breath between clusters and a tight line
+    /// within, so the rows read as four things rather than a wall. Each line
+    /// is short enough for the column, and the figures that swing are padded
+    /// so that the words after them stay put.
     private var grid: some View {
         let frameCount = diagnostics.frameCount
         let frame = demoPad("\(diagnostics.currentFrameIndex + 1)", to: "\(frameCount)".count)
         let buffered = demoPad("\(diagnostics.bufferedFrameCount)", to: "\(diagnostics.bufferCapacity)".count)
-        return VStack(spacing: 6) {
-            DemoDiagnosticsRow("frame", "\(frame)/\(frameCount) · \(demoDelay(currentDelay)) · loop \(diagnostics.completedLoopCount)")
-            DemoDiagnosticsRow("buffer", "\(buffered)/\(diagnostics.bufferCapacity) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 7)) of \(demoByteCount(diagnostics.bufferByteLimit))")
-            DemoDiagnosticsRow("decoded", "\(diagnostics.decodedFrameCount) frames · \(demoDuration(totalDecodeDuration)) decoding")
-            DemoDiagnosticsRow("decode", "\(demoMilliseconds(diagnostics.lastDecodeDuration)) · \(demoMilliseconds(diagnostics.averageDecodeDuration)) avg · \(demoMilliseconds(diagnostics.maxDecodeDuration)) max")
-            DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate)) · \(frameRatePercent)%")
-            DemoDiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(demoSeconds(diagnostics.playbackTime))")
-            DemoDiagnosticsRow(
-                "late",
-                "\(diagnostics.bufferMissCount) frames not ready in time",
-                tint: diagnostics.bufferMissCount > 0 ? .orange : nil
-            )
-            DemoDiagnosticsRow("size", size, tint: decodedSize == nil ? nil : .accentColor)
-            if let screen {
-                DemoDiagnosticsRow("screen", screen.text, tint: screen.tint)
+        return VStack(alignment: .leading, spacing: 10) {
+            VStack(spacing: 4) {
+                DemoDiagnosticsRow("frame", "\(frame)/\(frameCount) · \(demoDelay(currentDelay)) · loop \(diagnostics.completedLoopCount)")
+                DemoDiagnosticsRow("buffer", "\(buffered)/\(diagnostics.bufferCapacity) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 7)) of \(demoByteCount(diagnostics.bufferByteLimit))")
             }
-            DemoDiagnosticsRow("cost", "\(demoByteCount(bytesPerDecodedFrame)) × \(frameCount) = \(demoByteCount(bytesPerDecodedFrame * frameCount))")
-            if diagnostics.sharingPlayerCount > 1 {
-                DemoDiagnosticsRow("shared", "\(diagnostics.sharingPlayerCount) players on these frames", tint: .accentColor)
+            VStack(spacing: 4) {
+                DemoDiagnosticsRow("decoded", "\(diagnostics.decodedFrameCount) frames · \(demoDuration(totalDecodeDuration)) decoding")
+                DemoDiagnosticsRow("decode", "\(demoMilliseconds(diagnostics.lastDecodeDuration)) · \(demoMilliseconds(diagnostics.averageDecodeDuration)) avg · \(demoMilliseconds(diagnostics.maxDecodeDuration)) max")
+            }
+            VStack(spacing: 4) {
+                DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate)) · \(frameRatePercent)%")
+                DemoDiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(demoSeconds(diagnostics.playbackTime))")
+                DemoDiagnosticsRow(
+                    "late",
+                    "\(diagnostics.bufferMissCount) frames not ready in time",
+                    tint: diagnostics.bufferMissCount > 0 ? .orange : nil
+                )
+            }
+            VStack(spacing: 4) {
+                DemoDiagnosticsRow("size", size, tint: decodedSize == nil ? nil : .accentColor)
+                if let screen {
+                    DemoDiagnosticsRow("screen", screen.text, tint: screen.tint)
+                }
+                DemoDiagnosticsRow("cost", "\(demoByteCount(bytesPerDecodedFrame)) × \(frameCount) = \(demoByteCount(bytesPerDecodedFrame * frameCount))")
+                if diagnostics.sharingPlayerCount > 1 {
+                    DemoDiagnosticsRow("shared", "\(diagnostics.sharingPlayerCount) players on these frames", tint: .accentColor)
+                }
             }
         }
     }
@@ -514,30 +525,36 @@ struct DemoAnimationDetails: View {
     let info: DemoAnimationInfo?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if delaysVary {
                 DemoDelayMap(delays: source.delays, currentFrameIndex: diagnostics.currentFrameIndex)
                 Divider()
             }
-            VStack(spacing: 6) {
-                DemoDiagnosticsRow("format", format)
-                DemoDiagnosticsRow("canvas", "\(demoPixels(source.size)) px · \(demoByteCount(source.bytesPerFrame))/frame")
-                DemoDiagnosticsRow("frames", "\(source.frameCount) · \(demoSeconds(source.duration)) per loop · \(String(format: "%.1f", source.nominalFrameRate)) fps")
-                DemoDiagnosticsRow("delay", delay)
-                if let info, info.clampedFrameCount > 0 {
-                    DemoDiagnosticsRow(
-                        "clamped",
-                        "\(info.clampedFrameCount) frames under \(demoDelay(AnimatedImageSource.minimumDelay)) → \(demoDelay(AnimatedImageSource.defaultDelay))",
-                        tint: .orange
-                    )
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(spacing: 4) {
+                    DemoDiagnosticsRow("format", format)
+                    DemoDiagnosticsRow("canvas", "\(demoPixels(source.size)) px · \(demoByteCount(source.bytesPerFrame))/frame")
+                    DemoDiagnosticsRow("frames", "\(source.frameCount) · \(demoSeconds(source.duration)) per loop · \(String(format: "%.1f", source.nominalFrameRate)) fps")
                 }
-                DemoDiagnosticsRow("loops", loops)
-                DemoDiagnosticsRow("encoded", "\(demoByteCount(source.data.count)) · \(demoByteCount(source.data.count / source.frameCount))/frame")
-                DemoDiagnosticsRow("stored", info.map { $0.storedPixelFormat ?? "unknown" } ?? "parsing…")
-                if let profile = info?.colorProfile {
-                    DemoDiagnosticsRow("profile", profile)
+                VStack(spacing: 4) {
+                    DemoDiagnosticsRow("delay", delay)
+                    if let info, info.clampedFrameCount > 0 {
+                        DemoDiagnosticsRow(
+                            "clamped",
+                            "\(info.clampedFrameCount) frames under \(demoDelay(AnimatedImageSource.minimumDelay)) → \(demoDelay(AnimatedImageSource.defaultDelay))",
+                            tint: .orange
+                        )
+                    }
+                    DemoDiagnosticsRow("loops", loops)
                 }
-                DemoDiagnosticsRow("bitmap", bitmap)
+                VStack(spacing: 4) {
+                    DemoDiagnosticsRow("encoded", "\(demoByteCount(source.data.count)) · \(demoByteCount(source.data.count / source.frameCount))/frame")
+                    DemoDiagnosticsRow("stored", info.map { $0.storedPixelFormat ?? "unknown" } ?? "parsing…")
+                    if let profile = info?.colorProfile {
+                        DemoDiagnosticsRow("profile", profile)
+                    }
+                    DemoDiagnosticsRow("bitmap", bitmap)
+                }
             }
         }
     }

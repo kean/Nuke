@@ -14,7 +14,7 @@ import SwiftUI
 /// The **Frame Pool** screen is the same thing for a wall of them.
 ///
 /// The layout is a stage and a console: the animation stays put with the zoom
-/// under it, the image is picked from the title's menu, playback lives on the
+/// in its corner, the image is picked from the title's menu, playback lives on the
 /// transport under the buffer map, and
 /// everything else lives in an inspector – a column beside the stage where
 /// there is room for one, a sheet below it where there isn't. The console is
@@ -35,7 +35,7 @@ struct AnimatedImagesDemo: View {
     @State private var isShowingImageDetails = false
     @State private var detent: PresentationDetent = Self.collapsedConsole
     /// How large the animation is drawn on the stage. Natural size, until
-    /// the zoom control under the canvas says otherwise.
+    /// the zoom control in the canvas corner says otherwise.
     @State private var zoom: DisplayZoom = .scale(1)
     /// The zoom a pinch began from, as a scale of the natural size, which is
     /// what the pinch multiplies.
@@ -58,14 +58,16 @@ struct AnimatedImagesDemo: View {
             .task(id: reloadKey) { await load() }
             .task(id: displayedSize) { await settleDisplaySize() }
             .onReceive(timer) { _ in sample() }
-            .inspector(isPresented: .constant(true)) { console }
             // The title is the image, the way a title menu wants it: it names
-            // what the menu under it switches.
+            // what the menu under it switches. The title, its menu, and the
+            // info button come before `inspector`, which scopes them to the
+            // stage: after it they drift into the console's column.
             .navigationTitle(image.title)
             .toolbarTitleMenu {
                 ImageMenu(image: $image, current: image).equatable()
             }
             .demoInfoButton(isPresented: $isShowingInfo)
+            .inspector(isPresented: .constant(true)) { console }
     }
 
     /// Whether the console is a sheet below the stage rather than a column
@@ -78,20 +80,14 @@ struct AnimatedImagesDemo: View {
 
     private var stage: some View {
         GeometryReader { proxy in
-            VStack(spacing: 10) {
-                canvas
-                // Under the frame, where a preview canvas keeps its zoom.
-                if animation != nil {
-                    ZoomMenu(zoom: $zoom, current: zoom).equatable()
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            // A sheet covers the bottom edge; a column leaves it to the
-            // stage.
-            .padding(.bottom, isConsoleSheet ? 0 : 16)
-            .frame(height: stageHeight(in: proxy), alignment: .top)
-            .animation(.snappy, value: detent)
+            canvas
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                // A sheet covers the bottom edge; a column leaves it to the
+                // stage.
+                .padding(.bottom, isConsoleSheet ? 0 : 16)
+                .frame(height: stageHeight(in: proxy), alignment: .top)
+                .animation(.snappy, value: detent)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -126,9 +122,14 @@ struct AnimatedImagesDemo: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .gesture(pinch)
+        .overlay(alignment: .bottomTrailing) {
+            if animation != nil {
+                ZoomMenu(zoom: $zoom, current: zoom).equatable().padding(10)
+            }
+        }
     }
 
-    /// The zoom control under the canvas: the named sizes,
+    /// The zoom control a preview canvas has in its corner: the named sizes,
     /// then the percentages of the natural one. Whatever a pinch left the zoom
     /// at is named by its percentage and checks nothing.
     ///
@@ -409,7 +410,7 @@ struct AnimatedImagesDemo: View {
                     animation.player.pause()
                     animation.player.seek(toFrame: index)
                 }
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                 DisclosureGroup(isExpanded: $isShowingImageDetails) {
                     DemoAnimationDetails(player: animation.player, diagnostics: diagnostics, info: infos[image])
                         .padding(.vertical, 4)

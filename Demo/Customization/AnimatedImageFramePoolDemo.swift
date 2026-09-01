@@ -49,9 +49,12 @@ struct AnimatedImageFramePoolDemo: View {
                     AnimatedImageFramePool.shared.costLimit = poolCostLimit
                 }
             }
-            .inspector(isPresented: .constant(true)) { console }
+            // The title and the info button come before `inspector`, which
+            // scopes them to the stage: after it they drift into the
+            // console's column.
             .navigationTitle("Frame Pool")
             .demoInfoButton(isPresented: $isShowingInfo)
+            .inspector(isPresented: .constant(true)) { console }
     }
 
     /// Whether the console is a sheet below the stage rather than a column
@@ -143,27 +146,21 @@ struct AnimatedImageFramePoolDemo: View {
 
     // MARK: Console
 
-    /// Tall enough for the whole transport and the first section header under
-    /// it, which is what says there is more to pull up.
-    private static let collapsedConsoleHeight: CGFloat = 164
+    /// Tall enough for the pool meter and a first row under it, which is what
+    /// says there is more to pull up.
+    private static let collapsedConsoleHeight: CGFloat = 208
     private static let collapsedConsole = PresentationDetent.height(collapsedConsoleHeight)
 
-    /// The transport, the pool settings, and the per-animation diagnostics. The
-    /// presentation modifiers only have a say when the inspector is a sheet.
+    /// The pool settings and the per-animation diagnostics, and nothing pinned
+    /// above them – the way the Animated Images console is all list, so there
+    /// is only one thing to scroll and it all scrolls. The presentation
+    /// modifiers only have a say when the inspector is a sheet.
     private var console: some View {
-        VStack(spacing: 0) {
-            transport
-                .padding(.horizontal, 20)
-                // The drag indicator sits in the first few points of a sheet;
-                // the transport starts below it rather than under it.
-                .padding(.top, isConsoleSheet ? 22 : 12)
-                .padding(.bottom, 16)
-            List {
-                poolSection
-                diagnosticsSection
-            }
-            .listStyle(.insetGrouped)
+        List {
+            poolSection
+            diagnosticsSection
         }
+        .listStyle(.insetGrouped)
         .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
         .presentationDetents([Self.collapsedConsole, .medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
@@ -178,17 +175,17 @@ struct AnimatedImageFramePoolDemo: View {
         }
     }
 
-    /// What applies to every animation at once. There is no one playhead to
-    /// scrub, so this is all a wall's transport can be.
-    private var transport: some View {
-        VStack(spacing: 12) {
-            HStack {
-                DemoMonoLabel("\(animations.count) animations")
-                Spacer()
-                DemoMonoLabel("\(demoPad(demoByteCount(pool.totalCost), to: 8)) of \(demoByteCount(pool.costLimit))")
-                    .lineLimit(1)
-            }
+    // MARK: Sections
 
+    private var poolSection: some View {
+        Section {
+            DemoPoolMeter(pool: pool)
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+            // What the old pinned transport did, as a row of the section it
+            // was about: everything at once, or the same memory warning the
+            // pool gives itself.
+            // The buttons at their natural size, centered: halves of the row
+            // would truncate "Free Memory" on an iPhone.
             HStack(spacing: 12) {
                 Button {
                     let isPlaying = animations.contains { $0.player.isPlaying }
@@ -197,7 +194,6 @@ struct AnimatedImageFramePoolDemo: View {
                     }
                 } label: {
                     Label("Play All", systemImage: "playpause.fill")
-                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
 
@@ -207,19 +203,10 @@ struct AnimatedImageFramePoolDemo: View {
                     AnimatedImageFramePool.shared.reduceMemoryUsage()
                 } label: {
                     Label("Free Memory", systemImage: "memorychip")
-                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
             }
-        }
-    }
-
-    // MARK: Sections
-
-    private var poolSection: some View {
-        Section {
-            DemoPoolMeter(pool: pool)
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+            .frame(maxWidth: .infinity)
             LabeledContent("Budget") {
                 DemoMonoLabel(String(format: "%.0f MB", settings.poolCostLimitMB))
             }

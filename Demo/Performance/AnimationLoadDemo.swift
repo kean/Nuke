@@ -64,9 +64,12 @@ struct AnimationLoadDemo: View {
                     AnimatedImageFramePool.shared.costLimit = poolCostLimit
                 }
             }
-            .inspector(isPresented: .constant(true)) { console }
+            // The title and the info button come before `inspector`, which
+            // scopes them to the stage: after it they drift into the
+            // console's column.
             .navigationTitle("Animation Load")
             .demoInfoButton(isPresented: $isShowingInfo)
+            .inspector(isPresented: .constant(true)) { console }
     }
 
     /// Whether the console is a sheet below the stage rather than a column
