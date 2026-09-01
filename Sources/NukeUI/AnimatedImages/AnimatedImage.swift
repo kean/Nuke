@@ -219,7 +219,9 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         // it is what the view reads the image scale from – a player built at
         // the wrong scale changes size the moment it starts playing.
         if let poster, view.player?.image == nil {
-            view.image = poster
+            // Not `image`, which would stop the animation the poster is
+            // standing in for.
+            view.setImageKeepingAnimation(poster)
         }
         if let player {
             view.player = player

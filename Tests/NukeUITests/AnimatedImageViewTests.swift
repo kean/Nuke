@@ -185,6 +185,48 @@ struct AnimatedImageViewTests {
     }
 #endif
 
+    @Test func settingAnImageStopsTheAnimation() async throws {
+        let host = TestWindow(view: view)
+        await display(Test.animatedGIF())
+        #expect(view.isPlaying)
+        let placeholder = Test.image
+
+        view.image = placeholder
+
+        // The animation would paint over the placeholder on its next frame.
+        #expect(view.image === placeholder)
+        #expect(view.isPlaying == false)
+        #expect(view.player == nil)
+        #expect(view.animatedImage == nil)
+        host.close()
+    }
+
+    @Test func settingAnImageCancelsAParseInFlight() async throws {
+        view.nuke_display(image: nil, data: unparsedGIF(frameCount: 4))
+        let parse = try #require(view.pendingParse)
+
+        view.image = Test.image
+        await parse.value
+
+        // The animation the parse was for arrives after the placeholder and
+        // has no business replacing it.
+        #expect(view.player == nil)
+        #expect(view.animatedImage == nil)
+    }
+
+    @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        let player = AnimatedImagePlayer(source: source)
+        await player.buffer.waitUntilFull()
+        view.player = player
+
+        player.seek(toFrame: 1)
+
+        #expect(view.image != nil)
+        #expect(view.player === player)
+        #expect(view.animatedImage === source)
+    }
+
     // MARK: Downsampling
 
     @Test func decodesTheFramesNoLargerThanTheView() async throws {

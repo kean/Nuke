@@ -76,9 +76,9 @@ public final class AnimatedImageView: _PlatformImageView {
             // at 20 frames a second. Frames whose size actually changes cost
             // 55-99µs each and a layout pass every one of them, which is what
             // makes this worth writing down rather than measuring again.
-            player?.onFrameForDisplay = { [weak self] in self?.image = $0 }
+            player?.onFrameForDisplay = { [weak self] in self?.setImageKeepingAnimation($0) }
             if let image = player?.image {
-                self.image = image
+                setImageKeepingAnimation(image)
             }
             updatePlaybackState()
         }
@@ -216,6 +216,29 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // MARK: Displaying Images
 
+    /// The image on screen: the frame the animation is showing while it plays,
+    /// and whatever you set otherwise.
+    ///
+    /// Setting it stops the animation and forgets it. The view has one place to
+    /// show an image and an animation left playing would paint over it on its
+    /// next frame – a placeholder put on screen while an animation is running
+    /// would appear for a frame and vanish. Set ``animatedImage`` to play a new
+    /// one, or ``isPlaybackEnabled`` to hold the one that is playing still.
+    override public var image: PlatformImage? {
+        get { super.image }
+        set {
+            animatedImage = nil
+            super.image = newValue
+        }
+    }
+
+    /// Puts an image on screen without stopping the animation: a frame the
+    /// player produced, or the still that holds its place until the first one
+    /// is decoded.
+    func setImageKeepingAnimation(_ image: PlatformImage?) {
+        super.image = image
+    }
+
     /// Displays the image, playing it if the pipeline recognized it as animated.
     ///
     /// This is the entry point the ``loadImage(with:options:into:completion:)-(URL?,_,_,_)``
@@ -258,7 +281,7 @@ public final class AnimatedImageView: _PlatformImageView {
         // Only while there is no frame to cover, so that an animation already
         // on screen doesn't flash its poster to show what it is already past.
         if player?.image == nil {
-            self.image = image
+            setImageKeepingAnimation(image)
         }
     }
 
@@ -283,6 +306,7 @@ public final class AnimatedImageView: _PlatformImageView {
         animatedImage = nil
         image = nil
     }
+
 
     // MARK: Layout
 
