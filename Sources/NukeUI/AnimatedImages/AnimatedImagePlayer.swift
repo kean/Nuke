@@ -99,7 +99,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// Creates a player for the given image.
     public convenience init(source: AnimatedImageSource, options: Options = Options()) {
-        self.init(source: source, options: options, clock: AnimatedImageClockDriver.shared.makeClock())
+        self.init(source: source, options: options, clock: makeAnimatedImageClock())
     }
 
     init(
@@ -139,7 +139,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     deinit {
         // A `deinit` isn't on the main actor, so the pool is asked to divide
         // the budget on the next turn, which also sweeps this player out of
-        // the store. The clock stops itself the same way.
+        // the store. The clock goes with the player and stops itself.
         pool.setNeedsRebalance()
     }
 

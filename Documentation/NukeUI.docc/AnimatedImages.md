@@ -190,7 +190,7 @@ Playback follows the wall clock rather than the decoder: an animation that takes
 
 The frames are decoded at the priority of the screen. With two frames of read-ahead, every decode is one the display is about to wait for, and the decoder is paced by playback – one frame per frame shown – rather than by how much memory there is, which is what keeps a wall of animations from turning into CPU-bound work.
 
-Every animation in the process is driven by a single display link, which runs while any of them is playing and asks for no more than the fastest one needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of.
+Each player is driven by a display link of its own, which runs while the player is playing and asks for no more than its animation needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of. The system folds every link in the process into one wakeup per refresh, so a screen of them costs what one does.
 
 ## Topics
 
