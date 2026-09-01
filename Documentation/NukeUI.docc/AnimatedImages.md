@@ -32,7 +32,7 @@ LazyImage(url: url) { state in
 }
 ```
 
-``LazyImageState/animatedImage`` is `nil` for everything that isn't animated, which is the signal to display the still image. Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable(contentMode:)``, and it lays out the way an `Image` does after that: `.fit` takes the size the frames occupy, `.fill` covers what it is offered and clips the rest.
+``LazyImageState/animatedImage`` is `nil` for everything that isn't animated, which is the signal to display the still image. Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable()``, and it lays out the way an `Image` does after that – `scaledToFit()`, `scaledToFill()`, `frame(width:height:)`, and the rest.
 
 ### UIKit and AppKit
 
@@ -53,7 +53,6 @@ NukeUI.loadImage(with: url, into: imageView)
 
 A plain `UIImageView` shows the still frame instead.
 
-On macOS, `NSImageView.imageScaling` only ever fits the image inside the view. `AnimatedImageView.isAspectFillEnabled` is the missing aspect-fill mode – the view draws the frames itself while it is on – and it is what ``AnimatedImage/resizable(contentMode:)`` uses for `.fill`.
 
 The view plays only while it is in a window, so an animation in a cell that scrolls out of sight stops decoding frames and picks up where it left off when it comes back. Call ``AnimatedImageView/prepareForReuse()`` from your cell's `prepareForReuse()`.
 

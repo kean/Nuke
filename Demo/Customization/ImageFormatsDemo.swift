@@ -34,7 +34,7 @@ struct ImageFormatsDemo: View {
                     DemoExample("Animated GIF", caption: "state.animatedImage, played by NukeUI") {
                         LazyImage(url: DemoImages.gif) { state in
                             if let animatedImage = state.animatedImage {
-                                AnimatedImage(animatedImage).resizable(contentMode: .fill)
+                                AnimatedImage(animatedImage).resizable().scaledToFill()
                             } else if let image = state.image {
                                 image.resizable().scaledToFill()
                             } else {

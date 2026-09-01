@@ -167,7 +167,8 @@ struct AnimatedImagesDemo: View {
         ZStack {
             if animations.count == 1, let animation = animations.first {
                 AnimatedImage(player: animation.player, poster: animation.poster)
-                    .resizable(contentMode: settings.contentMode)
+                    .resizable()
+                    .aspectRatio(contentMode: settings.contentMode)
             } else if !animations.isEmpty {
                 DemoAnimationWall(animations: animations, diagnostics: diagnostics)
             } else if let status {
@@ -324,7 +325,8 @@ private struct DemoAnimationWall: View {
         if index < animations.count {
             let animation = animations[index]
             AnimatedImage(player: animation.player, poster: animation.poster)
-                .resizable(contentMode: .fill)
+                .resizable()
+                .scaledToFill()
                 .overlay(alignment: .bottom) { badge(at: index) }
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         } else {

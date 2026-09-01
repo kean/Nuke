@@ -17,8 +17,7 @@ struct AnimatedImageLayoutTests {
         let size = animatedImageSize(
             for: ProposedViewSize(width: 50, height: 50),
             source: wide,
-            isResizable: false,
-            contentMode: .fit
+            isResizable: false
         )
 
         #expect(size == wide)
@@ -28,8 +27,7 @@ struct AnimatedImageLayoutTests {
         let size = animatedImageSize(
             for: ProposedViewSize(width: 100, height: 100),
             source: wide,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
 
         // The size the frames occupy, not the square they were offered, so that
@@ -38,30 +36,30 @@ struct AnimatedImageLayoutTests {
         #expect(size == CGSize(width: 100, height: 50))
     }
 
-    @Test func coversWhatItIsOfferedWhenItFills() {
+    @Test func returnsWhatScaledToFillProposes() {
+        // `scaledToFill()` is what covers a box: for a square box it proposes
+        // the 200×100 that covers it, which already matches the animation, so
+        // there is nothing left to fit and this hands the proposal back. The
+        // parent clips what hangs over the edge.
         let size = animatedImageSize(
-            for: ProposedViewSize(width: 100, height: 100),
+            for: ProposedViewSize(width: 200, height: 100),
             source: wide,
-            isResizable: true,
-            contentMode: .fill
+            isResizable: true
         )
 
-        // The view clips what hangs over the edge.
-        #expect(size == CGSize(width: 100, height: 100))
+        #expect(size == CGSize(width: 200, height: 100))
     }
 
     @Test func derivesTheOtherSideFromTheAspectRatio() {
         let width = animatedImageSize(
             for: ProposedViewSize(width: 50, height: nil),
             source: wide,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
         let height = animatedImageSize(
             for: ProposedViewSize(width: nil, height: 50),
             source: wide,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
 
         #expect(width == CGSize(width: 50, height: 25))
@@ -72,8 +70,7 @@ struct AnimatedImageLayoutTests {
         let size = animatedImageSize(
             for: ProposedViewSize(width: nil, height: nil),
             source: wide,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
 
         #expect(size == wide)
@@ -83,8 +80,7 @@ struct AnimatedImageLayoutTests {
         let size = animatedImageSize(
             for: ProposedViewSize(width: .infinity, height: .infinity),
             source: wide,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
 
         #expect(size == wide)
@@ -94,8 +90,7 @@ struct AnimatedImageLayoutTests {
         let size = animatedImageSize(
             for: ProposedViewSize(width: 100, height: 100),
             source: .zero,
-            isResizable: true,
-            contentMode: .fit
+            isResizable: true
         )
 
         #expect(size == nil)
@@ -104,36 +99,36 @@ struct AnimatedImageLayoutTests {
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-/// Covers the other half of laying out like an `Image`: the content mode, which
-/// the platform view applies to the frames once the size is settled.
+/// Covers the other half of laying out like an `Image`: what the platform view
+/// does with the frames once the size is settled.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImageContentModeTests {
-    @Test func followsAContentModeThatChanges() async throws {
-        // SwiftUI reuses the view across updates, so a content mode read only
-        // when the view is created is the one it keeps for good.
+    @Test func fitsTheFramesInsideTheSizeItWasGiven() async throws {
+        // The view is sized to the animation's aspect ratio, so fitting the
+        // frames inside it is what covers it: `scaledToFill()` is a larger box
+        // to fit them into, not a different content mode.
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let host = ViewHost(ContentMode.fit) { contentMode in
-            AnimatedImage(source).resizable(contentMode: contentMode)
+        let host = ViewHost(false) { isFilling in
+            if isFilling {
+                AnimatedImage(source).resizable().scaledToFill()
+            } else {
+                AnimatedImage(source).resizable()
+            }
         }
         await host.render(until: { host.firstView(ofType: AnimatedImageView.self) != nil })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
-        #expect(scaling(of: view) == .fit)
+        #expect(fitsTheFrames(view))
 
-        await host.update(.fill)
+        await host.update(true)
 
-        #expect(scaling(of: view) == .fill)
+        #expect(fitsTheFrames(view))
     }
 
-    private func scaling(of view: AnimatedImageView) -> ContentMode? {
+    private func fitsTheFrames(_ view: AnimatedImageView) -> Bool {
 #if os(macOS)
-        // `imageScaling` only ever fits, so `.fill` is the view's own drawing.
-        view.isAspectFillEnabled ? .fill : .fit
+        view.imageScaling == .scaleProportionallyUpOrDown
 #else
-        switch view.contentMode {
-        case .scaleAspectFit: .fit
-        case .scaleAspectFill: .fill
-        default: nil
-        }
+        view.contentMode == .scaleAspectFit
 #endif
     }
 }

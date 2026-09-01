@@ -28,11 +28,11 @@ struct AnimatedImageViewTests {
         view.nuke_display(container)
     }
 
-    /// Asks the view to cover itself with the frames, which is a content mode
-    /// on UIKit and a view of its own on AppKit.
+    /// Asks the view to cover itself with the frames, which only UIKit has a
+    /// content mode for: on AppKit every `imageScaling` fits.
     private func fillTheView() {
 #if os(macOS)
-        view.isAspectFillEnabled = true
+        view.imageScaling = .scaleAxesIndependently
 #else
         view.contentMode = .scaleAspectFill
 #endif
@@ -563,19 +563,6 @@ struct AnimatedImageViewTests {
         // `NSImage` on a timer of its own – beside the player, and under a view
         // that is meant to be holding a still.
         #expect(view.animates == false)
-    }
-
-    @Test func coversTheViewWithTheFrames() throws {
-        // `NSImageView` has no aspect-fill scaling mode – every value of
-        // `imageScaling` fits – so the view draws that one itself.
-        view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
-        view.image = wideImage()
-
-        view.isAspectFillEnabled = true
-
-        // A 4:1 image covering a square view leaves the middle quarter of it
-        // on screen, which straddles the green and blue bands.
-        #expect(try corners(of: view) == [.green, .blue, .green, .blue])
     }
 
     @Test func fitsTheFramesInsideTheViewByDefault() throws {

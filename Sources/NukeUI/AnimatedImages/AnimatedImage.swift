@@ -22,11 +22,11 @@ import SwiftUI
 /// ```
 ///
 /// The view sizes itself the way `Image` does: at the natural size of the
-/// animation until you call ``resizable(contentMode:)``, after which it takes
-/// the size it is offered and the usual layout modifiers apply.
+/// animation until you call ``resizable()``, after which the usual layout
+/// modifiers apply, `scaledToFill()` included.
 ///
 /// ```swift
-/// AnimatedImage(source).resizable().scaledToFit()
+/// AnimatedImage(source).resizable().scaledToFill()
 /// ```
 ///
 /// Playback stops while the view is off screen and picks up where it left off
@@ -39,7 +39,6 @@ public struct AnimatedImage: View {
     private let source: AnimatedImageSource
     private let player: AnimatedImagePlayer?
     private let poster: PlatformImage?
-    private var contentMode: ContentMode = .fit
     private var isResizable = false
 
     /// Plays the given animated image.
@@ -78,18 +77,16 @@ public struct AnimatedImage: View {
         self.init(source, poster: container.image)
     }
 
-    /// Lets the animation be resized to the space it is given, the way
-    /// `Image.resizable()` does.
+    /// Lets the animation be resized to the space it is given.
     ///
-    /// - parameter contentMode: How the frames fill the view once it has been
-    /// sized. `.fit` by default, which lays out like
-    /// `Image.resizable().scaledToFit()`: the view takes the size the frames
-    /// occupy rather than the box they were offered, so a background or a clip
-    /// shape wraps the animation. `.fill` covers the box and clips the rest.
-    public consuming func resizable(contentMode: ContentMode = .fit) -> Self {
+    /// It lays out like `Image.resizable().scaledToFit()`: the view takes the
+    /// size the frames occupy rather than the box it was offered, so a
+    /// background or a clip shape wraps the animation. Add `scaledToFill()` to
+    /// cover the box instead, and `clipped()` to trim what hangs over the edge
+    /// – the same modifiers, doing the same thing, as for an `Image`.
+    public consuming func resizable() -> Self {
         var copy = self
         copy.isResizable = true
-        copy.contentMode = contentMode
         return copy
     }
 
@@ -104,9 +101,9 @@ public struct AnimatedImage: View {
     @ViewBuilder
     private func renderer(isPlaybackEnabled: Bool) -> some View {
 #if os(watchOS)
-        AnimatedImageRenderer(source: source, player: player, poster: poster, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
+        AnimatedImageRenderer(source: source, player: player, poster: poster, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #else
-        AnimatedImageRepresentable(source: source, player: player, poster: poster, contentMode: contentMode, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
+        AnimatedImageRepresentable(source: source, player: player, poster: poster, isResizable: isResizable, isPlaybackEnabled: isPlaybackEnabled)
 #endif
     }
 }
@@ -134,8 +131,7 @@ private struct AutoPlayReader<Content: View>: View {
 func animatedImageSize(
     for proposal: ProposedViewSize,
     source size: CGSize,
-    isResizable: Bool,
-    contentMode: ContentMode
+    isResizable: Bool
 ) -> CGSize? {
     guard size.width > 0, size.height > 0 else { return nil }
     guard isResizable else {
@@ -149,13 +145,10 @@ func animatedImageSize(
     case let (nil, height?):
         return CGSize(width: height * size.width / size.height, height: height)
     case let (width?, height?):
-        // `.fill` covers what it is offered and clips what hangs over the
-        // edge, which is `scaledToFill()` followed by `clipped()`.
-        guard contentMode == .fit else {
-            return CGSize(width: width, height: height)
-        }
-        // `.fit` reports the size the frames actually occupy, the way
-        // `Image.resizable().scaledToFit()` does.
+        // The size the frames actually occupy, the way
+        // `Image.resizable().scaledToFit()` reports it. `scaledToFill()`
+        // proposes a size that already matches the animation, which this
+        // returns unchanged.
         let scale = min(width / size.width, height / size.height)
         guard scale.isFinite else { return size }
         return CGSize(width: size.width * scale, height: size.height * scale)
@@ -176,7 +169,6 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     let source: AnimatedImageSource
     let player: AnimatedImagePlayer?
     let poster: PlatformImage?
-    let contentMode: ContentMode
     let isResizable: Bool
     let isPlaybackEnabled: Bool
 
@@ -200,12 +192,13 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     private func update(_ view: AnimatedImageView) {
         // Before the animation, whose arrival is what starts playback.
         view.isPlaybackEnabled = isPlaybackEnabled
+        // Always fitting: the view is sized to the frames' aspect ratio, so
+        // fitting them inside it is what covers it. `scaledToFill()` is a
+        // larger size to fit them into, not a different mode.
 #if os(macOS)
-        // `NSImageView` has no aspect-fill mode; the view draws that one itself.
-        view.isAspectFillEnabled = contentMode == .fill
         view.imageScaling = .scaleProportionallyUpOrDown
 #else
-        view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
+        view.contentMode = .scaleAspectFit
 #endif
         // Before the animation, and only while there is no frame to cover: the
         // still holds the place until the first frame is decoded, and it is
@@ -224,7 +217,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     /// Reports the size the animation wants, so that the view behaves like an
     /// `Image` rather than collapsing or filling everything it is offered.
     private func size(for proposal: ProposedViewSize) -> CGSize? {
-        animatedImageSize(for: proposal, source: source.size, isResizable: isResizable, contentMode: contentMode)
+        animatedImageSize(for: proposal, source: source.size, isResizable: isResizable)
     }
 
 #if os(macOS)
@@ -251,7 +244,6 @@ private struct AnimatedImageRenderer: View {
     let source: AnimatedImageSource
     let player: AnimatedImagePlayer?
     let poster: PlatformImage?
-    let contentMode: ContentMode
     let isResizable: Bool
     let isPlaybackEnabled: Bool
 
@@ -293,12 +285,12 @@ private struct AnimatedImageRenderer: View {
         // The still holds the place until the first frame is decoded.
         if let image = model.image ?? poster {
             if isResizable {
-                Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)
+                Image(uiImage: image).resizable().scaledToFit()
             } else {
                 Image(uiImage: image)
             }
         } else if isResizable {
-            Color.clear.aspectRatio(aspectRatio, contentMode: contentMode)
+            Color.clear.aspectRatio(aspectRatio, contentMode: .fit)
         } else {
             Color.clear.frame(width: source.size.width, height: source.size.height)
         }
