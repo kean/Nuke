@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import CoreGraphics
 import NukeUI
 import SwiftUI
 
@@ -30,6 +31,13 @@ struct AnimatedImagesDemo: View {
     /// Sampled on a timer rather than observed: the diagnostics change on every
     /// frame, and a view that redrew that often would be measuring itself.
     @State private var diagnostics = AnimatedImagePlayer.Diagnostics()
+    /// The pool, sampled on the same timer, for the panel's closing line: this
+    /// player's cost against the ceiling every animation shares.
+    @State private var pool = DemoPoolDiagnostics()
+    /// The players behind the extra copies of the animation on the stage. The
+    /// first copy is ``animation``'s own player; these draw from the same
+    /// decoded frames.
+    @State private var extraPlayers: [AnimatedImagePlayer] = []
     @State private var status: String?
     @State private var isShowingInfo = false
     @State private var isShowingImageDetails = false
@@ -56,6 +64,7 @@ struct AnimatedImagesDemo: View {
     var body: some View {
         stage
             .task(id: reloadKey) { await load() }
+            .task(id: copiesKey) { rebuildCopies() }
             .task(id: displayedSize) { await settleDisplaySize() }
             .onReceive(timer) { _ in sample() }
             // The title is the image, the way a title menu wants it: it names
@@ -101,12 +110,7 @@ struct AnimatedImagesDemo: View {
         GeometryReader { proxy in
             ZStack {
                 if let animation {
-                    let size = displaySize(of: animation, in: proxy.size)
-                    AnimatedImage(player: animation.player, poster: animation.poster)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: size.width, height: size.height)
-                        .onChange(of: size, initial: true) { _, size in displayedSize = size }
+                    copiesGrid(animation, in: proxy.size)
                 } else if let status {
                     Text(status)
                         .font(.footnote)
@@ -121,12 +125,50 @@ struct AnimatedImagesDemo: View {
         }
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .gesture(pinch)
+        // The zoom belongs to a single animation: a grid of copies fits each
+        // cell instead, so the pinch and the menu step aside while there is one.
+        .gesture(pinch, including: extraPlayers.isEmpty ? .all : .subviews)
         .overlay(alignment: .bottomTrailing) {
-            if animation != nil {
+            if animation != nil, extraPlayers.isEmpty {
                 ZoomMenu(zoom: $zoom, current: zoom).equatable().padding(10)
             }
         }
+    }
+
+    /// Every copy of the animation at once – one cell, the whole canvas, most
+    /// of the time – the main player first, then the extras, all drawing from
+    /// one set of decoded frames. One renderer for both shapes on purpose:
+    /// were the single copy a view of its own, switching shapes would tear it
+    /// down, and ``AnimatedImageView`` pauses a player whose view leaves the
+    /// window – the main player included. Cell 0 living through the switch is
+    /// what keeps it playing.
+    ///
+    /// The zoom drives a single copy; a grid fits each cell. The measured size
+    /// is one copy's, so a "View" frame size decodes for what a copy covers.
+    @ViewBuilder
+    private func copiesGrid(_ animation: DemoLoadedAnimation, in canvas: CGSize) -> some View {
+        let players = [animation.player] + extraPlayers
+        let grid = demoWallGrid(count: players.count)
+        let cell = demoWallCellSize(count: players.count, in: canvas, spacing: 8)
+        let size = displaySize(of: animation, in: cell, zoom: players.count == 1 ? zoom : .fit)
+        VStack(spacing: 8) {
+            ForEach(0..<grid.rows, id: \.self) { row in
+                HStack(spacing: 8) {
+                    ForEach(0..<grid.columns, id: \.self) { column in
+                        if row * grid.columns + column < players.count {
+                            AnimatedImage(player: players[row * grid.columns + column], poster: animation.poster)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: size.width, height: size.height)
+                                .frame(width: cell.width, height: cell.height)
+                        } else {
+                            Color.clear.frame(width: cell.width, height: cell.height)
+                        }
+                    }
+                }
+            }
+        }
+        .onChange(of: size, initial: true) { _, size in displayedSize = size }
     }
 
     /// The zoom control a preview canvas has in its corner: the named sizes,
@@ -185,6 +227,8 @@ struct AnimatedImagesDemo: View {
     private struct TransportBar: View {
         @ObservedObject var player: AnimatedImagePlayer
         @Binding var rate: Double
+        /// What play does, handed in because it runs every copy on the stage.
+        let play: () -> Void
         let step: (Int) -> Void
 
         var body: some View {
@@ -197,7 +241,7 @@ struct AnimatedImagesDemo: View {
                             .frame(width: 18, height: 18)
                     }
                     .accessibilityLabel("Previous frame")
-                    PlayButton(player: player)
+                    PlayButton(player: player, play: play)
                     Button {
                         step(1)
                     } label: {
@@ -222,16 +266,13 @@ struct AnimatedImagesDemo: View {
     /// `isFinished` publish, so the button needs no timer.
     private struct PlayButton: View {
         @ObservedObject var player: AnimatedImagePlayer
+        /// What the tap does, handed in because it runs every copy on the
+        /// stage; the observed player is the one the icon reads.
+        let play: () -> Void
 
         var body: some View {
             Button {
-                if player.isPlaying {
-                    player.pause()
-                } else if player.isFinished {
-                    player.restart()
-                } else {
-                    player.play()
-                }
+                play()
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill"))
                     .font(.title3.weight(.semibold))
@@ -297,9 +338,9 @@ struct AnimatedImagesDemo: View {
         }
     }
 
-    /// The animation at the zoom, in points. Rounded to whole points so that a
-    /// change that doesn't move a pixel doesn't count as one.
-    private func displaySize(of animation: DemoLoadedAnimation, in canvas: CGSize) -> CGSize {
+    /// The animation at the given zoom, in points. Rounded to whole points so
+    /// that a change that doesn't move a pixel doesn't count as one.
+    private func displaySize(of animation: DemoLoadedAnimation, in canvas: CGSize, zoom: DisplayZoom) -> CGSize {
         let size = animation.player.source.size
         guard size.width > 0, size.height > 0, canvas.width > 0, canvas.height > 0 else {
             return .zero
@@ -370,6 +411,8 @@ struct AnimatedImagesDemo: View {
         List {
             diagnosticsSection
             bufferSection
+            transformSection
+            copiesSection
             playbackSection
         }
         .listStyle(.insetGrouped)
@@ -405,10 +448,10 @@ struct AnimatedImagesDemo: View {
                     player: animation.player,
                     diagnostics: diagnostics,
                     drawnSize: displayedSize,
-                    transport: AnyView(TransportBar(player: animation.player, rate: $settings.playbackRate, step: { step(by: $0) }))
+                    transport: AnyView(TransportBar(player: animation.player, rate: $settings.playbackRate, play: { togglePlayback() }, step: { step(by: $0) })),
+                    pool: pool
                 ) { index in
-                    animation.player.pause()
-                    animation.player.seek(toFrame: index)
+                    scrub(to: index)
                 }
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                 DisclosureGroup(isExpanded: $isShowingImageDetails) {
@@ -514,6 +557,43 @@ struct AnimatedImagesDemo: View {
         return "\(demoPixels(size)) px · \(demoByteCount(bytes)) × \(source.frameCount) = \(demoByteCount(bytes * source.frameCount))"
     }
 
+    /// One picker: what every frame goes through on its way out of the
+    /// decoder.
+    private var transformSection: some View {
+        Section {
+            Picker("Transform", selection: $settings.transform) {
+                ForEach(Settings.FrameTransformChoice.allCases, id: \.self) {
+                    Text($0.title).tag($0)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        } header: {
+            Text("Frame Transform")
+        } footer: {
+            Text("Runs on the decoder, off the main thread, once per decoded frame – the decode rows pay for it. Players share frames only while their transform identifiers match. Gray draws into a one-channel bitmap, which the cost rows notice.")
+        }
+    }
+
+    /// The same animation more than once: every copy is a player of its own,
+    /// drawing from one set of decoded frames.
+    private var copiesSection: some View {
+        Section {
+            Picker("Copies", selection: $settings.copies) {
+                Text("1").tag(1)
+                Text("2").tag(2)
+                Text("4").tag(4)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            Toggle("Play in lockstep", isOn: $settings.isSynchronized)
+        } header: {
+            Text("Copies")
+        } footer: {
+            Text("Every copy is a player of its own drawing from one set of decoded frames – the shared row counts them. In lockstep, a copy added mid-play joins on the frame the others are showing, the way a browser plays every copy of one image; off, it starts at the beginning and keeps its offset. The transport plays, pauses, and – in lockstep – scrubs them all.")
+        }
+    }
+
     private var playbackSection: some View {
         Section {
             Toggle("Repeat forever", isOn: $settings.repeatsForever)
@@ -557,20 +637,95 @@ struct AnimatedImagesDemo: View {
 
     private func sample() {
         diagnostics = animation?.player.diagnostics ?? AnimatedImagePlayer.Diagnostics()
+        pool = DemoPoolDiagnostics(pool: .shared)
     }
 
     /// Pauses and moves the playhead by the given number of frames, wrapping
     /// around either end.
     private func step(by delta: Int) {
         guard let player = animation?.player else { return }
-        player.pause()
         let count = player.source.frameCount
-        player.seek(toFrame: (player.currentFrameIndex + delta + count) % count)
+        scrub(to: (player.currentFrameIndex + delta + count) % count)
+    }
+
+    /// Pauses every copy and moves the playhead: all of them in lockstep, the
+    /// main one alone otherwise – the offsets the copies started with are the
+    /// point of turning lockstep off.
+    private func scrub(to index: Int) {
+        for player in allPlayers {
+            player.pause()
+        }
+        if settings.isSynchronized {
+            for player in allPlayers {
+                player.seek(toFrame: index)
+            }
+        } else {
+            animation?.player.seek(toFrame: index)
+        }
+    }
+
+    /// Plays, pauses, or replays every copy on the stage at once, off what the
+    /// main player is doing.
+    private func togglePlayback() {
+        guard let player = animation?.player else { return }
+        if player.isPlaying {
+            for player in allPlayers { player.pause() }
+        } else if player.isFinished {
+            for player in allPlayers { player.restart() }
+        } else {
+            for player in allPlayers { player.play() }
+        }
+    }
+
+    /// The main player and the extra copies, in stage order.
+    private var allPlayers: [AnimatedImagePlayer] {
+        guard let animation else { return [] }
+        return [animation.player] + extraPlayers
     }
 
     /// The top of the budget slider, where it stands for no ceiling of the
     /// player's own: whatever share of the pool the animation can get.
     private static let maxBudgetMB: Double = 32
+
+    // MARK: Copies
+
+    /// What the extra copies have to be rebuilt for: their number, whether
+    /// they join in lockstep, and the player they copy – a settings change
+    /// builds a new one, and the copies follow it.
+    private struct CopiesKey: Hashable {
+        var copies: Int
+        var isSynchronized: Bool
+        var player: ObjectIdentifier?
+    }
+
+    private var copiesKey: CopiesKey {
+        CopiesKey(
+            copies: settings.copies,
+            isSynchronized: settings.isSynchronized,
+            player: (animation?.player).map(ObjectIdentifier.init)
+        )
+    }
+
+    /// Builds a player per extra copy, drawing from the same decoded frames
+    /// as the main one: same source, same options. In lockstep a copy starts
+    /// on the frame the others are showing – the way a browser plays every
+    /// copy of one image – and off it starts at the beginning and keeps the
+    /// offset.
+    private func rebuildCopies() {
+        guard let animation, settings.copies > 1 else {
+            extraPlayers = []
+            return
+        }
+        var options = animation.player.options
+        options.isSynchronizationEnabled = settings.isSynchronized
+        extraPlayers = (1..<settings.copies).map { _ in
+            let player = AnimatedImagePlayer(source: animation.player.source, options: options)
+            if animation.player.isPlaying {
+                player.play()
+            }
+            return player
+        }
+    }
 
     // MARK: Model
 
@@ -616,6 +771,40 @@ struct AnimatedImagesDemo: View {
         var frameSize: FrameSize = .full
         var playbackRate: Double = 1
         var repeatsForever = true
+        var transform: FrameTransformChoice = .none
+        /// How many copies of the animation the stage shows. Not part of the
+        /// ``ReloadKey``: a copy added mid-play joining the others in step is
+        /// the lockstep demonstration.
+        var copies = 1
+        /// ``AnimatedImagePlayer/Options/isSynchronizationEnabled``, for the
+        /// extra copies.
+        var isSynchronized = true
+
+        /// What every frame goes through as it is decoded – or nothing, which
+        /// is the default.
+        enum FrameTransformChoice: Hashable, CaseIterable {
+            case none, tint, rounded, grayscale
+
+            var title: String {
+                switch self {
+                case .none: "None"
+                case .tint: "Tint"
+                case .rounded: "Round"
+                case .grayscale: "Gray"
+                }
+            }
+
+            /// The transform to hand the player, or `nil` for the frames as
+            /// they are decoded.
+            var frameTransform: AnimatedImageFrameTransform? {
+                switch self {
+                case .none: nil
+                case .tint: .demoTint
+                case .rounded: .demoRounded
+                case .grayscale: .demoGrayscale
+                }
+            }
+        }
 
         /// The longest side the frames are decoded at. ``AnimatedImageView``
         /// derives one from its own bounds, which is what ``view`` stands for;
@@ -654,6 +843,7 @@ struct AnimatedImagesDemo: View {
             options.playbackRate = playbackRate
             options.maxPixelSize = maxPixelSize
             options.repeatCount = repeatsForever ? .infinite : .image
+            options.frameTransform = transform.frameTransform
             return options
         }
 
@@ -668,6 +858,7 @@ struct AnimatedImagesDemo: View {
             var maxPixelSize: CGFloat?
             var playbackRate: Double
             var repeatsForever: Bool
+            var transform: FrameTransformChoice
         }
 
         func reloadKey(for image: DemoAnimation, viewPixelSize: CGFloat) -> ReloadKey {
@@ -676,7 +867,8 @@ struct AnimatedImagesDemo: View {
                 maxBufferSizeMB: maxBufferSizeMB,
                 maxPixelSize: maxPixelSize(viewPixelSize: viewPixelSize),
                 playbackRate: playbackRate,
-                repeatsForever: repeatsForever
+                repeatsForever: repeatsForever,
+                transform: transform
             )
         }
     }
@@ -696,7 +888,8 @@ struct AnimatedImagesDemo: View {
             .init("Frame buffer", "The budget is in bytes of decoded frames – the canvas at four bytes a pixel, not the size of the file – and a player has none of its own unless you set one, which leaves `AnimatedImageFramePool` as its only ceiling: alone on a screen, an animation may take the whole pool, and beside others it is held whole for as long as it fits beside them. When the whole animation fits, every frame is decoded once; below that, the buffer is the frame on screen and two ahead of it, however large the budget – a window that slides re-decodes every frame each loop no matter how long it is."),
             .init("Frame size", "`maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory. “View” decodes them at the size the animation is drawn at, in pixels, rounded up to 32 – the rule `AnimatedImageView` applies on its own. Pinch the animation, or pick a zoom from the menu in its corner, and watch the decoded size and the cost per frame follow it – and the “screen” line say whether the frames are being stretched or shrunk to get there."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen. It is the scrubber too – drag across it to pause and seek. The Image row under it unfolds what was parsed from the container – the delays the file declares, and how many of them the browser rule replaced – and, when the delays differ, a second map with a bar per frame as tall as the frame is long."),
-            .init("Handing over from the still", "Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
+            .init("Copies and transforms", "Copies puts the same animation on the stage more than once: every copy is a player of its own, and the shared row counts them drawing from one set of decoded frames. In lockstep a copy joins on the frame the others are showing, the way a browser plays every copy of one image. A frame transform runs on the decoder, once per decoded frame – players share frames only while their transform identifiers match, so changing it is a new set."),
+            .init("Handing over from the still","Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")
         ]
     )
@@ -705,6 +898,67 @@ struct AnimatedImagesDemo: View {
 /// "1×", "0.5×": the rate the way a player writes it on its speed control.
 private func demoRateLabel(_ value: Double) -> String {
     value == value.rounded() ? "\(Int(value))×" : String(format: "%g×", value)
+}
+
+// MARK: - Frame Transforms
+
+/// The transforms the demo offers, applied to every frame on the decoder.
+///
+/// Each one is a handful of Core Graphics calls: the ceiling is what a frame's
+/// worth of time affords, and these stay well under it – the decode rows show
+/// exactly what they add.
+extension AnimatedImageFrameTransform {
+    /// Nuke pink over every frame, blended so the image shows through.
+    static let demoTint = AnimatedImageFrameTransform(identifier: "demo.tint.pink") { frame in
+        demoDrawnFrame(frame) { context, rect in
+            context.draw(frame, in: rect)
+            context.setFillColor(CGColor(srgbRed: 1, green: 0.18, blue: 0.33, alpha: 0.45))
+            context.setBlendMode(.sourceAtop)
+            context.fill(rect)
+        }
+    }
+
+    /// The corners rounded off, an eighth of the short side.
+    static let demoRounded = AnimatedImageFrameTransform(identifier: "demo.rounded.8th") { frame in
+        demoDrawnFrame(frame) { context, rect in
+            let radius = min(rect.width, rect.height) / 8
+            context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+            context.clip()
+            context.draw(frame, in: rect)
+        }
+    }
+
+    /// The frame redrawn into a one-channel gray bitmap, which is also a
+    /// quarter of the memory: the byte counts in the diagnostics are measured
+    /// off the bitmaps, so the cost rows show the saving.
+    static let demoGrayscale = AnimatedImageFrameTransform(identifier: "demo.grayscale") { frame in
+        let context = CGContext(
+            data: nil,
+            width: frame.width, height: frame.height,
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        )
+        guard let context else { return nil }
+        context.draw(frame, in: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        return context.makeImage()
+    }
+}
+
+/// Draws over or around the frame in a bitmap of the same size, in the format
+/// the compositor likes, and returns what came out.
+private func demoDrawnFrame(_ frame: CGImage, _ draw: (CGContext, CGRect) -> Void) -> CGImage? {
+    let space = frame.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpaceCreateDeviceRGB()
+    guard let context = CGContext(
+        data: nil,
+        width: frame.width, height: frame.height,
+        bitsPerComponent: 8, bytesPerRow: 0,
+        space: space,
+        bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+    ) else { return nil }
+    let rect = CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
+    draw(context, rect)
+    return context.makeImage()
 }
 
 #Preview {

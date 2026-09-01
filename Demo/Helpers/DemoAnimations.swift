@@ -285,6 +285,10 @@ struct DemoDiagnosticsPanel: View {
     /// The playback controls that sit right under the scrubber, where a
     /// player keeps them. `nil` – the default – for none.
     var transport: AnyView?
+    /// What the shared pool holds across every animation, for a closing line
+    /// that puts this player's cost against the ceiling it plays under. `nil`
+    /// – the default – for no such line.
+    var pool: DemoPoolDiagnostics?
 
     /// Makes the buffer map the scrubber – see ``DemoBufferMap/onScrub``.
     var onScrub: ((Int) -> Void)?
@@ -303,7 +307,8 @@ struct DemoDiagnosticsPanel: View {
     }
 
     /// The figures in clusters – playback, the decoder, the clock, the
-    /// pixels and their cost – a breath between clusters and a tight line
+    /// pixels and their cost, closing on the pool they all share – a breath
+    /// between clusters and a tight line
     /// within, so the rows read as four things rather than a wall. Each line
     /// is short enough for the column, and the figures that swing are padded
     /// so that the words after them stay put.
@@ -337,6 +342,9 @@ struct DemoDiagnosticsPanel: View {
                 DemoDiagnosticsRow("cost", "\(demoByteCount(bytesPerDecodedFrame)) × \(frameCount) = \(demoByteCount(bytesPerDecodedFrame * frameCount))")
                 if diagnostics.sharingPlayerCount > 1 {
                     DemoDiagnosticsRow("shared", "\(diagnostics.sharingPlayerCount) players on these frames", tint: .accentColor)
+                }
+                if let pool {
+                    DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 7)) of \(demoByteCount(pool.costLimit)) · \(pool.animationCount) animation\(pool.animationCount == 1 ? "" : "s")")
                 }
             }
         }
