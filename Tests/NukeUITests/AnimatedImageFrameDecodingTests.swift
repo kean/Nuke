@@ -9,8 +9,8 @@ import Testing
 @testable import NukeUI
 
 /// The two ways the frames of an animation can be produced by something other
-/// than Image I/O drawing the container: a decoder of your own, and a
-/// transform applied to every frame as it is decoded.
+/// than Image I/O drawing the container: a decoder carried by the animation
+/// itself, and a transform applied to every frame as it is decoded.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImageFrameDecodingTests {
     /// A pool of its own for every test: what a player holds depends on what
@@ -18,58 +18,95 @@ struct AnimatedImageFrameDecodingTests {
     /// beside every other one.
     private let pool = AnimatedImageFramePool()
 
-    /// A registry of its own for the same reason: the shared one is process
-    /// wide, and a test must not register a decoder into another test's run.
-    private let registry = AnimatedImageFrameDecoderRegistry()
-
     // MARK: Custom Decoders
 
-    @Test func playsTheFramesTheRegisteredDecoderProduces() async throws {
-        registry.register { _ in SolidColorFrameDecoder(id: "red", color: .red) }
-        let player = try makePlayer()
+    @Test func playsTheFramesTheAnimationsOwnDecoderProduces() async throws {
+        let player = try makePlayer(source: makeCustomSource(color: .red))
 
         await player.waitUntilFull()
 
         #expect(AnimatedImageTest.firstPixel(of: player.image) == SolidColor.red.pixel)
     }
 
-    @Test func fallsBackToImageIOWhenNoDecoderMatches() async throws {
-        // A registration that passes on every animation is the same as none.
-        registry.register { _ in nil }
-        let player = try makePlayer()
-        let imageIO = try makePlayer(pool: AnimatedImageFramePool())
+    @Test func decodesWithImageIOWhenTheAnimationCarriesNoDecoder() throws {
+        let source = try makeSource()
 
+        #expect(source.makeFrameDecoder() is AnimatedImageFrameDecoder)
+    }
+
+    @Test func playsAFormatImageIOCannotRead() async throws {
+        // The case the whole hook exists for. Image I/O can't open the
+        // container, so the animation is described by the decoder that can.
+        let data = Flipbook.encode(frameCount: 4)
+        #expect(AnimatedImageSource(data: data) == nil)
+        let flipbook = try #require(Flipbook(data: data))
+        let made = AnimatedImageSource(
+            data: data,
+            delays: flipbook.delays,
+            size: flipbook.size,
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+        )
+        let source = try #require(made)
+
+        let (player, clock) = try makeIdlePlayer(source: source)
+        player.play()
         await player.waitUntilFull()
-        await imageIO.waitUntilFull()
 
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == AnimatedImageTest.firstPixel(of: imageIO.image))
+        #expect(player.source.frameCount == 4)
+        #expect(AnimatedImageTest.firstPixel(of: player.image) == flipbook.frames[0].pixel)
+
+        // And it goes on playing: the frames are windowed and handed over on
+        // the clock exactly as Image I/O's are.
+        clock.tick(0.1)
+        #expect(player.currentFrameIndex == 1)
+        #expect(AnimatedImageTest.firstPixel(of: player.image) == flipbook.frames[1].pixel)
     }
 
-    @Test func asksTheMostRecentlyRegisteredDecoderFirst() throws {
-        let context = try makeContext()
-        registry.register { _ in SolidColorFrameDecoder(id: "first", color: .red) }
-        let second = registry.register { _ in SolidColorFrameDecoder(id: "second", color: .blue) }
+    @Test func handsTheDecoderTheSizeTheFramesAreWantedAt() async throws {
+        // What the player budgeted memory for, so a decoder is expected to
+        // honor it.
+        let sizes = SizeLog()
+        let made = AnimatedImageSource(
+            data: Data(),
+            delays: Array(repeating: 0.1, count: 4),
+            size: CGSize(width: 64, height: 64),
+            makeFrameDecoder: { maxPixelSize in
+                sizes.append(maxPixelSize)
+                return SolidColorFrameDecoder(id: "red", color: .red)
+            }
+        )
+        let source = try #require(made)
+        var options = AnimatedImagePlayer.Options()
+        options.maxPixelSize = 16
 
-        #expect(identifier(of: registry.decoder(for: context)) == "second")
+        let player = try makePlayer(source: source, options: options)
+        await player.waitUntilFull()
 
-        // Unregistering falls back to the one under it, and clearing the
-        // registry falls back to Image I/O.
-        registry.unregister(second)
-        #expect(identifier(of: registry.decoder(for: context)) == "first")
-        registry.clear()
-        #expect(registry.decoder(for: context) is AnimatedImageFrameDecoder)
+        #expect(sizes.all == [16])
     }
 
-    @Test func answersWithImageIOWhenNothingIsRegistered() throws {
-        #expect(try registry.decoder(for: makeContext()) is AnimatedImageFrameDecoder)
-    }
+    @Test func makesOneDecoderForEveryPlayerOfAnAnimation() async throws {
+        // The frames of one animation at one size are decoded once and shared,
+        // so the factory is asked once however many views show it.
+        let sizes = SizeLog()
+        let made = AnimatedImageSource(
+            data: Data(),
+            delays: Array(repeating: 0.1, count: 4),
+            size: CGSize(width: 8, height: 8),
+            makeFrameDecoder: { maxPixelSize in
+                sizes.append(maxPixelSize)
+                return SolidColorFrameDecoder(id: "red", color: .red)
+            }
+        )
+        let source = try #require(made)
 
-    @Test func computesTheFrameSizeFromTheBitmap() {
-        let image = SolidColor.red.makeImage(size: CGSize(width: 8, height: 8))
-        let frame = AnimatedImageFrame(image: image)
+        let first = try makePlayer(source: source)
+        await first.waitUntilFull()
+        let second = try makePlayer(source: source)
+        await second.waitUntilFull()
 
-        #expect(frame.byteCount == image.bytesPerRow * image.height)
-        #expect(frame.decodeDuration == 0)
+        #expect(sizes.all == [nil])
+        #expect(second.diagnostics.decodedFrameCount == 0)
     }
 
     // MARK: Per-Frame Transform
@@ -186,14 +223,12 @@ struct AnimatedImageFrameDecodingTests {
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
         pool: AnimatedImageFramePool? = nil
     ) throws -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let pool = pool ?? self.pool
-        pool.decoderRegistry = registry
         let clock = ManualClock()
         let player = try AnimatedImagePlayer(
             source: source ?? makeSource(),
             options: options,
             clock: clock,
-            pool: pool
+            pool: pool ?? self.pool
         )
         return (player, clock)
     }
@@ -202,12 +237,28 @@ struct AnimatedImageFrameDecodingTests {
         try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: frameCount)))
     }
 
-    private func makeContext() throws -> AnimatedImageFrameDecodingContext {
-        try AnimatedImageFrameDecodingContext(source: makeSource())
+    /// A GIF that describes itself but draws itself in a solid color, which is
+    /// what tells the frames of a decoder of your own from Image I/O's.
+    private func makeCustomSource(color: SolidColor, frameCount: Int = 4) throws -> AnimatedImageSource {
+        let source = AnimatedImageSource(
+            data: Test.animatedGIF(frameCount: frameCount),
+            delays: Array(repeating: 0.1, count: frameCount),
+            size: CGSize(width: 8, height: 8),
+            makeFrameDecoder: { _ in SolidColorFrameDecoder(id: color.rawValue, color: color) }
+        )
+        return try #require(source)
     }
+}
 
-    private func identifier(of decoder: any AnimatedImageFrameDecoding) -> String? {
-        (decoder as? SolidColorFrameDecoder)?.id
+/// The sizes the frames of an animation were asked for at.
+final class SizeLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [CGFloat?] = []
+
+    var all: [CGFloat?] { lock.withLock { storage } }
+
+    func append(_ value: CGFloat?) {
+        lock.withLock { storage.append(value) }
     }
 }
 
@@ -255,8 +306,8 @@ struct SolidColorFrameDecoder: AnimatedImageFrameDecoding {
     let color: SolidColor
     var size = CGSize(width: 8, height: 8)
 
-    func decode(at index: Int) async -> AnimatedImageFrame? {
-        AnimatedImageFrame(image: color.makeImage(size: size))
+    func decode(at index: Int) async -> CGImage? {
+        color.makeImage(size: size)
     }
 }
 

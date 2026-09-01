@@ -122,6 +122,36 @@ struct ImagePipelineFormatsTests {
         #expect(response.container.animation == nil)
     }
 
+    @Test func aDecoderOfYourOwnCanDescribeAFormatImageIOCannotRead() async throws {
+        // GIVEN a decoder registered for a format the system doesn't have,
+        // which is the one place an animated format is added: the decoder
+        // produces the still image and the animation to play in its place.
+        let registry = ImageDecoderRegistry()
+        registry.register(FlipbookImageDecoder.init(context:))
+        let pipeline = pipeline.reconfigured { configuration in
+            configuration.makeImageDecoder = { registry.decoder(for: $0) }
+        }
+        let data = Flipbook.encode(frameCount: 5, delays: Array(repeating: 0.2, count: 5), loopCount: 2)
+        #expect(AnimatedImageSource(data: data) == nil) // Image I/O can't open it
+        dataLoader.results[Test.url] = .success((data, URLResponse()))
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the animation travels with the image exactly as a GIF's does,
+        // and it knows what produces its frames
+        let animation = try #require(response.container.animation)
+        #expect(animation.frameCount == 5)
+        #expect(animation.delays == Array(repeating: 0.2, count: 5))
+        #expect(animation.loopCount == 2)
+        #expect(response.container.data == data)
+
+        let decoder = animation.makeFrameDecoder(maxPixelSize: 4)
+        let frame = try #require(await decoder.decode(at: 1))
+        #expect(frame.width == 4) // The size the frames were asked for
+        #expect(await (decoder as? FlipbookFrameDecoder)?.requestedIndexes == [1])
+    }
+
     private func serveAnimatedGIF(frameCount: Int) {
         dataLoader.results[Test.url] = .success(
             (Test.animatedGIF(frameCount: frameCount),

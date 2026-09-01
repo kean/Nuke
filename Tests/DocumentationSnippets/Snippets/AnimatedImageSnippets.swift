@@ -101,16 +101,49 @@ private func transformFrames(_ imageView: AnimatedImageView) {
     imageView.playerOptions = options
 }
 
-private func registerFrameDecoder() {
-    AnimatedImageFrameDecoderRegistry.shared.register { context in
-        guard AssetType(context.source.data) == .webp else { return nil } // Pass
-        return WebPFrameDecoder(source: context.source, maxPixelSize: context.maxPixelSize)
-    }
+// MARK: - Custom Formats
+
+private func registerAnimatedFormatDecoder() {
+    ImageDecoderRegistry.shared.register(WebPDecoder.init(context:))
 }
 
 /// Stands in for the decoder the article's snippet registers.
-private actor WebPFrameDecoder: AnimatedImageFrameDecoding {
-    init(source: AnimatedImageSource, maxPixelSize: CGFloat?) {}
+private struct WebPDecoder: ImageDecoding {
+    init?(context: ImageDecodingContext) {
+        guard context.isCompleted, AssetType(context.data) == .webp else {
+            return nil // Not this format, or not all of it yet
+        }
+    }
 
-    func decode(at index: Int) -> AnimatedImageFrame? { nil }
+    func decode(_ data: Data) throws -> ImageContainer {
+        let webp = try WebPImage(data: data)
+        var container = ImageContainer(image: webp.makeFirstFrame())
+        container.data = data
+        container.animation = AnimatedImageSource(
+            data: data,
+            delays: webp.delays,
+            loopCount: webp.loopCount,
+            size: webp.size,
+            makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0) }
+        )
+        return container
+    }
+}
+
+/// Stands in for the frame decoder the article's snippet hands over.
+private actor WebPFrameDecoder: AnimatedImageFrameDecoding {
+    init(_ image: WebPImage, maxPixelSize: CGFloat?) {}
+
+    func decode(at index: Int) -> CGImage? { nil }
+}
+
+/// Stands in for a codec the system doesn't have.
+private struct WebPImage: Sendable {
+    let delays: [TimeInterval] = []
+    let loopCount = 0
+    let size: CGSize = .zero
+
+    init(data: Data) throws {}
+
+    func makeFirstFrame() -> PlatformImage { PlatformImage() }
 }

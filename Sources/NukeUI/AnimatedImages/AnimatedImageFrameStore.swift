@@ -4,6 +4,7 @@
 
 import CoreGraphics
 import Foundation
+import Nuke
 
 /// Identifies the decoded frames of one animation at one size.
 ///
@@ -350,13 +351,18 @@ final class AnimatedImageFrameStore {
         // animations into CPU-bound work – the decoder is paced by playback,
         // one frame per frame shown, not by how much memory there is.
         currentDecode = Task(priority: .userInteractive) { [weak self] in
+            // Measured here rather than inside the decoder: what a frame costs
+            // to produce is the whole wait, the transform included, and a
+            // decoder of your own doesn't have to time itself to be reported.
+            let start = monotonicTime()
             let frame = await decoder.decode(at: index)
+            let duration = monotonicTime() - start
             // Checked before clearing the handle: a cancelled decode would
             // otherwise drop the handle of the decode that replaced it.
             guard let self, !Task.isCancelled else { return }
             self.currentDecode = nil
             self.decodingIndex = nil
-            self.didDecode(frame, at: index)
+            self.didDecode(frame, at: index, duration: duration)
             self.scheduleDecodeIfNeeded()
         }
     }
@@ -378,21 +384,25 @@ final class AnimatedImageFrameStore {
         return nil
     }
 
-    private func didDecode(_ frame: AnimatedImageFrame?, at index: Int) {
+    private func didDecode(_ image: CGImage?, at index: Int, duration: TimeInterval) {
         let requesters = decodingRequesters
         decodingRequesters = []
-        guard let frame else {
+        guard let image else {
             failedIndexes.insert(index)
             return
         }
         if frames[index] == nil {
-            frames[index] = Frame(image: frame.image, byteCount: frame.byteCount)
-            byteCount += frame.byteCount
+            // What the bitmap occupies, which is what the frame costs against
+            // the pool – a transform that drew into a bitmap of its own
+            // included.
+            let cost = image.bytesPerRow * image.height
+            frames[index] = Frame(image: image, byteCount: cost)
+            byteCount += cost
         }
         for player in liveMembers where requesters.contains(ObjectIdentifier(player)) {
             // Offered even if the window moved past the frame: the player is
             // the one that knows whether it has anything better to show.
-            player.storeDidDecodeFrame(at: index, duration: frame.decodeDuration)
+            player.storeDidDecodeFrame(at: index, duration: duration)
         }
         evict()
         // The frames of an animation nobody plays aren't in the division of
@@ -424,9 +434,10 @@ final class AnimatedImageFrameStore {
     private func makeDecoderIfNeeded() -> (any AnimatedImageFrameDecoding)? {
         if let decoder { return decoder }
         guard let source else { return nil }
-        let registry = pool?.decoderRegistry ?? .shared
-        let context = AnimatedImageFrameDecodingContext(source: source, maxPixelSize: key.maxPixelSize)
-        let decoder = AnimatedImageFrameStore.transforming(registry.decoder(for: context), with: transform)
+        let decoder = AnimatedImageFrameStore.transforming(
+            source.makeFrameDecoder(maxPixelSize: key.maxPixelSize),
+            with: transform
+        )
         self.decoder = decoder
         return decoder
     }

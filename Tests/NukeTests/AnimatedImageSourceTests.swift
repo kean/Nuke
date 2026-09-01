@@ -154,7 +154,75 @@ struct AnimatedImageSourceTests {
         #expect(AnimatedImageSource(data: Data(repeating: 0x11, count: 128)) == nil)
     }
 
+    // MARK: Animations Image I/O Can't Read
+
+    @Test func describesAnAnimationTheCallerParsed() throws {
+        // The format Image I/O has never heard of, described by the decoder
+        // that can read it.
+        let data = Flipbook.encode(frameCount: 4, delays: [0.2, 0.2, 0.2, 0.2], loopCount: 3, size: CGSize(width: 16, height: 12))
+        #expect(AnimatedImageSource(data: data) == nil)
+        let flipbook = try #require(Flipbook(data: data))
+
+        let made = AnimatedImageSource(
+            data: data,
+            delays: flipbook.delays,
+            loopCount: flipbook.loopCount,
+            size: flipbook.size,
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+        )
+        let source = try #require(made)
+
+        #expect(source.data == data)
+        #expect(source.frameCount == 4) // Counted from the delays
+        #expect(source.delays == Array(repeating: 0.2, count: 4))
+        #expect(source.duration == 0.8)
+        #expect(source.loopCount == 3)
+        #expect(source.size == CGSize(width: 16, height: 12))
+        #expect(source.nominalFrameRate == 5)
+        #expect(source.makeFrameDecoder() is FlipbookFrameDecoder)
+    }
+
+    @Test func correctsTheDelaysItIsGivenTheWayItCorrectsTheOnesItParses() throws {
+        // The same two corrections every browser applies, so an animation the
+        // caller describes plays like one Image I/O describes.
+        let made = AnimatedImageSource(
+            data: Data(),
+            delays: [0, -1, 0.005, 0.2],
+            size: CGSize(width: 8, height: 8),
+            makeFrameDecoder: { FlipbookFrameDecoder(Flipbook(data: Flipbook.encode())!, maxPixelSize: $0) }
+        )
+        let source = try #require(made)
+
+        #expect(source.delays == [0.1, 0.1, 0.1, 0.2])
+    }
+
+    @Test func refusesWhatIsNotAnAnimation() {
+        let flipbook = Flipbook(data: Flipbook.encode())!
+        func makeSource(delays: [TimeInterval], size: CGSize) -> AnimatedImageSource? {
+            AnimatedImageSource(
+                data: Data(),
+                delays: delays,
+                size: size,
+                makeFrameDecoder: { _ in FlipbookFrameDecoder(flipbook) }
+            )
+        }
+        let size = CGSize(width: 8, height: 8)
+
+        // A single frame is a still image, and a canvas with no pixels in it
+        // is nothing at all.
+        #expect(makeSource(delays: [], size: size) == nil)
+        #expect(makeSource(delays: [0.1], size: size) == nil)
+        #expect(makeSource(delays: [0.1, 0.1], size: .zero) == nil)
+        #expect(makeSource(delays: [0.1, 0.1], size: size) != nil)
+    }
+
     // MARK: Decoding Frames
+
+    @Test func decodesWithImageIOWhenNoDecoderWasGiven() throws {
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 4)))
+
+        #expect(source.makeFrameDecoder() is AnimatedImageFrameDecoder)
+    }
 
     @Test func makesAnImageSourceForDecodingTheFrames() throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 4)))

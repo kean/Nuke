@@ -4,6 +4,7 @@
 
 import CoreGraphics
 import Foundation
+import Nuke
 
 /// A transformation applied to every frame of an animation as it is decoded.
 ///
@@ -64,16 +65,11 @@ actor AnimatedImageFrameTransformer: AnimatedImageFrameDecoding {
         self.transform = transform
     }
 
-    func decode(at index: Int) async -> AnimatedImageFrame? {
+    func decode(at index: Int) async -> CGImage? {
         guard let frame = await decoder.decode(at: index) else {
             return nil
         }
-        let start = monotonicTime()
-        guard let image = transform.transform(frame.image) else {
-            return frame // The transform passed on this frame, or failed
-        }
-        // The transform is part of what a frame costs, both in time and – it
-        // may draw into a bitmap of its own – in memory.
-        return AnimatedImageFrame(image: image, decodeDuration: frame.decodeDuration + (monotonicTime() - start))
+        // The transform passed on this frame, or failed.
+        return transform.transform(frame) ?? frame
     }
 }

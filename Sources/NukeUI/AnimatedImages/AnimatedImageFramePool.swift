@@ -156,10 +156,6 @@ public final class AnimatedImageFramePool {
     /// them from outliving it.
     private var stores: [AnimatedImageFrameKey: AnimatedImageFrameStore] = [:]
 
-    /// The registry the stores pick their decoders from. The shared one unless
-    /// a test replaces it.
-    var decoderRegistry: AnimatedImageFrameDecoderRegistry = .shared
-
     /// Returns the frames of the given animation at the given size, creating
     /// them if this is the first player to ask.
     func store(
