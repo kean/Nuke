@@ -86,7 +86,7 @@ The clock runs no faster than the animation needs. A 10 fps GIF asks for a 20 Hz
 
 Decoding every frame up front is the fastest way to play an animation and the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. The player keeps a window of frames instead, starting at the one on screen, and refills it in playback order as the window moves.
 
-The window is sized by a memory budget – ``AnimatedImagePlayer/Options/maxBufferSize``, 10 MB by default – rather than a frame count, because that is what actually matters: 60 thumbnails and 60 full-screen frames are the same number of frames and two orders of magnitude apart in memory.
+The window is sized by a memory budget – ``AnimatedImagePlayer/Options/maxBufferSize``, 10 MB by default – rather than a frame count, because that is what actually matters: 60 thumbnails and 60 full-screen frames are the same number of frames and two orders of magnitude apart in memory. That budget is a ceiling rather than an allowance: what the player actually gets is its share of the memory every animation on screen is sharing, which is ``AnimatedImageFramePool`` below.
 
 That gives two regimes:
 
@@ -98,6 +98,16 @@ Each frame is decoded and then drawn into a bitmap the player owns, which moves 
 A player that has not started playing – or one that has stopped because nobody is watching – is a third regime: it decodes the first frame so that there is something to show, holds two frames at most, and fills the rest of the window when ``AnimatedImagePlayer/play()`` is called. A list of animations that are all showing their first frame – ``AnimatedImageView/isPlaybackEnabled`` set to `false`, say – costs a couple of bitmaps each rather than a full budget each.
 
 ## Memory
+
+Every animation on screen draws its frames from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize`` – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``. Twenty animations don't cost twenty budgets; they cost one, divided twenty ways. Nothing is divided while the animations together want less than the limit, which is every screen that isn't full of them, and the division is even past that – except that an animation that fits in less than its share takes only what it needs and leaves the rest to the ones that can use it.
+
+The limit is 5% of the device's physical memory by default, capped at 128 MB. It is the one number to change when a screen full of animations should be allowed more, or less:
+
+```swift
+AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
+```
+
+One thing sits outside it: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit, at two frames each – which is the ceiling the levers below are for.
 
 Three things to reach for, in the order you should reach for them.
 
@@ -117,9 +127,11 @@ imageView.playerOptions = options
 
 **Let it respond to pressure.** A player shrinks its buffer to the minimum on a memory warning, and refills as playback continues. The window it was sized for comes back a minute later, or sooner if the app is backgrounded and returns – a warning arrives while the app is active, on the screen the animation is on, so waiting for a trip to the background would cost an animation that is up all session a decode per frame for the rest of it. ``AnimatedImagePlayer/reduceMemoryUsage()`` shrinks it on demand.
 
-A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each. Playback paused in place keeps its frames: resuming shouldn't stall.
+A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each – and what they give back goes to the ones that are on screen. Playback paused in place keeps its frames: resuming shouldn't stall.
 
-Every budget here is per player, though – there is nothing global about it, and a screen with twenty animations can hold twenty of them at once, which is the reason downsampling is the first lever on this list and not the last. The decoding is at least kept out of the way: a player decodes one frame at a time, and every frame except the one the animation is actually waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
+Memory is bounded either way, but a screen full of animations that is over the pool's limit pays for it in decoding rather than in bytes: every window is a share, the smaller windows slide, and the frames behind them are decoded again on every loop. Downsampling is the first lever on this list because it is the one that makes the frames small enough for the shares to hold whole animations. The decoding is at least kept out of the way: a player decodes one frame at a time, and every frame except the one the animation is actually waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
+
+Frames are not shared between players. Two views playing the same animation decode it twice and hold it twice; what the pool bounds is the total.
 
 ## Controlling Playback
 
@@ -189,3 +201,7 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 
 - ``AnimatedImagePlayer``
 - ``AnimatedImageSource``
+
+### Memory
+
+- ``AnimatedImageFramePool``

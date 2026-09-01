@@ -137,25 +137,59 @@ extension CGImage {
 /// the one being displayed, refills it in playback order as the window moves,
 /// and drops what has fallen behind.
 ///
-/// When the whole animation fits in the budget the window covers every frame,
+/// How large the window is isn't the buffer's to decide. It says what it could
+/// use – ``demand`` – and the ``AnimatedImageFramePool`` it draws from answers
+/// with a share of the memory every animation on screen is sharing, which is
+/// what keeps a screen full of animations from costing the sum of their
+/// budgets.
+///
+/// When the whole animation fits in the share the window covers every frame,
 /// nothing is ever evicted, and each frame is decoded exactly once no matter
 /// how long the animation plays.
 @MainActor
 final class AnimatedImageFrameBuffer {
     /// The number of frames the buffer is allowed to hold.
-    var capacity: Int { fillsWindow ? windowCapacity : min(windowCapacity, Self.idleCapacity) }
+    ///
+    /// Two is the floor: with one, the next frame can only start decoding after
+    /// the current one is dropped, and playback stalls on every single frame.
+    /// An animation whose frames are so large that two of them exceed the share
+    /// is over it either way.
+    var capacity: Int {
+        let affordable = bytesPerFrame > 0 ? allotment / bytesPerFrame : frameCount
+        let capacity = min(frameCount, max(Self.idleCapacity, affordable))
+        return min(capacity, reducedCapacity ?? capacity)
+    }
+
+    /// The memory the buffer would use if the pool had it to spare: enough for
+    /// every frame of the animation, up to the budget the player was created
+    /// with, and only ``idleCapacity`` frames while nobody is watching.
+    ///
+    /// A byte count rather than a frame count because that is what actually
+    /// matters: 60 thumbnails and 60 full-screen frames are the same number of
+    /// frames and two orders of magnitude apart in memory.
+    var demand: Int {
+        var frames = fillsWindow ? frameCount : Self.idleCapacity
+        frames = min(frames, reducedCapacity ?? frames)
+        return min(maxBufferSize, frames * bytesPerFrame)
+    }
+
+    /// The memory the pool has allotted the buffer, in bytes.
+    private(set) var allotment = 0
 
     /// Whether the buffer fills its whole window. `true` by default.
     ///
     /// A player that has not started playing sets it to `false`, which holds
     /// the buffer at ``idleCapacity``. A list of animations that are all
     /// showing their first frame should not each pin a full buffer's worth of
-    /// bitmaps, and the frames would be decoded for nobody.
+    /// bitmaps, and the frames would be decoded for nobody – and what they give
+    /// back goes to the animations that are actually playing.
     var fillsWindow = true {
         didSet {
             guard fillsWindow != oldValue else { return }
-            evict()
-            decodeNextFrame()
+            // The pool answers with a new allotment, and it is that which
+            // drops the frames that no longer fit and starts decoding into the
+            // room that just opened up.
+            pool.rebalance()
         }
     }
 
@@ -184,14 +218,18 @@ final class AnimatedImageFrameBuffer {
     /// Called with the index of a frame as soon as it is decoded.
     var onFrame: ((Int) -> Void)?
 
-    private var windowCapacity: Int
+    /// The ceiling ``reduceCapacity(to:)`` puts on the window under memory
+    /// pressure, until ``restoreCapacity()`` takes it off again.
+    private var reducedCapacity: Int?
 
-    /// The window the animation was sized for. ``reduceCapacity(to:)`` shrinks
-    /// away from it and ``restoreCapacity()`` returns to it.
-    private let maxWindowCapacity: Int
-
+    private let pool: AnimatedImageFramePool
     private let decoder: any AnimatedImageFrameDecoding
     private let frameCount: Int
+    /// The memory one decoded frame occupies, at the size it is decoded at.
+    private let bytesPerFrame: Int
+    /// The most the player is willing to spend on frames, whatever the pool
+    /// has to spare.
+    private let maxBufferSize: Int
     private var frames: [Int: CGImage] = [:]
     /// The frames the decoder refused. Without this, a truncated animation
     /// would put the buffer in a loop, retrying the frame it can never produce.
@@ -217,24 +255,33 @@ final class AnimatedImageFrameBuffer {
     init(
         source: AnimatedImageSource,
         options: AnimatedImagePlayer.Options,
+        pool: AnimatedImageFramePool = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
         self.decoder = decoder ?? AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
         self.frameCount = source.frameCount
-        self.windowCapacity = AnimatedImageFrameBuffer.capacity(for: source, options: options)
-        self.maxWindowCapacity = windowCapacity
+        self.bytesPerFrame = AnimatedImageFrameBuffer.bytesPerFrame(for: source, options: options)
+        self.maxBufferSize = options.maxBufferSize
+        self.pool = pool
+        // Last, because it is what hands the buffer its first allotment.
+        pool.register(self)
     }
 
     deinit {
         task?.cancel()
+        // The frames go with the buffer, so what it was holding is the pool's
+        // to hand out again. It can't be told from here – a `deinit` isn't on
+        // the main actor – so it is asked to divide the budget on the next turn.
+        pool.setNeedsRebalance()
     }
 
-    /// Returns the number of frames to keep in memory at once.
+    /// Returns the memory one decoded frame occupies, at the size the options
+    /// ask for it to be decoded at.
     ///
-    /// The budget is a byte count rather than a frame count because that is
-    /// what actually matters: 60 thumbnails and 60 full-screen frames are the
-    /// same number of frames and two orders of magnitude apart in memory.
-    static func capacity(for source: AnimatedImageSource, options: AnimatedImagePlayer.Options) -> Int {
+    /// Frames are decoded into bitmaps with 8 bits per component, so the figure
+    /// depends only on the size, not on how well the image compresses – and
+    /// downsampling pays back the square of the scale.
+    static func bytesPerFrame(for source: AnimatedImageSource, options: AnimatedImagePlayer.Options) -> Int {
         var bytesPerFrame = source.bytesPerFrame
         if let maxPixelSize = options.maxPixelSize, maxPixelSize > 0 {
             let longestSide = max(source.size.width, source.size.height)
@@ -243,15 +290,22 @@ final class AnimatedImageFrameBuffer {
                 bytesPerFrame = Int(Double(bytesPerFrame) * Double(scale * scale))
             }
         }
-        guard bytesPerFrame > 0 else {
-            return source.frameCount
-        }
-        let affordable = options.maxBufferSize / bytesPerFrame
-        // Two frames is the floor: with one, the next frame can only start
-        // decoding after the current one is dropped, and playback stalls on
-        // every single frame. An animation whose frames are so large that two
-        // of them exceed the budget is over the budget either way.
-        return min(source.frameCount, max(idleCapacity, affordable))
+        return bytesPerFrame
+    }
+
+    /// Takes the share of the pool the buffer is to hold its frames in.
+    ///
+    /// Called by the pool, and only by the pool: how large the window is
+    /// depends on what every other animation on screen is asking for.
+    func setAllotment(_ bytes: Int) {
+        guard bytes != allotment else { return }
+        let previousCapacity = capacity
+        allotment = bytes
+        // The bytes move on every change anywhere in the pool; the window they
+        // buy usually doesn't, and there is nothing to do when it doesn't.
+        guard capacity != previousCapacity else { return }
+        evict()
+        decodeNextFrame()
     }
 
     /// `true` while the buffer still expects to produce the frame at the given
@@ -289,19 +343,26 @@ final class AnimatedImageFrameBuffer {
     /// Used to respond to memory pressure. The buffer refills to the new
     /// capacity as playback continues.
     func reduceCapacity(to newCapacity: Int) {
-        windowCapacity = max(Self.idleCapacity, min(windowCapacity, newCapacity))
+        // Never below the two frames playback needs, whatever it is asked for.
+        reducedCapacity = max(Self.idleCapacity, min(newCapacity, reducedCapacity ?? newCapacity))
+        // What it stops asking for goes back to the pool, which is the point:
+        // a memory warning reaches every player, and the frames they all give
+        // back are what the system asked for.
+        pool.rebalance()
         evict()
     }
 
-    /// Returns the window to the size the animation was sized for.
+    /// Takes the ceiling a memory warning put on the window back off, leaving
+    /// the pool to say how large it is again.
     ///
     /// Without it a buffer shrunk once stays shrunk for the life of the player:
     /// an animation that is on screen all session – a sticker, a spinner –
     /// would re-decode every frame of every loop forever because of a single
     /// memory warning, long after the pressure that caused it was over.
     func restoreCapacity() {
-        guard windowCapacity < maxWindowCapacity else { return }
-        windowCapacity = maxWindowCapacity
+        guard reducedCapacity != nil else { return }
+        reducedCapacity = nil
+        pool.rebalance()
         decodeNextFrame()
     }
 

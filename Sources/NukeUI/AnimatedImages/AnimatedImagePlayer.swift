@@ -139,6 +139,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         source: AnimatedImageSource,
         options: Options,
         clock: any AnimatedImageClock,
+        pool: AnimatedImageFramePool = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil,
         memoryPressureGracePeriod: TimeInterval = AnimatedImagePlayer.defaultMemoryPressureGracePeriod
     ) {
@@ -146,7 +147,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         self.options = options
         self.clock = clock
         self.memoryPressureGracePeriod = memoryPressureGracePeriod
-        self.buffer = AnimatedImageFrameBuffer(source: source, options: options, decoder: decoder)
+        self.buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool, decoder: decoder)
 
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
         clock.onTick = { [weak self] in self?.tick($0) }
@@ -274,6 +275,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         diagnostics.bufferedFrameCount = buffer.count
         diagnostics.bufferCapacity = buffer.capacity
         diagnostics.bufferedByteCount = buffer.byteCount
+        diagnostics.bufferByteLimit = buffer.allotment
         diagnostics.decodedFrameCount = buffer.decodedFrameCount
         diagnostics.lastDecodeDuration = buffer.lastDecodeDuration
         diagnostics.averageDecodeDuration = buffer.decodedFrameCount > 0
@@ -517,7 +519,8 @@ extension AnimatedImagePlayer {
         /// The speed multiplier. `1` by default.
         public var playbackRate: Double = 1
 
-        /// The memory the decoded frames may occupy, in bytes. 10 MB by default.
+        /// The most memory this player's decoded frames may occupy, in bytes.
+        /// 10 MB by default.
         ///
         /// An animation whose frames all fit is decoded once and then replayed
         /// from memory; a larger one is decoded continuously into a sliding
@@ -525,6 +528,10 @@ extension AnimatedImagePlayer {
         /// holds fewer than two frames, so an animation with very large frames
         /// can exceed this figure – there is no way to play one without keeping
         /// two frames around.
+        ///
+        /// It is a ceiling, not an allowance: what the player actually gets is
+        /// its share of ``AnimatedImageFramePool``, which every animation on
+        /// screen draws from. Twenty animations don't cost twenty times this.
         public var maxBufferSize = 10 * 1_048_576
 
         /// The longest side, in pixels, the decoded frames may have. `nil` –
@@ -580,6 +587,14 @@ extension AnimatedImagePlayer {
         public var bufferCapacity = 0
         /// The memory those frames occupy, in bytes.
         public var bufferedByteCount = 0
+        /// The memory the buffer is allowed to use, in bytes: the share of
+        /// ``AnimatedImageFramePool`` the player has been given, which is never
+        /// more than ``AnimatedImagePlayer/Options/maxBufferSize`` and drops as
+        /// other animations appear on screen.
+        ///
+        /// A player always holds two frames, so a single frame larger than this
+        /// is held anyway – there is no playing an animation without them.
+        public var bufferByteLimit = 0
 
         /// The number of frames decoded since the player was created. Larger
         /// than ``frameCount`` when the buffer can't hold the whole animation

@@ -57,6 +57,11 @@ private func makeAnimatedImageView(url: URL) -> AnimatedImageView {
 // MARK: - Memory
 
 @MainActor
+private func setPoolCostLimit() {
+    AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
+}
+
+@MainActor
 private func downsample(_ imageView: AnimatedImageView) {
     var options = AnimatedImagePlayer.Options()
     options.maxPixelSize = 240

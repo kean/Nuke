@@ -10,11 +10,16 @@ import Testing
 
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImageFrameBufferTests {
+    /// A pool of its own for every test: what a buffer is allowed to hold
+    /// depends on what every other animation on screen is asking for, and the
+    /// suite runs beside every other one.
+    private let pool = AnimatedImageFramePool()
+
     // MARK: Capacity
 
     @Test func holdsEveryFrameWhenTheAnimationFitsInTheBudget() throws {
         let source = try makeSource(frameCount: 12, size: CGSize(width: 32, height: 32))
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
 
         #expect(buffer.capacity == 12)
     }
@@ -24,7 +29,7 @@ struct AnimatedImageFrameBufferTests {
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 5 * source.bytesPerFrame
 
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         #expect(buffer.capacity == 5)
     }
@@ -36,7 +41,7 @@ struct AnimatedImageFrameBufferTests {
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 1
 
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         #expect(buffer.capacity == 2)
     }
@@ -47,7 +52,7 @@ struct AnimatedImageFrameBufferTests {
         options.maxBufferSize = 4 * source.bytesPerFrame
         options.maxPixelSize = 32 // A quarter of the pixels, so four times the frames
 
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         #expect(buffer.capacity == 16)
     }
@@ -56,7 +61,7 @@ struct AnimatedImageFrameBufferTests {
 
     @Test func decodesTheWholeWindow() async throws {
         let source = try makeSource(frameCount: 6)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
 
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
@@ -74,7 +79,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 8, size: CGSize(width: 32, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 3 * source.bytesPerFrame
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
@@ -87,7 +92,7 @@ struct AnimatedImageFrameBufferTests {
 
     @Test func reportsEachFrameAsItArrives() async throws {
         let source = try makeSource(frameCount: 4)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         var decoded: [Int] = []
         buffer.onFrame = { decoded.append($0) }
 
@@ -102,7 +107,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 8, size: CGSize(width: 32, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 3 * source.bytesPerFrame
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         buffer.setCurrentIndex(6)
         await buffer.waitUntilFull()
@@ -119,7 +124,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 8, size: CGSize(width: 32, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 3 * source.bytesPerFrame
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
 
@@ -133,7 +138,7 @@ struct AnimatedImageFrameBufferTests {
 
     @Test func keepsEveryFrameWhenTheWholeAnimationFits() async throws {
         let source = try makeSource(frameCount: 5)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
 
@@ -147,7 +152,7 @@ struct AnimatedImageFrameBufferTests {
 
     @Test func reduceCapacityDropsFrames() async throws {
         let source = try makeSource(frameCount: 8)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
         #expect(buffer.count == 8)
@@ -165,7 +170,7 @@ struct AnimatedImageFrameBufferTests {
         // A buffer shrunk by one memory warning would otherwise stay shrunk for
         // the life of the player, re-decoding every frame of every loop.
         let source = try makeSource(frameCount: 8)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
         buffer.reduceCapacity(to: 2)
@@ -182,7 +187,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 20, size: CGSize(width: 32, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 5 * source.bytesPerFrame
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         buffer.restoreCapacity()
 
@@ -191,16 +196,27 @@ struct AnimatedImageFrameBufferTests {
 
     @Test func reduceCapacityNeverGrowsTheBuffer() async throws {
         let source = try makeSource(frameCount: 4)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
 
         buffer.reduceCapacity(to: 100)
 
         #expect(buffer.capacity == 4)
     }
 
+    @Test func reduceCapacityNeverGoesBelowTwoFrames() throws {
+        // Playback needs the frame on screen and the one being decoded, however
+        // hard the system is asking for memory back.
+        let source = try makeSource(frameCount: 8)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
+
+        buffer.reduceCapacity(to: 0)
+
+        #expect(buffer.capacity == AnimatedImageFrameBuffer.idleCapacity)
+    }
+
     @Test func removeAllClearsTheBuffer() async throws {
         let source = try makeSource(frameCount: 4)
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
 
@@ -217,7 +233,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 2, size: CGSize(width: 64, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 16
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
@@ -231,7 +247,7 @@ struct AnimatedImageFrameBufferTests {
         let source = try makeSource(frameCount: 2, size: CGSize(width: 8, height: 8))
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 512
-        let buffer = AnimatedImageFrameBuffer(source: source, options: options)
+        let buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool)
 
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
@@ -249,7 +265,7 @@ struct AnimatedImageFrameBufferTests {
         guard let source = AnimatedImageSource(data: data.prefix(data.count / 2)) else {
             return // Too little of the animation survived to be worth the test
         }
-        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options())
+        let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
 
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
