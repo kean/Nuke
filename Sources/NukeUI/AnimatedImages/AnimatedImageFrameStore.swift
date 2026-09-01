@@ -332,7 +332,7 @@ final class AnimatedImageFrameStore {
     /// The next frame worth decoding: the one a member is waiting on, then
     /// read-ahead a step at a time across every member.
     private func nextNeededIndex() -> Int? {
-        let members = liveMembers.filter(\.isDecodingEnabled)
+        let members = liveMembers
         if let index = members.first(where: { isPending($0.currentIndex) })?.currentIndex {
             return index
         }
@@ -394,12 +394,6 @@ final class AnimatedImageFrameStore {
         currentDecode = nil
         decodingIndex = nil
         decodingRequesters = []
-    }
-
-    /// Called by a member that has stopped decoding and is no longer waiting
-    /// for the frame in flight.
-    func memberDidStopDecoding(_ buffer: AnimatedImageFrameBuffer) {
-        removeRequester(buffer)
     }
 
     private func makeDecoderIfNeeded() -> (any AnimatedImageFrameDecoding)? {

@@ -247,16 +247,6 @@ public final class AnimatedImagePlayer: ObservableObject {
         return diagnostics
     }
 
-    /// Whether the player decodes frames at all.
-    ///
-    /// ``AnimatedImageView`` turns it off between being given an animation and
-    /// knowing what size to decode it at, so that frames it is going to throw
-    /// away are never decoded.
-    var isDecodingEnabled: Bool {
-        get { buffer.isDecodingEnabled }
-        set { buffer.isDecodingEnabled = newValue }
-    }
-
     /// Returns `true` if the frame at the given index is decoded and in memory.
     ///
     /// Together with ``Diagnostics/bufferCapacity`` it is enough to draw what

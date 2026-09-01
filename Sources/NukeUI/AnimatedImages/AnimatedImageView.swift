@@ -43,15 +43,16 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Setting it replaces the current animation and starts playing, unless
     /// ``isPlaybackEnabled`` is off.
     public var animatedImage: AnimatedImageSource? {
-        get { _animatedImage }
+        get { player?.source ?? sourcePendingDownsampling }
         set { setAnimatedImage(newValue, scale: scale(of: image)) }
     }
 
     /// The player driving ``animatedImage``, or `nil` when there is nothing to
     /// play.
     ///
-    /// A new one is created every time ``animatedImage`` is set. Assign your
-    /// own to control playback from outside the view or to read
+    /// A new one is created every time ``animatedImage`` is set, or at the
+    /// first layout for a view that has no size to decode the frames for yet.
+    /// Assign your own to control playback from outside the view or to read
     /// ``AnimatedImagePlayer/diagnostics``; the view starts and stops it as it
     /// moves in and out of a window, exactly as it does its own.
     public var player: AnimatedImagePlayer? {
@@ -61,7 +62,6 @@ public final class AnimatedImageView: _PlatformImageView {
             sourcePendingDownsampling = nil
             oldValue?.pause()
             oldValue?.onFrameForDisplay = nil
-            _animatedImage = player?.source
             // `image` rather than `layer.contents`, which would go around the
             // content modes and the aspect-fill drawing. Setting it does
             // invalidate the intrinsic content size on every frame, but frames
@@ -77,10 +77,10 @@ public final class AnimatedImageView: _PlatformImageView {
         }
     }
 
-    private var _animatedImage: AnimatedImageSource?
-
-    /// The animation whose frames are being decoded at full size because the
-    /// view had no size of its own to scale them to yet.
+    /// The animation the view is waiting for a size to decode the frames at.
+    ///
+    /// It is what ``animatedImage`` reports until the player exists, and what
+    /// the layout pass builds the player from.
     private var sourcePendingDownsampling: AnimatedImageSource?
 
     /// The options the view creates its players with.
@@ -279,19 +279,18 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func applyAutomaticDownsamplingIfNeeded() {
         guard let source = sourcePendingDownsampling else { return }
-        guard let maxPixelSize = automaticMaxPixelSize(for: source) else {
-            // Laid out and still nothing to derive a size from: the view has
-            // none, or its content mode draws the frames as they are. Full
-            // size is what the frames will be decoded at, so stop waiting.
-            player?.isDecodingEnabled = true
-            return
+        // A size worth having is one the animation is actually bigger than.
+        var maxPixelSize = automaticMaxPixelSize(for: source)
+        if let size = maxPixelSize, size >= max(source.size.width, source.size.height) {
+            maxPixelSize = nil
         }
-        sourcePendingDownsampling = nil
-        guard maxPixelSize < max(source.size.width, source.size.height) else {
-            player?.isDecodingEnabled = true // Already small enough as it is
-            return
-        }
-        setPlayer(for: source, scale: player?.options.scale, maxPixelSize: maxPixelSize)
+        // Nothing to derive a size from – the view has none, or its content
+        // mode draws the frames as they are – and a player already playing
+        // them at full size. Keep waiting, in case the content mode changes.
+        guard maxPixelSize != nil || player == nil else { return }
+        setPlayer(for: source, scale: player?.options.scale ?? scale(of: image), maxPixelSize: maxPixelSize)
+        // Set after the player, whose `didSet` clears it.
+        sourcePendingDownsampling = maxPixelSize == nil ? source : nil
     }
 
     /// The longest side, in pixels, the frames need for the view to draw them
@@ -420,24 +419,25 @@ public final class AnimatedImageView: _PlatformImageView {
     // MARK: Private
 
     private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
-        guard _animatedImage !== source else { return }
-        _animatedImage = source
+        guard animatedImage !== source else { return }
         let maxPixelSize = source.flatMap(automaticMaxPixelSize(for:))
-        setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
-        // Set after the player, whose `didSet` clears it.
-        sourcePendingDownsampling = maxPixelSize == nil && wantsAutomaticDownsampling ? source : nil
-        // A view with no size of its own has nothing to decode for yet, and
-        // the player it was given is the one the first layout replaces.
-        // Decoding now would produce a full-size frame for a player that is
-        // thrown away before it ever shows one.
-        if sourcePendingDownsampling != nil, bounds.width == 0 || bounds.height == 0 {
-            player?.isDecodingEnabled = false
+        let isPending = source != nil && maxPixelSize == nil && wantsAutomaticDownsampling
+        // A view with no size of its own has nothing to decode for yet, and a
+        // player built now is one the first layout replaces – after decoding a
+        // full-size frame it never shows. Wait for the layout instead.
+        if isPending, bounds.width == 0 || bounds.height == 0 {
+            player = nil
+            sourcePendingDownsampling = source
 #if os(macOS)
             needsLayout = true
 #else
             setNeedsLayout()
 #endif
+            return
         }
+        setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
+        // Set after the player, whose `didSet` clears it.
+        sourcePendingDownsampling = isPending ? source : nil
     }
 
     private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {

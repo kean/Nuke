@@ -62,6 +62,8 @@ struct AnimatedImageViewTests {
     // MARK: Displaying
 
     @Test func playsAnimatedData() async throws {
+        layOut(CGSize(width: 100, height: 100))
+
         display(Test.animatedGIF())
 
         let player = try #require(view.player)
@@ -98,6 +100,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func replacesThePreviousAnimation() async throws {
+        layOut(CGSize(width: 100, height: 100))
         display(Test.animatedGIF(frameCount: 4))
         let first = try #require(view.player)
 
@@ -111,6 +114,7 @@ struct AnimatedImageViewTests {
 
     @Test func showsTheStillOfAnImageThatIsNotAnimated() throws {
         // GIVEN an animation on screen
+        layOut(CGSize(width: 100, height: 100))
         display(Test.animatedGIF(frameCount: 4))
         let first = try #require(view.player)
 
@@ -126,6 +130,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func keepsThePlayerWhenTheSameSourceIsSetAgain() throws {
+        layOut(CGSize(width: 100, height: 100))
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
         view.animatedImage = source
         let player = try #require(view.player)
@@ -136,6 +141,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func prepareForReuseStopsEverything() async throws {
+        layOut(CGSize(width: 100, height: 100))
         display(Test.animatedGIF())
         let player = try #require(view.player)
 
@@ -149,6 +155,7 @@ struct AnimatedImageViewTests {
 
 #if canImport(UIKit)
     @Test func usesTheScaleOfTheImageBeingDisplayed() async throws {
+        layOut(CGSize(width: 100, height: 100))
         let image = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
 
         display(Test.animatedGIF(), image: image)
@@ -158,6 +165,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func doesNotInheritTheScaleOfThePreviousImage() async throws {
+        layOut(CGSize(width: 100, height: 100))
         let scaled = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
         display(Test.animatedGIF(frameCount: 4), image: scaled)
 
@@ -250,33 +258,31 @@ struct AnimatedImageViewTests {
         // The view is given the animation before it has a size, which is every
         // SwiftUI view – they are made at zero size – and every cell.
         display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
-        let provisional = try #require(view.player)
 
-        // Nothing has been decoded: the frames would be full size, and both
-        // they and the player that produced them are thrown away at the first
-        // layout. A frame of a large animation is a decode and a bitmap the
-        // size of the whole canvas, per cell.
-        #expect(provisional.buffer.currentDecode == nil)
-        #expect(provisional.diagnostics.decodedFrameCount == 0)
+        // There is no player yet, and so nothing decoded: the frames would be
+        // full size, and both they and the player that produced them would be
+        // thrown away at the first layout. A frame of a large animation is a
+        // decode and a bitmap the size of the whole canvas, per cell.
+        #expect(view.player == nil)
+        #expect(view.animatedImage != nil)
 
         layOut(CGSize(width: 20, height: 20))
 
-        let settled = try #require(view.player)
-        #expect(settled !== provisional)
-        await settled.buffer.waitUntilFull()
-        #expect(settled.diagnostics.decodedFrameCount > 0)
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+        #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
     @Test func decodesOnceALayoutSettlesThatThereIsNoSizeToDeriveFrom() async throws {
         // A view laid out with no size of its own is not going to get a better
         // answer, so the frames are decoded as they are rather than never.
         display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
-        let player = try #require(view.player)
 
         layOut(.zero)
 
+        let player = try #require(view.player)
+        #expect(player.options.maxPixelSize == nil)
         await player.buffer.waitUntilFull()
-        #expect(view.player === player)
         #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
@@ -284,7 +290,7 @@ struct AnimatedImageViewTests {
         // A cell hasn't been laid out when the image arrives, and a SwiftUI
         // view has no size at all when it is made.
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
-        #expect(view.player?.options.maxPixelSize == nil)
+        #expect(view.player == nil)
 
         layOut(CGSize(width: 20, height: 20))
 
@@ -293,13 +299,15 @@ struct AnimatedImageViewTests {
 
     @Test func doesNotRebuildThePlayerForAnAnimationThatAlreadyFits() async throws {
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
+        layOut(CGSize(width: 200, height: 200))
         let player = try #require(view.player)
 
-        layOut(CGSize(width: 200, height: 200))
+        layOut(CGSize(width: 300, height: 300))
 
         // Decoding it again would buy nothing: the frames are already smaller
         // than the view.
         #expect(view.player === player)
+        #expect(player.options.maxPixelSize == nil)
     }
 
     @Test func neverScalesTheFramesUp() async throws {
@@ -451,6 +459,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func playsOutsideAWindowWhenAsked() throws {
+        layOut(CGSize(width: 100, height: 100))
         view.isPlaybackPausedWhenOffscreen = false
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
 

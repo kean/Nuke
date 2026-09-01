@@ -22,9 +22,8 @@ actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
     private let animation: AnimatedImageSource
     private let maxPixelSize: CGFloat?
 
-    /// Created on the first decode: a view that is given an animation before
-    /// it is laid out replaces its first player at the first layout, and that
-    /// player should not parse the container for nothing.
+    /// Created on the first decode: indexing the container is not work for the
+    /// main actor, which is where the decoder itself is made.
     private lazy var source: CGImageSource? = animation.makeImageSource()
 
     /// A decoded frame and what it cost to produce.
@@ -193,22 +192,6 @@ final class AnimatedImageFrameBuffer {
         }
     }
 
-    /// Whether the buffer decodes at all. `true` by default.
-    ///
-    /// A view handed an animation before it knows what size to decode it at
-    /// turns this off until it does, rather than decoding a full-size frame it
-    /// is about to throw away.
-    var isDecodingEnabled = true {
-        didSet {
-            guard isDecodingEnabled != oldValue else { return }
-            if isDecodingEnabled {
-                store.scheduleDecodeIfNeeded()
-            } else {
-                store.memberDidStopDecoding(self)
-            }
-        }
-    }
-
     /// What the buffer holds while ``fillsWindow`` is off: the frame on screen
     /// and the one after it, so that playback starts without a stall.
     static let idleCapacity = 2
@@ -283,12 +266,6 @@ final class AnimatedImageFrameBuffer {
         store.frame(at: index)
     }
 
-    /// `true` when the buffer is claiming the frame at the given index and is
-    /// in a position to use it.
-    func wants(_ index: Int) -> Bool {
-        isDecodingEnabled && isInWindow(index)
-    }
-
     /// Moves the window to start at the given index and refills it.
     ///
     /// - parameter isSeeking: Whether the window is being moved somewhere the
@@ -324,7 +301,8 @@ final class AnimatedImageFrameBuffer {
         store.scheduleDecodeIfNeeded()
     }
 
-    private func isInWindow(_ index: Int) -> Bool {
+    /// `true` when the buffer is claiming the frame at the given index.
+    func wants(_ index: Int) -> Bool {
         let offset = (index - currentIndex + frameCount) % frameCount
         return offset < capacity
     }

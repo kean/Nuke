@@ -108,6 +108,19 @@ struct AnimatedImageIntegrationTests {
     // MARK: LazyImageView
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+    /// Gives a view a size and lays it out. A view with no size of its own
+    /// waits for a layout before it builds a player, so that it never decodes
+    /// a full-size frame for a size it is about to learn.
+    private func layOut(_ view: HostedView) {
+        view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+#if os(macOS)
+        view.layoutSubtreeIfNeeded()
+#else
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+#endif
+    }
+
     @Test func lazyImageViewPlaysAnimations() async throws {
         serve(Test.animatedGIF(frameCount: 3))
         let view = LazyImageView()
@@ -118,6 +131,7 @@ struct AnimatedImageIntegrationTests {
 
         view.url = Test.url
         await expectation.wait()
+        layOut(view)
 
         let player = try #require(view.imageView.player)
         #expect(player.source.frameCount == 3)
@@ -147,6 +161,7 @@ struct AnimatedImageIntegrationTests {
         view.onCompletion = { _ in expectation.fulfill() }
         view.url = Test.url
         await expectation.wait()
+        layOut(view)
         #expect(view.imageView.player != nil)
 
         view.reset()
@@ -164,6 +179,7 @@ struct AnimatedImageIntegrationTests {
         let view = AnimatedImageView()
 
         try await loadImage(into: view)
+        layOut(view)
 
         let player = try #require(view.player)
         #expect(player.source.frameCount == 3)
