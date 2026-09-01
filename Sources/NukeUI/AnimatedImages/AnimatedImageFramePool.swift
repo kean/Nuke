@@ -12,8 +12,8 @@ import UIKit
 ///
 /// ``AnimatedImagePlayer/Options/maxBufferSize`` is per player, and a screen
 /// full of animations that each took one would cost the sum of them. The pool
-/// is the ceiling on that sum: every player draws its window from it, and the
-/// more of them there are, the smaller the window each one gets.
+/// is the ceiling on that sum: every player draws its frames from it, and the
+/// more of them there are, the fewer of them it can hold whole.
 ///
 /// ```swift
 /// AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576

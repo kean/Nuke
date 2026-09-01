@@ -24,36 +24,39 @@ struct AnimatedImageFramePoolTests {
         #expect(player.diagnostics.bufferCapacity == 20)
     }
 
-    @Test func dividesTheBudgetBetweenThePlayersThatDoNotFit() throws {
+    @Test func aShareShortOfTheAnimationIsAWindowOfTheReadAhead() throws {
+        // Five frames' worth of the pool each, and each holds the read-ahead
+        // out of it: a window that slides re-decodes every frame each loop
+        // however long it is, so the rest of the share would buy nothing.
         let pool = makePool(frames: 10)
 
         let first = try makePlayer(frameCount: 20, pool: pool)
         let second = try makePlayer(frameCount: 20, pool: pool)
 
-        #expect(first.diagnostics.bufferCapacity == 5)
-        #expect(second.diagnostics.bufferCapacity == 5)
+        #expect(first.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+        #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
     @Test func shrinksTheAnimationsAlreadyPlayingWhenAnotherAppears() throws {
-        let pool = makePool(frames: 12)
+        let pool = makePool(frames: 24)
         let first = try makePlayer(frameCount: 20, pool: pool)
-        #expect(first.diagnostics.bufferCapacity == 12)
+        #expect(first.diagnostics.bufferCapacity == 20)
 
         let second = try makePlayer(frameCount: 20, pool: pool)
 
-        #expect(first.diagnostics.bufferCapacity == 6)
-        #expect(second.diagnostics.bufferCapacity == 6)
+        #expect(first.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+        #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
     @Test func givesTheSmallAnimationsWhatTheyNeedAndTheRestToTheLargeOne() throws {
-        // An even split would hold the large animation to five frames and leave
-        // three quarters of what the small ones were given unused: they only
-        // have two frames each to hold.
+        // An even split would hold the large animation to four frames and leave
+        // half of what the small ones were given unused: they only have two
+        // frames each to hold.
         let pool = makePool(frames: 12)
 
         let small = try makePlayer(frameCount: 2, pool: pool)
         let other = try makePlayer(frameCount: 2, pool: pool)
-        let large = try makePlayer(frameCount: 40, pool: pool)
+        let large = try makePlayer(frameCount: 8, pool: pool)
 
         #expect(small.diagnostics.bufferCapacity == 2)
         #expect(other.diagnostics.bufferCapacity == 2)
@@ -75,9 +78,10 @@ struct AnimatedImageFramePoolTests {
         // is still the ceiling on one of them.
         let pool = makePool(frames: 100)
 
-        let player = try makePlayer(frameCount: 40, maxBufferSize: 6 * Self.bytesPerFrame, pool: pool)
+        let player = try makePlayer(frameCount: 40, maxBufferSize: 30 * Self.bytesPerFrame, pool: pool)
 
-        #expect(player.diagnostics.bufferCapacity == 6)
+        #expect(player.diagnostics.isFullyBuffered == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
     @Test func aPlayersBudgetIsAFifthOfThePoolByDefault() throws {
@@ -119,33 +123,33 @@ struct AnimatedImageFramePoolTests {
     // MARK: Reacting to the Screen
 
     @Test func aPlayerNobodyIsWatchingLeavesItsShareToTheRest() throws {
-        let pool = makePool(frames: 12)
+        let pool = makePool(frames: 24)
         let playing = try makePlayer(frameCount: 20, pool: pool)
         let offscreen = try makePlayer(frameCount: 20, pool: pool)
-        #expect(playing.diagnostics.bufferCapacity == 6)
+        #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         // What `AnimatedImageView` does when it scrolls out of a window.
         offscreen.keepsFullBuffer = false
 
         #expect(offscreen.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
-        #expect(playing.diagnostics.bufferCapacity == 10)
+        #expect(playing.diagnostics.bufferCapacity == 20)
     }
 
     @Test func givesTheShareBackWhenAPlayerIsReleased() async throws {
-        let pool = makePool(frames: 12)
+        let pool = makePool(frames: 24)
         let survivor = try makePlayer(frameCount: 20, pool: pool)
         var released: AnimatedImagePlayer? = try makePlayer(frameCount: 20, pool: pool)
         #expect(released != nil)
-        #expect(survivor.diagnostics.bufferCapacity == 6)
+        #expect(survivor.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         released = nil
 
         // A `deinit` isn't on the main actor, so the pool is asked to divide
         // the budget again on the next turn rather than on the spot.
-        for _ in 0..<100 where survivor.diagnostics.bufferCapacity != 12 {
+        for _ in 0..<100 where survivor.diagnostics.bufferCapacity != 20 {
             await Task.yield()
         }
-        #expect(survivor.diagnostics.bufferCapacity == 12)
+        #expect(survivor.diagnostics.bufferCapacity == 20)
         #expect(pool.playerCount == 1)
     }
 
@@ -154,11 +158,11 @@ struct AnimatedImageFramePoolTests {
         let player = try makePlayer(frameCount: 20, pool: pool)
         #expect(player.diagnostics.bufferCapacity == 4)
 
-        pool.costLimit = 16 * Self.bytesPerFrame
-        #expect(player.diagnostics.bufferCapacity == 16)
+        pool.costLimit = 20 * Self.bytesPerFrame
+        #expect(player.diagnostics.bufferCapacity == 20)
 
         pool.costLimit = 8 * Self.bytesPerFrame
-        #expect(player.diagnostics.bufferCapacity == 8)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
     @Test func lowerLimitDropsTheFramesThatNoLongerFit() async throws {
@@ -179,7 +183,7 @@ struct AnimatedImageFramePoolTests {
         let pool = makePool(frames: 12)
         let first = try makePlayer(frameCount: 20, pool: pool)
         let second = try makePlayer(frameCount: 20, pool: pool)
-        #expect(first.diagnostics.bufferCapacity == 6)
+        #expect(first.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         pool.reduceMemoryUsage()
 
@@ -190,7 +194,7 @@ struct AnimatedImageFramePoolTests {
     @Test func givesTheBudgetBackOnceTheMemoryPressureHasPassed() async throws {
         // A window shrunk by one memory warning would otherwise stay shrunk
         // for the life of the player, re-decoding every frame of every loop.
-        let pool = makePool(frames: 12)
+        let pool = makePool(frames: 24)
         pool.memoryPressureGracePeriod = 0.01
         let player = try makePlayer(frameCount: 20, pool: pool)
 
@@ -200,7 +204,7 @@ struct AnimatedImageFramePoolTests {
         for _ in 0..<200 where player.diagnostics.bufferCapacity == 2 {
             try? await Task.sleep(for: .milliseconds(10))
         }
-        #expect(player.diagnostics.bufferCapacity == 12)
+        #expect(player.diagnostics.bufferCapacity == 20)
     }
 
     // MARK: Diagnostics

@@ -106,9 +106,6 @@ final class AnimatedImageFrameStore {
 
     private var decodingIndex: Int?
 
-    /// The priority the decode in flight runs at.
-    private var decodingPriority: TaskPriority = .utility
-
     /// The players that wanted the frame in flight when it was scheduled.
     ///
     /// Captured then rather than read when the frame lands: a member that has
@@ -327,16 +324,19 @@ final class AnimatedImageFrameStore {
             for player in liveMembers where player.wants(decodingIndex) {
                 decodingRequesters.insert(ObjectIdentifier(player))
             }
-            escalateDecodeIfNeeded()
             return
         }
         guard let index = nextNeededIndex(), let decoder = makeDecoderIfNeeded() else {
             return
         }
         decodingIndex = index
-        decodingPriority = priority(forFrameAt: index)
         decodingRequesters = Set(liveMembers.filter { $0.wants(index) }.map(ObjectIdentifier.init))
-        currentDecode = Task(priority: decodingPriority) { [weak self] in
+        // At the priority of the screen: a frame is decoded a few frames before
+        // it is due, so every decode is one the display is about to wait for.
+        // The read-ahead being short is what keeps this from turning a wall of
+        // animations into CPU-bound work – the decoder is paced by playback,
+        // one frame per frame shown, not by how much memory there is.
+        currentDecode = Task(priority: .userInteractive) { [weak self] in
             let frame = await decoder.decode(at: index)
             // Checked before clearing the handle: a cancelled decode would
             // otherwise drop the handle of the decode that replaced it.
@@ -363,28 +363,6 @@ final class AnimatedImageFrameStore {
             }
         }
         return nil
-    }
-
-    /// Only a frame a player is sitting on is urgent. Read-ahead at the main
-    /// actor's priority would turn a grid of animations into CPU-bound decodes
-    /// competing with the app's own work.
-    private func priority(forFrameAt index: Int) -> TaskPriority {
-        liveMembers.contains { $0.currentFrameIndex == index } ? .userInitiated : .utility
-    }
-
-    /// Raises the decode in flight to the priority its frame now deserves: a
-    /// player has caught up with a frame that was read-ahead when it started.
-    ///
-    /// A task's priority is fixed when it is made. The one way to raise it
-    /// afterwards is to await it from a task of a higher priority, which the
-    /// runtime answers by escalating the awaited task to the awaiter's
-    /// priority – the thread it is running on included.
-    private func escalateDecodeIfNeeded() {
-        guard let currentDecode, let decodingIndex else { return }
-        let priority = priority(forFrameAt: decodingIndex)
-        guard priority > decodingPriority else { return }
-        decodingPriority = priority
-        Task.detached(priority: priority) { await currentDecode.value }
     }
 
     private func didDecode(_ frame: AnimatedImageFrame?, at index: Int) {

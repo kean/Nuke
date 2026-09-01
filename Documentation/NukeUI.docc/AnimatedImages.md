@@ -97,7 +97,7 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 ## Memory
 
-Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. A player holds a window of frames instead, starting at the one on screen, and refills it in playback order as the window moves. When the whole animation fits, nothing is ever evicted and each frame is decoded exactly once; when it doesn't, the frames behind the window are decoded again on every loop.
+Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. A player decides once whether the whole animation fits in its budget. When it does, every frame is decoded exactly once and kept. When it doesn't, the player holds the frame on screen and the three after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
 
 Every animation on screen draws that window from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize``, a fifth of the pool's limit unless you set it – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``, which is 5% of the device's physical memory, capped at 128 MB:
 
@@ -121,7 +121,7 @@ options.maxPixelSize = 240
 imageView.playerOptions = options
 ```
 
-**Size the window.** Raising ``AnimatedImagePlayer/Options/maxBufferSize`` trades memory for CPU: past the point where the whole animation fits, each frame is decoded once and never again.
+**Raise the budget.** ``AnimatedImagePlayer/Options/maxBufferSize`` decides whether an animation fits, and trades memory for CPU: one that fits is decoded once and never again, one that doesn't is decoded for as long as it plays. It is a fifth of the pool by default, so raising ``AnimatedImageFramePool/costLimit`` raises it too.
 
 Memory is bounded either way. On a memory warning the pool holds every animation at two frames and gives the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
 
@@ -187,6 +187,8 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 ``Nuke/AnimatedImageSource`` parses the container – the frame count, the delays, the loop count, the canvas size – and decodes nothing. The pipeline parses it while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
 
 Playback follows the wall clock rather than the decoder: an animation that takes three seconds on paper takes three seconds on screen even if the main thread stalls, and what gives is the number of frames actually shown. The one exception is an animation whose frames take longer to decode than they are shown for, where skipping the late frames would mean skipping all of them: there the player shows the late frame and plays slow rather than stopping. Two corrections are applied to the delays the file declares, both of them what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
+
+The frames are decoded at the priority of the screen. With three frames of read-ahead, every decode is one the display is about to wait for, and the decoder is paced by playback – one frame per frame shown – rather than by how much memory there is, which is what keeps a wall of animations from turning into CPU-bound work.
 
 Every animation in the process is driven by a single display link, which runs while any of them is playing and asks for no more than the fastest one needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of.
 

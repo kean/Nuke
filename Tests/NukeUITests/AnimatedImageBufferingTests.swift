@@ -25,14 +25,18 @@ struct AnimatedImageBufferingTests {
         #expect(player.diagnostics.bufferCapacity == 12)
     }
 
-    @Test func windowsTheFramesWhenTheAnimationDoesNotFit() throws {
+    @Test func keepsTheReadAheadWhenTheAnimationDoesNotFit() throws {
+        // Ten frames' worth of budget buys the same as five would: a window
+        // that slides re-decodes every frame each loop however long it is, so
+        // the player keeps the frame on screen and the read-ahead and leaves
+        // the rest.
         let source = try makeSource(frameCount: 20, size: CGSize(width: 32, height: 32))
         var options = AnimatedImagePlayer.Options()
-        options.maxBufferSize = 5 * source.bytesPerFrame
+        options.maxBufferSize = 10 * source.bytesPerFrame
 
         let player = makePlayer(source: source, options: options)
 
-        #expect(player.diagnostics.bufferCapacity == 5)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
     @Test func neverGoesBelowTwoFrames() throws {
@@ -48,14 +52,18 @@ struct AnimatedImageBufferingTests {
     }
 
     @Test func countsDownsamplingAgainstTheBudget() throws {
-        let source = try makeSource(frameCount: 40, size: CGSize(width: 64, height: 64))
+        // Four frames' worth of budget for sixteen frames: only downsampled to
+        // a quarter of the pixels do they all fit.
+        let source = try makeSource(frameCount: 16, size: CGSize(width: 64, height: 64))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 4 * source.bytesPerFrame
-        options.maxPixelSize = 32 // A quarter of the pixels, so four times the frames
+        let fullSize = makePlayer(source: source, options: options)
+        #expect(fullSize.diagnostics.isFullyBuffered == false)
 
-        let player = makePlayer(source: source, options: options)
+        options.maxPixelSize = 32
+        let downsampled = makePlayer(source: source, options: options)
 
-        #expect(player.diagnostics.bufferCapacity == 16)
+        #expect(downsampled.diagnostics.bufferCapacity == 16)
     }
 
     @Test func holdsTwoFramesUntilSomethingIsWatching() async throws {

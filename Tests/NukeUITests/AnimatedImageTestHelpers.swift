@@ -58,8 +58,6 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     private var released: Set<Int> = []
     private var startedPriorities: [Int: DecodePriority] = [:]
     private var priorityWaiters: [Int: CheckedContinuation<DecodePriority, Never>] = [:]
-    private var escalatedPriorities: [Int: DecodePriority] = [:]
-    private var escalationWaiters: [Int: CheckedContinuation<DecodePriority, Never>] = [:]
 
     /// The number of times each frame has been asked for, which is what tells
     /// a frame two players shared from one they each decoded.
@@ -81,16 +79,7 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
         startedIndexes.append(index)
         recordPriority(Task.currentPriority, at: index)
         if released.remove(index) == nil {
-            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-                await withTaskPriorityEscalationHandler {
-                    await withCheckedContinuation { gates[index] = $0 }
-                } onPriorityEscalated: { _, priority in
-                    // Called on the thread doing the escalating, off the actor.
-                    Task { await self.recordEscalation(to: priority, at: index) }
-                }
-            } else {
-                await withCheckedContinuation { gates[index] = $0 }
-            }
+            await withCheckedContinuation { gates[index] = $0 }
         }
         return await decoder.decode(at: index)
     }
@@ -117,26 +106,9 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
         return await withCheckedContinuation { priorityWaiters[index] = $0 }
     }
 
-    /// The priority the decode of the given frame was raised to while it was
-    /// held at the gate, waiting for that to happen if it hasn't yet.
-    ///
-    /// Reported by the runtime as it escalates the task, which is the one
-    /// point where a test can observe an escalation without causing one.
-    func escalatedPriority(of index: Int) async -> DecodePriority {
-        if let priority = escalatedPriorities[index] {
-            return priority
-        }
-        return await withCheckedContinuation { escalationWaiters[index] = $0 }
-    }
-
     private func recordPriority(_ priority: DecodePriority, at index: Int) {
         startedPriorities[index] = priority
         priorityWaiters.removeValue(forKey: index)?.resume(returning: priority)
-    }
-
-    private func recordEscalation(to priority: DecodePriority, at index: Int) {
-        escalatedPriorities[index] = priority
-        escalationWaiters.removeValue(forKey: index)?.resume(returning: priority)
     }
 }
 

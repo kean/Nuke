@@ -235,7 +235,7 @@ struct AnimatedImageFramePoolDemo: View {
         AnimatedImageFramePool.shared.totalCost
         """,
         points: [
-            .init("Frame pool", "Raise the animation count and watch every window shrink to a share; drag the pool budget and watch them all refill. Nothing is divided while the animations together want less than the limit."),
+            .init("Frame pool", "Raise the animation count and watch the animations stop fitting whole – a share short of the animation buys a window of a few frames, however large – then drag the pool budget up and watch them fill again. Nothing is divided while the animations together want less than the limit."),
             .init("Fair shares", "The division is not a flat split. An animation that fits entirely in less than its share takes only what it needs, and the rest goes to the ones that can use it – so a wall of small stickers and one long GIF gives the GIF everything the stickers left."),
             .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing."),
             .init("Memory warnings", "The pool holds every animation at two frames when the system issues one, and the button does the same thing by hand. The windows come back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the maps refill.")

@@ -214,18 +214,24 @@ public final class AnimatedImagePlayer: ObservableObject {
     // MARK: Buffering
 
     /// The number of frames the player is allowed to hold: what it wants, or
-    /// the share of the animation the pool has left it, whichever is smaller.
+    /// the share of the animation the pool has left it, whichever is smaller –
+    /// and no more than the read-ahead unless that share is the whole animation.
     var bufferCapacity: Int {
-        max(Self.idleFrameCount, min(store.windowLength, wantedFrameCount))
+        let granted = min(store.windowLength, wantedFrameCount)
+        let capacity = granted >= source.frameCount ? granted : min(granted, Self.readAheadFrameCount + 1)
+        return max(Self.idleFrameCount, capacity)
     }
 
     /// The number of frames the player would hold if the pool had the memory to
-    /// spare: every frame up to ``Options/maxBufferSize``, and only
+    /// spare: every frame when ``Options/maxBufferSize`` covers them all, the
+    /// frame on screen and the read-ahead when it doesn't, and only
     /// ``idleFrameCount`` while nobody is watching or the system is short of
     /// memory.
     var wantedFrameCount: Int {
-        let wanted = keepsFullBuffer && !pool.isUnderMemoryPressure ? source.frameCount : Self.idleFrameCount
-        return max(Self.idleFrameCount, min(source.frameCount, min(wanted, affordableFrameCount)))
+        guard keepsFullBuffer, !pool.isUnderMemoryPressure else { return Self.idleFrameCount }
+        let affordable = affordableFrameCount
+        guard affordable < source.frameCount else { return source.frameCount }
+        return max(Self.idleFrameCount, min(Self.readAheadFrameCount + 1, affordable))
     }
 
     /// The range of frame indexes the player is claiming, which may run past
@@ -243,6 +249,15 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// player: with one frame, the next could only start decoding after the
     /// current one was dropped.
     static let idleFrameCount = 2
+
+    /// The number of frames decoded ahead of the one on screen while the
+    /// animation doesn't fit in memory.
+    ///
+    /// A window that slides re-decodes every frame each loop however long it
+    /// is, so past what absorbs a slow decode or a busy core, more of it buys
+    /// nothing. Three is about what browsers and the other players keep, and
+    /// the memory beyond it is left to the animations that do fit.
+    static let readAheadFrameCount = 3
 
     /// The largest gap between two clock ticks the player acts on, in seconds.
     ///
@@ -470,7 +485,8 @@ extension AnimatedImagePlayer {
         /// about 25 MB on most devices – by default.
         ///
         /// An animation whose frames all fit is decoded once and replayed from
-        /// memory; a larger one is decoded continuously into a sliding window.
+        /// memory; a larger one is decoded as it plays, a few frames ahead of
+        /// the one on screen.
         /// What is measured is what the frames cost decoded – the canvas at four
         /// bytes a pixel, less whatever ``maxPixelSize`` scales away – not the
         /// size of the file. It is a ceiling, not an allowance: what the player

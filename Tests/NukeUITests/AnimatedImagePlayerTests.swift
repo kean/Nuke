@@ -530,50 +530,18 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Decode Priority
 
-    @Test func decodesTheFrameItIsWaitingOnAheadOfTheRestOfTheWindow() async {
+    @Test func decodesEveryFrameAtThePriorityOfTheScreen() async {
         let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
 
-        // Nothing is on screen until frame 0 lands.
-        #expect(await decoder.priority(of: 0) == .userInitiated)
+        // The frame nothing can be shown without...
+        #expect(await decoder.priority(of: 0) == .userInteractive)
 
         player.play()
         await decoder.release(0)
 
-        // The rest of the window is read-ahead: a screen full of animations
-        // filling their buffers should queue behind the app's own work.
-        #expect(await decoder.priority(of: 1) == .utility)
-    }
-
-    @Test func decodesTheFrameASeekLandedOnAheadOfTheRestOfTheWindow() async {
-        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 8)
-        player.play()
-        await decoder.release(0)
-        #expect(await decoder.priority(of: 1) == .utility)
-
-        player.seek(toFrame: 5)
-
-        // The seek made frame 5 the one nothing can be shown without.
-        #expect(await decoder.priority(of: 5) == .userInitiated)
-    }
-
-    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
-    @Test func raisesTheReadAheadDecodeThePlayheadCatchesUpWith() async {
-        let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
-            frameCount: 4, delays: Array(repeating: 0.1, count: 4)
-        )
-        player.play()
-        await decoder.release(0)
-        #expect(await decoder.priority(of: 1) == .utility)
-
-        // WHEN the playhead reaches the frame while it is still decoding
-        clock.tick(0.1)
-        #expect(player.currentFrameIndex == 1)
-
-        // THEN the decode is raised to the priority of a frame that is due
-        // rather than left to finish at the priority it was started at. A
-        // task's priority is fixed when it is made; this is the store having
-        // a task of a higher priority await it.
-        #expect(await decoder.escalatedPriority(of: 1) == .userInitiated)
+        // ...and the read-ahead alike: with a few frames of it, every decode is
+        // one the display is about to wait for.
+        #expect(await decoder.priority(of: 1) == .userInteractive)
     }
 
     // MARK: Observation
