@@ -24,10 +24,30 @@ struct AnimatedImageFramePoolTests {
         #expect(player.diagnostics.bufferCapacity == 20)
     }
 
-    @Test func aShareShortOfTheAnimationIsAWindowOfTheReadAhead() throws {
-        // Five frames' worth of the pool each, and each holds the read-ahead
-        // out of it: a window that slides re-decodes every frame each loop
-        // however long it is, so the rest of the share would buy nothing.
+    @Test func anAnimationAloneMayTakeTheWholePool() throws {
+        // There is nobody to save the rest for.
+        let pool = makePool(frames: 100)
+
+        let player = try makePlayer(frameCount: 100, pool: pool)
+
+        #expect(player.diagnostics.isFullyBuffered)
+        #expect(player.diagnostics.bufferCapacity == 100)
+    }
+
+    @Test func anAnimationLargerThanThePoolKeepsTheReadAhead() throws {
+        let pool = makePool(frames: 100)
+
+        let player = try makePlayer(frameCount: 101, pool: pool)
+
+        #expect(player.diagnostics.isFullyBuffered == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+    }
+
+    @Test func keepsTheReadAheadWhenNoAnimationFits() throws {
+        // Ten frames of pool for two animations of twenty: neither fits, so
+        // each holds a window of the read-ahead, and the two frames left over
+        // buy nothing – a window that slides re-decodes every frame each loop
+        // however long it is.
         let pool = makePool(frames: 10)
 
         let first = try makePlayer(frameCount: 20, pool: pool)
@@ -37,14 +57,45 @@ struct AnimatedImageFramePoolTests {
         #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
-    @Test func shrinksTheAnimationsAlreadyPlayingWhenAnotherAppears() throws {
+    @Test func holdsAsManyAnimationsWholeAsFitSmallestFirst() throws {
+        // Thirty frames of pool for fifty frames of animation. An even split –
+        // seven or eight frames each – would hold nothing whole. Smallest
+        // first, two of the four are whole, and the other two play out of a
+        // window of the read-ahead.
+        let pool = makePool(frames: 30)
+        let window = AnimatedImagePlayer.readAheadFrameCount + 1
+
+        let players = try [12, 10, 8, 20].map { try makePlayer(frameCount: $0, pool: pool) }
+
+        #expect(players.map(\.diagnostics.bufferCapacity) == [window, 10, 8, window])
+    }
+
+    @Test func aSmallerNewcomerTakesThePlaceOfALargerAnimation() throws {
+        // Twenty-four frames of pool. The animation of twenty had it to
+        // itself; the one of sixteen fits beside the twenty's read-ahead where
+        // the twenty wouldn't fit beside the sixteen's, so the twenty is the
+        // one that gives way.
+        let pool = makePool(frames: 24)
+        let large = try makePlayer(frameCount: 20, pool: pool)
+        #expect(large.diagnostics.bufferCapacity == 20)
+
+        let small = try makePlayer(frameCount: 16, pool: pool)
+
+        #expect(small.diagnostics.bufferCapacity == 16)
+        #expect(large.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+    }
+
+    @Test func aNewcomerTheSameSizeWaitsForTheOneAlreadyWhole() throws {
+        // Twenty-four frames of pool for two animations of twenty: room for one
+        // whole beside the other's read-ahead. The one already whole keeps its
+        // frames rather than dropping them to decode the other's.
         let pool = makePool(frames: 24)
         let first = try makePlayer(frameCount: 20, pool: pool)
         #expect(first.diagnostics.bufferCapacity == 20)
 
         let second = try makePlayer(frameCount: 20, pool: pool)
 
-        #expect(first.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+        #expect(first.diagnostics.bufferCapacity == 20)
         #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
@@ -84,38 +135,14 @@ struct AnimatedImageFramePoolTests {
         #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
-    @Test func aPlayersBudgetIsAFifthOfThePoolByDefault() throws {
-        // Large enough that what browsers keep whole fits, small enough that no
-        // one animation can take the pool.
-        let pool = makePool(frames: 100)
-        #expect(pool.defaultMaxBufferSize == 20 * Self.bytesPerFrame)
-
-        let fits = try makePlayer(frameCount: 20, maxBufferSize: nil, pool: pool)
-        let doesNot = try makePlayer(frameCount: 21, maxBufferSize: nil, pool: pool)
-
-        #expect(fits.diagnostics.isFullyBuffered)
-        #expect(doesNot.diagnostics.isFullyBuffered == false)
-    }
-
-    @Test func theDefaultBudgetFollowsTheLimit() throws {
-        let pool = makePool(frames: 100)
-        let player = try makePlayer(frameCount: 40, maxBufferSize: nil, pool: pool)
-        #expect(player.diagnostics.isFullyBuffered == false)
-
-        pool.costLimit = 200 * Self.bytesPerFrame
-
-        #expect(player.diagnostics.isFullyBuffered)
-        #expect(player.diagnostics.bufferCapacity == 40)
-    }
-
     @Test func measuresAnAnimationByWhatItCostsDecodedNotByWhatItWeighs() throws {
         // The frames are solid colors, so the file is smaller than a single
-        // decoded frame; the budget has to see through that.
-        let pool = makePool(frames: 100) // A default budget of twenty 32×32 frames
-        let source = try makeSource(frameCount: 10, size: CGSize(width: 64, height: 64)) // Forty of them
+        // decoded frame; the pool has to see through that.
+        let pool = makePool(frames: 100) // Twenty-five frames of 64×64
+        let source = try makeSource(frameCount: 30, size: CGSize(width: 64, height: 64))
         #expect(source.data.count < source.bytesPerFrame)
 
-        let player = try makePlayer(source: source, maxBufferSize: nil, pool: pool)
+        let player = try makePlayer(source: source, pool: pool)
 
         #expect(player.diagnostics.isFullyBuffered == false)
     }
@@ -125,7 +152,7 @@ struct AnimatedImageFramePoolTests {
     @Test func aPlayerNobodyIsWatchingLeavesItsShareToTheRest() throws {
         let pool = makePool(frames: 24)
         let playing = try makePlayer(frameCount: 20, pool: pool)
-        let offscreen = try makePlayer(frameCount: 20, pool: pool)
+        let offscreen = try makePlayer(frameCount: 16, pool: pool)
         #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         // What `AnimatedImageView` does when it scrolls out of a window.
@@ -138,7 +165,7 @@ struct AnimatedImageFramePoolTests {
     @Test func givesTheShareBackWhenAPlayerIsReleased() async throws {
         let pool = makePool(frames: 24)
         let survivor = try makePlayer(frameCount: 20, pool: pool)
-        var released: AnimatedImagePlayer? = try makePlayer(frameCount: 20, pool: pool)
+        var released: AnimatedImagePlayer? = try makePlayer(frameCount: 16, pool: pool)
         #expect(released != nil)
         #expect(survivor.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
@@ -245,12 +272,9 @@ struct AnimatedImageFramePoolTests {
 
     /// A player that is playing, which is what makes it ask for a full window
     /// of frames. One that isn't asks for two.
-    ///
-    /// The budget is spelled out because the default is a share of the pool
-    /// itself, and what these tests divide is the pool.
     private func makePlayer(
         frameCount: Int,
-        maxBufferSize: Int? = 10 * 1_048_576,
+        maxBufferSize: Int? = nil,
         pool: AnimatedImageFramePool
     ) throws -> AnimatedImagePlayer {
         try makePlayer(source: try makeSource(frameCount: frameCount), maxBufferSize: maxBufferSize, pool: pool)
@@ -258,7 +282,7 @@ struct AnimatedImageFramePoolTests {
 
     private func makePlayer(
         source: AnimatedImageSource,
-        maxBufferSize: Int? = 10 * 1_048_576,
+        maxBufferSize: Int? = nil,
         pool: AnimatedImageFramePool
     ) throws -> AnimatedImagePlayer {
         var options = AnimatedImagePlayer.Options()

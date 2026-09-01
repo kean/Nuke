@@ -223,6 +223,18 @@ final class AnimatedImageFrameStore {
         return min(frameCount, wanted) * bytesPerFrame
     }
 
+    /// The least the store can play from: a window of the read-ahead for every
+    /// member, and never more than the whole animation.
+    ///
+    /// Anything between this and ``demand`` buys nothing – a window that
+    /// slides re-decodes every frame each loop however long it is – so these
+    /// are the only two amounts the pool hands out.
+    var leastDemand: Int {
+        let window = AnimatedImagePlayer.readAheadFrameCount + 1
+        let wanted = members.lazy.compactMap { $0.player?.wantedFrameCount }.reduce(0) { $0 + min($1, window) }
+        return min(frameCount, wanted) * bytesPerFrame
+    }
+
     /// Takes the share of the pool the store holds its frames in.
     func setAllotment(_ bytes: Int) {
         guard bytes != allotment else { return }

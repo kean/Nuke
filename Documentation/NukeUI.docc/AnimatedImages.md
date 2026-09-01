@@ -97,9 +97,9 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 ## Memory
 
-Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. A player decides once whether the whole animation fits in its budget. When it does, every frame is decoded exactly once and kept. When it doesn't, the player holds the frame on screen and the three after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
+Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the three after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
 
-Every animation on screen draws that window from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize``, a fifth of the pool's limit unless you set it – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``, which is 5% of the device's physical memory, capped at 128 MB:
+Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB, and an animation alone may take all of it:
 
 ```swift
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
@@ -107,11 +107,11 @@ AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
 
 What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
 
-Nothing is divided while the animations together want less than the limit, and the division is even past that, except that an animation that fits in less than its share takes only what it needs and leaves the rest to the ones that can use it. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
+When the animations together want more than the limit, the pool gives each one its window first and holds as many of them whole as the rest allows, smallest first – so a wall of stickers and one long GIF keeps every sticker whole and plays the GIF out of a window, where an even split would hold nothing whole. When two the same size compete for the last of it, the one already whole keeps its frames. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
 
 Two levers, in the order you should reach for them.
 
-**Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB. It is the first lever because it is the one that makes the frames small enough for the shares to hold whole animations.
+**Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB. It is the first lever because it is the one that makes the frames small enough for the pool to hold whole animations.
 
 ``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up. Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
 
@@ -121,7 +121,7 @@ options.maxPixelSize = 240
 imageView.playerOptions = options
 ```
 
-**Raise the budget.** ``AnimatedImagePlayer/Options/maxBufferSize`` decides whether an animation fits, and trades memory for CPU: one that fits is decoded once and never again, one that doesn't is decoded for as long as it plays. It is a fifth of the pool by default, so raising ``AnimatedImageFramePool/costLimit`` raises it too.
+**Raise the limit.** ``AnimatedImageFramePool/costLimit`` decides how many animations fit, and trades memory for CPU: one that fits is decoded once and never again, one that doesn't is decoded for as long as it plays. ``AnimatedImagePlayer/Options/maxBufferSize`` goes the other way: it is a ceiling on one player, for an animation that should play out of a window however much room the pool has.
 
 Memory is bounded either way. On a memory warning the pool holds every animation at two frames and gives the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
 

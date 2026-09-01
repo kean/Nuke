@@ -10,10 +10,9 @@ import UIKit
 
 /// The memory every animation on screen shares for its decoded frames.
 ///
-/// ``AnimatedImagePlayer/Options/maxBufferSize`` is per player, and a screen
-/// full of animations that each took one would cost the sum of them. The pool
-/// is the ceiling on that sum: every player draws its frames from it, and the
-/// more of them there are, the fewer of them it can hold whole.
+/// An animation alone may take all of it. A screen full of them draws from it
+/// together, and the pool holds as many of them whole as fit, smallest first;
+/// the rest play out of a window of a few frames, decoded as they go.
 ///
 /// ```swift
 /// AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
@@ -36,15 +35,6 @@ public final class AnimatedImageFramePool {
             rebalance()
         }
     }
-
-    /// The most memory the frames of one animation may occupy unless its player
-    /// says otherwise: a fifth of ``costLimit``.
-    ///
-    /// What ``AnimatedImagePlayer/Options/maxBufferSize`` is when it isn't set.
-    /// A fifth keeps any one animation from taking the pool, and with the
-    /// default limit comes to about 25 MB – the range browsers keep an
-    /// animation whole in before they start decoding it as it plays.
-    public var defaultMaxBufferSize: Int { costLimit / 5 }
 
     /// The memory the decoded frames occupy right now, in bytes. A frame two
     /// players are sharing is counted once.
@@ -187,33 +177,72 @@ public final class AnimatedImageFramePool {
     /// animation filling its window would shrink the others as it went.
     func rebalance() {
         sweep()
-        let registered = stores.values.map { (store: $0, demand: $0.demand) }
-        guard !registered.isEmpty else { return }
-
-        let total = registered.reduce(0) { $0 + $1.demand }
-        if total > costLimit {
-            // Max-min fair share: smallest demand first, with what each
-            // animation leaves unused divided again between the rest.
-            var remaining = max(0, costLimit)
-            var share = registered.count
-            var allotments: [(store: AnimatedImageFrameStore, bytes: Int)] = []
-            for entry in registered.sorted(by: { $0.demand < $1.demand }) {
-                let bytes = min(entry.demand, remaining / share)
-                allotments.append((entry.store, bytes))
-                remaining -= bytes
-                share -= 1
-            }
-            // Applied only once every share is known: a store handed a
-            // smaller window evicts frames on the spot.
-            for allotment in allotments {
-                allotment.store.setAllotment(allotment.bytes)
-            }
-        } else {
-            for entry in registered {
-                entry.store.setAllotment(entry.demand)
-            }
+        guard !stores.isEmpty else { return }
+        // Applied only once every share is known: a store handed a smaller
+        // window evicts frames on the spot.
+        for share in divide(costLimit, between: Array(stores.values)) {
+            share.store.setAllotment(share.bytes)
         }
         reclaimIfNeeded()
+    }
+
+    private struct Share {
+        let store: AnimatedImageFrameStore
+        /// What the store needs to hold its animation whole.
+        let demand: Int
+        /// What it needs to play the animation out of a window.
+        let least: Int
+        var bytes = 0
+    }
+
+    /// Returns what each store gets of the given limit: as many of the
+    /// animations whole as fit, smallest first, and a window of the read-ahead
+    /// to the rest.
+    ///
+    /// There are two amounts worth giving an animation – enough to hold it
+    /// whole, and enough for a window of the read-ahead – because anything in
+    /// between re-decodes every frame each loop all the same. So every store
+    /// gets its window first, and what is left holds animations whole from the
+    /// smallest up, which fits as many of them as anything could. An even split
+    /// would hold nothing whole the moment the animations together outgrew the
+    /// limit.
+    private func divide(_ limit: Int, between stores: [AnimatedImageFrameStore]) -> [Share] {
+        var shares = stores.map { Share(store: $0, demand: $0.demand, least: $0.leastDemand) }
+        var remaining = max(0, limit)
+
+        // The windows, max-min fair: smallest first, with what one leaves
+        // unused divided again between the rest. They only come up short when
+        // even the windows together don't fit.
+        var count = shares.count
+        for index in shares.indices.sorted(by: { shares[$0].least < shares[$1].least }) {
+            let bytes = min(shares[index].least, remaining / count)
+            shares[index].bytes = bytes
+            remaining -= bytes
+            count -= 1
+        }
+
+        // Then whole animations out of what is left. When two the same size
+        // compete for the last of it, the one already whole keeps its frames
+        // rather than trading places with a newcomer, and after that the one
+        // that has been playing longer goes first.
+        let order = shares.indices.sorted { lhs, rhs in
+            if shares[lhs].demand != shares[rhs].demand {
+                return shares[lhs].demand < shares[rhs].demand
+            }
+            let lhsIsWhole = shares[lhs].store.allotment >= shares[lhs].demand
+            let rhsIsWhole = shares[rhs].store.allotment >= shares[rhs].demand
+            if lhsIsWhole != rhsIsWhole {
+                return lhsIsWhole
+            }
+            return shares[lhs].store.lastUsed < shares[rhs].store.lastUsed
+        }
+        for index in order {
+            let cost = shares[index].demand - shares[index].bytes
+            guard cost <= remaining else { continue }
+            shares[index].bytes = shares[index].demand
+            remaining -= cost
+        }
+        return shares
     }
 
     /// Drops the animations nothing refers to any more, and the players that
