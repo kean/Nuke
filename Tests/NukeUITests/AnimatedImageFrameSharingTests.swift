@@ -328,10 +328,12 @@ struct AnimatedImageFrameSharingTests {
     }
 
     /// A player that is playing, which is what makes it ask for a full window
-    /// of frames. One that isn't asks for two.
+    /// of frames. One that isn't asks for two. It has no budget of its own,
+    /// because the default is a share of the pool and the pool is what these
+    /// tests divide.
     private func makePlayer(
         source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        options: AnimatedImagePlayer.Options = .uncappedBuffer,
         pool: AnimatedImageFramePool? = nil,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) -> AnimatedImagePlayer {
@@ -343,7 +345,7 @@ struct AnimatedImageFrameSharingTests {
     /// A player nothing has started, on a clock the test drives.
     private func makeIdlePlayer(
         source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        options: AnimatedImagePlayer.Options = .uncappedBuffer,
         pool: AnimatedImageFramePool? = nil,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {

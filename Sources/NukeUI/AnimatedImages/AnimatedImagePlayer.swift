@@ -85,8 +85,12 @@ public final class AnimatedImagePlayer: ObservableObject {
     private let pool: AnimatedImageFramePool
 
     /// The number of frames the player is willing to hold, whatever the pool
-    /// has to spare: ``Options/maxBufferSize`` in frames.
-    private let affordableFrameCount: Int
+    /// has to spare: ``Options/maxBufferSize`` in frames, at what a frame costs
+    /// decoded at the size it is decoded at.
+    private var affordableFrameCount: Int {
+        guard store.bytesPerFrame > 0 else { return source.frameCount }
+        return (options.maxBufferSize ?? pool.defaultMaxBufferSize) / store.bytesPerFrame
+    }
 
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
@@ -114,9 +118,6 @@ public final class AnimatedImagePlayer: ObservableObject {
             transform: options.frameTransform,
             decoder: decoder
         )
-        self.affordableFrameCount = store.bytesPerFrame > 0
-            ? options.maxBufferSize / store.bytesPerFrame
-            : source.frameCount
         // Nobody is watching until something calls `play()`, so the player asks
         // for the first frames only. It does ask for those: an animation that
         // is never played still shows its first frame.
@@ -465,13 +466,16 @@ extension AnimatedImagePlayer {
         public var playbackRate: Double = 1
 
         /// The most memory this player's decoded frames may occupy, in bytes.
-        /// 10 MB by default.
+        /// `nil` – a fifth of the pool's ``AnimatedImageFramePool/costLimit``,
+        /// about 25 MB on most devices – by default.
         ///
         /// An animation whose frames all fit is decoded once and replayed from
         /// memory; a larger one is decoded continuously into a sliding window.
-        /// It is a ceiling, not an allowance: what the player actually gets is
-        /// its share of ``AnimatedImageFramePool``.
-        public var maxBufferSize = 10 * 1_048_576
+        /// What is measured is what the frames cost decoded – the canvas at four
+        /// bytes a pixel, less whatever ``maxPixelSize`` scales away – not the
+        /// size of the file. It is a ceiling, not an allowance: what the player
+        /// actually gets is its share of ``AnimatedImageFramePool``.
+        public var maxBufferSize: Int?
 
         /// The longest side, in pixels, the decoded frames may have. `nil` –
         /// no downsampling – by default.

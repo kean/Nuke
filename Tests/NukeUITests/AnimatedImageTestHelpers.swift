@@ -32,6 +32,14 @@ extension AnimatedImagePlayer.Options {
         options.maxBufferSize = 1
         return options
     }
+
+    /// A budget every animation fits in, so that the pool's division is the
+    /// only limit on what a player holds.
+    static var uncappedBuffer: AnimatedImagePlayer.Options {
+        var options = AnimatedImagePlayer.Options()
+        options.maxBufferSize = .max
+        return options
+    }
 }
 
 /// The priority a decode runs at.

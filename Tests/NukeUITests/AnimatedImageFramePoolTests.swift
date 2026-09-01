@@ -80,6 +80,42 @@ struct AnimatedImageFramePoolTests {
         #expect(player.diagnostics.bufferCapacity == 6)
     }
 
+    @Test func aPlayersBudgetIsAFifthOfThePoolByDefault() throws {
+        // Large enough that what browsers keep whole fits, small enough that no
+        // one animation can take the pool.
+        let pool = makePool(frames: 100)
+        #expect(pool.defaultMaxBufferSize == 20 * Self.bytesPerFrame)
+
+        let fits = try makePlayer(frameCount: 20, maxBufferSize: nil, pool: pool)
+        let doesNot = try makePlayer(frameCount: 21, maxBufferSize: nil, pool: pool)
+
+        #expect(fits.diagnostics.isFullyBuffered)
+        #expect(doesNot.diagnostics.isFullyBuffered == false)
+    }
+
+    @Test func theDefaultBudgetFollowsTheLimit() throws {
+        let pool = makePool(frames: 100)
+        let player = try makePlayer(frameCount: 40, maxBufferSize: nil, pool: pool)
+        #expect(player.diagnostics.isFullyBuffered == false)
+
+        pool.costLimit = 200 * Self.bytesPerFrame
+
+        #expect(player.diagnostics.isFullyBuffered)
+        #expect(player.diagnostics.bufferCapacity == 40)
+    }
+
+    @Test func measuresAnAnimationByWhatItCostsDecodedNotByWhatItWeighs() throws {
+        // The frames are solid colors, so the file is smaller than a single
+        // decoded frame; the budget has to see through that.
+        let pool = makePool(frames: 100) // A default budget of twenty 32×32 frames
+        let source = try makeSource(frameCount: 10, size: CGSize(width: 64, height: 64)) // Forty of them
+        #expect(source.data.count < source.bytesPerFrame)
+
+        let player = try makePlayer(source: source, maxBufferSize: nil, pool: pool)
+
+        #expect(player.diagnostics.isFullyBuffered == false)
+    }
+
     // MARK: Reacting to the Screen
 
     @Test func aPlayerNobodyIsWatchingLeavesItsShareToTheRest() throws {
@@ -205,25 +241,30 @@ struct AnimatedImageFramePoolTests {
 
     /// A player that is playing, which is what makes it ask for a full window
     /// of frames. One that isn't asks for two.
+    ///
+    /// The budget is spelled out because the default is a share of the pool
+    /// itself, and what these tests divide is the pool.
     private func makePlayer(
         frameCount: Int,
-        maxBufferSize: Int = 10 * 1_048_576,
+        maxBufferSize: Int? = 10 * 1_048_576,
+        pool: AnimatedImageFramePool
+    ) throws -> AnimatedImagePlayer {
+        try makePlayer(source: try makeSource(frameCount: frameCount), maxBufferSize: maxBufferSize, pool: pool)
+    }
+
+    private func makePlayer(
+        source: AnimatedImageSource,
+        maxBufferSize: Int? = 10 * 1_048_576,
         pool: AnimatedImageFramePool
     ) throws -> AnimatedImagePlayer {
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = maxBufferSize
-        let player = AnimatedImagePlayer(
-            source: try makeSource(frameCount: frameCount),
-            options: options,
-            clock: ManualClock(),
-            pool: pool
-        )
+        let player = AnimatedImagePlayer(source: source, options: options, clock: ManualClock(), pool: pool)
         player.play()
         return player
     }
 
-    private func makeSource(frameCount: Int) throws -> AnimatedImageSource {
-        let size = CGSize(width: 32, height: 32)
-        return try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: frameCount, size: size)))
+    private func makeSource(frameCount: Int, size: CGSize = CGSize(width: 32, height: 32)) throws -> AnimatedImageSource {
+        try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: frameCount, size: size)))
     }
 }

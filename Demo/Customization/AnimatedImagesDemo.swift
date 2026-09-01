@@ -104,9 +104,12 @@ struct AnimatedImagesDemo: View {
     private var bufferSection: some View {
         Section {
             LabeledContent("Budget") {
-                DemoMonoLabel(String(format: "%.2f MB", settings.maxBufferSizeMB))
+                DemoMonoLabel(String(format: "%.2f MB", settings.maxBufferSizeMB ?? defaultMaxBufferSizeMB) + (settings.maxBufferSizeMB == nil ? " (default)" : ""))
             }
-            Slider(value: $settings.maxBufferSizeMB, in: 0.25...32) {
+            Slider(value: Binding(
+                get: { settings.maxBufferSizeMB ?? defaultMaxBufferSizeMB },
+                set: { settings.maxBufferSizeMB = $0 }
+            ), in: 0.25...32) {
                 Text("Budget")
             }
             LabeledContent("Frame size") {
@@ -162,17 +165,23 @@ struct AnimatedImagesDemo: View {
         diagnostics = animation?.player.diagnostics ?? AnimatedImagePlayer.Diagnostics()
     }
 
+    /// What a player gets when the budget isn't set: a fifth of the pool.
+    private var defaultMaxBufferSizeMB: Double {
+        Double(AnimatedImageFramePool.shared.defaultMaxBufferSize) / 1_048_576
+    }
+
     // MARK: Model
 
     private struct Settings {
-        var maxBufferSizeMB: Double = 10
+        /// `nil` for the default, which is a share of the frame pool.
+        var maxBufferSizeMB: Double?
         var maxPixelSize: CGFloat?
         var playbackRate: Double = 1
         var repeatsForever = true
 
         var playerOptions: AnimatedImagePlayer.Options {
             var options = AnimatedImagePlayer.Options()
-            options.maxBufferSize = Int(maxBufferSizeMB * 1_048_576)
+            options.maxBufferSize = maxBufferSizeMB.map { Int($0 * 1_048_576) }
             options.playbackRate = playbackRate
             options.maxPixelSize = maxPixelSize
             options.repeatCount = repeatsForever ? .infinite : .image
@@ -183,7 +192,7 @@ struct AnimatedImagesDemo: View {
         /// effect on the player that is already running.
         struct ReloadKey: Hashable {
             var image: DemoAnimation
-            var maxBufferSizeMB: Double
+            var maxBufferSizeMB: Double?
             var maxPixelSize: CGFloat?
             var playbackRate: Double
             var repeatsForever: Bool
@@ -212,7 +221,7 @@ struct AnimatedImagesDemo: View {
         AnimatedImage(player: player, poster: response.image)
         """,
         points: [
-            .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead. `maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory."),
+            .init("Frame buffer", "The budget is in bytes of decoded frames – the canvas at four bytes a pixel, not the size of the file – and is a fifth of the frame pool's limit unless you set it. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead. `maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
             .init("Handing over from the still", "Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")

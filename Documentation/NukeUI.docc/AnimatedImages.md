@@ -99,11 +99,13 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. A player holds a window of frames instead, starting at the one on screen, and refills it in playback order as the window moves. When the whole animation fits, nothing is ever evicted and each frame is decoded exactly once; when it doesn't, the frames behind the window are decoded again on every loop.
 
-Every animation on screen draws that window from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize``, 10 MB by default – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``, which is 5% of the device's physical memory, capped at 128 MB:
+Every animation on screen draws that window from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize``, a fifth of the pool's limit unless you set it – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``, which is 5% of the device's physical memory, capped at 128 MB:
 
 ```swift
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
 ```
+
+What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
 
 Nothing is divided while the animations together want less than the limit, and the division is even past that, except that an animation that fits in less than its share takes only what it needs and leaves the rest to the ones that can use it. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
 

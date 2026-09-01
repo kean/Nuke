@@ -37,6 +37,15 @@ public final class AnimatedImageFramePool {
         }
     }
 
+    /// The most memory the frames of one animation may occupy unless its player
+    /// says otherwise: a fifth of ``costLimit``.
+    ///
+    /// What ``AnimatedImagePlayer/Options/maxBufferSize`` is when it isn't set.
+    /// A fifth keeps any one animation from taking the pool, and with the
+    /// default limit comes to about 25 MB – the range browsers keep an
+    /// animation whole in before they start decoding it as it plays.
+    public var defaultMaxBufferSize: Int { costLimit / 5 }
+
     /// The memory the decoded frames occupy right now, in bytes. A frame two
     /// players are sharing is counted once.
     public var totalCost: Int {
