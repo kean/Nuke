@@ -12,7 +12,7 @@ Nothing needs to be enabled. ``LazyImage`` and ``LazyImageView`` play animations
 LazyImage(url: URL(string: "https://example.com/cat.gif"))
 ```
 
-The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and HEIC and AVIF sequences. There is no per-format code – ``Nuke/AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest is the same for all of them.
+The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and HEIC and AVIF sequences. There is no per-format code – ``Nuke/AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest is the same for all of them. A format Image I/O doesn't read is added the way any other format is, with an ``Nuke/ImageDecoding`` of your own: see [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding).
 
 ## Displaying Animations
 
@@ -160,18 +160,7 @@ imageView.playerOptions = options
 
 The identifier is what the frames are shared by: players that ask for the same one draw from a single set of transformed frames, players that ask for different ones each get a set of their own. The transform runs once per decoded frame, which for an animation too large to hold in memory is once per frame per loop, so it is worth keeping to what a frame's worth of time affords.
 
-**Produce the frames yourself.** ``AnimatedImageFrameDecoding`` is where every frame comes from – ``AnimatedImageFrameDecoder``, which draws them with Image I/O, is the one that ships – and ``AnimatedImageFrameDecoderRegistry`` is where an implementation of your own goes:
-
-```swift
-AnimatedImageFrameDecoderRegistry.shared.register { context in
-    guard AssetType(context.source.data) == .webp else { return nil } // Pass
-    return WebPFrameDecoder(source: context.source, maxPixelSize: context.maxPixelSize)
-}
-```
-
-The decoder is picked once per animation and size, when the first player asks for its frames, so register at startup. Everything else is unchanged: the frames it produces are windowed, shared, and counted against the pool exactly as Image I/O's are, and it is asked for one frame at a time.
-
-The container is still parsed by Image I/O, though. ``Nuke/AnimatedImageSource`` is what says how many frames there are and how long each one is shown, and there is no animation to play at all for data Image I/O can't read – so a decoder of your own answers "what does frame *n* look like", not "what is in this file".
+**Produce the frames yourself.** ``Nuke/AnimatedImageFrameDecoding`` is where every frame comes from, and an animation carries the one that produces its own. It is handed over where the animation is described – in an ``Nuke/ImageDecoding``, beside the frame count and the delays – so the place to reach for it is [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding), whether or not Image I/O can read the format. Everything on this page is unchanged for it: the frames are windowed, shared between the views showing the animation, and counted against the pool exactly as Image I/O's are, and the decoder is asked for one frame at a time, off the main actor.
 
 ## What Isn't Animated
 
@@ -184,7 +173,7 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 
 ## Under the Hood
 
-``Nuke/AnimatedImageSource`` parses the container – the frame count, the delays, the loop count, the canvas size – and decodes nothing. The pipeline parses it while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
+``Nuke/AnimatedImageSource`` describes the animation – the frame count, the delays, the loop count, the canvas size – and answers with what produces its frames. It decodes nothing itself. For the formats Image I/O reads, the pipeline parses that description out of the container while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
 
 Playback never skips a frame. Each one is shown for at least its delay, and the next one appears when that delay is up and the frame is decoded, whichever comes later – so under load the animation stretches rather than jumps. A stall on the main thread or a frame that is slow to decode holds the frame on screen for longer, and the time lost isn't made up afterwards; what gives is how long the animation takes, not which of its frames are seen. This is what a browser does, and the trade is the right one for images: an animation that is never seen to jump, for one that can't be relied on to take three seconds when it says it does. The one thing passed over is a frame shorter than a tick of the clock, which the display couldn't have shown for longer anyway. Two corrections are applied to the delays the file declares, both of them what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
 
@@ -207,11 +196,7 @@ Each player is driven by a display link of its own, which runs while the player 
 ### Frames
 
 - ``AnimatedImageFrameTransform``
-- ``AnimatedImageFrameDecoding``
-- ``AnimatedImageFrame``
-- ``AnimatedImageFrameDecoder``
-- ``AnimatedImageFrameDecoderRegistry``
-- ``AnimatedImageFrameDecodingContext``
+- ``Nuke/AnimatedImageFrameDecoding``
 
 ### Memory
 

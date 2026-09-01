@@ -166,7 +166,9 @@ Every GIF gets its data attached, animated or not; ``ImageContainer/animation`` 
 
 **Formats Image I/O can't read**
 
-For a format the system can't decode at all, register ``ImageDecoders/Empty``: it puts a blank placeholder in ``ImageContainer/image`` and the original bytes in ``ImageContainer/data``, leaving the rendering engine to do the decoding.
+An animated format the system doesn't have is added with an ``ImageDecoding`` of your own, which attaches the animation it parsed to ``ImageContainer/animation`` along with what produces its frames. `NukeUI` then plays it exactly as it plays a GIF – see <doc:image-decoding#Adding-an-Animated-Format>.
+
+To hand the bytes to a rendering engine instead, register ``ImageDecoders/Empty``: it puts a blank placeholder in ``ImageContainer/image`` and the original bytes in ``ImageContainer/data``, leaving the decoding to the engine.
 
 ```swift
 ImageDecoderRegistry.shared.register { context in

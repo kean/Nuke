@@ -44,6 +44,7 @@ To install Nuke, use Swift Package Manager.
 - <doc:image-formats>
 - ``ImagePipeline/Delegate-swift.protocol``
 - ``AnimatedImageSource``
+- ``AnimatedImageFrameDecoding``
 
 ### Performance
 
