@@ -256,9 +256,9 @@ public final class AnimatedImagePlayer: ObservableObject {
     ///
     /// A window that slides re-decodes every frame each loop however long it
     /// is, so past what absorbs a slow decode or a busy core, more of it buys
-    /// nothing. Three is about what browsers and the other players keep, and
-    /// the memory beyond it is left to the animations that do fit.
-    static let readAheadFrameCount = 3
+    /// nothing. Two is enough for that, and the memory beyond it is left to
+    /// the animations that do fit.
+    static let readAheadFrameCount = 2
 
     /// The largest gap between two clock ticks the player acts on, in seconds.
     ///

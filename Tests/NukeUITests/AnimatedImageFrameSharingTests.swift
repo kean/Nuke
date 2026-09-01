@@ -168,9 +168,9 @@ struct AnimatedImageFrameSharingTests {
     // MARK: Playheads
 
     @Test func playheadsThatAgreeCostOneWindow() throws {
-        // Six frames of pool for an animation of twenty: one window of the
+        // Four frames of pool for an animation of twenty: one window of the
         // read-ahead, whichever of the two players is asked.
-        let pool = makePool(frames: 6)
+        let pool = makePool(frames: 4)
         let source = try makeSource(frameCount: 20)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
@@ -184,9 +184,9 @@ struct AnimatedImageFrameSharingTests {
 
     @Test func playheadsThatScatterSplitTheWindow() throws {
         // Half the animation apart, so the two windows share nothing and the
-        // six frames are three each – short of the read-ahead a player alone
+        // four frames are two each – short of the read-ahead a player alone
         // would keep.
-        let pool = makePool(frames: 6)
+        let pool = makePool(frames: 4)
         let source = try makeSource(frameCount: 20)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
@@ -194,15 +194,15 @@ struct AnimatedImageFrameSharingTests {
         first.seek(toFrame: 0)
         second.seek(toFrame: 10)
 
-        #expect(first.diagnostics.bufferCapacity == 3)
-        #expect(second.diagnostics.bufferCapacity == 3)
+        #expect(first.diagnostics.bufferCapacity == 2)
+        #expect(second.diagnostics.bufferCapacity == 2)
     }
 
     @Test func playheadsThatDriftApartByOneKeepAlmostEverything() throws {
         // The windows still overlap almost exactly, so what the second player
         // costs is the one frame the first one isn't holding – not a second
-        // window. Dividing by the number of playheads would have left three each.
-        let pool = makePool(frames: 6)
+        // window. Dividing by the number of playheads would have left two each.
+        let pool = makePool(frames: 4)
         let source = try makeSource(frameCount: 20)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)

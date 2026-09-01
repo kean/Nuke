@@ -45,7 +45,7 @@ struct AnimatedImageFramePoolTests {
 
     @Test func keepsTheReadAheadWhenNoAnimationFits() throws {
         // Ten frames of pool for two animations of twenty: neither fits, so
-        // each holds a window of the read-ahead, and the two frames left over
+        // each holds a window of the read-ahead, and the four frames left over
         // buy nothing – a window that slides re-decodes every frame each loop
         // however long it is.
         let pool = makePool(frames: 10)
@@ -71,11 +71,11 @@ struct AnimatedImageFramePoolTests {
     }
 
     @Test func aSmallerNewcomerTakesThePlaceOfALargerAnimation() throws {
-        // Twenty-four frames of pool. The animation of twenty had it to
+        // Twenty-two frames of pool. The animation of twenty had it to
         // itself; the one of sixteen fits beside the twenty's read-ahead where
         // the twenty wouldn't fit beside the sixteen's, so the twenty is the
         // one that gives way.
-        let pool = makePool(frames: 24)
+        let pool = makePool(frames: 22)
         let large = try makePlayer(frameCount: 20, pool: pool)
         #expect(large.diagnostics.bufferCapacity == 20)
 
@@ -183,7 +183,7 @@ struct AnimatedImageFramePoolTests {
     @Test func changingTheLimitResizesTheWindows() throws {
         let pool = makePool(frames: 4)
         let player = try makePlayer(frameCount: 20, pool: pool)
-        #expect(player.diagnostics.bufferCapacity == 4)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         pool.costLimit = 20 * Self.bytesPerFrame
         #expect(player.diagnostics.bufferCapacity == 20)

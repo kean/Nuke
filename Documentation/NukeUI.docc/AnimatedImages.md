@@ -97,7 +97,7 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 ## Memory
 
-Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the three after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
+Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the two after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
 
 Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB, and an animation alone may take all of it:
 
@@ -188,7 +188,7 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 
 Playback follows the wall clock rather than the decoder: an animation that takes three seconds on paper takes three seconds on screen even if the main thread stalls, and what gives is the number of frames actually shown. The one exception is an animation whose frames take longer to decode than they are shown for, where skipping the late frames would mean skipping all of them: there the player shows the late frame and plays slow rather than stopping. Two corrections are applied to the delays the file declares, both of them what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
 
-The frames are decoded at the priority of the screen. With three frames of read-ahead, every decode is one the display is about to wait for, and the decoder is paced by playback – one frame per frame shown – rather than by how much memory there is, which is what keeps a wall of animations from turning into CPU-bound work.
+The frames are decoded at the priority of the screen. With two frames of read-ahead, every decode is one the display is about to wait for, and the decoder is paced by playback – one frame per frame shown – rather than by how much memory there is, which is what keeps a wall of animations from turning into CPU-bound work.
 
 Every animation in the process is driven by a single display link, which runs while any of them is playing and asks for no more than the fastest one needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of.
 
