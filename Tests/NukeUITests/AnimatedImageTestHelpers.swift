@@ -16,16 +16,10 @@ final class ManualClock: AnimatedImageClock {
     var onTick: ((TimeInterval) -> Void)?
     var isPaused: Bool = true
     var preferredFrameRate: Double = 0
-    private(set) var isInvalidated = false
-
-    func invalidate() {
-        isInvalidated = true
-        isPaused = true
-    }
 
     /// Advances the clock. Like a real one, it delivers nothing while paused.
     func tick(_ delta: TimeInterval) {
-        guard !isPaused, !isInvalidated else { return }
+        guard !isPaused else { return }
         onTick?(delta)
     }
 }

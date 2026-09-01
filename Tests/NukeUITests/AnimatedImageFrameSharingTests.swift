@@ -55,10 +55,8 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aScreenOfOneAnimationCostsOneAnimation() throws {
-        // The case the sharing exists for. Twenty copies of a sticker used to
-        // ask for twenty windows, get a twentieth of the budget each, and
-        // re-decode most of the animation on every loop – for one animation's
-        // worth of distinct pixels.
+        // The case the sharing exists for: twenty copies of a sticker used to
+        // get a twentieth of the budget each.
         let pool = makePool(frames: 40)
         let source = try makeSource(frameCount: 30)
 
@@ -69,8 +67,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func twentyDifferentAnimationsStillDivideTheBudget() throws {
-        // The other half of the same test: what is shared is one animation, not
-        // the pool. Twenty different ones split it as they always did.
+        // What is shared is one animation, not the pool.
         let pool = makePool(frames: 40)
 
         let buffers = try (0..<20).map { _ in
@@ -119,17 +116,13 @@ struct AnimatedImageFrameSharingTests {
         for index in 0..<4 { await decoder.release(index) }
         await first.waitUntilFull()
 
-        // Four frames, four decodes, two players: without the store this was
-        // eight, and with twenty views on screen it was eighty.
+        // Four frames, four decodes, two players.
         #expect(await decoder.decodeCount == 4)
         #expect(first.count == 4)
         #expect(second.count == 4)
     }
 
     @Test func aScreenOfOneAnimationIsDecodedOnce() async throws {
-        // The whole point, measured: twenty views of one sticker used to be
-        // twenty decoders walking the same container and decoding the same
-        // frames, twenty times over on every loop.
         let source = try makeSource(frameCount: 12)
         let decoder = GatedFrameDecoder(source: source)
         let first = makeBuffer(source: source, decoder: decoder)
@@ -138,8 +131,7 @@ struct AnimatedImageFrameSharingTests {
         for index in 0..<12 { await decoder.release(index) }
         await first.waitUntilFull()
 
-        // Twelve frames for twenty players, and one bitmap apiece rather than
-        // twenty copies of it.
+        // Twelve decodes for twenty players, and one bitmap apiece.
         #expect(await decoder.decodeCount == 12)
         #expect(rest.allSatisfy { $0.count == 12 })
         #expect(rest.allSatisfy { $0.frame(at: 0) === first.frame(at: 0) })

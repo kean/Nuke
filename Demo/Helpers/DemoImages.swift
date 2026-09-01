@@ -11,8 +11,8 @@ import UniformTypeIdentifiers
 ///
 /// Everything is loaded over the network so that the demo exercises the same
 /// code paths an app does: `URLSession`, disk cache, decoding, and processing.
-/// The one exception is ``animatedHEIC``, which is written on the spot – and
-/// still goes through all of it, from a `file:` URL.
+/// The one exception is ``animatedHEIC``, which is written on the spot and
+/// loaded from a `file:` URL.
 enum DemoImages {
     /// A large landscape photo. Used by the screens that show a single image.
     static let landscape = URL(string: "https://user-images.githubusercontent.com/1567433/59150453-178bbb80-8a24-11e9-94ca-fd8dff6e2a9a.jpeg")!
@@ -27,8 +27,7 @@ enum DemoImages {
 
     static let gif = URL(string: "https://cloud.githubusercontent.com/assets/1567433/6505557/77ff05ac-c2e7-11e4-9a09-ce5b7995cad0.gif")!
 
-    /// An APNG. The pipeline recognizes it as animated and NukeUI plays it with
-    /// the same code path as a GIF.
+    /// An APNG.
     static let apng = URL(string: "https://upload.wikimedia.org/wikipedia/commons/1/14/Animated_PNG_example_bouncing_beach_ball.png")!
 
     /// An animated WebP.
@@ -39,13 +38,10 @@ enum DemoImages {
     static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
 
     /// An animated HEIC – a HEIF image sequence – written the first time it is
-    /// asked for, or `nil` where Image I/O has no encoder for one.
-    ///
-    /// The only image here that isn't a URL somebody else is hosting. Animated
-    /// HEIC has no well-known one, and the format is worth having on the screen
-    /// precisely because it is the one an app is most likely to get wrong: the
-    /// file leads with the `msf1` brand, and Image I/O reports it as
-    /// `public.heics` rather than `public.heic`.
+    /// asked for, or `nil` where Image I/O has no encoder for one. There is no
+    /// well-known URL for one, and the format is worth having on the screen
+    /// because it is the one an app is most likely to get wrong: the file leads
+    /// with the `msf1` brand, and Image I/O reports it as `public.heics`.
     static let animatedHEIC: URL? = makeAnimatedHEIC()
 
     private static func makeAnimatedHEIC() -> URL? {

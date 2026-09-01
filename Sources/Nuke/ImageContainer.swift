@@ -52,16 +52,14 @@ public struct ImageContainer: Sendable {
     ///
     /// The default decoder (``ImageDecoders/Default``) attaches the data of the
     /// images it recognizes as animated – GIF, APNG, animated WebP, and
-    /// animated HEIC – because Image I/O decodes the first frame of an
-    /// animation and stops. `NukeUI` plays them; so can a rendering engine of
-    /// your choice. The data is not attached to a thumbnail request, whose
-    /// image is deliberately smaller than the animation the data holds.
+    /// animated HEIC – because Image I/O decodes only the first frame of an
+    /// animation. `NukeUI` plays them; so can a rendering engine of your
+    /// choice. The data is not attached to a thumbnail request. The
+    /// recognition is a header sniff, so a single-frame GIF gets its data too;
+    /// ``animation`` is the parsed answer.
     ///
-    /// The recognition is a header sniff, so the data is attached to a
-    /// single-frame GIF too. ``animation`` is the parsed answer.
-    ///
-    /// Processing an image drops the data: it describes the image that went
-    /// into the processor, not the one that came out.
+    /// Processing an image drops the data, which describes the image that went
+    /// into the processor.
     ///
     /// - note: The `data`, along with the image container itself gets stored
     /// in the memory cache.
@@ -74,22 +72,16 @@ public struct ImageContainer: Sendable {
     ///
     /// The default decoder (``ImageDecoders/Default``) parses the metadata of
     /// every image it attaches ``data`` to and puts the result here, so a
-    /// non-`nil` value is the answer to "can this be played?" – more precise
-    /// than ``data`` alone, which is also attached to the single-frame GIFs
-    /// that turn out not to animate.
-    ///
-    /// The parse happens on the decoding queue, once per decoded image, and the
-    /// result travels with the container into the memory cache. Set
+    /// non-`nil` value answers "can this be played?". The parse happens on the
+    /// decoding queue, once per decoded image, and the result is cached with
+    /// the container. Set
     /// ``ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled``
-    /// to `false` to skip it in an app that renders animations some other way.
+    /// to `false` to skip it.
     ///
-    /// Processing an image drops the animation along with the data: both
-    /// describe the image that went into the processor, not the one that came
-    /// out.
+    /// Processing an image drops the animation along with the data.
     ///
     /// - note: ``AnimatedImageSource/data`` is the same buffer ``data`` holds,
-    /// shared with it rather than copied, so an animation adds only its frame
-    /// delays to what the container costs.
+    /// so an animation adds only its frame delays to what the container costs.
     public var animation: AnimatedImageSource? {
         get { ref.animation }
         set { mutate { $0.animation = newValue } }
@@ -108,8 +100,8 @@ public struct ImageContainer: Sendable {
         self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, animation: animation, userInfo: userInfo)
     }
 
-    /// Replaces the image, dropping ``data`` and ``animation`` with it: the
-    /// closure produces a new image, and both describe the one that went in.
+    /// Replaces the image, dropping ``data`` and ``animation``, which describe
+    /// the image that went in.
     consuming func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
         var copy = self
         copy.image = try closure(copy.image)

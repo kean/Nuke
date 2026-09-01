@@ -5,10 +5,8 @@
 import SwiftUI
 
 /// The explanation of a demo screen: a summary, a snippet of the API it is
-/// about, and the details that are worth knowing.
-///
-/// It is presented in a sheet from the question mark in the toolbar rather than
-/// at the top of the screen, where it competed with the demo itself for space.
+/// about, and the details that are worth knowing. Presented in a sheet from the
+/// question mark in the toolbar.
 struct DemoInfo {
     let title: String
     let summary: LocalizedStringKey
@@ -42,11 +40,9 @@ extension View {
         modifier(DemoInfoModifier(info: info))
     }
 
-    /// Adds the question mark button without the sheet.
-    ///
-    /// iOS presents one sheet per screen and drops the second, so a screen that
-    /// keeps a sheet of its own on display has to present ``DemoInfoSheet``
-    /// from inside that sheet. This is the button for it.
+    /// Adds the question mark button without the sheet, for a screen that keeps
+    /// a sheet of its own on display and has to present ``DemoInfoSheet`` from
+    /// inside it: iOS presents one sheet per screen and drops the second.
     func demoInfoButton(isPresented: Binding<Bool>) -> some View {
         toolbar {
             ToolbarItem(placement: .topBarTrailing) {

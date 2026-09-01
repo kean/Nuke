@@ -168,11 +168,9 @@ extension AssetType {
     /// brands it declares belongs to a known format, as for bare HEIF
     /// (`mif1`) or MPEG-4 audio (`M4A `).
     ///
-    /// The major brand is only the first answer. A HEIC image sequence – what
-    /// Image I/O writes for `public.heics`, and what a Live Photo's video half
-    /// is – leads with `msf1`, the brand for a HEIF sequence, which says that
-    /// the file holds one but not what codec its frames use. The codec is in
-    /// the compatible brands that follow (`heic`, `hevc`), and so is the answer.
+    /// The major brand is only the first answer: a HEIC image sequence leads
+    /// with `msf1`, which says that the file holds a sequence but not what
+    /// codec its frames use. The codec is in the compatible brands that follow.
     private static func _makeISOBaseMedia(_ data: Data) -> AssetType? {
         for brand in _brands(in: data) {
             if let type = _makeISOBaseMedia(brand: brand) {
@@ -183,14 +181,11 @@ extension AssetType {
     }
 
     /// The brands an ISO base media file declares: the major brand, then the
-    /// compatible brands, which is where an encoder that leads with a
-    /// structural brand says what the file actually is.
-    ///
-    /// The `ftyp` box is a size, its name, the major brand, a minor version,
-    /// and then the compatible brands until the box ends.
+    /// compatible brands. The `ftyp` box is a size, its name, the major brand,
+    /// a minor version, and then the compatible brands until the box ends.
     private static func _brands(in data: Data) -> [String] {
-        // The major brand is read whatever the declared size says: a file with
-        // a damaged one still names itself.
+        // The major brand is read whatever the declared size says, so that a
+        // file with a damaged size still names itself.
         let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count))
         var brands: [String] = []
         for offset in stride(from: 8, to: end, by: 4) where offset != 12 {
@@ -232,18 +227,15 @@ extension AssetType {
 
     /// Returns `true` if the data holds an animation.
     ///
-    /// The answer comes from the container header rather than from Image I/O:
-    /// counting the frames means parsing the whole file, and this runs on every
-    /// image the pipeline decodes.
-    ///
-    /// The check is deliberately one-sided. A false positive costs a copy of
-    /// the data in ``ImageContainer/data`` that nothing reads; a false negative
-    /// would leave an animation stuck on its first frame, so every case that
-    /// isn't certain resolves to `true`.
+    /// The answer comes from the container header rather than from Image I/O,
+    /// which would parse the whole file to count the frames. The check is
+    /// deliberately one-sided: a false positive costs a copy of the data that
+    /// nothing reads, while a false negative would leave an animation stuck on
+    /// its first frame.
     static func isAnimated(_ data: Data, type: AssetType?) -> Bool {
         switch type {
-        // Attaching the data to every GIF, animated or not, is long-standing
-        // behavior: it lets a GIF be handed to a renderer of your choice.
+        // Every GIF gets its data attached, animated or not, which is
+        // long-standing behavior.
         case .gif: true
         case .png: _isAnimatedPNG(data)
         case .webp: _isAnimatedWebP(data)
@@ -287,9 +279,8 @@ extension AssetType {
         guard _string(at: 4, count: 4, in: data) == "ftyp" else {
             return false
         }
-        // `msf1` is the generic image sequence brand; the `hev*` ones are its
-        // HEVC flavors, and `avis` is the AV1 one. The still image brands –
-        // `heic`, `heix`, `avif`, and so on – are absent by design.
+        // `msf1` is the generic image sequence brand, `hev*` its HEVC flavors,
+        // and `avis` the AV1 one. The still image brands are absent by design.
         let sequenceBrands: Set<String> = ["msf1", "hevc", "hevx", "hevm", "hevs", "avis"]
         return _brands(in: data).contains(where: sequenceBrands.contains)
     }

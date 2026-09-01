@@ -33,8 +33,7 @@ public protocol LazyImageState {
 }
 
 extension LazyImageState {
-    /// The animation the pipeline parsed while it decoded the image, which
-    /// travels with the container into the memory cache.
+    /// The animation the pipeline parsed while it decoded the image.
     public var animatedImage: AnimatedImageSource? {
         imageContainer?.animation
     }

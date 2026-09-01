@@ -132,16 +132,11 @@ extension ImagePipeline {
         /// Parses the metadata of the images the decoder recognizes as animated
         /// and attaches it to ``ImageContainer/animation``. `true` by default.
         ///
-        /// The parse reads the delay of every frame out of the container, which
-        /// for a long animation is a frame's worth of work – on the decoding
-        /// queue, once per decoded image, and cached with the image afterwards.
-        /// `NukeUI` needs the result to play an animation, and a view that had
-        /// to parse it itself would be doing it on the main thread instead.
-        ///
-        /// Turn it off in an app that never plays animations, or one that hands
-        /// ``ImageContainer/data`` to a rendering engine that parses it again
-        /// anyway. Prefetching a list of large animations that are never
-        /// displayed is the case where it costs the most and buys the least.
+        /// The parse reads the delay of every frame out of the container, on
+        /// the decoding queue, once per decoded image. `NukeUI` needs the
+        /// result to play an animation. Turn it off in an app that never plays
+        /// animations, or one that hands ``ImageContainer/data`` to a rendering
+        /// engine that parses it again anyway.
         public var isAnimatedImageParsingEnabled = true
 
         /// If the data task is terminated (either because of a failure or a

@@ -17,10 +17,10 @@ import AppKit.NSImage
 /// Displays images. Add the conformance to this protocol to your views to make
 /// them compatible with the image loading extensions.
 ///
-/// The view is handed the whole ``ImageContainer`` rather than the image alone,
-/// so a renderer of its own has everything the pipeline produced: the still it
-/// decoded, the encoded ``ImageContainer/data``, and the
-/// ``ImageContainer/animation`` it parsed out of it.
+/// The view is handed the whole ``ImageContainer``, so a renderer of its own
+/// has everything the pipeline produced: the still image, the encoded
+/// ``ImageContainer/data``, and the ``ImageContainer/animation`` parsed out of
+/// it.
 ///
 /// ```swift
 /// final class MyImageView: UIView, ImageDisplaying {
@@ -34,15 +34,14 @@ import AppKit.NSImage
 /// ```
 ///
 /// The method keeps its `nuke_` prefix because the conformances ship as
-/// extensions of `UIImageView`, `NSImageView`, and `TVPosterView`: an
-/// unprefixed name added to a system class is the kind that collides with a
-/// future OS API or with another library doing the same thing.
+/// extensions of system classes, where an unprefixed name could collide with a
+/// future OS API.
 ///
-/// - important: The protocol is a plain Swift one, so a conformance declared in
-/// an extension – which is how the platform image views get theirs – cannot be
-/// overridden by a subclass. Conform your own view directly, as above, rather
-/// than subclassing `UIImageView`. To play animated images without writing a
-/// renderer, use ``AnimatedImageView``.
+/// - important: A conformance declared in an extension – which is how the
+/// platform image views get theirs – cannot be overridden by a subclass.
+/// Conform your own view directly, as above, rather than subclassing
+/// `UIImageView`. To play animated images without writing a renderer, use
+/// ``AnimatedImageView``.
 @MainActor
 public protocol ImageDisplaying {
     /// Displays the image the pipeline produced, or clears the view when the
@@ -88,15 +87,10 @@ extension NSImageView: ImageDisplaying {
 #endif
 
 extension _PlatformImageView {
-    /// The one place that knows ``AnimatedImageView`` needs more than the still
-    /// image, because it is the one thing that cannot be expressed in the
-    /// conformance above: `AnimatedImageView` is a platform image view, its
-    /// ``ImageDisplaying`` conformance is inherited from that extension, and a
-    /// Swift witness declared in an extension is resolved statically – so the
-    /// subclass has nothing to override.
-    ///
-    /// Every entry point goes through here, a direct `nuke_display(_:)` call
-    /// included, so an animation plays wherever a still image would be shown.
+    /// ``AnimatedImageView`` inherits its ``ImageDisplaying`` conformance from
+    /// the extension above, and a witness declared in an extension is resolved
+    /// statically, so the subclass has nothing to override. This is where it
+    /// gets the whole container instead of the still image.
     fileprivate func displayContainer(_ container: ImageContainer?) {
         if let view = self as? AnimatedImageView {
             view.display(container)

@@ -52,7 +52,7 @@ public final class AnimatedImageView: _PlatformImageView {
     ///
     /// A new one is created every time ``animatedImage`` is set. Assign your
     /// own to control playback from outside the view or to read
-    /// ``AnimatedImagePlayer/diagnostics`` – the view starts and stops it as it
+    /// ``AnimatedImagePlayer/diagnostics``; the view starts and stops it as it
     /// moves in and out of a window, exactly as it does its own.
     public var player: AnimatedImagePlayer? {
         didSet {
@@ -63,15 +63,12 @@ public final class AnimatedImageView: _PlatformImageView {
             oldValue?.onFrameForDisplay = nil
             _animatedImage = player?.source
             // `image` rather than `layer.contents`, which would go around the
-            // content modes and the aspect-fill drawing below. Setting it does
-            // invalidate the view's intrinsic content size on every frame, but
-            // every frame of an animation is the same size as the last, and the
-            // engine settles that without laying anything out: measured over
-            // 2000 frames in a constrained hierarchy, zero layout passes and
-            // 8µs a frame against 0.2µs for `layer.contents` – 0.16ms a second
-            // at 20 frames a second. Frames whose size actually changes cost
-            // 55-99µs each and a layout pass every one of them, which is what
-            // makes this worth writing down rather than measuring again.
+            // content modes and the aspect-fill drawing. Setting it does
+            // invalidate the intrinsic content size on every frame, but frames
+            // of one size trigger no layout pass: measured over 2000 frames,
+            // zero layout passes and 8µs a frame against 0.2µs for
+            // `layer.contents`. Frames whose size changes cost 55-99µs each
+            // and a layout pass every one.
             player?.onFrameForDisplay = { [weak self] in self?.setImageKeepingAnimation($0) }
             if let image = player?.image {
                 setImageKeepingAnimation(image)
@@ -94,13 +91,12 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Whether animations play. `true` by default.
     ///
     /// Set it to `false` to show the first frame of every animated image as a
-    /// still – which is what a table full of animations should do while the
-    /// user is deciding whether they want to see them move.
+    /// still, which is what a table full of animations should do until the
+    /// user asks to see them move.
     ///
     /// It is also the hook for Accessibility › Motion › Auto-Play Animated
-    /// Images. Only SwiftUI publishes that setting – UIKit and AppKit have no
-    /// equivalent – so ``AnimatedImage`` reads it and sets this itself, and a
-    /// view used directly has to be told.
+    /// Images. Only SwiftUI publishes that setting, so ``AnimatedImage`` reads
+    /// it and sets this itself; a view used directly has to be told.
     public var isPlaybackEnabled = true {
         didSet {
             guard isPlaybackEnabled != oldValue else { return }
@@ -122,12 +118,11 @@ public final class AnimatedImageView: _PlatformImageView {
     ///
     /// It is the largest memory win there is: a 1000-pixel animation costs
     /// 4 MB a frame, and the same animation decoded for a 120-point cell costs
-    /// 0.2 MB. The frames are never scaled up, so an animation that is already
-    /// smaller than the view is decoded as it is.
+    /// 0.2 MB. The frames are never scaled up.
     ///
     /// Set ``AnimatedImagePlayer/Options/maxPixelSize`` in ``playerOptions`` to
     /// pick the size yourself; it wins over this. Set this to `false` to decode
-    /// every animation at full size – a view that is going to grow, say.
+    /// every animation at full size – for a view that is going to grow, say.
     public var isAutomaticDownsamplingEnabled = true
 
 #if os(macOS)
@@ -175,23 +170,18 @@ public final class AnimatedImageView: _PlatformImageView {
     private func commonInit() {
 #if os(macOS)
         // `NSImageView.animates` is on by default, and a multi-frame `NSImage`
-        // under it plays on AppKit's own timer: the poster frame would animate
-        // beside the player, and a view with `isPlaybackEnabled` off would
-        // animate a picture it is meant to be holding still.
+        // under it would play on AppKit's own timer beside the player.
         animates = false
 #else
-        // Smart Invert reverses the colors of the interface and leaves the
-        // pictures in it alone – but only a view that says it is showing one is
-        // left alone, and nothing infers it. Without this every frame is played
-        // with its colors inverted.
+        // Smart Invert leaves the pictures alone, but only a view that says it
+        // is showing one. Without this every frame is played inverted.
         accessibilityIgnoresInvertColors = true
 #endif
     }
 
 #if os(macOS)
     /// Draws the frames covering the view, which `NSImageView` cannot be asked
-    /// to do: ``imageScaling`` has no aspect-fill mode. What hangs over the
-    /// edge is taken care of by the default clipping.
+    /// to do. What hangs over the edge is taken care of by the default clipping.
     override public func draw(_ dirtyRect: NSRect) {
         guard isAspectFillEnabled, let image, image.size.width > 0, image.size.height > 0 else {
             return super.draw(dirtyRect)
@@ -212,11 +202,10 @@ public final class AnimatedImageView: _PlatformImageView {
     /// The image on screen: the frame the animation is showing while it plays,
     /// and whatever you set otherwise.
     ///
-    /// Setting it stops the animation and forgets it. The view has one place to
-    /// show an image and an animation left playing would paint over it on its
-    /// next frame – a placeholder put on screen while an animation is running
-    /// would appear for a frame and vanish. Set ``animatedImage`` to play a new
-    /// one, or ``isPlaybackEnabled`` to hold the one that is playing still.
+    /// Setting it stops the animation and forgets it: an animation left
+    /// playing would paint over the new image on its next frame. Set
+    /// ``animatedImage`` to play a new one, or ``isPlaybackEnabled`` to hold
+    /// the one that is playing still.
     override public var image: PlatformImage? {
         get { super.image }
         set {
@@ -238,18 +227,15 @@ public final class AnimatedImageView: _PlatformImageView {
     /// This is what ``ImageDisplaying/nuke_display(_:)`` reaches for a view of
     /// this type, and so the entry point the
     /// ``loadImage(with:options:into:completion:)-(URL?,_,_,_)`` extensions
-    /// use. The pipeline parses the animation while it decodes the image, so
-    /// the switch happens in this call rather than a turn of the run loop
-    /// later: the still the decoder produced only goes on screen while there is
+    /// use. The still the decoder produced only goes on screen while there is
     /// no decoded frame to cover it.
     func display(_ container: ImageContainer?) {
         let poster = container?.image
-        // The scale has to be passed in rather than read back from the view:
-        // `self.image` is still whatever the view was showing before this call.
+        // Passed in rather than read back from the view: `self.image` is still
+        // whatever the view was showing before this call.
         setAnimatedImage(container?.animation, scale: scale(of: poster))
         // Only while there is no frame to cover, so that an animation already
-        // on screen – the same one, played by the same player – doesn't flash
-        // its poster to show what it is already past.
+        // on screen doesn't flash its poster.
         if player?.image == nil {
             setImageKeepingAnimation(poster)
         }
@@ -274,12 +260,10 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // MARK: Layout
 
-    // A view that is given an animation before it is laid out – a cell, and
-    // every SwiftUI view, which has no size at all when it is made – can't know
-    // what to decode the frames for. It decodes them at full size and settles
-    // it here, at the first layout with a size, and only for an animation that
-    // is actually bigger than the view: the rebuild costs a decode, and there
-    // is nothing to win when the frames are already small enough.
+    // A view given an animation before it is laid out – a cell, and every
+    // SwiftUI view – can't know what size to decode the frames for. It settles
+    // that at the first layout with a size, and only for an animation that is
+    // actually bigger than the view: the rebuild costs a decode.
 
 #if os(macOS)
     override public func layout() {
@@ -296,10 +280,9 @@ public final class AnimatedImageView: _PlatformImageView {
     private func applyAutomaticDownsamplingIfNeeded() {
         guard let source = sourcePendingDownsampling else { return }
         guard let maxPixelSize = automaticMaxPixelSize(for: source) else {
-            // Laid out and there is still nothing to derive a size from: the
-            // view has none of its own, or its content mode draws the frames as
-            // they are. This is the size they are going to be decoded at, so a
-            // player waiting for a better answer should stop waiting.
+            // Laid out and still nothing to derive a size from: the view has
+            // none, or its content mode draws the frames as they are. Full
+            // size is what the frames will be decoded at, so stop waiting.
             player?.isDecodingEnabled = true
             return
         }
@@ -314,21 +297,18 @@ public final class AnimatedImageView: _PlatformImageView {
     /// The longest side, in pixels, the frames need for the view to draw them
     /// at the size the content mode asks for – or `nil` when the view has no
     /// size yet, is decoding at a size it was given, or draws the frames at
-    /// their own size, where there is nothing to derive.
+    /// their own size.
     ///
     /// Not simply the longest side of the view: a content mode that covers the
-    /// view does it with the frames' *shorter* side, so an animation wider than
-    /// the view needs more pixels than the view has points. A 400×100 animation
-    /// covering a 100×100 view decoded for 100 pixels would be a 100×25 frame
-    /// scaled up 4×.
+    /// view does it with the frames' *shorter* side, so a 400×100 animation
+    /// covering a 100×100 view needs 400-pixel frames.
     private func automaticMaxPixelSize(for source: AnimatedImageSource) -> CGFloat? {
         guard wantsAutomaticDownsampling else { return nil }
         let size = source.size
         guard size.width > 0, size.height > 0, bounds.width > 0, bounds.height > 0,
               let coversTheView = drawnFramesCoverTheView else { return nil }
         // The rule `ImageProcessors.Resize` uses: covering takes the larger of
-        // the two scales and puts the overflow past the edge, fitting takes the
-        // smaller and leaves the rest of the view empty.
+        // the two scales, fitting the smaller.
         let horizontal = bounds.width / size.width
         let vertical = bounds.height / size.height
         let scale = coversTheView ? max(horizontal, vertical) : min(horizontal, vertical)
@@ -338,12 +318,10 @@ public final class AnimatedImageView: _PlatformImageView {
 
     /// The step the size the frames are decoded at is rounded up to, in pixels.
     ///
-    /// Views that differ by a fraction of a point would otherwise each decode
-    /// the animation at a size of their own and share not one frame with each
-    /// other – and a grid, where a cell is whatever the width divided by three
-    /// comes to, is exactly where the sharing is worth the most. Rounding up
-    /// costs at most a few percent more pixels per frame and turns a column of
-    /// almost-identical cells into one set of frames.
+    /// Views that differ by a fraction of a point – a grid whose cell is the
+    /// width divided by three – would otherwise each decode the animation at a
+    /// size of their own and share nothing. Rounding up costs at most a few
+    /// percent more pixels per frame.
     private static let pixelSizeStep: CGFloat = 32
 
     /// Whether the content mode covers the view with the frames rather than
@@ -380,10 +358,10 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // MARK: Visibility
 
-    // A view that is hidden, or transparent, is as invisible as one outside a
-    // window, and none of the three is worth a timer, a decode, or the frames
-    // the buffer is holding on to. Hiding a cell's image view is how a list
-    // shows a placeholder, so this is a state animations do sit in.
+    // A hidden or transparent view is as invisible as one outside a window,
+    // and none of the three is worth a timer, a decode, or the frames the
+    // buffer is holding. Hiding a cell's image view is how a list shows a
+    // placeholder, so this is a state animations do sit in.
 
 #if os(macOS)
     override public func viewDidMoveToWindow() {
@@ -406,9 +384,8 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // An animated fade sets the opacity to its final value the moment it
     // starts, so an animation being faded out stops on the first frame of the
-    // fade rather than the last. A few frames played under a view nobody can
-    // quite see is the cheaper mistake than the alternative, which is a decoder
-    // running behind every view an app has faded away.
+    // fade. That is the cheaper mistake: the alternative is a decoder running
+    // behind every view an app has faded away.
 
 #if os(macOS)
     override public var alphaValue: CGFloat {
@@ -429,8 +406,8 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Whether the view is somewhere its frames can be seen.
     ///
     /// Being in a window is as far as this goes: nothing tells a view that it
-    /// is scrolled out of the visible area or covered by something on top of
-    /// it, and a list takes its cells out of the window anyway.
+    /// is scrolled out of the visible area or covered, and a list takes its
+    /// cells out of the window anyway.
     private var isVisible: Bool {
         guard window != nil, !isHidden else { return false }
 #if os(macOS)
@@ -447,18 +424,14 @@ public final class AnimatedImageView: _PlatformImageView {
         _animatedImage = source
         let maxPixelSize = source.flatMap(automaticMaxPixelSize(for:))
         setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
-        // Set after the player, whose `didSet` clears it: this is the animation
-        // the next layout has to settle a size for.
+        // Set after the player, whose `didSet` clears it.
         sourcePendingDownsampling = maxPixelSize == nil && wantsAutomaticDownsampling ? source : nil
-        // A view with no size of its own has nothing to decode for yet, and the
-        // player it was given is the one the first layout replaces. Decoding
-        // now would produce a frame at the full size of the animation – a
-        // decode, and a bitmap the size of the whole canvas – for a player that
-        // is thrown away before it ever shows one.
+        // A view with no size of its own has nothing to decode for yet, and
+        // the player it was given is the one the first layout replaces.
+        // Decoding now would produce a full-size frame for a player that is
+        // thrown away before it ever shows one.
         if sourcePendingDownsampling != nil, bounds.width == 0 || bounds.height == 0 {
             player?.isDecodingEnabled = false
-            // Whatever the layout settles is what lets it decode again, so ask
-            // for one rather than waiting to be laid out for some other reason.
 #if os(macOS)
             needsLayout = true
 #else
@@ -501,8 +474,8 @@ public final class AnimatedImageView: _PlatformImageView {
             player.pause()
             if !isOnScreen {
                 // Nobody is watching, so the window of decoded frames is a
-                // memory budget spent on frames nobody will see. A player
-                // paused in place keeps them: resuming shouldn't stall.
+                // budget spent on frames nobody will see. A player paused in
+                // place keeps them: resuming shouldn't stall.
                 player.keepsFullBuffer = false
             }
         }

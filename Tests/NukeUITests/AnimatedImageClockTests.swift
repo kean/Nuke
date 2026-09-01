@@ -127,16 +127,6 @@ struct AnimatedImageClockDriverTests {
         #expect(driver.runningClockCount == 0)
     }
 
-    @Test func invalidatingAClockStopsTheDriver() {
-        let clock = driver.makeClock()
-        clock.isPaused = false
-        #expect(source.isPaused == false)
-
-        clock.invalidate()
-
-        #expect(source.isPaused)
-    }
-
     @Test func everyPlayerTakesAShareOfOneClock() {
         // What this is all for: twenty animations used to mean twenty display
         // links, all firing on the same vsync to do the same thing.

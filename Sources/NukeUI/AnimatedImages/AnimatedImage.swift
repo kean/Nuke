@@ -48,9 +48,8 @@ public struct AnimatedImage: View {
     /// - parameter poster: The still frame to show until the first frame of the
     /// animation is decoded – ``ImageContainer/image``, the image the decoder
     /// already produced. Without one the view is blank for a decode's worth of
-    /// time every time an animation appears, which in a list is every cell,
-    /// including one scrolled back to. It is also where the view reads the
-    /// image scale from.
+    /// time every time an animation appears. It is also where the view reads
+    /// the image scale from.
     public init(_ source: AnimatedImageSource, poster: PlatformImage? = nil) {
         self.source = source
         self.player = nil
@@ -67,10 +66,8 @@ public struct AnimatedImage: View {
         self.poster = poster
     }
 
-    /// Plays the image if the pipeline recognized it as animated.
-    ///
-    /// The still image the decoder produced is displayed until the first frame
-    /// of the animation is decoded.
+    /// Plays the image if the pipeline recognized it as animated, showing the
+    /// still image the decoder produced until the first frame is decoded.
     ///
     /// - returns: `nil` for anything that isn't an animated image, which is the
     /// signal to display ``ImageContainer/image`` as a still.
@@ -114,12 +111,11 @@ public struct AnimatedImage: View {
     }
 }
 
-/// Hands its content Accessibility › Motion › Auto-Play Animated Images, the
-/// system-wide answer to whether an animation may start on its own.
+/// Hands its content Accessibility › Motion › Auto-Play Animated Images.
 ///
 /// A view of its own because the environment value needs iOS 17 and the
-/// deployment target is iOS 16: an `@Environment` property on ``AnimatedImage``
-/// can't be declared behind an availability check, but a whole view can.
+/// deployment target is iOS 16: an `@Environment` property can't be declared
+/// behind an availability check, but a whole view can.
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
 private struct AutoPlayReader<Content: View>: View {
     @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
@@ -153,14 +149,13 @@ func animatedImageSize(
     case let (nil, height?):
         return CGSize(width: height * size.width / size.height, height: height)
     case let (width?, height?):
-        // `.fill` covers what it is offered and the view clips what hangs over
-        // the edge, which is `scaledToFill()` followed by `clipped()`.
+        // `.fill` covers what it is offered and clips what hangs over the
+        // edge, which is `scaledToFill()` followed by `clipped()`.
         guard contentMode == .fit else {
             return CGSize(width: width, height: height)
         }
         // `.fit` reports the size the frames actually occupy, the way
-        // `Image.resizable().scaledToFit()` does, so that a background or a
-        // clip shape wraps the animation and not the box around it.
+        // `Image.resizable().scaledToFit()` does.
         let scale = min(width / size.width, height / size.height)
         guard scale.isFinite else { return size }
         return CGSize(width: size.width * scale, height: size.height * scale)
@@ -200,10 +195,8 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         return view
     }
 
-    /// The content mode and the playback are applied here rather than in
-    /// ``makeView()`` because SwiftUI reuses the view across updates: a value
-    /// that comes from state would otherwise be whatever it was the first time
-    /// around.
+    /// Everything that comes from state is applied here rather than in
+    /// ``makeView()`` because SwiftUI reuses the view across updates.
     private func update(_ view: AnimatedImageView) {
         // Before the animation, whose arrival is what starts playback.
         view.isPlaybackEnabled = isPlaybackEnabled
@@ -215,12 +208,10 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         view.contentMode = contentMode == .fill ? .scaleAspectFill : .scaleAspectFit
 #endif
         // Before the animation, and only while there is no frame to cover: the
-        // still is what holds the place until the first frame is decoded, and
-        // it is what the view reads the image scale from – a player built at
-        // the wrong scale changes size the moment it starts playing.
+        // still holds the place until the first frame is decoded, and it is
+        // what the view reads the image scale from.
         if let poster, view.player?.image == nil {
-            // Not `image`, which would stop the animation the poster is
-            // standing in for.
+            // Not `image`, which would stop the animation.
             view.setImageKeepingAnimation(poster)
         }
         if let player {
@@ -254,7 +245,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
 #else
 
 /// The watchOS renderer. There is no `UIViewRepresentable` there, so the frames
-/// go through SwiftUI state – which is affordable at the frame rates and image
+/// go through SwiftUI state, which is affordable at the frame rates and image
 /// sizes a watch deals with.
 private struct AnimatedImageRenderer: View {
     let source: AnimatedImageSource
@@ -273,9 +264,8 @@ private struct AnimatedImageRenderer: View {
                 model.player?.pause()
                 model.player?.keepsFullBuffer = false
             }
-            // The view is reused when the image behind it changes – a new URL
-            // loaded into the same `LazyImage`, say – and without this it would
-            // keep playing the animation it was given first.
+            // The view is reused when the image behind it changes, and without
+            // this it would keep playing the animation it was given first.
             .onChange(of: identity) { _ in install() }
             .onChange(of: isPlaybackEnabled) { isEnabled in
                 if isEnabled { model.player?.play() } else { model.player?.pause() }
@@ -300,8 +290,7 @@ private struct AnimatedImageRenderer: View {
 
     @ViewBuilder
     private var content: some View {
-        // The still the decoder produced holds the place until the first frame
-        // of the animation is decoded.
+        // The still holds the place until the first frame is decoded.
         if let image = model.image ?? poster {
             if isResizable {
                 Image(uiImage: image).resizable().aspectRatio(contentMode: contentMode)

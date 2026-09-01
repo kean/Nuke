@@ -9,22 +9,14 @@ import SwiftUI
 /// holding, what each frame costs to decode, and whether playback is keeping up
 /// with the wall clock.
 ///
-/// ```swift
-/// LazyImage(url: url) // Plays animated images on its own
-/// ```
-///
-/// This screen does it the long way – it creates the ``AnimatedImagePlayer``
-/// itself – because that is what gives it access to
-/// ``AnimatedImagePlayer/diagnostics``.
-///
-/// Put more than one animation on the stage and the screen becomes a picture of
-/// ``AnimatedImageFramePool``: the animations share one budget, so each window
-/// is a share of it rather than a budget of its own.
+/// `LazyImage` plays animated images on its own; this screen creates the
+/// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
+/// With more than one animation on the stage it becomes a picture of
+/// ``AnimatedImageFramePool``.
 ///
 /// The layout is a stage and a console: the picker and the animations stay put,
 /// and everything that scrolls lives in an inspector – a column beside the stage
-/// where there is room for one, a sheet below it where there isn't. The two
-/// never overlap, so there is only ever one thing to scroll.
+/// where there is room for one, a sheet below it where there isn't.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = DemoAnimationSettings()
@@ -44,10 +36,8 @@ struct AnimatedImagesDemo: View {
     /// width, as a column beside the stage otherwise.
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-    /// Sampling the diagnostics rather than observing them: they change on every
-    /// frame, and a view that redrew that often would be measuring itself. The
-    /// player publishes the things that don't – it starts, it stops, it
-    /// finishes – so the transport doesn't wait for a tick to catch up.
+    /// The diagnostics are sampled rather than observed: they change on every
+    /// frame, and a view that redrew that often would be measuring itself.
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -118,10 +108,10 @@ struct AnimatedImagesDemo: View {
             .init("Frame buffer", "The budget is in bytes, not frames. When the whole animation fits, every frame is decoded once; below that, the buffer becomes a window that slides ahead of the playhead."),
             .init("Frame pool", "The budget is also shared. Every player draws its window from `AnimatedImageFramePool`, so a wall of animations costs what the pool says rather than the sum of their budgets. Raise the count and watch every window shrink to a share; drag the pool budget and watch them all refill."),
             .init("Fair shares", "The division is not a flat split. An animation that fits entirely in less than its share takes only what it needs, and the rest goes to the ones that can use it – so a wall of small stickers and one long GIF gives the GIF everything the stickers left."),
-            .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing. The diagnostics count the sets of frames against the players drawing from them."),
+            .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing."),
             .init("Frame size", "`maxPixelSize` scales the frames as they are decoded, and a frame costs the square of the scale: half the size is a quarter of the memory. `AnimatedImageView` picks one from its own bounds; this screen builds the player by hand, so the size is yours to choose. The diagnostics show what the frames were authored at and what they are decoded at."),
             .init("Buffer map", "The bar at the top of the diagnostics is one cell per frame: filled when the frame is decoded, tinted for the frame on screen."),
-            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The buffer isn't shrunk for good: the window it was sized for comes back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the map refill."),
+            .init("Memory warnings", "The player drops its buffer to the minimum when the system issues one, and the button does the same thing by hand. The window comes back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the map refill."),
             .init("Handing over from the still", "Two lines here are worth copying. The player is built with the scale of the image the pipeline decoded, and the view is given that image as its poster. Without the first, the animation changes size the moment it starts playing; without the second, the canvas is blank for as long as the first frame takes to decode."),
             .init("Layout", "`AnimatedImage` reports the size an `Image` would, so the usual layout modifiers apply. `.fit` reports the size the frames occupy rather than the box they were offered, which is what makes the rounded background wrap the animation instead of the space around it."),
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")
@@ -160,22 +150,16 @@ struct AnimatedImagesDemo: View {
         .background(Color(.systemGroupedBackground))
     }
 
-    /// The room the console leaves for the animation.
-    ///
-    /// Beside the stage, all of it. Below the stage, the console is presented
-    /// over the screen rather than beside it, so the stage has to keep clear of
-    /// it by hand. Pulling the sheet up shrinks the animation instead of
-    /// covering it, which is the point of the screen: the settings that change
-    /// the animation are no use without it in view.
+    /// The room the console leaves for the animation: all of it beside the
+    /// stage, and the part above the sheet below it, so that pulling the sheet
+    /// up shrinks the animation instead of covering it.
     private func stageHeight(in proxy: GeometryProxy) -> CGFloat {
         guard isConsoleSheet else {
             return proxy.size.height
         }
         let console = detent == DemoAnimationConsole.collapsed
             ? DemoAnimationConsole.collapsedHeight
-            // Everything above `.medium` covers the stage anyway, so the size
-            // it settles on there is the smallest one worth laying out.
-            : proxy.size.height / 2
+            : proxy.size.height / 2 // Everything above `.medium` covers the stage anyway
         return max(200, proxy.size.height - console)
     }
 
@@ -204,12 +188,8 @@ struct AnimatedImagesDemo: View {
     // MARK: Loading
 
     /// The animations the wall plays: the one that is picked, and as many of
-    /// the others as it takes to fill the count.
-    ///
-    /// Different images by default, because that is the case the pool divides a
-    /// budget for. Repeat one instead and the other half of the design shows
-    /// up: every cell draws from the same decoded frames, so the wall costs one
-    /// animation whatever the count.
+    /// the others as it takes to fill the count – or the same one repeated,
+    /// which is what shows the frame sharing.
     private var wallAnimations: [DemoAnimation] {
         guard settings.animationCount > 1 else {
             return [image]
@@ -241,10 +221,9 @@ struct AnimatedImagesDemo: View {
                     continue
                 }
                 var options = settings.playerOptions
-                // The scale of the image the pipeline decoded. `AnimatedImageView`
-                // does this for the players it makes; a player built by hand has to
-                // be told, or the animation changes size the moment it takes over
-                // from the still.
+                // `AnimatedImageView` does this for the players it makes; a player
+                // built by hand has to be told, or the animation changes size the
+                // moment it takes over from the still.
                 options.scale = response.image.scale
                 let player = AnimatedImagePlayer(source: source, options: options)
                 player.play()
@@ -253,10 +232,8 @@ struct AnimatedImagesDemo: View {
                 status = "Failed to load: \(error.localizedDescription)"
             }
         }
-        // Published in one go rather than as they arrive: a stage that grew a
-        // cell at a time would rebuild its views around the players already
-        // running, and a view being torn down pauses the player it was handed
-        // and gives its window back on the way out.
+        // Published in one go: a stage that grew a cell at a time would rebuild
+        // its views around the players already running, pausing them.
         animations = loaded
         sampleDiagnostics()
     }
@@ -373,9 +350,8 @@ private struct DemoAnimationWall: View {
 
 /// The transport, the diagnostics, and the settings.
 ///
-/// The transport is pinned above the list rather than being its first row, so
-/// that the sheet pushed all the way down is always the same thing – the play
-/// button and the scrubber – no matter where the list is scrolled to.
+/// The transport is pinned above the list, so that the collapsed sheet always
+/// shows the play button and the scrubber, wherever the list is scrolled to.
 private struct DemoAnimationConsole: View {
     let animations: [DemoLoadedAnimation]
     let diagnostics: [AnimatedImagePlayer.Diagnostics]
@@ -551,14 +527,11 @@ private struct DemoAnimationConsole: View {
     }
 }
 
-/// The scrubber, what it is pointing at, and the buttons – in that order, so
-/// that reading down the transport goes from the animation to the controls
-/// rather than stepping over them.
+/// The scrubber, what it is pointing at, and the buttons.
 ///
-/// A view of its own so that it can observe the player. The button reads
-/// `isPlaying` and `isFinished` straight off it and is redrawn when they
-/// change, which is what the player publishes; the numbers beside the scrubber
-/// move on every frame and come from the sampled diagnostics instead.
+/// A view of its own so that it can observe the player: the button reads
+/// `isPlaying` and `isFinished` straight off it, while the numbers beside the
+/// scrubber move on every frame and come from the sampled diagnostics.
 private struct DemoAnimationTransport: View {
     @ObservedObject var player: AnimatedImagePlayer
     let diagnostics: AnimatedImagePlayer.Diagnostics
@@ -683,9 +656,8 @@ private struct DemoPoolMeter: View {
             .frame(height: 10)
             DiagnosticsRow("pool", "\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
             DiagnosticsRow("players", "\(pool.playerCount) sharing it  ·  \(pool.activePlayerCount) filling a window")
-            // The number worth watching on the wall: the players outnumber the
-            // animations as soon as one of them is on screen twice, and the
-            // frames are decoded and held once however many are showing it.
+            // The players outnumber the animations as soon as one of them is on
+            // screen twice.
             DiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
                 + (pool.sharing > 1 ? String(format: "  ·  %.1f× shared", pool.sharing) : ""))
         }
@@ -791,10 +763,9 @@ private struct DemoDiagnosticsPanel: View {
     }
 }
 
-/// One cell per frame: filled when the frame is decoded, outlined when it isn't,
-/// and tinted for the frame on screen. It is the buffer policy made visible –
-/// a full row means the animation fits in memory, a moving band of filled cells
-/// means it doesn't.
+/// One cell per frame: filled when the frame is decoded, and tinted for the
+/// frame on screen. A full row means the animation fits in memory, a moving
+/// band of filled cells means it doesn't.
 private struct BufferMap: View {
     let player: AnimatedImagePlayer
     let diagnostics: AnimatedImagePlayer.Diagnostics
@@ -827,9 +798,8 @@ private struct BufferMap: View {
 private struct DiagnosticsRow: View {
     private let title: String
     private let value: String
-    /// Set for the numbers worth looking at right now: orange for the frames
-    /// playback couldn't keep up with, the accent color for a setting that is
-    /// visibly doing something.
+    /// Orange for the frames playback couldn't keep up with, the accent color
+    /// for a setting that is visibly doing something.
     private let tint: Color?
 
     init(_ title: String, _ value: String, tint: Color? = nil) {
@@ -898,12 +868,12 @@ private enum DemoAnimation: String, CaseIterable {
 
 private struct DemoAnimationSettings {
     var maxBufferSizeMB: Double = 10
-    /// What every animation on screen shares. Smaller than the pool's own
-    /// default, so that a wall of animations reaches it.
+    /// Smaller than the pool's own default, so that a wall of animations
+    /// reaches it.
     var poolCostLimitMB: Double = 64
     var animationCount: Int = 1
-    /// Whether the wall plays the same animation over and over rather than a
-    /// different one in every cell, which is what shows the frame sharing.
+    /// Whether the wall plays the same animation in every cell, which is what
+    /// shows the frame sharing.
     var repeatsOneAnimation = false
     var playbackRate: Double = 1
     var maxPixelSize: DemoMaxPixelSize = .full
@@ -925,12 +895,8 @@ private struct DemoAnimationSettings {
     }
 }
 
-/// The longest side the frames are decoded at.
-///
-/// The biggest memory lever there is: a frame costs the square of the scale, so
-/// decoding at half the size is a quarter of the memory and four times as many
-/// frames in the same budget. ``AnimatedImageView`` derives one from its own
-/// size; a player built by hand, like this screen's, takes what it is given.
+/// The longest side the frames are decoded at. ``AnimatedImageView`` derives
+/// one from its own size; a player built by hand takes what it is given.
 private enum DemoMaxPixelSize: Int, CaseIterable, Identifiable {
     case full = 0
     case small = 120

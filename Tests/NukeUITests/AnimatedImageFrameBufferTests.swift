@@ -214,13 +214,13 @@ struct AnimatedImageFrameBufferTests {
         #expect(buffer.capacity == AnimatedImageFrameBuffer.idleCapacity)
     }
 
-    @Test func removeAllClearsTheBuffer() async throws {
+    @Test func removeAllFramesClearsTheBuffer() async throws {
         let source = try makeSource(frameCount: 4)
         let buffer = AnimatedImageFrameBuffer(source: source, options: AnimatedImagePlayer.Options(), pool: pool)
         buffer.setCurrentIndex(0)
         await buffer.waitUntilFull()
 
-        buffer.removeAll()
+        buffer.store.removeAllFrames()
 
         #expect(buffer.count == 0)
         #expect(buffer.byteCount == 0)

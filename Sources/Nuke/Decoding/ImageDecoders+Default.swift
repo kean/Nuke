@@ -78,20 +78,15 @@ extension ImageDecoders {
             let type = AssetType(data)
             var container = ImageContainer(image: image)
             container.type = type
-            // Image I/O decodes the first frame of an animation and stops, so
-            // the data has to travel with the image for anything to be able to
-            // play it. See `ImageContainer/data`.
-            //
-            // Not for a thumbnail request: the data is the full-size animation,
-            // and a renderer that played it would undo the downscaling the
-            // request asked for.
+            // Image I/O decodes only the first frame of an animation, so the
+            // data travels with the image for a renderer to play it. Not for a
+            // thumbnail request, where playing the full-size animation would
+            // undo the downscaling.
             if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
-                // The sniff above reads a header; this walks the delay of every
-                // frame. It runs here, on the decoding queue, so that it runs
-                // once per image rather than once per view that displays it –
-                // and never on the main thread, which is where a view left to
-                // parse it itself would have to do it.
+                // The sniff reads a header; this walks the delay of every frame,
+                // so it runs here – once per image, off the main thread –
+                // rather than in every view that displays it.
                 if isAnimatedImageParsingEnabled {
                     container.animation = AnimatedImageSource(data: data)
                 }

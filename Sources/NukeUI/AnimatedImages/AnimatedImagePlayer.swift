@@ -24,47 +24,23 @@ import AppKit
 /// player.play()
 /// ```
 ///
-/// A player is a model object with no opinion about how the frames are shown.
-/// ``AnimatedImageView`` and ``AnimatedImage`` create one for you; you create
-/// one yourself when you want to drive playback – or read
-/// ``AnimatedImagePlayer/diagnostics`` – from your own view.
+/// ``AnimatedImageView`` and ``AnimatedImage`` create a player for you; create
+/// one yourself to drive playback – or read ``diagnostics`` – from your own
+/// view.
 ///
-/// ## Observation
+/// The player is an `ObservableObject` that publishes the playback state
+/// changing (``isPlaying`` and ``isFinished``) and deliberately not the
+/// animation running: the frames go to the view directly, and
+/// ``currentFrameIndex`` and ``completedLoopCount`` advance without a signal.
+/// Watch them through ``onLoop`` and ``onFinish``, or sample ``diagnostics`` on
+/// a timer.
 ///
-/// The player is an `ObservableObject`, so a SwiftUI view can read
-/// ``isPlaying`` and ``isFinished`` and be redrawn when they change:
-///
-/// ```swift
-/// @ObservedObject var player: AnimatedImagePlayer
-///
-/// Button(player.isPlaying ? "Pause" : "Play") {
-///     player.isPlaying ? player.pause() : player.play()
-/// }
-/// ```
-///
-/// What is published is the playback state changing – it starts, stops,
-/// finishes its loops, or something moves the playhead – and deliberately not
-/// the animation running. The frames go to the view directly, and a SwiftUI
-/// graph invalidated 20 times a second to redraw a picture the view has already
-/// drawn is the cost this whole design exists to avoid. So
-/// ``currentFrameIndex`` and ``completedLoopCount`` advance without a signal
-/// while the animation plays: watch them through ``onLoop`` and ``onFinish``,
-/// or sample ``diagnostics`` on a timer, which is what the demo app does.
-///
-/// ## Timing
-///
-/// Playback follows the wall clock rather than the decoder. Every tick of the
-/// clock adds the elapsed time to a budget and the player advances through as
-/// many frames as that budget covers, so an animation that takes three seconds
-/// on paper takes three seconds on screen even when the main thread stalls or
-/// the decoder falls behind. What suffers when the decoder can't keep up is the
-/// number of frames actually shown (``Diagnostics/skippedFrameCount``), not the
-/// duration – the same trade-off a video player makes.
-///
-/// The one animation that can't hold to the wall clock is one whose frames take
-/// longer to decode than they are shown for. Skipping there would mean skipping
-/// every frame, so the playhead waits for the decoder instead and the animation
-/// plays slow rather than stopping.
+/// Playback follows the wall clock rather than the decoder: an animation that
+/// takes three seconds on paper takes three seconds on screen, and what gives
+/// when the decoder can't keep up is the number of frames shown
+/// (``Diagnostics/skippedFrameCount``). The one exception is an animation
+/// whose frames take longer to decode than they are shown for, where the
+/// playhead waits for the decoder rather than skipping every frame.
 @MainActor
 public final class AnimatedImagePlayer: ObservableObject {
     /// The image being played.
@@ -92,10 +68,9 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// Called every time a new frame is ready to be displayed.
     ///
-    /// It stays yours. ``AnimatedImageView`` and ``AnimatedImage`` take the
-    /// frames of a player they are given through a channel of their own, so
-    /// handing one of them a player you drive a scrubber with doesn't quietly
-    /// replace the handler that drives it.
+    /// The views display the frames of a player they are given through a
+    /// channel of their own, so handing one of them a player doesn't replace
+    /// this handler.
     public var onFrame: ((PlatformImage) -> Void)?
 
     /// Called with the number of completed loops every time the animation
@@ -105,12 +80,8 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// Called when the animation stops because it has played all of its loops.
     public var onFinish: (() -> Void)?
 
-    /// The handler the views display the frames through.
-    ///
-    /// Separate from ``onFrame`` because there is only one of that and it
-    /// belongs to whoever made the player. A view that installed itself there
-    /// would replace whatever was already in it – with no diagnostic, and
-    /// nothing to put back.
+    /// The handler the views display the frames through, separate from
+    /// ``onFrame`` so that a view never replaces the handler its owner set.
     var onFrameForDisplay: ((PlatformImage) -> Void)?
 
     let buffer: AnimatedImageFrameBuffer
@@ -122,12 +93,9 @@ public final class AnimatedImagePlayer: ObservableObject {
     private var notificationObservers: [NotificationObserver] = []
     private var bufferRestore: Task<Void, Never>?
 
-    /// How long a buffer stays shrunk after a memory warning: 60 seconds.
-    ///
-    /// The system decides what to kill in far less than that, so a minute is
-    /// long enough for the pressure to be over, and short enough that an
-    /// animation that is on screen all session doesn't spend the rest of it
-    /// re-decoding every frame of every loop.
+    /// How long a buffer stays shrunk after a memory warning: long enough for
+    /// the pressure to pass, short enough that an animation on screen all
+    /// session doesn't re-decode every frame for the rest of it.
     static let defaultMemoryPressureGracePeriod: TimeInterval = 60
 
     /// Creates a player for the given image.
@@ -153,22 +121,20 @@ public final class AnimatedImagePlayer: ObservableObject {
         clock.onTick = { [weak self] in self?.tick($0) }
         buffer.onFrame = { [weak self] in self?.frameDidDecode(at: $0) }
         // Fall in behind whatever is already playing this animation, so that
-        // the copies of one sticker on a screen ask for one window of frames
-        // between them instead of a window each.
+        // the copies of one sticker share one window of frames.
         currentFrameIndex = options.isSynchronizationEnabled
             ? buffer.store.leadingIndex(excluding: buffer) ?? 0
             : 0
-        // Start decoding right away: the first frame should be on screen
-        // whether or not anything ever calls `play()`. Only the first frames
-        // though – a player that never plays should not hold a full buffer.
+        // Decode the first frame right away, whether or not anything ever
+        // calls `play()` – but only the first frames.
         buffer.fillsWindow = false
         buffer.setCurrentIndex(currentFrameIndex)
         registerForApplicationNotifications()
     }
 
-    // The clock and the notification observer both stop themselves when the
-    // player releases them: a `deinit` on a main-actor class can't reach back
-    // into the actor to do it here.
+    // No `deinit`: the clock and the notification observers stop themselves
+    // when the player releases them, since a `deinit` on a main-actor class
+    // can't reach back into the actor.
 
     // MARK: Playback
 
@@ -180,7 +146,6 @@ public final class AnimatedImagePlayer: ObservableObject {
     public func play() {
         guard !isPlaying, !isFinished else { return }
         isPlaying = true
-        // Now the rest of the window is worth decoding.
         buffer.fillsWindow = true
         clock.isPaused = false
     }
@@ -201,29 +166,22 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// Displays the frame at the given index.
     ///
-    /// The index is clamped to the number of frames in the animation. Seeking
-    /// moves the buffer window, so the frames around the destination start
-    /// decoding immediately, and the frame itself appears as soon as it is
-    /// ready – which is on the next run loop pass at the earliest.
-    ///
-    /// A player that has played all of its loops can be seeked and played
-    /// again: it was finished with the loops it was asked for, not with the
-    /// animation.
+    /// The index is clamped to the number of frames in the animation. The
+    /// frames around the destination start decoding immediately, and the frame
+    /// itself appears as soon as it is ready. A player that has played all of
+    /// its loops can be seeked and played again.
     public func seek(toFrame index: Int) {
         let index = min(max(0, index), source.frameCount - 1)
-        // Assigned on every seek, whether or not it was set, because this is
-        // also what publishes the move to anything observing the player: a
-        // `@Published` property publishes on assignment, not on change.
-        // `currentFrameIndex` – the thing that actually moved – can't do it
-        // itself, because it moves on every frame of every loop, and
-        // publishing there would put the SwiftUI graph on the frame clock.
+        // Assigned on every seek, whether or not it changes: a `@Published`
+        // property publishes on assignment, and this is what publishes the
+        // move to observers. `currentFrameIndex` can't do it itself without
+        // putting the SwiftUI graph on the frame clock.
         isFinished = false
         currentFrameIndex = index
         elapsed = 0
-        // The frame being decoded is for somewhere the playhead has just left.
-        // Left to finish, it would arrive as a frame the animation ran past,
-        // which is the one case where the player moves the playhead back to
-        // meet the decoder – and the seek would be undone by it.
+        // The frame being decoded is for somewhere the playhead has just left
+        // and would arrive as a late frame the player moves back to, undoing
+        // the seek.
         buffer.setCurrentIndex(index, isSeeking: true)
         display(frameAt: index)
     }
@@ -234,17 +192,13 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// frames that don't fit.
     ///
     /// Called automatically when the system issues a memory warning. Playback
-    /// continues: the frames are decoded again as they are needed, which costs
-    /// CPU and is the trade the system is asking for. The buffer returns to its
-    /// full size once the pressure has had time to pass, so a player that lives
-    /// for a session doesn't pay for one warning forever.
+    /// continues: the frames are decoded again as they are needed. The buffer
+    /// returns to its full size once the pressure has had time to pass.
     public func reduceMemoryUsage() {
         buffer.reduceCapacity(to: 2)
-        // Waiting for the app to be backgrounded and come back is waiting for
-        // something that mostly doesn't happen: a memory warning arrives while
-        // the app is active, and usually on the screen the animation is on. A
-        // sticker or a spinner would re-decode every frame of every loop from
-        // the first warning of the session to the end of it.
+        // A memory warning usually arrives while the app is active, so waiting
+        // for a trip to the background would keep an animation that is up all
+        // session re-decoding every frame for the rest of it.
         bufferRestore?.cancel()
         bufferRestore = Task { [weak self, memoryPressureGracePeriod] in
             try? await Task.sleep(for: .seconds(memoryPressureGracePeriod))
@@ -258,13 +212,11 @@ public final class AnimatedImagePlayer: ObservableObject {
     ///
     /// Set it to `false` for a player nobody is watching – a view that has
     /// scrolled off screen. It keeps the frame on display and the one after it
-    /// and gives the rest of the window back, so a list of animations that have
-    /// been scrolled past doesn't hold a memory budget each for frames nobody
-    /// is going to see. ``play()`` sets it back to `true`.
+    /// and gives the rest of the window back. ``play()`` sets it back to `true`.
     ///
-    /// ``AnimatedImageView`` does this for you when it pauses because it left
-    /// its window – but not when playback is paused in place, where the frames
-    /// are worth keeping so that resuming doesn't stall.
+    /// ``AnimatedImageView`` does this when it pauses because it left its
+    /// window, but not when playback is paused in place, where the frames are
+    /// worth keeping so that resuming doesn't stall.
     public var keepsFullBuffer: Bool {
         get { buffer.fillsWindow }
         set { buffer.fillsWindow = newValue }
@@ -297,10 +249,9 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// Whether the player decodes frames at all.
     ///
-    /// ``AnimatedImageView`` turns it off for the moment between being given an
-    /// animation and knowing what size to decode it at, so that the frames it
-    /// is going to throw away are never decoded in the first place. Not public:
-    /// a player nobody has suspended always decodes.
+    /// ``AnimatedImageView`` turns it off between being given an animation and
+    /// knowing what size to decode it at, so that frames it is going to throw
+    /// away are never decoded.
     var isDecodingEnabled: Bool {
         get { buffer.isDecodingEnabled }
         set { buffer.isDecodingEnabled = newValue }
@@ -309,8 +260,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// Returns `true` if the frame at the given index is decoded and in memory.
     ///
     /// Together with ``Diagnostics/bufferCapacity`` it is enough to draw what
-    /// the buffer is holding, which is what the diagnostics overlay in the demo
-    /// app does.
+    /// the buffer is holding, which is what the demo app does.
     public func isFrameBuffered(_ index: Int) -> Bool {
         buffer.frame(at: index) != nil
     }
@@ -320,20 +270,17 @@ public final class AnimatedImagePlayer: ObservableObject {
     private func tick(_ delta: TimeInterval) {
         guard isPlaying, !isFinished else { return }
 
-        // Playback usually starts before the first frame has been decoded.
-        // Counting that time would spend it on frames nobody sees: frame 0
-        // arrives when the playhead is already past it and is thrown away. The
-        // poster frame is on screen in the meantime, so the wait is free – and
-        // it ends either way, because a frame the decoder refuses stops being
-        // pending.
+        // Playback usually starts before the first frame is decoded. Counting
+        // that time would spend it on frames nobody sees; the poster frame is
+        // on screen in the meantime, and a frame the decoder refuses stops
+        // being pending, so the wait always ends.
         guard displayedFrameIndex != nil || !buffer.isPending(currentFrameIndex) else {
             return
         }
 
-        // A clock that was starved – the app was in the background, the main
-        // thread was blocked – reports the whole gap. Replaying it would make
-        // the animation lurch, so the step is capped and the animation simply
-        // misses that time.
+        // A starved clock (the app was in the background, the main thread was
+        // blocked) reports the whole gap. Replaying it would make the
+        // animation lurch, so the step is capped.
         let step = min(delta, options.maxTimeStep) * options.playbackRate
         guard step > 0 else { return }
         counters.playbackTime += step
@@ -345,8 +292,7 @@ public final class AnimatedImagePlayer: ObservableObject {
             guard advanceFrame() else { break }
             advanced += 1
             if advanced >= source.frameCount {
-                // More than a full loop behind. Catching up frame by frame from
-                // here is pointless: drop the debt and carry on.
+                // More than a full loop behind: drop the debt and carry on.
                 elapsed = 0
                 break
             }
@@ -411,18 +357,14 @@ public final class AnimatedImagePlayer: ObservableObject {
         guard index != currentFrameIndex else {
             return display(frameAt: index)
         }
-        // The frame decoded after the playhead had already gone past it. If the
-        // frame the playhead is on isn't decoded either, dropping this one
-        // would leave nothing to show: the next decode starts at the playhead,
-        // takes just as long, and is just as late, and the animation stops on
-        // whatever is on screen while the decoder keeps burning a core. Showing
-        // the late frame and moving the playhead back to it degrades playback
-        // to the speed of the decoder, which is the trade a video player makes.
+        // The frame decoded after the playhead had gone past it. If the frame
+        // the playhead is on isn't decoded either, dropping this one would
+        // leave nothing to show: the next decode would be just as late, and
+        // the animation would stop. Showing the late frame and moving the
+        // playhead back to it degrades playback to the speed of the decoder.
         //
-        // Only while the animation is running, though. A player that is paused,
-        // or that has stopped on the last frame it was asked to play, is on the
-        // frame it is on deliberately, and a decode that lands afterwards is
-        // not a reason to move it.
+        // Only while the animation is running: a paused or finished player is
+        // on its frame deliberately.
         guard isPlaying, buffer.frame(at: currentFrameIndex) == nil else { return }
         currentFrameIndex = index
         elapsed = 0
@@ -434,10 +376,9 @@ public final class AnimatedImagePlayer: ObservableObject {
 #if canImport(UIKit)
         UIImage(cgImage: cgImage, scale: options.scale, orientation: .up)
 #else
-        // `NSImage` has no scale of its own – what it has is a size in points
-        // and a bitmap in pixels, and the scale is the ratio between them. Built
-        // at the pixel size it draws twice as large as it should wherever
-        // nothing rescales it, `imageScaling` of `.scaleNone` being the case.
+        // `NSImage` has no scale: it has a size in points and a bitmap in
+        // pixels. Built at the pixel size it draws too large wherever nothing
+        // rescales it, `imageScaling` of `.scaleNone` being the case.
         let scale = options.scale > 0 ? options.scale : 1
         return NSImage(cgImage: cgImage, size: NSSize(
             width: CGFloat(cgImage.width) / scale,
@@ -448,21 +389,12 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// The rate to run the clock at, or `0` to let it use its own.
     ///
-    /// Most animations are far slower than the display, and waking up 60 or 120
-    /// times a second to show 10 frames is wasted power. The rate asked for is
-    /// twice the fastest frame in the animation, which guarantees a tick to
-    /// show every frame on: at exactly one tick per frame, the two rates beat
-    /// against each other and frames are passed over.
-    ///
-    /// The hint is dropped above 60 ticks a second, which is where it stops
-    /// being a hint: a clock asked for a rate the display can't give it runs at
-    /// the display's rate anyway. The cap was 30 while every display refreshed
-    /// 60 times a second and anything above half of that was the rate the clock
-    /// already ran at. A 120 Hz display made the rest of the range worth
-    /// asking for: a 20 fps animation asks for 40 ticks a second, which is a
-    /// third of the wakeups it would get by default, and the timer clock the
-    /// platforms without a display link use schedules itself at exactly this
-    /// rate whatever the display does.
+    /// Twice the fastest frame in the animation guarantees a tick to show
+    /// every frame on: at exactly one tick per frame the two rates beat against
+    /// each other and frames are passed over. Above 60 ticks a second the hint
+    /// is dropped: a clock asked for more than the display gives runs at the
+    /// display's rate anyway, and the timer clock schedules itself at exactly
+    /// this rate.
     private static func preferredFrameRate(for source: AnimatedImageSource, options: Options) -> Double {
         guard let shortest = source.delays.min(), shortest > 0 else {
             return 0
@@ -477,8 +409,8 @@ public final class AnimatedImagePlayer: ObservableObject {
             NotificationObserver(name: UIApplication.didReceiveMemoryWarningNotification) { [weak self] in
                 self?.reduceMemoryUsage()
             },
-            // Coming back to the foreground is the clearest signal there is
-            // that whatever the memory warning was about is over.
+            // Coming back to the foreground is the clearest signal that the
+            // memory pressure is over.
             NotificationObserver(name: UIApplication.didBecomeActiveNotification) { [weak self] in
                 self?.bufferRestore?.cancel()
                 self?.buffer.restoreCapacity()
@@ -498,9 +430,8 @@ public final class AnimatedImagePlayer: ObservableObject {
 
 /// A notification subscription that unsubscribes when it is released.
 ///
-/// The player can't do it from its own `deinit`: it is isolated to the main
-/// actor, and a `deinit` isn't, so it can't so much as read the token. An
-/// unisolated object that owns the token can.
+/// The player can't do it from its own `deinit`, which isn't isolated to the
+/// main actor and so can't so much as read the token.
 private final class NotificationObserver {
     private let token: any NSObjectProtocol
 
@@ -516,8 +447,8 @@ private final class NotificationObserver {
 }
 
 extension AnimatedImagePlayer {
-    /// The knobs that change how an animation is played and how much memory it
-    /// is allowed to use.
+    /// The options that change how an animation is played and how much memory
+    /// it is allowed to use.
     public struct Options: Sendable {
         /// How many times to play the animation. ``RepeatCount/image`` by
         /// default, which honors what the file asks for.
@@ -529,52 +460,45 @@ extension AnimatedImagePlayer {
         /// The most memory this player's decoded frames may occupy, in bytes.
         /// 10 MB by default.
         ///
-        /// An animation whose frames all fit is decoded once and then replayed
-        /// from memory; a larger one is decoded continuously into a sliding
-        /// window of `maxBufferSize / bytesPerFrame` frames. The buffer never
-        /// holds fewer than two frames, so an animation with very large frames
-        /// can exceed this figure – there is no way to play one without keeping
-        /// two frames around.
+        /// An animation whose frames all fit is decoded once and replayed from
+        /// memory; a larger one is decoded continuously into a sliding window.
+        /// The buffer never holds fewer than two frames, so an animation with
+        /// very large frames can exceed this figure.
         ///
         /// It is a ceiling, not an allowance: what the player actually gets is
         /// its share of ``AnimatedImageFramePool``, which every animation on
-        /// screen draws from. Twenty animations don't cost twenty times this.
+        /// screen draws from.
         public var maxBufferSize = 10 * 1_048_576
 
         /// The longest side, in pixels, the decoded frames may have. `nil` –
         /// no downsampling – by default.
         ///
-        /// Set it to the size of the view in pixels to play an animation that
-        /// is much larger than the space it is displayed in: the frames are
-        /// scaled as they are decoded, which cuts the memory each one costs by
-        /// the square of the scale, at the price of a resample per frame.
+        /// Set it to the size of the view in pixels to play an animation much
+        /// larger than the space it is displayed in: the frames are scaled as
+        /// they are decoded, which cuts the memory each one costs by the
+        /// square of the scale.
         public var maxPixelSize: CGFloat?
 
         /// The scale of the images the player produces. `1` by default.
         public var scale: CGFloat = 1
 
-        /// Whether the player starts on the frame the other players of the same
-        /// animation are showing, rather than on the first one. `true` by
+        /// Whether the player starts on the frame the other players of the
+        /// same animation are showing, rather than on the first one. `true` by
         /// default.
         ///
-        /// The same animation on screen more than over – a sticker in a grid, a
-        /// reaction beside every message – is the case the frame sharing is
-        /// worth the most in, and it is worth the most when the playheads
-        /// agree: a window of frames covers all of them at once instead of one
-        /// each. Falling in behind is also what a browser does, where every
-        /// `img` element on one animation is driven by a single decoded stream
-        /// and so plays in lockstep.
-        ///
-        /// Set it to `false` for a player that should always begin at the
-        /// beginning – an animation played once as a transition, say.
+        /// When the playheads agree, one window of frames covers every copy of
+        /// an animation on screen. It is also what a browser does: every `img`
+        /// element showing one animation plays in lockstep. Set it to `false`
+        /// for a player that should always begin at the beginning – an
+        /// animation played once as a transition, say.
         public var isSynchronizationEnabled = true
 
         /// The largest gap between two clock ticks the player will act on,
         /// in seconds. `1` by default.
         ///
-        /// Time beyond this is dropped rather than replayed, which is what
-        /// keeps an animation from spinning through hundreds of frames when the
-        /// app comes back from the background.
+        /// Time beyond this is dropped rather than replayed, which keeps an
+        /// animation from spinning through hundreds of frames when the app
+        /// comes back from the background.
         public var maxTimeStep: TimeInterval = 1
 
         public init() {}
@@ -593,8 +517,7 @@ extension AnimatedImagePlayer {
     /// What the player and its buffer are doing, for logging, tests, and the
     /// diagnostics overlay in the demo app.
     public struct Diagnostics: Sendable {
-        /// Creates an empty snapshot, which is what a player that hasn't run
-        /// yet would report.
+        /// Creates an empty snapshot.
         public init() {}
 
         /// The number of frames in the animation.
@@ -616,23 +539,20 @@ extension AnimatedImagePlayer {
         /// other animations appear on screen.
         ///
         /// A player always holds two frames, so a single frame larger than this
-        /// is held anyway – there is no playing an animation without them.
+        /// is held anyway.
         public var bufferByteLimit = 0
 
         /// The number of players drawing from the same decoded frames, this
-        /// one included.
-        ///
-        /// More than one means the animation is on screen more than once and is
-        /// being decoded and held once. See ``AnimatedImageFramePool``.
+        /// one included. More than one means the animation is on screen more
+        /// than once and is being decoded and held once.
         public var sharingPlayerCount = 0
 
-        /// The number of frames this player waited for a decode of since it was
-        /// created.
+        /// The number of frames this player waited for a decode of since it
+        /// was created.
         ///
         /// Larger than ``frameCount`` when the buffer can't hold the whole
         /// animation and frames are decoded again on every loop. Smaller when
-        /// another player had already decoded them: a player that joins an
-        /// animation already on screen usually decodes nothing at all.
+        /// another player had already decoded them.
         public var decodedFrameCount = 0
         /// How long the most recent frame took to decode, in seconds.
         public var lastDecodeDuration: TimeInterval = 0
