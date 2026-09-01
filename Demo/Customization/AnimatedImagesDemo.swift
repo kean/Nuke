@@ -13,8 +13,9 @@ import SwiftUI
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
 /// The **Frame Pool** screen is the same thing for a wall of them.
 ///
-/// The layout is a stage and a console: the animation stays put with play and
-/// zoom in its corners, the image is picked from the title's menu, and
+/// The layout is a stage and a console: the animation stays put with the zoom
+/// under it, the image is picked from the title's menu, playback lives on the
+/// transport under the buffer map, and
 /// everything else lives in an inspector – a column beside the stage where
 /// there is room for one, a sheet below it where there isn't. The console is
 /// all list: nothing is pinned above it, so there is only one thing to
@@ -33,8 +34,9 @@ struct AnimatedImagesDemo: View {
     @State private var isShowingInfo = false
     @State private var isShowingImageDetails = false
     @State private var detent: PresentationDetent = Self.collapsedConsole
-    /// How large the animation is drawn on the stage.
-    @State private var zoom: DisplayZoom = .fit
+    /// How large the animation is drawn on the stage. Natural size, until
+    /// the zoom control under the canvas says otherwise.
+    @State private var zoom: DisplayZoom = .scale(1)
     /// The zoom a pinch began from, as a scale of the natural size, which is
     /// what the pinch multiplies.
     @State private var zoomAtPinchStart: Double?
@@ -76,14 +78,20 @@ struct AnimatedImagesDemo: View {
 
     private var stage: some View {
         GeometryReader { proxy in
-            canvas
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                // A sheet covers the bottom edge; a column leaves it to the
-                // stage.
-                .padding(.bottom, isConsoleSheet ? 0 : 16)
-                .frame(height: stageHeight(in: proxy), alignment: .top)
-                .animation(.snappy, value: detent)
+            VStack(spacing: 10) {
+                canvas
+                // Under the frame, where a preview canvas keeps its zoom.
+                if animation != nil {
+                    ZoomMenu(zoom: $zoom, current: zoom).equatable()
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            // A sheet covers the bottom edge; a column leaves it to the
+            // stage.
+            .padding(.bottom, isConsoleSheet ? 0 : 16)
+            .frame(height: stageHeight(in: proxy), alignment: .top)
+            .animation(.snappy, value: detent)
         }
         .background(Color(.systemGroupedBackground))
     }
@@ -118,19 +126,9 @@ struct AnimatedImagesDemo: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .gesture(pinch)
-        .overlay(alignment: .bottomTrailing) {
-            if animation != nil {
-                ZoomMenu(zoom: $zoom, current: zoom).equatable().padding(10)
-            }
-        }
-        .overlay(alignment: .bottomLeading) {
-            if let animation {
-                PlayButton(player: animation.player).padding(10)
-            }
-        }
     }
 
-    /// The zoom control a preview canvas has in its corner: the named sizes,
+    /// The zoom control under the canvas: the named sizes,
     /// then the percentages of the natural one. Whatever a pinch left the zoom
     /// at is named by its percentage and checks nothing.
     ///
@@ -181,7 +179,43 @@ struct AnimatedImagesDemo: View {
         }
     }
 
-    /// Play, pause, or replay, in the canvas corner opposite the zoom.
+    /// The transport under the scrubber: step, play, step – the row every
+    /// player has – with the rate at its trailing edge.
+    private struct TransportBar: View {
+        @ObservedObject var player: AnimatedImagePlayer
+        @Binding var rate: Double
+        let step: (Int) -> Void
+
+        var body: some View {
+            ZStack {
+                HStack(spacing: 24) {
+                    Button {
+                        step(-1)
+                    } label: {
+                        Image(systemName: "backward.frame.fill")
+                            .frame(width: 18, height: 18)
+                    }
+                    .accessibilityLabel("Previous frame")
+                    PlayButton(player: player)
+                    Button {
+                        step(1)
+                    } label: {
+                        Image(systemName: "forward.frame.fill")
+                            .frame(width: 18, height: 18)
+                    }
+                    .accessibilityLabel("Next frame")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                HStack {
+                    Spacer()
+                    RateMenu(rate: $rate, current: rate).equatable()
+                }
+            }
+        }
+    }
+
+    /// Play, pause, or replay, in the middle of the transport.
     ///
     /// A view of its own so that it can observe the player: `isPlaying` and
     /// `isFinished` publish, so the button needs no timer.
@@ -199,14 +233,47 @@ struct AnimatedImagesDemo: View {
                 }
             } label: {
                 Image(systemName: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .frame(width: 14, height: 15)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.thinMaterial, in: Capsule())
+                    .font(.title3.weight(.semibold))
+                    .frame(width: 24, height: 24)
             }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.circle)
             .accessibilityLabel(player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"))
+        }
+    }
+
+    /// The rate at the transport's edge, the way a player writes it: the
+    /// current value as the label, the choices behind a tap.
+    ///
+    /// Equatable for the same reason as ``ZoomMenu``: the console redraws ten
+    /// times a second as the diagnostics are sampled, and an open menu rebuilt
+    /// that often drops its items.
+    private struct RateMenu: View, Equatable {
+        @Binding var rate: Double
+        /// The rate again as a plain value – see ``ZoomMenu/current``.
+        let current: Double
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.current == rhs.current
+        }
+
+        private static let choices: [Double] = [0.25, 0.5, 1, 1.5, 2, 4]
+
+        var body: some View {
+            Menu {
+                ForEach(Self.choices, id: \.self) { choice in
+                    Toggle(isOn: Binding(get: { rate == choice }, set: { _ in rate = choice })) {
+                        Text(demoRateLabel(choice))
+                    }
+                }
+            } label: {
+                Text(demoRateLabel(rate))
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 44, alignment: .trailing)
+            }
+            .accessibilityLabel("Playback rate")
         }
     }
 
@@ -288,9 +355,10 @@ struct AnimatedImagesDemo: View {
 
     // MARK: Console
 
-    /// Tall enough for the buffer map – the scrubber – and a first figure or
-    /// two under it, which is what says there is more to pull up.
-    private static let collapsedConsoleHeight: CGFloat = 176
+    /// Tall enough for the buffer map – the scrubber – the transport under
+    /// it, and a first figure or two, which is what says there is more to
+    /// pull up.
+    private static let collapsedConsoleHeight: CGFloat = 232
     private static let collapsedConsole = PresentationDetent.height(collapsedConsoleHeight)
 
     /// The diagnostics and the settings, and nothing pinned above them:
@@ -328,31 +396,20 @@ struct AnimatedImagesDemo: View {
             Section {
                 // Scrubbing pauses first: seeking while the clock runs would
                 // hand the frame straight back to the animation.
-                DemoDiagnosticsPanel(player: animation.player, diagnostics: diagnostics, drawnSize: displayedSize) { index in
+                // The transport sits right under the map: the map is the
+                // scrubber, the steps are its fine adjustment – one bar of
+                // the delay map per tap – and play is between them, where
+                // every player keeps it.
+                DemoDiagnosticsPanel(
+                    player: animation.player,
+                    diagnostics: diagnostics,
+                    drawnSize: displayedSize,
+                    transport: AnyView(TransportBar(player: animation.player, rate: $settings.playbackRate, step: { step(by: $0) }))
+                ) { index in
                     animation.player.pause()
                     animation.player.seek(toFrame: index)
                 }
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                // One frame at a time: the map above is the scrubber, and
-                // these are its fine adjustment – which is how to read the
-                // delay map, one bar per tap.
-                HStack(spacing: 12) {
-                    Button {
-                        step(by: -1)
-                    } label: {
-                        Label("Previous frame", systemImage: "backward.frame.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    Button {
-                        step(by: 1)
-                    } label: {
-                        Label("Next frame", systemImage: "forward.frame.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
                 DisclosureGroup(isExpanded: $isShowingImageDetails) {
                     DemoAnimationDetails(player: animation.player, diagnostics: diagnostics, info: infos[image])
                         .padding(.vertical, 4)
@@ -458,19 +515,11 @@ struct AnimatedImagesDemo: View {
 
     private var playbackSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                LabeledContent("Rate") {
-                    DemoMonoLabel(String(format: "%.2f×", settings.playbackRate))
-                }
-                Slider(value: $settings.playbackRate, in: 0.25...4, step: 0.25) {
-                    Text("Rate")
-                }
-            }
             Toggle("Repeat forever", isOn: $settings.repeatsForever)
         } header: {
             Text("Playback")
         } footer: {
-            Text("The delays stay as authored; the rate is how fast the clock runs through them.")
+            Text("Off honors the loop count the file declares – a GIF without one plays once. The rate lives on the transport, under the buffer map: the delays stay as authored, and the rate is how fast the clock runs through them.")
         }
     }
 
@@ -650,6 +699,11 @@ struct AnimatedImagesDemo: View {
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")
         ]
     )
+}
+
+/// "1×", "0.5×": the rate the way a player writes it on its speed control.
+private func demoRateLabel(_ value: Double) -> String {
+    value == value.rounded() ? "\(Int(value))×" : String(format: "%g×", value)
 }
 
 #Preview {

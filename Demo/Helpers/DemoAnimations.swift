@@ -282,6 +282,10 @@ struct DemoDiagnosticsPanel: View {
     /// frames compare with the pixels they cover. `nil` – the default – for no
     /// such line.
     var drawnSize: CGSize?
+    /// The playback controls that sit right under the scrubber, where a
+    /// player keeps them. `nil` – the default – for none.
+    var transport: AnyView?
+
     /// Makes the buffer map the scrubber – see ``DemoBufferMap/onScrub``.
     var onScrub: ((Int) -> Void)?
 
@@ -290,6 +294,9 @@ struct DemoDiagnosticsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             DemoBufferMap(player: player, diagnostics: diagnostics, onScrub: onScrub)
+            if let transport {
+                transport
+            }
             Divider()
             grid
         }
