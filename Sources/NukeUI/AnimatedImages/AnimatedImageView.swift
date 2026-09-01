@@ -106,7 +106,7 @@ public final class AnimatedImageView: _PlatformImageView {
 
     /// Whether playback pauses while the view is not on screen – outside a
     /// window, hidden, or fully transparent. `true` by default.
-    public var isPlaybackPausedWhenOffscreen = true {
+    var isPlaybackPausedWhenOffscreen = true {
         didSet {
             guard isPlaybackPausedWhenOffscreen != oldValue else { return }
             updatePlaybackState()

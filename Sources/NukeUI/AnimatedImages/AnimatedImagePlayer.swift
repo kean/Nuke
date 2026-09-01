@@ -206,14 +206,12 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// Whether the player keeps a full window of decoded frames. `true` by
     /// default.
     ///
-    /// Set it to `false` for a player nobody is watching – a view that has
-    /// scrolled off screen. It keeps the frame on display and the one after it
-    /// and gives the rest of the window back. ``play()`` sets it back to `true`.
-    ///
-    /// ``AnimatedImageView`` does this when it pauses because it left its
-    /// window, but not when playback is paused in place, where the frames are
-    /// worth keeping so that resuming doesn't stall.
-    public var keepsFullBuffer = true {
+    /// ``AnimatedImageView`` sets it to `false` for a player nobody is
+    /// watching – a view that has scrolled off screen – which keeps the frame
+    /// on display and the one after it and gives the rest of the window back.
+    /// ``play()`` sets it back to `true`. Playback paused in place keeps its
+    /// frames, so that resuming doesn't stall.
+    var keepsFullBuffer = true {
         didSet {
             guard keepsFullBuffer != oldValue else { return }
             // The new share is what drops the frames that no longer fit and
@@ -256,6 +254,13 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// What a player holds while nobody is watching: the frame on screen and
     /// the one after it, so that playback starts without a stall.
     static let idleFrameCount = 2
+
+    /// The largest gap between two clock ticks the player acts on, in seconds.
+    ///
+    /// Time beyond this is dropped rather than replayed, which keeps an
+    /// animation from spinning through hundreds of frames when the app comes
+    /// back from the background.
+    static let maxTimeStep: TimeInterval = 1
 
     /// Called by the store with every frame the player was waiting for.
     func storeDidDecodeFrame(at index: Int, duration: TimeInterval) {
@@ -325,7 +330,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         // A starved clock (the app was in the background, the main thread was
         // blocked) reports the whole gap. Replaying it would make the
         // animation lurch, so the step is capped.
-        let step = min(delta, options.maxTimeStep) * options.playbackRate
+        let step = min(delta, Self.maxTimeStep) * options.playbackRate
         guard step > 0 else { return }
         counters.playbackTime += step
         elapsed += step
@@ -506,14 +511,6 @@ extension AnimatedImagePlayer {
         /// for a player that should always begin at the beginning – an
         /// animation played once as a transition, say.
         public var isSynchronizationEnabled = true
-
-        /// The largest gap between two clock ticks the player will act on,
-        /// in seconds. `1` by default.
-        ///
-        /// Time beyond this is dropped rather than replayed, which keeps an
-        /// animation from spinning through hundreds of frames when the app
-        /// comes back from the background.
-        public var maxTimeStep: TimeInterval = 1
 
         public init() {}
     }

@@ -193,16 +193,16 @@ struct AnimatedImagePlayerTests {
     @Test func doesNotReplayTimeItSleptThrough() async {
         // A player that comes back from the background gets one enormous tick.
         // Racing through it would look like a fast-forward, so it is capped.
-        var options = AnimatedImagePlayer.Options()
-        options.maxTimeStep = 0.25
-        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: options)
+        let delays = Array(repeating: 0.1, count: 20)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 20, delays: delays)
         player.play()
         await player.waitUntilFull()
 
         clock.tick(60)
 
-        #expect(player.currentFrameIndex == 2)
-        #expect(player.diagnostics.playbackTime == 0.25)
+        // One second of the minute the app spent asleep, and no more.
+        #expect(player.diagnostics.playbackTime == AnimatedImagePlayer.maxTimeStep)
+        #expect(player.currentFrameIndex == 10)
     }
 
     @Test func stopsCatchingUpAfterAFullLoop() async {

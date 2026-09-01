@@ -34,9 +34,6 @@ public final class AnimatedImageSource: Sendable {
     /// shared with it rather than copied.
     public let data: Data
 
-    /// The format of the image, if the data matches a known one.
-    public let type: AssetType?
-
     /// The number of frames. Always greater than one.
     public let frameCount: Int
 
@@ -103,7 +100,6 @@ public final class AnimatedImageSource: Sendable {
         let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any] ?? [:]
         let format = AnimatedImageFormat(properties: properties)
         self.data = data
-        self.type = AssetType(data)
         self.frameCount = frameCount
         self.delays = (0..<frameCount).map {
             format?.delay(in: source, at: $0) ?? AnimatedImageSource.defaultDelay

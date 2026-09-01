@@ -17,7 +17,6 @@ struct AnimatedImageSourceTests {
         let source = try #require(AnimatedImageSource(data: data))
 
         #expect(source.frameCount == 5)
-        #expect(source.type == .gif)
         #expect(source.delays == Array(repeating: 0.05, count: 5))
         #expect(source.duration == 0.25)
         #expect(source.loopCount == 0)
@@ -31,7 +30,6 @@ struct AnimatedImageSourceTests {
         let source = try #require(AnimatedImageSource(data: data))
 
         #expect(source.frameCount == 3)
-        #expect(source.type == .png)
         #expect(source.delays.count == 3)
         #expect(abs(source.duration - 0.6) < 0.001)
     }
@@ -43,7 +41,6 @@ struct AnimatedImageSourceTests {
         let source = try #require(AnimatedImageSource(data: data))
 
         #expect(source.frameCount == 3)
-        #expect(source.type == .heic)
         // Read from the container, not defaulted: the delays a sequence
         // declares used to be missed because `CGImageSourceGetType` reports it
         // as `public.heics` and the format was matched on `public.heic`, which
@@ -59,7 +56,6 @@ struct AnimatedImageSourceTests {
         let source = try #require(AnimatedImageSource(data: Test.data(name: "animated", extension: "webp")))
 
         #expect(source.frameCount == 4)
-        #expect(source.type == .webp)
         #expect(source.delays == Array(repeating: 0.1, count: 4))
         #expect(source.loopCount == 0)
         #expect(source.size == CGSize(width: 8, height: 8))
@@ -72,7 +68,6 @@ struct AnimatedImageSourceTests {
         let source = try #require(AnimatedImageSource(data: Test.data(name: "animated", extension: "avif")))
 
         #expect(source.frameCount == 3)
-        #expect(source.type == .avif)
         // Read from the `{AVIS}` container, not defaulted: the format used to
         // be missing from `AnimatedImageFormat` altogether, which left every
         // frame on the 0.1 s fallback. The middle frame is the one that shows

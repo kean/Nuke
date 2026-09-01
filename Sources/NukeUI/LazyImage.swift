@@ -166,10 +166,11 @@ public struct LazyImage<Content: View>: View {
 
     @ViewBuilder
     private func makeDefaultContent(for state: LazyImageState) -> some View {
-        if let animatedImage = state.animatedImage {
-            // The still the decoder produced, so that the cell isn't blank for
-            // as long as the first frame takes to decode.
-            AnimatedImage(animatedImage, poster: state.imageContainer?.image)
+        // `nil` for everything that isn't animated. The initializer carries
+        // the still the decoder produced along with the animation, so that the
+        // cell isn't blank for as long as the first frame takes to decode.
+        if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+            animation
         } else if let image = state.image {
             image
         } else {

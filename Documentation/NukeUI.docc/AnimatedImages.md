@@ -115,7 +115,7 @@ imageView.playerOptions = options
 
 **Let it respond to pressure.** The pool holds every animation at two frames on a memory warning, and they refill as playback continues. The windows it sized come back a minute later, or sooner if the app is backgrounded and returns. ``AnimatedImageFramePool/reduceMemoryUsage()`` shrinks them on demand.
 
-A player nobody is watching gives its window back too. ``AnimatedImageView`` sets ``AnimatedImagePlayer/keepsFullBuffer`` to `false` when it pauses because it left its window, so the animations a list has scrolled past cost two frames each rather than a budget each. Playback paused in place keeps its frames, so that resuming doesn't stall.
+A player nobody is watching gives its window back too: a view that pauses because it left its window holds two frames rather than a budget's worth, so the animations a list has scrolled past cost almost nothing. Playback paused in place keeps its frames, so that resuming doesn't stall.
 
 Memory is bounded either way, but a screen full of animations that is over the pool's limit pays for it in decoding: every window is a share, the smaller windows slide, and the frames behind them are decoded again on every loop. Downsampling is the first lever because it is the one that makes the frames small enough for the shares to hold whole animations. Every frame except the one the animation is waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
 
