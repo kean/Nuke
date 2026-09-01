@@ -13,11 +13,12 @@ import SwiftUI
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
 /// The **Frame Pool** screen is the same thing for a wall of them.
 ///
-/// The layout is a stage and a console: the animation stays put with its zoom
-/// menu in its corner, the image is picked from the title's menu, and
-/// everything that scrolls lives in an inspector – a column beside the stage
-/// where there is room for one, a sheet below it where there isn't. The two
-/// never overlap, so there is only ever one thing to scroll.
+/// The layout is a stage and a console: the animation stays put with play and
+/// zoom in its corners, the image is picked from the title's menu, and
+/// everything else lives in an inspector – a column beside the stage where
+/// there is room for one, a sheet below it where there isn't. The console is
+/// all list: nothing is pinned above it, so there is only one thing to
+/// scroll and it all scrolls.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
@@ -122,6 +123,11 @@ struct AnimatedImagesDemo: View {
                 ZoomMenu(zoom: $zoom, current: zoom).equatable().padding(10)
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            if let animation {
+                PlayButton(player: animation.player).padding(10)
+            }
+        }
     }
 
     /// The zoom control a preview canvas has in its corner: the named sizes,
@@ -172,6 +178,35 @@ struct AnimatedImagesDemo: View {
             Toggle(isOn: Binding(get: { zoom == choice }, set: { _ in zoom = choice })) {
                 Text(choice.title)
             }
+        }
+    }
+
+    /// Play, pause, or replay, in the canvas corner opposite the zoom.
+    ///
+    /// A view of its own so that it can observe the player: `isPlaying` and
+    /// `isFinished` publish, so the button needs no timer.
+    private struct PlayButton: View {
+        @ObservedObject var player: AnimatedImagePlayer
+
+        var body: some View {
+            Button {
+                if player.isPlaying {
+                    player.pause()
+                } else if player.isFinished {
+                    player.restart()
+                } else {
+                    player.play()
+                }
+            } label: {
+                Image(systemName: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 14, height: 15)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.thinMaterial, in: Capsule())
+            }
+            .accessibilityLabel(player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"))
         }
     }
 
@@ -253,32 +288,22 @@ struct AnimatedImagesDemo: View {
 
     // MARK: Console
 
-    /// Tall enough for the whole transport and the first section header under
-    /// it, which is what says there is more to pull up.
+    /// Tall enough for the buffer map – the scrubber – and a first figure or
+    /// two under it, which is what says there is more to pull up.
     private static let collapsedConsoleHeight: CGFloat = 176
     private static let collapsedConsole = PresentationDetent.height(collapsedConsoleHeight)
 
-    /// The transport, the diagnostics, and the settings.
-    ///
-    /// The transport is pinned above the list rather than being its first row,
-    /// so that the sheet pushed all the way down is always the same thing – the
-    /// playhead and the play button – no matter where the list is scrolled to.
-    /// The presentation modifiers only have a say when the inspector is a sheet.
+    /// The diagnostics and the settings, and nothing pinned above them:
+    /// playback lives on the canvas, so the console is all list and all of it
+    /// scrolls. The presentation modifiers only have a say when the inspector
+    /// is a sheet.
     private var console: some View {
-        VStack(spacing: 0) {
-            transport
-                .padding(.horizontal, 20)
-                // The drag indicator sits in the first few points of a sheet;
-                // the transport starts below it rather than under it.
-                .padding(.top, isConsoleSheet ? 22 : 12)
-                .padding(.bottom, 16)
-            List {
-                diagnosticsSection
-                bufferSection
-                playbackSection
-            }
-            .listStyle(.insetGrouped)
+        List {
+            diagnosticsSection
+            bufferSection
+            playbackSection
         }
+        .listStyle(.insetGrouped)
         .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
         .presentationDetents([Self.collapsedConsole, .medium, .large], selection: $detent)
         .presentationDragIndicator(.visible)
@@ -290,18 +315,6 @@ struct AnimatedImagesDemo: View {
         // explanation is presented from inside the inspector instead.
         .sheet(isPresented: $isShowingInfo) {
             DemoInfoSheet(info: Self.info)
-        }
-    }
-
-    @ViewBuilder
-    private var transport: some View {
-        if let animation {
-            DemoAnimationTransport(player: animation.player, diagnostics: diagnostics)
-        } else {
-            Text("Loading…")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -320,6 +333,26 @@ struct AnimatedImagesDemo: View {
                     animation.player.seek(toFrame: index)
                 }
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                // One frame at a time: the map above is the scrubber, and
+                // these are its fine adjustment – which is how to read the
+                // delay map, one bar per tap.
+                HStack(spacing: 12) {
+                    Button {
+                        step(by: -1)
+                    } label: {
+                        Label("Previous frame", systemImage: "backward.frame.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    Button {
+                        step(by: 1)
+                    } label: {
+                        Label("Next frame", systemImage: "forward.frame.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 DisclosureGroup(isExpanded: $isShowingImageDetails) {
                     DemoAnimationDetails(player: animation.player, diagnostics: diagnostics, info: infos[image])
                         .padding(.vertical, 4)
@@ -377,6 +410,13 @@ struct AnimatedImagesDemo: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 DemoMonoLabel(frameSizeEffect, tint: settings.frameSize == .full ? nil : .accentColor)
+            }
+            Button {
+                // The same call the pool makes for itself when the system
+                // issues a memory warning.
+                AnimatedImageFramePool.shared.reduceMemoryUsage()
+            } label: {
+                Label("Free Memory", systemImage: "memorychip")
             }
         } header: {
             Text("Frame Buffer")
@@ -467,6 +507,15 @@ struct AnimatedImagesDemo: View {
 
     private func sample() {
         diagnostics = animation?.player.diagnostics ?? AnimatedImagePlayer.Diagnostics()
+    }
+
+    /// Pauses and moves the playhead by the given number of frames, wrapping
+    /// around either end.
+    private func step(by delta: Int) {
+        guard let player = animation?.player else { return }
+        player.pause()
+        let count = player.source.frameCount
+        player.seek(toFrame: (player.currentFrameIndex + delta + count) % count)
     }
 
     /// The top of the budget slider, where it stands for no ceiling of the
@@ -601,76 +650,6 @@ struct AnimatedImagesDemo: View {
             .init("Diagnostics", "Everything here comes from `AnimatedImagePlayer.diagnostics`, which is available in your own app too. The demo samples it ten times a second: a view that redrew on every frame would be measuring itself. The play button doesn't need the timer – the player is an `ObservableObject` and publishes when playback starts, stops, or finishes.")
         ]
     )
-}
-
-/// Where the playhead is, and the buttons. Scrubbing is the buffer map's job.
-///
-/// A view of its own so that it can observe the player: the button reads
-/// `isPlaying` and `isFinished` straight off it, while the playhead moves on
-/// every frame and comes from the sampled diagnostics.
-private struct DemoAnimationTransport: View {
-    @ObservedObject var player: AnimatedImagePlayer
-    let diagnostics: AnimatedImagePlayer.Diagnostics
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 8) {
-                DemoMonoLabel("frame \(diagnostics.currentFrameIndex + 1) of \(diagnostics.frameCount) · loop \(diagnostics.completedLoopCount)")
-                Spacer()
-                // One frame at a time, which is how to read the delay map.
-                Button {
-                    step(by: -1)
-                } label: {
-                    Label("Previous frame", systemImage: "backward.frame.fill")
-                }
-                Button {
-                    step(by: 1)
-                } label: {
-                    Label("Next frame", systemImage: "forward.frame.fill")
-                }
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-
-            HStack(spacing: 12) {
-                Button {
-                    if player.isPlaying {
-                        player.pause()
-                    } else if player.isFinished {
-                        player.restart()
-                    } else {
-                        player.play()
-                    }
-                } label: {
-                    Label(
-                        player.isPlaying ? "Pause" : (player.isFinished ? "Replay" : "Play"),
-                        systemImage: player.isPlaying ? "pause.fill" : (player.isFinished ? "arrow.clockwise" : "play.fill")
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    // The same call the pool makes for itself when the system
-                    // issues a memory warning.
-                    AnimatedImageFramePool.shared.reduceMemoryUsage()
-                } label: {
-                    Label("Free Memory", systemImage: "memorychip")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-            }
-        }
-    }
-
-    /// Pauses and moves the playhead by the given number of frames, wrapping
-    /// around either end.
-    private func step(by delta: Int) {
-        player.pause()
-        let count = player.source.frameCount
-        player.seek(toFrame: (player.currentFrameIndex + delta + count) % count)
-    }
 }
 
 #Preview {
