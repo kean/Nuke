@@ -292,7 +292,8 @@ final class AnimatedImageFrameStore {
     /// Drops the frames no member's window covers.
     ///
     /// An idle store keeps everything for a view that comes back on screen;
-    /// the pool reclaims those frames when it needs the room.
+    /// the pool reclaims those frames when it needs the room, and drops them
+    /// on a memory warning.
     private func evict() {
         guard !members.isEmpty, !frames.isEmpty else { return }
         let windows = liveMembers.map { (start: $0.currentFrameIndex, length: $0.bufferCapacity) }

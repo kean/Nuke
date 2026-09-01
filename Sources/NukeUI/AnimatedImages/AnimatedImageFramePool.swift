@@ -83,14 +83,19 @@ public final class AnimatedImageFramePool {
 
     // MARK: Memory Pressure
 
-    /// Holds every animation at the two frames playback needs, dropping the
-    /// decoded frames that no longer fit.
+    /// Gives back the frames of every animation nobody is playing and holds
+    /// the ones being played at the two frames playback needs.
     ///
     /// Called automatically on a memory warning. Playback continues, and the
     /// windows go back to the size the pool gave them once the pressure has
     /// had time to pass.
     public func reduceMemoryUsage() {
-        setUnderMemoryPressure(true)
+        isUnderMemoryPressure = true
+        // Every store is handed a new share, which is what drops the frames
+        // that no longer fit, and the animations nobody is playing are dropped
+        // whole. Answered on every warning rather than only the first: a
+        // second one is asking for whatever has gone idle since.
+        rebalance()
         // A memory warning arrives while the app is active, usually on the very
         // screen the animation is on. Waiting for a trip to the background
         // would keep an animation that is up all session re-decoding every
@@ -99,11 +104,12 @@ public final class AnimatedImageFramePool {
         restore = Task { [weak self, memoryPressureGracePeriod] in
             try? await Task.sleep(for: .seconds(memoryPressureGracePeriod))
             guard !Task.isCancelled else { return }
-            self?.setUnderMemoryPressure(false)
+            self?.endMemoryPressure()
         }
     }
 
-    /// `true` while every animation is held at its two-frame floor.
+    /// `true` while every animation is held at its two-frame floor and the
+    /// frames of the ones nobody is playing are kept no longer.
     private(set) var isUnderMemoryPressure = false
 
     /// How long the animations stay shrunk after a memory warning: long enough
@@ -114,11 +120,11 @@ public final class AnimatedImageFramePool {
 
     private var restore: Task<Void, Never>?
 
-    private func setUnderMemoryPressure(_ isUnderPressure: Bool) {
-        guard isUnderMemoryPressure != isUnderPressure else { return }
-        isUnderMemoryPressure = isUnderPressure
-        // Every store is handed a new share, which is what drops the frames
-        // that no longer fit and starts refilling when the ceiling comes off.
+    private func endMemoryPressure() {
+        guard isUnderMemoryPressure else { return }
+        isUnderMemoryPressure = false
+        // Every store is handed a new share, which is what starts refilling
+        // the windows now the ceiling has come off.
         rebalance()
     }
 
@@ -133,7 +139,7 @@ public final class AnimatedImageFramePool {
         center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.restore?.cancel()
-                self?.setUnderMemoryPressure(false)
+                self?.endMemoryPressure()
             }
         }
 #endif
@@ -177,6 +183,15 @@ public final class AnimatedImageFramePool {
     /// animation filling its window would shrink the others as it went.
     func rebalance() {
         sweep()
+        // Nothing is worth caching while the system is short of memory: the
+        // animations nobody is playing go whole rather than down to the floor
+        // the live ones are held at, and one that goes idle during the grace
+        // period goes with them.
+        if isUnderMemoryPressure {
+            for store in stores.values.filter(\.isIdle) {
+                remove(store)
+            }
+        }
         guard !stores.isEmpty else { return }
         // Applied only once every share is known: a store handed a smaller
         // window evicts frames on the spot.
@@ -260,14 +275,19 @@ public final class AnimatedImageFramePool {
     func reclaimIfNeeded() {
         guard totalCost > costLimit else { return }
         for store in stores.values.filter(\.isIdle).sorted(by: { $0.lastUsed < $1.lastUsed }) {
-            store.removeAllFrames()
-            stores[store.key] = nil
+            remove(store)
             guard totalCost > costLimit else { return }
         }
         for store in stores.values {
             store.reclaim()
             guard totalCost > costLimit else { return }
         }
+    }
+
+    /// Drops an animation's frames along with the store holding them.
+    private func remove(_ store: AnimatedImageFrameStore) {
+        store.removeAllFrames()
+        stores[store.key] = nil
     }
 
     /// Asks for a division on the next turn of the main actor, for a buffer's

@@ -218,6 +218,45 @@ struct AnimatedImageFramePoolTests {
         #expect(second.diagnostics.bufferCapacity == 2)
     }
 
+    @Test func aMemoryWarningGivesBackTheFramesNobodyIsPlaying() async throws {
+        // A pool nearly full of animations a list has scrolled past would
+        // otherwise answer a warning with the few frames its live windows hold.
+        let pool = makePool(frames: 24)
+        let scrolledPast = try makeSource(frameCount: 8)
+        var released: AnimatedImagePlayer? = try makePlayer(source: scrolledPast, pool: pool)
+        await released?.waitUntilFull()
+        released = nil
+        await settle()
+        let playing = try makePlayer(frameCount: 8, pool: pool)
+        await playing.waitUntilFull()
+        #expect(pool.animationCount == 2)
+        #expect(pool.totalCost == 16 * Self.bytesPerFrame)
+
+        pool.reduceMemoryUsage()
+
+        // The animation nobody is playing goes whole, the one on screen down
+        // to the floor.
+        #expect(pool.animationCount == 1)
+        #expect(pool.totalCost == AnimatedImagePlayer.idleFrameCount * Self.bytesPerFrame)
+        #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+    }
+
+    @Test func cachesNothingForAPlayerReleasedWhileTheMemoryPressureLasts() async throws {
+        let pool = makePool(frames: 24)
+        let source = try makeSource(frameCount: 8)
+        var player: AnimatedImagePlayer? = try makePlayer(source: source, pool: pool)
+        await player?.waitUntilFull()
+
+        pool.reduceMemoryUsage()
+        // The list scrolls on while the pressure lasts. Keeping the frames it
+        // leaves behind for a second look is what the warning ruled out.
+        player = nil
+        await settle()
+
+        #expect(pool.animationCount == 0)
+        #expect(pool.totalCost == 0)
+    }
+
     @Test func givesTheBudgetBackOnceTheMemoryPressureHasPassed() async throws {
         // A window shrunk by one memory warning would otherwise stay shrunk
         // for the life of the player, re-decoding every frame of every loop.
@@ -265,6 +304,12 @@ struct AnimatedImageFramePoolTests {
     }
 
     // MARK: Helpers
+
+    /// A `deinit` isn't on the main actor, so the pool divides the budget
+    /// again on a later turn rather than on the spot.
+    private func settle() async {
+        for _ in 0..<10 { await Task.yield() }
+    }
 
     private func makePool(frames: Int) -> AnimatedImageFramePool {
         AnimatedImageFramePool(costLimit: frames * Self.bytesPerFrame)
