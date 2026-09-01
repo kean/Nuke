@@ -7,7 +7,7 @@ Xcode project, so it always builds against the sources in this repo.
 open Nuke.xcodeproj
 ```
 
-Select the **NukeDemo** scheme and run it (iOS 16+). No dependencies, no setup:
+Select the **NukeDemo** scheme and run it (iOS 17+). No dependencies, no setup:
 the images are loaded over the network from public URLs.
 
 ## Screens
@@ -31,7 +31,7 @@ shows, with the API it is about and the details worth knowing.
 |--|--|
 | **Image Processing** | The built-in processors and two ways to write your own |
 | **Image Formats** | JPEG, PNG, WebP, animated GIF, and MP4 via `ImageDecoders.Video` |
-| **Animated Images** | GIF, APNG, and animated WebP with live diagnostics – the frame buffer, decode times, and dropped frames – and the playback settings in a sheet you can leave open |
+| **Animated Images** | GIF, APNG, and animated WebP with live diagnostics – the frame buffer, decode times, and dropped frames – and the playback settings in an inspector: beside the animation on iPad, in a sheet below it on iPhone |
 | **Progressive JPEG** | Progressive decoding, with a throttled data loader that makes the scans visible |
 | **Pipeline Delegate** | `willLoadData(for:urlRequest:pipeline:)` and a live log of the pipeline events |
 

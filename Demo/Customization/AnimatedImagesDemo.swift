@@ -21,9 +21,10 @@ import SwiftUI
 /// ``AnimatedImageFramePool``: the animations share one budget, so each window
 /// is a share of it rather than a budget of its own.
 ///
-/// The layout is a stage and a console: the picker and the animations stay put
-/// at the top, and everything that scrolls lives in the sheet below them. The
-/// two never overlap, so there is only ever one thing to scroll.
+/// The layout is a stage and a console: the picker and the animations stay put,
+/// and everything that scrolls lives in an inspector – a column beside the stage
+/// where there is room for one, a sheet below it where there isn't. The two
+/// never overlap, so there is only ever one thing to scroll.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = DemoAnimationSettings()
@@ -39,6 +40,9 @@ struct AnimatedImagesDemo: View {
     /// The limit the pool had before the screen took it over, put back on the
     /// way out: the pool is shared with every other screen in the app.
     @State private var poolCostLimit: Int?
+    /// What decides how the inspector is presented: as a sheet in a compact
+    /// width, as a column beside the stage otherwise.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     /// Sampling the diagnostics rather than observing them: they change on every
     /// frame, and a view that redrew that often would be measuring itself. The
@@ -50,7 +54,7 @@ struct AnimatedImagesDemo: View {
         stage
             .task(id: reloadID) { await load() }
             .onReceive(timer) { _ in sampleDiagnostics() }
-            .onChange(of: settings.poolCostLimitMB) { _ in applyPoolCostLimit() }
+            .onChange(of: settings.poolCostLimitMB) { applyPoolCostLimit() }
             .onAppear {
                 poolCostLimit = AnimatedImageFramePool.shared.costLimit
                 applyPoolCostLimit()
@@ -60,18 +64,39 @@ struct AnimatedImagesDemo: View {
                     AnimatedImageFramePool.shared.costLimit = poolCostLimit
                 }
             }
-            .sheet(isPresented: .constant(true)) {
-                DemoAnimationConsole(
-                    animations: animations,
-                    diagnostics: diagnostics,
-                    pool: pool,
-                    settings: $settings,
-                    detent: $detent,
-                    isShowingDiagnostics: $isShowingDiagnostics,
-                    isShowingInfo: $isShowingInfo
-                )
-            }
+            .inspector(isPresented: .constant(true)) { console }
             .demoInfoButton(isPresented: $isShowingInfo)
+    }
+
+    /// Whether the console is a sheet below the stage rather than a column
+    /// beside it.
+    private var isConsoleSheet: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    /// The console, and how it is presented. The presentation modifiers only
+    /// have a say when the inspector is a sheet.
+    private var console: some View {
+        DemoAnimationConsole(
+            animations: animations,
+            diagnostics: diagnostics,
+            pool: pool,
+            isSheet: isConsoleSheet,
+            settings: $settings,
+            isShowingDiagnostics: $isShowingDiagnostics
+        )
+        .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
+        .presentationDetents([DemoAnimationConsole.collapsed, .medium, .large], selection: $detent)
+        .presentationDragIndicator(.visible)
+        // Keeps the stage behind the sheet interactive, so the animation can be
+        // scrubbed and switched while the settings change.
+        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .interactiveDismissDisabled()
+        // The sheet covers the one the toolbar button would present, so the
+        // explanation is presented from inside the inspector instead.
+        .sheet(isPresented: $isShowingInfo) {
+            DemoInfoSheet(info: Self.info)
+        }
     }
 
     fileprivate static let info = DemoInfo(
@@ -126,6 +151,8 @@ struct AnimatedImagesDemo: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
+            // A sheet covers the bottom edge; a column leaves it to the stage.
+            .padding(.bottom, isConsoleSheet ? 0 : 16)
             .frame(height: stageHeight(in: proxy), alignment: .top)
             .animation(.snappy, value: detent)
         }
@@ -134,11 +161,15 @@ struct AnimatedImagesDemo: View {
 
     /// The room the console leaves for the animation.
     ///
-    /// The console is presented over the screen rather than beside it, so the
-    /// stage has to keep clear of it by hand. Pulling the sheet up shrinks the
-    /// animation instead of covering it, which is the point of the screen: the
-    /// settings that change the animation are no use without it in view.
+    /// Beside the stage, all of it. Below the stage, the console is presented
+    /// over the screen rather than beside it, so the stage has to keep clear of
+    /// it by hand. Pulling the sheet up shrinks the animation instead of
+    /// covering it, which is the point of the screen: the settings that change
+    /// the animation are no use without it in view.
     private func stageHeight(in proxy: GeometryProxy) -> CGFloat {
+        guard isConsoleSheet else {
+            return proxy.size.height
+        }
         let console = detent == DemoAnimationConsole.collapsed
             ? DemoAnimationConsole.collapsedHeight
             // Everything above `.medium` covers the stage anyway, so the size
@@ -334,12 +365,11 @@ private struct DemoAnimationConsole: View {
     let animations: [DemoLoadedAnimation]
     let diagnostics: [AnimatedImagePlayer.Diagnostics]
     let pool: DemoPoolDiagnostics
+    /// Whether the console is a sheet below the stage rather than a column
+    /// beside it.
+    let isSheet: Bool
     @Binding var settings: DemoAnimationSettings
-    @Binding var detent: PresentationDetent
     @Binding var isShowingDiagnostics: Bool
-    /// The screen's own sheet covers the one the toolbar button would present,
-    /// so the explanation is presented from here instead.
-    @Binding var isShowingInfo: Bool
 
     /// Tall enough for the whole transport and the first section header under
     /// it, which is what says there is more to pull up.
@@ -350,18 +380,11 @@ private struct DemoAnimationConsole: View {
         VStack(spacing: 0) {
             transport
                 .padding(.horizontal, 20)
-                // The drag indicator sits in the first few points of the sheet;
+                // The drag indicator sits in the first few points of a sheet;
                 // the transport starts below it rather than under it.
-                .padding(.top, 22)
+                .padding(.top, isSheet ? 22 : 12)
                 .padding(.bottom, 16)
             list
-        }
-        .presentationDetents([Self.collapsed, .medium, .large], selection: $detent)
-        .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled()
-        .demoSheetBackgroundInteraction()
-        .sheet(isPresented: $isShowingInfo) {
-            DemoInfoSheet(info: AnimatedImagesDemo.info)
         }
     }
 
@@ -507,19 +530,6 @@ private struct DemoAnimationConsole: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isShowingDiagnostics ? "Hide diagnostics" : "Show diagnostics")
-    }
-}
-
-private extension View {
-    /// Keeps the stage behind the console interactive, so the animation can be
-    /// scrubbed and switched while the settings change.
-    @ViewBuilder
-    func demoSheetBackgroundInteraction() -> some View {
-        if #available(iOS 16.4, *) {
-            presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        } else {
-            self
-        }
     }
 }
 
