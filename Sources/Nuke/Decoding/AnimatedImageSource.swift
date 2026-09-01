@@ -100,7 +100,8 @@ public final class AnimatedImageSource: Sendable {
         }
         // An unrecognized container still animates: only the delays are
         // missing, and the default one is the browser behavior.
-        let format = AnimatedImageFormat(source: source)
+        let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any] ?? [:]
+        let format = AnimatedImageFormat(properties: properties)
         self.data = data
         self.type = AssetType(data)
         self.frameCount = frameCount
@@ -108,7 +109,7 @@ public final class AnimatedImageSource: Sendable {
             format?.delay(in: source, at: $0) ?? AnimatedImageSource.defaultDelay
         }
         self.duration = delays.reduce(0, +)
-        self.loopCount = format?.loopCount(in: source) ?? 0
+        self.loopCount = format?.loopCount(in: properties) ?? 0
         self.size = AnimatedImageSource.size(of: source)
     }
 
@@ -146,11 +147,11 @@ public final class AnimatedImageSource: Sendable {
     }
 }
 
-/// The container-specific metadata keys.
+/// The container dictionary an animated image publishes its metadata in.
 ///
 /// Image I/O files the frame delay and the loop count under a different
-/// dictionary for every format, with different keys inside, so there is no
-/// generic way to ask for them.
+/// dictionary for every format, so there is no generic way to ask for them.
+/// The keys inside are the same for every one.
 enum AnimatedImageFormat: CaseIterable {
     case gif, png, webp, heics, avis
 
@@ -161,9 +162,10 @@ enum AnimatedImageFormat: CaseIterable {
     /// `public.heics`): matching on `public.heic` left every frame of an
     /// animated HEIC with the default delay. A still image publishes no
     /// container dictionary, so this is `nil` for it.
-    init?(source: CGImageSource) {
-        guard let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any],
-              let format = AnimatedImageFormat.allCases.first(where: { properties[$0.dictionaryKey] != nil }) else {
+    ///
+    /// - parameter properties: The container properties of the image source.
+    init?(properties: [CFString: Any]) {
+        guard let format = AnimatedImageFormat.allCases.first(where: { properties[$0.dictionaryKey] != nil }) else {
             return nil
         }
         self = format
@@ -179,48 +181,18 @@ enum AnimatedImageFormat: CaseIterable {
         }
     }
 
-    var unclampedDelayKey: CFString {
-        switch self {
-        case .gif: kCGImagePropertyGIFUnclampedDelayTime
-        case .png: kCGImagePropertyAPNGUnclampedDelayTime
-        case .webp: kCGImagePropertyWebPUnclampedDelayTime
-        case .heics: kCGImagePropertyHEICSUnclampedDelayTime
-        case .avis: AnimatedImageFormat.unclampedDelayTime
-        }
-    }
-
-    var delayKey: CFString {
-        switch self {
-        case .gif: kCGImagePropertyGIFDelayTime
-        case .png: kCGImagePropertyAPNGDelayTime
-        case .webp: kCGImagePropertyWebPDelayTime
-        case .heics: kCGImagePropertyHEICSDelayTime
-        case .avis: AnimatedImageFormat.delayTime
-        }
-    }
-
-    var loopCountKey: CFString {
-        switch self {
-        case .gif: kCGImagePropertyGIFLoopCount
-        case .png: kCGImagePropertyAPNGLoopCount
-        case .webp: kCGImagePropertyWebPLoopCount
-        case .heics: kCGImagePropertyHEICSLoopCount
-        case .avis: AnimatedImageFormat.loopCount
-        }
-    }
-
-    /// The keys inside the `{AVIS}` dictionary.
+    /// The keys every container files its metadata under.
     ///
-    /// Image I/O publishes `kCGImagePropertyAVISDictionary` and no constants
-    /// for the keys inside it. These are the strings it files them under – the
-    /// same ones `{GIF}`, `{PNG}`, `{WebP}`, and `{HEICS}` use. Getting them
-    /// wrong is silent, not fatal: every frame falls back to
+    /// `kCGImageProperty{GIF,APNG,WebP,HEICS}DelayTime` are all the same
+    /// string, and Image I/O publishes `kCGImagePropertyAVISDictionary` with no
+    /// constants for the keys inside it at all. Getting them wrong is silent,
+    /// not fatal: every frame falls back to
     /// ``AnimatedImageSource/defaultDelay``.
     ///
     /// - note: Computed rather than stored: `CFString` isn't `Sendable`.
-    private static var delayTime: CFString { "DelayTime" as CFString }
-    private static var unclampedDelayTime: CFString { "UnclampedDelayTime" as CFString }
-    private static var loopCount: CFString { "LoopCount" as CFString }
+    private static var delayKey: CFString { "DelayTime" as CFString }
+    private static var unclampedDelayKey: CFString { "UnclampedDelayTime" as CFString }
+    private static var loopCountKey: CFString { "LoopCount" as CFString }
 
     /// Returns the display duration of the frame at the given index, corrected
     /// the way ``AnimatedImageSource/delays`` describes.
@@ -228,8 +200,8 @@ enum AnimatedImageFormat: CaseIterable {
         let properties = properties(in: source, at: index)
         // The unclamped value is the one the file asks for; the other one has
         // already been clamped by Image I/O.
-        let delay = (properties?[unclampedDelayKey] as? TimeInterval)
-            ?? (properties?[delayKey] as? TimeInterval)
+        let delay = (properties?[Self.unclampedDelayKey] as? TimeInterval)
+            ?? (properties?[Self.delayKey] as? TimeInterval)
             ?? 0
         guard delay >= AnimatedImageSource.minimumDelay else {
             return AnimatedImageSource.defaultDelay
@@ -238,12 +210,13 @@ enum AnimatedImageFormat: CaseIterable {
     }
 
     /// Returns the number of loops the image asks for, or `0` for "forever".
-    func loopCount(in source: CGImageSource) -> Int {
-        guard let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any],
-              let container = properties[dictionaryKey] as? [CFString: Any] else {
+    ///
+    /// - parameter properties: The container properties of the image source.
+    func loopCount(in properties: [CFString: Any]) -> Int {
+        guard let container = properties[dictionaryKey] as? [CFString: Any] else {
             return 0
         }
-        return container[loopCountKey] as? Int ?? 0
+        return container[Self.loopCountKey] as? Int ?? 0
     }
 
     private func properties(in source: CGImageSource, at index: Int) -> [CFString: Any]? {
