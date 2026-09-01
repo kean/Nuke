@@ -142,11 +142,40 @@ The frames outlive the players holding them: a cell that scrolls off screen and 
 
 The **Animated Images** screen in the demo app puts all of it on screen, with a map of the window, over a real animation.
 
+## Custom Frames
+
+Two hooks for the frames themselves, both of them on the decoder rather than the main actor.
+
+**Transform every frame.** ``AnimatedImagePlayer/Options/frameTransform`` runs as each frame is decoded – a tint, a rounded corner, a filter – and the animation goes on playing, which is what a processor can't do:
+
+```swift
+var options = AnimatedImagePlayer.Options()
+options.frameTransform = AnimatedImageFrameTransform(identifier: "grayscale") {
+    $0.copy(colorSpace: CGColorSpaceCreateDeviceGray())
+}
+imageView.playerOptions = options
+```
+
+The identifier is what the frames are shared by: players that ask for the same one draw from a single set of transformed frames, players that ask for different ones each get a set of their own. The transform runs once per decoded frame, which for an animation too large to hold in memory is once per frame per loop, so it is worth keeping to what a frame's worth of time affords.
+
+**Produce the frames yourself.** ``AnimatedImageFrameDecoding`` is where every frame comes from – ``AnimatedImageFrameDecoder``, which draws them with Image I/O, is the one that ships – and ``AnimatedImageFrameDecoderRegistry`` is where an implementation of your own goes:
+
+```swift
+AnimatedImageFrameDecoderRegistry.shared.register { context in
+    guard AssetType(context.source.data) == .webp else { return nil } // Pass
+    return WebPFrameDecoder(source: context.source, maxPixelSize: context.maxPixelSize)
+}
+```
+
+The decoder is picked once per animation and size, when the first player asks for its frames, so register at startup. Everything else is unchanged: the frames it produces are windowed, shared, and counted against the pool exactly as Image I/O's are, and it is asked for one frame at a time.
+
+The container is still parsed by Image I/O, though. ``Nuke/AnimatedImageSource`` is what says how many frames there are and how long each one is shown, and there is no animation to play at all for data Image I/O can't read – so a decoder of your own answers "what does frame *n* look like", not "what is in this file".
+
 ## What Isn't Animated
 
 Two cases where an animation deliberately becomes a still:
 
-- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data and the animation with it. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep both – one that processes the frames, say.
+- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data and the animation with it. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep both – one that processes the frames, say. To change the frames of an animation that goes on playing, reach for ``AnimatedImagePlayer/Options/frameTransform`` instead.
 - **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size, and playing the full-size animation would undo that. Neither the data nor the animation is attached.
 
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.
@@ -170,6 +199,15 @@ Every animation in the process is driven by a single display link, which runs wh
 
 - ``AnimatedImagePlayer``
 - ``Nuke/AnimatedImageSource``
+
+### Frames
+
+- ``AnimatedImageFrameTransform``
+- ``AnimatedImageFrameDecoding``
+- ``AnimatedImageFrame``
+- ``AnimatedImageFrameDecoder``
+- ``AnimatedImageFrameDecoderRegistry``
+- ``AnimatedImageFrameDecodingContext``
 
 ### Memory
 

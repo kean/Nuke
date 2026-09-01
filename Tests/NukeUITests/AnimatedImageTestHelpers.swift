@@ -68,7 +68,7 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
         self.decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: maxPixelSize)
     }
 
-    func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame? {
+    func decode(at index: Int) async -> AnimatedImageFrame? {
         decodeCounts[index, default: 0] += 1
         startedIndexes.append(index)
         recordPriority(Task.currentPriority, at: index)

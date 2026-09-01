@@ -89,3 +89,28 @@ private struct PlayerContentView: View {
         AnimatedImage(player: player)
     }
 }
+
+// MARK: - Custom Frames
+
+@MainActor
+private func transformFrames(_ imageView: AnimatedImageView) {
+    var options = AnimatedImagePlayer.Options()
+    options.frameTransform = AnimatedImageFrameTransform(identifier: "grayscale") {
+        $0.copy(colorSpace: CGColorSpaceCreateDeviceGray())
+    }
+    imageView.playerOptions = options
+}
+
+private func registerFrameDecoder() {
+    AnimatedImageFrameDecoderRegistry.shared.register { context in
+        guard AssetType(context.source.data) == .webp else { return nil } // Pass
+        return WebPFrameDecoder(source: context.source, maxPixelSize: context.maxPixelSize)
+    }
+}
+
+/// Stands in for the decoder the article's snippet registers.
+private actor WebPFrameDecoder: AnimatedImageFrameDecoding {
+    init(source: AnimatedImageSource, maxPixelSize: CGFloat?) {}
+
+    func decode(at index: Int) -> AnimatedImageFrame? { nil }
+}

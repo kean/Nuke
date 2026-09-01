@@ -19,8 +19,14 @@ struct AnimatedImageFrameKey: Hashable {
     /// animation is stored at.
     let maxPixelSize: CGFloat?
 
-    init(source: AnimatedImageSource, maxPixelSize: CGFloat?) {
+    /// The identifier of the transform applied to every frame, or `nil` when
+    /// the frames are the decoded ones: two players that draw the frames
+    /// differently must not share them.
+    let transform: String?
+
+    init(source: AnimatedImageSource, maxPixelSize: CGFloat?, transform: AnimatedImageFrameTransform? = nil) {
         self.source = ObjectIdentifier(source)
+        self.transform = transform?.identifier
         // A limit the animation already fits in downsamples nothing, so it is
         // spelled the same way as no limit: both views want the same frames.
         if let maxPixelSize, maxPixelSize > 0, maxPixelSize < max(source.size.width, source.size.height) {
@@ -114,18 +120,25 @@ final class AnimatedImageFrameStore {
     /// the pool that made it.
     private weak var pool: AnimatedImageFramePool?
 
+    /// Applied to every frame the decoder produces. The one the first member
+    /// asked for: the key holds its identifier, so every member of a store
+    /// wants the same frames.
+    private let transform: AnimatedImageFrameTransform?
+
     init(
         key: AnimatedImageFrameKey,
         source: AnimatedImageSource,
         pool: AnimatedImageFramePool,
+        transform: AnimatedImageFrameTransform? = nil,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
         self.key = key
         self.source = source
         self.pool = pool
+        self.transform = transform
         self.frameCount = source.frameCount
         self.bytesPerFrame = AnimatedImageFrameStore.bytesPerFrame(for: source, maxPixelSize: key.maxPixelSize)
-        self.decoder = decoder
+        self.decoder = decoder.map { AnimatedImageFrameStore.transforming($0, with: transform) }
     }
 
     /// Returns the memory one frame occupies when decoded no larger than the
@@ -374,7 +387,7 @@ final class AnimatedImageFrameStore {
         Task.detached(priority: priority) { await currentDecode.value }
     }
 
-    private func didDecode(_ frame: AnimatedImageFrameDecoder.Frame?, at index: Int) {
+    private func didDecode(_ frame: AnimatedImageFrame?, at index: Int) {
         let requesters = decodingRequesters
         decodingRequesters = []
         guard let frame else {
@@ -388,7 +401,7 @@ final class AnimatedImageFrameStore {
         for player in liveMembers where requesters.contains(ObjectIdentifier(player)) {
             // Offered even if the window moved past the frame: the player is
             // the one that knows whether it has anything better to show.
-            player.storeDidDecodeFrame(at: index, duration: frame.duration)
+            player.storeDidDecodeFrame(at: index, duration: frame.decodeDuration)
         }
         evict()
         // The frames of an animation nobody plays aren't in the division of
@@ -420,9 +433,21 @@ final class AnimatedImageFrameStore {
     private func makeDecoderIfNeeded() -> (any AnimatedImageFrameDecoding)? {
         if let decoder { return decoder }
         guard let source else { return nil }
-        let decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: key.maxPixelSize)
+        let registry = pool?.decoderRegistry ?? .shared
+        let context = AnimatedImageFrameDecodingContext(source: source, maxPixelSize: key.maxPixelSize)
+        let decoder = AnimatedImageFrameStore.transforming(registry.decoder(for: context), with: transform)
         self.decoder = decoder
         return decoder
+    }
+
+    /// Wraps a decoder in the transform the members asked for, if they asked
+    /// for one.
+    private static func transforming(
+        _ decoder: any AnimatedImageFrameDecoding,
+        with transform: AnimatedImageFrameTransform?
+    ) -> any AnimatedImageFrameDecoding {
+        guard let transform else { return decoder }
+        return AnimatedImageFrameTransformer(decoder: decoder, transform: transform)
     }
 
     private var liveMembers: [AnimatedImagePlayer] {

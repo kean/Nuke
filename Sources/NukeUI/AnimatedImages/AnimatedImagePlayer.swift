@@ -108,7 +108,12 @@ public final class AnimatedImagePlayer: ObservableObject {
         self.options = options
         self.clock = clock
         self.pool = pool
-        self.store = pool.store(for: source, maxPixelSize: options.maxPixelSize, decoder: decoder)
+        self.store = pool.store(
+            for: source,
+            maxPixelSize: options.maxPixelSize,
+            transform: options.frameTransform,
+            decoder: decoder
+        )
         self.affordableFrameCount = store.bytesPerFrame > 0
             ? options.maxBufferSize / store.bytesPerFrame
             : source.frameCount
@@ -479,6 +484,15 @@ extension AnimatedImagePlayer {
 
         /// The scale of the images the player produces. `1` by default.
         public var scale: CGFloat = 1
+
+        /// A transformation applied to every frame as it is decoded – a tint,
+        /// a rounded corner, a filter. `nil` – the frames as they are decoded
+        /// – by default.
+        ///
+        /// It runs on the decoder rather than the main actor, and the frames
+        /// it produces are the ones every player asking for the same
+        /// ``AnimatedImageFrameTransform/identifier`` shares.
+        public var frameTransform: AnimatedImageFrameTransform?
 
         /// Whether the player starts on the frame the other players of the
         /// same animation are showing, rather than on the first one. `true` by

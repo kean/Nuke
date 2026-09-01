@@ -147,20 +147,25 @@ public final class AnimatedImageFramePool {
     /// them from outliving it.
     private var stores: [AnimatedImageFrameKey: AnimatedImageFrameStore] = [:]
 
+    /// The registry the stores pick their decoders from. The shared one unless
+    /// a test replaces it.
+    var decoderRegistry: AnimatedImageFrameDecoderRegistry = .shared
+
     /// Returns the frames of the given animation at the given size, creating
     /// them if this is the first player to ask.
     func store(
         for source: AnimatedImageSource,
         maxPixelSize: CGFloat?,
+        transform: AnimatedImageFrameTransform? = nil,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) -> AnimatedImageFrameStore {
-        let key = AnimatedImageFrameKey(source: source, maxPixelSize: maxPixelSize)
+        let key = AnimatedImageFrameKey(source: source, maxPixelSize: maxPixelSize, transform: transform)
         // An animation that has been released can leave its address to the
         // next one, so identity alone isn't enough.
         if let store = stores[key], store.source === source {
             return store
         }
-        let store = AnimatedImageFrameStore(key: key, source: source, pool: self, decoder: decoder)
+        let store = AnimatedImageFrameStore(key: key, source: source, pool: self, transform: transform, decoder: decoder)
         stores[key] = store
         return store
     }
