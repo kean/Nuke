@@ -88,7 +88,7 @@ ImageDecoderRegistry.shared.unregister(token)
 
 ## Rendering Engines
 
-The decoders in Nuke work at download time - regular decoders produce images as data arrives, while progressive decoders can produce multiple previews before delivering the final images. But there are scenarios when decoding at download time doesn't work: for example, for animated images.
+The decoders work at download time - regular decoders produce images as data arrives, while progressive decoders can produce multiple previews before delivering the final images. But there are scenarios when decoding at download time doesn't work: for example, for animated images.
 
 For animated images, it is not feasible to decode all of the frames and put them in memory as bitmaps at download time – it will consume too much memory. Decoding has to be postponed to rendering time, where a rendering engine decodes the frames on demand and keeps only a few of them around.
 

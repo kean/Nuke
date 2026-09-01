@@ -22,7 +22,7 @@ This uses ``ImagePipeline/shared`` and handles caching automatically. The previo
 
 ## Cell Reuse
 
-In collection and table views, cells are reused. Nuke handles cancellation automatically: starting a new `loadImage` call on a view cancels its previous request.
+In collection and table views, cells are reused. Cancellation is handled automatically: starting a new `loadImage` call on a view cancels its previous request.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {

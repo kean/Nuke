@@ -65,7 +65,7 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
 
     /// AVIF (AV1 Image File Format).
     ///
-    /// Image I/O decodes AVIF on every platform Nuke supports. Encoding arrived
+    /// Image I/O decodes AVIF on every supported platform. Encoding arrived
     /// later – check ``ImageEncoders/ImageIO/isSupported(type:)`` before using it.
     public static let avif: AssetType = "public.avif"
 }
@@ -165,7 +165,7 @@ extension AssetType {
     }
 
     /// Returns the type of an ISO base media file, or `nil` if none of the
-    /// brands it declares belongs to a format Nuke supports, as for bare HEIF
+    /// brands it declares belongs to a known format, as for bare HEIF
     /// (`mif1`) or MPEG-4 audio (`M4A `).
     ///
     /// The major brand is only the first answer. A HEIC image sequence – what

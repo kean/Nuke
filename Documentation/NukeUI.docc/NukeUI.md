@@ -13,7 +13,7 @@ The module also provides <doc:ImageViewExtensions> – a set of global functions
 
 Both views play animated images – GIF, APNG, animated WebP, and animated HEIC – with no setup. See <doc:AnimatedImages>.
 
-``LazyImage`` is designed similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage), but it uses [Nuke](https://github.com/kean/Nuke) for loading images. You can take advantage of all of its features, such as caching, prefetching, task coalescing, smart background decompression, request priorities, and more.
+``LazyImage`` is designed similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage), but it loads images with `ImagePipeline`. You can take advantage of all of its features, such as caching, prefetching, task coalescing, smart background decompression, request priorities, and more.
 
 ![nukeui demo](nukeui-preview)
 

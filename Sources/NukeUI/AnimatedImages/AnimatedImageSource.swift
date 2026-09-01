@@ -32,7 +32,7 @@ public final class AnimatedImageSource: Sendable {
     /// The encoded image data.
     public let data: Data
 
-    /// The format of the image, if Nuke recognizes it.
+    /// The format of the image, if the data matches a known one.
     public let type: AssetType?
 
     /// The number of frames. Always greater than one.

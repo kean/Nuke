@@ -4,7 +4,7 @@ Learn about extensions for image views.
 
 ## Overview
 
-NukeUI provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using ``LazyImageView`` or Nuke's `ImagePipeline` directly.
+NukeUI provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using ``LazyImageView`` or `ImagePipeline` directly.
 
 > Tip: These functions were part of the separate `NukeExtensions` module before Nuke 14.
 
@@ -107,7 +107,7 @@ For a complete list of options, see ``ImageLoadingOptions``. Some options, such 
 
 ## Progressive Decoding
 
-Nuke supports progressive JPEG out of the box.
+Progressive JPEG is supported out of the box.
 
 ## Custom Views
 
@@ -123,7 +123,7 @@ extension UIImageView: Nuke_ImageDisplaying {
 }
 ```
 
-Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
+The module provides built-in implementations for `UIImageView` and `NSImageView`.
 
 ## Customizing Requests
 

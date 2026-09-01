@@ -1,12 +1,12 @@
 # Image Formats
 
-Learn about image formats supported in Nuke and how to extend them.
+Learn about the supported image formats and how to extend them.
 
 ## Overview
 
-Nuke has built-in support for basic image formats like `jpeg`, `png`, and `heif`. It also has the infrastructure for supporting a variety of custom image formats.
+The pipeline has built-in support for basic image formats like `jpeg`, `png`, and `heif`. It also has the infrastructure for supporting a variety of custom image formats.
 
-Nuke can drive progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
+It can drive progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
 ## Topics
 

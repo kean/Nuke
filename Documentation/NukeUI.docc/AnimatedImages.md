@@ -12,7 +12,7 @@ Nothing needs to be enabled. ``LazyImage`` and ``LazyImageView`` play animations
 LazyImage(url: URL(string: "https://example.com/cat.gif"))
 ```
 
-The formats are whatever Image I/O can read and Nuke can recognize as animated: GIF, APNG, animated WebP, and animated HEIC and AVIF sequences. There is no per-format code – ``AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest of the pipeline is the same for all of them.
+The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and animated HEIC and AVIF sequences. There is no per-format code – ``AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest of the pipeline is the same for all of them.
 
 ## Displaying Animations
 

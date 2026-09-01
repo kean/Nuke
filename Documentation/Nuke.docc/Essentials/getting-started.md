@@ -1,6 +1,6 @@
 # Getting Started
 
-Learn about main Nuke features and APIs.
+Learn about the main features and APIs.
 
 ## Image Pipeline
 
@@ -44,11 +44,11 @@ let image = try await pipeline.image(for: request)
 
 ## Caching
 
-Nuke has two cache layers: memory cache and disk cache.
+There are two cache layers: memory cache and disk cache.
 
 ``ImageCache`` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most cached images when the app goes to the background or receives a memory pressure warning.
 
-For caching data persistently, by default, Nuke uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
+For caching data persistently, by default, the pipeline uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
 
 You can also replace `URLCache` with a custom ``DataCache`` that ignores HTTP `cache-control` headers using ``ImagePipeline/Configuration-swift.struct/withDataCache(name:sizeLimit:)``.
 
@@ -62,7 +62,7 @@ ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 
 ## Performance
 
-One of the key Nuke features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
+One of the key features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
 
 To optimize performance, you need to be able to monitor it. And that's where [Pulse](https://github.com/kean/Pulse) network logging framework comes in handy. It is optimized for working with images and is easy to integrate:
 

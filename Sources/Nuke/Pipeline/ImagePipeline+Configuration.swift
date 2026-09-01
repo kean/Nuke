@@ -103,7 +103,7 @@ extension ImagePipeline {
         /// ]))
         /// ```
         ///
-        /// Nuke loads the image data once, resizes once, and applies the blur
+        /// The pipeline loads the image data once, resizes once, and applies the blur
         /// once — no duplicated work at any stage.
         public var isTaskCoalescingEnabled = true
 

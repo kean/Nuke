@@ -15,7 +15,7 @@ import AppKit.NSImage
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 /// Displays images. Add the conformance to this protocol to your views to make
-/// them compatible with Nuke image loading extensions.
+/// them compatible with the image loading extensions.
 ///
 /// The protocol is defined as `@objc` to make it possible to override its
 /// methods in extensions (e.g. you can override `nuke_display(image:data:)` in
@@ -110,8 +110,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// - parameters:
 ///   - url: The image URL. If `nil`, it's handled as a failure scenario.
 ///   - options: `ImageLoadingOptions.shared` by default.
-///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
-///   the associated request automatically gets canceled.
+///   - view: The view is held weakly. If it is deallocated, the associated
+///   request automatically gets canceled.
 ///   - progress: A closure to be called periodically on the main thread
 ///   when the progress is updated.
 ///   - completion: A closure to be called on the main thread when the
@@ -164,8 +164,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// - parameters:
 ///   - request: The image request. If `nil`, it's handled as a failure scenario.
 ///   - options: `ImageLoadingOptions.shared` by default.
-///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
-///   the associated request automatically gets canceled.
+///   - view: The view is held weakly. If it is deallocated, the associated
+///   request automatically gets canceled.
 ///   - progress: A closure to be called periodically on the main thread
 ///   when the progress is updated.
 ///   - completion: A closure to be called on the main thread when the

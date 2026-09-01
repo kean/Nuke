@@ -1,14 +1,14 @@
 # Supported Formats
 
-Learn which image formats Nuke decodes, encodes, and displays out of the box.
+Learn which image formats the framework decodes, encodes, and displays out of the box.
 
 ## Overview
 
-Nuke doesn't implement image codecs. ``ImageDecoders/Default`` – the decoder the pipeline uses unless you register your own – hands the data to `UIImage(data:)`/`NSImage(data:)`, which goes through Image I/O. Anything the current OS can read, Nuke can read, and the list is long: JPEG, PNG, GIF, HEIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO, CUR, camera RAW, and more.
+The framework doesn't implement image codecs. ``ImageDecoders/Default`` – the decoder the pipeline uses unless you register your own – hands the data to `UIImage(data:)`/`NSImage(data:)`, which goes through Image I/O. Anything the current OS can read, the pipeline can read, and the list is long: JPEG, PNG, GIF, HEIF, WebP, AVIF, JPEG XL, TIFF, BMP, ICO, CUR, camera RAW, and more.
 
 Recognizing a format is a separate concern from decoding it. ``AssetType`` sniffs the leading bytes of the data to name the format, and it deliberately knows about fewer formats than Image I/O decodes. When the sniffer doesn't recognize the data, ``ImageContainer/type`` is `nil` and the image still decodes normally – nothing in the pipeline gates on the type.
 
-Nuke can also drive progressive decoding, animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
+The pipeline can also drive progressive decoding, animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
 ## Support Matrix
 
@@ -33,7 +33,7 @@ Nuke can also drive progressive decoding, animated image rendering, drawing vect
 Reading the columns:
 
 - **``AssetType``** – the type `AssetType(data)` returns for this format, or `–` if the sniffer doesn't recognize it. A `–` doesn't prevent decoding, it only means ``ImageContainer/type`` is `nil`.
-- **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every OS Nuke supports (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
+- **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every supported OS (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
 - **Encode** – whether the format can be used with ``ImageEncoders/ImageIO``. ``ImageEncoders/Default`` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder.
 - **Previews** – behavior once ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``, and whether Image I/O can produce anything from a partial file is format-dependent.
 - **Animation** – whether the pipeline recognizes the format as animated and attaches ``ImageContainer/data`` so that it can be played. A `–` means the format has no animated flavor. See <doc:supported-image-formats#Animated-Images>.
@@ -100,13 +100,13 @@ To render HEIF images, you can use `UIImageView`/`NSImageView`/`WKInterfaceImage
 
 ## WebP
 
-[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, tvOS 14, and watchOS 7, so it's available on every OS version Nuke supports.
+[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, tvOS 14, and watchOS 7, so it's available on every supported OS version.
 
 Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` returns `false` for ``AssetType/webp`` on every current platform. Animated WebP decodes to its first frame and carries its data, like every other animation – see <doc:supported-image-formats#Animated-Images>.
 
 ## AVIF
 
-[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every OS Nuke supports. Files with the `avif` and `avis` major brands sniff as ``AssetType/avif``.
+[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every supported OS. Files with the `avif` and `avis` major brands sniff as ``AssetType/avif``.
 
 AVIF encoding arrived later than decoding and is only available on recent OS versions, so check before using it:
 
@@ -122,7 +122,7 @@ if ImageEncoders.ImageIO.isSupported(type: .avif) {
 
 [JPEG XL](https://en.wikipedia.org/wiki/JPEG_XL) decodes natively on macOS 14, iOS 17, tvOS 17, and watchOS 10. Both the container signature and the naked codestream sniff as ``AssetType/jxl``. There is no encoder.
 
-Because Nuke supports OS versions older than these, guard any JPEG XL-specific code:
+Because OS versions older than these are supported, guard any JPEG XL-specific code:
 
 ```swift
 if #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *) {
@@ -138,7 +138,7 @@ Apple's documentation lists `public.jpeg-2000` as a macOS-only identifier, but c
 
 ## Camera RAW
 
-Image I/O decodes RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others. Nuke passes them straight through, so they load without any extra setup.
+Image I/O decodes RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others. The decoder passes them straight through, so they load without any extra setup.
 
 ``AssetType`` has no RAW constants – there are dozens of vendor-specific identifiers. Most RAW files are TIFF containers under the hood and sniff as ``AssetType/tiff``; the rest, such as Canon's ISO-base-media CR3, sniff as `nil`.
 
