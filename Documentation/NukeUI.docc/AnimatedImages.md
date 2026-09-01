@@ -99,7 +99,7 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the two after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
 
-Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB, and an animation alone may take all of it:
+Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB – a quarter of the one budget decoded images get, with ``Nuke/ImageCache`` taking the other three quarters, so what an app's images may cost in memory is one figure whether its animations play or not. An animation alone may take all of the pool's share:
 
 ```swift
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576

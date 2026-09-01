@@ -64,9 +64,13 @@ public final class AnimatedImageFramePool {
 
     /// Returns a limit computed from the amount of physical memory on the
     /// device: 5% of it, capped at 128 MB.
+    ///
+    /// It is a quarter of the one budget decoded images get, and
+    /// ``Nuke/ImageCache/defaultCostLimit`` is the other three quarters: the
+    /// two caches split one figure, so playing animations doesn't raise what
+    /// an app's images may cost in memory.
     public static var defaultCostLimit: Int {
-        let calculated = Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.05)
-        return min(calculated, 134_217_728) // 128 MB
+        min(ImageCache.defaultMemoryBudget / 4, 134_217_728) // 128 MB
     }
 
     /// Creates a pool with the given limit.

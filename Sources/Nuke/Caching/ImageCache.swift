@@ -66,13 +66,27 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns a cost limit computed based on the amount of the physical memory
-    /// available on the device. The limit is set to 15% of the device's physical
-    /// memory, capped at 768 MB. The cache uses a custom LRU eviction policy that
-    /// enforces this limit precisely, unlike `NSCache` which treats cost limits
-    /// as hints.
+    /// available on the device: three quarters of the one budget decoded images
+    /// get – 15% of the physical memory – capped at 768 MB. The cache uses a
+    /// custom LRU eviction policy that enforces this limit precisely, unlike
+    /// `NSCache` which treats cost limits as hints.
     public static var defaultCostLimit: Int {
-        let calculated = Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.15)
-        return min(calculated, 805_306_368) // 768 MB
+        min(defaultMemoryBudget / 4 * 3, 805_306_368) // 768 MB
+    }
+
+    /// The memory decoded images may occupy overall, in bytes: 20% of the
+    /// device's physical memory.
+    ///
+    /// One figure, split two ways: ``defaultCostLimit`` takes three quarters
+    /// of it for the images this cache holds, and `AnimatedImageFramePool` in
+    /// NukeUI takes the rest for the decoded frames of the animations being
+    /// played – so playing animations doesn't raise what an app's images may
+    /// cost in memory, and an app tuning that cost has one figure to move.
+    ///
+    /// `public` rather than internal because the two limits it explains are:
+    /// the split only reads as one budget where both sides of it can be seen.
+    public static var defaultMemoryBudget: Int {
+        Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.20)
     }
 
     public subscript(key: ImageCacheKey) -> ImageContainer? {
