@@ -413,8 +413,8 @@ struct AnimationLoadDemo: View {
                 tint: wall.decodeLoad > 1 ? .orange : nil
             )
             DemoDiagnosticsRow(
-                "missed",
-                "\(demoPad("\(wall.skippedFrameCount)", to: 4)) behind  ·  \(demoPad("\(wall.bufferMissCount)", to: 3)) not ready  ·  \(figure(wall.missRate, to: 4))/s",
+                "late",
+                "\(demoPad("\(wall.bufferMissCount)", to: 4)) frames not ready in time  ·  \(figure(wall.missRate, to: 4))/s",
                 tint: wall.missRate > 1 ? .orange : nil
             )
             DemoDiagnosticsRow("buffers", "\(wall.fullyBufferedCount) of \(animations.count) hold the whole animation")
@@ -608,7 +608,6 @@ struct AnimationLoadDemo: View {
 /// is keeping up is the rate they are climbing at.
 private struct DemoWallLoad {
     var fullyBufferedCount = 0
-    var skippedFrameCount = 0
     var bufferMissCount = 0
     /// The frames a second every animation on screen is asking for.
     var nominalFrameRate: Double = 0
@@ -634,7 +633,6 @@ private struct DemoWallLoad {
         at time: TimeInterval
     ) {
         fullyBufferedCount = diagnostics.count { $0.isFullyBuffered }
-        skippedFrameCount = diagnostics.reduce(0) { $0 + $1.skippedFrameCount }
         bufferMissCount = diagnostics.reduce(0) { $0 + $1.bufferMissCount }
         nominalFrameRate = animations.reduce(0) { $0 + $1.player.source.nominalFrameRate }
 
@@ -656,7 +654,7 @@ private struct DemoWallLoad {
         decoded.update(decodedFrames, at: time)
         decodedBytes.update(decodedByteCount, at: time)
         decodeSeconds.update(decodeDuration, at: time)
-        missed.update(Double(skippedFrameCount + bufferMissCount), at: time)
+        missed.update(Double(bufferMissCount), at: time)
 
         frameRate = displayed.value
         decodeRate = decoded.value

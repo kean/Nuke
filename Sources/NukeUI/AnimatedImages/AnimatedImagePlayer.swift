@@ -95,6 +95,11 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
+
+    /// `true` while the frame after the current one is due and still on its
+    /// way from the decoder.
+    private var isWaitingForNextFrame = false
+
     private var counters = Counters()
 
     /// Creates a player for the given image.
@@ -186,9 +191,9 @@ public final class AnimatedImagePlayer: ObservableObject {
         isFinished = false
         currentFrameIndex = index
         elapsed = 0
-        // The frame being decoded is for somewhere the playhead has just left
-        // and would arrive as a late frame the player moves back to, undoing
-        // the seek.
+        isWaitingForNextFrame = false
+        // The frame being decoded is for somewhere the playhead has just left:
+        // nobody is waiting for it any more.
         store.didUpdateWindow(of: self, isSeeking: true)
         display(frameAt: index)
     }
@@ -260,11 +265,12 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// the animations that do fit.
     static let readAheadFrameCount = 2
 
-    /// The largest gap between two clock ticks the player acts on, in seconds.
+    /// The largest gap between two clock ticks the player counts as playback,
+    /// in seconds.
     ///
-    /// Time beyond this is dropped rather than replayed, which keeps an
-    /// animation from spinning through hundreds of frames when the app comes
-    /// back from the background.
+    /// A clock that was starved – the app was in the background – reports the
+    /// whole gap in one tick. The player moves on by one frame either way;
+    /// what the cap keeps honest is the playback time it reports.
     static let maxTimeStep: TimeInterval = 1
 
     /// Called by the store with every frame the player was waiting for.
@@ -295,7 +301,6 @@ public final class AnimatedImagePlayer: ObservableObject {
             ? counters.totalDecodeDuration / Double(counters.decodedFrameCount) : 0
         diagnostics.maxDecodeDuration = counters.maxDecodeDuration
         diagnostics.displayedFrameCount = counters.displayedFrameCount
-        diagnostics.skippedFrameCount = counters.skippedFrameCount
         diagnostics.bufferMissCount = counters.bufferMissCount
         diagnostics.playbackTime = counters.playbackTime
         return diagnostics
@@ -324,58 +329,86 @@ public final class AnimatedImagePlayer: ObservableObject {
     private func tick(_ delta: TimeInterval) {
         guard isPlaying, !isFinished else { return }
 
-        // Playback usually starts before the first frame is decoded. Counting
-        // that time would spend it on frames nobody sees; the poster frame is
-        // on screen in the meantime, and a frame the decoder refuses stops
-        // being pending, so the wait always ends.
-        guard displayedFrameIndex != nil || !store.isPending(currentFrameIndex) else {
+        // Time counts only against a frame that is on screen. Playback usually
+        // starts before the first frame is decoded, and a seek lands on a
+        // frame that mostly isn't yet; the frame on its way gets its whole
+        // delay once it is shown. A frame the decoder refuses stops being
+        // pending, so the wait always ends.
+        guard displayedFrameIndex == currentFrameIndex || !store.isPending(currentFrameIndex) else {
             return
         }
 
-        // A starved clock (the app was in the background, the main thread was
-        // blocked) reports the whole gap. Replaying it would make the
-        // animation lurch, so the step is capped.
         let step = min(delta, Self.maxTimeStep) * options.playbackRate
         guard step > 0 else { return }
         counters.playbackTime += step
         elapsed += step
 
-        var advanced = 0
+        var advanced = false
         while elapsed >= source.delays[currentFrameIndex] {
-            elapsed -= source.delays[currentFrameIndex]
-            guard advanceFrame() else { break }
-            advanced += 1
-            if advanced >= source.frameCount {
-                // More than a full loop behind: drop the debt and carry on.
-                elapsed = 0
+            guard let next = nextFrameIndex else {
+                finish()
                 break
             }
+            guard store.frame(at: next) != nil || !store.isPending(next) else {
+                // The frame is late. The one on screen stays until it arrives –
+                // no frame is ever skipped, the way a browser plays – and the
+                // animation stretches by however long that takes.
+                if !isWaitingForNextFrame {
+                    isWaitingForNextFrame = true
+                    counters.bufferMissCount += 1
+                    // Asked for rather than assumed: a player waiting on a
+                    // frame nobody is producing would wait forever.
+                    store.didUpdateWindow(of: self, isSeeking: false)
+                }
+                break
+            }
+            let remainder = elapsed - source.delays[currentFrameIndex]
+            advance(to: next)
+            // What is left of a tick that came on time carries over, so that a
+            // 70 ms frame on a 50 ms clock averages 70 ms and not 100. What is
+            // left of a tick that came late doesn't: the frame just shown gets
+            // its whole delay from now rather than being cut short to catch
+            // up, so a stall stretches the animation instead of jumping it.
+            // The carry-over can only reach a frame shorter than a tick, which
+            // the display couldn't have shown for longer anyway.
+            elapsed = min(remainder, clock.period * options.playbackRate)
+            advanced = true
         }
-        guard advanced > 0 else { return }
+        guard advanced else { return }
 
-        counters.skippedFrameCount += advanced - 1
         store.didUpdateWindow(of: self, isSeeking: false)
         display(frameAt: currentFrameIndex)
     }
 
-    /// Moves to the next frame. Returns `false` if the animation has finished.
-    private func advanceFrame() -> Bool {
+    /// The frame after the current one, or `nil` when the current frame is
+    /// the last one of the last loop.
+    private var nextFrameIndex: Int? {
         let next = currentFrameIndex + 1
-        guard next >= source.frameCount else {
-            currentFrameIndex = next
-            return true
+        guard next >= source.frameCount else { return next }
+        if let limit = repeatLimit, completedLoopCount + 1 >= limit {
+            return nil
         }
+        return 0
+    }
+
+    /// Moves the playhead to the given frame, counting a loop when it wraps.
+    private func advance(to index: Int) {
+        if index == 0 {
+            completedLoopCount += 1
+            onLoop?(completedLoopCount)
+        }
+        currentFrameIndex = index
+        isWaitingForNextFrame = false
+    }
+
+    /// Stops on the last frame of the last loop.
+    private func finish() {
         completedLoopCount += 1
         onLoop?(completedLoopCount)
-        if let limit = repeatLimit, completedLoopCount >= limit {
-            isFinished = true
-            isPlaying = false
-            clock.isPaused = true
-            onFinish?()
-            return false
-        }
-        currentFrameIndex = 0
-        return true
+        isFinished = true
+        isPlaying = false
+        clock.isPaused = true
+        onFinish?()
     }
 
     /// The number of loops to play, or `nil` for "forever".
@@ -392,9 +425,9 @@ public final class AnimatedImagePlayer: ObservableObject {
             return
         }
         guard let cgImage = store.frame(at: index) else {
-            // The decoder is behind. The previous frame stays on screen and
-            // this one is displayed by `frameDidDecode(at:)` if it arrives
-            // while it is still the current one.
+            // The frame a seek landed on before it is decoded, or one the
+            // decoder refused. The previous frame stays on screen, and this
+            // one is displayed by `frameDidDecode(at:)` when it arrives.
             counters.bufferMissCount += 1
             return
         }
@@ -408,22 +441,19 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     private func frameDidDecode(at index: Int) {
         guard displayedFrameIndex != index else { return }
-        guard index != currentFrameIndex else {
+        if index == currentFrameIndex {
+            // The frame the playhead is on: the first one, or the one a seek
+            // landed on. Its delay starts when it is shown.
             return display(frameAt: index)
         }
-        // The frame decoded after the playhead had gone past it. If the frame
-        // the playhead is on isn't decoded either, dropping this one would
-        // leave nothing to show: the next decode would be just as late, and
-        // the animation would stop. Showing the late frame and moving the
-        // playhead back to it degrades playback to the speed of the decoder.
-        //
-        // Only while the animation is running: a paused or finished player is
-        // on its frame deliberately.
-        guard isPlaying, store.frame(at: currentFrameIndex) == nil else { return }
-        currentFrameIndex = index
+        // The frame the playhead has been waiting on is shown now, for its
+        // whole delay from now. Any other frame – read-ahead, or one a seek
+        // left behind – is for the clock to reach.
+        guard isPlaying, isWaitingForNextFrame, index == nextFrameIndex else { return }
+        advance(to: index)
         elapsed = 0
-        display(frameAt: index)
         store.didUpdateWindow(of: self, isSeeking: false)
+        display(frameAt: index)
     }
 
     private func makeImage(_ cgImage: CGImage) -> PlatformImage {
@@ -445,10 +475,10 @@ public final class AnimatedImagePlayer: ObservableObject {
     ///
     /// Twice the fastest frame in the animation guarantees a tick to show
     /// every frame on: at exactly one tick per frame the two rates beat against
-    /// each other and frames are passed over. Above 60 ticks a second the hint
-    /// is dropped: a clock asked for more than the display gives runs at the
-    /// display's rate anyway, and the timer clock schedules itself at exactly
-    /// this rate.
+    /// each other and every other frame is held a tick too long. Above 60
+    /// ticks a second the hint is dropped: a clock asked for more than the
+    /// display gives runs at the display's rate anyway, and the timer clock
+    /// schedules itself at exactly this rate.
     private static func preferredFrameRate(for source: AnimatedImageSource, options: Options) -> Double {
         guard let shortest = source.delays.min(), shortest > 0 else {
             return 0
@@ -460,7 +490,6 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// What the player counts as it plays, for ``diagnostics``.
     private struct Counters {
         var displayedFrameCount = 0
-        var skippedFrameCount = 0
         var bufferMissCount = 0
         var playbackTime: TimeInterval = 0
         var decodedFrameCount = 0
@@ -584,11 +613,11 @@ extension AnimatedImagePlayer {
 
         /// The number of frames actually shown.
         public var displayedFrameCount = 0
-        /// The number of frames passed over because the player was behind the
-        /// wall clock. Steadily rising is the sign of a decoder that cannot
-        /// keep up with the animation.
-        public var skippedFrameCount = 0
-        /// The number of times a frame was due and had not been decoded yet.
+        /// The number of frames that were due before they finished decoding.
+        ///
+        /// No frame is skipped: each of these held the frame before it on
+        /// screen past its delay. Steadily rising is the sign of a decoder
+        /// that cannot keep up with the animation.
         public var bufferMissCount = 0
         /// The time the player has spent playing, in seconds.
         public var playbackTime: TimeInterval = 0
@@ -596,7 +625,9 @@ extension AnimatedImagePlayer {
         /// The number of frames shown per second of playback.
         ///
         /// Compare it with ``AnimatedImageSource/nominalFrameRate``: a lower
-        /// value means frames are being skipped.
+        /// value means the animation is being stretched, by frames arriving
+        /// late from the decoder or ticks arriving late from a busy main
+        /// thread.
         public var effectiveFrameRate: Double {
             playbackTime > 0 ? Double(displayedFrameCount) / playbackTime : 0
         }

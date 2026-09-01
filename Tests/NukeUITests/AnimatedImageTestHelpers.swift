@@ -17,6 +17,10 @@ final class ManualClock: AnimatedImageClock {
     var isPaused: Bool = true
     var preferredFrameRate: Double = 0
 
+    /// What a tick that arrives on time is worth: a 60 Hz display unless a
+    /// test says otherwise.
+    var period: TimeInterval = 1.0 / 60
+
     /// Advances the clock. Like a real one, it delivers nothing while paused.
     func tick(_ delta: TimeInterval) {
         guard !isPaused else { return }

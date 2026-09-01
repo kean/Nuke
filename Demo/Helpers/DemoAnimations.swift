@@ -268,9 +268,9 @@ struct DemoDiagnosticsPanel: View {
             DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate))")
             DemoDiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(demoSeconds(diagnostics.playbackTime))")
             DemoDiagnosticsRow(
-                "missed",
-                "\(diagnostics.skippedFrameCount) behind  ·  \(diagnostics.bufferMissCount) not ready",
-                tint: diagnostics.skippedFrameCount > 0 || diagnostics.bufferMissCount > 0 ? .orange : nil
+                "late",
+                "\(diagnostics.bufferMissCount) frames not ready in time",
+                tint: diagnostics.bufferMissCount > 0 ? .orange : nil
             )
             DemoDiagnosticsRow("size", size, tint: decodedSize == nil ? nil : .accentColor)
             DemoDiagnosticsRow("cost", "\(demoByteCount(bytesPerDecodedFrame))/frame  ·  \(demoByteCount(player.source.data.count)) encoded")

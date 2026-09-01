@@ -233,6 +233,7 @@ struct AnimatedImageFrameSharingTests {
         let (first, clock) = makeIdlePlayer(source: source)
         await first.waitUntilFull()
         first.play()
+        await first.waitUntilFull()
         for _ in 0..<3 { clock.tick(0.1) }
         #expect(first.currentFrameIndex == 3)
 
@@ -246,6 +247,7 @@ struct AnimatedImageFrameSharingTests {
         let (first, clock) = makeIdlePlayer(source: source)
         await first.waitUntilFull()
         first.play()
+        await first.waitUntilFull()
         for _ in 0..<3 { clock.tick(0.1) }
 
         var options = AnimatedImagePlayer.Options()

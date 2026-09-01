@@ -35,6 +35,10 @@ protocol AnimatedImageClock: AnyObject {
     /// A 10 fps animation doesn't need to be woken up 120 times a second, and
     /// on a display with a variable refresh rate saying so is a power win.
     var preferredFrameRate: Double { get set }
+
+    /// The time between two ticks at the rate the clock is running, in
+    /// seconds: what a tick that arrives on time reports.
+    var period: TimeInterval { get }
 }
 
 /// Returns a clock for a player.
@@ -78,6 +82,10 @@ final class DisplayLinkClock: AnimatedImageClock {
         }
     }
 
+    /// The refresh interval the link last reported, and a 60 Hz guess until
+    /// it has reported one.
+    private(set) var period: TimeInterval = 1.0 / 60
+
     private var link: CADisplayLink!
     private var lastTimestamp: CFTimeInterval = 0
 
@@ -111,6 +119,11 @@ final class DisplayLinkClock: AnimatedImageClock {
             delta = link.targetTimestamp - link.timestamp
         }
         lastTimestamp = link.timestamp
+        // The interval to the next frame is the display's current one, however
+        // late this tick was.
+        if link.targetTimestamp > link.timestamp {
+            period = link.targetTimestamp - link.timestamp
+        }
         guard delta > 0 else { return }
         onTick?(delta)
     }
@@ -176,6 +189,8 @@ final class TimerClock: AnimatedImageClock {
         }
     }
 
+    var period: TimeInterval { 1 / rate }
+
     private var timer: Timer?
     private var lastTime: CFTimeInterval = 0
 
@@ -196,7 +211,7 @@ final class TimerClock: AnimatedImageClock {
 
     private func start() {
         lastTime = monotonicTime()
-        let timer = Timer(timeInterval: 1 / rate, repeats: true) { [weak self] timer in
+        let timer = Timer(timeInterval: period, repeats: true) { [weak self] timer in
             guard let self else {
                 return timer.invalidate() // The clock is gone
             }
