@@ -34,8 +34,8 @@ struct AnimatedImageFrameKey: Hashable {
 /// The decoded frames of one animation at one size, shared by every player
 /// showing it, and the single decoder that produces them.
 ///
-/// Each player keeps its own playhead – its ``AnimatedImageFrameBuffer`` – and
-/// the store holds the union of the windows those playheads ask for. When the
+/// Each player keeps its own playhead, and the store holds the union of the
+/// windows those playheads ask for. When the
 /// playheads coincide, the union is a single window. When they scatter across
 /// an animation that doesn't fit, every member gets a smaller window so that
 /// the total stays inside the share the pool gave the store. A store never
@@ -48,7 +48,7 @@ final class AnimatedImageFrameStore {
     /// The memory one decoded frame occupies, in bytes.
     let bytesPerFrame: Int
 
-    /// Weak: the members hold the animation strongly, so the frames outlive
+    /// Weak: the players hold the animation strongly, so the frames outlive
     /// the last player only as long as something else – ``ImageCache``, by
     /// way of the cached response – still holds the animation.
     private(set) weak var source: AnimatedImageSource?
@@ -60,10 +60,10 @@ final class AnimatedImageFrameStore {
     private(set) var byteCount = 0
 
     /// The number of players drawing from the store.
-    var memberCount: Int { members.count { $0.buffer != nil } }
+    var memberCount: Int { members.count { $0.player != nil } }
 
     /// The number of players filling a window of frames.
-    var activeMemberCount: Int { members.count { $0.buffer?.fillsWindow == true } }
+    var activeMemberCount: Int { members.count { $0.player?.keepsFullBuffer == true } }
 
     /// `true` when no player is drawing from the store, which makes its frames
     /// the first thing the pool reclaims.
@@ -81,8 +81,9 @@ final class AnimatedImageFrameStore {
         let byteCount: Int
     }
 
+    /// Weak: a player holds the store it draws from, not the other way round.
     private struct Member {
-        weak var buffer: AnimatedImageFrameBuffer?
+        weak var player: AnimatedImagePlayer?
     }
 
     private var frames: [Int: Frame] = [:]
@@ -99,7 +100,10 @@ final class AnimatedImageFrameStore {
 
     private var decodingIndex: Int?
 
-    /// The members that wanted the frame in flight when it was scheduled.
+    /// The priority the decode in flight runs at.
+    private var decodingPriority: TaskPriority = .utility
+
+    /// The players that wanted the frame in flight when it was scheduled.
     ///
     /// Captured then rather than read when the frame lands: a member that has
     /// moved past it still wants it (the late-frame path). A seek is what
@@ -140,8 +144,8 @@ final class AnimatedImageFrameStore {
 
     // MARK: Members
 
-    func add(_ buffer: AnimatedImageFrameBuffer) {
-        members.append(Member(buffer: buffer))
+    func add(_ player: AnimatedImagePlayer) {
+        members.append(Member(player: player))
         lastUsed = monotonicTime()
         // Joins the decode in flight if it wants that frame, and asks for
         // nothing at all if the animation is already in memory.
@@ -154,8 +158,8 @@ final class AnimatedImageFrameStore {
     /// Starting there keeps a screen of the same animation to a single window
     /// of frames, and it is what a browser does with every `img` element
     /// showing one animation.
-    func leadingIndex(excluding buffer: AnimatedImageFrameBuffer) -> Int? {
-        liveMembers.first { $0 !== buffer && $0.fillsWindow }?.currentIndex
+    func leadingIndex() -> Int? {
+        liveMembers.first(where: \.keepsFullBuffer)?.currentFrameIndex
     }
 
     // MARK: Frames
@@ -192,9 +196,9 @@ final class AnimatedImageFrameStore {
     /// - parameter isSeeking: Whether the member moved somewhere the animation
     /// was not heading, which drops it from the decode in flight: that frame is
     /// for a place the playhead has left, and offering it would undo the seek.
-    func didUpdateWindow(of buffer: AnimatedImageFrameBuffer, isSeeking: Bool) {
+    func didUpdateWindow(of player: AnimatedImagePlayer, isSeeking: Bool) {
         if isSeeking {
-            removeRequester(buffer)
+            removeRequester(player)
         }
         evict()
         scheduleDecodeIfNeeded()
@@ -205,7 +209,7 @@ final class AnimatedImageFrameStore {
     /// What the store would use if the pool had it to spare: every frame its
     /// members ask for between them, and never more than the whole animation.
     var demand: Int {
-        let wanted = members.lazy.compactMap { $0.buffer?.wantedFrameCount }.reduce(0, +)
+        let wanted = members.lazy.compactMap { $0.player?.wantedFrameCount }.reduce(0, +)
         return min(frameCount, wanted) * bytesPerFrame
     }
 
@@ -230,8 +234,8 @@ final class AnimatedImageFrameStore {
         guard capacity < frameCount else {
             return frameCount
         }
-        let floor = AnimatedImageFrameBuffer.idleCapacity
-        let playheads = Set(members.compactMap { $0.buffer?.currentIndex }).sorted()
+        let floor = AnimatedImagePlayer.idleFrameCount
+        let playheads = Set(members.compactMap { $0.player?.currentFrameIndex }).sorted()
         guard playheads.count > 1 else {
             return max(floor, capacity)
         }
@@ -269,7 +273,7 @@ final class AnimatedImageFrameStore {
     /// the pool reclaims those frames when it needs the room.
     private func evict() {
         guard !members.isEmpty, !frames.isEmpty else { return }
-        let windows = liveMembers.map { (start: $0.currentIndex, length: $0.capacity) }
+        let windows = liveMembers.map { (start: $0.currentFrameIndex, length: $0.bufferCapacity) }
         guard !windows.contains(where: { $0.length >= frameCount }) else {
             return // Some window covers the whole animation: nothing to evict
         }
@@ -306,18 +310,20 @@ final class AnimatedImageFrameStore {
     /// the frames needed last just as soon as the one needed next.
     func scheduleDecodeIfNeeded() {
         if let decodingIndex {
-            // A member that has come to want the frame in flight waits for it.
-            for buffer in liveMembers where buffer.wants(decodingIndex) {
-                decodingRequesters.insert(ObjectIdentifier(buffer))
+            // A player that has come to want the frame in flight waits for it.
+            for player in liveMembers where player.wants(decodingIndex) {
+                decodingRequesters.insert(ObjectIdentifier(player))
             }
+            escalateDecodeIfNeeded()
             return
         }
         guard let index = nextNeededIndex(), let decoder = makeDecoderIfNeeded() else {
             return
         }
         decodingIndex = index
+        decodingPriority = priority(forFrameAt: index)
         decodingRequesters = Set(liveMembers.filter { $0.wants(index) }.map(ObjectIdentifier.init))
-        currentDecode = Task(priority: priority(forFrameAt: index)) { [weak self] in
+        currentDecode = Task(priority: decodingPriority) { [weak self] in
             let frame = await decoder.decode(at: index)
             // Checked before clearing the handle: a cancelled decode would
             // otherwise drop the handle of the decode that replaced it.
@@ -329,17 +335,17 @@ final class AnimatedImageFrameStore {
         }
     }
 
-    /// The next frame worth decoding: the one a member is waiting on, then
-    /// read-ahead a step at a time across every member.
+    /// The next frame worth decoding: the one a player is waiting on, then
+    /// read-ahead a step at a time across every player.
     private func nextNeededIndex() -> Int? {
         let members = liveMembers
-        if let index = members.first(where: { isPending($0.currentIndex) })?.currentIndex {
+        if let index = members.first(where: { isPending($0.currentFrameIndex) })?.currentFrameIndex {
             return index
         }
-        let longest = members.map(\.capacity).max() ?? 0
+        let longest = members.map(\.bufferCapacity).max() ?? 0
         for offset in 1..<max(1, longest) {
-            for buffer in members where offset < buffer.capacity {
-                let index = (buffer.currentIndex + offset) % frameCount
+            for player in members where offset < player.bufferCapacity {
+                let index = (player.currentFrameIndex + offset) % frameCount
                 if isPending(index) { return index }
             }
         }
@@ -350,7 +356,22 @@ final class AnimatedImageFrameStore {
     /// actor's priority would turn a grid of animations into CPU-bound decodes
     /// competing with the app's own work.
     private func priority(forFrameAt index: Int) -> TaskPriority {
-        liveMembers.contains { $0.currentIndex == index } ? .userInitiated : .utility
+        liveMembers.contains { $0.currentFrameIndex == index } ? .userInitiated : .utility
+    }
+
+    /// Raises the decode in flight to the priority its frame now deserves: a
+    /// player has caught up with a frame that was read-ahead when it started.
+    ///
+    /// A task's priority is fixed when it is made. The one way to raise it
+    /// afterwards is to await it from a task of a higher priority, which the
+    /// runtime answers by escalating the awaited task to the awaiter's
+    /// priority – the thread it is running on included.
+    private func escalateDecodeIfNeeded() {
+        guard let currentDecode, let decodingIndex else { return }
+        let priority = priority(forFrameAt: decodingIndex)
+        guard priority > decodingPriority else { return }
+        decodingPriority = priority
+        Task.detached(priority: priority) { await currentDecode.value }
     }
 
     private func didDecode(_ frame: AnimatedImageFrameDecoder.Frame?, at index: Int) {
@@ -364,10 +385,10 @@ final class AnimatedImageFrameStore {
             frames[index] = Frame(image: frame.image, byteCount: frame.byteCount)
             byteCount += frame.byteCount
         }
-        for buffer in liveMembers where requesters.contains(ObjectIdentifier(buffer)) {
+        for player in liveMembers where requesters.contains(ObjectIdentifier(player)) {
             // Offered even if the window moved past the frame: the player is
             // the one that knows whether it has anything better to show.
-            buffer.storeDidDecodeFrame(at: index, duration: frame.duration)
+            player.storeDidDecodeFrame(at: index, duration: frame.duration)
         }
         evict()
         // The frames of an animation nobody plays aren't in the division of
@@ -375,10 +396,10 @@ final class AnimatedImageFrameStore {
         pool?.reclaimIfNeeded()
     }
 
-    /// Drops a member from the decode in flight, cancelling it if the member
+    /// Drops a player from the decode in flight, cancelling it if the player
     /// was the last one waiting for it.
-    private func removeRequester(_ buffer: AnimatedImageFrameBuffer) {
-        decodingRequesters.remove(ObjectIdentifier(buffer))
+    private func removeRequester(_ player: AnimatedImagePlayer) {
+        decodingRequesters.remove(ObjectIdentifier(player))
         cancelDecodeIfUnwanted()
     }
 
@@ -404,14 +425,14 @@ final class AnimatedImageFrameStore {
         return decoder
     }
 
-    private var liveMembers: [AnimatedImageFrameBuffer] {
-        members.compactMap { $0.buffer }
+    private var liveMembers: [AnimatedImagePlayer] {
+        members.compactMap { $0.player }
     }
 
     /// Drops the members that have been released.
     func sweepMembers() {
         let count = members.count
-        members.removeAll { $0.buffer == nil }
+        members.removeAll { $0.player == nil }
         guard members.count != count else { return }
         lastUsed = monotonicTime()
         if members.isEmpty {

@@ -18,6 +18,14 @@ import AppKit
 /// Plays an animated image: decodes its frames off the main thread, keeps a
 /// bounded number of them in memory, and hands them to a view on time.
 ///
+/// Decoding every frame up front is the fastest way to run out of memory (a
+/// 1000×1000 animation with 60 frames is 240 MB of bitmaps), so a player holds
+/// a window of frames starting at the one on screen and the rest are decoded as
+/// the window reaches them. The frames themselves belong to an
+/// ``AnimatedImageFrameStore`` shared with every other player of the same
+/// animation at the same size, and how large a window each player gets is
+/// ``AnimatedImageFramePool``'s to decide.
+///
 /// ```swift
 /// let player = AnimatedImagePlayer(source: source)
 /// player.onFrame = { imageView.image = $0 }
@@ -84,8 +92,17 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// ``onFrame`` so that a view never replaces the handler its owner set.
     var onFrameForDisplay: ((PlatformImage) -> Void)?
 
-    let buffer: AnimatedImageFrameBuffer
+    /// The decoded frames of this animation at this size, shared with every
+    /// other player showing it.
+    let store: AnimatedImageFrameStore
+
     private let clock: any AnimatedImageClock
+    private let pool: AnimatedImageFramePool
+
+    /// The number of frames the player is willing to hold, whatever the pool
+    /// has to spare: ``Options/maxBufferSize`` in frames.
+    private let affordableFrameCount: Int
+
     private var elapsed: TimeInterval = 0
     private var displayedFrameIndex: Int?
     private var counters = Counters()
@@ -105,24 +122,34 @@ public final class AnimatedImagePlayer: ObservableObject {
         self.source = source
         self.options = options
         self.clock = clock
-        self.buffer = AnimatedImageFrameBuffer(source: source, options: options, pool: pool, decoder: decoder)
+        self.pool = pool
+        self.store = pool.store(for: source, maxPixelSize: options.maxPixelSize, decoder: decoder)
+        self.affordableFrameCount = store.bytesPerFrame > 0
+            ? options.maxBufferSize / store.bytesPerFrame
+            : source.frameCount
+        // Nobody is watching until something calls `play()`, so the player asks
+        // for the first frames only. It does ask for those: an animation that
+        // is never played still shows its first frame.
+        self.keepsFullBuffer = false
+        // Fall in behind whatever is already playing this animation, so that
+        // the copies of one sticker share one window of frames. Read before
+        // joining, so that the player never falls in behind itself.
+        self.currentFrameIndex = options.isSynchronizationEnabled ? store.leadingIndex() ?? 0 : 0
 
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
         clock.onTick = { [weak self] in self?.tick($0) }
-        buffer.onFrame = { [weak self] in self?.frameDidDecode(at: $0) }
-        // Fall in behind whatever is already playing this animation, so that
-        // the copies of one sticker share one window of frames.
-        currentFrameIndex = options.isSynchronizationEnabled
-            ? buffer.store.leadingIndex(excluding: buffer) ?? 0
-            : 0
-        // Decode the first frame right away, whether or not anything ever
-        // calls `play()` – but only the first frames.
-        buffer.fillsWindow = false
-        buffer.setCurrentIndex(currentFrameIndex)
+        // Last, because joining is what starts the decoding and what hands the
+        // store its first share of the pool.
+        store.add(self)
+        pool.rebalance()
     }
 
-    // No `deinit`: the clock stops itself when the player releases it, since a
-    // `deinit` on a main-actor class can't reach back into the actor.
+    deinit {
+        // A `deinit` isn't on the main actor, so the pool is asked to divide
+        // the budget on the next turn, which also sweeps this player out of
+        // the store. The clock stops itself the same way.
+        pool.setNeedsRebalance()
+    }
 
     // MARK: Playback
 
@@ -134,7 +161,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     public func play() {
         guard !isPlaying, !isFinished else { return }
         isPlaying = true
-        buffer.fillsWindow = true
+        keepsFullBuffer = true
         clock.isPaused = false
     }
 
@@ -170,7 +197,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         // The frame being decoded is for somewhere the playhead has just left
         // and would arrive as a late frame the player moves back to, undoing
         // the seek.
-        buffer.setCurrentIndex(index, isSeeking: true)
+        store.didUpdateWindow(of: self, isSeeking: true)
         display(frameAt: index)
     }
 
@@ -186,9 +213,57 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// ``AnimatedImageView`` does this when it pauses because it left its
     /// window, but not when playback is paused in place, where the frames are
     /// worth keeping so that resuming doesn't stall.
-    public var keepsFullBuffer: Bool {
-        get { buffer.fillsWindow }
-        set { buffer.fillsWindow = newValue }
+    public var keepsFullBuffer = true {
+        didSet {
+            guard keepsFullBuffer != oldValue else { return }
+            // The new share is what drops the frames that no longer fit and
+            // starts decoding into the room that opened up.
+            pool.rebalance()
+        }
+    }
+
+    // MARK: Buffering
+
+    /// The number of frames the player is allowed to hold: what it wants, or
+    /// the share of the animation the pool has left it, whichever is smaller.
+    ///
+    /// Two is the floor: with one, the next frame could only start decoding
+    /// after the current one was dropped.
+    var bufferCapacity: Int {
+        max(Self.idleFrameCount, min(store.windowLength, wantedFrameCount))
+    }
+
+    /// The number of frames the player would hold if the pool had the memory to
+    /// spare: every frame up to ``Options/maxBufferSize``, and only
+    /// ``idleFrameCount`` while nobody is watching or the system is short of
+    /// memory.
+    var wantedFrameCount: Int {
+        let wanted = keepsFullBuffer && !pool.isUnderMemoryPressure ? source.frameCount : Self.idleFrameCount
+        return max(Self.idleFrameCount, min(source.frameCount, min(wanted, affordableFrameCount)))
+    }
+
+    /// The range of frame indexes the player is claiming, which may run past
+    /// the last frame and wrap around.
+    var window: Range<Int> {
+        currentFrameIndex..<(currentFrameIndex + bufferCapacity)
+    }
+
+    /// `true` when the player is claiming the frame at the given index.
+    func wants(_ index: Int) -> Bool {
+        (index - currentFrameIndex + source.frameCount) % source.frameCount < bufferCapacity
+    }
+
+    /// What a player holds while nobody is watching: the frame on screen and
+    /// the one after it, so that playback starts without a stall.
+    static let idleFrameCount = 2
+
+    /// Called by the store with every frame the player was waiting for.
+    func storeDidDecodeFrame(at index: Int, duration: TimeInterval) {
+        counters.decodedFrameCount += 1
+        counters.lastDecodeDuration = duration
+        counters.totalDecodeDuration += duration
+        counters.maxDecodeDuration = max(counters.maxDecodeDuration, duration)
+        frameDidDecode(at: index)
     }
 
     // MARK: Diagnostics
@@ -199,16 +274,16 @@ public final class AnimatedImagePlayer: ObservableObject {
         diagnostics.frameCount = source.frameCount
         diagnostics.currentFrameIndex = currentFrameIndex
         diagnostics.completedLoopCount = completedLoopCount
-        diagnostics.bufferedFrameCount = buffer.count
-        diagnostics.bufferCapacity = buffer.capacity
-        diagnostics.bufferedByteCount = buffer.byteCount
-        diagnostics.bufferByteLimit = buffer.allotment
-        diagnostics.sharingPlayerCount = buffer.store.memberCount
-        diagnostics.decodedFrameCount = buffer.decodedFrameCount
-        diagnostics.lastDecodeDuration = buffer.lastDecodeDuration
-        diagnostics.averageDecodeDuration = buffer.decodedFrameCount > 0
-            ? buffer.totalDecodeDuration / Double(buffer.decodedFrameCount) : 0
-        diagnostics.maxDecodeDuration = buffer.maxDecodeDuration
+        diagnostics.bufferedFrameCount = store.decodedFrameCount(in: window)
+        diagnostics.bufferCapacity = bufferCapacity
+        diagnostics.bufferedByteCount = store.byteCount(in: window)
+        diagnostics.bufferByteLimit = bufferCapacity * store.bytesPerFrame
+        diagnostics.sharingPlayerCount = store.memberCount
+        diagnostics.decodedFrameCount = counters.decodedFrameCount
+        diagnostics.lastDecodeDuration = counters.lastDecodeDuration
+        diagnostics.averageDecodeDuration = counters.decodedFrameCount > 0
+            ? counters.totalDecodeDuration / Double(counters.decodedFrameCount) : 0
+        diagnostics.maxDecodeDuration = counters.maxDecodeDuration
         diagnostics.displayedFrameCount = counters.displayedFrameCount
         diagnostics.skippedFrameCount = counters.skippedFrameCount
         diagnostics.bufferMissCount = counters.bufferMissCount
@@ -221,7 +296,17 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// Together with ``Diagnostics/bufferCapacity`` it is enough to draw what
     /// the buffer is holding, which is what the demo app does.
     public func isFrameBuffered(_ index: Int) -> Bool {
-        buffer.frame(at: index) != nil
+        store.frame(at: index) != nil
+    }
+
+    /// Waits until the window is full or until there is nothing left to decode.
+    ///
+    /// For the tests, which need a point where the player is settled rather
+    /// than a sleep long enough to probably work.
+    func waitUntilFull() async {
+        while let task = store.currentDecode {
+            await task.value
+        }
     }
 
     // MARK: Private
@@ -233,7 +318,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         // that time would spend it on frames nobody sees; the poster frame is
         // on screen in the meantime, and a frame the decoder refuses stops
         // being pending, so the wait always ends.
-        guard displayedFrameIndex != nil || !buffer.isPending(currentFrameIndex) else {
+        guard displayedFrameIndex != nil || !store.isPending(currentFrameIndex) else {
             return
         }
 
@@ -259,7 +344,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         guard advanced > 0 else { return }
 
         counters.skippedFrameCount += advanced - 1
-        buffer.setCurrentIndex(currentFrameIndex)
+        store.didUpdateWindow(of: self, isSeeking: false)
         display(frameAt: currentFrameIndex)
     }
 
@@ -296,7 +381,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         guard displayedFrameIndex != index else {
             return
         }
-        guard let cgImage = buffer.frame(at: index) else {
+        guard let cgImage = store.frame(at: index) else {
             // The decoder is behind. The previous frame stays on screen and
             // this one is displayed by `frameDidDecode(at:)` if it arrives
             // while it is still the current one.
@@ -324,11 +409,11 @@ public final class AnimatedImagePlayer: ObservableObject {
         //
         // Only while the animation is running: a paused or finished player is
         // on its frame deliberately.
-        guard isPlaying, buffer.frame(at: currentFrameIndex) == nil else { return }
+        guard isPlaying, store.frame(at: currentFrameIndex) == nil else { return }
         currentFrameIndex = index
         elapsed = 0
         display(frameAt: index)
-        buffer.setCurrentIndex(index)
+        store.didUpdateWindow(of: self, isSeeking: false)
     }
 
     private func makeImage(_ cgImage: CGImage) -> PlatformImage {
@@ -362,12 +447,16 @@ public final class AnimatedImagePlayer: ObservableObject {
         return ticksPerSecond <= 60 ? ticksPerSecond : 0
     }
 
-    /// The counters the player itself keeps; the rest come from the buffer.
+    /// What the player counts as it plays, for ``diagnostics``.
     private struct Counters {
         var displayedFrameCount = 0
         var skippedFrameCount = 0
         var bufferMissCount = 0
         var playbackTime: TimeInterval = 0
+        var decodedFrameCount = 0
+        var lastDecodeDuration: TimeInterval = 0
+        var totalDecodeDuration: TimeInterval = 0
+        var maxDecodeDuration: TimeInterval = 0
     }
 }
 

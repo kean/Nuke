@@ -68,7 +68,7 @@ struct AnimatedImageViewTests {
 
         let player = try #require(view.player)
         #expect(player.source.frameCount == 4)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         #expect(view.image != nil)
     }
 
@@ -196,7 +196,7 @@ struct AnimatedImageViewTests {
     @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
         let player = AnimatedImagePlayer(source: source)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         view.player = player
 
         player.seek(toFrame: 1)
@@ -216,7 +216,7 @@ struct AnimatedImageViewTests {
         let player = try #require(view.player)
         let maxPixelSize = try #require(player.options.maxPixelSize)
         #expect(maxPixelSize < 400)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         let frame = try #require(player.image?.cgImage)
         #expect(max(frame.width, frame.height) <= Int(maxPixelSize))
     }
@@ -231,7 +231,7 @@ struct AnimatedImageViewTests {
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 100)))
 
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         let frame = try #require(player.image?.cgImage)
         // The height is what covers the view, and it is already only just big
         // enough, so the frames are decoded as they are.
@@ -269,7 +269,7 @@ struct AnimatedImageViewTests {
         layOut(CGSize(width: 20, height: 20))
 
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
@@ -282,7 +282,7 @@ struct AnimatedImageViewTests {
 
         let player = try #require(view.player)
         #expect(player.options.maxPixelSize == nil)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
@@ -316,7 +316,7 @@ struct AnimatedImageViewTests {
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
 
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         let frame = try #require(player.image?.cgImage)
         #expect(frame.width == 8)
     }
@@ -372,13 +372,13 @@ struct AnimatedImageViewTests {
         let host = TestWindow(view: view)
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
 
         view.removeFromSuperview()
 
         // Off screen, the animation is worth two frames, not a whole budget.
-        #expect(player.diagnostics.bufferedFrameCount == AnimatedImageFrameBuffer.idleCapacity)
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImagePlayer.idleFrameCount)
         host.close()
     }
 
@@ -386,7 +386,7 @@ struct AnimatedImageViewTests {
         let host = TestWindow(view: view)
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
 
         view.isPlaybackEnabled = false
 
@@ -449,12 +449,12 @@ struct AnimatedImageViewTests {
         let host = TestWindow(view: view)
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
         let player = try #require(view.player)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
 
         view.isHidden = true
 
-        #expect(player.diagnostics.bufferedFrameCount == AnimatedImageFrameBuffer.idleCapacity)
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImagePlayer.idleFrameCount)
         host.close()
     }
 
@@ -504,7 +504,7 @@ struct AnimatedImageViewTests {
     @Test func displaysTheFramesOfThePlayerItIsGiven() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
         let player = AnimatedImagePlayer(source: source)
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
 
         view.player = player
 
@@ -519,7 +519,7 @@ struct AnimatedImageViewTests {
         player.onFrame = { _ in frames += 1 }
 
         view.player = player
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
 
         // A player driving something of yours – a scrubber, a frame counter –
         // goes on driving it after a view is given it to display.
@@ -533,7 +533,7 @@ struct AnimatedImageViewTests {
         var frames = 0
         player.onFrame = { _ in frames += 1 }
         view.player = player
-        await player.buffer.waitUntilFull()
+        await player.waitUntilFull()
 
         view.player = nil
         let before = frames

@@ -25,31 +25,28 @@ struct AnimatedImageFrameSharingTests {
 
     @Test func aSecondPlayerFindsTheFramesTheFirstDecoded() async throws {
         let source = try makeSource(frameCount: 6)
-        let first = makeBuffer(source: source)
-        first.setCurrentIndex(0)
+        let first = makePlayer(source: source)
         await first.waitUntilFull()
 
-        let second = makeBuffer(source: source)
+        let second = makePlayer(source: source)
 
         // Nothing left to do: every frame it wants is already in memory.
-        #expect(second.count == 6)
-        #expect(second.isFull)
-        #expect(second.decodedFrameCount == 0)
-        #expect(second.frame(at: 3) === first.frame(at: 3))
+        #expect(second.diagnostics.bufferedFrameCount == 6)
+        #expect(second.diagnostics.decodedFrameCount == 0)
+        #expect(second.store.frame(at: 3) === first.store.frame(at: 3))
     }
 
     @Test func aSharedFrameIsCountedOnce() async throws {
         let source = try makeSource(frameCount: 6)
-        let first = makeBuffer(source: source)
-        let second = makeBuffer(source: source)
-        first.setCurrentIndex(0)
+        let first = makePlayer(source: source)
+        let second = makePlayer(source: source)
         await first.waitUntilFull()
 
         // Both players are drawing from all six frames...
-        #expect(first.count == 6)
-        #expect(second.count == 6)
+        #expect(first.diagnostics.bufferedFrameCount == 6)
+        #expect(second.diagnostics.bufferedFrameCount == 6)
         // ...and six frames is what they cost.
-        #expect(pool.totalCost == first.byteCount)
+        #expect(pool.totalCost == first.diagnostics.bufferedByteCount)
         #expect(pool.animationCount == 1)
         #expect(pool.playerCount == 2)
     }
@@ -60,9 +57,9 @@ struct AnimatedImageFrameSharingTests {
         let pool = makePool(frames: 40)
         let source = try makeSource(frameCount: 30)
 
-        let buffers = (0..<20).map { _ in makeBuffer(source: source, pool: pool) }
+        let players = (0..<20).map { _ in makePlayer(source: source, pool: pool) }
 
-        #expect(buffers.allSatisfy { $0.capacity == 30 })
+        #expect(players.allSatisfy { $0.diagnostics.bufferCapacity == 30 })
         #expect(pool.animationCount == 1)
     }
 
@@ -70,11 +67,11 @@ struct AnimatedImageFrameSharingTests {
         // What is shared is one animation, not the pool.
         let pool = makePool(frames: 40)
 
-        let buffers = try (0..<20).map { _ in
-            makeBuffer(source: try makeSource(frameCount: 30), pool: pool)
+        let players = try (0..<20).map { _ in
+            makePlayer(source: try makeSource(frameCount: 30), pool: pool)
         }
 
-        #expect(buffers.allSatisfy { $0.capacity == 2 })
+        #expect(players.allSatisfy { $0.diagnostics.bufferCapacity == 2 })
         #expect(pool.animationCount == 20)
     }
 
@@ -85,8 +82,8 @@ struct AnimatedImageFrameSharingTests {
         var small = AnimatedImagePlayer.Options()
         small.maxPixelSize = 16
 
-        _ = makeBuffer(source: source)
-        _ = makeBuffer(source: source, options: small)
+        _ = makePlayer(source: source)
+        _ = makePlayer(source: source, options: small)
 
         #expect(pool.animationCount == 2)
     }
@@ -98,8 +95,8 @@ struct AnimatedImageFrameSharingTests {
         var generous = AnimatedImagePlayer.Options()
         generous.maxPixelSize = 512
 
-        _ = makeBuffer(source: source)
-        _ = makeBuffer(source: source, options: generous)
+        _ = makePlayer(source: source)
+        _ = makePlayer(source: source, options: generous)
 
         #expect(pool.animationCount == 1)
     }
@@ -109,8 +106,8 @@ struct AnimatedImageFrameSharingTests {
     @Test func twoPlayersOnTheSameFrameDecodeItOnce() async throws {
         let source = try makeSource(frameCount: 4)
         let decoder = GatedFrameDecoder(source: source)
-        let first = makeBuffer(source: source, decoder: decoder)
-        let second = makeBuffer(source: source)
+        let first = makePlayer(source: source, decoder: decoder)
+        let second = makePlayer(source: source)
         #expect(first.store === second.store)
 
         for index in 0..<4 { await decoder.release(index) }
@@ -118,39 +115,54 @@ struct AnimatedImageFrameSharingTests {
 
         // Four frames, four decodes, two players.
         #expect(await decoder.decodeCount == 4)
-        #expect(first.count == 4)
-        #expect(second.count == 4)
+        #expect(first.diagnostics.bufferedFrameCount == 4)
+        #expect(second.diagnostics.bufferedFrameCount == 4)
     }
 
     @Test func aScreenOfOneAnimationIsDecodedOnce() async throws {
         let source = try makeSource(frameCount: 12)
         let decoder = GatedFrameDecoder(source: source)
-        let first = makeBuffer(source: source, decoder: decoder)
-        let rest = (0..<19).map { _ in makeBuffer(source: source) }
+        let first = makePlayer(source: source, decoder: decoder)
+        let rest = (0..<19).map { _ in makePlayer(source: source) }
 
         for index in 0..<12 { await decoder.release(index) }
         await first.waitUntilFull()
 
         // Twelve decodes for twenty players, and one bitmap apiece.
         #expect(await decoder.decodeCount == 12)
-        #expect(rest.allSatisfy { $0.count == 12 })
-        #expect(rest.allSatisfy { $0.frame(at: 0) === first.frame(at: 0) })
-        #expect(pool.totalCost == first.byteCount)
+        #expect(rest.allSatisfy { $0.diagnostics.bufferedFrameCount == 12 })
+        #expect(rest.allSatisfy { $0.store.frame(at: 0) === first.store.frame(at: 0) })
+        #expect(pool.totalCost == first.diagnostics.bufferedByteCount)
     }
 
     @Test func aFrameIsOfferedToEveryPlayerWaitingForIt() async throws {
         let source = try makeSource(frameCount: 4)
         let decoder = GatedFrameDecoder(source: source)
-        let first = makeBuffer(source: source, decoder: decoder)
-        let second = makeBuffer(source: source)
-        var reported: [Int] = []
-        second.onFrame = { reported.append($0) }
+        let first = makePlayer(source: source, decoder: decoder)
+        let second = makePlayer(source: source)
+        var reported = 0
+        second.onFrame = { _ in reported += 1 }
 
         await decoder.release(0)
         let decode = try #require(first.store.currentDecode)
         await decode.value
 
-        #expect(reported == [0])
+        // The player that didn't schedule the decode is handed the frame too.
+        #expect(reported == 1)
+        #expect(second.image != nil)
+    }
+
+    @Test func theFramesAreDecodedInPlaybackOrder() async throws {
+        // What makes the first frames appear first, rather than the animation
+        // waiting on a window filled in whatever order the players joined.
+        let source = try makeSource(frameCount: 4)
+        let decoder = GatedFrameDecoder(source: source)
+        let player = makePlayer(source: source, decoder: decoder)
+
+        for index in 0..<4 { await decoder.release(index) }
+        await player.waitUntilFull()
+
+        #expect(await decoder.startedIndexes == [0, 1, 2, 3])
     }
 
     // MARK: Playheads
@@ -158,14 +170,14 @@ struct AnimatedImageFrameSharingTests {
     @Test func playheadsThatAgreeCostOneWindow() throws {
         let pool = makePool(frames: 8)
         let source = try makeSource(frameCount: 20)
-        let first = makeBuffer(source: source, pool: pool)
-        let second = makeBuffer(source: source, pool: pool)
+        let first = makePlayer(source: source, pool: pool)
+        let second = makePlayer(source: source, pool: pool)
 
-        first.setCurrentIndex(4)
-        second.setCurrentIndex(4)
+        first.seek(toFrame: 4)
+        second.seek(toFrame: 4)
 
-        #expect(first.capacity == 8)
-        #expect(second.capacity == 8)
+        #expect(first.diagnostics.bufferCapacity == 8)
+        #expect(second.diagnostics.bufferCapacity == 8)
     }
 
     @Test func playheadsThatScatterSplitTheWindow() throws {
@@ -173,14 +185,14 @@ struct AnimatedImageFrameSharingTests {
         // one can only be half of what a single player would have had.
         let pool = makePool(frames: 8)
         let source = try makeSource(frameCount: 20)
-        let first = makeBuffer(source: source, pool: pool)
-        let second = makeBuffer(source: source, pool: pool)
+        let first = makePlayer(source: source, pool: pool)
+        let second = makePlayer(source: source, pool: pool)
 
-        first.setCurrentIndex(0)
-        second.setCurrentIndex(10)
+        first.seek(toFrame: 0)
+        second.seek(toFrame: 10)
 
-        #expect(first.capacity == 4)
-        #expect(second.capacity == 4)
+        #expect(first.diagnostics.bufferCapacity == 4)
+        #expect(second.diagnostics.bufferCapacity == 4)
     }
 
     @Test func playheadsThatDriftApartByOneKeepAlmostEverything() throws {
@@ -189,53 +201,53 @@ struct AnimatedImageFrameSharingTests {
         // window. Dividing by the number of playheads would have halved both.
         let pool = makePool(frames: 8)
         let source = try makeSource(frameCount: 20)
-        let first = makeBuffer(source: source, pool: pool)
-        let second = makeBuffer(source: source, pool: pool)
+        let first = makePlayer(source: source, pool: pool)
+        let second = makePlayer(source: source, pool: pool)
 
-        first.setCurrentIndex(0)
-        second.setCurrentIndex(1)
+        first.seek(toFrame: 0)
+        second.seek(toFrame: 1)
 
-        #expect(first.capacity == 7)
-        #expect(second.capacity == 7)
+        #expect(first.diagnostics.bufferCapacity == 7)
+        #expect(second.diagnostics.bufferCapacity == 7)
     }
 
     @Test func scatteredPlayheadsCostNothingWhenTheAnimationFits() throws {
         // Where they are only matters while the animation has to be windowed.
         let pool = makePool(frames: 100)
         let source = try makeSource(frameCount: 20)
-        let first = makeBuffer(source: source, pool: pool)
-        let second = makeBuffer(source: source, pool: pool)
+        let first = makePlayer(source: source, pool: pool)
+        let second = makePlayer(source: source, pool: pool)
 
-        first.setCurrentIndex(0)
-        second.setCurrentIndex(10)
+        first.seek(toFrame: 0)
+        second.seek(toFrame: 10)
 
-        #expect(first.capacity == 20)
-        #expect(second.capacity == 20)
+        #expect(first.diagnostics.bufferCapacity == 20)
+        #expect(second.diagnostics.bufferCapacity == 20)
     }
 
     @Test func aPlayerStartsWhereTheOthersAlreadyAre() async throws {
         let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
-        let (first, clock) = makePlayer(source: source)
-        await first.buffer.waitUntilFull()
+        let (first, clock) = makeIdlePlayer(source: source)
+        await first.waitUntilFull()
         first.play()
         for _ in 0..<3 { clock.tick(0.1) }
         #expect(first.currentFrameIndex == 3)
 
-        let (second, _) = makePlayer(source: source)
+        let (second, _) = makeIdlePlayer(source: source)
 
         #expect(second.currentFrameIndex == 3)
     }
 
     @Test func aPlayerCanBeToldToStartAtTheBeginning() async throws {
         let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
-        let (first, clock) = makePlayer(source: source)
-        await first.buffer.waitUntilFull()
+        let (first, clock) = makeIdlePlayer(source: source)
+        await first.waitUntilFull()
         first.play()
         for _ in 0..<3 { clock.tick(0.1) }
 
         var options = AnimatedImagePlayer.Options()
         options.isSynchronizationEnabled = false
-        let (second, _) = makePlayer(source: source, options: options)
+        let (second, _) = makeIdlePlayer(source: source, options: options)
 
         #expect(second.currentFrameIndex == 0)
     }
@@ -244,10 +256,10 @@ struct AnimatedImageFrameSharingTests {
         // A player that hasn't started is showing its first frame, not a
         // position worth falling in behind.
         let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
-        let (first, _) = makePlayer(source: source)
-        await first.buffer.waitUntilFull()
+        let (first, _) = makeIdlePlayer(source: source)
+        await first.waitUntilFull()
 
-        let (second, _) = makePlayer(source: source)
+        let (second, _) = makeIdlePlayer(source: source)
 
         #expect(second.currentFrameIndex == 0)
     }
@@ -258,8 +270,7 @@ struct AnimatedImageFrameSharingTests {
         // A cell that scrolls off and comes back used to re-decode the whole
         // animation. The frames stay until the pool needs the room.
         let source = try makeSource(frameCount: 6)
-        var first: AnimatedImageFrameBuffer? = makeBuffer(source: source)
-        first?.setCurrentIndex(0)
+        var first: AnimatedImagePlayer? = makePlayer(source: source)
         await first?.waitUntilFull()
         let cost = pool.totalCost
 
@@ -269,22 +280,21 @@ struct AnimatedImageFrameSharingTests {
         #expect(pool.playerCount == 0)
         #expect(pool.totalCost == cost) // Still there, waiting for a second look
 
-        let second = makeBuffer(source: source)
+        let second = makePlayer(source: source)
 
-        #expect(second.count == 6)
-        #expect(second.decodedFrameCount == 0)
+        #expect(second.diagnostics.bufferedFrameCount == 6)
+        #expect(second.diagnostics.decodedFrameCount == 0)
     }
 
     @Test func theFramesGoWhenTheAnimationDoes() async throws {
         var source: AnimatedImageSource? = try makeSource(frameCount: 6)
-        var buffer: AnimatedImageFrameBuffer? = makeBuffer(source: try #require(source))
-        buffer?.setCurrentIndex(0)
-        await buffer?.waitUntilFull()
+        var player: AnimatedImagePlayer? = makePlayer(source: try #require(source))
+        await player?.waitUntilFull()
         #expect(pool.totalCost > 0)
 
         // Nothing refers to the animation any more – the pipeline's cache has
         // let it go – so the frames decoded from it are worth nothing.
-        buffer = nil
+        player = nil
         source = nil
         await settle()
         pool.rebalance()
@@ -297,19 +307,17 @@ struct AnimatedImageFrameSharingTests {
         let pool = makePool(frames: 8)
         let kept = try makeSource(frameCount: 8)
         let dropped = try makeSource(frameCount: 8)
-        var idle: AnimatedImageFrameBuffer? = makeBuffer(source: dropped, pool: pool)
-        idle?.setCurrentIndex(0)
+        var idle: AnimatedImagePlayer? = makePlayer(source: dropped, pool: pool)
         await idle?.waitUntilFull()
         idle = nil
         await settle()
 
         // The pool is full of frames nobody is watching when a player arrives
         // that needs them.
-        let playing = makeBuffer(source: kept, pool: pool)
-        playing.setCurrentIndex(0)
+        let playing = makePlayer(source: kept, pool: pool)
         await playing.waitUntilFull()
 
-        #expect(playing.count == 8)
+        #expect(playing.diagnostics.bufferedFrameCount == 8)
         #expect(pool.totalCost <= pool.costLimit)
     }
 
@@ -319,21 +327,35 @@ struct AnimatedImageFrameSharingTests {
         AnimatedImageFramePool(costLimit: frames * Self.bytesPerFrame)
     }
 
-    private func makeBuffer(
+    /// A player that is playing, which is what makes it ask for a full window
+    /// of frames. One that isn't asks for two.
+    private func makePlayer(
         source: AnimatedImageSource,
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
         pool: AnimatedImageFramePool? = nil,
         decoder: (any AnimatedImageFrameDecoding)? = nil
-    ) -> AnimatedImageFrameBuffer {
-        AnimatedImageFrameBuffer(source: source, options: options, pool: pool ?? self.pool, decoder: decoder)
+    ) -> AnimatedImagePlayer {
+        let player = makeIdlePlayer(source: source, options: options, pool: pool, decoder: decoder).player
+        player.play()
+        return player
     }
 
-    private func makePlayer(
+    /// A player nothing has started, on a clock the test drives.
+    private func makeIdlePlayer(
         source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        pool: AnimatedImageFramePool? = nil,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
         let clock = ManualClock()
-        return (AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool), clock)
+        let player = AnimatedImagePlayer(
+            source: source,
+            options: options,
+            clock: clock,
+            pool: pool ?? self.pool,
+            decoder: decoder
+        )
+        return (player, clock)
     }
 
     private func makeSource(
