@@ -18,14 +18,6 @@ import AppKit
 /// Plays an animated image: decodes its frames off the main thread, keeps a
 /// bounded number of them in memory, and hands them to a view on time.
 ///
-/// Decoding every frame up front is the fastest way to run out of memory (a
-/// 1000×1000 animation with 60 frames is 240 MB of bitmaps), so a player holds
-/// a window of frames starting at the one on screen and the rest are decoded as
-/// the window reaches them. The frames themselves belong to an
-/// ``AnimatedImageFrameStore`` shared with every other player of the same
-/// animation at the same size, and how large a window each player gets is
-/// ``AnimatedImageFramePool``'s to decide.
-///
 /// ```swift
 /// let player = AnimatedImagePlayer(source: source)
 /// player.onFrame = { imageView.image = $0 }
@@ -40,15 +32,8 @@ import AppKit
 /// changing (``isPlaying`` and ``isFinished``) and deliberately not the
 /// animation running: the frames go to the view directly, and
 /// ``currentFrameIndex`` and ``completedLoopCount`` advance without a signal.
-/// Watch them through ``onLoop`` and ``onFinish``, or sample ``diagnostics`` on
-/// a timer.
 ///
-/// Playback follows the wall clock rather than the decoder: an animation that
-/// takes three seconds on paper takes three seconds on screen, and what gives
-/// when the decoder can't keep up is the number of frames shown
-/// (``Diagnostics/skippedFrameCount``). The one exception is an animation
-/// whose frames take longer to decode than they are shown for, where the
-/// playhead waits for the decoder rather than skipping every frame.
+/// See <doc:AnimatedImages>.
 @MainActor
 public final class AnimatedImagePlayer: ObservableObject {
     /// The image being played.
@@ -224,9 +209,6 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// The number of frames the player is allowed to hold: what it wants, or
     /// the share of the animation the pool has left it, whichever is smaller.
-    ///
-    /// Two is the floor: with one, the next frame could only start decoding
-    /// after the current one was dropped.
     var bufferCapacity: Int {
         max(Self.idleFrameCount, min(store.windowLength, wantedFrameCount))
     }
@@ -251,8 +233,9 @@ public final class AnimatedImagePlayer: ObservableObject {
         (index - currentFrameIndex + source.frameCount) % source.frameCount < bufferCapacity
     }
 
-    /// What a player holds while nobody is watching: the frame on screen and
-    /// the one after it, so that playback starts without a stall.
+    /// What a player holds while nobody is watching, and the floor for every
+    /// player: with one frame, the next could only start decoding after the
+    /// current one was dropped.
     static let idleFrameCount = 2
 
     /// The largest gap between two clock ticks the player acts on, in seconds.
@@ -273,7 +256,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     // MARK: Diagnostics
 
-    /// A snapshot of what the player and its buffer are doing.
+    /// A snapshot of what the player is doing.
     public var diagnostics: Diagnostics {
         var diagnostics = Diagnostics()
         diagnostics.frameCount = source.frameCount
@@ -481,12 +464,8 @@ extension AnimatedImagePlayer {
         ///
         /// An animation whose frames all fit is decoded once and replayed from
         /// memory; a larger one is decoded continuously into a sliding window.
-        /// The buffer never holds fewer than two frames, so an animation with
-        /// very large frames can exceed this figure.
-        ///
         /// It is a ceiling, not an allowance: what the player actually gets is
-        /// its share of ``AnimatedImageFramePool``, which every animation on
-        /// screen draws from.
+        /// its share of ``AnimatedImageFramePool``.
         public var maxBufferSize = 10 * 1_048_576
 
         /// The longest side, in pixels, the decoded frames may have. `nil` –
@@ -525,8 +504,8 @@ extension AnimatedImagePlayer {
         case finite(Int)
     }
 
-    /// What the player and its buffer are doing, for logging, tests, and the
-    /// diagnostics overlay in the demo app.
+    /// What the player is doing, for logging, tests, and the diagnostics
+    /// overlay in the demo app.
     public struct Diagnostics: Sendable {
         /// Creates an empty snapshot.
         public init() {}
@@ -544,13 +523,8 @@ extension AnimatedImagePlayer {
         public var bufferCapacity = 0
         /// The memory those frames occupy, in bytes.
         public var bufferedByteCount = 0
-        /// The memory the buffer is allowed to use, in bytes: the share of
-        /// ``AnimatedImageFramePool`` the player has been given, which is never
-        /// more than ``AnimatedImagePlayer/Options/maxBufferSize`` and drops as
-        /// other animations appear on screen.
-        ///
-        /// A player always holds two frames, so a single frame larger than this
-        /// is held anyway.
+        /// The memory the window is allowed to use, in bytes: the share of
+        /// ``AnimatedImageFramePool`` the player has been given.
         public var bufferByteLimit = 0
 
         /// The number of players drawing from the same decoded frames, this

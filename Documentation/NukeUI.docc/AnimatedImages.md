@@ -18,12 +18,12 @@ The formats are whatever Image I/O can read and the decoder recognizes as animat
 
 ### SwiftUI
 
-The default ``LazyImage`` content plays animations. When you write your own content closure, ``LazyImageState/animatedImage`` is the animation and ``AnimatedImage`` is the view that plays it:
+The default ``LazyImage`` content plays animations. When you write your own content closure, ``AnimatedImage`` is the view that plays them:
 
 ```swift
 LazyImage(url: url) { state in
-    if let animatedImage = state.animatedImage {
-        AnimatedImage(animatedImage).resizable().scaledToFill()
+    if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+        animation.resizable().scaledToFill()
     } else if let image = state.image {
         image.resizable().scaledToFill()
     } else {
@@ -32,7 +32,9 @@ LazyImage(url: url) { state in
 }
 ```
 
-``LazyImageState/animatedImage`` is `nil` for everything that isn't animated, which is the signal to display the still image. Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable()``, and it lays out the way an `Image` does after that – `scaledToFit()`, `scaledToFill()`, `frame(width:height:)`, and the rest.
+``AnimatedImage/init(container:)`` returns `nil` for everything that isn't animated, which is the signal to display the still image. It also carries the still the decoder produced, which holds the place until the first frame is decoded – without one the view is blank every time an animation appears. ``LazyImageState/animatedImage`` is the animation on its own, for a view you build yourself.
+
+Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable()``, and it lays out the way an `Image` does after that – `scaledToFit()`, `scaledToFill()`, `frame(width:height:)`, and the rest.
 
 ### UIKit and AppKit
 
@@ -53,83 +55,7 @@ NukeUI.loadImage(with: url, into: imageView)
 
 A plain `UIImageView` shows the still frame instead.
 
-
 The view plays only while it is in a window, so an animation in a cell that scrolls out of sight stops decoding frames and picks up where it left off when it comes back. Call ``AnimatedImageView/prepareForReuse()`` from your cell's `prepareForReuse()`.
-
-## How Playback Works
-
-``Nuke/AnimatedImageSource`` parses the container: the frame count, the delay of each frame, the loop count, and the canvas size. It decodes nothing, and it is `nil` for anything that isn't animated, including a single-frame GIF. The pipeline parses it while it decodes the image – on the decoding queue, once, with the result cached alongside the image – so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
-
-``AnimatedImagePlayer`` owns the frame buffer and the clock. It decodes frames on a background actor, one at a time, in playback order, and hands the current one to a view. ``AnimatedImageView`` and ``AnimatedImage`` both create a player of their own unless you hand them one.
-
-### Timing
-
-Playback follows the wall clock rather than the decoder. Every tick of the display link adds the elapsed time to a budget, and the player advances through as many frames as the budget covers. An animation that takes three seconds on paper takes three seconds on screen, even if the main thread stalls or the decoder falls behind; what gives is the number of frames actually shown. The one exception is an animation whose frames take longer to decode than they are shown for: skipping the late frames there would mean skipping all of them, so the player shows the late frame and moves the playhead back to it, and the animation plays slow rather than stopping.
-
-Two corrections are applied to the delays the file declares, and both are what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
-
-The clock runs no faster than the animation needs: a 10 fps GIF asks for a 20 Hz display link rather than the 60 or 120 Hz the display is capable of. Every animation is driven by one display link for the process, which runs while any animation is playing at the rate the fastest of them asks for.
-
-### The Frame Buffer
-
-Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. The player keeps a window of frames instead, starting at the one on screen, and refills it in playback order as the window moves.
-
-The window is sized by a memory budget – ``AnimatedImagePlayer/Options/maxBufferSize``, 10 MB by default – rather than a frame count, because 60 thumbnails and 60 full-screen frames are two orders of magnitude apart in memory. That budget is a ceiling rather than an allowance: what the player actually gets is its share of ``AnimatedImageFramePool``, described below.
-
-That gives two regimes:
-
-- **The animation fits.** The window covers every frame, nothing is ever evicted, and each frame is decoded exactly once. This is the common case for the small animations that appear in lists.
-- **The animation doesn't fit.** The window slides, and the frames behind it are dropped and decoded again on the next loop. Playback is smooth; the cost is a decode per frame for as long as it plays.
-
-Each frame is decoded and then drawn into a bitmap the player owns, which moves the decompression that would otherwise happen on the main thread onto a background actor, and produces a bitmap in the layout the compositor wants.
-
-A player that has not started playing – or one that has stopped because nobody is watching – decodes the first frame so that there is something to show, holds two frames at most, and fills the rest of the window when ``AnimatedImagePlayer/play()`` is called. A list of animations that are all showing their first frame costs a couple of bitmaps each rather than a full budget each.
-
-## Memory
-
-Every animation on screen draws its frames from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize`` – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``. Nothing is divided while the animations together want less than the limit, and the division is even past that, except that an animation that fits in less than its share takes only what it needs and leaves the rest to the ones that can use it.
-
-The limit is 5% of the device's physical memory by default, capped at 128 MB:
-
-```swift
-AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
-```
-
-One thing sits outside it: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
-
-Three levers, in the order you should reach for them.
-
-**Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB.
-
-``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up. How large that is depends on the content mode: covering the view is done with the frames' shorter side, so a 400×100 animation filling a 100×100 view needs 400-pixel frames. A content mode that draws the frames at their own size, like `.center`, turns the downsampling off.
-
-Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
-
-```swift
-var options = AnimatedImagePlayer.Options()
-options.maxPixelSize = 240
-imageView.playerOptions = options
-```
-
-**Size the buffer.** Raising ``AnimatedImagePlayer/Options/maxBufferSize`` trades memory for CPU: past the point where the whole animation fits, each frame is decoded once and never again. The buffer never holds fewer than two frames.
-
-**Let it respond to pressure.** The pool holds every animation at two frames on a memory warning, and they refill as playback continues. The windows it sized come back a minute later, or sooner if the app is backgrounded and returns. ``AnimatedImageFramePool/reduceMemoryUsage()`` shrinks them on demand.
-
-A player nobody is watching gives its window back too: a view that pauses because it left its window holds two frames rather than a budget's worth, so the animations a list has scrolled past cost almost nothing. Playback paused in place keeps its frames, so that resuming doesn't stall.
-
-Memory is bounded either way, but a screen full of animations that is over the pool's limit pays for it in decoding: every window is a share, the smaller windows slide, and the frames behind them are decoded again on every loop. Downsampling is the first lever because it is the one that makes the frames small enough for the shares to hold whole animations. Every frame except the one the animation is waiting on is decoded at `.utility`, so a grid of animations reading ahead queues behind the app's own work rather than beside it.
-
-### Sharing
-
-Every player showing one animation at one size draws from a single set of decoded frames, produced by a single decoder, so twenty copies of a sticker cost one sticker, and the nineteenth view to appear decodes nothing at all.
-
-A player also falls in behind whatever is already playing, so the copies of an animation on a screen sit on the same frame and one window covers all of them. Turn it off with ``AnimatedImagePlayer/Options/isSynchronizationEnabled`` for a player that should always start at the beginning. The playheads only matter while the animation has to be windowed at all; when they scatter across an animation too large to hold, the players split what the animation was given.
-
-Two views of the same animation at *different* sizes are two sets of frames. ``AnimatedImageView`` rounds the size it decodes for up to a step so that cells a fraction of a point apart still share.
-
-The frames outlive the players holding them: a cell that scrolls off screen and comes back finds them still in memory. They are given back when the pool needs the room, and go for good when the animation itself does – they last exactly as long as something, usually ``ImageCache``, still holds the ``AnimatedImageSource`` they came from.
-
-``AnimatedImagePlayer/Diagnostics/sharingPlayerCount`` reports how many players are drawing from the same frames, and ``AnimatedImageFramePool/animationCount`` how many distinct sets of frames the pool is holding.
 
 ## Controlling Playback
 
@@ -169,15 +95,52 @@ To show an animation as a still – a list where animations play only after the 
 
 That is also where Accessibility › Motion › Auto-Play Animated Images lands. ``AnimatedImage`` reads it from the SwiftUI environment and holds the animation on its first frame while the setting is off. A player you own still plays when something asks it to, so a play button of your own keeps working. UIKit and AppKit publish no equivalent, so an ``AnimatedImageView`` used outside SwiftUI has to be told.
 
+## Memory
+
+Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. A player holds a window of frames instead, starting at the one on screen, and refills it in playback order as the window moves. When the whole animation fits, nothing is ever evicted and each frame is decoded exactly once; when it doesn't, the frames behind the window are decoded again on every loop.
+
+Every animation on screen draws that window from one budget. A player asks ``AnimatedImageFramePool`` for enough memory to hold its animation – no more than its own ``AnimatedImagePlayer/Options/maxBufferSize``, 10 MB by default – and the pool answers with a share of ``AnimatedImageFramePool/costLimit``, which is 5% of the device's physical memory, capped at 128 MB:
+
+```swift
+AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
+```
+
+Nothing is divided while the animations together want less than the limit, and the division is even past that, except that an animation that fits in less than its share takes only what it needs and leaves the rest to the ones that can use it. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
+
+Two levers, in the order you should reach for them.
+
+**Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB. It is the first lever because it is the one that makes the frames small enough for the shares to hold whole animations.
+
+``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up. Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
+
+```swift
+var options = AnimatedImagePlayer.Options()
+options.maxPixelSize = 240
+imageView.playerOptions = options
+```
+
+**Size the window.** Raising ``AnimatedImagePlayer/Options/maxBufferSize`` trades memory for CPU: past the point where the whole animation fits, each frame is decoded once and never again.
+
+Memory is bounded either way. On a memory warning the pool holds every animation at two frames and gives the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
+
+### Sharing
+
+Every player showing one animation at one size draws from a single set of decoded frames, produced by a single decoder, so twenty copies of a sticker cost one sticker, and the nineteenth view to appear decodes nothing at all. A player also falls in behind whatever is already playing, so the copies on a screen sit on the same frame and one window covers all of them – turn that off with ``AnimatedImagePlayer/Options/isSynchronizationEnabled`` for a player that should always start at the beginning.
+
+Two views of the same animation at *different* sizes are two sets of frames, though ``AnimatedImageView`` rounds the size it decodes for up to a step so that cells a fraction of a point apart still share.
+
+The frames outlive the players holding them: a cell that scrolls off screen and comes back finds them still in memory. They are given back when the pool needs the room, and go for good when the animation itself does – they last exactly as long as something, usually ``ImageCache``, still holds the ``AnimatedImageSource`` they came from.
+
 ## Diagnostics
 
-``AnimatedImagePlayer/diagnostics`` is a snapshot of what the player and its buffer are doing:
+``AnimatedImagePlayer/diagnostics`` is a snapshot of what the player is doing:
 
 - **Is the animation fully buffered?** ``AnimatedImagePlayer/Diagnostics/isFullyBuffered``, along with ``AnimatedImagePlayer/Diagnostics/bufferedFrameCount`` and ``AnimatedImagePlayer/Diagnostics/bufferedByteCount``, says whether the whole thing is in memory or the window is sliding.
-- **What does a frame cost?** ``AnimatedImagePlayer/Diagnostics/averageDecodeDuration`` and ``AnimatedImagePlayer/Diagnostics/maxDecodeDuration``. ``AnimatedImagePlayer/Diagnostics/decodedFrameCount`` climbing past the frame count is the buffer re-decoding frames it had to evict.
+- **What does a frame cost?** ``AnimatedImagePlayer/Diagnostics/averageDecodeDuration`` and ``AnimatedImagePlayer/Diagnostics/maxDecodeDuration``. ``AnimatedImagePlayer/Diagnostics/decodedFrameCount`` climbing past the frame count means frames are being evicted and decoded again.
 - **Is playback keeping up?** ``AnimatedImagePlayer/Diagnostics/effectiveFrameRate`` against ``Nuke/AnimatedImageSource/nominalFrameRate``. ``AnimatedImagePlayer/Diagnostics/skippedFrameCount`` counts the frames the player was too far behind to show, and ``AnimatedImagePlayer/Diagnostics/bufferMissCount`` the ones that were due before they finished decoding.
+- **How much is shared?** ``AnimatedImagePlayer/Diagnostics/sharingPlayerCount`` reports how many players are drawing from the same frames, and ``AnimatedImageFramePool/animationCount`` how many distinct sets of frames the pool is holding.
 
-The **Animated Images** screen in the demo app puts all of it on screen, with a map of the buffer, over a real animation.
+The **Animated Images** screen in the demo app puts all of it on screen, with a map of the window, over a real animation.
 
 ## What Isn't Animated
 
@@ -187,6 +150,14 @@ Two cases where an animation deliberately becomes a still:
 - **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size, and playing the full-size animation would undo that. Neither the data nor the animation is attached.
 
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.
+
+## Under the Hood
+
+``Nuke/AnimatedImageSource`` parses the container – the frame count, the delays, the loop count, the canvas size – and decodes nothing. The pipeline parses it while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
+
+Playback follows the wall clock rather than the decoder: an animation that takes three seconds on paper takes three seconds on screen even if the main thread stalls, and what gives is the number of frames actually shown. The one exception is an animation whose frames take longer to decode than they are shown for, where skipping the late frames would mean skipping all of them: there the player shows the late frame and plays slow rather than stopping. Two corrections are applied to the delays the file declares, both of them what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
+
+Every animation in the process is driven by a single display link, which runs while any of them is playing and asks for no more than the fastest one needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of.
 
 ## Topics
 

@@ -152,19 +152,17 @@ let image = try await ImagePipeline.shared.image(for: request)
 
 ## Animated Images
 
-Image I/O decodes only the first frame of an animation, and decoding every frame up front would take too much memory, so ``ImageDecoders/Default`` attaches the encoded data to every image it recognizes as animated – GIF, APNG, animated WebP, and HEIC and AVIF image sequences – by reading the container header. The still frame is in ``ImageContainer/image``, the animation is in ``ImageContainer/data``, and the parsed metadata in ``ImageContainer/animation``:
+Image I/O decodes only the first frame of an animation, and decoding every frame up front would take too much memory, so ``ImageDecoders/Default`` attaches the encoded data to every image it recognizes as animated – GIF, APNG, animated WebP, and HEIC and AVIF image sequences – by reading the container header. The still frame is in ``ImageContainer/image``, the encoded animation in ``ImageContainer/data``, and the metadata parsed out of it in ``ImageContainer/animation``:
 
 ```swift
 let response = try await ImagePipeline.shared.imageTask(with: url).response
-response.container.image // The first frame
-response.container.data  // The whole animation, if it is one
+response.container.image     // The first frame
+response.container.animation // The frame count, the delays, the loop count
 ```
 
-Every GIF gets its data attached, animated or not. Two cases deliberately produce a still image with no data: a **processed** image, because the data describes what went into the processor, and a **thumbnail** request, because the data is the full-size animation the request asked to avoid.
+Every GIF gets its data attached, animated or not; ``ImageContainer/animation`` is `nil` for the still ones.
 
-**Rendering**
-
-`NukeUI` plays them: `LazyImage` and `LazyImageView` do it with no setup, and `AnimatedImagePlayer` is there when you want to control playback. See [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages). Anything that takes encoded bytes works just as well – [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or your own view.
+`NukeUI` plays them with no setup at all – see [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages), which also covers the two cases where an animation deliberately becomes a still. Anything that takes encoded bytes works just as well: [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or your own view.
 
 **Formats Image I/O can't read**
 
@@ -181,8 +179,6 @@ Learn more in <doc:image-decoding>.
 **Encoding**
 
 Image I/O can write GIF and APNG, but ``ImageEncoders/ImageIO`` writes a single frame – it has no way to express an animation.
-
-> GIF is not the most efficient format for transferring and displaying animated images. Consider using [short videos instead](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/): they are a fraction of the size and are decoded by dedicated hardware. `NukeVideo` plays them.
 
 ## SVG
 

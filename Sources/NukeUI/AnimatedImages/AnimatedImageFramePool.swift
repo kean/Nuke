@@ -19,24 +19,8 @@ import UIKit
 /// AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
 /// ```
 ///
-/// Nothing is divided until it has to be: while the animations together want
-/// less than ``costLimit``, each one gets what it asked for. Past that, the
-/// limit is split evenly, except that no animation is given more than it can
-/// use – what a small one leaves goes to the ones that can fill it.
-///
-/// The budget is divided between animations, not players: every player showing
-/// the same animation at the same size draws from one set of decoded frames,
-/// so a screen of the same sticker costs one sticker. The frames of an
-/// animation nothing is playing are kept until the pool needs the room, and go
-/// for good when the animation itself does.
-///
-/// Two things are outside the limit. A player never holds fewer than two
-/// frames, so a hundred animations at once will exceed any limit. And the pool
-/// bounds the decoded frames, not the images the pipeline has cached, which is
-/// ``ImageCache``.
-///
-/// The pool is also what answers a memory warning, for every animation at once
-/// – see ``reduceMemoryUsage()``.
+/// See <doc:AnimatedImages> for how the budget is divided, what sits outside
+/// it, and how the pool answers a memory warning.
 @MainActor
 public final class AnimatedImageFramePool {
     /// The pool every player uses.
@@ -67,7 +51,7 @@ public final class AnimatedImageFramePool {
     /// The number of players filling a window of frames.
     ///
     /// The rest are the ones nobody is watching, which hold the frame they are
-    /// showing and the one after it. See ``AnimatedImagePlayer/keepsFullBuffer``.
+    /// showing and the one after it.
     public var activePlayerCount: Int {
         stores.values.reduce(0) { $0 + $1.activeMemberCount }
     }
@@ -81,10 +65,6 @@ public final class AnimatedImageFramePool {
 
     /// Returns a limit computed from the amount of physical memory on the
     /// device: 5% of it, capped at 128 MB.
-    ///
-    /// Decoded frames are the most expensive thing in an image library and the
-    /// least valuable: a dropped frame costs milliseconds to decode again, and
-    /// the encoded animation behind it is already in ``ImageCache``.
     public static var defaultCostLimit: Int {
         let calculated = Int(Double(ProcessInfo.processInfo.physicalMemory) * 0.05)
         return min(calculated, 134_217_728) // 128 MB
@@ -107,9 +87,9 @@ public final class AnimatedImageFramePool {
     /// Holds every animation at the two frames playback needs, dropping the
     /// decoded frames that no longer fit.
     ///
-    /// Called automatically on a memory warning. Playback continues: the frames
-    /// are decoded again as they are needed, and the windows go back to the
-    /// size the pool sized them once the pressure has had time to pass.
+    /// Called automatically on a memory warning. Playback continues, and the
+    /// windows go back to the size the pool gave them once the pressure has
+    /// had time to pass.
     public func reduceMemoryUsage() {
         setUnderMemoryPressure(true)
         // A memory warning arrives while the app is active, usually on the very
