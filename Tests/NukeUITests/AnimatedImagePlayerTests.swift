@@ -72,6 +72,41 @@ struct AnimatedImagePlayerTests {
         #expect(player.currentFrameIndex == 1)
     }
 
+    // MARK: Clock Rate
+
+    @Test func asksTheClockForTwoTicksPerFrame() {
+        // 10 frames a second, and a tick to spare for each of them.
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.1, count: 4))
+
+        #expect(clock.preferredFrameRate == 20)
+    }
+
+    @Test func asksTheClockForARateFasterThanASixtyHertzDisplay() {
+        // 20 frames a second: below the rate a display link runs at by default
+        // on a 120 Hz display, and the rate the timer clock schedules itself at
+        // everywhere.
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.05, count: 4))
+
+        #expect(clock.preferredFrameRate == 40)
+    }
+
+    @Test func asksForNothingWhenTheAnimationIsFasterThanTheDisplay() {
+        // 50 frames a second wants 100 ticks, which no display gives: the clock
+        // runs at whatever rate it has and the animation keeps up as it can.
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.02, count: 4))
+
+        #expect(clock.preferredFrameRate == 0)
+    }
+
+    @Test func asksForAFasterClockWhenPlaybackIsSpedUp() {
+        var options = AnimatedImagePlayer.Options()
+        options.playbackRate = 2
+
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.1, count: 4), options: options)
+
+        #expect(clock.preferredFrameRate == 40)
+    }
+
     // MARK: Timing
 
     @Test func holdsTheFrameUntilItsDelayHasPassed() async {

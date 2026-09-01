@@ -445,14 +445,21 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// show every frame on: at exactly one tick per frame, the two rates beat
     /// against each other and frames are passed over.
     ///
-    /// Above 15 frames per second there is nothing to win – the clock would be
-    /// asking for the rate it already runs at – so the hint is dropped.
+    /// The hint is dropped above 60 ticks a second, which is where it stops
+    /// being a hint: a clock asked for a rate the display can't give it runs at
+    /// the display's rate anyway. The cap was 30 while every display refreshed
+    /// 60 times a second and anything above half of that was the rate the clock
+    /// already ran at. A 120 Hz display made the rest of the range worth
+    /// asking for: a 20 fps animation asks for 40 ticks a second, which is a
+    /// third of the wakeups it would get by default, and the timer clock the
+    /// platforms without a display link use schedules itself at exactly this
+    /// rate whatever the display does.
     private static func preferredFrameRate(for source: AnimatedImageSource, options: Options) -> Double {
         guard let shortest = source.delays.min(), shortest > 0 else {
             return 0
         }
         let ticksPerSecond = (1 / shortest) * max(options.playbackRate, 1) * 2
-        return ticksPerSecond <= 30 ? ticksPerSecond : 0
+        return ticksPerSecond <= 60 ? ticksPerSecond : 0
     }
 
     private func registerForApplicationNotifications() {
