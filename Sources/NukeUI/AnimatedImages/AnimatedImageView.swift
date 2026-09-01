@@ -32,9 +32,10 @@ import UIKit
 /// imageView.animatedImage = AnimatedImageSource(data: data)
 /// ```
 ///
-/// The view plays only while it is in a window, so an animation in a cell that
-/// scrolls out of view stops decoding frames and starts again when it comes
-/// back. ``player`` exposes the playback controls and the diagnostics.
+/// The view plays only while it is on screen – in a window, not hidden, not
+/// transparent – so an animation in a cell that scrolls out of view stops
+/// decoding frames and starts again when it comes back. ``player`` exposes the
+/// playback controls and the diagnostics.
 @MainActor
 public final class AnimatedImageView: _PlatformImageView {
     /// The image being played, or `nil` if the view is showing a still image.
@@ -114,8 +115,8 @@ public final class AnimatedImageView: _PlatformImageView {
         }
     }
 
-    /// Whether playback pauses while the view is not in a window. `true` by
-    /// default.
+    /// Whether playback pauses while the view is not on screen – outside a
+    /// window, hidden, or fully transparent. `true` by default.
     public var isPlaybackPausedWhenOffscreen = true {
         didSet {
             guard isPlaybackPausedWhenOffscreen != oldValue else { return }
@@ -378,7 +379,12 @@ public final class AnimatedImageView: _PlatformImageView {
         isAutomaticDownsamplingEnabled && playerOptions.maxPixelSize == nil
     }
 
-    // MARK: Window Changes
+    // MARK: Visibility
+
+    // A view that is hidden, or transparent, is as invisible as one outside a
+    // window, and none of the three is worth a timer, a decode, or the frames
+    // the buffer is holding on to. Hiding a cell's image view is how a list
+    // shows a placeholder, so this is a state animations do sit in.
 
 #if os(macOS)
     override public func viewDidMoveToWindow() {
@@ -391,6 +397,49 @@ public final class AnimatedImageView: _PlatformImageView {
         updatePlaybackState()
     }
 #endif
+
+    override public var isHidden: Bool {
+        didSet {
+            guard isHidden != oldValue else { return }
+            updatePlaybackState()
+        }
+    }
+
+    // An animated fade sets the opacity to its final value the moment it
+    // starts, so an animation being faded out stops on the first frame of the
+    // fade rather than the last. A few frames played under a view nobody can
+    // quite see is the cheaper mistake than the alternative, which is a decoder
+    // running behind every view an app has faded away.
+
+#if os(macOS)
+    override public var alphaValue: CGFloat {
+        didSet {
+            guard (alphaValue > 0) != (oldValue > 0) else { return }
+            updatePlaybackState()
+        }
+    }
+#else
+    override public var alpha: CGFloat {
+        didSet {
+            guard (alpha > 0) != (oldValue > 0) else { return }
+            updatePlaybackState()
+        }
+    }
+#endif
+
+    /// Whether the view is somewhere its frames can be seen.
+    ///
+    /// Being in a window is as far as this goes: nothing tells a view that it
+    /// is scrolled out of the visible area or covered by something on top of
+    /// it, and a list takes its cells out of the window anyway.
+    private var isVisible: Bool {
+        guard window != nil, !isHidden else { return false }
+#if os(macOS)
+        return alphaValue > 0
+#else
+        return alpha > 0
+#endif
+    }
 
     // MARK: Private
 
@@ -446,7 +495,7 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func updatePlaybackState() {
         guard let player else { return }
-        let isOnScreen = window != nil || !isPlaybackPausedWhenOffscreen
+        let isOnScreen = isVisible || !isPlaybackPausedWhenOffscreen
         if isPlaybackEnabled && isOnScreen {
             player.play()
         } else {

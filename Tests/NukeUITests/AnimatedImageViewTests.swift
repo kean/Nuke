@@ -49,6 +49,15 @@ struct AnimatedImageViewTests {
         return Test.animatedGIF(frameCount: frameCount, size: size)
     }
 
+    /// Fades the view, which is `alpha` on UIKit and `alphaValue` on AppKit.
+    private func setOpacity(_ opacity: CGFloat) {
+#if os(macOS)
+        view.alphaValue = opacity
+#else
+        view.alpha = opacity
+#endif
+    }
+
     /// Gives the view a size and runs a layout pass over it.
     private func layOut(_ size: CGSize) {
         view.frame = CGRect(origin: .zero, size: size)
@@ -311,7 +320,7 @@ struct AnimatedImageViewTests {
         #expect(try #require(view.player).options.maxPixelSize == 64)
     }
 
-    // MARK: Playback and the Window
+    // MARK: Playback and Visibility
 
     @Test func doesNotPlayOutsideAWindow() throws {
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
@@ -366,11 +375,84 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+    @Test func pausesWhileHidden() throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        #expect(view.isPlaying)
+
+        view.isHidden = true
+        #expect(view.isPlaying == false)
+
+        view.isHidden = false
+
+        #expect(view.isPlaying)
+        host.close()
+    }
+
+    @Test func pausesWhileFullyTransparent() throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        #expect(view.isPlaying)
+
+        setOpacity(0)
+        #expect(view.isPlaying == false)
+
+        setOpacity(1)
+
+        #expect(view.isPlaying)
+        host.close()
+    }
+
+    @Test func keepsPlayingWhileBarelyVisible() throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+
+        setOpacity(0.01)
+
+        // Faint is not invisible, and the user can see it move.
+        #expect(view.isPlaying)
+        host.close()
+    }
+
+    @Test func doesNotPlayAnAnimationItIsGivenWhileHidden() throws {
+        let host = TestWindow(view: view)
+        view.isHidden = true
+
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+
+        #expect(view.isPlaying == false)
+        host.close()
+    }
+
+    @Test func releasesTheBufferWhenItIsHidden() async throws {
+        let host = TestWindow(view: view)
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        let player = try #require(view.player)
+        await player.buffer.waitUntilFull()
+        #expect(player.diagnostics.bufferedFrameCount == 8)
+
+        view.isHidden = true
+
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImageFrameBuffer.idleCapacity)
+        host.close()
+    }
+
     @Test func playsOutsideAWindowWhenAsked() throws {
         view.isPlaybackPausedWhenOffscreen = false
         view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
 
         #expect(view.isPlaying)
+    }
+
+    @Test func playsWhileHiddenWhenAsked() throws {
+        let host = TestWindow(view: view)
+        view.isPlaybackPausedWhenOffscreen = false
+        view.isHidden = true
+
+        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+
+        #expect(view.isPlaying)
+        host.close()
     }
 
     @Test func playbackCanBeDisabled() throws {
