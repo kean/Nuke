@@ -33,12 +33,10 @@ public protocol LazyImageState {
 }
 
 extension LazyImageState {
-    /// Reads it from the container every time. The parsed animation is cached,
-    /// so this costs a lookup rather than a walk of the metadata; ``FetchImage``
-    /// – the state the views actually use – overrides it with a value resolved
-    /// once, when the response arrives.
+    /// The animation the pipeline parsed while it decoded the image, which
+    /// travels with the container into the memory cache.
     public var animatedImage: AnimatedImageSource? {
-        imageContainer.flatMap(AnimatedImageSource.cached(container:))
+        imageContainer?.animation
     }
 
     /// Returns the current error.

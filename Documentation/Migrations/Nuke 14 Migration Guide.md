@@ -16,7 +16,7 @@ Apps that need to support earlier OS versions can stay on Nuke 13.x, which conti
 
 ## `NukeExtensions` Folded into `NukeUI`
 
-The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and `Nuke_ImageDisplaying` – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
+The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and the display protocol – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
 
 `NukeExtensions` still exists as an empty module that re-exports `NukeUI`, so existing code keeps compiling. It will be removed in Nuke 15.
 
@@ -37,6 +37,88 @@ NukeExtensions.loadImage(with: url, into: imageView)
 // After
 NukeUI.loadImage(with: url, into: imageView)
 ```
+
+## `Nuke_ImageDisplaying` is now `ImageDisplaying`
+
+The protocol lost its `@objc`, its prefix, and its two-argument method. It was `@objc` for one reason – so that a `UIImageView` subclass could override a method the conformance declares in an extension – and that reason cost it the ability to carry any Swift-only type in a signature.
+
+It now takes the whole `ImageContainer`, which is where the animated images the pipeline parses live:
+
+```swift
+// Nuke 13
+extension MyImageView: Nuke_ImageDisplaying {
+    func nuke_display(image: UIImage?, data: Data?) {
+        self.image = image
+    }
+}
+
+// Nuke 14
+extension MyImageView: ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        self.image = container?.image
+    }
+}
+```
+
+`image` and `data` are `container?.image` and `container?.data`, and `nil` is the "clear the view" call that used to be `nuke_display(image: nil, data: nil)`. A view that rendered animations from the data now has `container?.animation` as well, already parsed – see below.
+
+The method keeps its `nuke_` prefix: the built-in conformances ship as extensions of `UIImageView`, `NSImageView`, and `TVPosterView`, and an unprefixed name added to a system class is the kind that collides with a future OS API.
+
+`ImageDisplayingView` is unchanged, and so is every conformance that a rename and a signature change fix. What does not survive is **overriding the display method in a `UIImageView` subclass**. Swift resolves a protocol requirement witnessed in an extension statically, so the subclass's method is never called:
+
+```swift
+// Nuke 13 – no longer works
+final class MyImageView: UIImageView {
+    override func nuke_display(image: UIImage?, data: Data?) { ... }
+}
+```
+
+Stop subclassing `UIImageView` and declare the conformance on the class itself, where an override is not needed because there is nothing to override:
+
+```swift
+// Nuke 14
+final class MyImageView: UIView, ImageDisplaying {
+    private let imageView = UIImageView()
+
+    func nuke_display(_ container: ImageContainer?) {
+        imageView.image = container?.image
+    }
+}
+```
+
+If the subclass existed to play animated images, `AnimatedImageView` – which is that second shape, and which the extensions display animations through – does it already.
+
+## The Pipeline Parses Animated Images
+
+`ImageDecoders.Default` already attached the encoded bytes of an animated image to `ImageContainer.data`. It now also parses them – the frame count, the per-frame delays, the loop count, the canvas size – and attaches the result to the new `ImageContainer.animation`.
+
+```swift
+// Nuke 13
+guard let source = AnimatedImageSource(data: response.container.data ?? Data()) else { return }
+
+// Nuke 14
+guard let animation = response.container.animation else { return }
+```
+
+`AnimatedImageSource` moved from `NukeUI` to `Nuke` for it. `NukeUI` re-exports `Nuke`, so code that imports either keeps compiling.
+
+Three things follow from where the parse now happens:
+
+- It runs on the decoding queue, once per decoded image, instead of on the main thread once per view that displays it.
+- The result travels with the container into the memory cache, so its lifetime is the image's. The parse cache `NukeUI` kept – bounded on its own, and the last owner of encoded data the image cache had already evicted – is gone.
+- `container.data != nil` is a header sniff and is `true` for a single-frame GIF; `container.animation != nil` is the parsed answer and is `false` for one. Prefer it when the question is "can this be played?".
+
+The parse walks the metadata of every frame, which for a large animation is a frame's worth of work, and it is paid whether or not the image is ever displayed. Turn it off in an app that plays animations some other way, or none at all:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.isAnimatedImageParsingEnabled = false
+}
+```
+
+`ImageContainer.data` is unaffected by the flag, so a renderer that parses the data itself keeps working.
+
+Processing an image clears `animation` along with `data`: both describe the image that went into the processor.
 
 ## Removed Deprecated APIs
 

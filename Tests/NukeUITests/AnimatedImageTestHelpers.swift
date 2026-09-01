@@ -57,8 +57,8 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     private var startedPriorities: [Int: DecodePriority] = [:]
     private var priorityWaiters: [Int: CheckedContinuation<DecodePriority, Never>] = [:]
 
-    init(data: Data, maxPixelSize: CGFloat? = nil) {
-        self.decoder = AnimatedImageFrameDecoder(data: data, maxPixelSize: maxPixelSize)
+    init(source: AnimatedImageSource, maxPixelSize: CGFloat? = nil) {
+        self.decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: maxPixelSize)
     }
 
     func decode(at index: Int) async -> AnimatedImageFrameDecoder.Frame? {
@@ -130,7 +130,7 @@ enum AnimatedImageTest {
         let data = Test.animatedGIF(frameCount: frameCount, delays: delays, size: size)
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
-        let decoder = GatedFrameDecoder(data: data)
+        let decoder = GatedFrameDecoder(source: source)
         let player = AnimatedImagePlayer(source: source, options: options, clock: clock, decoder: decoder)
         return (player, clock, decoder)
     }

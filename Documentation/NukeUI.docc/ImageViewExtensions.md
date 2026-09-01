@@ -111,19 +111,22 @@ Progressive JPEG is supported out of the box.
 
 ## Custom Views
 
-You can use image view extensions with custom views by implementing ``Nuke_ImageDisplaying`` protocol.
-
-> The name of the protocol has a prefix because it's an Objective-C protocol. Objective-C runtime allows you to override methods declared in extensions in subclasses.
+You can use image view extensions with custom views by implementing the ``ImageDisplaying`` protocol. The view is handed the whole `ImageContainer`, so it has everything the pipeline produced: the still image, the encoded `data`, and the `animation` parsed out of it.
 
 ```swift
-extension UIImageView: Nuke_ImageDisplaying {
-    open func nuke_display(image: UIImage?, data: Data?) {
-        self.image = image
+final class MyImageView: UIView, ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        guard let animation = container?.animation else {
+            return show(still: container?.image)
+        }
+        myEngine.play(animation)
     }
 }
 ```
 
-The module provides built-in implementations for `UIImageView` and `NSImageView`.
+The module provides built-in implementations for `UIImageView` and `NSImageView`. ``AnimatedImageView`` is the one that plays animations, so reach for it before writing a renderer.
+
+> Important: The built-in conformances come as extensions, and a Swift protocol conformance declared in an extension can't be overridden by a subclass. Conform your own view directly, as above, rather than subclassing `UIImageView` and overriding `nuke_display(_:)`.
 
 ## Customizing Requests
 

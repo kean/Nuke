@@ -44,10 +44,7 @@ public final class AnimatedImageView: _PlatformImageView {
     /// ``isPlaybackEnabled`` is off.
     public var animatedImage: AnimatedImageSource? {
         get { _animatedImage }
-        set {
-            cancelPendingParse()
-            setAnimatedImage(newValue, scale: scale(of: image))
-        }
+        set { setAnimatedImage(newValue, scale: scale(of: image)) }
     }
 
     /// The player driving ``animatedImage``, or `nil` when there is nothing to
@@ -61,7 +58,6 @@ public final class AnimatedImageView: _PlatformImageView {
         didSet {
             guard oldValue !== player else { return }
             // A player set from outside wins over anything on its way.
-            cancelPendingParse()
             sourcePendingDownsampling = nil
             oldValue?.pause()
             oldValue?.onFrameForDisplay = nil
@@ -85,9 +81,6 @@ public final class AnimatedImageView: _PlatformImageView {
     }
 
     private var _animatedImage: AnimatedImageSource?
-
-    /// The parse in flight, if any. Exists for the tests.
-    var pendingParse: Task<Void, Never>?
 
     /// The animation whose frames are being decoded at full size because the
     /// view had no size of its own to scale them to yet.
@@ -239,55 +232,27 @@ public final class AnimatedImageView: _PlatformImageView {
         super.image = image
     }
 
-    /// Displays the image, playing it if the pipeline recognized it as animated.
+    /// Displays the image, playing it if the pipeline parsed an animation out
+    /// of it.
     ///
-    /// This is the entry point the ``loadImage(with:options:into:completion:)-(URL?,_,_,_)``
-    /// extensions use. The `image` argument is the still frame the decoder
-    /// produced, which is displayed immediately, and the animation – if there
-    /// is one – takes over as soon as its first frame is decoded.
-#if os(macOS)
-    override public func nuke_display(image: NSImage?, data: Data?) {
-        display(image: image, data: data)
-    }
-#else
-    override public func nuke_display(image: UIImage?, data: Data?) {
-        display(image: image, data: data)
-    }
-#endif
-
-    private func display(image: PlatformImage?, data: Data?) {
+    /// This is what ``ImageDisplaying/nuke_display(_:)`` reaches for a view of
+    /// this type, and so the entry point the
+    /// ``loadImage(with:options:into:completion:)-(URL?,_,_,_)`` extensions
+    /// use. The pipeline parses the animation while it decodes the image, so
+    /// the switch happens in this call rather than a turn of the run loop
+    /// later: the still the decoder produced only goes on screen while there is
+    /// no decoded frame to cover it.
+    func display(_ container: ImageContainer?) {
+        let poster = container?.image
         // The scale has to be passed in rather than read back from the view:
         // `self.image` is still whatever the view was showing before this call.
-        let scale = scale(of: image)
-        cancelPendingParse()
-        // An animation this image has shown before is parsed before this
-        // returns – it may well be the same one, played by the same player –
-        // so it is left to the parse to replace what is on screen, and a fast
-        // decode is never covered by the poster frame.
-        //
-        // Anything else is stopped now. What is playing belongs to the image
-        // being replaced, and a parse that lands later would leave it running
-        // under the new image's poster until it did.
-        if data.map(AnimatedImageSource.isParsed) != true {
-            setAnimatedImage(nil, scale: scale)
-        }
-        if let data {
-            // Set after the clear above: `player` treats a player assigned from
-            // outside as winning over a parse on its way, and cancels it.
-            pendingParse = AnimatedImageSource.parse(data: data) { [weak self] source in
-                self?.setAnimatedImage(source, scale: scale)
-            }
-        }
+        setAnimatedImage(container?.animation, scale: scale(of: poster))
         // Only while there is no frame to cover, so that an animation already
-        // on screen doesn't flash its poster to show what it is already past.
+        // on screen – the same one, played by the same player – doesn't flash
+        // its poster to show what it is already past.
         if player?.image == nil {
-            setImageKeepingAnimation(image)
+            setImageKeepingAnimation(poster)
         }
-    }
-
-    private func cancelPendingParse() {
-        pendingParse?.cancel()
-        pendingParse = nil
     }
 
     /// Stops the animation and clears the view.
@@ -306,7 +271,6 @@ public final class AnimatedImageView: _PlatformImageView {
         animatedImage = nil
         image = nil
     }
-
 
     // MARK: Layout
 

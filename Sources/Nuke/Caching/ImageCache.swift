@@ -105,6 +105,8 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for container: ImageContainer) -> Int {
+        // Counted once: `ImageContainer/animation` shares this buffer rather
+        // than copying it, and what it adds of its own is a delay per frame.
         let dataCost = container.data?.count ?? 0
 
         // bytesPerRow * height gives a rough estimation of how much memory

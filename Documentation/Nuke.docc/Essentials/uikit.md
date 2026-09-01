@@ -91,12 +91,12 @@ NukeUI.loadImage(with: url, into: imageView) { result in
 
 ## Custom Views
 
-The extensions work with any view that conforms to `Nuke_ImageDisplaying`, not just `UIImageView` and `NSImageView`.
+The extensions work with any view that conforms to `ImageDisplaying`, not just `UIImageView` and `NSImageView`.
 
 ```swift
-extension MyImageView: Nuke_ImageDisplaying {
-    func nuke_display(image: UIImage?, data: Data?) {
-        self.image = image
+final class MyImageView: UIView, ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        // Display `container?.image` however you like
     }
 }
 ```

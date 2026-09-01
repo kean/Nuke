@@ -30,7 +30,6 @@ Both views play animated images – GIF, APNG, animated WebP, and animated HEIC 
 - ``AnimatedImage``
 - ``AnimatedImageView``
 - ``AnimatedImagePlayer``
-- ``AnimatedImageSource``
 
 ### Image View Extensions
 
@@ -38,7 +37,7 @@ Both views play animated images – GIF, APNG, animated WebP, and animated HEIC 
 - ``loadImage(with:options:into:completion:)-(URL?,_,_,_)``
 - ``cancelRequest(for:)``
 - ``ImageLoadingOptions``
-- ``Nuke_ImageDisplaying``
+- ``ImageDisplaying``
 - ``ImageDisplayingView``
 
 ### Helpers

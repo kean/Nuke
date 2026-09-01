@@ -66,13 +66,12 @@ extension ImageProcessing {
     /// keeps the two in step – or that processes the frames itself – can
     /// implement this method and keep the data.
     public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        guard let output = process(container.image) else {
-            throw ImageProcessingError.unknown
+        try container.map { image in
+            guard let output = process(image) else {
+                throw ImageProcessingError.unknown
+            }
+            return output
         }
-        var container = container
-        container.image = output
-        container.data = nil
-        return container
     }
 
     /// The default implementation simply returns `var identifier: String`.

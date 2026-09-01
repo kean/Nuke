@@ -91,9 +91,9 @@ private final class MyImageView: UIView {
     var image: UIImage?
 }
 
-extension MyImageView: Nuke_ImageDisplaying {
-    func nuke_display(image: UIImage?, data: Data?) {
-        self.image = image
+extension MyImageView: ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        self.image = container?.image
     }
 }
 

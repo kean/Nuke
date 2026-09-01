@@ -75,7 +75,7 @@ public struct AnimatedImage: View {
     /// - returns: `nil` for anything that isn't an animated image, which is the
     /// signal to display ``ImageContainer/image`` as a still.
     public init?(container: ImageContainer) {
-        guard let source = AnimatedImageSource.cached(container: container) else {
+        guard let source = container.animation else {
             return nil
         }
         self.init(source, poster: container.image)

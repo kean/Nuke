@@ -4,7 +4,7 @@ Play GIF, APNG, animated WebP, and animated HEIC.
 
 ## Overview
 
-An animated image arrives as a container the pipeline recognizes as animated: the still it decoded, plus the encoded bytes it came from (``ImageContainer/data``). NukeUI turns that into playback – it decodes the frames off the main thread, keeps a bounded number of them in memory, and shows each one when the file says it should.
+An animated image arrives as a container the pipeline recognizes as animated: the still it decoded, the encoded bytes it came from (``ImageContainer/data``), and the animation it parsed out of them (``ImageContainer/animation``). NukeUI turns that into playback – it decodes the frames off the main thread, keeps a bounded number of them in memory, and shows each one when the file says it should.
 
 Nothing needs to be enabled. ``LazyImage`` and ``LazyImageView`` play animations by default:
 
@@ -12,7 +12,7 @@ Nothing needs to be enabled. ``LazyImage`` and ``LazyImageView`` play animations
 LazyImage(url: URL(string: "https://example.com/cat.gif"))
 ```
 
-The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and animated HEIC and AVIF sequences. There is no per-format code – ``AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest of the pipeline is the same for all of them.
+The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and animated HEIC and AVIF sequences. There is no per-format code – ``Nuke/AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest of the pipeline is the same for all of them.
 
 ## Displaying Animations
 
@@ -61,9 +61,9 @@ The view plays only while it is in a window, so an animation in a cell that scro
 
 Three pieces, one per concern.
 
-``AnimatedImageSource`` parses the container: the frame count, the delay of each frame, the loop count, and the canvas size. It decodes nothing – Image I/O answers all of that from the container – and it returns `nil` for anything that isn't animated, including a single-frame GIF.
+``Nuke/AnimatedImageSource`` parses the container: the frame count, the delay of each frame, the loop count, and the canvas size. It decodes nothing – Image I/O answers all of that from the container – and it is `nil` for anything that isn't animated, including a single-frame GIF.
 
-Parsing is not free: counting the frames of a GIF means walking it, and the delays are read one frame at a time, which for a 40 MB animation is 20 ms. So the views parse off the main thread and remember the result, animation or not. An image seen before – a cell scrolled back to – is ready the moment it is displayed; a new one shows the still the decoder produced until its animation lands.
+Parsing is not free: counting the frames of a GIF means walking it, and the delays are read one frame at a time, which for a 40 MB animation is 20 ms. The pipeline does it while it decodes the image – on the decoding queue, once, and the result travels with the container into the memory cache – so a view is handed an animation rather than data to find one in, and a list scrolled back to an animation pays nothing at all. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
 
 ``AnimatedImagePlayer`` owns the frame buffer and the clock. It decodes frames on a background actor, one at a time, in playback order, and hands the current one to a view.
 
@@ -177,7 +177,7 @@ That is also where Accessibility › Motion › Auto-Play Animated Images lands.
 
 - **Is the animation fully buffered?** ``AnimatedImagePlayer/Diagnostics/isFullyBuffered``, along with ``AnimatedImagePlayer/Diagnostics/bufferedFrameCount`` and ``AnimatedImagePlayer/Diagnostics/bufferedByteCount``, says whether the whole thing is in memory or the window is sliding.
 - **What does a frame cost?** ``AnimatedImagePlayer/Diagnostics/averageDecodeDuration`` and ``AnimatedImagePlayer/Diagnostics/maxDecodeDuration``. ``AnimatedImagePlayer/Diagnostics/decodedFrameCount`` climbing past the frame count is the buffer re-decoding frames it had to evict.
-- **Is playback keeping up?** ``AnimatedImagePlayer/Diagnostics/effectiveFrameRate`` against ``AnimatedImageSource/nominalFrameRate``. A gap means frames are being passed over: ``AnimatedImagePlayer/Diagnostics/skippedFrameCount`` counts the ones the player was too far behind to show, and ``AnimatedImagePlayer/Diagnostics/bufferMissCount`` the ones that were due before they finished decoding.
+- **Is playback keeping up?** ``AnimatedImagePlayer/Diagnostics/effectiveFrameRate`` against ``Nuke/AnimatedImageSource/nominalFrameRate``. A gap means frames are being passed over: ``AnimatedImagePlayer/Diagnostics/skippedFrameCount`` counts the ones the player was too far behind to show, and ``AnimatedImagePlayer/Diagnostics/bufferMissCount`` the ones that were due before they finished decoding.
 
 The **Animated Images** screen in the demo app puts all of it on screen, with a map of the buffer, over a real animation.
 
@@ -185,8 +185,8 @@ The **Animated Images** screen in the demo app puts all of it on screen, with a 
 
 Two cases where an animation deliberately becomes a still, both because the alternative is worse:
 
-- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data. Otherwise you would see the original animation playing over a processed still. This is a change: the data used to survive processing, so a resize processor and a renderer of your own would play the original animation, at its original size, on top of the processed image. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep the data – one that processes the frames, or that keeps the two in step some other way.
-- **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size; the data is the full-size animation, and playing it would undo that.
+- **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data and the animation with it. Otherwise you would see the original animation playing over a processed still. This is a change: the data used to survive processing, so a resize processor and a renderer of your own would play the original animation, at its original size, on top of the processed image. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep both – one that processes the frames, or that keeps them in step some other way.
+- **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size; the data is the full-size animation, and playing it would undo that. Neither the data nor the animation is attached.
 
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.
 
@@ -200,7 +200,7 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 ### Playback
 
 - ``AnimatedImagePlayer``
-- ``AnimatedImageSource``
+- ``Nuke/AnimatedImageSource``
 
 ### Memory
 

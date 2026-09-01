@@ -23,8 +23,17 @@ protocol AnimatedImageFrameDecoding: Sendable {
 /// wants anyway: decoding several frames in parallel would finish the ones that
 /// are needed last just as soon as the one that is needed next.
 actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
-    private let source: CGImageSource?
+    private let animation: AnimatedImageSource
     private let maxPixelSize: CGFloat?
+
+    /// Created on the first decode rather than up front.
+    ///
+    /// A view that is given an animation before it is laid out builds a player
+    /// with decoding disabled and replaces it at the first layout with one that
+    /// decodes for the size it settled. Building the image source in the
+    /// initializer meant the discarded player parsed the container for nothing,
+    /// on the main thread, once per animation displayed.
+    private lazy var source: CGImageSource? = animation.makeImageSource()
 
     /// A decoded frame and what it cost to produce.
     struct Frame: @unchecked Sendable {
@@ -40,8 +49,8 @@ actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
 
     /// - parameter maxPixelSize: The longest side, in pixels, the decoded
     /// frames may have. Larger frames are scaled down.
-    init(data: Data, maxPixelSize: CGFloat?) {
-        self.source = CGImageSourceCreateWithData(data as CFData, imageSourceOptions)
+    init(source: AnimatedImageSource, maxPixelSize: CGFloat?) {
+        self.animation = source
         self.maxPixelSize = maxPixelSize
     }
 
@@ -54,7 +63,7 @@ actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
         // Image I/O composes the frame onto the animation canvas – it applies
         // the disposal and blend modes of GIF and APNG – so what comes back is
         // a complete picture, not the delta the container stores.
-        guard let image = CGImageSourceCreateImageAtIndex(source, index, imageSourceOptions) else {
+        guard let image = CGImageSourceCreateImageAtIndex(source, index, AnimatedImageSource.imageSourceOptions) else {
             return nil
         }
         // The image Image I/O hands back is lazy: it decompresses the first
@@ -258,7 +267,7 @@ final class AnimatedImageFrameBuffer {
         pool: AnimatedImageFramePool = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
-        self.decoder = decoder ?? AnimatedImageFrameDecoder(data: source.data, maxPixelSize: options.maxPixelSize)
+        self.decoder = decoder ?? AnimatedImageFrameDecoder(source: source, maxPixelSize: options.maxPixelSize)
         self.frameCount = source.frameCount
         self.bytesPerFrame = AnimatedImageFrameBuffer.bytesPerFrame(for: source, options: options)
         self.maxBufferSize = options.maxBufferSize

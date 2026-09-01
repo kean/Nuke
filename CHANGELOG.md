@@ -49,9 +49,11 @@
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 - `FetchImage/progress` and `LazyImageState/progress` now return `ImageTask/Progress`, which `FetchImage` publishes itself, instead of the nested `FetchImage.Progress` observable object that needed its own `@ObservedObject`. The old type is deprecated – https://github.com/kean/Nuke/pull/953
 - Add `ImagePipeline/Error/isCancelled` – https://github.com/kean/Nuke/pull/952
-- `NukeUI` now plays animated images: `LazyImage` and `LazyImageView` animate GIF, APNG, animated WebP, and animated HEIC with no setup. Adds `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageSource`, `AnimatedImageFramePool`, and `LazyImageState/animatedImage` – https://github.com/kean/Nuke/pull/958
+- `NukeUI` now plays animated images: `LazyImage` and `LazyImageView` animate GIF, APNG, animated WebP, and animated HEIC with no setup. Adds `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageFramePool`, and `LazyImageState/animatedImage` – https://github.com/kean/Nuke/pull/958
 - `ImageDecoders/Default` now attaches `ImageContainer/data` to every animated image, not only to GIFs, and no longer attaches it to a thumbnail request – https://github.com/kean/Nuke/pull/958
-- Processing an image now clears `ImageContainer/data`, which described the image that went into the processor rather than the one that came out – https://github.com/kean/Nuke/pull/958
+- Processing an image now clears `ImageContainer/data` and `ImageContainer/animation`, which described the image that went into the processor rather than the one that came out – https://github.com/kean/Nuke/pull/958
+- `ImageDecoders/Default` now parses the animated images it recognizes and attaches the result to the new `ImageContainer/animation`, on the decoding queue and once per image instead of once per view that displays it. Adds `AnimatedImageSource` to `Nuke`, where it replaces the `NukeUI` type of the same name, and `ImagePipeline/Configuration/isAnimatedImageParsingEnabled` to turn it off – https://github.com/kean/Nuke/pull/958
+- `Nuke_ImageDisplaying` is renamed to `ImageDisplaying`, is no longer an `@objc` protocol, and its method takes an `ImageContainer` instead of an image and its data: `nuke_display(image:data:)` becomes `nuke_display(_:)`. Because the protocol is now a plain Swift one, a conformance declared in an extension can no longer be overridden by a subclass – https://github.com/kean/Nuke/pull/958
 
 **Bug Fixes**
 

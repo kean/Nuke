@@ -64,6 +64,20 @@ struct ImageContainerTests {
         #expect(b.data == Data([0xFF]))
     }
 
+    @Test func copyOnWriteAnimation() throws {
+        // GIVEN
+        let original = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 4)))
+        let a = ImageContainer(image: Test.image, animation: original)
+
+        // WHEN
+        var b = a
+        b.animation = nil
+
+        // THEN
+        #expect(a.animation === original)
+        #expect(b.animation == nil)
+    }
+
     // MARK: - UserInfoKey
 
     @Test func userInfoKeyEquality() {
@@ -86,6 +100,7 @@ struct ImageContainerTests {
         let container = ImageContainer(image: Test.image)
         #expect(container.isPreview == false)
         #expect(container.data == nil)
+        #expect(container.animation == nil)
         #expect(container.type == nil)
         #expect(container.userInfo.isEmpty)
     }

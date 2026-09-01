@@ -19,11 +19,13 @@ import UIKit
 struct AnimatedImageViewTests {
     let view = AnimatedImageView()
 
-    /// Displays the image and waits for the animation to be parsed, which the
-    /// view does off the main thread the first time it sees one.
-    private func display(_ data: Data?, image: PlatformImage? = Test.image) async {
-        view.nuke_display(image: image, data: data)
-        await view.pendingParse?.value
+    /// Displays the image the way the pipeline does: in a container carrying
+    /// the animation it parsed, rather than data for the view to find one in.
+    private func display(_ data: Data?, image: PlatformImage? = Test.image) {
+        guard let image else { return view.nuke_display(nil) }
+        var container = ImageContainer(image: image, data: data)
+        container.animation = data.flatMap(AnimatedImageSource.init(data:))
+        view.nuke_display(container)
     }
 
     /// Asks the view to cover itself with the frames, which is a content mode
@@ -34,19 +36,6 @@ struct AnimatedImageViewTests {
 #else
         view.contentMode = .scaleAspectFill
 #endif
-    }
-
-    /// The number of animations ``unparsedGIF(frameCount:)`` has built, so that
-    /// each one is different from every other.
-    private static var builtAnimationCount = 0
-
-    /// An animation nothing has parsed before, so that the view parses it off
-    /// the main thread instead of answering from the shared cache – which
-    /// outlives the test, and the suite, and any re-run of either.
-    private func unparsedGIF(frameCount: Int) -> Data {
-        Self.builtAnimationCount += 1
-        let size = CGSize(width: 13 + Self.builtAnimationCount, height: 11)
-        return Test.animatedGIF(frameCount: frameCount, size: size)
     }
 
     /// Fades the view, which is `alpha` on UIKit and `alphaValue` on AppKit.
@@ -73,7 +62,7 @@ struct AnimatedImageViewTests {
     // MARK: Displaying
 
     @Test func playsAnimatedData() async throws {
-        await display(Test.animatedGIF())
+        display(Test.animatedGIF())
 
         let player = try #require(view.player)
         #expect(player.source.frameCount == 4)
@@ -82,7 +71,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func showsStillImageForNonAnimatedData() async {
-        await display(nil)
+        display(nil)
 
         #expect(view.player == nil)
         #expect(view.animatedImage == nil)
@@ -92,7 +81,7 @@ struct AnimatedImageViewTests {
     @Test func showsStillImageForSingleFrameGIF() async {
         // Every GIF arrives with its data attached, so a still one has to be
         // recognized here rather than turned into a one-frame animation.
-        await display(Test.animatedGIF(frameCount: 1))
+        display(Test.animatedGIF(frameCount: 1))
 
         #expect(view.player == nil)
         #expect(view.image != nil)
@@ -101,7 +90,7 @@ struct AnimatedImageViewTests {
     @Test func showsThePosterFrameBeforeTheFirstFrameIsDecoded() async {
         let poster = Test.image
 
-        await display(Test.animatedGIF(), image: poster)
+        display(Test.animatedGIF(), image: poster)
 
         // The still the decoder produced is on screen right away; the player
         // replaces it when it has a frame of its own.
@@ -109,10 +98,10 @@ struct AnimatedImageViewTests {
     }
 
     @Test func replacesThePreviousAnimation() async throws {
-        await display(Test.animatedGIF(frameCount: 4))
+        display(Test.animatedGIF(frameCount: 4))
         let first = try #require(view.player)
 
-        await display(Test.animatedGIF(frameCount: 6))
+        display(Test.animatedGIF(frameCount: 6))
 
         let second = try #require(view.player)
         #expect(first !== second)
@@ -120,26 +109,20 @@ struct AnimatedImageViewTests {
         #expect(first.isPlaying == false)
     }
 
-    @Test func showsTheStillOfTheNextImageWhileItsAnimationIsParsed() async throws {
+    @Test func showsTheStillOfAnImageThatIsNotAnimated() throws {
         // GIVEN an animation on screen
-        await display(Test.animatedGIF(frameCount: 4))
+        display(Test.animatedGIF(frameCount: 4))
         let first = try #require(view.player)
 
-        // WHEN a different one arrives whose animation has to be parsed
+        // WHEN a still arrives
         let poster = Test.image
-        view.nuke_display(image: poster, data: unparsedGIF(frameCount: 6))
-        let parse = try #require(view.pendingParse) // Never seen, so not immediate
+        display(nil, image: poster)
 
-        // THEN the animation that isn't this image's is gone and its own still
-        // holds the place. It used to keep playing under the new image until
-        // the parse landed, because the view only asked whether there was an
-        // animation, not whether it was this one.
+        // THEN the animation that belongs to the image being replaced is gone
+        // and the new image's own still holds the place.
         #expect(view.image === poster)
         #expect(view.player == nil)
         #expect(first.isPlaying == false)
-
-        await parse.value
-        #expect(view.animatedImage?.frameCount == 6)
     }
 
     @Test func keepsThePlayerWhenTheSameSourceIsSetAgain() throws {
@@ -153,7 +136,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func prepareForReuseStopsEverything() async throws {
-        await display(Test.animatedGIF())
+        display(Test.animatedGIF())
         let player = try #require(view.player)
 
         view.prepareForReuse()
@@ -168,7 +151,7 @@ struct AnimatedImageViewTests {
     @Test func usesTheScaleOfTheImageBeingDisplayed() async throws {
         let image = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
 
-        await display(Test.animatedGIF(), image: image)
+        display(Test.animatedGIF(), image: image)
 
         let player = try #require(view.player)
         #expect(player.options.scale == 2)
@@ -176,9 +159,9 @@ struct AnimatedImageViewTests {
 
     @Test func doesNotInheritTheScaleOfThePreviousImage() async throws {
         let scaled = UIImage(cgImage: Test.image.cgImage!, scale: 2, orientation: .up)
-        await display(Test.animatedGIF(frameCount: 4), image: scaled)
+        display(Test.animatedGIF(frameCount: 4), image: scaled)
 
-        await display(Test.animatedGIF(frameCount: 6))
+        display(Test.animatedGIF(frameCount: 6))
 
         let player = try #require(view.player)
         #expect(player.options.scale == 1)
@@ -187,7 +170,7 @@ struct AnimatedImageViewTests {
 
     @Test func settingAnImageStopsTheAnimation() async throws {
         let host = TestWindow(view: view)
-        await display(Test.animatedGIF())
+        display(Test.animatedGIF())
         #expect(view.isPlaying)
         let placeholder = Test.image
 
@@ -201,18 +184,6 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func settingAnImageCancelsAParseInFlight() async throws {
-        view.nuke_display(image: nil, data: unparsedGIF(frameCount: 4))
-        let parse = try #require(view.pendingParse)
-
-        view.image = Test.image
-        await parse.value
-
-        // The animation the parse was for arrives after the placeholder and
-        // has no business replacing it.
-        #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
-    }
 
     @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
@@ -232,7 +203,7 @@ struct AnimatedImageViewTests {
     @Test func decodesTheFramesNoLargerThanTheView() async throws {
         layOut(CGSize(width: 20, height: 20))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
 
         let player = try #require(view.player)
         let maxPixelSize = try #require(player.options.maxPixelSize)
@@ -249,7 +220,7 @@ struct AnimatedImageViewTests {
         fillTheView()
         layOut(CGSize(width: 100, height: 100))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 100)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 100)))
 
         let player = try #require(view.player)
         await player.buffer.waitUntilFull()
@@ -270,7 +241,7 @@ struct AnimatedImageViewTests {
 #endif
         layOut(CGSize(width: 20, height: 20))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
 
         #expect(try #require(view.player).options.maxPixelSize == nil)
     }
@@ -278,7 +249,7 @@ struct AnimatedImageViewTests {
     @Test func decodesNothingUntilItKnowsWhatSizeToDecodeFor() async throws {
         // The view is given the animation before it has a size, which is every
         // SwiftUI view – they are made at zero size – and every cell.
-        await display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
+        display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
         let provisional = try #require(view.player)
 
         // Nothing has been decoded: the frames would be full size, and both
@@ -299,7 +270,7 @@ struct AnimatedImageViewTests {
     @Test func decodesOnceALayoutSettlesThatThereIsNoSizeToDeriveFrom() async throws {
         // A view laid out with no size of its own is not going to get a better
         // answer, so the frames are decoded as they are rather than never.
-        await display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
+        display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
         let player = try #require(view.player)
 
         layOut(.zero)
@@ -312,7 +283,7 @@ struct AnimatedImageViewTests {
     @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async throws {
         // A cell hasn't been laid out when the image arrives, and a SwiftUI
         // view has no size at all when it is made.
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
         #expect(view.player?.options.maxPixelSize == nil)
 
         layOut(CGSize(width: 20, height: 20))
@@ -321,7 +292,7 @@ struct AnimatedImageViewTests {
     }
 
     @Test func doesNotRebuildThePlayerForAnAnimationThatAlreadyFits() async throws {
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
         let player = try #require(view.player)
 
         layOut(CGSize(width: 200, height: 200))
@@ -334,7 +305,7 @@ struct AnimatedImageViewTests {
     @Test func neverScalesTheFramesUp() async throws {
         layOut(CGSize(width: 200, height: 200))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 8, height: 8)))
 
         let player = try #require(view.player)
         await player.buffer.waitUntilFull()
@@ -346,7 +317,7 @@ struct AnimatedImageViewTests {
         view.isAutomaticDownsamplingEnabled = false
         layOut(CGSize(width: 20, height: 20))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
 
         #expect(try #require(view.player).options.maxPixelSize == nil)
     }
@@ -357,7 +328,7 @@ struct AnimatedImageViewTests {
         view.playerOptions = options
         layOut(CGSize(width: 20, height: 20))
 
-        await display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
 
         #expect(try #require(view.player).options.maxPixelSize == 64)
     }

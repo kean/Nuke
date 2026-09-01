@@ -228,7 +228,7 @@ struct AnimatedImagesDemo: View {
             }
             do {
                 let response = try await ImagePipeline.shared.imageTask(with: url).response
-                guard let source = AnimatedImageSource(container: response.container) else {
+                guard let source = response.container.animation else {
                     status = "\(image.title) loaded, but it isn't an animated image."
                     continue
                 }

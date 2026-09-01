@@ -42,6 +42,7 @@ extension ImageDecoders {
         private var scale: CGFloat = 1.0
         private var thumbnail: ImageRequest.ThumbnailOptions?
         private(set) var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
+        private(set) var isAnimatedImageParsingEnabled = true
         private let lock = NSLock()
 
         /// Returns `true` when thumbnail decoding is requested, because
@@ -58,6 +59,7 @@ extension ImageDecoders {
             self.scale = context.request.scale
             self.thumbnail = context.request.thumbnail
             self.previewPolicy = context.previewPolicy
+            self.isAnimatedImageParsingEnabled = context.isAnimatedImageParsingEnabled
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
@@ -85,6 +87,14 @@ extension ImageDecoders {
             // request asked for.
             if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
+                // The sniff above reads a header; this walks the delay of every
+                // frame. It runs here, on the decoding queue, so that it runs
+                // once per image rather than once per view that displays it –
+                // and never on the main thread, which is where a view left to
+                // parse it itself would have to do it.
+                if isAnimatedImageParsingEnabled {
+                    container.animation = AnimatedImageSource(data: data)
+                }
             }
             if numberOfScans > 0 {
                 container.userInfo[.scanNumberKey] = numberOfScans

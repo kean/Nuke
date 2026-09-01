@@ -73,13 +73,11 @@ struct AnimatedImageIntegrationTests {
         #expect(image.animatedImage == nil)
     }
 
-    @Test func fetchImageReusesAnAnimationItHasSeenBefore() async throws {
-        // Parsing is off the main thread, but only when there is a parse to do:
-        // an animation already in the cache arrives with the image, and a list
-        // scrolled back to one does not blink through the still.
-        let data = Test.animatedGIF(frameCount: 18)
-        _ = AnimatedImageSource.cached(data: data)
-        serve(data)
+    @Test func fetchImageHasTheAnimationTheMomentTheResponseArrives() async throws {
+        // The pipeline parses on the decoding queue and the animation travels
+        // with the container, so there is no turn of the run loop between the
+        // image and the animation to blink the still through.
+        serve(Test.animatedGIF(frameCount: 18))
         let image = FetchImage()
         image.pipeline = pipeline
         let expectation = TestExpectation()
@@ -88,7 +86,6 @@ struct AnimatedImageIntegrationTests {
         image.load(Test.request)
         await expectation.wait()
 
-        #expect(image.animatedImageTask == nil)
         #expect(image.animatedImage?.frameCount == 18)
     }
 
@@ -121,7 +118,6 @@ struct AnimatedImageIntegrationTests {
 
         view.url = Test.url
         await expectation.wait()
-        await view.imageView.pendingParse?.value
 
         let player = try #require(view.imageView.player)
         #expect(player.source.frameCount == 3)
@@ -151,12 +147,47 @@ struct AnimatedImageIntegrationTests {
         view.onCompletion = { _ in expectation.fulfill() }
         view.url = Test.url
         await expectation.wait()
-        await view.imageView.pendingParse?.value
         #expect(view.imageView.player != nil)
 
         view.reset()
 
         #expect(view.imageView.player == nil)
+    }
+
+    // MARK: Image View Extensions
+
+    @Test func loadImageIntoAnAnimatedImageViewPlaysIt() async throws {
+        // The path the display protocol redesign turns on: the container
+        // reaches the view, animation and all, through a conformance the view
+        // inherits from the platform image view extension and cannot override.
+        serve(Test.animatedGIF(frameCount: 3))
+        let view = AnimatedImageView()
+
+        try await loadImage(into: view)
+
+        let player = try #require(view.player)
+        #expect(player.source.frameCount == 3)
+    }
+
+    @Test func loadImageIntoAnAnimatedImageViewShowsAStillAsAStill() async throws {
+        serve(Test.data)
+        let view = AnimatedImageView()
+
+        try await loadImage(into: view)
+
+        #expect(view.player == nil)
+        #expect(view.image != nil)
+    }
+
+    @Test func loadImageIntoAPlainImageViewStillWorks() async throws {
+        // The view has no animated conformance, so it takes the other branch
+        // and is handed the still the decoder produced.
+        serve(Test.animatedGIF(frameCount: 3))
+        let view = _PlatformImageView()
+
+        try await loadImage(into: view)
+
+        #expect(view.image != nil)
     }
 
     // MARK: AnimatedImage
@@ -219,13 +250,28 @@ struct AnimatedImageIntegrationTests {
         )))
     }
 
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+    /// Loads through the image view extensions and waits for the response.
+    private func loadImage(into view: ImageDisplayingView) async throws {
+        var options = ImageLoadingOptions()
+        options.pipeline = pipeline
+        options.transition = nil
+        let expectation = TestExpectation()
+        var result: Result<ImageResponse, ImagePipeline.Error>?
+        NukeUI.loadImage(with: Test.url, options: options, into: view) {
+            result = $0
+            expectation.fulfill()
+        }
+        await expectation.wait()
+        _ = try #require(result).get()
+    }
+#endif
+
     private func load(_ image: FetchImage) async throws {
         let expectation = TestExpectation()
         image.onCompletion = { _ in expectation.fulfill() }
         image.load(Test.request)
         await expectation.wait()
-        // An animation it hasn't seen before is parsed off the main thread.
-        await image.animatedImageTask?.value
         _ = try #require(image.result?.value)
     }
 }

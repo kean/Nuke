@@ -57,6 +57,9 @@ public struct ImageContainer: Sendable {
     /// your choice. The data is not attached to a thumbnail request, whose
     /// image is deliberately smaller than the animation the data holds.
     ///
+    /// The recognition is a header sniff, so the data is attached to a
+    /// single-frame GIF too. ``animation`` is the parsed answer.
+    ///
     /// Processing an image drops the data: it describes the image that went
     /// into the processor, not the one that came out.
     ///
@@ -65,6 +68,31 @@ public struct ImageContainer: Sendable {
     public var data: Data? {
         get { ref.data }
         set { mutate { $0.data = newValue } }
+    }
+
+    /// The animation the image data describes, if the image is an animated one.
+    ///
+    /// The default decoder (``ImageDecoders/Default``) parses the metadata of
+    /// every image it attaches ``data`` to and puts the result here, so a
+    /// non-`nil` value is the answer to "can this be played?" – more precise
+    /// than ``data`` alone, which is also attached to the single-frame GIFs
+    /// that turn out not to animate.
+    ///
+    /// The parse happens on the decoding queue, once per decoded image, and the
+    /// result travels with the container into the memory cache. Set
+    /// ``ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled``
+    /// to `false` to skip it in an app that renders animations some other way.
+    ///
+    /// Processing an image drops the animation along with the data: both
+    /// describe the image that went into the processor, not the one that came
+    /// out.
+    ///
+    /// - note: ``AnimatedImageSource/data`` is the same buffer ``data`` holds,
+    /// shared with it rather than copied, so an animation adds only its frame
+    /// delays to what the container costs.
+    public var animation: AnimatedImageSource? {
+        get { ref.animation }
+        set { mutate { $0.animation = newValue } }
     }
 
     /// Metadata provided by the user.
@@ -76,16 +104,17 @@ public struct ImageContainer: Sendable {
     private var ref: Container
 
     /// Initializes the container with the given image.
-    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: any Sendable] = [:]) {
-        self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, animation: AnimatedImageSource? = nil, userInfo: [UserInfoKey: any Sendable] = [:]) {
+        self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, animation: animation, userInfo: userInfo)
     }
 
-    /// Replaces the image, dropping ``data`` with it: the closure produces a
-    /// new image, and the data describes the one that went in.
+    /// Replaces the image, dropping ``data`` and ``animation`` with it: the
+    /// closure produces a new image, and both describe the one that went in.
     consuming func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
         var copy = self
         copy.image = try closure(copy.image)
         copy.data = nil
+        copy.animation = nil
         return copy
     }
 
@@ -128,13 +157,15 @@ public struct ImageContainer: Sendable {
         var type: AssetType?
         var isPreview: Bool
         var data: Data?
+        var animation: AnimatedImageSource?
         var userInfo: [UserInfoKey: any Sendable]
 
-        init(image: PlatformImage, type: AssetType?, isPreview: Bool, data: Data? = nil, userInfo: [UserInfoKey: any Sendable]) {
+        init(image: PlatformImage, type: AssetType?, isPreview: Bool, data: Data? = nil, animation: AnimatedImageSource? = nil, userInfo: [UserInfoKey: any Sendable]) {
             self.image = image
             self.type = type
             self.isPreview = isPreview
             self.data = data
+            self.animation = animation
             self.userInfo = userInfo
         }
 
@@ -143,6 +174,7 @@ public struct ImageContainer: Sendable {
             self.type = ref.type
             self.isPreview = ref.isPreview
             self.data = ref.data
+            self.animation = ref.animation
             self.userInfo = ref.userInfo
         }
     }

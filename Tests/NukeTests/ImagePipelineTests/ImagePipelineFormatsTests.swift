@@ -85,6 +85,48 @@ struct ImagePipelineFormatsTests {
         // THEN GIF data is preserved in the container for animated playback
         #expect(response.container.type == .gif)
         #expect(response.container.data != nil)
+        #expect(response.container.animation != nil)
+    }
+
+    // MARK: - Animations
+
+    @Test func animationIsParsedOnceAndTravelsWithTheImage() async throws {
+        // GIVEN a pipeline with a memory cache, which is what a list scrolled
+        // back to an animation reads from
+        let pipeline = pipeline.reconfigured { $0.imageCache = ImageCache() }
+        serveAnimatedGIF(frameCount: 7)
+
+        // WHEN the same image is loaded twice
+        let first = try await pipeline.imageTask(with: Test.request).response
+        let second = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the animation is parsed once and handed out as it is. Its
+        // lifetime is the memory cache entry's, which is what makes a cache of
+        // parses – with a bound of its own, holding on to encoded data the
+        // image cache has already evicted – unnecessary.
+        #expect(first.container.animation?.frameCount == 7)
+        #expect(first.container.animation === second.container.animation)
+    }
+
+    @Test func animationParsingCanBeTurnedOff() async throws {
+        // GIVEN a pipeline told not to parse animations
+        let pipeline = pipeline.reconfigured { $0.isAnimatedImageParsingEnabled = false }
+        serveAnimatedGIF(frameCount: 7)
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the data still travels, so a renderer that parses it itself is
+        // unaffected
+        #expect(response.container.data != nil)
+        #expect(response.container.animation == nil)
+    }
+
+    private func serveAnimatedGIF(frameCount: Int) {
+        dataLoader.results[Test.url] = .success(
+            (Test.animatedGIF(frameCount: frameCount),
+             URLResponse(url: Test.url, mimeType: "gif", expectedContentLength: 0, textEncodingName: nil))
+        )
     }
 
     @Test func loadHEIC() async throws {
