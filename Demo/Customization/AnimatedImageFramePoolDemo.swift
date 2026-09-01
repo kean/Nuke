@@ -87,7 +87,7 @@ struct AnimatedImageFramePoolDemo: View {
                     isPlaying ? animation.player.pause() : animation.player.play()
                 }
             } label: {
-                Label("Play or Pause All", systemImage: "playpause.fill")
+                Label("Play All", systemImage: "playpause.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -292,8 +292,7 @@ private struct DemoAnimationWall: View {
                 ForEach(0..<rows, id: \.self) { row in
                     HStack(spacing: spacing) {
                         ForEach(0..<columns, id: \.self) { column in
-                            cell(at: row * columns + column)
-                                .frame(width: width, height: height)
+                            cell(at: row * columns + column, width: width, height: height)
                         }
                     }
                 }
@@ -302,16 +301,21 @@ private struct DemoAnimationWall: View {
     }
 
     @ViewBuilder
-    private func cell(at index: Int) -> some View {
+    private func cell(at index: Int, width: CGFloat, height: CGFloat) -> some View {
         if index < animations.count {
             let animation = animations[index]
             AnimatedImage(player: animation.player, poster: animation.poster)
                 .resizable()
                 .scaledToFill()
+                // Before the badge and the corners: filling means the frames
+                // are larger than the cell, and what hangs over the edge is
+                // the cell's to trim.
+                .frame(width: width, height: height)
+                .clipped()
                 .overlay(alignment: .bottom) { badge(at: index) }
                 .clipShape(RoundedRectangle(cornerRadius: 10))
         } else {
-            Color.clear
+            Color.clear.frame(width: width, height: height)
         }
     }
 
