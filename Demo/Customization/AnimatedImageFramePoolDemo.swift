@@ -117,7 +117,7 @@ struct AnimatedImageFramePoolDemo: View {
     private func badge(at index: Int) -> some View {
         if diagnostics.indices.contains(index) {
             let diagnostics = diagnostics[index]
-            Text("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) · \(demoByteCount(diagnostics.bufferedByteCount))")
+            Text("\(demoFrameCount(diagnostics)) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8))")
                 .font(.system(size: 9, design: .monospaced))
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
@@ -185,7 +185,8 @@ struct AnimatedImageFramePoolDemo: View {
             HStack {
                 DemoMonoLabel("\(animations.count) animations")
                 Spacer()
-                DemoMonoLabel("\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
+                DemoMonoLabel("\(demoPad(demoByteCount(pool.totalCost), to: 8)) of \(demoByteCount(pool.costLimit))")
+                    .lineLimit(1)
             }
 
             HStack(spacing: 12) {
@@ -278,8 +279,9 @@ struct AnimatedImageFramePoolDemo: View {
     }
 
     private func load() async {
-        animations = []
-        diagnostics = []
+        // The wall is replaced rather than cleared first: a console that loses
+        // its diagnostics for as long as the new players are being built
+        // scrolls itself back to the top.
         status = nil
         let load = await loadDemoAnimations(wallAnimations)
         // Published in one go: a wall that grew a cell at a time would rebuild
@@ -361,12 +363,24 @@ private struct DemoWallRow: View {
                 Text(animation.title)
                     .font(.caption.weight(.semibold))
                 Spacer(minLength: 8)
-                DemoMonoLabel("\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount)) of \(demoByteCount(diagnostics.bufferByteLimit))"
-                    + (diagnostics.sharingPlayerCount > 1 ? "  ·  shared ×\(diagnostics.sharingPlayerCount)" : ""))
+                DemoMonoLabel(figures)
+                    // The figures are what they are; a row that wrapped when
+                    // one of them grew a character would move the whole list.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
             DemoBufferMap(player: animation.player, diagnostics: diagnostics, height: 12)
         }
         .padding(.vertical, 2)
+    }
+
+    /// Padded so that they stay put as they change, and without the word
+    /// "frames": the map under them says that much.
+    private var figures: String {
+        let frames = demoFrameCount(diagnostics)
+        let held = demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8)
+        let text = "\(frames) · \(held) of \(demoByteCount(diagnostics.bufferByteLimit))"
+        return diagnostics.sharingPlayerCount > 1 ? text + " · ×\(diagnostics.sharingPlayerCount)" : text
     }
 }
 

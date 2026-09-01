@@ -144,6 +144,13 @@ struct DemoBufferMap: View {
     }
 }
 
+/// The frames a buffer is holding, padded to the width the figure reaches when
+/// the buffer is full, so that it doesn't move as it fills.
+func demoFrameCount(_ diagnostics: AnimatedImagePlayer.Diagnostics) -> String {
+    let total = "\(diagnostics.frameCount)"
+    return demoPad("\(diagnostics.bufferedFrameCount)/\(total)", to: total.count * 2 + 1)
+}
+
 /// One labelled line of the diagnostics.
 struct DemoDiagnosticsRow: View {
     private let title: String
@@ -255,8 +262,8 @@ struct DemoDiagnosticsPanel: View {
     private var grid: some View {
         VStack(spacing: 6) {
             DemoDiagnosticsRow("frame", "\(diagnostics.currentFrameIndex + 1)/\(diagnostics.frameCount)  ·  loop \(diagnostics.completedLoopCount)")
-            DemoDiagnosticsRow("buffer", "\(diagnostics.bufferedFrameCount)/\(diagnostics.bufferCapacity) frames  ·  \(demoByteCount(diagnostics.bufferedByteCount)) of \(demoByteCount(diagnostics.bufferByteLimit))")
-            DemoDiagnosticsRow("decoded", "\(diagnostics.decodedFrameCount) frames")
+            DemoDiagnosticsRow("buffer", "\(demoPad("\(diagnostics.bufferedFrameCount)/\(diagnostics.bufferCapacity)", to: 7)) frames  ·  \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8)) of \(demoByteCount(diagnostics.bufferByteLimit))")
+            DemoDiagnosticsRow("decoded", "\(demoPad("\(diagnostics.decodedFrameCount)", to: 5)) frames")
             DemoDiagnosticsRow("decode", "\(demoMilliseconds(diagnostics.lastDecodeDuration)) last  ·  \(demoMilliseconds(diagnostics.averageDecodeDuration)) avg  ·  \(demoMilliseconds(diagnostics.maxDecodeDuration)) max")
             DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate))")
             DemoDiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(demoSeconds(diagnostics.playbackTime))")
@@ -352,12 +359,12 @@ struct DemoPoolMeter: View {
                 }
             }
             .frame(height: 10)
-            DemoDiagnosticsRow("pool", "\(demoByteCount(pool.totalCost)) of \(demoByteCount(pool.costLimit))")
-            DemoDiagnosticsRow("players", "\(pool.playerCount) sharing it  ·  \(pool.activePlayerCount) filling a window")
+            DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 8)) of \(demoByteCount(pool.costLimit))")
+            DemoDiagnosticsRow("players", "\(pool.playerCount) sharing  ·  \(pool.activePlayerCount) filling")
             // The players outnumber the animations as soon as one of them is on
             // screen twice.
             DemoDiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
-                + (pool.sharing > 1 ? String(format: "  ·  %.1f× shared", pool.sharing) : ""))
+                + (pool.sharing > 1 ? String(format: "  ·  ×%.1f", pool.sharing) : ""))
         }
     }
 }

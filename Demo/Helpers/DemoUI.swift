@@ -236,6 +236,14 @@ struct DemoFailureView: View {
     }
 }
 
+/// Pads a figure out to a fixed number of characters, so that a value sampled
+/// ten times a second doesn't shift the text around it. Every figure in the
+/// demo is set in a monospaced font, so the padding lands them all in the same
+/// place.
+func demoPad(_ text: String, to width: Int) -> String {
+    text.count >= width ? text : String(repeating: " ", count: width - text.count) + text
+}
+
 func demoByteCount(_ count: Int64) -> String {
     // `ByteCountFormatter` writes "Zero KB", which reads like a fault in a
     // column of figures that are otherwise moving.

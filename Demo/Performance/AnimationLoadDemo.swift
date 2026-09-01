@@ -205,10 +205,10 @@ struct AnimationLoadDemo: View {
     /// The numbers that fit beside the strip: all of them, the frames alone, or
     /// none at all in a cell that has room for the strip by itself.
     private func label(for diagnostics: AnimatedImagePlayer.Diagnostics, in size: CGSize) -> String? {
-        let frames = "\(diagnostics.bufferedFrameCount)/\(diagnostics.frameCount)"
+        let frames = demoFrameCount(diagnostics)
         guard size.height >= 64 else { return nil }
         if size.width >= 136 {
-            return "\(frames) · \(demoByteCount(diagnostics.bufferedByteCount))"
+            return "\(frames) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8))"
         }
         return size.width >= 96 ? frames : nil
     }
@@ -330,15 +330,15 @@ struct AnimationLoadDemo: View {
                 DemoMonoLabel("\(animations.count) animations")
                 Spacer()
                 DemoMonoLabel(
-                    String(format: "%.0f fps", readings.framesPerSecond),
+                    String(format: "%3.0f fps", readings.framesPerSecond),
                     tint: isDrawingSmoothly ? .green : .orange
                 )
             }
 
             HStack {
-                DemoMonoLabel("\(demoByteCount(pool.totalCost)) of frames")
+                DemoMonoLabel("\(demoPad(demoByteCount(pool.totalCost), to: 8)) of frames")
                 Spacer()
-                DemoMonoLabel(readings.footprint.map { "\(demoByteCount($0)) in the app" } ?? "–")
+                DemoMonoLabel(readings.footprint.map { "\(demoPad(demoByteCount($0), to: 8)) in the app" } ?? "–")
             }
 
             HStack(spacing: 12) {
@@ -397,16 +397,16 @@ struct AnimationLoadDemo: View {
         Section {
             DemoDiagnosticsRow(
                 "screen",
-                "\(figure(readings.framesPerSecond)) of \(figure(screen.displayFrameRate)) fps  ·  \(readings.lateFrameCount) late",
+                "\(figure(readings.framesPerSecond, to: 3)) of \(figure(screen.displayFrameRate, to: 3)) fps  ·  \(demoPad("\(readings.lateFrameCount)", to: 3)) late",
                 tint: isDrawingSmoothly ? nil : .orange
             )
             DemoDiagnosticsRow(
                 "worst",
-                "\(demoMilliseconds(readings.worstFrameDelay)) past a frame's deadline",
+                "\(demoPad(demoMilliseconds(readings.worstFrameDelay), to: 7)) past a frame's deadline",
                 tint: readings.worstFrameDelay > 0.1 ? .orange : nil
             )
-            DemoDiagnosticsRow("playing", "\(figure(wall.frameRate)) of \(figure(wall.nominalFrameRate)) frames/s")
-            DemoDiagnosticsRow("decoding", "\(figure(wall.decodeRate)) frames/s  ·  \(demoByteCount(Int(wall.decodeByteRate)))/s")
+            DemoDiagnosticsRow("playing", "\(figure(wall.frameRate, to: 4)) of \(figure(wall.nominalFrameRate, to: 4)) frames/s")
+            DemoDiagnosticsRow("decoding", "\(figure(wall.decodeRate, to: 4)) frames/s  ·  \(demoPad(demoByteCount(Int(wall.decodeByteRate)), to: 8))/s")
             DemoDiagnosticsRow(
                 "cores",
                 String(format: "%.2f× one core, decoding", wall.decodeLoad),
@@ -414,7 +414,7 @@ struct AnimationLoadDemo: View {
             )
             DemoDiagnosticsRow(
                 "missed",
-                "\(wall.skippedFrameCount) behind  ·  \(wall.bufferMissCount) not ready  ·  \(figure(wall.missRate))/s",
+                "\(demoPad("\(wall.skippedFrameCount)", to: 4)) behind  ·  \(demoPad("\(wall.bufferMissCount)", to: 3)) not ready  ·  \(figure(wall.missRate, to: 4))/s",
                 tint: wall.missRate > 1 ? .orange : nil
             )
             DemoDiagnosticsRow("buffers", "\(wall.fullyBufferedCount) of \(animations.count) hold the whole animation")
@@ -462,8 +462,10 @@ struct AnimationLoadDemo: View {
         return "\(demoByteCount(footprint)) footprint  ·  \(demoByteCount(available)) to spare"
     }
 
-    private func figure(_ value: Double) -> String {
-        String(format: value < 10 ? "%.1f" : "%.0f", value)
+    /// A figure in the width it is given, so that the rows around it stay put
+    /// as it changes.
+    private func figure(_ value: Double, to width: Int) -> String {
+        demoPad(String(format: value < 10 ? "%.1f" : "%.0f", value), to: width)
     }
 
     // MARK: Loading
@@ -499,8 +501,9 @@ struct AnimationLoadDemo: View {
     }
 
     private func load() async {
-        animations = []
-        diagnostics = []
+        // The wall is replaced rather than cleared first: a console that loses
+        // its sections for as long as the new players are being built scrolls
+        // itself back to the top.
         selection = nil
         status = nil
         wall = DemoWallLoad()
