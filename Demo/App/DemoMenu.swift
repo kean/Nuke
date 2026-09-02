@@ -98,9 +98,6 @@ struct DemoMenu: View {
             DemoLink("Stress Test", "Rate limiting and coalescing under pressure") {
                 StressTestDemo()
             }
-            DemoLink("Animation Load", "A screenful of animations, and what it costs") {
-                AnimationLoadDemo()
-            }
         } header: {
             Text("Performance")
         } footer: {

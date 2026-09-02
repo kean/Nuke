@@ -92,7 +92,7 @@ struct AnimatedImageFramePoolDemo: View {
                 // Each cell wears what it is holding, so the effect of the pool
                 // is on the wall rather than only in the diagnostics: add
                 // animations and every badge drops.
-                DemoAnimationWall(animations: animations) { index, _ in
+                DemoAnimationWall(animations: animations) { index in
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         badge(at: index)

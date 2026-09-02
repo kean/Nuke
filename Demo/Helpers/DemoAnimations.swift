@@ -58,15 +58,10 @@ struct DemoAnimationLoad {
 ///
 /// `LazyImage` does all of this on its own; the animation screens build the
 /// players by hand to get at ``AnimatedImagePlayer/diagnostics``.
-/// - parameter sharesFrames: Whether the players of the same image draw from
-/// one set of decoded frames, which is what they do in an app. `false` gives
-/// every animation a decoder and a window of its own, which is what a wall of
-/// different animations costs.
 @MainActor
 func loadDemoAnimations(
     _ images: [DemoAnimation],
-    options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-    sharesFrames: Bool = true
+    options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
 ) async -> DemoAnimationLoad {
     var load = DemoAnimationLoad()
     for (index, image) in images.enumerated() {
@@ -76,16 +71,9 @@ func loadDemoAnimations(
         }
         do {
             let response = try await ImagePipeline.shared.imageTask(with: url).response
-            guard var source = response.container.animation else {
+            guard let source = response.container.animation else {
                 load.status = "\(image.title) loaded, but it isn't an animated image."
                 continue
-            }
-            // The pool keys the frames it holds on the identity of the source,
-            // so every player handed the one the pipeline parsed draws from a
-            // single decoder. Parsing the same data again makes an animation
-            // the pool has never seen before.
-            if !sharesFrames, let copy = await parseDemoAnimation(source.data) {
-                source = copy
             }
             var options = options
             // `AnimatedImageView` does this for the players it makes; a player
@@ -105,12 +93,6 @@ func loadDemoAnimations(
         }
     }
     return load
-}
-
-/// Parses the data as an animation off the main thread, which is where a
-/// long one belongs: the delays of every frame are read on the way.
-private func parseDemoAnimation(_ data: Data) async -> AnimatedImageSource? {
-    await Task.detached(priority: .userInitiated) { AnimatedImageSource(data: data) }.value
 }
 
 /// One cell per frame: filled when the frame is decoded, and tinted for the
@@ -205,14 +187,12 @@ struct DemoDiagnosticsRow: View {
 /// scrolling.
 ///
 /// What goes over a cell is up to the caller: the frame pool screen puts a
-/// badge there, the animation load screen a buffer meter that opens the full
-/// diagnostics. The overlay is handed the size of the cell, because a wall of
-/// sixty-four has no room for what a wall of four does.
+/// badge there with what the cell is holding.
 struct DemoAnimationWall<Overlay: View>: View {
     let animations: [DemoLoadedAnimation]
     var spacing: CGFloat = 6
     var cornerRadius: CGFloat = 10
-    @ViewBuilder var overlay: (Int, CGSize) -> Overlay
+    @ViewBuilder var overlay: (Int) -> Overlay
 
     var body: some View {
         GeometryReader { proxy in
@@ -242,7 +222,7 @@ struct DemoAnimationWall<Overlay: View>: View {
                 // the cell's to trim.
                 .frame(width: size.width, height: size.height)
                 .clipped()
-                .overlay { overlay(index, size) }
+                .overlay { overlay(index) }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         } else {
             Color.clear.frame(width: size.width, height: size.height)
