@@ -225,7 +225,7 @@ public final class AnimatedImageSource: Sendable {
     /// on to every frame it has ever decoded.
     ///
     /// - note: Computed rather than stored: `CFDictionary` isn't `Sendable`.
-    public static var imageSourceOptions: CFDictionary {
+    static var imageSourceOptions: CFDictionary {
         [kCGImageSourceShouldCache: false] as CFDictionary
     }
 
