@@ -259,7 +259,7 @@ struct AnimationMemoryDemo: View {
         } header: {
             Text("Frame Pool")
         } footer: {
-            Text("Every animation on screen draws its frames from AnimatedImageFramePool, so a wall of them costs what the pool says rather than the sum of their budgets. What each one gets is an even share, except that an animation that fits in less than its share takes only what it needs and leaves the rest to the others.")
+            Text("Every animation on screen draws its frames from AnimatedImageFramePool, so a wall of them costs what the pool says rather than the sum of their budgets. Every animation is given a window of a few frames first – an even share, with what one leaves unused divided again between the rest – and what is left after that holds animations whole, smallest first.")
         }
     }
 
@@ -363,7 +363,7 @@ struct AnimationMemoryDemo: View {
         """,
         points: [
             .init("Frame pool", "Raise the animation count and watch the animations stop fitting whole – a share short of the animation buys a window of a few frames, however large – then drag the pool budget up and watch them fill again. Nothing is divided while the animations together want less than the limit."),
-            .init("Fair shares", "The division is not a flat split. An animation that fits entirely in less than its share takes only what it needs, and the rest goes to the ones that can use it – so a wall of small stickers and one long GIF gives the GIF everything the stickers left."),
+            .init("Windows first, then whole", "The division is not a flat split. Every animation is given its window before anything else – smallest first, so what one leaves unused is divided again between the rest – and only what is left after that holds animations whole, from the smallest up. There is no share worth giving in between: anything short of the whole animation re-decodes every frame each loop all the same."),
             .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing."),
             .init("Memory warnings", "The pool holds every animation at two frames when the system issues one, and the button does the same thing by hand. The windows come back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the maps refill.")
         ]
