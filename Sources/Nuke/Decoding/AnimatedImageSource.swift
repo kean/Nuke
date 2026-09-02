@@ -105,8 +105,9 @@ public final class AnimatedImageSource: Sendable {
     /// didn't come from the pipeline, and keep it off the main thread for a
     /// large animation.
     ///
-    /// - returns: `nil` if the data isn't an image, or if the image has a
-    /// single frame.
+    /// - returns: `nil` if the data isn't an image, if the image has a single
+    /// frame, or if it holds several frames but declares no animation – a
+    /// multi-page TIFF, a multi-image HEIC.
     public init?(data: Data) {
         guard let source = CGImageSourceCreateWithData(data as CFData, AnimatedImageSource.imageSourceOptions) else {
             return nil
@@ -115,17 +116,21 @@ public final class AnimatedImageSource: Sendable {
         guard frameCount > 1 else {
             return nil
         }
-        // An unrecognized container still animates: only the delays are
-        // missing, and the default one is the browser behavior.
+        // More than one frame is not the same thing as an animation: a
+        // multi-page TIFF and a multi-image HEIC are stacks of stills. What
+        // tells them apart is the container dictionary, which is where the
+        // delays and the loop count live and which a stack doesn't publish –
+        // the same test WebKit makes, where an image with no animation
+        // properties reports no repetition count and is never played.
         let properties = CGImageSourceCopyProperties(source, nil) as? [CFString: Any] ?? [:]
-        let format = AnimatedImageFormat(properties: properties)
+        guard let format = AnimatedImageFormat(properties: properties) else {
+            return nil
+        }
         self.data = data
         self.frameCount = frameCount
-        self.delays = (0..<frameCount).map {
-            format?.delay(in: source, at: $0) ?? AnimatedImageSource.defaultDelay
-        }
+        self.delays = (0..<frameCount).map { format.delay(in: source, at: $0) }
         self.duration = delays.reduce(0, +)
-        self.loopCount = format?.loopCount(in: properties) ?? 0
+        self.loopCount = format.loopCount(in: properties)
         self.size = AnimatedImageSource.size(of: source)
         self.customFrameDecoder = nil
     }

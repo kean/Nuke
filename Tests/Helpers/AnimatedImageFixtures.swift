@@ -114,6 +114,26 @@ extension Test {
         )! // Image I/O writes PNG on every platform
     }
 
+    /// Builds a multi-page TIFF: several frames, no animation metadata at all.
+    ///
+    /// The counterexample to "more than one frame means an animation" – Image
+    /// I/O reports a frame count for a page stack and publishes no container
+    /// dictionary for it, and neither does a multi-image HEIC.
+    static func multiPageTIFF(pageCount: Int = 2, size: CGSize = CGSize(width: 8, height: 8)) -> Data {
+        let data = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(
+            data as CFMutableData,
+            UTType.tiff.identifier as CFString,
+            pageCount,
+            nil
+        )! // Image I/O writes TIFF on every platform
+        for index in 0..<pageCount {
+            CGImageDestinationAddImage(destination, makeFrame(index: index, size: size), nil)
+        }
+        CGImageDestinationFinalize(destination)
+        return data as Data
+    }
+
     /// The color the frame at the given index is filled with, so that a test
     /// can tell one decoded frame from another.
     static func animationFrameColor(at index: Int) -> CGColor {

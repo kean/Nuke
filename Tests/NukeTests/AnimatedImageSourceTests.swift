@@ -149,6 +149,18 @@ struct AnimatedImageSourceTests {
         #expect(AnimatedImageSource(data: Test.animatedGIF(frameCount: 1)) == nil)
     }
 
+    @Test func returnsNilForAMultiFrameImageThatDeclaresNoAnimation() throws {
+        // A page stack is not an animation: it has several frames and no
+        // animation metadata, which is what WebKit tests for too – no
+        // container dictionary means no repetition count, and an image with no
+        // repetition count is never played. Read as one, a two-page TIFF would
+        // flip between its pages at the 0.1 s fallback, forever.
+        let data = Test.multiPageTIFF(pageCount: 2)
+        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        #expect(CGImageSourceGetCount(source) == 2)
+        #expect(AnimatedImageSource(data: data) == nil)
+    }
+
     @Test func returnsNilForGarbage() {
         #expect(AnimatedImageSource(data: Data()) == nil)
         #expect(AnimatedImageSource(data: Data(repeating: 0x11, count: 128)) == nil)

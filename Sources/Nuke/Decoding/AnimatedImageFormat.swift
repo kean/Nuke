@@ -19,8 +19,11 @@ enum AnimatedImageFormat: CaseIterable {
     /// More direct than the type identifier, which names the still and the
     /// sequence flavors of a format differently (`public.heic` against
     /// `public.heics`): matching on `public.heic` left every frame of an
-    /// animated HEIC with the default delay. A still image publishes no
-    /// container dictionary, so this is `nil` for it.
+    /// animated HEIC with the default delay.
+    ///
+    /// This is also the test for whether the image animates at all: a still, a
+    /// multi-page TIFF, and a multi-image HEIC publish no container dictionary,
+    /// and `nil` here means there is nothing to play.
     ///
     /// - parameter properties: The container properties of the image source.
     init?(properties: [CFString: Any]) {
