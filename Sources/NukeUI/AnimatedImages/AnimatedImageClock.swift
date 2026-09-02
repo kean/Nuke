@@ -86,7 +86,10 @@ final class DisplayLinkClock: AnimatedImageClock {
     /// it has reported one.
     private(set) var period: TimeInterval = 1.0 / 60
 
-    private var link: CADisplayLink!
+    /// `nonisolated(unsafe)` so that `deinit` can reach it from whatever
+    /// thread released the clock, which is the one thing outside the main
+    /// actor that touches it. The tests watch it go.
+    private(set) nonisolated(unsafe) var link: CADisplayLink!
     private var lastTimestamp: CFTimeInterval = 0
 
     init() {
@@ -102,10 +105,15 @@ final class DisplayLinkClock: AnimatedImageClock {
 
     deinit {
         // A display link must be invalidated on the thread it was added to, so
-        // only the main thread can do it here. A clock released anywhere else
-        // leaves the link to the proxy, which stops it on its next tick.
+        // a clock released anywhere but the main thread hands its link back to
+        // the main queue. Leaving it to the proxy is not enough: the proxy
+        // stops the link on its next tick, and a paused link – which is what a
+        // player nobody is watching sits on – has no next tick, so the link and
+        // its proxy would stay in the run loop for the life of the process.
         if Thread.isMainThread {
             MainActor.assumeIsolated { link.invalidate() }
+        } else {
+            DispatchQueue.main.async { [link] in link?.invalidate() }
         }
     }
 
@@ -197,8 +205,10 @@ final class TimerClock: AnimatedImageClock {
     init() {}
 
     deinit {
-        // See `DisplayLinkClock.deinit`. A timer released off the main thread
-        // is stopped by its own block on the next fire.
+        // A timer released off the main thread is stopped by its own block on
+        // the next fire, and a paused clock has no timer to stop: unlike a
+        // display link, a timer that isn't running isn't in the run loop
+        // either.
         if Thread.isMainThread {
             MainActor.assumeIsolated { timer?.invalidate() }
         }
