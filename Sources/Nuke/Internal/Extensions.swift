@@ -50,6 +50,17 @@ extension ImageRequest.Priority {
     }
 }
 
+extension TaskPriority {
+    var concurrencyPriority: _Concurrency.TaskPriority {
+        switch self {
+        case .veryLow: return .background
+        case .low: return .utility
+        case .normal: return .medium
+        case .high, .veryHigh: return .high
+        }
+    }
+}
+
 struct AnonymousCancellable: Cancellable {
     let onCancel: @Sendable () -> Void
 
