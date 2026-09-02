@@ -53,17 +53,20 @@ struct AnimatedImageBufferingTests {
 
     @Test func countsDownsamplingAgainstTheBudget() throws {
         // Four frames' worth of budget for sixteen frames: only downsampled to
-        // a quarter of the pixels do they all fit.
+        // a quarter of the pixels do they all fit. The downsampled player goes
+        // first, because a player that asks for less than one already playing
+        // draws from that player's frames instead of decoding its own.
         let source = try makeSource(frameCount: 16, size: CGSize(width: 64, height: 64))
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 4 * source.bytesPerFrame
-        let fullSize = makePlayer(source: source, options: options)
-        #expect(fullSize.diagnostics.isFullyBuffered == false)
-
         options.maxPixelSize = 32
         let downsampled = makePlayer(source: source, options: options)
-
         #expect(downsampled.diagnostics.bufferCapacity == 16)
+
+        options.maxPixelSize = nil
+        let fullSize = makePlayer(source: source, options: options)
+
+        #expect(fullSize.diagnostics.isFullyBuffered == false)
     }
 
     @Test func holdsTwoFramesUntilSomethingIsWatching() async throws {

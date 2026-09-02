@@ -165,14 +165,50 @@ public final class AnimatedImageFramePool {
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) -> AnimatedImageFrameStore {
         let key = AnimatedImageFrameKey(source: source, maxPixelSize: maxPixelSize, transform: transform)
+        // The usual case: another view of the same animation at the same size.
         // An animation that has been released can leave its address to the
         // next one, so identity alone isn't enough.
         if let store = stores[key], store.source === source {
             return store
         }
+        if let store = largerStore(for: key, source: source) {
+            return store
+        }
         let store = AnimatedImageFrameStore(key: key, source: source, pool: self, transform: transform, decoder: decoder)
         stores[key] = store
         return store
+    }
+
+    /// Returns the smallest set of frames already being decoded for the same
+    /// animation and transform at a size that covers the one asked for, if
+    /// there is one.
+    ///
+    /// A frame decoded for a larger view answers a smaller one – the view
+    /// scales it as it draws it – so the sticker in a 300-point bubble and the
+    /// same sticker in a 44-point avatar are decoded and held once rather than
+    /// twice. The smaller view pays for it in bytes: it holds the larger
+    /// view's frames, and goes on holding them after that view has gone.
+    ///
+    /// The reuse only reaches backwards. A view that wants more than anything
+    /// decoded so far starts a set of its own, and the smaller sets already
+    /// being played stay where they are: the players holding them can't be
+    /// moved to another set, and dropping frames a view is playing from to
+    /// decode larger ones would stall it.
+    private func largerStore(for key: AnimatedImageFrameKey, source: AnimatedImageSource) -> AnimatedImageFrameStore? {
+        let wanted = decodedSize(key.maxPixelSize)
+        return stores.values
+            // An animation that has been released can leave its address to
+            // the next one, so identity alone isn't enough.
+            .filter { $0.source === source && $0.key.transform == key.transform }
+            .filter { decodedSize($0.key.maxPixelSize) >= wanted }
+            .min { decodedSize($0.key.maxPixelSize) < decodedSize($1.key.maxPixelSize) }
+    }
+
+    /// The longest side a set of frames is decoded at, with `nil` – the size
+    /// the animation is stored at, which the key spells every limit the
+    /// animation already fits in as – larger than any limit.
+    private func decodedSize(_ maxPixelSize: CGFloat?) -> CGFloat {
+        maxPixelSize ?? .greatestFiniteMagnitude
     }
 
     /// Divides the limit between the animations being played and hands each

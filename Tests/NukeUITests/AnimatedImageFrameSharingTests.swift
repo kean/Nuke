@@ -75,19 +75,6 @@ struct AnimatedImageFrameSharingTests {
         #expect(pool.animationCount == 20)
     }
 
-    @Test func adifferentSizeIsADifferentSetOfFrames() throws {
-        // A thumbnail and a full-screen view of one animation hold different
-        // pixels, and there is nothing to share between them.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
-        var small = AnimatedImagePlayer.Options()
-        small.maxPixelSize = 16
-
-        _ = makePlayer(source: source)
-        _ = makePlayer(source: source, options: small)
-
-        #expect(pool.animationCount == 2)
-    }
-
     @Test func aSizeTheAnimationIsAlreadyInsideOfSharesWithNoSizeAtAll() throws {
         // A view that worked out a limit larger than the animation downsamples
         // nothing, which is what a view that asked for no limit does too.
@@ -98,6 +85,112 @@ struct AnimatedImageFrameSharingTests {
         _ = makePlayer(source: source)
         _ = makePlayer(source: source, options: generous)
 
+        #expect(pool.animationCount == 1)
+    }
+
+    // MARK: Sharing Across Sizes
+
+    @Test func aSmallerViewDrawsFromTheFramesALargerOneDecoded() async throws {
+        // A frame decoded for a larger view answers a smaller one, which
+        // scales it as it draws it, so the sticker in a 300-point bubble and
+        // the same sticker in a 44-point avatar are decoded once.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let bubble = makePlayer(source: source)
+        await bubble.waitUntilFull()
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let avatar = makePlayer(source: source, options: small)
+
+        #expect(avatar.store === bubble.store)
+        #expect(pool.animationCount == 1)
+        #expect(avatar.diagnostics.decodedFrameCount == 0)
+        #expect(avatar.diagnostics.bufferedFrameCount == 4)
+    }
+
+    @Test func theSmallerViewPaysTheLargerOnesBytes() async throws {
+        // The trade: nothing is decoded twice, and the frames the avatar holds
+        // are the bubble's – 64 pixels of them, not the 16 it asked for.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let bubble = makePlayer(source: source)
+        await bubble.waitUntilFull()
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let avatar = makePlayer(source: source, options: small)
+
+        let frame = try #require(avatar.store.frame(at: 0))
+        #expect(frame.width == 64)
+        #expect(avatar.store.bytesPerFrame == bubble.store.bytesPerFrame)
+    }
+
+    @Test func aLargerViewDoesNotDrawFromASmallerOnesFrames() throws {
+        // They would have to be scaled up, which is not a picture worth
+        // showing, so the larger view decodes a set of its own – and the set
+        // the smaller view is playing from stays where it is.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let avatar = makePlayer(source: source, options: small)
+
+        let bubble = makePlayer(source: source)
+
+        #expect(bubble.store !== avatar.store)
+        #expect(pool.animationCount == 2)
+    }
+
+    @Test func aViewTakesTheSmallestFramesThatCoverIt() throws {
+        // Two sets already exist, and the cheapest one that answers is the one
+        // it joins: a view never pays for more pixels than it has to.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        var medium = AnimatedImagePlayer.Options()
+        medium.maxPixelSize = 32
+        var large = AnimatedImagePlayer.Options()
+        large.maxPixelSize = 48
+        let mediumView = makePlayer(source: source, options: medium)
+        let largeView = makePlayer(source: source, options: large)
+        #expect(pool.animationCount == 2)
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let smallView = makePlayer(source: source, options: small)
+
+        #expect(smallView.store === mediumView.store)
+        #expect(smallView.store !== largeView.store)
+        #expect(pool.animationCount == 2)
+    }
+
+    @Test func aViewDoesNotDrawFromLargerFramesDrawnDifferently() throws {
+        // Size is not the only thing that has to cover: two views drawing the
+        // animation differently must not be handed each other's frames,
+        // whatever size they are.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        var tinted = AnimatedImagePlayer.Options()
+        tinted.frameTransform = AnimatedImageFrameTransform(identifier: "tint") { $0 }
+        _ = makePlayer(source: source, options: tinted)
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        _ = makePlayer(source: source, options: small)
+
+        #expect(pool.animationCount == 2)
+    }
+
+    @Test func theFramesOfALargerViewThatHasGoneAnswerASmallerOne() async throws {
+        // The frames outlive the player that decoded them, and a view that
+        // wants fewer pixels than they hold still finds them.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        var bubble: AnimatedImagePlayer? = makePlayer(source: source)
+        await bubble?.waitUntilFull()
+        bubble = nil
+        await settle()
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let avatar = makePlayer(source: source, options: small)
+
+        #expect(avatar.diagnostics.bufferedFrameCount == 4)
+        #expect(avatar.diagnostics.decodedFrameCount == 0)
         #expect(pool.animationCount == 1)
     }
 
