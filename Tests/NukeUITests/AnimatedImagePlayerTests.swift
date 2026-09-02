@@ -107,6 +107,64 @@ struct AnimatedImagePlayerTests {
         #expect(clock.preferredFrameRate == 40)
     }
 
+    // MARK: Clock Rate (Throttling)
+
+    @Test func asksForACoarserClockWhileTheSystemIsThrottling() {
+        // 20 frames a second would ask for 40 ticks; on battery it gets 30.
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.05, count: 4), power: power)
+
+        #expect(clock.preferredFrameRate == 30)
+    }
+
+    @Test func doesNotSlowDownAnAnimationSlowerThanTheThrottledClock() {
+        // 10 frames a second asks for 20 ticks, which is already under the
+        // ceiling: throttling clamps the rate, it doesn't halve it.
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.1, count: 4), power: power)
+
+        #expect(clock.preferredFrameRate == 20)
+    }
+
+    @Test func asksForACoarseClockWhileThrottlingEvenWhenTheAnimationIsFasterThanTheDisplay() {
+        // An animation that gets no hint at all normally is deliberately run
+        // on a 30 Hz clock here: its frames are stretched, none are skipped.
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.02, count: 4), power: power)
+
+        #expect(clock.preferredFrameRate == 30)
+    }
+
+    @Test func followsTheSystemStartingAndStoppingThrottling() {
+        let power = AnimatedImagePowerMonitor(isThrottling: false)
+        let (player, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.05, count: 4), power: power)
+        player.play()
+
+        #expect(clock.preferredFrameRate == 40)
+
+        power.setThrottling(true)
+        #expect(clock.preferredFrameRate == 30)
+
+        power.setThrottling(false)
+        #expect(clock.preferredFrameRate == 40)
+    }
+
+    @Test func keepsItsRateWhileThrottlingWhenTheOptionIsOff() {
+        var options = AnimatedImagePlayer.Options()
+        options.isPowerThrottlingEnabled = false
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+
+        let (_, clock) = AnimatedImageTest.makePlayer(delays: Array(repeating: 0.05, count: 4), options: options, power: power)
+
+        #expect(clock.preferredFrameRate == 40)
+
+        power.setThrottling(false)
+        #expect(clock.preferredFrameRate == 40)
+    }
+
     // MARK: Timing
 
     @Test func holdsTheFrameUntilItsDelayHasPassed() async {

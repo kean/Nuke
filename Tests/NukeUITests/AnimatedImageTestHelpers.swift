@@ -117,12 +117,13 @@ enum AnimatedImageTest {
         loopCount: Int = 0,
         size: CGSize = CGSize(width: 8, height: 8),
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        pool: AnimatedImageFramePool = .shared
+        pool: AnimatedImageFramePool = .shared,
+        power: AnimatedImagePowerMonitor = AnimatedImagePowerMonitor(isThrottling: false)
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
         let data = Test.animatedGIF(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool)
+        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: power)
         return (player, clock)
     }
 
@@ -137,7 +138,8 @@ enum AnimatedImageTest {
         let source = AnimatedImageSource(data: data)!
         let clock = ManualClock()
         let decoder = GatedFrameDecoder(source: source)
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, decoder: decoder)
+        let power = AnimatedImagePowerMonitor(isThrottling: false)
+        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, power: power, decoder: decoder)
         return (player, clock, decoder)
     }
 

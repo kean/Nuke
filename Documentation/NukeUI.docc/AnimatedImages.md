@@ -181,6 +181,8 @@ The frames are decoded at the priority of the screen. With two frames of read-ah
 
 Each player is driven by a display link of its own, which runs while the player is playing and asks for no more than its animation needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of. The system folds every link in the process into one wakeup per refresh, so a screen of them costs what one does.
 
+In Low Power Mode, or on a device hot enough that the system is already throttling it, the clock is held to 30 Hz – the same two reasons WebKit slows its animations down for. A 10 fps GIF is unaffected; a 25 fps one has its frames stretched by up to a tick each and skips none, and the animation plays a little slower until the device recovers. Turn it off with ``AnimatedImagePlayer/Options/isPowerThrottlingEnabled``.
+
 ## Topics
 
 ### Views

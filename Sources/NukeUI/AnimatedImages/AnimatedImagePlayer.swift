@@ -83,6 +83,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     private let clock: any AnimatedImageClock
     private let pool: AnimatedImageFramePool
+    private let power: AnimatedImagePowerMonitor
 
     /// The number of frames the player is willing to hold, whatever the pool
     /// has to spare: ``Options/maxBufferSize`` in frames, at what a frame costs
@@ -112,12 +113,14 @@ public final class AnimatedImagePlayer: ObservableObject {
         options: Options,
         clock: any AnimatedImageClock,
         pool: AnimatedImageFramePool = .shared,
+        power: AnimatedImagePowerMonitor = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
         self.source = source
         self.options = options
         self.clock = clock
         self.pool = pool
+        self.power = power
         self.store = pool.store(
             for: source,
             maxPixelSize: options.maxPixelSize,
@@ -133,8 +136,9 @@ public final class AnimatedImagePlayer: ObservableObject {
         // joining, so that the player never falls in behind itself.
         self.currentFrameIndex = options.isSynchronizationEnabled ? store.leadingIndex() ?? 0 : 0
 
-        clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options)
+        updateClockRate()
         clock.onTick = { [weak self] in self?.tick($0) }
+        power.add(self)
         // Last, because joining is what starts the decoding and what hands the
         // store its first share of the pool.
         store.add(self)
@@ -471,6 +475,13 @@ public final class AnimatedImagePlayer: ObservableObject {
 #endif
     }
 
+    /// Tells the clock the rate to run at, which the power state can change
+    /// while the animation is playing.
+    func updateClockRate() {
+        let isThrottling = options.isPowerThrottlingEnabled && power.isThrottling
+        clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options, isThrottling: isThrottling)
+    }
+
     /// The rate to run the clock at, or `0` to let it use its own.
     ///
     /// Twice the fastest frame in the animation guarantees a tick to show
@@ -479,12 +490,21 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// ticks a second the hint is dropped: a clock asked for more than the
     /// display gives runs at the display's rate anyway, and the timer clock
     /// schedules itself at exactly this rate.
-    private static func preferredFrameRate(for source: AnimatedImageSource, options: Options) -> Double {
+    ///
+    /// While the system is throttling, the ceiling is 30 instead and the rate
+    /// is clamped to it rather than dropped: a fast animation is deliberately
+    /// run on a clock too coarse for it, which stretches its frames by up to a
+    /// tick and skips none. See ``Options/isPowerThrottlingEnabled``.
+    private static func preferredFrameRate(for source: AnimatedImageSource, options: Options, isThrottling: Bool) -> Double {
+        let ceiling: Double = isThrottling ? 30 : 60
         guard let shortest = source.delays.min(), shortest > 0 else {
-            return 0
+            return isThrottling ? ceiling : 0
         }
         let ticksPerSecond = (1 / shortest) * max(options.playbackRate, 1) * 2
-        return ticksPerSecond <= 60 ? ticksPerSecond : 0
+        if ticksPerSecond <= ceiling {
+            return ticksPerSecond
+        }
+        return isThrottling ? ceiling : 0
     }
 
     /// What the player counts as it plays, for ``diagnostics``.
@@ -555,6 +575,20 @@ extension AnimatedImagePlayer {
         /// for a player that should always begin at the beginning – an
         /// animation played once as a transition, say.
         public var isSynchronizationEnabled = true
+
+        /// Whether the clock slows down while the system is asking for less
+        /// work. `true` by default.
+        ///
+        /// In Low Power Mode, or on a device hot enough that the system is
+        /// already throttling it, the player asks its clock for at most 30
+        /// ticks a second instead of the two per frame it normally would,
+        /// which halves the wakeups an animation costs on battery. It is what
+        /// WebKit does for the same two reasons. Nothing is skipped: an
+        /// animation faster than the clock has its frames stretched by up to a
+        /// tick each, so it plays a little slower while the throttling lasts.
+        /// Set it to `false` for an animation that has to keep its timing
+        /// whatever the state of the device.
+        public var isPowerThrottlingEnabled = true
 
         public init() {}
     }
