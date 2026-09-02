@@ -63,6 +63,13 @@ final class AnimatedImageFrameStore {
     /// The memory the pool has allotted the store, in bytes.
     private(set) var allotment = 0
 
+    /// The ``leastDemand`` the pool last divided the budget by.
+    ///
+    /// What the store needs is worked out from where the playheads are, and
+    /// they move as the animation plays; this is what tells the store its
+    /// share was worked out for an arrangement its members have left.
+    private var dividedLeastDemand = 0
+
     /// The memory the frames it is holding occupy, in bytes.
     private(set) var byteCount = 0
 
@@ -235,31 +242,54 @@ final class AnimatedImageFrameStore {
         let windows = memberWindows()
         evict(windows)
         scheduleDecodeIfNeeded(windows)
+        rebalanceIfNeeded()
     }
 
     // MARK: Budget
 
     /// What the store would use if the pool had it to spare: every frame its
-    /// members ask for between them, and never more than the whole animation.
+    /// members' windows cover between them, and never more than the whole
+    /// animation.
     var demand: Int {
-        let wanted = members.lazy.compactMap { $0.player?.wantedFrameCount }.reduce(0, +)
-        return min(frameCount, wanted) * bytesPerFrame
+        claimedFrameCount(upTo: frameCount) * bytesPerFrame
     }
 
-    /// The least the store can play from: a window of the read-ahead for every
-    /// member, and never more than the whole animation.
+    /// The least the store can play from: a window of the read-ahead at every
+    /// playhead its members are on, and never more than the whole animation.
     ///
     /// Anything between this and ``demand`` buys nothing – a window that
     /// slides re-decodes every frame each loop however long it is – so these
     /// are the only two amounts the pool hands out.
     var leastDemand: Int {
-        let window = AnimatedImagePlayer.readAheadFrameCount + 1
-        let wanted = members.lazy.compactMap { $0.player?.wantedFrameCount }.reduce(0) { $0 + min($1, window) }
-        return min(frameCount, wanted) * bytesPerFrame
+        claimedFrameCount(upTo: AnimatedImagePlayer.readAheadFrameCount + 1) * bytesPerFrame
+    }
+
+    /// The number of distinct frames the members claim between them when none
+    /// of them holds more than the given number.
+    ///
+    /// Counted in playheads, the way ``windowLength`` goes on to divide the
+    /// share the pool hands back: the members on one playhead claim one window
+    /// between them, so twenty copies of a sticker playing in step ask for one
+    /// window and not for twenty. A member at a time, they would ask for
+    /// twenty – and be given it, since the windows are handed out before
+    /// anything is held whole, so the over-claim comes out of the animations
+    /// that could have been held whole in it.
+    private func claimedFrameCount(upTo limit: Int) -> Int {
+        var lengths: [Int: Int] = [:]
+        for player in liveMembers {
+            let index = player.currentFrameIndex
+            lengths[index] = max(lengths[index] ?? 0, min(player.wantedFrameCount, limit))
+        }
+        let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
+        return min(frameCount, total)
     }
 
     /// Takes the share of the pool the store holds its frames in.
-    func setAllotment(_ bytes: Int) {
+    ///
+    /// - parameter least: What the store asked for as its windows, which is
+    /// what the share answers and what the store watches for a change in.
+    func setAllotment(_ bytes: Int, least: Int) {
+        dividedLeastDemand = least
         guard bytes != allotment else { return }
         let previous = windowLength
         allotment = bytes
@@ -267,6 +297,29 @@ final class AnimatedImageFrameStore {
         let windows = memberWindows()
         evict(windows)
         scheduleDecodeIfNeeded(windows)
+    }
+
+    /// Divides the budget again when the playheads have moved somewhere the
+    /// last division didn't allow for.
+    ///
+    /// The windows are worked out from where the playheads are, so what the
+    /// store needs moves with them: two copies of an animation a frame apart
+    /// want a frame more than two in step, and a seek can scatter them
+    /// altogether. Without this, the share a store was given while its members
+    /// agreed would hold them at the two-frame floor for as long as they
+    /// disagreed, and a share given while they disagreed would be held out of
+    /// the reach of the other animations once they fell back into step.
+    private func rebalanceIfNeeded() {
+        // A store holding its animation whole has every frame every playhead
+        // could ask for, so where they are can't change what it needs. This is
+        // the case a screen of one sticker is in, and leaving early is what
+        // keeps it from measuring itself on every frame it shows.
+        guard allotment < frameCount * bytesPerFrame else { return }
+        // What a store needs is the union of its members' windows, which turns
+        // on the set of playheads and not on the members: it changes when two
+        // of them part or meet, not on every frame every one of them shows.
+        guard leastDemand != dividedLeastDemand else { return }
+        pool?.rebalance()
     }
 
     /// The number of frames each member may hold: the largest window such that
@@ -291,7 +344,7 @@ final class AnimatedImageFrameStore {
         var high = max(floor, capacity)
         while low < high {
             let middle = (low + high + 1) / 2
-            if unionSize(of: playheads, windowLength: middle) <= capacity {
+            if unionSize(of: playheads, length: { _ in middle }) <= capacity {
                 low = middle
             } else {
                 high = middle - 1
@@ -300,15 +353,16 @@ final class AnimatedImageFrameStore {
         return low
     }
 
-    /// The number of distinct frames covered by a window of the given length
-    /// starting at each playhead. A window reaches its full length or the next
-    /// playhead, whichever comes first, so nothing is counted twice.
-    private func unionSize(of playheads: [Int], windowLength: Int) -> Int {
+    /// The number of distinct frames covered by the window at each of the
+    /// given sorted playheads, `length` being how long the window at one of
+    /// them is. A window reaches its full length or the next playhead,
+    /// whichever comes first, so nothing is counted twice.
+    private func unionSize(of playheads: [Int], length: (Int) -> Int) -> Int {
         var total = 0
         for (offset, playhead) in playheads.enumerated() {
             let isLast = offset == playheads.count - 1
             let next = isLast ? playheads[0] + frameCount : playheads[offset + 1]
-            total += min(windowLength, next - playhead)
+            total += min(length(playhead), next - playhead)
         }
         return total
     }

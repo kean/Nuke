@@ -249,7 +249,7 @@ public final class AnimatedImageFramePool {
         // Applied only once every share is known: a store handed a smaller
         // window evicts frames on the spot.
         for share in divide(costLimit, between: Array(stores.values)) {
-            share.store.setAllotment(share.bytes)
+            share.store.setAllotment(share.bytes, least: share.least)
         }
         reclaimIfNeeded()
     }
@@ -343,7 +343,7 @@ public final class AnimatedImageFramePool {
         stores[store.key] = nil
     }
 
-    /// Asks for a division on the next turn of the main actor, for a buffer's
+    /// Asks for a division on the next turn of the main actor, for a player's
     /// `deinit`, which can't divide the budget itself.
     nonisolated func setNeedsRebalance() {
         Task { @MainActor in self.rebalance() }

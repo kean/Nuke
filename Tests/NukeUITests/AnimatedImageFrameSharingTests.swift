@@ -323,6 +323,45 @@ struct AnimatedImageFrameSharingTests {
         #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
+    @Test func copiesInStepAskForOneWindowBetweenThem() throws {
+        // Sixteen frames of pool. The four copies play in step, so what they
+        // need is one window of the read-ahead – three frames – and the other
+        // animation fits whole in what is left. Asking for a window each, they
+        // would have claimed twelve of the sixteen and held the other animation
+        // to a window it gains nothing from: the windows are handed out before
+        // anything is held whole, so the over-claim comes out of the budget the
+        // whole animations are held in.
+        let pool = makePool(frames: 16)
+        let shared = try makeSource(frameCount: 20)
+        let other = try makeSource(frameCount: 12)
+
+        let copies = (0..<4).map { _ in makePlayer(source: shared, pool: pool) }
+        let single = makePlayer(source: other, pool: pool)
+
+        #expect(copies.allSatisfy { $0.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1 })
+        #expect(single.diagnostics.bufferCapacity == 12)
+    }
+
+    @Test func copiesThatFallIntoStepGiveTheDifferenceBack() throws {
+        // Ten frames of pool. The two copies start half the animation apart,
+        // which is two windows to keep, and the seven-frame animation is left
+        // with a window of its own. Once the copies meet they need one window
+        // between them, and what that frees is exactly what the small animation
+        // needs to be held whole – so the division is made again rather than
+        // waiting for a player to come or go.
+        let pool = makePool(frames: 10)
+        let shared = try makeSource(frameCount: 20)
+        let first = makePlayer(source: shared, pool: pool)
+        let second = makePlayer(source: shared, pool: pool)
+        second.seek(toFrame: 10)
+        let single = makePlayer(source: try makeSource(frameCount: 7), pool: pool)
+        #expect(single.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+
+        second.seek(toFrame: first.currentFrameIndex)
+
+        #expect(single.diagnostics.bufferCapacity == 7)
+    }
+
     @Test func scatteredPlayheadsCostNothingWhenTheAnimationFits() throws {
         // Where they are only matters while the animation has to be windowed.
         let pool = makePool(frames: 100)
