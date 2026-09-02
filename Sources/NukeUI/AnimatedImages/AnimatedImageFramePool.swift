@@ -180,14 +180,15 @@ public final class AnimatedImageFramePool {
     }
 
     /// Returns the smallest set of frames already being decoded for the same
-    /// animation and transform at a size that covers the one asked for, if
-    /// there is one.
+    /// animation and transform at a size that covers the one asked for and is
+    /// not too much larger than it, if there is one.
     ///
     /// A frame decoded for a larger view answers a smaller one – the view
-    /// scales it as it draws it – so the sticker in a 300-point bubble and the
-    /// same sticker in a 44-point avatar are decoded and held once rather than
-    /// twice. The smaller view pays for it in bytes: it holds the larger
-    /// view's frames, and goes on holding them after that view has gone.
+    /// scales it as it draws it – so a grid whose cells differ by a size
+    /// step, or the same sticker drawn a little smaller in one place than
+    /// another, is decoded and held once rather than twice. The smaller view pays for it
+    /// in bytes: it holds the larger view's frames, and goes on holding them
+    /// after that view has gone, which is what ``maxSharedSizeRatio`` bounds.
     ///
     /// The reuse only reaches backwards. A view that wants more than anything
     /// decoded so far starts a set of its own, and the smaller sets already
@@ -195,20 +196,36 @@ public final class AnimatedImageFramePool {
     /// moved to another set, and dropping frames a view is playing from to
     /// decode larger ones would stall it.
     private func largerStore(for key: AnimatedImageFrameKey, source: AnimatedImageSource) -> AnimatedImageFrameStore? {
-        let wanted = decodedSize(key.maxPixelSize)
+        let wanted = decodedSize(key.maxPixelSize, of: source)
+        let limit = wanted * Self.maxSharedSizeRatio
         return stores.values
             // An animation that has been released can leave its address to
             // the next one, so identity alone isn't enough.
             .filter { $0.source === source && $0.key.transform == key.transform }
-            .filter { decodedSize($0.key.maxPixelSize) >= wanted }
-            .min { decodedSize($0.key.maxPixelSize) < decodedSize($1.key.maxPixelSize) }
+            .filter { (wanted...limit).contains(decodedSize($0.key.maxPixelSize, of: source)) }
+            .min { decodedSize($0.key.maxPixelSize, of: source) < decodedSize($1.key.maxPixelSize, of: source) }
     }
 
-    /// The longest side a set of frames is decoded at, with `nil` – the size
-    /// the animation is stored at, which the key spells every limit the
-    /// animation already fits in as – larger than any limit.
-    private func decodedSize(_ maxPixelSize: CGFloat?) -> CGFloat {
-        maxPixelSize ?? .greatestFiniteMagnitude
+    /// The most a set of frames may exceed the size a view asked for and still
+    /// answer it: twice the longest side, which is four times the pixels.
+    ///
+    /// A view that joins a larger set doesn't decode the animation a second
+    /// time, and pays for that in bytes – so what it saves has to be worth
+    /// what it costs. Unbounded, a 44-point avatar that appears after a
+    /// full-screen view of the same animation would hold 1024-pixel frames for
+    /// the rest of its life, at the large view's bytes in the pool's division
+    /// and the large view's cost per frame whenever the animation is windowed,
+    /// long after that view has gone. Views closer than this mostly round to
+    /// one size to begin with and share exactly.
+    private static let maxSharedSizeRatio: CGFloat = 2
+
+    /// The longest side a set of frames is decoded at: the limit its key
+    /// holds, or the animation's own longest side for the key of a set decoded
+    /// at the size the animation is stored at – which a key spells every limit
+    /// the animation already fits in as, and which is therefore larger than
+    /// any limit a key keeps.
+    private func decodedSize(_ maxPixelSize: CGFloat?, of source: AnimatedImageSource) -> CGFloat {
+        maxPixelSize ?? max(source.size.width, source.size.height)
     }
 
     /// Divides the limit between the animations being played and hands each

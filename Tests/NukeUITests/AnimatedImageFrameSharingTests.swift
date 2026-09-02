@@ -92,14 +92,14 @@ struct AnimatedImageFrameSharingTests {
 
     @Test func aSmallerViewDrawsFromTheFramesALargerOneDecoded() async throws {
         // A frame decoded for a larger view answers a smaller one, which
-        // scales it as it draws it, so the sticker in a 300-point bubble and
-        // the same sticker in a 44-point avatar are decoded once.
+        // scales it as it draws it, so the same sticker drawn a little smaller
+        // in one place than another is decoded once.
         let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let bubble = makePlayer(source: source)
         await bubble.waitUntilFull()
 
         var small = AnimatedImagePlayer.Options()
-        small.maxPixelSize = 16
+        small.maxPixelSize = 48
         let avatar = makePlayer(source: source, options: small)
 
         #expect(avatar.store === bubble.store)
@@ -110,18 +110,34 @@ struct AnimatedImageFrameSharingTests {
 
     @Test func theSmallerViewPaysTheLargerOnesBytes() async throws {
         // The trade: nothing is decoded twice, and the frames the avatar holds
-        // are the bubble's – 64 pixels of them, not the 16 it asked for.
+        // are the bubble's – 64 pixels of them, not the 48 it asked for.
         let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let bubble = makePlayer(source: source)
         await bubble.waitUntilFull()
 
         var small = AnimatedImagePlayer.Options()
-        small.maxPixelSize = 16
+        small.maxPixelSize = 48
         let avatar = makePlayer(source: source, options: small)
 
         let frame = try #require(avatar.store.frame(at: 0))
         #expect(frame.width == 64)
         #expect(avatar.store.bytesPerFrame == bubble.store.bytesPerFrame)
+    }
+
+    @Test func aViewDoesNotJoinFramesFarLargerThanItAskedFor() throws {
+        // The avatar would hold the hero's frames – sixteen times the pixels
+        // it asked for – for the rest of its life, and re-decode them at the
+        // hero's price whenever the animation has to be windowed.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let hero = makePlayer(source: source)
+
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        let avatar = makePlayer(source: source, options: small)
+
+        #expect(avatar.store !== hero.store)
+        #expect(avatar.store.bytesPerFrame < hero.store.bytesPerFrame)
+        #expect(pool.animationCount == 2)
     }
 
     @Test func aLargerViewDoesNotDrawFromASmallerOnesFrames() throws {
@@ -186,7 +202,7 @@ struct AnimatedImageFrameSharingTests {
         await settle()
 
         var small = AnimatedImagePlayer.Options()
-        small.maxPixelSize = 16
+        small.maxPixelSize = 48
         let avatar = makePlayer(source: source, options: small)
 
         #expect(avatar.diagnostics.bufferedFrameCount == 4)
