@@ -93,6 +93,14 @@ final class AnimatedImageFrameStore {
         weak var player: AnimatedImagePlayer?
     }
 
+    /// What one member is claiming: where its playhead sits and how many
+    /// frames it holds from there.
+    private struct MemberWindow {
+        let player: AnimatedImagePlayer
+        let start: Int
+        let length: Int
+    }
+
     private var frames: [Int: Frame] = [:]
 
     /// The frames the decoder refused, so that a truncated animation doesn't
@@ -185,6 +193,16 @@ final class AnimatedImageFrameStore {
         frames[index] == nil && !failedIndexes.contains(index)
     }
 
+    /// `true` while any frame of the animation is still pending.
+    ///
+    /// The decoded frames and the refused ones are disjoint and both live in
+    /// the animation, so counting them answers this without walking the
+    /// indexes – which is what lets a store holding its animation whole leave
+    /// the question of what to decode next alone.
+    private var hasPendingFrames: Bool {
+        frames.count + failedIndexes.count < frameCount
+    }
+
     /// The number of decoded frames inside the given window.
     func decodedFrameCount(in window: Range<Int>) -> Int {
         indexes(in: window).count { frames[$0] != nil }
@@ -211,8 +229,12 @@ final class AnimatedImageFrameStore {
         if isSeeking {
             removeRequester(player)
         }
-        evict()
-        scheduleDecodeIfNeeded()
+        // Gathered once for both: the windows don't change between them, and
+        // gathering them is the expensive part. Every copy of one animation
+        // runs this on every frame it shows.
+        let windows = memberWindows()
+        evict(windows)
+        scheduleDecodeIfNeeded(windows)
     }
 
     // MARK: Budget
@@ -242,8 +264,9 @@ final class AnimatedImageFrameStore {
         let previous = windowLength
         allotment = bytes
         guard windowLength != previous else { return }
-        evict()
-        scheduleDecodeIfNeeded()
+        let windows = memberWindows()
+        evict(windows)
+        scheduleDecodeIfNeeded(windows)
     }
 
     /// The number of frames each member may hold: the largest window such that
@@ -295,9 +318,8 @@ final class AnimatedImageFrameStore {
     /// An idle store keeps everything for a view that comes back on screen;
     /// the pool reclaims those frames when it needs the room, and drops them
     /// on a memory warning.
-    private func evict() {
+    private func evict(_ windows: [MemberWindow]) {
         guard !members.isEmpty, !frames.isEmpty else { return }
-        let windows = liveMembers.map { (start: $0.currentFrameIndex, length: $0.bufferCapacity) }
         guard !windows.contains(where: { $0.length >= frameCount }) else {
             return // Some window covers the whole animation: nothing to evict
         }
@@ -307,7 +329,7 @@ final class AnimatedImageFrameStore {
         }
     }
 
-    private func covers(_ index: Int, _ window: (start: Int, length: Int)) -> Bool {
+    private func covers(_ index: Int, _ window: MemberWindow) -> Bool {
         (index - window.start + frameCount) % frameCount < window.length
     }
 
@@ -317,7 +339,7 @@ final class AnimatedImageFrameStore {
         if members.isEmpty {
             removeAllFrames()
         } else {
-            evict()
+            evict(memberWindows())
         }
     }
 
@@ -333,18 +355,22 @@ final class AnimatedImageFrameStore {
     /// Only one decode ever runs per animation: several at once would finish
     /// the frames needed last just as soon as the one needed next.
     func scheduleDecodeIfNeeded() {
+        scheduleDecodeIfNeeded(memberWindows())
+    }
+
+    private func scheduleDecodeIfNeeded(_ windows: [MemberWindow]) {
         if let decodingIndex {
             // A player that has come to want the frame in flight waits for it.
-            for player in liveMembers where player.wants(decodingIndex) {
-                decodingRequesters.insert(ObjectIdentifier(player))
+            for window in windows where covers(decodingIndex, window) {
+                decodingRequesters.insert(ObjectIdentifier(window.player))
             }
             return
         }
-        guard let index = nextNeededIndex(), let decoder = makeDecoderIfNeeded() else {
+        guard let index = nextNeededIndex(windows), let decoder = makeDecoderIfNeeded() else {
             return
         }
         decodingIndex = index
-        decodingRequesters = Set(liveMembers.filter { $0.wants(index) }.map(ObjectIdentifier.init))
+        decodingRequesters = Set(windows.filter { covers(index, $0) }.map { ObjectIdentifier($0.player) })
         // At the priority of the screen: a frame is decoded a few frames before
         // it is due, so every decode is one the display is about to wait for.
         // The read-ahead being short is what keeps this from turning a wall of
@@ -369,15 +395,19 @@ final class AnimatedImageFrameStore {
 
     /// The next frame worth decoding: the one a player is waiting on, then
     /// read-ahead a step at a time across every player.
-    private func nextNeededIndex() -> Int? {
-        let members = liveMembers
-        if let index = members.first(where: { isPending($0.currentFrameIndex) })?.currentFrameIndex {
-            return index
+    private func nextNeededIndex(_ windows: [MemberWindow]) -> Int? {
+        // Nothing is left to produce: every frame is either decoded or one the
+        // decoder refused. An animation the pool is holding whole spends all of
+        // its time here, which is what keeps a wall of copies of one animation
+        // from walking every window on every frame it shows.
+        guard hasPendingFrames else { return nil }
+        if let window = windows.first(where: { isPending($0.start) }) {
+            return window.start
         }
-        let longest = members.map(\.bufferCapacity).max() ?? 0
+        let longest = windows.map(\.length).max() ?? 0
         for offset in 1..<max(1, longest) {
-            for player in members where offset < player.bufferCapacity {
-                let index = (player.currentFrameIndex + offset) % frameCount
+            for window in windows where offset < window.length {
+                let index = (window.start + offset) % frameCount
                 if isPending(index) { return index }
             }
         }
@@ -404,7 +434,7 @@ final class AnimatedImageFrameStore {
             // the one that knows whether it has anything better to show.
             player.storeDidDecodeFrame(at: index, duration: duration)
         }
-        evict()
+        evict(memberWindows())
         // The frames of an animation nobody plays aren't in the division of
         // the budget; this is where they stop being worth keeping.
         pool?.reclaimIfNeeded()
@@ -454,6 +484,26 @@ final class AnimatedImageFrameStore {
 
     private var liveMembers: [AnimatedImagePlayer] {
         members.compactMap { $0.player }
+    }
+
+    /// The window every live member is claiming.
+    ///
+    /// Worked out in one pass, because every window is bounded by the same
+    /// ``windowLength`` and that length walks the members: a member asked for
+    /// its own window recomputes it, so gathering the windows a member at a
+    /// time costs the square of the number of members. The copies of one
+    /// sticker on a screen are all members of one store, and each of them
+    /// updates its window on every frame it shows.
+    private func memberWindows() -> [MemberWindow] {
+        let windowLength = self.windowLength
+        return members.compactMap { member in
+            guard let player = member.player else { return nil }
+            return MemberWindow(
+                player: player,
+                start: player.currentFrameIndex,
+                length: player.bufferCapacity(windowLength: windowLength)
+            )
+        }
     }
 
     /// Drops the members that have been released.

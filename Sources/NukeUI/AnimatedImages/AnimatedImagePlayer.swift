@@ -227,7 +227,17 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// the share of the animation the pool has left it, whichever is smaller –
     /// and no more than the read-ahead unless that share is the whole animation.
     var bufferCapacity: Int {
-        let granted = min(store.windowLength, wantedFrameCount)
+        bufferCapacity(windowLength: store.windowLength)
+    }
+
+    /// The capacity for a window length the store has already computed.
+    ///
+    /// ``AnimatedImageFrameStore/windowLength`` walks the members, so a store
+    /// works out the length its members share once and hands it to each of
+    /// them: a member reading it for itself makes moving one playhead cost the
+    /// square of the number of players drawing from the animation.
+    func bufferCapacity(windowLength: Int) -> Int {
+        let granted = min(windowLength, wantedFrameCount)
         let capacity = granted >= source.frameCount ? granted : min(granted, Self.readAheadFrameCount + 1)
         return max(Self.idleFrameCount, capacity)
     }
