@@ -186,8 +186,8 @@ struct DemoDiagnosticsRow: View {
 /// Every animation at once, laid out to fill the space it is given without
 /// scrolling.
 ///
-/// What goes over a cell is up to the caller: the frame pool screen puts a
-/// badge there with what the cell is holding.
+/// What goes over a cell is up to the caller: the animation memory screen
+/// puts a badge there with what the cell is holding.
 struct DemoAnimationWall<Overlay: View>: View {
     let animations: [DemoLoadedAnimation]
     var spacing: CGFloat = 6

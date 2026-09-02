@@ -73,8 +73,8 @@ struct DemoMenu: View {
             DemoLink("Animated Images", "GIF, APNG, WebP, and HEIC with live diagnostics") {
                 AnimatedImagesDemo()
             }
-            DemoLink("Frame Pool", "A wall of animations sharing one memory budget") {
-                AnimatedImageFramePoolDemo()
+            DemoLink("Animation Memory", "A wall of animations sharing one memory budget") {
+                AnimationMemoryDemo()
             }
             DemoLink("Progressive JPEG", "Progressive decoding side by side with baseline") {
                 ProgressiveDecodingDemo()

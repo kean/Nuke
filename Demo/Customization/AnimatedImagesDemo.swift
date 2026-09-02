@@ -12,7 +12,7 @@ import SwiftUI
 ///
 /// `LazyImage` plays animated images on its own; this screen creates the
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
-/// The **Frame Pool** screen is the same thing for a wall of them.
+/// The **Animation Memory** screen is the same thing for a wall of them.
 ///
 /// The layout is a stage and a console: the animation stays put with the zoom
 /// in its corner, the image is picked from the title's menu, playback lives on the

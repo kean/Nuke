@@ -9,14 +9,16 @@ import SwiftUI
 /// ``AnimatedImageFramePool`` gives each of them, and what it costs when the
 /// same animation is on screen many times over.
 ///
-/// Add animations and every window shrinks to a share; drag the budget and
-/// they all refill. Turn on "Repeat one animation" and the wall costs what a
-/// single cell did, however many cells there are.
+/// Raise the count in the title bar and every window shrinks to a share; drag
+/// the budget and they all refill. Turn on "Repeat one animation" and the wall
+/// costs what a single cell did, however many cells there are.
 ///
 /// The layout is the same one the **Animated Images** screen uses: a stage that
 /// stays put, and a console in an inspector – a column beside the wall where
-/// there is room for one, a sheet below it where there isn't.
-struct AnimatedImageFramePoolDemo: View {
+/// there is room for one, a sheet below it where there isn't. The count is the
+/// exception: it is the setting the whole screen turns on, so it lives in the
+/// title bar, where it is reachable whatever the console is doing.
+struct AnimationMemoryDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
     @State private var animations: [DemoLoadedAnimation] = []
@@ -49,10 +51,16 @@ struct AnimatedImageFramePoolDemo: View {
                     AnimatedImageFramePool.shared.costLimit = poolCostLimit
                 }
             }
-            // The title and the info button come before `inspector`, which
-            // scopes them to the stage: after it they drift into the
-            // console's column.
-            .navigationTitle("Frame Pool")
+            // The title, the count, and the info button come before
+            // `inspector`, which scopes them to the stage: after it they drift
+            // into the console's column.
+            .navigationTitle("Animation Memory")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    CountMenu(count: $settings.animationCount, current: settings.animationCount)
+                        .equatable()
+                }
+            }
             .demoInfoButton(isPresented: $isShowingInfo)
             .inspector(isPresented: .constant(true)) { console }
     }
@@ -61,6 +69,41 @@ struct AnimatedImageFramePoolDemo: View {
     /// beside it.
     private var isConsoleSheet: Bool {
         horizontalSizeClass == .compact
+    }
+
+    /// How many animations are on the wall, at the trailing edge of the title
+    /// bar: the current count as the label, the choices behind a tap.
+    ///
+    /// Equatable for the reason the **Animated Images** menus are: the screen
+    /// redraws ten times a second as the diagnostics are sampled, and a menu
+    /// rebuilt that often drops its items while it is open.
+    private struct CountMenu: View, Equatable {
+        @Binding var count: Int
+        /// The count again as a plain value: the comparison runs outside the
+        /// main actor, where a binding can't be read and a constant can.
+        let current: Int
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            lhs.current == rhs.current
+        }
+
+        var body: some View {
+            Menu {
+                ForEach(Settings.availableCounts, id: \.self) { choice in
+                    Toggle(isOn: Binding(get: { count == choice }, set: { _ in count = choice })) {
+                        Text("\(choice) animations")
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text("\(current)")
+                        .monospacedDigit()
+                    Image(systemName: "square.grid.2x2")
+                        .imageScale(.small)
+                }
+            }
+            .accessibilityLabel("Number of animations")
+        }
     }
 
     // MARK: Stage
@@ -181,11 +224,10 @@ struct AnimatedImageFramePoolDemo: View {
         Section {
             DemoPoolMeter(pool: pool)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-            // What the old pinned transport did, as a row of the section it
-            // was about: everything at once, or the same memory warning the
-            // pool gives itself.
-            // The buttons at their natural size, centered: halves of the row
-            // would truncate "Free Memory" on an iPhone.
+            // Everything at once, or the same memory warning the pool gives
+            // itself, as a row of the section they are about. The buttons at
+            // their natural size, centered: halves of the row would truncate
+            // "Free Memory" on an iPhone.
             HStack(spacing: 12) {
                 Button {
                     let isPlaying = animations.contains { $0.player.isPlaying }
@@ -213,16 +255,6 @@ struct AnimatedImageFramePoolDemo: View {
             Slider(value: $settings.poolCostLimitMB, in: 4...256) {
                 Text("Pool budget")
             }
-            LabeledContent("Animations") {
-                DemoMonoLabel("\(settings.animationCount)")
-            }
-            Picker("Animations", selection: $settings.animationCount) {
-                ForEach(Settings.availableCounts, id: \.self) {
-                    Text("\($0)").tag($0)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
             Toggle("Repeat one animation", isOn: $settings.repeatsOneAnimation)
         } header: {
             Text("Frame Pool")
@@ -320,7 +352,7 @@ struct AnimatedImageFramePoolDemo: View {
     }
 
     fileprivate static let info = DemoInfo(
-        "Frame Pool",
+        "Animation Memory",
         "`AnimatedImagePlayer.Options.maxBufferSize` is per player; `AnimatedImageFramePool` is the ceiling on all of them together. Every player draws its window from the pool, so a wall of animations costs what the pool says rather than the sum of their budgets.",
         code: """
         // What every animation on screen shares
@@ -373,6 +405,6 @@ private struct DemoWallRow: View {
 
 #Preview {
     NavigationStack {
-        AnimatedImageFramePoolDemo()
+        AnimationMemoryDemo()
     }
 }
