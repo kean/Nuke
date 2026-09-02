@@ -122,7 +122,7 @@ public final class TaskQueue: Sendable {
         // reference it weakly. The work is read _inside_ the task (instead of
         // being hoisted out of the operation) so that cancelling an operation
         // that was dequeued, but hasn't started yet, prevents it from running.
-        operation.task = Task { @ImagePipelineActor [weak self] in
+        operation.task = Task(priority: operation.priority.concurrencyPriority) { @ImagePipelineActor [weak self] in
             if let work = operation.work {
                 operation.work = nil
                 try? await work()
