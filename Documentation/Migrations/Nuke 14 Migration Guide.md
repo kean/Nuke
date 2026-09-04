@@ -112,6 +112,20 @@ ImagePipeline.shared = ImagePipeline {
 
 `ImageContainer.data` is unaffected by the flag, so a renderer that parses the data itself keeps working. Processing an image now clears both `data` and `animation`, which describe the image that went into the processor.
 
+## A GIF With No Loop Extension Plays Once
+
+A GIF stores its loop count in the Netscape application extension, and a GIF that carries no such block asks to be played once. `AnimatedImagePlayer` plays it once, the way every browser does.
+
+Gifu, FLAnimatedImage, and `UIImage.animatedImage(with:duration:)` all loop such a GIF forever, so an app coming from one of them will find some of its GIFs stopping on their last frame. Almost all GIFs on the web carry the block; the ones that don't are usually written by a tool that never meant them to loop. To play every animation forever whatever the file says:
+
+```swift
+var options = AnimatedImagePlayer.Options()
+options.repeatCount = .infinite
+imageView.playerOptions = options
+```
+
+Every other format either always declares a loop count or has nowhere to put one, and there "forever" is what the player assumes.
+
 ## Removed Deprecated APIs
 
 The APIs deprecated in Nuke 13 have been removed.
