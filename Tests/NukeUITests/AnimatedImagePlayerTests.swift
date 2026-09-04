@@ -688,18 +688,25 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Decode Priority
 
-    @Test func decodesEveryFrameAtThePriorityOfTheScreen() async {
-        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
+    @Test func decodesTheFrameAPlayheadIsOnAtThePriorityOfTheScreen() async {
+        let (_, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
 
-        // The frame nothing can be shown without...
+        // Nothing is on screen until this frame lands.
         #expect(await decoder.priority(of: 0) == .userInteractive)
+    }
 
+    @Test func decodesTheReadAheadBelowThePriorityOfTheScreen() async throws {
+        let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
         player.play()
-        await decoder.release(0)
+        let onScreen = try #require(player.store.currentDecode)
 
-        // ...and the read-ahead alike: with a few frames of it, every decode is
-        // one the display is about to wait for.
-        #expect(await decoder.priority(of: 1) == .userInteractive)
+        await decoder.release(0)
+        await onScreen.value
+
+        // The frame after it is due a frame from now, and a wall of animations
+        // decodes mostly these: at the priority of the screen all of it would
+        // compete with the main thread that has to draw it.
+        #expect(await decoder.priority(of: 1) == .userInitiated)
     }
 
     // MARK: Observation

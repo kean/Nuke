@@ -425,12 +425,18 @@ final class AnimatedImageFrameStore {
         }
         decodingIndex = index
         decodingRequesters = Set(windows.filter { covers(index, $0) }.map { ObjectIdentifier($0.player) })
-        // At the priority of the screen: a frame is decoded a few frames before
-        // it is due, so every decode is one the display is about to wait for.
+        // At the priority of the screen for the frame a playhead is sitting on
+        // – the first frame of an animation, the frame a seek landed on, the
+        // frame a player is holding the one before it past its delay for – and
+        // a step below for the read-ahead behind it, which is due a frame or
+        // two from now and can wait for the frames that aren't. A wall of
+        // animations decodes mostly read-ahead, and at the priority of the
+        // screen all of it competes with the main thread that has to draw it.
         // The read-ahead being short is what keeps this from turning a wall of
         // animations into CPU-bound work – the decoder is paced by playback,
         // one frame per frame shown, not by how much memory there is.
-        currentDecode = Task(priority: .userInteractive) { [weak self] in
+        let isOnAPlayhead = windows.contains { $0.start == index }
+        currentDecode = Task(priority: isOnAPlayhead ? .userInteractive : .userInitiated) { [weak self] in
             // Measured here rather than inside the decoder: what a frame costs
             // to produce is the whole wait, the transform included, and a
             // decoder of your own doesn't have to time itself to be reported.
