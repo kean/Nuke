@@ -241,6 +241,42 @@ struct AnimatedImageFramePoolTests {
         #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
     }
 
+    @Test func givesBackTheFramesNobodyIsPlayingWhenTheAppGoesToTheBackground() async throws {
+        let pool = makePool(frames: 24)
+        let scrolledPast = try makeSource(frameCount: 8)
+        var released: AnimatedImagePlayer? = try makePlayer(source: scrolledPast, pool: pool)
+        await released?.waitUntilFull()
+        released = nil
+        await settle()
+        let paused = try makePlayer(frameCount: 8, pool: pool)
+        await paused.waitUntilFull()
+        #expect(pool.animationCount == 2)
+
+        pool.removeIdleAnimations()
+
+        // Nothing is on screen, so the frames kept for a view that might come
+        // back are a cache the app isn't using. The player that is still around
+        // keeps what it is holding.
+        #expect(pool.animationCount == 1)
+        #expect(pool.totalCost == 8 * Self.bytesPerFrame)
+    }
+
+    @Test func givesBackTheFramesOfAnAnimationTheCacheHasLetGoOf() async throws {
+        let pool = makePool(frames: 24)
+        var source: AnimatedImageSource? = try makeSource(frameCount: 8)
+        var player: AnimatedImagePlayer? = try makePlayer(source: try #require(source), pool: pool)
+        await player?.waitUntilFull()
+
+        // The view goes, and then the cache lets go of the animation itself.
+        player = nil
+        source = nil
+        await settle()
+        pool.removeIdleAnimations()
+
+        #expect(pool.animationCount == 0)
+        #expect(pool.totalCost == 0)
+    }
+
     @Test func cachesNothingForAPlayerReleasedWhileTheMemoryPressureLasts() async throws {
         let pool = makePool(frames: 24)
         let source = try makeSource(frameCount: 8)

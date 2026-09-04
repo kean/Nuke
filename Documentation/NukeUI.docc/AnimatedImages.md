@@ -123,7 +123,7 @@ imageView.playerOptions = options
 
 **Raise the limit.** ``AnimatedImageFramePool/costLimit`` decides how many animations fit, and trades memory for CPU: one that fits is decoded once and never again, one that doesn't is decoded for as long as it plays. ``AnimatedImagePlayer/Options/maxBufferSize`` goes the other way: it is a ceiling on one player, for an animation that should play out of a window however much room the pool has.
 
-Memory is bounded either way. On a memory warning the pool gives back the frames of every animation nobody is playing – the cache it keeps for a view that comes back – and holds the ones on screen at two frames, giving the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
+Memory is bounded either way. On a memory warning the pool gives back the frames of every animation nobody is playing – the cache it keeps for a view that comes back – and holds the ones on screen at two frames, giving the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. Going to the background gives that cache back too, the way ``Nuke/ImageCache`` trims itself there, and ``AnimatedImageFramePool/removeIdleAnimations()`` is that on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
 
 ### Sharing
 

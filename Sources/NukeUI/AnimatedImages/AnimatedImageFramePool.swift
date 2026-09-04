@@ -112,6 +112,21 @@ public final class AnimatedImageFramePool {
         }
     }
 
+    /// Gives back the frames of every animation nobody is playing.
+    ///
+    /// Called when the app goes to the background, where ``Nuke/ImageCache``
+    /// trims itself for the same reason: nothing is on screen, so the frames
+    /// kept for a view that might come back are a cache the app isn't using,
+    /// and the animations they came from are on their way out of the cache
+    /// anyway. The players that are still around keep the two frames they need
+    /// to resume without a stall.
+    public func removeIdleAnimations() {
+        sweep()
+        for store in stores.values.filter(\.isIdle) {
+            remove(store)
+        }
+    }
+
     /// `true` while every animation is held at its two-frame floor and the
     /// frames of the ones nobody is playing are kept no longer.
     private(set) var isUnderMemoryPressure = false
@@ -145,6 +160,11 @@ public final class AnimatedImageFramePool {
                 self?.restore?.cancel()
                 self?.endMemoryPressure()
             }
+        }
+        // Nothing is on screen, and a store whose animation the cache has just
+        // let go of is otherwise held until something else makes the pool look.
+        center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.removeIdleAnimations() }
         }
 #endif
     }
