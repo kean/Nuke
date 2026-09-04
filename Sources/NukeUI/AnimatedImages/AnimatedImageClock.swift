@@ -51,15 +51,38 @@ protocol AnimatedImageClock: AnyObject {
 @MainActor
 func makeAnimatedImageClock() -> any AnimatedImageClock {
 #if os(iOS) || os(tvOS) || os(visionOS)
-    DisplayLinkClock()
+    DisplayLinkClock { CADisplayLink(target: $0, selector: $1) }
 #else
     TimerClock()
 #endif
 }
 
-#if os(iOS) || os(tvOS) || os(visionOS)
+#if !os(watchOS)
+
+/// Returns a clock for a player drawing into the given view.
+///
+/// AppKit has no display link of its own: one is asked of the view being drawn
+/// into, and follows that view between displays, ticking while it is in a
+/// window that is on screen and not while it isn't. Everywhere else the view
+/// makes no difference.
+@MainActor
+func makeAnimatedImageClock(for view: _PlatformBaseView) -> any AnimatedImageClock {
+#if os(macOS)
+    if #available(macOS 14.0, *) {
+        return DisplayLinkClock { view.displayLink(target: $0, selector: $1) }
+    }
+    return TimerClock()
+#else
+    return makeAnimatedImageClock()
+#endif
+}
+
+#endif
+
+#if os(iOS) || os(tvOS) || os(visionOS) || os(macOS)
 
 /// A clock driven by `CADisplayLink`, synchronized with the display refresh.
+@available(macOS 14.0, *)
 @MainActor
 final class DisplayLinkClock: AnimatedImageClock {
     var onTick: ((TimeInterval) -> Void)?
@@ -92,12 +115,14 @@ final class DisplayLinkClock: AnimatedImageClock {
     private(set) nonisolated(unsafe) var link: CADisplayLink!
     private var lastTimestamp: CFTimeInterval = 0
 
-    init() {
+    /// - parameter makeLink: What produces the link, because AppKit asks the
+    /// view being drawn into for one and UIKit makes it out of nothing.
+    init(makeLink: (AnyObject, Selector) -> CADisplayLink) {
         // The proxy is what keeps the run loop from retaining the clock: a
         // display link retains its target until it is invalidated, and the
         // clock is owned by a player that has to be able to go away.
         let proxy = DisplayLinkProxy()
-        link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.onDisplayLink(_:)))
+        link = makeLink(proxy, #selector(DisplayLinkProxy.onDisplayLink(_:)))
         proxy.clock = self
         link.isPaused = true
         link.add(to: .main, forMode: .common)
@@ -155,6 +180,7 @@ final class DisplayLinkClock: AnimatedImageClock {
 /// A display link retains its target until it is invalidated, and the run loop
 /// retains the link, so a target that owns the clock would keep every player
 /// that ever animated alive for the lifetime of the app.
+@available(macOS 14.0, *)
 @MainActor
 private final class DisplayLinkProxy {
     weak var clock: DisplayLinkClock?
@@ -169,8 +195,8 @@ private final class DisplayLinkProxy {
 
 #endif
 
-/// A clock driven by a timer, for the platforms without `CADisplayLink`:
-/// macOS and watchOS.
+/// A clock driven by a timer, for where there is no display link to be had:
+/// watchOS, and macOS before 14 or a player with no view to ask for one.
 ///
 /// It is scheduled at the rate the animation asks for rather than at the
 /// refresh rate, so it wakes up less often than a display link would.

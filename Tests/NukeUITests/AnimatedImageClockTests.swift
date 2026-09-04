@@ -21,7 +21,7 @@ struct DisplayLinkClockTests {
         // task can be the one to drop the last reference to it – which is the
         // one case the proxy can't answer, a paused link having no next tick.
         await Task.detached {
-            var clock: DisplayLinkClock? = await MainActor.run { DisplayLinkClock() }
+            var clock: DisplayLinkClock? = await MainActor.run { DisplayLinkClock { CADisplayLink(target: $0, selector: $1) } }
             await MainActor.run {
                 clock?.isPaused = true
                 link.value = clock?.link
@@ -43,6 +43,29 @@ struct DisplayLinkClockTests {
 /// threads the object is released on.
 private final class WeakBox: @unchecked Sendable {
     weak var value: AnyObject?
+}
+
+#endif
+
+#if os(macOS)
+
+import AppKit
+
+/// Which clock a player gets on AppKit, where a display link is asked of the
+/// view being drawn into rather than made out of nothing.
+@Suite(.timeLimit(.minutes(1))) @MainActor
+struct AppKitClockTests {
+    @Test func aViewGetsADisplayLinkOfItsOwn() {
+        guard #available(macOS 14.0, *) else { return }
+
+        #expect(makeAnimatedImageClock(for: NSView()) is DisplayLinkClock)
+    }
+
+    @Test func aPlayerWithNoViewRunsOnATimer() {
+        // There is nothing to ask for a link, so the animation runs on a timer
+        // at the rate it asks for.
+        #expect(makeAnimatedImageClock() is TimerClock)
+    }
 }
 
 #endif

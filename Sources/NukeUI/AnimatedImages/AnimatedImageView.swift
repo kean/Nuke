@@ -466,7 +466,10 @@ public final class AnimatedImageView: _PlatformImageView {
             if options.maxPixelSize == nil {
                 options.maxPixelSize = maxPixelSize
             }
-            let player = AnimatedImagePlayer(source: source, options: options)
+            // Built with a clock of the view's, which is what gets a display
+            // link out of AppKit: there, one is asked of the view being drawn
+            // into rather than made out of nothing.
+            let player = AnimatedImagePlayer(source: source, options: options, clock: makeAnimatedImageClock(for: self))
             // Decoding the frames again at another size is not a new animation:
             // a view that grows carries on from the frame it was showing, in
             // the loop it was on. Read before the assignment below, which is
