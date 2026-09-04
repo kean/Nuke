@@ -58,8 +58,10 @@ public final class AnimatedImageView: _PlatformImageView {
     public var player: AnimatedImagePlayer? {
         didSet {
             guard oldValue !== player else { return }
-            // A player set from outside wins over anything on its way.
+            // A player set from outside wins over anything on its way, and is
+            // not one the view may replace when it grows.
             sourcePendingDownsampling = nil
+            ownsPlayer = false
             oldValue?.pause()
             oldValue?.onFrameForDisplay = nil
             // `image` rather than `layer.contents`, which would go around the
@@ -82,6 +84,11 @@ public final class AnimatedImageView: _PlatformImageView {
     /// It is what ``animatedImage`` reports until the player exists, and what
     /// the layout pass builds the player from.
     private var sourcePendingDownsampling: AnimatedImageSource?
+
+    /// Whether ``player`` is one the view made, and so one it may replace when
+    /// the view outgrows the size its frames were decoded for. A player set
+    /// from outside belongs to whoever set it.
+    private var ownsPlayer = false
 
     /// The options the view creates its players with.
     ///
@@ -120,9 +127,13 @@ public final class AnimatedImageView: _PlatformImageView {
     /// 4 MB a frame, and the same animation decoded for a 120-point cell costs
     /// 0.2 MB. The frames are never scaled up.
     ///
+    /// The size is settled at the first layout that has one, and settled again
+    /// whenever the view grows well past it – a rotation, a split view, a
+    /// window dragged wider – so that the frames are never scaled up by much.
+    ///
     /// Set ``AnimatedImagePlayer/Options/maxPixelSize`` in ``playerOptions`` to
     /// pick the size yourself; it wins over this. Set this to `false` to decode
-    /// every animation at full size – for a view that is going to grow, say.
+    /// every animation at full size.
     public var isAutomaticDownsamplingEnabled = true
 
     /// `true` while the animation is running.
@@ -228,7 +239,9 @@ public final class AnimatedImageView: _PlatformImageView {
     // A view given an animation before it is laid out – a cell, and every
     // SwiftUI view – can't know what size to decode the frames for. It settles
     // that at the first layout with a size, and only for an animation that is
-    // actually bigger than the view: the rebuild costs a decode.
+    // actually bigger than the view: the rebuild costs a decode. A view that
+    // later grows past what it settled on – a rotation, a split view, a window
+    // dragged wider – settles it again.
 
 #if os(macOS)
     override public func layout() {
@@ -243,20 +256,58 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
 
     private func applyAutomaticDownsamplingIfNeeded() {
-        guard let source = sourcePendingDownsampling else { return }
+        guard let source = animatedImage else { return }
+        let derived = automaticMaxPixelSize(for: source)
         // A size worth having is one the animation is actually bigger than.
-        var maxPixelSize = automaticMaxPixelSize(for: source)
+        var maxPixelSize = derived
         if let size = maxPixelSize, size >= max(source.size.width, source.size.height) {
             maxPixelSize = nil
         }
-        // Nothing to derive a size from – the view has none, or its content
-        // mode draws the frames as they are – and a player already playing
-        // them at full size. Keep waiting, in case the content mode changes.
-        guard maxPixelSize != nil || player == nil else { return }
+        if sourcePendingDownsampling != nil {
+            // Nothing to derive a size from – the view has none, or its content
+            // mode draws the frames as they are – and a player already playing
+            // them at full size. Keep waiting, in case the content mode changes.
+            guard maxPixelSize != nil || player == nil else { return }
+        } else {
+            // `derived` rather than `maxPixelSize`: a view with nothing to say
+            // about its size has not outgrown anything.
+            guard derived != nil, hasOutgrownItsFrames(maxPixelSize, of: source) else { return }
+        }
         setPlayer(for: source, scale: player?.options.scale ?? scale(of: image), maxPixelSize: maxPixelSize)
         // Set after the player, whose `didSet` clears it.
         sourcePendingDownsampling = maxPixelSize == nil ? source : nil
     }
+
+    /// Whether the view has grown far enough past the size its frames were
+    /// decoded for to be worth decoding them again.
+    ///
+    /// A view that keeps the frames it settled on scales them up as it draws
+    /// them, and an animation decoded for a 120-point cell drawn full screen is
+    /// a blur. Only the view's own downsampling is revisited: a size the caller
+    /// picked, and a player the view was handed, belong to whoever chose them.
+    private func hasOutgrownItsFrames(_ maxPixelSize: CGFloat?, of source: AnimatedImageSource) -> Bool {
+        guard ownsPlayer, wantsAutomaticDownsampling, let player else { return false }
+        // Measured at the size the frames are decoded at rather than at the
+        // limit that was asked for: a limit larger than the animation
+        // downsamples nothing, so both `nil` and any limit past the longest
+        // side mean the same set of frames.
+        let longestSide = max(source.size.width, source.size.height)
+        let decoded = min(player.options.maxPixelSize ?? longestSide, longestSide)
+        guard decoded < longestSide else {
+            return false // Already at full size: there is nothing larger to ask for
+        }
+        return min(maxPixelSize ?? longestSide, longestSide) > decoded * Self.maxUpscaleRatio
+    }
+
+    /// How far a view may outgrow its frames before they are decoded again.
+    ///
+    /// Not the first pixel of it: a resize that is dragged rather than jumped
+    /// would decode the animation again at every step, and every step leaves a
+    /// set of frames behind for the pool to reclaim. A ratio makes the decodes
+    /// across a drag count the times the view doubled rather than the pixels it
+    /// gained, and half again as large in each direction is an upscale with
+    /// little to see in it.
+    private static let maxUpscaleRatio: CGFloat = 1.5
 
     /// The longest side, in pixels, the frames need for the view to draw them
     /// at the size the content mode asks for – or `nil` when the view has no
@@ -405,7 +456,7 @@ public final class AnimatedImageView: _PlatformImageView {
     }
 
     private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {
-        player = source.map { source in
+        let player = source.map { source -> AnimatedImagePlayer in
             var options = playerOptions
             // Match the scale of the still image the decoder produced, or the
             // animation changes size the moment it starts playing.
@@ -415,8 +466,18 @@ public final class AnimatedImageView: _PlatformImageView {
             if options.maxPixelSize == nil {
                 options.maxPixelSize = maxPixelSize
             }
-            return AnimatedImagePlayer(source: source, options: options)
+            let player = AnimatedImagePlayer(source: source, options: options)
+            // Decoding the frames again at another size is not a new animation:
+            // a view that grows carries on from the frame it was showing, in
+            // the loop it was on. Read before the assignment below, which is
+            // what lets go of the player it reads.
+            if let previous = self.player, previous.source === source {
+                player.resume(from: previous)
+            }
+            return player
         }
+        self.player = player
+        ownsPlayer = player != nil
     }
 
     /// The scale of the image the animation is replacing, or `nil` where the

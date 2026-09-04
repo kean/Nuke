@@ -202,6 +202,19 @@ public final class AnimatedImagePlayer: ObservableObject {
         display(frameAt: index)
     }
 
+    /// Picks up where another player of the same animation left off.
+    ///
+    /// ``AnimatedImageView`` builds a player of its own whenever it outgrows
+    /// the size its frames were decoded for; without this the animation would
+    /// start over every time the view was resized.
+    func resume(from player: AnimatedImagePlayer) {
+        completedLoopCount = player.completedLoopCount
+        seek(toFrame: player.currentFrameIndex)
+        // After the seek, which clears it: an animation that has played all of
+        // its loops stays finished at its new size.
+        isFinished = player.isFinished
+    }
+
     // MARK: Memory
 
     /// Whether the player keeps a full window of decoded frames. `true` by

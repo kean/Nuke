@@ -113,7 +113,7 @@ Two levers, in the order you should reach for them.
 
 **Downsample large animations.** ``AnimatedImagePlayer/Options/maxPixelSize`` scales the frames as they are decoded, which cuts what each one costs by the square of the scale. An animation displayed in a 120-point cell does not need 1000-pixel frames: at 3× that is 0.5 MB a frame instead of 4 MB. It is the first lever because it is the one that makes the frames small enough for the pool to hold whole animations.
 
-``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up. Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled`` when the view is going to grow:
+``AnimatedImageView`` does it for you – it decodes the frames no larger than it displays them, and never scales them up. A view that later grows well past what it settled on – a rotation, a split view, a window dragged wider – decodes them again at the new size and carries on from the frame it was showing; a view that shrinks keeps the frames it has. Set the size yourself when the view isn't the whole story, or turn it off with ``AnimatedImageView/isAutomaticDownsamplingEnabled``:
 
 ```swift
 var options = AnimatedImagePlayer.Options()

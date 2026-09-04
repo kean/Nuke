@@ -310,6 +310,60 @@ struct AnimatedImageViewTests {
         #expect(player.options.maxPixelSize == nil)
     }
 
+    @Test func decodesTheFramesAgainWhenTheViewGrows() async throws {
+        layOut(CGSize(width: 20, height: 20))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        let player = try #require(view.player)
+        let small = try #require(player.options.maxPixelSize)
+
+        layOut(CGSize(width: 60, height: 60))
+
+        // A rotation, a split view, or a window dragged wider: the frames the
+        // view settled on would be scaled up for the rest of its life.
+        let grown = try #require(view.player)
+        #expect(grown !== player)
+        #expect(try #require(grown.options.maxPixelSize) > small)
+    }
+
+    @Test func keepsItsFramesWhenTheViewBarelyChangesSize() async throws {
+        layOut(CGSize(width: 20, height: 20))
+        display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
+        let player = try #require(view.player)
+
+        layOut(CGSize(width: 21, height: 21))
+
+        // A point of growth is not worth a decode, and a resize that is dragged
+        // rather than jumped arrives a point at a time.
+        #expect(view.player === player)
+    }
+
+    @Test func carriesThePlayheadOverWhenItDecodesTheFramesAgain() async throws {
+        layOut(CGSize(width: 20, height: 20))
+        display(Test.animatedGIF(frameCount: 4, size: CGSize(width: 400, height: 400)))
+        let player = try #require(view.player)
+        player.seek(toFrame: 2)
+
+        layOut(CGSize(width: 60, height: 60))
+
+        let grown = try #require(view.player)
+        #expect(grown !== player)
+        #expect(grown.currentFrameIndex == 2)
+    }
+
+    @Test func leavesAPlayerItWasGivenAtTheSizeItWasBuiltFor() async throws {
+        layOut(CGSize(width: 20, height: 20))
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400))))
+        var options = AnimatedImagePlayer.Options()
+        options.maxPixelSize = 32
+        let player = AnimatedImagePlayer(source: source, options: options)
+        view.player = player
+
+        layOut(CGSize(width: 200, height: 200))
+
+        // The size belongs to whoever built the player.
+        #expect(view.player === player)
+    }
+
     @Test func neverScalesTheFramesUp() async throws {
         layOut(CGSize(width: 200, height: 200))
 
