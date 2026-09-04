@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 #if canImport(UIKit)
 import UIKit
@@ -255,6 +256,7 @@ public final class AnimatedImageFramePool {
     /// decoded or evicted: the division is of what the players ask for, or an
     /// animation filling its window would shrink the others as it went.
     func rebalance() {
+        rebalanceCount += 1
         sweep()
         // Nothing is worth caching while the system is short of memory: the
         // animations nobody is playing go whole rather than down to the floor
@@ -336,10 +338,13 @@ public final class AnimatedImageFramePool {
     /// Drops the animations nothing refers to any more, and the players that
     /// have been released.
     private func sweep() {
-        stores = stores.filter { $0.value.source != nil }
+        // The members first: a store that has just lost its last one lets go of
+        // its decoder, and with it the last reference to an animation nothing
+        // else holds, which is what the filter then sees.
         for store in stores.values {
             store.sweepMembers()
         }
+        stores = stores.filter { $0.value.source != nil }
     }
 
     /// Gives back the frames nobody's window covers until the pool is inside
@@ -363,9 +368,33 @@ public final class AnimatedImageFramePool {
         stores[store.key] = nil
     }
 
+    /// The number of divisions the pool has run, which is what tells one
+    /// division of a screenful of players from a screenful of divisions.
+    private(set) var rebalanceCount = 0
+
     /// Asks for a division on the next turn of the main actor, for a player's
     /// `deinit`, which can't divide the budget itself.
+    ///
+    /// One division answers however many players ask for it: a list scrolling
+    /// releases a screenful of them in a single turn, and dividing the budget
+    /// walks every animation in the pool, so asking once per player would walk
+    /// them all once per released cell to reach the same answer.
     nonisolated func setNeedsRebalance() {
-        Task { @MainActor in self.rebalance() }
+        let wasScheduled = isRebalanceScheduled.withLock { scheduled in
+            defer { scheduled = true }
+            return scheduled
+        }
+        guard !wasScheduled else { return }
+        Task { @MainActor in
+            // Before the division, not after: a player released while it runs
+            // is one the division it asked for has not seen.
+            self.isRebalanceScheduled.withLock { $0 = false }
+            self.rebalance()
+        }
     }
+
+    /// Whether a division is already on its way. Behind a lock rather than on
+    /// the main actor, because a `deinit` is on whatever thread released the
+    /// player.
+    private nonisolated let isRebalanceScheduled = OSAllocatedUnfairLock(initialState: false)
 }

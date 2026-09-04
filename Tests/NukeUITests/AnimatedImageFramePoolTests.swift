@@ -162,6 +162,25 @@ struct AnimatedImageFramePoolTests {
         #expect(playing.diagnostics.bufferCapacity == 20)
     }
 
+    @Test func dividesTheBudgetOnceForAScreenfulOfReleasedPlayers() async throws {
+        let pool = makePool(frames: 100)
+        var players: [AnimatedImagePlayer] = []
+        for _ in 0..<8 {
+            let player = try makePlayer(frameCount: 4, pool: pool)
+            await player.waitUntilFull()
+            players.append(player)
+        }
+        let divisions = pool.rebalanceCount
+
+        players.removeAll()
+        await settle()
+
+        // A list scrolling releases a screenful of players in one turn, and
+        // every division walks every animation in the pool.
+        #expect(pool.rebalanceCount == divisions + 1)
+        #expect(pool.animationCount == 0)
+    }
+
     @Test func givesTheShareBackWhenAPlayerIsReleased() async throws {
         let pool = makePool(frames: 24)
         let survivor = try makePlayer(frameCount: 20, pool: pool)
