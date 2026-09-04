@@ -128,12 +128,18 @@ private struct AutoPlayReader<Content: View>: View {
 ///
 /// A function rather than a method on the view so that the layout can be
 /// tested without a view hierarchy.
+///
+/// - parameter scale: The scale the frames are drawn at, which is what turns
+/// the animation's size in pixels into the size in points an `Image` reports
+/// for the same picture.
 func animatedImageSize(
     for proposal: ProposedViewSize,
     source size: CGSize,
+    scale: CGFloat = 1,
     isResizable: Bool
 ) -> CGSize? {
     guard size.width > 0, size.height > 0 else { return nil }
+    let size = animatedImagePointSize(size, scale: scale)
     guard isResizable else {
         return size // Same as an `Image` without `resizable()`
     }
@@ -149,10 +155,17 @@ func animatedImageSize(
         // `Image.resizable().scaledToFit()` reports it. `scaledToFill()`
         // proposes a size that already matches the animation, which this
         // returns unchanged.
-        let scale = min(width / size.width, height / size.height)
-        guard scale.isFinite else { return size }
-        return CGSize(width: size.width * scale, height: size.height * scale)
+        let ratio = min(width / size.width, height / size.height)
+        guard ratio.isFinite else { return size }
+        return CGSize(width: size.width * ratio, height: size.height * ratio)
     }
+}
+
+/// The size an animation occupies in points: what it measures in pixels, at
+/// the scale its frames are drawn at.
+func animatedImagePointSize(_ size: CGSize, scale: CGFloat) -> CGSize {
+    guard scale > 0, scale != 1 else { return size }
+    return CGSize(width: size.width / scale, height: size.height / scale)
 }
 
 #if !os(watchOS)
@@ -217,7 +230,18 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
     /// Reports the size the animation wants, so that the view behaves like an
     /// `Image` rather than collapsing or filling everything it is offered.
     private func size(for proposal: ProposedViewSize) -> CGSize? {
-        animatedImageSize(for: proposal, source: source.size, isResizable: isResizable)
+        animatedImageSize(for: proposal, source: source.size, scale: scale, isResizable: isResizable)
+    }
+
+    /// The scale the frames are drawn at: the one the player was built with,
+    /// or the one the still the decoder produced carries, which is where the
+    /// view gets it from.
+    private var scale: CGFloat {
+#if canImport(UIKit)
+        player?.options.scale ?? poster?.scale ?? 1
+#else
+        player?.options.scale ?? 1
+#endif
     }
 
 #if os(macOS)
@@ -292,7 +316,8 @@ private struct AnimatedImageRenderer: View {
         } else if isResizable {
             Color.clear.aspectRatio(aspectRatio, contentMode: .fit)
         } else {
-            Color.clear.frame(width: source.size.width, height: source.size.height)
+            let size = animatedImagePointSize(source.size, scale: player?.options.scale ?? poster?.scale ?? 1)
+            Color.clear.frame(width: size.width, height: size.height)
         }
     }
 

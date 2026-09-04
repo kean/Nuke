@@ -86,6 +86,30 @@ struct AnimatedImageLayoutTests {
         #expect(size == wide)
     }
 
+    @Test func takesItsNaturalSizeInPointsRatherThanInPixels() {
+        let size = animatedImageSize(
+            for: ProposedViewSize(width: 500, height: 500),
+            source: wide,
+            scale: 2,
+            isResizable: false
+        )
+
+        // An animation is measured in pixels and laid out in points, the way
+        // `Image` lays out the still the decoder produced beside it.
+        #expect(size == CGSize(width: 100, height: 50))
+    }
+
+    @Test func fitsTheScaledSizeInsideWhatItIsOffered() {
+        let size = animatedImageSize(
+            for: ProposedViewSize(width: 50, height: 50),
+            source: wide,
+            scale: 2,
+            isResizable: true
+        )
+
+        #expect(size == CGSize(width: 50, height: 25))
+    }
+
     @Test func hasNoSizeOfItsOwnWhenTheAnimationHasNone() {
         let size = animatedImageSize(
             for: ProposedViewSize(width: 100, height: 100),
