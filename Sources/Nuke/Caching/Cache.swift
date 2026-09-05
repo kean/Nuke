@@ -181,7 +181,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         // Remove most of the stored items when entering background.
         // This behavior is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
-        // to change in future Nuke versions.
+        // to change in future versions.
         lock.lock()
         defer { lock.unlock() }
 

@@ -29,7 +29,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     }
 
     private func decodeCachedData(_ data: Data) {
-        let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
+        let context = ImageDecodingContext(request: request, data: data, cacheType: .disk, isAnimatedImageParsingEnabled: pipeline.configuration.isAnimatedImageParsingEnabled)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return didFinishDecoding(with: nil)
         }

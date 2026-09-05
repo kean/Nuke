@@ -4,7 +4,7 @@ Learn about extensions for image views.
 
 ## Overview
 
-NukeUI provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using ``LazyImageView`` or Nuke's `ImagePipeline` directly.
+NukeUI provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using ``LazyImageView`` or `ImagePipeline` directly.
 
 > Tip: These functions were part of the separate `NukeExtensions` module before Nuke 14.
 
@@ -101,27 +101,32 @@ ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33)
 
 For a complete list of options, see ``ImageLoadingOptions``. Some options, such as ``ImageLoadingOptions/isProgressiveRenderingEnabled`` will be covered later.
 
-> Built-in extensions for image views are designed to get you up and running as quickly as possible. But if you want to have more control, or use some of the advanced features, like animated images, it is recommended to use `ImagePipeline` directly.
+> Built-in extensions for image views are designed to get you up and running as quickly as possible. If you want more control, use ``ImagePipeline`` directly.
+
+> Tip: To play animated images, load them into an ``AnimatedImageView`` instead of a plain `UIImageView` – everything else stays the same. See <doc:AnimatedImages>.
 
 ## Progressive Decoding
 
-Nuke supports progressive JPEG out of the box.
+Progressive JPEG is supported out of the box.
 
 ## Custom Views
 
-You can use image view extensions with custom views by implementing ``Nuke_ImageDisplaying`` protocol.
-
-> The name of the protocol has a prefix because it's an Objective-C protocol. Objective-C runtime allows you to override methods declared in extensions in subclasses.
+You can use image view extensions with custom views by implementing the ``ImageDisplaying`` protocol. The view is handed the whole `ImageContainer`, so it has everything the pipeline produced: the still image, the encoded `data`, and the `animation` parsed out of it.
 
 ```swift
-extension UIImageView: Nuke_ImageDisplaying {
-    open func nuke_display(image: UIImage?, data: Data?) {
-        self.image = image
+final class MyImageView: UIView, ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        guard let animation = container?.animation else {
+            return show(still: container?.image)
+        }
+        myEngine.play(animation)
     }
 }
 ```
 
-Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
+The module provides built-in implementations for `UIImageView` and `NSImageView`. ``AnimatedImageView`` is the one that plays animations, so reach for it before writing a renderer.
+
+> Important: The built-in conformances come as extensions, and a Swift protocol conformance declared in an extension can't be overridden by a subclass. Conform your own view directly, as above, rather than subclassing `UIImageView` and overriding `nuke_display(_:)`.
 
 ## Customizing Requests
 

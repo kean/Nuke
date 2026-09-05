@@ -12,12 +12,12 @@ import SwiftUI
 ///
 /// The decoders are selected by ``ImageDecoderRegistry`` based on the image
 /// data, so a single request works for any of these formats.
+///
+/// See ``AnimatedImagesDemo`` for what NukeUI does with the animated ones.
 struct ImageFormatsDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                DemoIntro("Nuke uses ImageIO, which supports JPEG, PNG, GIF, WebP, HEIF, and more. Animated images and videos are decoded into an `ImageContainer` that carries the original data alongside the first frame, so you can hand it to any view that can play it.")
-
                 Group {
                     DemoExample("JPEG", caption: "Decoded and decompressed in the background") {
                         image(for: DemoImages.landscape)
@@ -31,10 +31,10 @@ struct ImageFormatsDemo: View {
                         image(for: DemoImages.webp)
                     }
 
-                    DemoExample("Animated GIF", caption: "container.type == .gif, rendered from container.data") {
+                    DemoExample("Animated GIF", caption: "state.animatedImage, played by NukeUI") {
                         LazyImage(url: DemoImages.gif) { state in
-                            if let container = state.imageContainer, container.type == .gif, let data = container.data {
-                                AnimatedImage(data: data)
+                            if let animatedImage = state.animatedImage {
+                                AnimatedImage(animatedImage).resizable().scaledToFill()
                             } else if let image = state.image {
                                 image.resizable().scaledToFill()
                             } else {
@@ -43,6 +43,12 @@ struct ImageFormatsDemo: View {
                         }
                         .frame(height: 240)
                         .clipped()
+                    }
+
+                    DemoExample("Animated PNG", caption: "The default LazyImage content plays animations on its own") {
+                        LazyImage(url: DemoImages.apng)
+                            .frame(height: 240)
+                            .clipped()
                     }
 
                     DemoExample("Video", caption: "ImageDecoders.Video from the NukeVideo module") {
@@ -59,9 +65,26 @@ struct ImageFormatsDemo: View {
                 }
                 .padding(.horizontal, 16)
             }
-            .padding(.bottom, 32)
+            .padding(.vertical, 16)
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Image Formats",
+        "Nuke decodes with Image I/O, which covers JPEG, PNG, GIF, WebP, HEIF, and more. The decoder is chosen from the data itself, so the same request works for every format.",
+        code: """
+        ImageDecoderRegistry.shared.register {
+            MyDecoder(context: $0)
+        }
+        """,
+        points: [
+            .init("Animated images", "The container keeps the encoded data alongside the first frame, and NukeUI plays it. The Animated Images screen shows what that costs."),
+            .init("Video", "`ImageDecoders.Video` from the NukeVideo module turns an MP4 into an `AVAsset` and puts it in `ImageContainer.userInfo`."),
+            .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. The closure sees the first chunk of the data and decides whether it can decode it."),
+            .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread.")
+        ]
+    )
 
     private func image(for url: URL) -> some View {
         LazyImage(url: url) { state in

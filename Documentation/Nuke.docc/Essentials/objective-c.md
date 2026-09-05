@@ -4,7 +4,7 @@ Call Nuke from Objective-C by adding a small bridge to your app.
 
 ## Overview
 
-Nuke's API is Swift-only, and none of it is representable in the Objective-C runtime: ``ImageRequest`` is a struct, `ImagePipeline.image(for:)` is `async` and uses typed throws, ``ImageTask`` publishes progress as an `AsyncStream`, and `ImagePipeline.Error` is an enum with associated values. There is no `NukeObjC` module.
+The API is Swift-only, and none of it is representable in the Objective-C runtime: ``ImageRequest`` is a struct, `ImagePipeline.image(for:)` is `async` and uses typed throws, ``ImageTask`` publishes progress as an `AsyncStream`, and `ImagePipeline.Error` is an enum with associated values. There is no `NukeObjC` module.
 
 That's deliberate. A bridging module would be a second public API mirroring every type in the first, and it would lag behind it — every feature designed around structured concurrency would arrive there late or not at all. The bridge belongs in your app instead, where you know which handful of calls you actually need. In practice that's well under a hundred lines of Swift.
 

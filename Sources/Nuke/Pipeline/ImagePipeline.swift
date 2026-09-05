@@ -15,10 +15,10 @@ import AppKit
 
 /// Downloads, decodes, processes, and caches images.
 ///
-/// The pipeline is the central component of Nuke. It orchestrates a graph of
-/// tasks - fetching data, decoding, processing, and decompressing images -
-/// while automatically coalescing duplicate work, respecting priorities, and
-/// managing multiple cache layers.
+/// The pipeline is the central component of the framework. It orchestrates a
+/// graph of tasks - fetching data, decoding, processing, and decompressing
+/// images - while automatically coalescing duplicate work, respecting
+/// priorities, and managing multiple cache layers.
 ///
 /// ```swift
 /// let image = try await ImagePipeline.shared.image(for: url)

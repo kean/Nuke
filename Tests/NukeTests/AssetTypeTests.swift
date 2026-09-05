@@ -167,8 +167,10 @@ struct AssetTypeTests {
     /// The first 16 bytes of an ISO base media file (MP4, M4V, MOV, HEIC): a
     /// box length, the `ftyp` box type, the four-character major brand, and a
     /// minor version.
-    private func makeISOBaseMedia(brand: String) -> Data {
-        Data([0x00, 0x00, 0x00, 0x20]) + Data("ftyp".utf8) + Data(brand.utf8) + Data(repeating: 0x00, count: 4)
+    private func makeISOBaseMedia(brand: String, compatibleBrands: [String] = []) -> Data {
+        let size = UInt8(16 + compatibleBrands.count * 4)
+        return Data([0x00, 0x00, 0x00, size]) + Data("ftyp".utf8) + Data(brand.utf8) +
+            Data(repeating: 0x00, count: 4) + compatibleBrands.flatMap { Data($0.utf8) }
     }
 
     @Test func detectMP4() {
@@ -248,6 +250,15 @@ struct AssetTypeTests {
         // Bare HEIF, MPEG-4 audio, and 3GPP aren't formats the decoders
         // support, so the brands they use are not recognized.
         #expect(AssetType(makeISOBaseMedia(brand: brand)) == nil)
+    }
+
+    @Test func detectFormatDeclaredAsACompatibleBrand() {
+        // `msf1` says the file is an image sequence and nothing about what its
+        // frames are coded with, so the codec is left to the brands that
+        // follow – which is exactly what Image I/O writes for a HEIC sequence.
+        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["mif1", "heic", "hevc"])) == .heic)
+        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["avis", "av01"])) == .avif)
+        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["mif1", "MiPr"])) == nil)
     }
 
     // MARK: utType

@@ -269,6 +269,62 @@ struct ImageDecoderTests {
         #expect(try ImageDecoders.Default().decode(data).data != nil)
     }
 
+    // MARK: - Animations
+
+    @Test func decodingAnAnimationAttachesItsMetadata() throws {
+        let data = Test.animatedGIF(frameCount: 5, delays: Array(repeating: 0.05, count: 5))
+
+        let container = try ImageDecoders.Default().decode(data)
+
+        // Parsed here, on the decoding queue, so that the views displaying the
+        // image don't each parse it again on the main thread.
+        let animation = try #require(container.animation)
+        #expect(animation.frameCount == 5)
+        #expect(animation.duration == 0.25)
+        // The same buffer, shared rather than copied, which is what keeps the
+        // animation from doubling what the container costs the memory cache.
+        #expect(animation.data == container.data)
+    }
+
+    @Test func decodingASingleFrameGIFAttachesNoAnimation() throws {
+        let data = Test.animatedGIF(frameCount: 1)
+
+        let container = try ImageDecoders.Default().decode(data)
+
+        // The data is attached on a header sniff, which can't tell a GIF that
+        // animates from one that doesn't. The parse can, and that is the
+        // difference between the two properties.
+        #expect(container.data != nil)
+        #expect(container.animation == nil)
+    }
+
+    @Test func decodingAThumbnailAttachesNoAnimation() throws {
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 8)
+        let context = ImageDecodingContext(request: request, data: Test.animatedGIF(size: CGSize(width: 64, height: 64)))
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(context.data)
+
+        // The image is deliberately smaller than the animation the data holds,
+        // and playing it would undo the downscaling the request asked for.
+        #expect(container.data == nil)
+        #expect(container.animation == nil)
+    }
+
+    @Test func animationParsingCanBeTurnedOff() throws {
+        let data = Test.animatedGIF(frameCount: 5)
+        let context = ImageDecodingContext(request: Test.request, data: data, isAnimatedImageParsingEnabled: false)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+
+        // The data still travels, so a renderer that parses it itself is
+        // unaffected; what is skipped is the walk of the frame metadata.
+        #expect(container.data != nil)
+        #expect(container.animation == nil)
+    }
+
     @Test func decodingGIFPreview() throws {
         let data = Test.data(name: "cat", extension: "gif")
         #expect(data.count == 427672) // 427 KB
@@ -365,5 +421,86 @@ struct ImageDecoderTests {
 
         // THEN - no preview produced for this tiny slice
         #expect(preview == nil)
+    }
+
+    // MARK: Animated Images
+
+    @Test func attachesDataToAnimatedPNG() throws {
+        // GIVEN an APNG, which decodes to its first frame and needs its data to
+        // be playable
+        let data = try #require(Test.animatedPNG())
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .png)
+        #expect(container.data == data)
+    }
+
+    @Test func attachesDataToAnimatedHEIC() throws {
+        // The end of the path the two HEIC bugs lived on: the file leads with
+        // the `msf1` brand, which used to sniff as no type at all, and a type
+        // the pipeline can't name is an animation it never attaches the data to.
+        guard let data = Test.animatedHEICS() else {
+            return // Image I/O on this platform can't write a HEIC sequence
+        }
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .heic)
+        #expect(container.data == data)
+    }
+
+    @Test func attachesDataToAnimatedWebP() throws {
+        let data = Test.data(name: "animated", extension: "webp")
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .webp)
+        #expect(container.data == data)
+    }
+
+    @Test func attachesDataToAnimatedAVIF() throws {
+        let data = Test.data(name: "animated", extension: "avif")
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .avif)
+        #expect(container.data == data)
+        #expect(container.animation?.frameCount == 3)
+    }
+
+    @Test func doesNotAttachDataToStaticWebP() throws {
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(Test.data(name: "baseline", extension: "webp"))
+
+        #expect(container.type == .webp)
+        #expect(container.data == nil)
+    }
+
+    @Test func doesNotAttachDataToStaticPNG() throws {
+        let decoder = ImageDecoders.Default()
+
+        let container = try decoder.decode(Test.staticPNG())
+
+        #expect(container.data == nil)
+    }
+
+    @Test func doesNotAttachDataToAThumbnail() throws {
+        // The data is the full-size animation; playing it would undo the
+        // downscaling the request asked for.
+        let data = Test.data(name: "cat", extension: "gif")
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 32) }
+        let context = ImageDecodingContext(request: request, data: data)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let container = try decoder.decode(data)
+
+        #expect(container.type == .gif)
+        #expect(container.data == nil)
     }
 }

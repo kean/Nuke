@@ -15,32 +15,46 @@ import AppKit.NSImage
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 /// Displays images. Add the conformance to this protocol to your views to make
-/// them compatible with Nuke image loading extensions.
+/// them compatible with the image loading extensions.
 ///
-/// The protocol is defined as `@objc` to make it possible to override its
-/// methods in extensions (e.g. you can override `nuke_display(image:data:)` in
-/// a `UIImageView` subclass like `Gifu.ImageView`).
+/// The view is handed the whole ``ImageContainer``, so a renderer of its own
+/// has everything the pipeline produced: the still image, the encoded
+/// ``ImageContainer/data``, and the ``ImageContainer/animation`` parsed out of
+/// it.
 ///
-/// The protocol and its methods have prefixes to make sure they don't clash
-/// with other similar methods and protocols in the Objective-C runtime.
+/// ```swift
+/// final class MyImageView: UIView, ImageDisplaying {
+///     func nuke_display(_ container: ImageContainer?) {
+///         guard let animation = container?.animation else {
+///             return show(still: container?.image)
+///         }
+///         myEngine.play(animation)
+///     }
+/// }
+/// ```
+///
+/// The method keeps its `nuke_` prefix because the conformances ship as
+/// extensions of system classes, where an unprefixed name could collide with a
+/// future OS API.
+///
+/// - important: A conformance declared in an extension – which is how the
+/// platform image views get theirs – cannot be overridden by a subclass.
+/// Conform your own view directly, as above, rather than subclassing
+/// `UIImageView`. To play animated images without writing a renderer, use
+/// ``AnimatedImageView``.
 @MainActor
-@objc public protocol Nuke_ImageDisplaying {
-    /// Display a given image.
-    @objc func nuke_display(image: PlatformImage?, data: Data?)
+public protocol ImageDisplaying {
+    /// Displays the image the pipeline produced, or clears the view when the
+    /// container is `nil`.
+    func nuke_display(_ container: ImageContainer?)
 
 #if os(macOS)
-    @objc var layer: CALayer? { get }
+    var layer: CALayer? { get }
 #endif
 }
 
-extension Nuke_ImageDisplaying {
-    func display(_ container: ImageContainer) {
-        nuke_display(image: container.image, data: container.data)
-    }
-}
-
 #if os(macOS)
-extension Nuke_ImageDisplaying {
+extension ImageDisplaying {
     public var layer: CALayer? { nil }
 }
 #endif
@@ -48,35 +62,51 @@ extension Nuke_ImageDisplaying {
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
 /// A `UIView` that implements the `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
+public typealias ImageDisplayingView = UIView & ImageDisplaying
 
-extension UIImageView: Nuke_ImageDisplaying {
-    /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data? = nil) {
-        self.image = image
+extension UIImageView: ImageDisplaying {
+    /// Displays the still image, and plays it when the view is an
+    /// ``AnimatedImageView``.
+    public func nuke_display(_ container: ImageContainer?) {
+        displayContainer(container)
     }
 }
 #elseif os(macOS)
 import Cocoa
 /// An `NSObject` that implements the `ImageDisplaying` protocol.
 /// Can support `NSView` and `NSCell`. The latter can return nil for layer.
-public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying
+public typealias ImageDisplayingView = NSObject & ImageDisplaying
 
-extension NSImageView: Nuke_ImageDisplaying {
-    /// Displays an image.
-    open func nuke_display(image: NSImage?, data: Data? = nil) {
-        self.image = image
+extension NSImageView: ImageDisplaying {
+    /// Displays the still image, and plays it when the view is an
+    /// ``AnimatedImageView``.
+    public func nuke_display(_ container: ImageContainer?) {
+        displayContainer(container)
     }
 }
 #endif
 
+extension _PlatformImageView {
+    /// ``AnimatedImageView`` inherits its ``ImageDisplaying`` conformance from
+    /// the extension above, and a witness declared in an extension is resolved
+    /// statically, so the subclass has nothing to override. This is where it
+    /// gets the whole container instead of the still image.
+    fileprivate func displayContainer(_ container: ImageContainer?) {
+        if let view = self as? AnimatedImageView {
+            view.display(container)
+        } else {
+            self.image = container?.image
+        }
+    }
+}
+
 #if os(tvOS)
 import TVUIKit
 
-extension TVPosterView: Nuke_ImageDisplaying {
+extension TVPosterView: ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data? = nil) {
-        self.image = image
+    public func nuke_display(_ container: ImageContainer?) {
+        self.image = container?.image
     }
 }
 #endif
@@ -110,8 +140,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// - parameters:
 ///   - url: The image URL. If `nil`, it's handled as a failure scenario.
 ///   - options: `ImageLoadingOptions.shared` by default.
-///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
-///   the associated request automatically gets canceled.
+///   - view: The view is held weakly. If it is deallocated, the associated
+///   request automatically gets canceled.
 ///   - progress: A closure to be called periodically on the main thread
 ///   when the progress is updated.
 ///   - completion: A closure to be called on the main thread when the
@@ -164,8 +194,8 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// - parameters:
 ///   - request: The image request. If `nil`, it's handled as a failure scenario.
 ///   - options: `ImageLoadingOptions.shared` by default.
-///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
-///   the associated request automatically gets canceled.
+///   - view: The view is held weakly. If it is deallocated, the associated
+///   request automatically gets canceled.
 ///   - progress: A closure to be called periodically on the main thread
 ///   when the progress is updated.
 ///   - completion: A closure to be called on the main thread when the
@@ -263,7 +293,7 @@ private final class ImageViewController {
         // Handle a scenario where request is `nil` (in the same way as a failure)
         guard var request else {
             if options.isPrepareForReuseEnabled {
-                imageView.nuke_display(image: nil, data: nil)
+                imageView.nuke_display(nil)
             }
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
             handle(result: result, isFromMemory: true)
@@ -289,7 +319,7 @@ private final class ImageViewController {
         if let placeholder = options.placeholder {
             display(ImageContainer(image: placeholder), true, .placeholder)
         } else if options.isPrepareForReuseEnabled {
-            imageView.nuke_display(image: nil, data: nil) // Remove previously displayed images (if any)
+            imageView.nuke_display(nil) // Remove previously displayed images (if any)
         }
 
         task = pipeline.loadImage(with: request, progress: { [weak self] response, completedCount, totalCount in
@@ -353,7 +383,7 @@ private final class ImageViewController {
                 closure(imageView, image.image)
             }
         } else {
-            imageView.display(image)
+            imageView.nuke_display(image)
         }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -366,7 +396,7 @@ private final class ImageViewController {
 #elseif os(watchOS)
 
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        imageView?.display(image)
+        imageView?.nuke_display(image)
     }
 
 #endif
@@ -401,7 +431,7 @@ extension ImageViewController {
             duration: params.duration,
             options: params.options.union(.transitionCrossDissolve),
             animations: {
-                imageView.nuke_display(image: image.image, data: image.data)
+                imageView.nuke_display(image)
             },
             completion: nil
         )
@@ -434,7 +464,7 @@ extension ImageViewController {
         // "Manual" cross-fade.
         transitionView.alpha = 1
         imageView.alpha = 0
-        imageView.display(image) // Display new image in current view
+        imageView.nuke_display(image) // Display new image in current view
 
         UIView.animate(
             withDuration: params.duration,
@@ -462,7 +492,7 @@ extension ImageViewController {
         animation.toValue = 1
         imageView?.layer?.add(animation, forKey: "imageTransition")
 
-        imageView?.display(image)
+        imageView?.nuke_display(image)
     }
 
 #endif

@@ -97,6 +97,18 @@ final class ViewHost<Value, Content: View> {
         await render(until: condition)
     }
 
+    /// The first view of the given type in the hosted hierarchy.
+    ///
+    /// The only way to see what SwiftUI did to a `UIViewRepresentable`'s view:
+    /// the representable itself is not reachable from a test.
+    func firstView<T: HostedView>(ofType type: T.Type) -> T? {
+#if os(macOS)
+        hostingView.firstDescendant(ofType: type)
+#else
+        controller.view.firstDescendant(ofType: type)
+#endif
+    }
+
     /// Gives SwiftUI a chance to apply pending state changes and lay out.
     ///
     /// Returns as soon as `condition` holds; otherwise pumps for a fixed number
@@ -117,6 +129,22 @@ final class ViewHost<Value, Content: View> {
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
 #endif
+    }
+}
+
+#if os(macOS)
+typealias HostedView = NSView
+#else
+typealias HostedView = UIView
+#endif
+
+extension HostedView {
+    func firstDescendant<T: HostedView>(ofType type: T.Type) -> T? {
+        if let match = self as? T { return match }
+        for subview in subviews {
+            if let match = subview.firstDescendant(ofType: type) { return match }
+        }
+        return nil
     }
 }
 

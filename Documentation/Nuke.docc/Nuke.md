@@ -6,7 +6,7 @@ A powerful image loading system for Apple platforms.
 
 Nuke provides an efficient way to download and display images in your app. It's easy to learn and use. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
-The framework is lean and compiles in under 2 seconds. Nuke has an automated test suite 2x the codebase size, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
+The framework is lean and compiles in under 2 seconds. It has an automated test suite 2x the codebase size, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
 
 ## Getting Started
 
@@ -43,6 +43,8 @@ To install Nuke, use Swift Package Manager.
 - <doc:loading-data>
 - <doc:image-formats>
 - ``ImagePipeline/Delegate-swift.protocol``
+- ``AnimatedImageSource``
+- ``AnimatedImageFrameDecoding``
 
 ### Performance
 

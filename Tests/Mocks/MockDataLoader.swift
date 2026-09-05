@@ -43,8 +43,12 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
                 case let .success(val):
                     let data = val.0
                     if !data.isEmpty {
-                        didReceiveData(data.prefix(data.count / 2), val.1)
-                        didReceiveData(data.suffix(data.count / 2), val.1)
+                        // Two chunks that add up to the whole response. Taking
+                        // `suffix(count / 2)` instead would drop the middle
+                        // byte of every odd-length payload.
+                        let split = data.count / 2
+                        didReceiveData(data.prefix(split), val.1)
+                        didReceiveData(data.suffix(data.count - split), val.1)
                     }
                     completion(nil)
                 case let .failure(err):

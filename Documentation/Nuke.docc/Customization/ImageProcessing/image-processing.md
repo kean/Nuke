@@ -4,7 +4,7 @@ Learn how to use existing image filters and create custom ones.
 
 ## Overview
 
-Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors and an API for creating custom ones.
+The pipeline has a powerful and efficient image processing infrastructure with multiple built-in processors and an API for creating custom ones.
 
 ```swift
 ImageRequest(url: url, processors: [

@@ -53,7 +53,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
         }
 
-        var decodingContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        var decodingContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse, isAnimatedImageParsingEnabled: pipeline.configuration.isAnimatedImageParsingEnabled)
         if !isCompleted {
             decodingContext.previewPolicy = resolvePreviewPolicy(for: decodingContext)
         }

@@ -7,12 +7,14 @@ Xcode project, so it always builds against the sources in this repo.
 open Nuke.xcodeproj
 ```
 
-Select the **NukeDemo** scheme and run it (iOS 16+). No dependencies, no setup:
+Select the **NukeDemo** scheme and run it (iOS 17+). No dependencies, no setup:
 the images are loaded over the network from public URLs.
 
 ## Screens
 
 The sections mirror the [documentation](https://kean-docs.github.io/nuke/documentation/nuke).
+Every screen has a question mark in the navigation bar that explains what it
+shows, with the API it is about and the details worth knowing.
 
 ### Essentials
 
@@ -29,6 +31,8 @@ The sections mirror the [documentation](https://kean-docs.github.io/nuke/documen
 |--|--|
 | **Image Processing** | The built-in processors and two ways to write your own |
 | **Image Formats** | JPEG, PNG, WebP, animated GIF, and MP4 via `ImageDecoders.Video` |
+| **Animated Images** | GIF, APNG, WebP, and HEIC playback with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: beside the animation on iPad, in a sheet below it on iPhone |
+| **Animation Memory** | A wall of animations sharing one memory budget, and what happens when they don't all fit |
 | **Progressive JPEG** | Progressive decoding, with a throttled data loader that makes the scans visible |
 | **Pipeline Delegate** | `willLoadData(for:urlRequest:pipeline:)` and a live log of the pipeline events |
 
@@ -47,6 +51,6 @@ Demo
 ├── App              The app and the menu
 ├── Essentials       ImagePipeline, LazyImage, and the image views
 ├── Customization    Processing, formats, progressive decoding, delegate
-├── Performance      Prefetching, caching, stress test
+├── Performance      Prefetching, caching, and the stress test
 └── Helpers          Shared views, demo URLs, and a few small utilities
 ```

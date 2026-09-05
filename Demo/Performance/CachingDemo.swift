@@ -19,11 +19,6 @@ struct CachingDemo: View {
     var body: some View {
         List {
             Section {
-                DemoIntro("Every image shows where it came from. Clear the memory cache and reload to see the disk cache serve the images; clear both to go back to the network.")
-                    .listRowInsets(EdgeInsets())
-            }
-
-            Section {
                 Picker("Disk Cache", selection: $model.kind) {
                     ForEach(CachingDemoModel.Kind.allCases) { Text($0.title).tag($0) }
                 }
@@ -72,7 +67,24 @@ struct CachingDemo: View {
             }
         }
         .onAppear { model.refreshStats() }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Caching",
+        "Nuke has two layers: a memory cache of decoded images and a disk cache of downloaded data. Every image on this screen shows where it came from. Clear the memory cache and reload to watch the disk serve them; clear both to go back to the network.",
+        code: """
+        ImagePipeline.shared = ImagePipeline(
+            configuration: .withDataCache
+        )
+        """,
+        points: [
+            .init("Memory cache", "`ImageCache` holds decoded, processed images. It is an LRU cache with a cost limit and it empties itself on a memory warning."),
+            .init("URLCache", "The default disk cache. It speaks HTTP, so it revalidates with the server and honors cache-control."),
+            .init("DataCache", "An aggressive LRU cache on disk that ignores cache-control. Faster, and the right choice for images that never change."),
+            .init("Both, not either", "The disk cache stores the original data, the memory cache the decoded bitmap. A hit on disk still costs a decode.")
+        ]
+    )
 }
 
 @MainActor

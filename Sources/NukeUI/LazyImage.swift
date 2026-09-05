@@ -11,9 +11,9 @@ import SwiftUI
 /// A view that asynchronously loads and displays an image.
 ///
 /// ``LazyImage`` is designed to be similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage),
-/// but it uses [Nuke](https://github.com/kean/Nuke) for loading images. You
-/// can take advantage of all of its features, such as caching, prefetching,
-/// task coalescing, smart background decompression, request priorities, and more.
+/// but it loads images with `ImagePipeline`. You can take advantage of all of
+/// its features, such as caching, prefetching, task coalescing, smart
+/// background decompression, request priorities, and more.
 @MainActor
 public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
@@ -166,7 +166,12 @@ public struct LazyImage<Content: View>: View {
 
     @ViewBuilder
     private func makeDefaultContent(for state: LazyImageState) -> some View {
-        if let image = state.image {
+        // `nil` for everything that isn't animated. The initializer carries
+        // the still the decoder produced along with the animation, so that the
+        // cell isn't blank for as long as the first frame takes to decode.
+        if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+            animation
+        } else if let image = state.image {
             image
         } else {
             Color(.secondarySystemBackground)

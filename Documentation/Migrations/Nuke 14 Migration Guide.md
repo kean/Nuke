@@ -16,7 +16,7 @@ Apps that need to support earlier OS versions can stay on Nuke 13.x, which conti
 
 ## `NukeExtensions` Folded into `NukeUI`
 
-The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and `Nuke_ImageDisplaying` – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
+The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and the display protocol – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
 
 `NukeExtensions` still exists as an empty module that re-exports `NukeUI`, so existing code keeps compiling. It will be removed in Nuke 15.
 
@@ -37,6 +37,94 @@ NukeExtensions.loadImage(with: url, into: imageView)
 // After
 NukeUI.loadImage(with: url, into: imageView)
 ```
+
+## `Nuke_ImageDisplaying` is now `ImageDisplaying`
+
+The protocol lost its `@objc`, its prefix, and its two-argument method. It now takes the whole `ImageContainer`, which is where the animated images the pipeline parses live:
+
+```swift
+// Nuke 13
+extension MyImageView: Nuke_ImageDisplaying {
+    func nuke_display(image: UIImage?, data: Data?) {
+        self.image = image
+    }
+}
+
+// Nuke 14
+extension MyImageView: ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        self.image = container?.image
+    }
+}
+```
+
+`image` and `data` are `container?.image` and `container?.data`, and `nil` is the "clear the view" call that used to be `nuke_display(image: nil, data: nil)`. A view that rendered animations from the data now has `container?.animation` as well, already parsed – see below.
+
+The method keeps its `nuke_` prefix because the built-in conformances ship as extensions of system classes. `ImageDisplayingView` is unchanged.
+
+What does not survive is **overriding the display method in a `UIImageView` subclass**. Swift resolves a protocol requirement witnessed in an extension statically, so the subclass's method is never called:
+
+```swift
+// Nuke 13 – no longer works
+final class MyImageView: UIImageView {
+    override func nuke_display(image: UIImage?, data: Data?) { ... }
+}
+```
+
+Declare the conformance on your own class instead:
+
+```swift
+// Nuke 14
+final class MyImageView: UIView, ImageDisplaying {
+    private let imageView = UIImageView()
+
+    func nuke_display(_ container: ImageContainer?) {
+        imageView.image = container?.image
+    }
+}
+```
+
+If the subclass existed to play animated images, `AnimatedImageView` does it already.
+
+## The Pipeline Parses Animated Images
+
+`ImageDecoders.Default` already attached the encoded bytes of an animated image to `ImageContainer.data`. It now also parses them and attaches the result to the new `ImageContainer.animation`.
+
+```swift
+// Nuke 13
+guard let source = AnimatedImageSource(data: response.container.data ?? Data()) else { return }
+
+// Nuke 14
+guard let animation = response.container.animation else { return }
+```
+
+`AnimatedImageSource` moved from `NukeUI` to `Nuke`. `NukeUI` re-exports `Nuke`, so code that imports either keeps compiling.
+
+The parse runs on the decoding queue, once per decoded image, and the result is cached with the container. `container.data != nil` is a header sniff and is `true` for a single-frame GIF; `container.animation != nil` is the parsed answer, so prefer it when the question is "can this be played?".
+
+The parse walks the metadata of every frame and is paid whether or not the image is ever displayed. Turn it off in an app that plays animations some other way, or none at all:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.isAnimatedImageParsingEnabled = false
+}
+```
+
+`ImageContainer.data` is unaffected by the flag, so a renderer that parses the data itself keeps working. Processing an image now clears both `data` and `animation`, which describe the image that went into the processor.
+
+## A GIF With No Loop Extension Plays Once
+
+A GIF stores its loop count in the Netscape application extension, and a GIF that carries no such block asks to be played once. `AnimatedImagePlayer` plays it once, the way every browser does.
+
+Gifu, FLAnimatedImage, and `UIImage.animatedImage(with:duration:)` all loop such a GIF forever, so an app coming from one of them will find some of its GIFs stopping on their last frame. Almost all GIFs on the web carry the block; the ones that don't are usually written by a tool that never meant them to loop. To play every animation forever whatever the file says:
+
+```swift
+var options = AnimatedImagePlayer.Options()
+options.repeatCount = .infinite
+imageView.playerOptions = options
+```
+
+Every other format either always declares a loop count or has nowhere to put one, and there "forever" is what the player assumes.
 
 ## Removed Deprecated APIs
 

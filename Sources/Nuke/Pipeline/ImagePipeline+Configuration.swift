@@ -103,7 +103,7 @@ extension ImagePipeline {
         /// ]))
         /// ```
         ///
-        /// Nuke loads the image data once, resizes once, and applies the blur
+        /// The pipeline loads the image data once, resizes once, and applies the blur
         /// once — no duplicated work at any stage.
         public var isTaskCoalescingEnabled = true
 
@@ -128,6 +128,16 @@ extension ImagePipeline {
         /// previews have ``ImageContainer/isPreview`` set to `true`. `true` by
         /// default.
         public var isStoringPreviewsInMemoryCache = true
+
+        /// Parses the metadata of the images the decoder recognizes as animated
+        /// and attaches it to ``ImageContainer/animation``. `true` by default.
+        ///
+        /// The parse reads the delay of every frame out of the container, on
+        /// the decoding queue, once per decoded image. `NukeUI` needs the
+        /// result to play an animation. Turn it off in an app that never plays
+        /// animations, or one that hands ``ImageContainer/data`` to a rendering
+        /// engine that parses it again anyway.
+        public var isAnimatedImageParsingEnabled = true
 
         /// If the data task is terminated (either because of a failure or a
         /// cancellation) and the image was partially loaded, the next load will

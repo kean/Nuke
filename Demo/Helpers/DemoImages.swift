@@ -8,6 +8,7 @@ import Foundation
 ///
 /// Everything is loaded over the network so that the demo exercises the same
 /// code paths an app does: `URLSession`, disk cache, decoding, and processing.
+/// The one exception is ``animatedHEIC``, which ships with the demo.
 enum DemoImages {
     /// A large landscape photo. Used by the screens that show a single image.
     static let landscape = URL(string: "https://user-images.githubusercontent.com/1567433/59150453-178bbb80-8a24-11e9-94ca-fd8dff6e2a9a.jpeg")!
@@ -21,6 +22,22 @@ enum DemoImages {
     static let png = URL(string: "https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png")!
 
     static let gif = URL(string: "https://cloud.githubusercontent.com/assets/1567433/6505557/77ff05ac-c2e7-11e4-9a09-ce5b7995cad0.gif")!
+
+    /// An APNG.
+    static let apng = URL(string: "https://upload.wikimedia.org/wikipedia/commons/1/14/Animated_PNG_example_bouncing_beach_ball.png")!
+
+    /// An animated WebP.
+    static let animatedWebP = URL(string: "https://www.gstatic.com/webp/animated/1.webp")!
+
+    /// A long, large GIF. Its frames don't all fit in the default buffer, so it
+    /// is the one that shows the sliding window doing its job.
+    static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
+
+    /// An animated HEIC – a HEIF image sequence – shipped with the demo, since
+    /// there is no well-known URL for one. The format is worth having on screen
+    /// because it is the one an app is most likely to get wrong: the file leads
+    /// with the `msf1` brand, and Image I/O reports it as `public.heics`.
+    static let animatedHEIC = Bundle.main.url(forResource: "animated", withExtension: "heics")
 
     static let webp = URL(string: "https://kean.github.io/images/misc/4.webp")!
 

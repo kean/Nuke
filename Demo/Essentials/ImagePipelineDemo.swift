@@ -20,11 +20,6 @@ struct ImagePipelineDemo: View {
 
     var body: some View {
         List {
-            Section {
-                DemoIntro("The pipeline downloads the image, decodes it, decompresses it in the background, and stores it in the cache. `ImageTask` reports the progress and can be cancelled at any point.")
-                    .listRowInsets(EdgeInsets())
-            }
-
             Section("Image") {
                 imageView
                     .listRowInsets(EdgeInsets())
@@ -65,7 +60,27 @@ struct ImagePipelineDemo: View {
             }
         }
         .onAppear { model.loadIfNeeded() }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "Image Pipeline",
+        "`ImagePipeline` downloads the image, decodes it, decompresses it in the background, and stores it in the caches. `ImageTask` reports the progress and can be cancelled at any point.",
+        code: """
+        let task = ImagePipeline.shared
+            .imageTask(with: url)
+        for await progress in task.progress {
+            // Update the progress bar
+        }
+        let image = try await task.image
+        """,
+        points: [
+            .init("Progress", "`task.progress` is an async sequence of the downloaded and the expected byte counts. It finishes when the image does."),
+            .init("Cancellation", "Cancelling the Swift task cancels the download. The pipeline also cancels it when the last observer goes away."),
+            .init("Source", "`ImageResponse.cacheType` says where the image came from: the memory cache, the disk cache, or the network."),
+            .init("Reloading", "`.reloadIgnoringCachedData` skips every cache, which is how the demo forces a second download.")
+        ]
+    )
 
     @ViewBuilder private var imageView: some View {
         ZStack {

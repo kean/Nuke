@@ -15,7 +15,7 @@ request.processors = [.resize(width: 320)]
 ``ImageRequest/Options-swift.struct`` is an `OptionSet` that controls how the pipeline interacts with its cache layers. By default, all caching is active.
 
 ```swift
-// Always reload from the network, ignoring Nuke's caches
+// Always reload from the network, ignoring the caches
 let request = ImageRequest(url: url, options: [.reloadIgnoringCachedData])
 
 // Only return a cached result; don't go to the network

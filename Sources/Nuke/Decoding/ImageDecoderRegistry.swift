@@ -96,13 +96,20 @@ public struct ImageDecodingContext: Sendable {
     /// ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)`` and only for
     /// the contexts where ``isCompleted`` is `false`.
     public var previewPolicy: ImagePipeline.PreviewPolicy
+    /// Whether a decoder parses the metadata of the animated images it
+    /// recognizes and attaches it to ``ImageContainer/animation``.
+    ///
+    /// The pipeline resolves it from
+    /// ``ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled``.
+    public var isAnimatedImageParsingEnabled: Bool
 
-    public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil, previewPolicy: ImagePipeline.PreviewPolicy = .incremental) {
+    public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil, previewPolicy: ImagePipeline.PreviewPolicy = .incremental, isAnimatedImageParsingEnabled: Bool = true) {
         self.request = request
         self.data = data
         self.isCompleted = isCompleted
         self.urlResponse = urlResponse
         self.cacheType = cacheType
         self.previewPolicy = previewPolicy
+        self.isAnimatedImageParsingEnabled = isAnimatedImageParsingEnabled
     }
 }

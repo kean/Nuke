@@ -59,13 +59,18 @@ public protocol ImageProcessing: Sendable {
 extension ImageProcessing {
     /// The default implementation simply calls the basic
     /// `process(_ image: PlatformImage) -> PlatformImage?` method.
+    ///
+    /// It also drops ``ImageContainer/data`` and ``ImageContainer/animation``,
+    /// which describe the image that went in: a renderer handed both would play
+    /// the original animation over a processed still. A processor that
+    /// processes the frames itself can implement this method and keep them.
     public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        guard let output = process(container.image) else {
-            throw ImageProcessingError.unknown
+        try container.map { image in
+            guard let output = process(image) else {
+                throw ImageProcessingError.unknown
+            }
+            return output
         }
-        var container = container
-        container.image = output
-        return container
     }
 
     /// The default implementation simply returns `var identifier: String`.

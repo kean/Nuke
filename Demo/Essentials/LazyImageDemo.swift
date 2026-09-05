@@ -17,9 +17,6 @@ struct LazyImageDemo: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                DemoIntro("`LazyImage` is designed to be similar to the native `AsyncImage`, but it uses Nuke for loading images: caching, prefetching, coalescing, progressive decoding, and priorities all come for free.")
-                    .padding(.bottom, 4)
-
                 Group {
                     DemoExample("Default", caption: "LazyImage(url:) displays the image at its natural size") {
                         LazyImage(url: DemoImages.photos[0])
@@ -110,7 +107,7 @@ struct LazyImageDemo: View {
                 }
                 .padding(.horizontal, 16)
             }
-            .padding(.bottom, 32)
+            .padding(.vertical, 16)
         }
         .id(reloadToken)
         .toolbar {
@@ -122,7 +119,29 @@ struct LazyImageDemo: View {
                 Image(systemName: "arrow.clockwise")
             }
         }
+        .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "LazyImage",
+        "`LazyImage` is the SwiftUI view for remote images. It is designed to look like the native `AsyncImage`, but it loads through Nuke, so caching, prefetching, coalescing, progressive decoding, and priorities all come for free.",
+        code: """
+        LazyImage(url: url) { state in
+            if let image = state.image {
+                image.resizable().scaledToFill()
+            } else {
+                Color.secondary
+            }
+        }
+        """,
+        points: [
+            .init("States", "The closure receives a `LazyImageState` with the image, the error, and the download progress. Without a closure the view displays the image and nothing else."),
+            .init("Transitions", "Pass a `Transaction` to animate the change from the placeholder to the image."),
+            .init("Processors", "`.processors(_:)` attaches them to the request. The processed image is cached, so the work is done once."),
+            .init("Priority", "`.priority(.high)` raises the priority of the request. When the view disappears the request is cancelled, or, with `.onDisappear(.lowerPriority)`, kept at a very low priority instead."),
+            .init("Animations", "The default content plays animated images. The Animated Images screen shows how.")
+        ]
+    )
 }
 
 #Preview {

@@ -4,9 +4,9 @@ Learn how pipeline loads data.
 
 ## Overview
 
-``DataLoader`` uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with a memory capacity of 0 MB (Nuke only stores processed images in memory) and a disk capacity of 150 MB.
+``DataLoader`` uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with a memory capacity of 0 MB (the pipeline only stores processed images in memory) and a disk capacity of 150 MB.
 
-> Tip: See [Image Caching](https://kean.blog/post/image-caching) to learn more about HTTP cache. To learn more about caching in Nuke and how to configure it, see <doc:caching>.
+> Tip: See [Image Caching](https://kean.blog/post/image-caching) to learn more about HTTP cache. To learn more about caching and how to configure it, see <doc:caching>.
 
 The `URLSession` class natively supports the following URL schemes: `data`, `file`, `ftp`, `http`, and `https`.
 
@@ -39,7 +39,7 @@ The method is called on every URL-based request, after resumable data headers ar
 
 ## Monitoring Network Requests
 
-Nuke can be used with [Pulse](https://github.com/kean/Pulse) for monitoring network traffic.
+The pipeline can be used with [Pulse](https://github.com/kean/Pulse) for monitoring network traffic.
 
 ```swift
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
@@ -60,7 +60,7 @@ final class YourDelegate: URLSessionTaskDelegate {
 
 ## Resumable Downloads
 
-If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous one left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
+If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous one left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Both validators are supported: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
 
 ## Custom Networking Layer
 
@@ -80,7 +80,7 @@ func loadData(
 
 **Threading:** `didReceiveData` and `completion` can be called on any thread.
 
-**Incremental delivery:** Call `didReceiveData` each time a new chunk arrives. Nuke uses these chunks for progressive decoding. Each call must include a `URLResponse` — pass the response you received from the first chunk onward.
+**Incremental delivery:** Call `didReceiveData` each time a new chunk arrives. The pipeline uses these chunks for progressive decoding. Each call must include a `URLResponse` — pass the response you received from the first chunk onward.
 
 **Completion:** Call `completion` exactly once when the load finishes. Pass `nil` on success, or an `Error` on failure. Do not call `didReceiveData` after calling `completion`.
 

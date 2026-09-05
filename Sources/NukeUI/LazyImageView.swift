@@ -103,13 +103,12 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Underlying Views
 
-#if os(macOS)
     /// Returns the underlying image view.
-    public let imageView = NSImageView()
-#else
-    /// Returns the underlying image view.
-    public let imageView = UIImageView()
-#endif
+    ///
+    /// It is an ``AnimatedImageView``, so a response the pipeline recognized as
+    /// an animated image plays instead of showing its first frame. Its
+    /// ``AnimatedImageView/player`` is the way to control that playback.
+    public let imageView = AnimatedImageView()
 
     /// Creates a custom view for displaying the given image response.
     ///
@@ -248,7 +247,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         if clearImage {
-            if imageView.image != nil { imageView.image = nil }
+            if imageView.image != nil { imageView.prepareForReuse() }
             if !imageView.isHidden { imageView.isHidden = true }
         }
 
@@ -378,7 +377,9 @@ public final class LazyImageView: _PlatformBaseView {
             view.pinToSuperview()
             customImageView = view
         } else {
-            imageView.image = container.image
+            // Goes through `nuke_display` rather than setting `image` so that
+            // an animated response starts playing.
+            imageView.nuke_display(container)
             if imageView.isHidden {
                 imageView.isHidden = false
             }

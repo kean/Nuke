@@ -1,10 +1,10 @@
 # Cache Layers
 
-Learn about memory and disk cache layers in Nuke.
+Learn about the memory and disk cache layers.
 
 ## Overview
 
-Nuke has three cache layers:
+There are three cache layers:
 
 - ``ImageCache`` – LRU **memory** cache for processed images
 - ``DataCache`` – aggressive LRU **disk** cache

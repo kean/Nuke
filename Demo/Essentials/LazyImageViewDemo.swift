@@ -11,11 +11,26 @@ import UIKit
 /// placeholder and failure views for you.
 struct LazyImageViewDemo: View {
     var body: some View {
-        VStack(spacing: 0) {
-            DemoIntro("`LazyImageView` displays a placeholder while the image is loading and a failure view if it fails. Set `url` to start a request; `reset()` cancels it and prepares the view for reuse.")
-            ViewControllerView { LazyImageViewDemoViewController() }
-        }
+        ViewControllerView { LazyImageViewDemoViewController() }
+            .demoInfo(Self.info)
     }
+
+    private static let info = DemoInfo(
+        "LazyImageView",
+        "`LazyImageView` is the UIKit and AppKit counterpart of `LazyImage`. Unlike the `UIImageView` extensions, it owns the placeholder and the failure view, so there is nothing to wire up for the loading states.",
+        code: """
+        let imageView = LazyImageView()
+        imageView.placeholderView = spinner
+        imageView.failureImage = warningImage
+        imageView.url = url
+        """,
+        points: [
+            .init("Starting a request", "Setting `url` starts one. Setting `request` does the same with processors, priority, and options attached."),
+            .init("Reuse", "`reset()` cancels the request and clears the view, which is what a cell does before it is used again. Setting a new `url` does the same thing on its own."),
+            .init("Views, not images", "The placeholder and the failure view are real views, so they can animate or show progress."),
+            .init("Failure", "The first cell uses a URL that always fails.")
+        ]
+    )
 }
 
 private final class LazyImageViewDemoViewController: UICollectionViewController {

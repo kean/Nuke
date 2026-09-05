@@ -114,10 +114,11 @@ struct ImageProcessorsCoreImageFilterTests {
         // WHEN
         let output = try processor.process(container, context: .mock)
 
-        // THEN the image is replaced and the rest of the container is preserved
+        // THEN the image is replaced, and the data goes with it: it describes
+        // the image that went in, not the one that came out
         #expect(output.image !== container.image)
         #expect(output.image.sizeInPixels == container.image.sizeInPixels)
-        #expect(output.data == Test.data)
+        #expect(output.data == nil)
     }
 
     // MARK: - Context

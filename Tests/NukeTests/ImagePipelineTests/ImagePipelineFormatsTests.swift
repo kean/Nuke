@@ -85,6 +85,78 @@ struct ImagePipelineFormatsTests {
         // THEN GIF data is preserved in the container for animated playback
         #expect(response.container.type == .gif)
         #expect(response.container.data != nil)
+        #expect(response.container.animation != nil)
+    }
+
+    // MARK: - Animations
+
+    @Test func animationIsParsedOnceAndTravelsWithTheImage() async throws {
+        // GIVEN a pipeline with a memory cache, which is what a list scrolled
+        // back to an animation reads from
+        let pipeline = pipeline.reconfigured { $0.imageCache = ImageCache() }
+        serveAnimatedGIF(frameCount: 7)
+
+        // WHEN the same image is loaded twice
+        let first = try await pipeline.imageTask(with: Test.request).response
+        let second = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the animation is parsed once and handed out as it is. Its
+        // lifetime is the memory cache entry's, which is what makes a cache of
+        // parses – with a bound of its own, holding on to encoded data the
+        // image cache has already evicted – unnecessary.
+        #expect(first.container.animation?.frameCount == 7)
+        #expect(first.container.animation === second.container.animation)
+    }
+
+    @Test func animationParsingCanBeTurnedOff() async throws {
+        // GIVEN a pipeline told not to parse animations
+        let pipeline = pipeline.reconfigured { $0.isAnimatedImageParsingEnabled = false }
+        serveAnimatedGIF(frameCount: 7)
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the data still travels, so a renderer that parses it itself is
+        // unaffected
+        #expect(response.container.data != nil)
+        #expect(response.container.animation == nil)
+    }
+
+    @Test func aDecoderOfYourOwnCanDescribeAFormatImageIOCannotRead() async throws {
+        // GIVEN a decoder registered for a format the system doesn't have,
+        // which is the one place an animated format is added: the decoder
+        // produces the still image and the animation to play in its place.
+        let registry = ImageDecoderRegistry()
+        registry.register(FlipbookImageDecoder.init(context:))
+        let pipeline = pipeline.reconfigured { configuration in
+            configuration.makeImageDecoder = { registry.decoder(for: $0) }
+        }
+        let data = Flipbook.encode(frameCount: 5, delays: Array(repeating: 0.2, count: 5), loopCount: 2)
+        #expect(AnimatedImageSource(data: data) == nil) // Image I/O can't open it
+        dataLoader.results[Test.url] = .success((data, URLResponse()))
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the animation travels with the image exactly as a GIF's does,
+        // and it knows what produces its frames
+        let animation = try #require(response.container.animation)
+        #expect(animation.frameCount == 5)
+        #expect(animation.delays == Array(repeating: 0.2, count: 5))
+        #expect(animation.loopCount == 2)
+        #expect(response.container.data == data)
+
+        let decoder = animation.makeFrameDecoder(maxPixelSize: 4)
+        let frame = try #require(await decoder.decode(at: 1))
+        #expect(frame.width == 4) // The size the frames were asked for
+        #expect(await (decoder as? FlipbookFrameDecoder)?.requestedIndexes == [1])
+    }
+
+    private func serveAnimatedGIF(frameCount: Int) {
+        dataLoader.results[Test.url] = .success(
+            (Test.animatedGIF(frameCount: frameCount),
+             URLResponse(url: Test.url, mimeType: "gif", expectedContentLength: 0, textEncodingName: nil))
+        )
     }
 
     @Test func loadHEIC() async throws {

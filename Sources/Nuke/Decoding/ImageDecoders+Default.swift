@@ -42,6 +42,7 @@ extension ImageDecoders {
         private var scale: CGFloat = 1.0
         private var thumbnail: ImageRequest.ThumbnailOptions?
         private(set) var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
+        private(set) var isAnimatedImageParsingEnabled = true
         private let lock = NSLock()
 
         /// Returns `true` when thumbnail decoding is requested, because
@@ -58,6 +59,7 @@ extension ImageDecoders {
             self.scale = context.request.scale
             self.thumbnail = context.request.thumbnail
             self.previewPolicy = context.previewPolicy
+            self.isAnimatedImageParsingEnabled = context.isAnimatedImageParsingEnabled
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
@@ -76,8 +78,18 @@ extension ImageDecoders {
             let type = AssetType(data)
             var container = ImageContainer(image: image)
             container.type = type
-            if type == .gif {
+            // Image I/O decodes only the first frame of an animation, so the
+            // data travels with the image for a renderer to play it. Not for a
+            // thumbnail request, where playing the full-size animation would
+            // undo the downscaling.
+            if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
+                // The sniff reads a header; this walks the delay of every frame,
+                // so it runs here – once per image, off the main thread –
+                // rather than in every view that displays it.
+                if isAnimatedImageParsingEnabled {
+                    container.animation = AnimatedImageSource(data: data)
+                }
             }
             if numberOfScans > 0 {
                 container.userInfo[.scanNumberKey] = numberOfScans
