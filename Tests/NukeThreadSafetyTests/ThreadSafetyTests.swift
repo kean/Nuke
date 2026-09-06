@@ -32,13 +32,6 @@ struct ThreadSafetyTests {
             $0.isDiagnosticsEnabled = true
         }
         pipeline.diagnostics.retainedTaskCount = 50
-        let consumer = Task {
-            var count = 0
-            for await _ in pipeline.diagnostics.events {
-                count += 1
-            }
-            return count
-        }
         let toggler = Task.detached {
             for _ in 0..<100 {
                 pipeline.diagnostics.isEnabled.toggle()
@@ -53,8 +46,6 @@ struct ThreadSafetyTests {
         let trace = await pipeline.diagnostics.export()
         #expect(!trace.tasks.isEmpty)
         #expect(trace.tasks.count <= 50)
-        consumer.cancel()
-        #expect(await consumer.value > 0)
 
         _ = (dataLoader, pipeline)
     }

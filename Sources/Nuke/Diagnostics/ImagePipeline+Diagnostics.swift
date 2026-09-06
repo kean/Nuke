@@ -5,8 +5,7 @@
 import Foundation
 
 extension ImagePipeline {
-    /// Records where the time of every image task went and publishes the
-    /// records as a pipeline-wide stream of events.
+    /// Records where the time of every image task went.
     ///
     /// Diagnostics are off by default. Enable them with
     /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``:
@@ -21,9 +20,10 @@ extension ImagePipeline {
     ///
     /// Every task then finishes with an ``ImageTask/Metrics`` record that says
     /// where the image came from, what it cost, what the task waited on, and
-    /// whether another task shared the work. The pipeline also publishes
-    /// ``Event``s through ``events``. All of it is `Codable` and encodes to
-    /// the same JSON, versioned with ``schemaVersion``.
+    /// whether another task shared the work. The record is `Codable`,
+    /// versioned with ``schemaVersion``, and reaches the pipeline delegate
+    /// with the ``ImageTask/Event/finished(_:)`` event, which is where a
+    /// logger picks it up.
     ///
     /// The recording is done on the pipeline actor, alongside the work it
     /// measures, and costs nothing when it is off.
@@ -34,7 +34,7 @@ extension ImagePipeline {
         let pipeline: ImagePipeline
 
         /// The version of the JSON the records encode to. It is written into
-        /// every record and every event, and bumped whenever the shape changes.
+        /// every record, and bumped whenever the shape changes.
         public static let schemaVersion = 1
 
         /// A runtime switch. Requires
@@ -47,28 +47,6 @@ extension ImagePipeline {
         public var isEnabled: Bool {
             get { pipeline.recorder?.isEnabled ?? false }
             nonmutating set { pipeline.recorder?.isEnabled = newValue }
-        }
-
-        /// The events recorded by the pipeline, in the order it recorded them.
-        ///
-        /// Every access creates a new independent stream. A stream buffers the
-        /// events the consumer hasn't picked up yet, so a slow consumer never
-        /// misses one. The stream finishes when the pipeline is deallocated,
-        /// and it is empty if diagnostics are not configured.
-        ///
-        /// ```swift
-        /// Task.detached {
-        ///     let encoder = JSONEncoder()
-        ///     for await event in pipeline.diagnostics.events {
-        ///         try uploader.append(line: encoder.encode(event))
-        ///     }
-        /// }
-        /// ```
-        public var events: AsyncStream<Event> {
-            guard let recorder = pipeline.recorder else {
-                return AsyncStream { $0.finish() }
-            }
-            return recorder.makeStream()
         }
 
         /// The number of finished tasks the pipeline keeps for ``export()``.
@@ -89,128 +67,6 @@ extension ImagePipeline {
                 return Trace(pipeline: pipeline, tasks: [], units: [])
             }
             return await recorder.makeTrace(pipeline: pipeline)
-        }
-    }
-}
-
-// MARK: - Event
-
-extension ImagePipeline.Diagnostics {
-    /// An event recorded by the pipeline.
-    ///
-    /// Encodes to one JSON object per event, self-describing by its `event`
-    /// name and `schemaVersion`, which makes a sequence of events a
-    /// newline-delimited JSON file.
-    public enum Event: Codable, Sendable {
-        /// A task was created. Sent when the pipeline starts the task, with
-        /// the time it was created.
-        case taskCreated(TaskCreated)
-        /// A task started and attached to its root unit of work.
-        case taskStarted(TaskStarted)
-        /// The priority of a task was changed.
-        case taskPriorityChanged(TaskPriorityChanged)
-        /// A task finished. The same record is available as ``ImageTask/metrics``.
-        case taskFinished(ImageTask.Metrics)
-        /// A unit of work was created.
-        case unitCreated(UnitCreated)
-        /// A unit of work finished, including any trailing work such as
-        /// encoding the image for the disk cache.
-        case unitFinished(Unit)
-
-        /// The payload of ``Event/taskCreated(_:)``.
-        public struct TaskCreated: Codable, Sendable {
-            public let taskID: UInt64
-            public let kind: ImageTask.Metrics.Kind
-            public let label: String?
-            /// Seconds since 1970.
-            public let createdAt: TimeInterval
-            public let request: ImageTask.Metrics.RequestSummary
-        }
-
-        /// The payload of ``Event/taskStarted(_:)``.
-        public struct TaskStarted: Codable, Sendable {
-            public let taskID: UInt64
-            /// Seconds since 1970.
-            public let startedAt: TimeInterval
-            /// The unit of work the task subscribed to.
-            public let rootUnitID: UInt64
-            /// `true` if the root unit already existed and the task joined it.
-            public let didJoin: Bool
-        }
-
-        /// The payload of ``Event/taskPriorityChanged(_:)``.
-        public struct TaskPriorityChanged: Codable, Sendable {
-            public let taskID: UInt64
-            /// Seconds since 1970.
-            public let at: TimeInterval
-            public let priority: ImageRequest.Priority
-        }
-
-        /// The payload of ``Event/unitCreated(_:)``.
-        public struct UnitCreated: Codable, Sendable {
-            public let id: UInt64
-            public let kind: Unit.Kind
-            /// The identifiers of the processors the unit applies.
-            public let processors: [String]
-            /// The unit this one subscribed to, if it had already done so by
-            /// the time the event was sent. ``Unit/parentID`` is final.
-            public let parentID: UInt64?
-            public let createdByTaskID: UInt64
-            /// Seconds since 1970.
-            public let createdAt: TimeInterval
-        }
-    }
-}
-
-extension ImagePipeline.Diagnostics.Event {
-    private enum CodingKeys: String, CodingKey {
-        case event, schemaVersion, metrics, unit
-    }
-
-    /// The name the event encodes under its `event` key.
-    public var name: String {
-        switch self {
-        case .taskCreated: "taskCreated"
-        case .taskStarted: "taskStarted"
-        case .taskPriorityChanged: "taskPriorityChanged"
-        case .taskFinished: "taskFinished"
-        case .unitCreated: "unitCreated"
-        case .unitFinished: "unitFinished"
-        }
-    }
-
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let name = try container.decode(String.self, forKey: .event)
-        switch name {
-        case "taskCreated":
-            self = .taskCreated(try TaskCreated(from: decoder))
-        case "taskStarted":
-            self = .taskStarted(try TaskStarted(from: decoder))
-        case "taskPriorityChanged":
-            self = .taskPriorityChanged(try TaskPriorityChanged(from: decoder))
-        case "taskFinished":
-            self = .taskFinished(try container.decode(ImageTask.Metrics.self, forKey: .metrics))
-        case "unitCreated":
-            self = .unitCreated(try UnitCreated(from: decoder))
-        case "unitFinished":
-            self = .unitFinished(try container.decode(ImagePipeline.Diagnostics.Unit.self, forKey: .unit))
-        default:
-            throw DecodingError.dataCorruptedError(forKey: .event, in: container, debugDescription: "Unknown event: \(name)")
-        }
-    }
-
-    public func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(name, forKey: .event)
-        try container.encode(ImagePipeline.Diagnostics.schemaVersion, forKey: .schemaVersion)
-        switch self {
-        case .taskCreated(let payload): try payload.encode(to: encoder)
-        case .taskStarted(let payload): try payload.encode(to: encoder)
-        case .taskPriorityChanged(let payload): try payload.encode(to: encoder)
-        case .taskFinished(let metrics): try container.encode(metrics, forKey: .metrics)
-        case .unitCreated(let payload): try payload.encode(to: encoder)
-        case .unitFinished(let unit): try container.encode(unit, forKey: .unit)
         }
     }
 }
@@ -251,7 +107,7 @@ extension ImagePipeline.Diagnostics {
         public let error: ErrorSummary?
         /// When the task the copy belongs to reached the unit, in seconds
         /// since 1970. `nil` if the task's chain created the unit, and in the
-        /// copy sent with ``Event/unitFinished(_:)``, which belongs to no task.
+        /// copies of ``Trace/units``, which belong to no task.
         public let joinedAt: TimeInterval?
         /// The priority of the unit over time, with the task that caused each
         /// change by joining, leaving, or changing its own priority.
@@ -309,7 +165,7 @@ extension ImagePipeline.Diagnostics {
         public let workDuration: TimeInterval?
         /// ``duration`` clamped to the lifetime of the task the copy belongs
         /// to, so the stages a task didn't wait for attribute zero. `nil` in
-        /// the copy sent with ``Event/unitFinished(_:)``.
+        /// the copies of ``Trace/units``.
         public let attributedDuration: TimeInterval?
 
         /// The result of a lookup.
@@ -362,7 +218,7 @@ extension ImagePipeline.Diagnostics {
             case decompress
             case memoryStore
             /// Encoding a processed image for the disk cache. Runs after the
-            /// tasks are done, so it appears only in ``Event/unitFinished(_:)``.
+            /// tasks are done, so it appears only in ``Trace/units``.
             case encode
             case unknown
         }
@@ -483,8 +339,8 @@ extension ImagePipeline.Diagnostics {
         public let configuration: ConfigurationSummary
         /// The most recently finished tasks, oldest first.
         public let tasks: [ImageTask.Metrics]
-        /// The most recently finished units, oldest first, as sent with
-        /// ``Event/unitFinished(_:)``.
+        /// The units the retained tasks waited on, oldest first, as they were
+        /// when they finished, trailing work included.
         public let units: [Unit]
 
         init(pipeline: ImagePipeline, tasks: [ImageTask.Metrics], units: [Unit]) {

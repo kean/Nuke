@@ -46,18 +46,14 @@ private func diagnostics(url: URL) async throws {
     _ = image
 }
 
-private protocol Telemetry: Sendable {
-    func send(_ line: Data)
-}
-
-private func diagnosticsStream(pipeline: ImagePipeline, telemetry: some Telemetry) {
-    Task.detached {
-        let encoder = JSONEncoder()
-        for await event in pipeline.diagnostics.events {
-            let line = try encoder.encode(event)
-            telemetry.send(line)
-        }
+private final class Telemetry: ImagePipeline.Delegate, Sendable {
+    @ImagePipelineActor
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let metrics = task.metrics else { return }
+        send(metrics) // Encode it with JSONEncoder, or print it
     }
+
+    nonisolated func send(_ metrics: ImageTask.Metrics) {}
 }
 
 private func progressiveDecoding() {

@@ -163,14 +163,14 @@ let image = try await task.image
 print(task.metrics!)
 ```
 
-The pipeline also publishes the records, along with the units of work the tasks share, as ``ImagePipeline/Diagnostics-swift.struct/Event``s through ``ImagePipeline/diagnostics``. Feed the stream to your telemetry.
+The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
 
 ```swift
-Task.detached {
-    let encoder = JSONEncoder()
-    for await event in pipeline.diagnostics.events {
-        let line = try encoder.encode(event)
-        telemetry.send(line)
+final class Telemetry: ImagePipeline.Delegate {
+    @ImagePipelineActor
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let metrics = task.metrics else { return }
+        send(metrics) // Encode it with JSONEncoder, or print it
     }
 }
 ```

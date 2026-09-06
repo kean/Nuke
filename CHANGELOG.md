@@ -55,7 +55,7 @@
 - An animated format Image I/O can't read can be played too: a decoder registered with `ImageDecoderRegistry` attaches an `AnimatedImageSource` it describes itself, along with the `AnimatedImageFrameDecoding` that produces its frames – https://github.com/kean/Nuke/pull/958
 - `Nuke_ImageDisplaying` is renamed to `ImageDisplaying`, is no longer `@objc`, and takes an `ImageContainer`: `nuke_display(image:data:)` becomes `nuke_display(_:)`. A conformance declared in an extension can no longer be overridden by a subclass – https://github.com/kean/Nuke/pull/958
 - `ImagePipeline/Configuration/imageDecodingQueue` now runs 2 concurrent tasks instead of 1, matching `imageDecompressingQueue`. It carries the pixel work of a thumbnail request, which decodes and downsamples in one step and skips decompression – https://github.com/kean/Nuke/pull/962
-- Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set. `ImagePipeline/diagnostics` publishes the records as an event stream – https://github.com/kean/Nuke/pull/960
+- Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set – https://github.com/kean/Nuke/pull/960
 - `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
 - `DataLoader` now returns the `URLSessionTask` as the `Cancellable` – https://github.com/kean/Nuke/pull/960
 

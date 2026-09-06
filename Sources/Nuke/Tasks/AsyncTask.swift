@@ -135,7 +135,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if !isStarted {
             isStarted = true
             start()
-            diagnostics?.didStart()
         }
 
         // The task may have been completed synchronously by `starter`.

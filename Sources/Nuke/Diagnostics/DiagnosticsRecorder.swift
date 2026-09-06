@@ -20,8 +20,8 @@ extension ImagePipeline.Diagnostics {
     ///
     /// The records are written on the pipeline actor, where the task graph
     /// already runs, so they need no locks. The one lock guards the surface
-    /// the app reaches from anywhere: the runtime switch, the streams, and
-    /// the retention count.
+    /// the app reaches from anywhere: the runtime switch and the retention
+    /// count.
     ///
     /// Time is read from `ContinuousClock`, which keeps counting through
     /// sleep, and converted to seconds since 1970 only when a record is
@@ -42,19 +42,10 @@ extension ImagePipeline.Diagnostics {
         private struct State {
             var isEnabled = true
             var retainedTaskCount = 0
-            var continuations: [Int: AsyncStream<Event>.Continuation] = [:]
-            var nextContinuationID = 0
         }
 
         nonisolated init(pipelineID: UUID) {
             self.pipelineID = pipelineID
-        }
-
-        deinit {
-            let continuations = state.withLock { Array($0.continuations.values) }
-            for continuation in continuations {
-                continuation.finish()
-            }
         }
 
         // MARK: Surface
@@ -67,27 +58,6 @@ extension ImagePipeline.Diagnostics {
         nonisolated var retainedTaskCount: Int {
             get { state.withLock { $0.retainedTaskCount } }
             set { state.withLock { $0.retainedTaskCount = newValue } }
-        }
-
-        /// `true` if anything would receive an event or keep a record. The
-        /// unit records are captured only to be sent, so they are not built
-        /// when nobody reads them.
-        nonisolated var hasConsumers: Bool {
-            state.withLock { !$0.continuations.isEmpty || $0.retainedTaskCount > 0 }
-        }
-
-        nonisolated func makeStream() -> AsyncStream<Event> {
-            AsyncStream(bufferingPolicy: .unbounded) { continuation in
-                let id: Int = state.withLock { state in
-                    let id = state.nextContinuationID
-                    state.nextContinuationID += 1
-                    state.continuations[id] = continuation
-                    return id
-                }
-                continuation.onTermination = { [state] _ in
-                    state.withLock { $0.continuations[id] = nil }
-                }
-            }
         }
 
         // MARK: Time
@@ -103,21 +73,12 @@ extension ImagePipeline.Diagnostics {
         /// off. The switch is read here, once per task.
         func makeTaskRecord(for task: ImageTask) -> TaskRecord? {
             guard isEnabled else { return nil }
-            let record = TaskRecord(task: task, recorder: self)
-            emit(.taskCreated(record.created))
-            return record
+            return TaskRecord(task: task, recorder: self)
         }
 
         func makeUnitRecord(kind: Unit.Kind, request: ImageRequest) -> UnitRecord {
             nextUnitID += 1
             return UnitRecord(id: nextUnitID, kind: kind, request: request, recorder: self)
-        }
-
-        func emit(_ event: Event) {
-            let continuations = state.withLock { Array($0.continuations.values) }
-            for continuation in continuations {
-                continuation.yield(event)
-            }
         }
 
         /// Retains the task and the units of its chain that have already
@@ -190,30 +151,18 @@ extension ImagePipeline.Diagnostics {
             self.createdAt = task._createdAt ?? .now
         }
 
-        var created: Event.TaskCreated {
-            Event.TaskCreated(taskID: taskID, kind: kind, label: label, createdAt: recorder.time(createdAt), request: request)
-        }
-
         /// The pipeline started working on the task.
         func didStart() {
             startedAt = .now
         }
 
         /// The task subscribed to its root unit.
-        func didAttach(to unit: UnitRecord, didJoin: Bool) {
+        func didAttach(to unit: UnitRecord) {
             rootUnit = unit
-            recorder.emit(.taskStarted(Event.TaskStarted(
-                taskID: taskID,
-                startedAt: recorder.time(startedAt ?? .now),
-                rootUnitID: unit.id,
-                didJoin: didJoin
-            )))
         }
 
         func recordPriority(_ priority: ImageRequest.Priority) {
-            let now = ContinuousClock.now
-            priorityHistory.append((now, priority))
-            recorder.emit(.taskPriorityChanged(Event.TaskPriorityChanged(taskID: taskID, at: recorder.time(now), priority: priority)))
+            priorityHistory.append((.now, priority))
         }
 
         /// Captures the record. Called once, when the task finishes.
@@ -264,7 +213,6 @@ extension ImagePipeline.Diagnostics {
                 image: image,
                 units: units
             )
-            recorder.emit(.taskFinished(metrics))
             recorder.didFinishTask(metrics, units: records)
             return metrics
         }
@@ -327,11 +275,8 @@ extension ImagePipeline.Diagnostics {
         private var lastCauseTaskID: UInt64?
         private var stages = ContiguousArray<StageRecord>()
         private var pendingTrailingWork = 0
-        private var hasStarted = false
-        private var didEmitCreated = false
-        private var didEmitFinished = false
         /// `true` once the unit ended and its trailing work is done.
-        var isFinished: Bool { didEmitFinished }
+        private(set) var isFinished = false
         private lazy var processors = request.processors.map(\.identifier)
         private let request: ImageRequest
 
@@ -375,7 +320,7 @@ extension ImagePipeline.Diagnostics {
         /// An image task subscribed to the unit.
         func attach(task: TaskRecord, didJoin: Bool) {
             addJoin(task.taskID, at: didJoin ? .now : nil)
-            task.didAttach(to: self, didJoin: didJoin)
+            task.didAttach(to: self)
         }
 
         /// A unit subscribed to the unit, which makes this one its parent.
@@ -399,32 +344,10 @@ extension ImagePipeline.Diagnostics {
                 createdByTaskID = taskID
             }
             joins.append(Join(taskID: taskID, joinedAt: joinedAt))
-            emitCreatedIfNeeded()
             parent?.addJoin(taskID, at: joinedAt ?? .now)
         }
 
         // MARK: Lifecycle
-
-        /// The first subscription started the unit. The dependency, if any,
-        /// exists by now, so the event can name it.
-        func didStart() {
-            hasStarted = true
-            emitCreatedIfNeeded()
-        }
-
-        private func emitCreatedIfNeeded() {
-            guard hasStarted, !didEmitCreated, !joins.isEmpty else { return }
-            didEmitCreated = true
-            guard recorder.hasConsumers else { return }
-            recorder.emit(.unitCreated(Event.UnitCreated(
-                id: id,
-                kind: kind,
-                processors: processors,
-                parentID: parent?.id,
-                createdByTaskID: createdByTaskID ?? 0,
-                createdAt: recorder.time(createdAt)
-            )))
-        }
 
         func finish(_ outcome: Outcome, error: ImagePipeline.Error? = nil) {
             guard endedAt == nil else { return }
@@ -436,8 +359,7 @@ extension ImagePipeline.Diagnostics {
             for index in stages.indices where stages[index].endedAt == nil && stages[index].startedAt != nil {
                 stages[index].endedAt = now
             }
-            hasStarted = true
-            emitFinishedIfNeeded()
+            finishIfNeeded()
         }
 
         /// Work that runs after the unit sent its value, such as encoding the
@@ -448,17 +370,16 @@ extension ImagePipeline.Diagnostics {
 
         func endTrailingWork() {
             pendingTrailingWork -= 1
-            emitFinishedIfNeeded()
+            finishIfNeeded()
         }
 
-        private func emitFinishedIfNeeded() {
-            guard endedAt != nil, pendingTrailingWork == 0, !didEmitFinished, !joins.isEmpty else { return }
-            emitCreatedIfNeeded()
-            didEmitFinished = true
-            guard recorder.hasConsumers else { return }
-            let unit = makeSnapshot(for: nil, at: nil)
-            recorder.emit(.unitFinished(unit))
-            recorder.didFinishUnit(unit)
+        /// The unit ended and its trailing work is done. The copy for the
+        /// trace is made only when the trace keeps anything.
+        private func finishIfNeeded() {
+            guard endedAt != nil, pendingTrailingWork == 0, !isFinished, !joins.isEmpty else { return }
+            isFinished = true
+            guard recorder.retainedTaskCount > 0 else { return }
+            recorder.didFinishUnit(makeSnapshot(for: nil, at: nil))
         }
 
         // MARK: Priority
@@ -518,7 +439,7 @@ extension ImagePipeline.Diagnostics {
         // MARK: Snapshot
 
         /// - parameter task: The task the copy belongs to, or `nil` for the
-        /// copy sent when the unit finishes.
+        /// copy kept for the trace.
         /// - parameter taskEnd: The end of the task, which the attributed
         /// durations are clamped to.
         func makeSnapshot(for task: TaskRecord?, at taskEnd: ContinuousClock.Instant?) -> Unit {

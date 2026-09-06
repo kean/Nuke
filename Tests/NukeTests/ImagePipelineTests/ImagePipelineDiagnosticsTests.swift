@@ -40,12 +40,6 @@ struct ImagePipelineDiagnosticsTests {
 
         #expect(task.metrics == nil)
         #expect(!pipeline.diagnostics.isEnabled)
-
-        var count = 0
-        for await _ in pipeline.diagnostics.events {
-            count += 1
-        }
-        #expect(count == 0)
     }
 
     @Test func runtimeSwitchTurnsTheRecordingOff() async throws {
@@ -366,23 +360,22 @@ struct ImagePipelineDiagnosticsTests {
     }
 
     @Test func prefetchTasksAreTagged() async throws {
-        // GIVEN
+        // GIVEN a delegate that picks the records up, the way a logger would
+        let delegate = _MetricsCollector()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
-        let events = pipeline.diagnostics.events
 
         // WHEN
         prefetcher.startPrefetching(with: [Test.url])
+        let metrics = await delegate.nextFinished()
 
         // THEN
-        var metrics: ImageTask.Metrics?
-        for await event in events {
-            if case .taskFinished(let finished) = event {
-                metrics = finished
-                break
-            }
-        }
-        #expect(metrics?.kind == .prefetch)
-        #expect(metrics?.outcome == .success)
+        #expect(metrics.kind == .prefetch)
+        #expect(metrics.outcome == .success)
         withExtendedLifetime(prefetcher) {}
     }
 
@@ -447,7 +440,7 @@ struct ImagePipelineDiagnosticsTests {
             $0.dataCachePolicy = .storeEncodedImages
             $0.isDiagnosticsEnabled = true
         }
-        let events = pipeline.diagnostics.events
+        pipeline.diagnostics.retainedTaskCount = 1
 
         // WHEN
         let task = pipeline.imageTask(with: Test.request)
@@ -459,13 +452,11 @@ struct ImagePipelineDiagnosticsTests {
         #expect(queued.startedAt == nil)
         #expect(queued.duration == nil)
 
-        // THEN the finished unit has the whole stage
+        // THEN the trace has the whole stage once the unit finished
         var finished: ImagePipeline.Diagnostics.Unit?
-        for await event in events {
-            if case .unitFinished(let unit) = event, unit.id == metrics.rootUnitID {
-                finished = unit
-                break
-            }
+        for _ in 0..<200 where finished == nil {
+            try await Task.sleep(for: .milliseconds(5))
+            finished = await pipeline.diagnostics.export().units.first { $0.id == metrics.rootUnitID }
         }
         let encode = try #require(finished?.stages.first { $0.kind == .encode })
         #expect(encode.encoder == "ImageEncoders.Default")
@@ -630,82 +621,6 @@ struct ImagePipelineDiagnosticsTests {
         }
     }
 
-    // MARK: - Events
-
-    @Test func eventsAreStreamedInOrder() async throws {
-        // GIVEN
-        let events = pipeline.diagnostics.events
-
-        // WHEN
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-        let metrics = try #require(task.metrics)
-
-        // THEN
-        var recorded: [ImagePipeline.Diagnostics.Event] = []
-        for await event in events {
-            recorded.append(event)
-            if case .taskFinished = event {
-                break
-            }
-        }
-        #expect(recorded.map(\.name) == [
-            "taskCreated", "taskStarted",
-            "unitCreated", "unitCreated", "unitCreated",
-            "unitFinished", "unitFinished", "unitFinished",
-            "taskFinished"
-        ])
-        guard case .taskCreated(let created) = recorded[0],
-              case .taskStarted(let started) = recorded[1],
-              case .taskFinished(let finished) = recorded[8] else {
-            Issue.record("Unexpected events: \(recorded)")
-            return
-        }
-        #expect(created.taskID == task.taskId)
-        #expect(created.createdAt == metrics.createdAt)
-        #expect(started.rootUnitID == metrics.rootUnitID)
-        #expect(!started.didJoin)
-        #expect(finished.taskID == task.taskId)
-
-        // THEN the units are created dependency first and named by their parent
-        let createdUnits = recorded.compactMap { event -> ImagePipeline.Diagnostics.Event.UnitCreated? in
-            if case .unitCreated(let unit) = event { return unit }
-            return nil
-        }
-        #expect(createdUnits.map(\.id) == metrics.units.reversed().map(\.id))
-        #expect(createdUnits.map(\.parentID) == metrics.units.reversed().map(\.parentID))
-        #expect(createdUnits.allSatisfy { $0.createdByTaskID == task.taskId })
-    }
-
-    @Test func joiningTaskReportsTheJoin() async throws {
-        // GIVEN
-        let events = pipeline.diagnostics.events
-        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
-            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
-        }
-        _ = try await task1.response
-        _ = try await task2.response
-
-        // THEN one task joined, and the units were created once
-        var starts: [ImagePipeline.Diagnostics.Event.TaskStarted] = []
-        var unitsCreated = 0
-        var tasksFinished = 0
-        for await event in events {
-            switch event {
-            case .taskStarted(let started): starts.append(started)
-            case .unitCreated: unitsCreated += 1
-            case .taskFinished: tasksFinished += 1
-            default: break
-            }
-            if tasksFinished == 2 {
-                break
-            }
-        }
-        #expect(Set(starts.map(\.didJoin)) == [false, true])
-        #expect(Set(starts.map(\.rootUnitID)).count == 1)
-        #expect(unitsCreated == 3)
-    }
-
     // MARK: - Export
 
     @Test func exportRetainsTheLastTasks() async throws {
@@ -791,36 +706,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(object["source"] as? String == "network")
     }
 
-    @Test func eventsEncodeWithTheirName() async throws {
-        // GIVEN
-        let started = ImagePipeline.Diagnostics.Event.taskStarted(.init(taskID: 7, startedAt: 1, rootUnitID: 3, didJoin: true))
-
-        // WHEN
-        let data = try JSONEncoder().encode(started)
-        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-
-        // THEN the payload is flattened next to the name
-        #expect(object["event"] as? String == "taskStarted")
-        #expect(object["schemaVersion"] as? Int == ImagePipeline.Diagnostics.schemaVersion)
-        #expect(object["taskID"] as? Int == 7)
-        #expect(object["didJoin"] as? Bool == true)
-
-        // THEN it decodes back
-        guard case .taskStarted(let decoded) = try JSONDecoder().decode(ImagePipeline.Diagnostics.Event.self, from: data) else {
-            Issue.record("Unexpected event")
-            return
-        }
-        #expect(decoded.rootUnitID == 3)
-
-        // THEN a finished task nests its record
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-        let finished = try JSONEncoder().encode(ImagePipeline.Diagnostics.Event.taskFinished(try #require(task.metrics)))
-        let finishedObject = try #require(JSONSerialization.jsonObject(with: finished) as? [String: Any])
-        #expect(finishedObject["event"] as? String == "taskFinished")
-        #expect((finishedObject["metrics"] as? [String: Any])?["taskID"] as? UInt64 == task.taskId)
-    }
-
     @Test func goldenFixtureRoundTrips() throws {
         // GIVEN the fixture that pins the schema
         let data = Test.data(name: "diagnostics-metrics", extension: "json")
@@ -854,9 +739,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(stage.duration == 0.5)
 
         #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(ImagePipeline.Diagnostics.Event.self, from: Data(#"{"event":"teleported","schemaVersion":1}"#.utf8))
-        }
-        #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(ImageRequest.Priority.self, from: Data(#""urgent""#.utf8))
         }
     }
@@ -882,6 +764,34 @@ struct ImagePipelineDiagnosticsTests {
             #expect(description.contains(stage), "Missing \(stage) in:\n\(description)")
         }
         #expect(description.hasSuffix("finished"))
+    }
+}
+
+/// Receives the records the way a logger would: from the delegate, with the
+/// terminal event.
+@ImagePipelineActor
+private final class _MetricsCollector: ImagePipeline.Delegate {
+    private var finished: [ImageTask.Metrics] = []
+    private var waiter: CheckedContinuation<ImageTask.Metrics, Never>?
+
+    nonisolated init() {}
+
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let metrics = task.metrics else { return }
+        if let waiter {
+            self.waiter = nil
+            waiter.resume(returning: metrics)
+        } else {
+            finished.append(metrics)
+        }
+    }
+
+    /// The next record, in the order the tasks finished.
+    func nextFinished() async -> ImageTask.Metrics {
+        if !finished.isEmpty {
+            return finished.removeFirst()
+        }
+        return await withCheckedContinuation { waiter = $0 }
     }
 }
 
