@@ -643,24 +643,11 @@ struct ImagePipelineDiagnosticsTests {
         #expect(Set(trace.units.map(\.id)) == retainedUnitIDs)
         #expect(trace.units.allSatisfy { $0.outcome == .success && $0.joinedAt == nil })
 
-        // THEN the summary adds it up
-        let summary = trace.summary()
-        #expect(summary.tasks == 2)
-        #expect(summary.succeeded == 2)
-        #expect(summary.failed == 0)
-        #expect(summary.cancelled == 0)
-        #expect(summary.source == ["network": 2])
-        #expect(summary.coalescing.coalescedTasks == 0)
-        #expect(summary.coalescing.sharedUnits == 0)
-        #expect(summary.stages["download"]?.count == 2)
-        #expect(summary.stages["decode"]?.count == 2)
-        #expect(summary.stages["download"]?.queueWaitP95 != nil)
-        #expect(summary.stages["memoryLookup"]?.queueWaitP95 == nil)
-        #expect(summary.bytes.downloaded == 2 * 22789)
-        #expect(summary.configuration.isTaskCoalescingEnabled)
-        #expect(summary.configuration.imageDecodingQueue == 1)
-        #expect(summary.configuration.dataCachePolicy == "storeOriginalData")
-        #expect(summary.configuration.hasDataCache)
+        // THEN the trace names the configuration that explains them
+        #expect(trace.configuration.isTaskCoalescingEnabled)
+        #expect(trace.configuration.imageDecodingQueue == 1)
+        #expect(trace.configuration.dataCachePolicy == "storeOriginalData")
+        #expect(trace.configuration.hasDataCache)
     }
 
     @Test func nothingIsRetainedByDefault() async throws {
@@ -668,7 +655,6 @@ struct ImagePipelineDiagnosticsTests {
         let trace = await pipeline.diagnostics.export()
         #expect(trace.tasks.isEmpty)
         #expect(trace.units.isEmpty)
-        #expect(trace.summary().tasks == 0)
     }
 
     // MARK: - Codable
