@@ -46,7 +46,7 @@ shows, with the API it is about and the details worth knowing.
 
 ## Diagnostics
 
-Launch the app with the `NUKE_DIAGNOSTICS` environment variable set – it is in
+Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem:

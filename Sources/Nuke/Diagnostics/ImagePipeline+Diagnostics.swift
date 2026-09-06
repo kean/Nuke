@@ -37,6 +37,12 @@ extension ImagePipeline {
         /// every record, and bumped whenever the shape changes.
         public static let schemaVersion = 1
 
+        /// `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED`
+        /// set. ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``
+        /// defaults to it, so a scheme's environment variable turns diagnostics
+        /// on for every pipeline without touching app code.
+        public static let isEnabledByEnvironment = ProcessInfo.processInfo.environment["NUKE_DIAGNOSTICS_ENABLED"] != nil
+
         /// A runtime switch. Requires
         /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``,
         /// and is `true` by default when it is set.

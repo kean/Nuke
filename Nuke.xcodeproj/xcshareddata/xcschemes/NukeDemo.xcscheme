@@ -52,7 +52,7 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
-            key = "NUKE_DIAGNOSTICS"
+            key = "NUKE_DIAGNOSTICS_ENABLED"
             value = "1"
             isEnabled = "NO">
          </EnvironmentVariable>

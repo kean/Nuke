@@ -6,7 +6,7 @@ import Nuke
 import OSLog
 
 /// Logs where the time of every image task went, when the app is launched
-/// with the `NUKE_DIAGNOSTICS` environment variable set.
+/// with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set.
 ///
 /// The variable is in the NukeDemo scheme, unticked: Edit Scheme › Run ›
 /// Arguments › Environment Variables. Every task then finishes with a
@@ -16,33 +16,26 @@ import OSLog
 /// xcrun simctl spawn booted log stream --predicate 'subsystem == "com.github.kean.NukeDemo"'
 /// ```
 ///
-/// Every pipeline in the demo is made through ``makePipeline(_:)`` or
-/// ``makePipeline(configuration:)``, so the switch covers every screen.
+/// The switch itself lives in Nuke — see
+/// ``ImagePipeline/Diagnostics-swift.struct/isEnabledByEnvironment`` — so
+/// every pipeline records with it set, whether or not it goes through
+/// ``makePipeline(_:)`` or ``makePipeline(configuration:)``. Those two only
+/// add the delegate that prints the records to Console.
 enum DemoDiagnostics {
-    /// `true` if the app was launched with `NUKE_DIAGNOSTICS` set.
-    static let isEnabled = ProcessInfo.processInfo.environment["NUKE_DIAGNOSTICS"] != nil
-
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "ImageTask")
 
     /// The delegate that logs the records, or `nil` when the switch is off,
     /// which leaves the pipeline on its default delegate.
-    private static let delegate: (any ImagePipeline.Delegate)? = isEnabled ? DiagnosticsLogger() : nil
+    private static let delegate: (any ImagePipeline.Delegate)? = ImagePipeline.Diagnostics.isEnabledByEnvironment ? DiagnosticsLogger() : nil
 
-    /// `ImagePipeline.init(_:)`, with the diagnostics on and the records
-    /// logged when the switch is set.
+    /// `ImagePipeline.init(_:)`, with the records logged when the switch is set.
     static func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
-        ImagePipeline(delegate: delegate) {
-            $0.isDiagnosticsEnabled = isEnabled
-            configure(&$0)
-        }
+        ImagePipeline(delegate: delegate, configure)
     }
 
-    /// `ImagePipeline.init(configuration:)`, with the diagnostics on and the
-    /// records logged when the switch is set.
+    /// `ImagePipeline.init(configuration:)`, with the records logged when the switch is set.
     static func makePipeline(configuration: ImagePipeline.Configuration) -> ImagePipeline {
-        var configuration = configuration
-        configuration.isDiagnosticsEnabled = isEnabled
-        return ImagePipeline(configuration: configuration, delegate: delegate)
+        ImagePipeline(configuration: configuration, delegate: delegate)
     }
 
     /// Logs the record of a finished task. A pipeline with a delegate of its

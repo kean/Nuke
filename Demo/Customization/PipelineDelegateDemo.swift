@@ -104,7 +104,6 @@ private final class PipelineDelegateDemoModel: ObservableObject {
     init() {
         self.delegate = DemoPipelineDelegate(log: log)
         self.pipeline = ImagePipeline(delegate: delegate) {
-            $0.isDiagnosticsEnabled = DemoDiagnostics.isEnabled
             $0.imageCache = nil
             $0.dataLoader = DataLoader(configuration: {
                 let configuration = URLSessionConfiguration.ephemeral
