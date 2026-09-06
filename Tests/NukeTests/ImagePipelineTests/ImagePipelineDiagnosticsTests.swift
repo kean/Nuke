@@ -659,7 +659,8 @@ struct ImagePipelineDiagnosticsTests {
         let download = try #require(metrics.units[2].stages.first { $0.kind == .download })
         #expect(download.attributedDuration == 0.2938)
         #expect(download.urlSessionTaskID == 17)
-        #expect(metrics.description.contains("ImageTask #42 · prefetch · low"))
+        #expect(metrics.description.hasPrefix("ImageTask #42 \"feed\" · success · 366.3 ms · from network\n"))
+        #expect(metrics.description.range(of: #"\ncoalesced: +yes · shared with #41 \(u6, u7, u8\)\n"#, options: .regularExpression) != nil)
 
         // THEN encoding it again produces the same JSON
         let encoded = try JSONEncoder().encode(metrics)
@@ -690,11 +691,28 @@ struct ImagePipelineDiagnosticsTests {
         _ = try await task.response
         let description = try #require(task.metrics).description
 
-        // THEN
-        #expect(description.hasPrefix("ImageTask #\(task.taskId) · image · normal · "))
-        #expect(description.contains("· success · source: network · avatar"))
-        #expect(description.contains("coalesced: no"))
-        #expect(description.contains("processors: [\(request.processors[0].identifier)]"))
+        // THEN the header is a title, then a field per fact with the values in a column
+        let header = description.split(separator: "\n", omittingEmptySubsequences: false).prefix { !$0.isEmpty }
+        let title = #"^ImageTask #\#(task.taskId) "avatar" · success · [0-9.]+ ms · from network$"#
+        #expect(header.first?.range(of: title, options: .regularExpression) != nil, "No title in:\n\(description)")
+        let fields = [
+            "kind: +image",
+            "url: +\(NSRegularExpression.escapedPattern(for: Test.url.absoluteString))",
+            "processors: +\(NSRegularExpression.escapedPattern(for: request.processors[0].identifier))",
+            "priority: +normal",
+            "image: +[0-9]+×[0-9]+ · jpeg",
+            "download: +[0-9.,]+ [a-zA-Z]+",
+            "coalesced: +no",
+            "pipeline: +\(task.metrics!.pipelineID.uuidString)"
+        ]
+        for field in fields {
+            #expect(header.contains { $0.range(of: "^\(field)$", options: .regularExpression) != nil }, "Missing \(field) in:\n\(description)")
+        }
+        let valueColumns = header.dropFirst().compactMap { line in
+            line.range(of: #"^[a-zA-Z]+: +"#, options: .regularExpression).map { line[..<$0.upperBound].count }
+        }
+        #expect(valueColumns.count == header.count - 1)
+        #expect(Set(valueColumns).count == 1, "Misaligned header in:\n\(description)")
 
         // THEN the units form a tree, root first, with the durations in a column
         #expect(description.contains("\nu\(task.metrics!.rootUnitID!) loadImage [resize]\n├─ memoryLookup "))
@@ -716,6 +734,27 @@ struct ImagePipelineDiagnosticsTests {
         let clock = #"^(started|finished) +[0-9.]+ ms   (█+  )?at [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}$"#
         #expect(lines.first { $0.hasPrefix("started") }?.range(of: clock, options: .regularExpression) != nil)
         #expect(lines.last?.range(of: clock, options: .regularExpression) != nil)
+    }
+
+    @Test func headerListsTheOptionsAndThePriorityChanges() async throws {
+        // GIVEN a task held in its download
+        dataLoader.isSuspended = true
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        var request = ImageRequest(url: Test.url, priority: .low)
+        request.options = [.skipDecompression, .disableDiskCacheWrites]
+        let task = pipeline.imageTask(with: request)
+        await started.wait()
+
+        // WHEN its priority is raised while it waits
+        task.priority = .high
+        await Task { @ImagePipelineActor in }.value
+        dataLoader.isSuspended = false
+        _ = try await task.response
+        let description = try #require(task.metrics).description
+
+        // THEN
+        #expect(description.range(of: #"\noptions: +disableDiskCacheWrites, skipDecompression\n"#, options: .regularExpression) != nil, "No options in:\n\(description)")
+        #expect(description.range(of: #"\npriority: +low → high at [0-9.]+ ms\n"#, options: .regularExpression) != nil, "No priority change in:\n\(description)")
     }
 
     @Test func queueWaitIsARowOfItsOwn() async throws {

@@ -143,6 +143,9 @@ extension ImageTask.Metrics {
 extension ImageTask.Metrics {
     /// A text timeline of the task.
     ///
+    /// The header is a title with the outcome, then a field per fact of the
+    /// request and the result.
+    ///
     /// The units form a tree, root first. The stages of a unit and the unit it
     /// waited on are listed under it in the order they started, so the tree
     /// reads top to bottom as the task ran. The column is the time the task
@@ -172,37 +175,132 @@ extension ImageTask.Metrics {
 
     // MARK: Header
 
+    /// A title with what a reader scans a log for, then a field per fact: the
+    /// error first, the request, the result, and the pipeline last, since a
+    /// task number is unique only within one.
     private var headerLines: [String] {
-        var header = "ImageTask #\(taskID) · \(kind.rawValue) · \(request.priority.name) · \(ms(duration)) · \(outcome.rawValue)"
-        header += source.map { " · source: \($0.rawValue)" } ?? ""
-        header += label.map { " · \($0)" } ?? ""
+        var title = "ImageTask #\(taskID)"
+        title += label.map { " \"\($0)\"" } ?? ""
+        title += " · \(outcome.rawValue) · \(ms(duration))"
+        title += source.map { " · from \($0.rawValue)" } ?? ""
 
-        var requestLine = request.url ?? request.imageID ?? "<no url>"
-        requestLine += request.thumbnail.map { " · thumbnail: \($0)" } ?? ""
+        var fields: [Field] = []
+        fields += error.map { [Field("error", text(of: $0))] } ?? []
+        fields.append(Field("kind", kind.rawValue))
+        fields += requestFields
+        fields += resultFields
+        fields.append(Field("pipeline", pipelineID.uuidString))
 
-        var lines = [header, requestLine]
-        if !request.processors.isEmpty {
-            lines.append("processors: [\(request.processors.joined(separator: ", "))]")
-        }
-        if let error {
-            lines.append("error: \(error.code) · \(error.description)")
-        }
-        lines.append(coalescingLine)
-        return lines
+        let keyWidth = fields.map(\.key.count).max() ?? 0
+        return [title] + fields.flatMap { $0.formatted(keyWidth: keyWidth) }
     }
 
-    private var coalescingLine: String {
-        var line = "coalesced: \(isCoalesced ? "yes" : "no")"
+    private var requestFields: [Field] {
+        var fields: [Field] = []
+        if request.url != nil || request.imageID == nil {
+            fields.append(Field("url", request.url ?? "none"))
+        }
+        if let imageID = request.imageID, imageID != request.url {
+            fields.append(Field("imageID", imageID))
+        }
+        fields += request.thumbnail.map { [Field("thumbnail", $0)] } ?? []
+        if !request.processors.isEmpty {
+            fields.append(Field("processors", request.processors))
+        }
+        if !request.options.isEmpty {
+            fields.append(Field("options", request.options.joined(separator: ", ")))
+        }
+        fields.append(Field("priority", priorityText))
+        return fields
+    }
+
+    private var resultFields: [Field] {
+        var fields: [Field] = []
+        if let image, let text = text(of: image) {
+            fields.append(Field("image", text))
+        }
+        fields += bytes.map { [Field("download", text(of: $0))] } ?? []
+        if previewCount > 0 {
+            fields.append(Field("previews", "\(previewCount)"))
+        }
+        fields.append(Field("coalesced", coalescedText))
+        return fields
+    }
+
+    /// The priority the request was created with, then every change made to
+    /// the task's priority while it ran, on the task's clock.
+    private var priorityText: String {
+        var text = request.priority.name
+        var priority = request.priority
+        for change in priorityHistory where change.priority != priority {
+            text += " → \(change.priority.name) at \(ms(change.at - createdAt))"
+            priority = change.priority
+        }
+        return text
+    }
+
+    private var coalescedText: String {
+        var text = isCoalesced ? "yes" : "no"
         let sharedTaskIDs = self.sharedTaskIDs
         if !sharedTaskIDs.isEmpty {
             let tasks = sharedTaskIDs.map { "#\($0)" }.joined(separator: ", ")
             let units = self.units.filter { $0.taskIDs.count > 1 }.map { "u\($0.id)" }.joined(separator: ", ")
-            line += " · shared with \(tasks) (\(units))"
+            text += " · shared with \(tasks) (\(units))"
         }
-        if previewCount > 0 {
-            line += " · previews: \(previewCount)"
+        return text
+    }
+
+    /// The code and the description, which names the underlying error.
+    private func text(of error: ImagePipeline.Diagnostics.ErrorSummary) -> String {
+        "\(error.code) · \(error.description)"
+    }
+
+    private func text(of image: ImageSummary) -> String? {
+        var parts: [String] = []
+        if image.width > 0 || image.height > 0 {
+            parts.append("\(image.width)×\(image.height)")
         }
-        return line
+        parts += image.format.map { [$0] } ?? []
+        if image.isAnimated {
+            parts.append("animated")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// The bytes downloaded, the part of them reused from an earlier attempt,
+    /// and what the server announced if the download stopped short of it.
+    private func text(of bytes: Bytes) -> String {
+        var text = Formatter.bytes(bytes.downloaded)
+        if bytes.resumed > 0 {
+            text += " (\(Formatter.bytes(bytes.resumed)) resumed)"
+        }
+        if bytes.expected > bytes.downloaded {
+            text += " of \(Formatter.bytes(bytes.expected))"
+        }
+        return text
+    }
+
+    /// A fact of the header: a key and its value, or values, one per line.
+    private struct Field {
+        var key: String
+        var values: [String]
+
+        init(_ key: String, _ value: String) {
+            self.init(key, [value])
+        }
+
+        init(_ key: String, _ values: [String]) {
+            self.key = key
+            self.values = values
+        }
+
+        /// The key, then the values in a column past the widest key.
+        func formatted(keyWidth: Int) -> [String] {
+            let indent = String(repeating: " ", count: keyWidth + 3)
+            return values.enumerated().map { index, value in
+                (index == 0 ? "\(key):".padding(toLength: indent.count, withPad: " ", startingAt: 0) : indent) + value
+            }
+        }
     }
 
     // MARK: Tree

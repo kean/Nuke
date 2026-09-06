@@ -52,16 +52,31 @@ image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem:
 
 ```
-ImageTask #41 · image · normal · 496.0 ms · success · source: network
-https://cdn.example.com/photos/1024.jpg · [Resize(300×300)]
-coalesced: no
+ImageTask #41 · success · 496.0 ms · from network
+kind:        image
+url:         https://cdn.example.com/photos/1024.jpg
+processors:  com.github.kean/nuke/resize?s=(300.0, 300.0),cm=.aspectFill,crop=false,upscale=false
+priority:    normal
+image:       300×300 · jpeg
+download:    1.2 MB
+coalesced:   no
+pipeline:    3B0C6E4A-6D5C-4F0E-9E43-2C7D1A9B5F10
 
-  +0.3      started
-  +0.3      u5 · loadImage [Resize(300×300)]
-  +0.3        memoryLookup  miss
-  +0.3        diskLookup    miss · 0.6 ms
-  …
-  +496.0    finished
+started                  0.3 ms   at 14:22:42.325
+u5 loadImage [resize]
+├─ memoryLookup          0.0 ms   miss
+├─ diskLookup            0.6 ms   miss
+├─ u6 loadImage
+│  ├─ memoryLookup       0.0 ms   miss
+│  ├─ diskLookup         0.2 ms   miss
+│  └─ u7 fetchOriginalImage
+│     ├─ u8 fetchOriginalData
+│     │  ├─ download   412.6 ms   █████████████████  network · 1.2 MB · HTTP 200 · first byte 92.9 ms
+│     │  └─ diskStore    0.1 ms   1.2 MB
+│     └─ decode         38.4 ms   ██  ImageDecoders.Default · jpeg 4032×3024
+├─ process              26.1 ms   jpeg 300×300
+…
+finished               496.0 ms   at 14:22:42.821
 ```
 
 From the terminal, with the simulator booted:
