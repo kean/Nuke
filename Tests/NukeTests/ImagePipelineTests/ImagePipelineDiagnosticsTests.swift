@@ -431,42 +431,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.description.range(of: "willLoadData")!.lowerBound < metrics.description.range(of: "download ")!.lowerBound)
     }
 
-    @Test func encodingIsTrailingWorkOfTheUnit() async throws {
-        // GIVEN
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.dataCache = dataCache
-            $0.dataCachePolicy = .storeEncodedImages
-            $0.isDiagnosticsEnabled = true
-        }
-        pipeline.diagnostics.retainedTaskCount = 1
-
-        // WHEN
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-        let metrics = try #require(task.metrics)
-
-        // THEN the task's copy has the encode queued and never started
-        let queued = try #require(metrics.units[0].stages.first { $0.kind == .encode })
-        #expect(queued.startedAt == nil)
-        #expect(queued.duration == nil)
-
-        // THEN the trace has the whole stage once the unit finished
-        var finished: ImagePipeline.Diagnostics.Unit?
-        for _ in 0..<200 where finished == nil {
-            try await Task.sleep(for: .milliseconds(5))
-            finished = await pipeline.diagnostics.export().units.first { $0.id == metrics.rootUnitID }
-        }
-        let encode = try #require(finished?.stages.first { $0.kind == .encode })
-        #expect(encode.encoder == "ImageEncoders.Default")
-        #expect(encode.duration != nil)
-        #expect(encode.workDuration != nil)
-        #expect((encode.bytes ?? 0) > 0)
-        #expect(encode.attributedDuration == nil)
-        #expect(finished?.joinedAt == nil)
-    }
-
     // MARK: - Coalescing
 
     @Test func coalescedTaskJoinsTheUnits() async throws {
@@ -635,13 +599,10 @@ struct ImagePipelineDiagnosticsTests {
         }
         let trace = await pipeline.diagnostics.export()
 
-        // THEN the last two tasks and their units are retained
+        // THEN the last two tasks are retained
         #expect(trace.schemaVersion == ImagePipeline.Diagnostics.schemaVersion)
         #expect(trace.pipelineID == pipeline.id)
         #expect(trace.tasks.map(\.taskID) == Array(taskIDs.suffix(2)))
-        let retainedUnitIDs = Set(trace.tasks.flatMap { $0.units.map(\.id) })
-        #expect(Set(trace.units.map(\.id)) == retainedUnitIDs)
-        #expect(trace.units.allSatisfy { $0.outcome == .success && $0.joinedAt == nil })
 
         // THEN the trace names the configuration that explains them
         #expect(trace.configuration.isTaskCoalescingEnabled)
@@ -654,7 +615,6 @@ struct ImagePipelineDiagnosticsTests {
         _ = try await pipeline.imageTask(with: Test.request).response
         let trace = await pipeline.diagnostics.export()
         #expect(trace.tasks.isEmpty)
-        #expect(trace.units.isEmpty)
     }
 
     // MARK: - Codable

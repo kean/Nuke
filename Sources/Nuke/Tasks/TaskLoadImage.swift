@@ -189,27 +189,12 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        // The encoding runs after the unit sent its value, so it belongs to
-        // the unit alone: no task waits for it.
-        let diagnostics = self.diagnostics
-        let stage = diagnostics?.beginStage(.encode, queued: true)
-        diagnostics?.beginTrailingWork()
-        let isRecording = stage != nil
         pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
-            defer { diagnostics?.endTrailingWork() }
             guard let pipeline else { return }
-            diagnostics?.startStage(stage)
-            let (data, workDuration) = await performInBackground { () -> (Data?, Duration?) in
-                let start: ContinuousClock.Instant? = isRecording ? .now : nil
-                let data = signpost("EncodeImage") {
+            let data = await performInBackground {
+                signpost("EncodeImage") {
                     encoder.encode(response.container, context: context)
                 }
-                return (data, start.map { ContinuousClock.now - $0 })
-            }
-            diagnostics?.endStage(stage) {
-                $0.encoder = diagnosticsTypeName(of: encoder)
-                $0.workDuration = workDuration
-                $0.bytes = data.map { Int64($0.count) }
             }
             guard let data, !data.isEmpty else { return }
             guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }

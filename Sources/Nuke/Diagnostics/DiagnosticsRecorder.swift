@@ -36,8 +36,6 @@ extension ImagePipeline.Diagnostics {
 
         private var nextUnitID: UInt64 = 0
         private var retainedTasks: [ImageTask.Metrics] = []
-        /// The finished units of the retained tasks, by unit ID.
-        private var retainedUnits: [UInt64: Unit] = [:]
 
         private struct State {
             var isEnabled = true
@@ -81,45 +79,23 @@ extension ImagePipeline.Diagnostics {
             return UnitRecord(id: nextUnitID, kind: kind, request: request, recorder: self)
         }
 
-        /// Retains the task and the units of its chain that have already
-        /// finished. The ones still running – shared with another task, or
-        /// encoding for the disk cache – arrive through ``didFinishUnit(_:)``.
-        func didFinishTask(_ metrics: ImageTask.Metrics, units: [UnitRecord]) {
+        /// Keeps the last ``retainedTaskCount`` records for the trace.
+        func didFinishTask(_ metrics: ImageTask.Metrics) {
             let limit = retainedTaskCount
             guard limit > 0 else {
                 if !retainedTasks.isEmpty {
                     retainedTasks.removeAll()
-                    retainedUnits.removeAll()
                 }
                 return
             }
             retainedTasks.append(metrics)
-            for unit in units where unit.isFinished && retainedUnits[unit.id] == nil {
-                retainedUnits[unit.id] = unit.makeSnapshot(for: nil, at: nil)
+            if retainedTasks.count > limit {
+                retainedTasks.removeFirst(retainedTasks.count - limit)
             }
-            guard retainedTasks.count > limit else { return }
-            retainedTasks.removeFirst(retainedTasks.count - limit)
-            // Drop the units no retained task waited on.
-            var unitIDs = Set<UInt64>()
-            for task in retainedTasks {
-                for unit in task.units {
-                    unitIDs.insert(unit.id)
-                }
-            }
-            retainedUnits = retainedUnits.filter { unitIDs.contains($0.key) }
-        }
-
-        /// Retains a unit that finished after one of the retained tasks.
-        func didFinishUnit(_ unit: Unit) {
-            guard retainedTaskCount > 0,
-                  retainedTasks.contains(where: { $0.units.contains { $0.id == unit.id } }) else {
-                return
-            }
-            retainedUnits[unit.id] = unit
         }
 
         func makeTrace(pipeline: ImagePipeline) -> Trace {
-            Trace(pipeline: pipeline, tasks: retainedTasks, units: retainedUnits.values.sorted { $0.id < $1.id })
+            Trace(pipeline: pipeline, tasks: retainedTasks)
         }
     }
 }
@@ -213,7 +189,7 @@ extension ImagePipeline.Diagnostics {
                 image: image,
                 units: units
             )
-            recorder.didFinishTask(metrics, units: records)
+            recorder.didFinishTask(metrics)
             return metrics
         }
 
@@ -272,9 +248,6 @@ extension ImagePipeline.Diagnostics {
         private var error: ErrorSummary?
         private var priorityHistory: [PriorityRecord] = []
         private var stages = ContiguousArray<StageRecord>()
-        private var pendingTrailingWork = 0
-        /// `true` once the unit ended and its trailing work is done.
-        private(set) var isFinished = false
         private lazy var processors = request.processors.map(\.identifier)
         private let request: ImageRequest
 
@@ -346,27 +319,6 @@ extension ImagePipeline.Diagnostics {
             for index in stages.indices where stages[index].endedAt == nil && stages[index].startedAt != nil {
                 stages[index].endedAt = now
             }
-            finishIfNeeded()
-        }
-
-        /// Work that runs after the unit sent its value, such as encoding the
-        /// image for the disk cache. The unit is reported finished after it.
-        func beginTrailingWork() {
-            pendingTrailingWork += 1
-        }
-
-        func endTrailingWork() {
-            pendingTrailingWork -= 1
-            finishIfNeeded()
-        }
-
-        /// The unit ended and its trailing work is done. The copy for the
-        /// trace is made only when the trace keeps anything.
-        private func finishIfNeeded() {
-            guard endedAt != nil, pendingTrailingWork == 0, !isFinished, !joins.isEmpty else { return }
-            isFinished = true
-            guard recorder.retainedTaskCount > 0 else { return }
-            recorder.didFinishUnit(makeSnapshot(for: nil, at: nil))
         }
 
         // MARK: Priority
@@ -425,14 +377,11 @@ extension ImagePipeline.Diagnostics {
 
         // MARK: Snapshot
 
-        /// - parameter task: The task the copy belongs to, or `nil` for the
-        /// copy kept for the trace.
+        /// - parameter task: The task the copy belongs to.
         /// - parameter taskEnd: The end of the task, which the attributed
         /// durations are clamped to.
-        func makeSnapshot(for task: TaskRecord?, at taskEnd: ContinuousClock.Instant?) -> Unit {
-            let joinedAt = task.flatMap { task in
-                joins.first { $0.taskID == task.taskID }?.joinedAt
-            }
+        func makeSnapshot(for task: TaskRecord, at taskEnd: ContinuousClock.Instant) -> Unit {
+            let joinedAt = joins.first { $0.taskID == task.taskID }?.joinedAt
             return Unit(
                 id: id,
                 kind: kind,
@@ -470,7 +419,6 @@ extension ImagePipeline.Diagnostics {
         var isProgressive: Bool?
         var decoder: String?
         var processor: String?
-        var encoder: String?
         var format: String?
         var pixels: PixelSize?
         var frameCount: Int?
@@ -499,13 +447,13 @@ extension ImagePipeline.Diagnostics {
             }
         }
 
-        func makeSnapshot(recorder: Recorder, joinedAt: ContinuousClock.Instant?, taskEnd: ContinuousClock.Instant?) -> Stage {
+        func makeSnapshot(recorder: Recorder, joinedAt: ContinuousClock.Instant?, taskEnd: ContinuousClock.Instant) -> Stage {
             var duration: TimeInterval?
             if let startedAt, let endedAt {
                 duration = (endedAt - startedAt).timeInterval
             }
             var attributedDuration: TimeInterval?
-            if let taskEnd, let startedAt {
+            if let startedAt {
                 let start = joinedAt.map { max($0, startedAt) } ?? startedAt
                 let end = min(endedAt ?? taskEnd, taskEnd)
                 attributedDuration = max(0, (end - start).timeInterval)
@@ -521,7 +469,6 @@ extension ImagePipeline.Diagnostics {
                 isProgressive: isProgressive,
                 decoder: decoder,
                 processor: processor,
-                encoder: encoder,
                 format: format,
                 pixels: pixels,
                 frameCount: frameCount,

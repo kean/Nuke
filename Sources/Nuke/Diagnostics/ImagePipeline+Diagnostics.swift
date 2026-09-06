@@ -58,13 +58,13 @@ extension ImagePipeline {
             nonmutating set { pipeline.recorder?.retainedTaskCount = newValue }
         }
 
-        /// Returns the tasks and units retained so far, along with the
-        /// configuration that explains them.
+        /// Returns the tasks retained so far, along with the configuration
+        /// that explains them.
         ///
         /// - seealso: ``retainedTaskCount``
         public func export() async -> Trace {
             guard let recorder = pipeline.recorder else {
-                return Trace(pipeline: pipeline, tasks: [], units: [])
+                return Trace(pipeline: pipeline, tasks: [])
             }
             return await recorder.makeTrace(pipeline: pipeline)
         }
@@ -106,8 +106,7 @@ extension ImagePipeline.Diagnostics {
         public let outcome: Outcome?
         public let error: ErrorSummary?
         /// When the task the copy belongs to reached the unit, in seconds
-        /// since 1970. `nil` if the task's chain created the unit, and in the
-        /// copies of ``Trace/units``, which belong to no task.
+        /// since 1970. `nil` if the task's chain created the unit.
         public let joinedAt: TimeInterval?
         /// The priority of the unit over time. It moves when a task joins,
         /// leaves, or changes its own priority.
@@ -160,12 +159,12 @@ extension ImagePipeline.Diagnostics {
         /// a background queue. `nil` if the stage was still running when the
         /// record was captured, or if it never started.
         public let duration: TimeInterval?
-        /// Measured inside the work closure for decoding, processing,
-        /// decompression, and encoding.
+        /// Measured inside the work closure for decoding, processing, and
+        /// decompression.
         public let workDuration: TimeInterval?
         /// ``duration`` clamped to the lifetime of the task the copy belongs
-        /// to, so the stages a task didn't wait for attribute zero. `nil` in
-        /// the copies of ``Trace/units``.
+        /// to, so the stages a task didn't wait for attribute zero. `nil` if
+        /// the stage never started.
         public let attributedDuration: TimeInterval?
 
         /// The result of a lookup.
@@ -176,8 +175,6 @@ extension ImagePipeline.Diagnostics {
         public let decoder: String?
         /// The identifier of the processor.
         public let processor: String?
-        /// The type of the encoder.
-        public let encoder: String?
         /// The format of the image the stage produced, such as `"jpeg"`.
         public let format: String?
         /// The size of the image the stage produced.
@@ -217,9 +214,6 @@ extension ImagePipeline.Diagnostics {
             case process
             case decompress
             case memoryStore
-            /// Encoding a processed image for the disk cache. Runs after the
-            /// tasks are done, so it appears only in ``Trace/units``.
-            case encode
             case unknown
         }
 
@@ -324,8 +318,9 @@ extension ImagePipeline.Diagnostics {
 // MARK: - Trace
 
 extension ImagePipeline.Diagnostics {
-    /// The tasks and units a pipeline retained, with the configuration that
-    /// explains their numbers.
+    /// The tasks a pipeline retained, with the configuration that explains
+    /// their numbers. A unit two tasks shared appears in both records, and
+    /// is joined by ``Unit/id``.
     ///
     /// - seealso: ``ImagePipeline/Diagnostics-swift.struct/export()``
     public struct Trace: Codable, Sendable {
@@ -336,17 +331,13 @@ extension ImagePipeline.Diagnostics {
         public let configuration: ConfigurationSummary
         /// The most recently finished tasks, oldest first.
         public let tasks: [ImageTask.Metrics]
-        /// The units the retained tasks waited on, oldest first, as they were
-        /// when they finished, trailing work included.
-        public let units: [Unit]
 
-        init(pipeline: ImagePipeline, tasks: [ImageTask.Metrics], units: [Unit]) {
+        init(pipeline: ImagePipeline, tasks: [ImageTask.Metrics]) {
             self.schemaVersion = ImagePipeline.Diagnostics.schemaVersion
             self.pipelineID = pipeline.id
             self.exportedAt = Date().timeIntervalSince1970
             self.configuration = ConfigurationSummary(pipeline.configuration)
             self.tasks = tasks
-            self.units = units
         }
     }
 

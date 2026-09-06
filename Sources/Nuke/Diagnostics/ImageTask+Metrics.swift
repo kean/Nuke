@@ -269,7 +269,7 @@ extension ImageTask.Metrics {
         if stage.isProgressive == true {
             parts.append("preview")
         }
-        parts += [stage.decoder, stage.processor, stage.encoder, stage.format].compactMap { $0 }
+        parts += [stage.decoder, stage.processor, stage.format].compactMap { $0 }
         parts += stage.pixels.map { ["\($0.width)×\($0.height)"] } ?? []
         parts += stage.frameCount.map { ["\($0) frames"] } ?? []
         parts += stage.cost.map { ["cost \(Formatter.bytes($0))"] } ?? []
