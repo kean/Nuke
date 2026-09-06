@@ -189,8 +189,15 @@ extension ImagePipeline.Diagnostics {
         /// When the first chunk of a download arrived, in seconds since 1970.
         public let firstByteAt: TimeInterval?
         /// The `taskIdentifier` of the `URLSessionTask` that performed the
-        /// download, which links it to the metrics `URLSession` collected.
+        /// download. Known from the start of the download, so it is there for
+        /// a task that ended before the download did, when
+        /// ``urlSessionMetrics`` isn't.
         public let urlSessionTaskID: Int?
+        /// What `URLSession` measured for the download: every request the
+        /// session made, and the time each step of it took. `nil` if the data
+        /// loader isn't a ``DataLoader``, or if the download hadn't completed
+        /// when the record was captured.
+        public let urlSessionMetrics: URLSessionMetrics?
 
         /// The kind of work a stage performs.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {
@@ -235,6 +242,82 @@ extension ImagePipeline.Diagnostics.Stage {
     public var queuedDate: Date? { queuedAt.map(Date.init(timeIntervalSince1970:)) }
     public var startedDate: Date? { startedAt.map(Date.init(timeIntervalSince1970:)) }
     public var endedDate: Date? { endedAt.map(Date.init(timeIntervalSince1970:)) }
+}
+
+// MARK: - URLSession
+
+extension ImagePipeline.Diagnostics {
+    /// The `Codable` subset of `URLSessionTaskMetrics`.
+    public struct URLSessionMetrics: Codable, Sendable {
+        /// The `taskIdentifier` of the `URLSessionTask`, which the
+        /// download stage carries too, as
+        /// ``ImagePipeline/Diagnostics-swift.struct/Stage/urlSessionTaskID``.
+        public let urlSessionTaskID: Int
+        /// When the task was resumed, in seconds since 1970.
+        public let startedAt: TimeInterval
+        /// When the task completed, in seconds since 1970.
+        public let endedAt: TimeInterval
+        public let redirectCount: Int
+        /// One per request the session made, in the order it made them.
+        /// A redirect adds one.
+        public let transactions: [Transaction]
+
+        /// The `Codable` subset of `URLSessionTaskTransactionMetrics`.
+        ///
+        /// The timestamps follow the Resource Timing model: the fetch
+        /// starts, the domain is looked up, the connection is opened and
+        /// secured, the request is sent, and the response arrives. A step
+        /// the session skipped, such as the lookup for a connection it
+        /// reused, has no timestamps.
+        public struct Transaction: Codable, Sendable {
+            public let url: String?
+            public let statusCode: Int?
+            public let fetchType: FetchType
+            /// The name of the protocol, such as `"h2"`.
+            public let networkProtocol: String?
+            /// The version the connection negotiated, such as `"TLS 1.3"`.
+            public let tlsVersion: String?
+            public let remoteAddress: String?
+            public let isReusedConnection: Bool
+            public let isProxyConnection: Bool
+            public let isCellular: Bool
+            public let isExpensive: Bool
+            public let isConstrained: Bool
+            /// The bytes of the request, headers and body.
+            public let requestBytes: Int64
+            /// The bytes of the response, headers and body.
+            public let responseBytes: Int64
+            /// Seconds since 1970.
+            public let fetchStartedAt: TimeInterval?
+            public let domainLookupStartedAt: TimeInterval?
+            public let domainLookupEndedAt: TimeInterval?
+            public let connectStartedAt: TimeInterval?
+            public let secureConnectionStartedAt: TimeInterval?
+            public let secureConnectionEndedAt: TimeInterval?
+            public let connectEndedAt: TimeInterval?
+            public let requestStartedAt: TimeInterval?
+            public let requestEndedAt: TimeInterval?
+            public let responseStartedAt: TimeInterval?
+            public let responseEndedAt: TimeInterval?
+        }
+
+        /// `URLSessionTaskMetrics.ResourceFetchType`.
+        public enum FetchType: String, Sendable, DiagnosticsStringEnum {
+            case networkLoad
+            /// The `URLCache` of the session.
+            case localCache
+            case serverPush
+            case unknown
+        }
+    }
+}
+
+extension ImagePipeline.Diagnostics.URLSessionMetrics {
+    /// The time from the resume of the task to its completion.
+    public var duration: TimeInterval { endedAt - startedAt }
+
+    public var startedDate: Date { Date(timeIntervalSince1970: startedAt) }
+    public var endedDate: Date { Date(timeIntervalSince1970: endedAt) }
 }
 
 // MARK: - Shared Types

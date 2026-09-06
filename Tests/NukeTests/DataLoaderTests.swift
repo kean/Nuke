@@ -450,6 +450,22 @@ struct DataLoaderTests {
         #expect(spy.didFinishMetricsCount > 0)
     }
 
+    @Test func metricsAreDeliveredWithTheCompletionWhenAskedFor() async throws {
+        let url = mockURL("metrics-completion")
+        registerMock(url: url, chunks: [Data("data".utf8)])
+
+        let loader = makeDataLoader()
+        let metrics: URLSessionTaskMetrics? = await withCheckedContinuation { continuation in
+            _ = loader.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }) { _, metrics in
+                continuation.resume(returning: metrics)
+            }
+        }
+
+        let collected = try #require(metrics)
+        #expect(collected.transactionMetrics.count == 1)
+        #expect(collected.transactionMetrics.first?.request.url == url)
+    }
+
     @Test func delegateReceivesDidCreateTaskCallback() async throws {
         let url = mockURL("delegate-did-create-task")
         registerMock(url: url, chunks: [Data("data".utf8)])

@@ -425,6 +425,8 @@ extension ImagePipeline.Diagnostics {
         var statusCode: Int?
         var firstByteAt: ContinuousClock.Instant?
         var urlSessionTaskID: Int?
+        /// What `URLSession` measured for a download, once it completed.
+        var urlSessionMetrics: URLSessionMetrics?
 
         init(kind: Stage.Kind, queuedAt: ContinuousClock.Instant?, startedAt: ContinuousClock.Instant?) {
             self.kind = kind
@@ -468,7 +470,8 @@ extension ImagePipeline.Diagnostics {
                 expectedBytes: expectedBytes,
                 statusCode: statusCode,
                 firstByteAt: firstByteAt.map(recorder.time),
-                urlSessionTaskID: urlSessionTaskID
+                urlSessionTaskID: urlSessionTaskID,
+                urlSessionMetrics: urlSessionMetrics
             )
         }
     }
@@ -517,6 +520,71 @@ extension ImageTask.Metrics.ImageSummary {
         self.height = pixels?.height ?? 0
         self.format = container.type?.diagnosticsName
         self.isAnimated = container.animation != nil
+    }
+}
+
+extension ImagePipeline.Diagnostics.URLSessionMetrics {
+    init(_ metrics: URLSessionTaskMetrics, urlSessionTaskID: Int) {
+        self.urlSessionTaskID = urlSessionTaskID
+        self.startedAt = metrics.taskInterval.start.timeIntervalSince1970
+        self.endedAt = metrics.taskInterval.end.timeIntervalSince1970
+        self.redirectCount = metrics.redirectCount
+        self.transactions = metrics.transactionMetrics.map(Transaction.init)
+    }
+}
+
+extension ImagePipeline.Diagnostics.URLSessionMetrics.Transaction {
+    init(_ metrics: URLSessionTaskTransactionMetrics) {
+        self.url = metrics.request.url?.absoluteString
+        self.statusCode = (metrics.response as? HTTPURLResponse)?.statusCode
+        self.fetchType = ImagePipeline.Diagnostics.URLSessionMetrics.FetchType(metrics.resourceFetchType)
+        self.networkProtocol = metrics.networkProtocolName
+        self.tlsVersion = metrics.negotiatedTLSProtocolVersion.map { Self.tlsVersionName($0.rawValue) }
+        self.remoteAddress = metrics.remoteAddress
+        self.isReusedConnection = metrics.isReusedConnection
+        self.isProxyConnection = metrics.isProxyConnection
+        self.isCellular = metrics.isCellular
+        self.isExpensive = metrics.isExpensive
+        self.isConstrained = metrics.isConstrained
+        self.requestBytes = metrics.countOfRequestHeaderBytesSent + metrics.countOfRequestBodyBytesSent
+        self.responseBytes = metrics.countOfResponseHeaderBytesReceived + metrics.countOfResponseBodyBytesReceived
+        self.fetchStartedAt = metrics.fetchStartDate?.timeIntervalSince1970
+        self.domainLookupStartedAt = metrics.domainLookupStartDate?.timeIntervalSince1970
+        self.domainLookupEndedAt = metrics.domainLookupEndDate?.timeIntervalSince1970
+        self.connectStartedAt = metrics.connectStartDate?.timeIntervalSince1970
+        self.secureConnectionStartedAt = metrics.secureConnectionStartDate?.timeIntervalSince1970
+        self.secureConnectionEndedAt = metrics.secureConnectionEndDate?.timeIntervalSince1970
+        self.connectEndedAt = metrics.connectEndDate?.timeIntervalSince1970
+        self.requestStartedAt = metrics.requestStartDate?.timeIntervalSince1970
+        self.requestEndedAt = metrics.requestEndDate?.timeIntervalSince1970
+        self.responseStartedAt = metrics.responseStartDate?.timeIntervalSince1970
+        self.responseEndedAt = metrics.responseEndDate?.timeIntervalSince1970
+    }
+
+    /// `"TLS 1.3"` for the `tls_protocol_version_t` the connection
+    /// negotiated, which is the version as it appears on the wire.
+    private static func tlsVersionName(_ version: UInt16) -> String {
+        switch version {
+        case 0x0301: "TLS 1.0"
+        case 0x0302: "TLS 1.1"
+        case 0x0303: "TLS 1.2"
+        case 0x0304: "TLS 1.3"
+        case 0xFEFF: "DTLS 1.0"
+        case 0xFEFD: "DTLS 1.2"
+        default: String(format: "TLS 0x%04X", version)
+        }
+    }
+}
+
+extension ImagePipeline.Diagnostics.URLSessionMetrics.FetchType {
+    init(_ type: URLSessionTaskMetrics.ResourceFetchType) {
+        self = switch type {
+        case .networkLoad: .networkLoad
+        case .localCache: .localCache
+        case .serverPush: .serverPush
+        case .unknown: .unknown
+        @unknown default: .unknown
+        }
     }
 }
 

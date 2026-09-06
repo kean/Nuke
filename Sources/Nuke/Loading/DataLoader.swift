@@ -105,9 +105,31 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Swift.Error?) -> Void
     ) -> any Cancellable {
+        loadData(with: request, collectsMetrics: false, didReceiveData: didReceiveData) { error, _ in
+            completion(error)
+        }
+    }
+
+    /// ``loadData(with:didReceiveData:completion:)``, with the metrics
+    /// `URLSession` collected for the task delivered along with the
+    /// completion. The pipeline asks for them when its diagnostics are on.
+    func loadData(
+        with request: URLRequest,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void
+    ) -> any Cancellable {
+        loadData(with: request, collectsMetrics: true, didReceiveData: didReceiveData, completion: completion)
+    }
+
+    private func loadData(
+        with request: URLRequest,
+        collectsMetrics: Bool,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void
+    ) -> any Cancellable {
         let task = session.dataTask(with: request)
         task.prefersIncrementalDelivery = prefersIncrementalDelivery
-        return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
+        return impl.loadData(with: task, session: session, collectsMetrics: collectsMetrics, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by ``DataLoader``.
@@ -130,6 +152,9 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
+    /// The metrics of the tasks whose handlers asked for them, held from
+    /// the moment they are collected to the completion, which delivers them.
+    private var metrics = [URLSessionTask: URLSessionTaskMetrics]()
     var delegate: URLSessionDelegate?
 
     init(validate: @Sendable @escaping (URLResponse) -> Swift.Error?) {
@@ -140,10 +165,11 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     func loadData(
         with task: URLSessionDataTask,
         session: URLSession,
+        collectsMetrics: Bool,
         didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void,
-        completion: @Sendable @escaping (Error?) -> Void
+        completion: @Sendable @escaping (Error?, URLSessionTaskMetrics?) -> Void
     ) -> any Cancellable {
-        let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
+        let handler = _Handler(collectsMetrics: collectsMetrics, didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
@@ -172,7 +198,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             // `didCompleteWithError`, which would otherwise call the completion
             // a second time, breaking the `DataLoading` contract.
             handlers[dataTask] = nil
-            handler.completion(error)
+            handler.completion(error, nil)
             completionHandler(.cancel)
             return
         }
@@ -182,15 +208,20 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didCompleteWithError: error)
         assert(task is URLSessionDataTask)
+        let metrics = metrics.removeValue(forKey: task)
         guard let handler = handlers[task] else {
             return
         }
         handlers[task] = nil
-        handler.completion(error)
+        handler.completion(error, metrics)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didFinishCollecting: metrics)
+        // Delivered before `didCompleteWithError`, which hands them over.
+        if handlers[task]?.collectsMetrics == true {
+            self.metrics[task] = metrics
+        }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @Sendable @escaping (URLRequest?) -> Void) {
@@ -231,10 +262,12 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
     // MARK: Internal
 
     private final class _Handler: Sendable {
+        let collectsMetrics: Bool
         let didReceiveData: @Sendable (Data, URLResponse) -> Void
-        let completion: @Sendable (Error?) -> Void
+        let completion: @Sendable (Error?, URLSessionTaskMetrics?) -> Void
 
-        init(didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) {
+        init(collectsMetrics: Bool, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?, URLSessionTaskMetrics?) -> Void) {
+            self.collectsMetrics = collectsMetrics
             self.didReceiveData = didReceiveData
             self.completion = completion
         }

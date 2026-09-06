@@ -147,19 +147,22 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
-            dataLoadCancellable = dataLoader.loadData(
-                with: urlRequest,
-                didReceiveData: { [weak self] chunk, response in
-                    Task { @ImagePipelineActor in
-                        self?.dataTaskDidReceive(chunk: chunk, response: response)
-                    }
-                },
-                completion: { [weak self] error in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
-                    }
+            let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
+                Task { @ImagePipelineActor in
+                    self?.dataTaskDidReceive(chunk: chunk, response: response)
                 }
-            )
+            }
+            let completion: @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void = { [weak self] error, metrics in
+                Task { @ImagePipelineActor in
+                    self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
+                }
+            }
+            if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
+                // The diagnostics are on: ask for what `URLSession` measured.
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData, completion: completion)
+            } else {
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { completion($0, nil) }
+            }
             if downloadStage != nil, let task = dataLoadCancellable as? URLSessionTask {
                 diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = task.taskIdentifier }
             }
@@ -185,10 +188,17 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
     }
 
-    private func finishDataLoad(error: Swift.Error?) {
+    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil) {
         guard let continuation = dataLoadContinuation else { return }
         dataLoadContinuation = nil
         dataLoadCancellable = nil
+        if let urlSessionMetrics {
+            diagnostics?.updateStage(downloadStage) { stage in
+                if let taskID = stage.urlSessionTaskID {
+                    stage.urlSessionMetrics = .init(urlSessionMetrics, urlSessionTaskID: taskID)
+                }
+            }
+        }
         if let error {
             continuation.resume(throwing: error)
         } else {
