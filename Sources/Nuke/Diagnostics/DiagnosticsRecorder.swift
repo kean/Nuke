@@ -242,7 +242,6 @@ extension ImagePipeline.Diagnostics {
         private(set) var parent: UnitRecord?
         private(set) var createdByTaskID: UInt64?
         private var joins = ContiguousArray<Join>()
-        private var peakSubscriberCount = 0
         private(set) var endedAt: ContinuousClock.Instant?
         private var outcome: Outcome?
         private var error: ErrorSummary?
@@ -272,8 +271,7 @@ extension ImagePipeline.Diagnostics {
 
         // MARK: Subscribers
 
-        func didSubscribe(_ subscriber: AnyObject, didJoin: Bool, subscriberCount: Int) {
-            peakSubscriberCount = max(peakSubscriberCount, subscriberCount)
+        func didSubscribe(_ subscriber: AnyObject, didJoin: Bool) {
             (subscriber as? any DiagnosticsSubscriber)?.diagnosticsDidSubscribe(to: self, didJoin: didJoin)
         }
 
@@ -389,7 +387,6 @@ extension ImagePipeline.Diagnostics {
                 parentID: parent?.id,
                 createdByTaskID: createdByTaskID ?? 0,
                 taskIDs: joins.map(\.taskID),
-                peakSubscriberCount: peakSubscriberCount,
                 createdAt: recorder.time(createdAt),
                 endedAt: endedAt.map(recorder.time),
                 outcome: outcome,
@@ -421,16 +418,13 @@ extension ImagePipeline.Diagnostics {
         var processor: String?
         var format: String?
         var pixels: PixelSize?
-        var frameCount: Int?
         var source: Source?
         var bytes: Int64?
         var resumedBytes: Int64?
         var expectedBytes: Int64?
-        var chunkCount: Int?
         var statusCode: Int?
         var firstByteAt: ContinuousClock.Instant?
         var urlSessionTaskID: Int?
-        var cost: Int?
 
         init(kind: Stage.Kind, queuedAt: ContinuousClock.Instant?, startedAt: ContinuousClock.Instant?) {
             self.kind = kind
@@ -442,9 +436,6 @@ extension ImagePipeline.Diagnostics {
         mutating func setOutput(_ container: ImageContainer) {
             pixels = container.image.diagnosticsPixelSize
             format = container.type?.diagnosticsName
-            if let animation = container.animation {
-                frameCount = animation.frameCount
-            }
         }
 
         func makeSnapshot(recorder: Recorder, joinedAt: ContinuousClock.Instant?, taskEnd: ContinuousClock.Instant) -> Stage {
@@ -471,16 +462,13 @@ extension ImagePipeline.Diagnostics {
                 processor: processor,
                 format: format,
                 pixels: pixels,
-                frameCount: frameCount,
                 source: source,
                 bytes: bytes,
                 resumedBytes: resumedBytes,
                 expectedBytes: expectedBytes,
-                chunkCount: chunkCount,
                 statusCode: statusCode,
                 firstByteAt: firstByteAt.map(recorder.time),
-                urlSessionTaskID: urlSessionTaskID,
-                cost: cost
+                urlSessionTaskID: urlSessionTaskID
             )
         }
     }

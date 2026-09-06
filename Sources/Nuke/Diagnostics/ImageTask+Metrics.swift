@@ -259,7 +259,6 @@ extension ImageTask.Metrics {
             }
             parts.append(text)
         }
-        parts += stage.chunkCount.map { ["\($0) chunk\($0 == 1 ? "" : "s")"] } ?? []
         parts += stage.statusCode.map { ["HTTP \($0)"] } ?? []
         return parts
     }
@@ -271,8 +270,6 @@ extension ImageTask.Metrics {
         }
         parts += [stage.decoder, stage.processor, stage.format].compactMap { $0 }
         parts += stage.pixels.map { ["\($0.width)×\($0.height)"] } ?? []
-        parts += stage.frameCount.map { ["\($0) frames"] } ?? []
-        parts += stage.cost.map { ["cost \(Formatter.bytes($0))"] } ?? []
         return parts
     }
 }

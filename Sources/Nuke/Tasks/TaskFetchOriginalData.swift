@@ -173,7 +173,6 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 stage.firstByteAt = .now
                 stage.statusCode = (response as? HTTPURLResponse)?.statusCode
             }
-            stage.chunkCount = (stage.chunkCount ?? 0) + 1
         }
         do {
             if urlResponse == nil {

@@ -45,10 +45,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         return output.compactMap { $0 }
     }
 
-    private var subscriberCount: Int {
-        (inlineSubscription == nil ? 0 : 1) + (subscriptions?.count ?? 0)
-    }
-
     func hasSubscriber<T>(of type: T.Type) -> Bool {
         if inlineSubscription?.subscriber is T { return true }
         if let subscriptions {
@@ -126,7 +122,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if let diagnostics {
             // A unit that already had a subscription existed before the
             // subscriber asked for it: the subscriber joined the unit.
-            diagnostics.didSubscribe(subscriber, didJoin: subscriptionKey > 0, subscriberCount: subscriberCount)
+            diagnostics.didSubscribe(subscriber, didJoin: subscriptionKey > 0)
         }
 
         updatePriority(suggestedPriority: priority)

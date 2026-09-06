@@ -94,9 +94,6 @@ extension ImagePipeline.Diagnostics {
         public let createdByTaskID: UInt64
         /// Every task that reached the unit, in the order they did.
         public let taskIDs: [UInt64]
-        /// The most subscribers the unit had at once: tasks plus the units
-        /// that depend on it.
-        public let peakSubscriberCount: Int
         /// Seconds since 1970.
         public let createdAt: TimeInterval
         /// Seconds since 1970. `nil` in a task's copy if the unit outlived
@@ -179,8 +176,6 @@ extension ImagePipeline.Diagnostics {
         public let format: String?
         /// The size of the image the stage produced.
         public let pixels: PixelSize?
-        /// The number of frames of an animated image the stage decoded.
-        public let frameCount: Int?
         /// Where a download got the data from.
         public let source: Source?
         /// The bytes downloaded, read, or written.
@@ -189,7 +184,6 @@ extension ImagePipeline.Diagnostics {
         public let resumedBytes: Int64?
         /// The bytes a download expected, including the resumed ones.
         public let expectedBytes: Int64?
-        public let chunkCount: Int?
         /// The HTTP status code of a download.
         public let statusCode: Int?
         /// When the first chunk of a download arrived, in seconds since 1970.
@@ -197,8 +191,6 @@ extension ImagePipeline.Diagnostics {
         /// The `taskIdentifier` of the `URLSessionTask` that performed the
         /// download, which links it to the metrics `URLSession` collected.
         public let urlSessionTaskID: Int?
-        /// The cost of the image stored in the memory cache.
-        public let cost: Int?
 
         /// The kind of work a stage performs.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {

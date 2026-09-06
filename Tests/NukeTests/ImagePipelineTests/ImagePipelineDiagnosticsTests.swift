@@ -92,7 +92,6 @@ struct ImagePipelineDiagnosticsTests {
             #expect(unit.createdByTaskID == task.taskId)
             #expect(unit.taskIDs == [task.taskId])
             #expect(unit.joinedAt == nil)
-            #expect(unit.peakSubscriberCount == 1)
             #expect(unit.outcome == .success)
             #expect(unit.endedAt != nil)
         }
@@ -102,8 +101,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(root.stages.map(\.kind).filter { $0 != .decompress } == [.memoryLookup, .diskLookup, .memoryStore])
         #expect(root.stages[0].result == .miss)
         #expect(root.stages[1].result == .miss)
-        let store = try #require(root.stages.last)
-        #expect(store.cost == ImageCache.cost(for: response.container))
 
         let decode = try #require(metrics.units[1].stages.first)
         #expect(metrics.units[1].stages.count == 1)
@@ -126,7 +123,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(download.bytes == 22789)
         #expect(download.resumedBytes == 0)
         #expect(download.expectedBytes == 22789)
-        #expect(download.chunkCount == 1)
         #expect(download.firstByteAt != nil)
         #expect(download.queuedAt != nil)
         #expect(download.duration != nil)
@@ -403,7 +399,6 @@ struct ImagePipelineDiagnosticsTests {
         let decodes = metrics.units[1].stages.filter { $0.kind == .decode }
         #expect(decodes.filter { $0.isProgressive == true }.count == 2)
         #expect(decodes.filter { $0.isProgressive == false }.count == 1)
-        #expect((metrics.units[2].stages.first?.chunkCount ?? 0) >= 3)
     }
 
     @Test func willLoadDataIsRecordedForCustomDelegates() async throws {
@@ -465,8 +460,6 @@ struct ImagePipelineDiagnosticsTests {
             #expect(copy.taskIDs == unit.taskIDs)
             #expect(unit.stages.count == copy.stages.count)
         }
-        #expect(creator.units[0].peakSubscriberCount == 2)
-        #expect(creator.units[1].peakSubscriberCount == 1)
 
         // THEN the attributed durations are clamped to the task
         for unit in joiner.units {
@@ -506,7 +499,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(joiner.units[0].joinedAt == nil)
         #expect(joiner.units.dropFirst().allSatisfy { $0.joinedAt != nil })
         #expect(joiner.units[1].taskIDs == [creator.taskID, joiner.taskID])
-        #expect(joiner.units[1].peakSubscriberCount == 2)
     }
 
     @Test func dataTaskAndImageTaskShareTheDownload() async throws {

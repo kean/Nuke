@@ -72,7 +72,6 @@ struct ImagePipelineResumableDataTests {
         #expect(metrics1.bytes?.downloaded == 11397)
         #expect(metrics1.bytes?.expected == 22789)
         let failed = try #require(metrics1.units.last?.stages.first { $0.kind == .download })
-        #expect(failed.chunkCount == 3)
         #expect(failed.resumedBytes == 0)
 
         // WHEN the download is resumed
@@ -86,7 +85,6 @@ struct ImagePipelineResumableDataTests {
         #expect(metrics2.bytes?.expected == 22789)
         let resumed = try #require(metrics2.units.last?.stages.first { $0.kind == .download })
         #expect(resumed.statusCode == 206)
-        #expect(resumed.chunkCount == 3)
     }
 
     /// On a "206 Partial Content" response, `expectedContentLength` covers only

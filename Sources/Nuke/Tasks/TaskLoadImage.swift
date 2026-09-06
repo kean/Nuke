@@ -171,7 +171,6 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let start: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
         if pipeline.cache.storeCachedImageInMemoryCache(response.container, for: request), let start {
             diagnostics?.recordStage(.memoryStore, from: start) {
-                $0.cost = ImageCache.cost(for: response.container)
                 if response.isPreview {
                     $0.isProgressive = true
                 }

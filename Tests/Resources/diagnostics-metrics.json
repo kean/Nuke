@@ -31,7 +31,6 @@
       "parentID": 7,
       "createdByTaskID": 41,
       "taskIDs": [41, 42],
-      "peakSubscriberCount": 2,
       "createdAt": 1788606000.0009,
       "endedAt": 1788606000.4863,
       "outcome": "success",
@@ -43,7 +42,7 @@
         { "kind": "memoryLookup", "startedAt": 1788606000.0009, "duration": 0.000004, "attributedDuration": 0, "result": "miss" },
         { "kind": "diskLookup", "startedAt": 1788606000.0009, "duration": 0.0005, "attributedDuration": 0, "result": "miss" },
         { "kind": "decompress", "queuedAt": 1788606000.4695, "startedAt": 1788606000.4697, "duration": 0.0164, "workDuration": 0.0161, "attributedDuration": 0.0164, "isProgressive": false, "pixels": [4032, 3024] },
-        { "kind": "memoryStore", "startedAt": 1788606000.4862, "duration": 0.00002, "attributedDuration": 0.00002, "cost": 48771072 }
+        { "kind": "memoryStore", "startedAt": 1788606000.4862, "duration": 0.00002, "attributedDuration": 0.00002 }
       ]
     },
     {
@@ -53,7 +52,6 @@
       "parentID": 8,
       "createdByTaskID": 41,
       "taskIDs": [41, 42],
-      "peakSubscriberCount": 1,
       "createdAt": 1788606000.0014,
       "endedAt": 1788606000.4694,
       "outcome": "success",
@@ -71,7 +69,6 @@
       "processors": [],
       "createdByTaskID": 41,
       "taskIDs": [41, 42],
-      "peakSubscriberCount": 1,
       "createdAt": 1788606000.0014,
       "endedAt": 1788606000.4141,
       "outcome": "success",
@@ -81,7 +78,7 @@
       ],
       "stages": [
         { "kind": "willLoadData", "startedAt": 1788606000.0016, "duration": 0.0015, "attributedDuration": 0 },
-        { "kind": "download", "queuedAt": 1788606000.0014, "startedAt": 1788606000.0031, "duration": 0.4109, "attributedDuration": 0.2938, "source": "network", "bytes": 1204113, "resumedBytes": 0, "expectedBytes": 1204113, "chunkCount": 38, "statusCode": 200, "firstByteAt": 1788606000.096, "urlSessionTaskID": 17 },
+        { "kind": "download", "queuedAt": 1788606000.0014, "startedAt": 1788606000.0031, "duration": 0.4109, "attributedDuration": 0.2938, "source": "network", "bytes": 1204113, "resumedBytes": 0, "expectedBytes": 1204113, "statusCode": 200, "firstByteAt": 1788606000.096, "urlSessionTaskID": 17 },
         { "kind": "diskStore", "startedAt": 1788606000.4141, "duration": 0.0001, "attributedDuration": 0.0001, "bytes": 1204113 }
       ]
     }
