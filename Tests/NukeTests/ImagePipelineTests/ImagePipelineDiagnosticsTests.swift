@@ -694,11 +694,24 @@ struct ImagePipelineDiagnosticsTests {
         #expect(description.hasPrefix("ImageTask #\(task.taskId) · image · normal · "))
         #expect(description.contains("· success · source: network · avatar"))
         #expect(description.contains("coalesced: no"))
-        #expect(description.contains("u\(task.metrics!.rootUnitID!) · loadImage [\(request.processors[0].identifier)]"))
-        for stage in ["memoryLookup", "diskLookup", "download", "decode", "process", "memoryStore"] {
-            #expect(description.contains(stage), "Missing \(stage) in:\n\(description)")
+        #expect(description.contains("processors: [\(request.processors[0].identifier)]"))
+
+        // THEN the units form a tree, root first, with the durations in a column
+        #expect(description.contains("\nu\(task.metrics!.rootUnitID!) loadImage [resize]\n├─ memoryLookup "))
+        #expect(description.contains("\n│     └─ decode "))
+        #expect(description.contains("\n└─ memoryStore "))
+        for stage in ["diskLookup", "download", "process"] {
+            #expect(description.contains("─ \(stage) "), "Missing \(stage) in:\n\(description)")
         }
-        #expect(description.hasSuffix("finished"))
+        let lines = description.split(separator: "\n")
+        let pattern = #"^([│ ]*[├└]─ [a-zA-Z]+|started|finished) +[0-9.]+ ms"#
+        let columns = lines.compactMap { line in
+            line.range(of: pattern, options: .regularExpression).map { line[..<$0.upperBound].count }
+        }
+        #expect(columns.count >= 8)
+        #expect(Set(columns).count == 1, "Misaligned durations in:\n\(description)")
+        #expect(lines.last?.hasPrefix("finished ") == true)
+        #expect(lines.last?.hasSuffix(" ms") == true)
     }
 }
 
