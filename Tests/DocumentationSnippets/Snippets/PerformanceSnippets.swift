@@ -35,6 +35,31 @@ private func coalescing(pipeline: ImagePipeline) {
     _ = (blurred, thumbnail)
 }
 
+private func diagnostics(url: URL) async throws {
+    let pipeline = ImagePipeline {
+        $0.isDiagnosticsEnabled = true
+    }
+
+    let task = pipeline.imageTask(with: url)
+    let image = try await task.image
+    print(task.metrics!)
+    _ = image
+}
+
+private protocol Telemetry: Sendable {
+    func send(_ line: Data)
+}
+
+private func diagnosticsStream(pipeline: ImagePipeline, telemetry: some Telemetry) {
+    Task.detached {
+        let encoder = JSONEncoder()
+        for await event in pipeline.diagnostics.events {
+            let line = try encoder.encode(event)
+            telemetry.send(line)
+        }
+    }
+}
+
 private func progressiveDecoding() {
     ImagePipeline.shared = ImagePipeline {
         $0.isProgressiveDecodingEnabled = true

@@ -45,6 +45,10 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         return output.compactMap { $0 }
     }
 
+    private var subscriberCount: Int {
+        (inlineSubscription == nil ? 0 : 1) + (subscriptions?.count ?? 0)
+    }
+
     func hasSubscriber<T>(of type: T.Type) -> Bool {
         if inlineSubscription?.subscriber is T { return true }
         if let subscriptions {
@@ -62,11 +66,16 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     var onCancelled: (@ImagePipelineActor @Sendable () -> Void)?
 
+    /// The diagnostics record of the unit of work the task represents. `nil`
+    /// when diagnostics are off, which makes every recording point a nil-check.
+    var diagnostics: ImagePipeline.Diagnostics.UnitRecord?
+
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.priority = priority
             dependency?.setPriority(priority)
+            diagnostics?.recordPriority(priority)
         }
     }
 
@@ -114,11 +123,19 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             subscriptions!.append((key: subscriptionKey, sub: Subscription(closure: closure, subscriber: subscriber, priority: priority)))
         }
 
+        if let diagnostics {
+            // A unit that already had a subscription existed before the
+            // subscriber asked for it: the subscriber joined the unit.
+            diagnostics.didSubscribe(subscriber, didJoin: subscriptionKey > 0, subscriberCount: subscriberCount)
+        }
+
         updatePriority(suggestedPriority: priority)
+        diagnostics?.recordPriority(self.priority)
 
         if !isStarted {
             isStarted = true
             start()
+            diagnostics?.didStart()
         }
 
         // The task may have been completed synchronously by `starter`.
@@ -133,8 +150,10 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         if key == 0 {
             inlineSubscription?.priority = priority
+            diagnostics?.setCause(from: inlineSubscription?.subscriber)
         } else if let idx = subscriptions?.firstIndex(where: { $0.key == key }) {
             subscriptions![idx].sub.priority = priority
+            diagnostics?.setCause(from: subscriptions![idx].sub.subscriber)
         }
         updatePriority(suggestedPriority: priority)
     }
@@ -142,9 +161,11 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
         if key == 0 {
             guard inlineSubscription != nil else { return }
+            diagnostics?.setCause(from: inlineSubscription?.subscriber)
             inlineSubscription = nil
         } else {
             guard let idx = subscriptions?.firstIndex(where: { $0.key == key }) else { return }
+            diagnostics?.setCause(from: subscriptions![idx].sub.subscriber)
             subscriptions!.remove(at: idx)
         }
 
@@ -177,11 +198,13 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         switch event {
         case let .value(_, isCompleted):
             if isCompleted {
+                diagnostics?.finish(.success)
                 terminate(reason: .finished)
             }
         case .progress:
             break // Simply send the event
-        case .error:
+        case let .error(error):
+            diagnostics?.finish(.failure, error: error as? ImagePipeline.Error)
             terminate(reason: .finished)
         }
 
@@ -204,6 +227,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         isDisposed = true
 
         if reason == .cancelled {
+            diagnostics?.finish(.cancelled)
             operation?.cancel()
             dependency.take()?.unsubscribe()
             onCancelled?()

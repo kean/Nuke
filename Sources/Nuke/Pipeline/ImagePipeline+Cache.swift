@@ -131,17 +131,20 @@ extension ImagePipeline.Cache {
         return imageCache[makeImageCacheKey(for: request)]
     }
 
-    private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
+    /// Returns `true` if the image was stored.
+    @discardableResult
+    func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) -> Bool {
         guard !request.options.contains(.disableMemoryCacheWrites) else {
-            return
+            return false
         }
         guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
-            return
+            return false
         }
         guard let imageCache = imageCache(for: request) else {
-            return
+            return false
         }
         imageCache[makeImageCacheKey(for: request)] = image
+        return true
     }
 
     private func removeCachedImageFromMemoryCache(for request: ImageRequest) {

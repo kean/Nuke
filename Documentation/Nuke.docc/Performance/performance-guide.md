@@ -151,6 +151,30 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
 
+To collect the same information in a shipping app, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isDiagnosticsEnabled = true
+}
+
+let task = pipeline.imageTask(with: url)
+let image = try await task.image
+print(task.metrics!)
+```
+
+The pipeline also publishes the records, along with the units of work the tasks share, as ``ImagePipeline/Diagnostics-swift.struct/Event``s through ``ImagePipeline/diagnostics``. Feed the stream to your telemetry, or add an ``ImagePipeline/Diagnostics-swift.struct/Observer`` to receive the events synchronously, on the pipeline actor.
+
+```swift
+Task.detached {
+    let encoder = JSONEncoder()
+    for await event in pipeline.diagnostics.events {
+        let line = try encoder.encode(event)
+        telemetry.send(line)
+    }
+}
+```
+
 ## Selecting a System
 
 Make sure you select one image loading framework and stick to it. If you use more than one framework, it will prevent them from managing the system resources efficiently, such as caches. If, for any reason, you must use more than one framework, ensure that they at least share the same memory and disk caches.

@@ -24,6 +24,43 @@ struct ThreadSafetyTests {
         _ = (dataLoader, pipeline)
     }
 
+    @Test func imagePipelineThreadSafetyWithDiagnostics() async {
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        pipeline.diagnostics.retainedTaskCount = 50
+        let observer = _CountingObserver()
+        pipeline.diagnostics.addObserver(observer)
+        let consumer = Task {
+            var count = 0
+            for await _ in pipeline.diagnostics.events {
+                count += 1
+            }
+            return count
+        }
+        let toggler = Task.detached {
+            for _ in 0..<100 {
+                pipeline.diagnostics.isEnabled.toggle()
+                await Task.yield()
+            }
+            pipeline.diagnostics.isEnabled = true
+        }
+
+        await performPipelineThreadSafetyTest(pipeline)
+        await toggler.value
+
+        let trace = await pipeline.diagnostics.export()
+        #expect(!trace.tasks.isEmpty)
+        #expect(trace.tasks.count <= 50)
+        #expect(await observer.count > 0)
+        consumer.cancel()
+
+        _ = (dataLoader, pipeline)
+    }
+
     @Test func sharingConfigurationBetweenPipelines() async { // Especially operation queues
         var configuration = ImagePipeline.Configuration()
         configuration.dataLoader = MockDataLoader()
@@ -265,6 +302,17 @@ struct RandomizedTests {
         }
 
         _ = pipeline
+    }
+}
+
+@ImagePipelineActor
+private final class _CountingObserver: ImagePipeline.Diagnostics.Observer {
+    var count = 0
+
+    nonisolated init() {}
+
+    func pipeline(_ pipeline: ImagePipeline, didRecord event: ImagePipeline.Diagnostics.Event) {
+        count += 1
     }
 }
 

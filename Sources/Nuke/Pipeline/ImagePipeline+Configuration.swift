@@ -149,6 +149,16 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
+        /// Records ``ImageTask/Metrics`` for every task and publishes
+        /// ``ImagePipeline/Diagnostics-swift.struct/Event``s. `false` by default.
+        ///
+        /// The recording is done on the pipeline actor, alongside the work it
+        /// measures, and costs a few microseconds per task. Use
+        /// ``ImagePipeline/diagnostics`` to read the events, and
+        /// ``ImagePipeline/Diagnostics-swift.struct/isEnabled`` to pause the
+        /// recording at runtime.
+        public var isDiagnosticsEnabled = false
+
         /// The maximum response data size in bytes allowed before the download
         /// is automatically cancelled. Downloads that exceed this limit fail
         /// with ``ImagePipeline/Error/dataDownloadExceededMaximumSize``. `nil`

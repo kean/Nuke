@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "pipelineID": "3B0C6E4A-6D5C-4F0E-9E43-2C7D1A9B5F10",
+  "taskID": 42,
+  "kind": "prefetch",
+  "label": "feed",
+  "request": {
+    "url": "https://cdn.example.com/photos/1024.jpg",
+    "imageID": "https://cdn.example.com/photos/1024.jpg",
+    "processors": [],
+    "options": [],
+    "priority": "low"
+  },
+  "createdAt": 1788606000.12,
+  "startedAt": 1788606000.1202,
+  "endedAt": 1788606000.4863,
+  "duration": 0.3663,
+  "outcome": "success",
+  "source": "network",
+  "isCoalesced": true,
+  "rootUnitID": 6,
+  "previewCount": 0,
+  "priorityHistory": [],
+  "bytes": { "downloaded": 1204113, "resumed": 0, "expected": 1204113 },
+  "image": { "width": 4032, "height": 3024, "format": "jpeg", "isAnimated": false },
+  "units": [
+    {
+      "id": 6,
+      "kind": "loadImage",
+      "processors": [],
+      "parentID": 7,
+      "createdByTaskID": 41,
+      "taskIDs": [41, 42],
+      "peakSubscriberCount": 2,
+      "createdAt": 1788606000.0009,
+      "endedAt": 1788606000.4863,
+      "outcome": "success",
+      "joinedAt": 1788606000.1202,
+      "priorityHistory": [
+        { "at": 1788606000.0009, "priority": "normal", "causeTaskID": 41 }
+      ],
+      "stages": [
+        { "kind": "memoryLookup", "startedAt": 1788606000.0009, "duration": 0.000004, "attributedDuration": 0, "result": "miss" },
+        { "kind": "diskLookup", "startedAt": 1788606000.0009, "duration": 0.0005, "attributedDuration": 0, "result": "miss" },
+        { "kind": "decompress", "queuedAt": 1788606000.4695, "startedAt": 1788606000.4697, "duration": 0.0164, "workDuration": 0.0161, "attributedDuration": 0.0164, "isProgressive": false, "pixels": [4032, 3024] },
+        { "kind": "memoryStore", "startedAt": 1788606000.4862, "duration": 0.00002, "attributedDuration": 0.00002, "cost": 48771072 }
+      ]
+    },
+    {
+      "id": 7,
+      "kind": "fetchOriginalImage",
+      "processors": [],
+      "parentID": 8,
+      "createdByTaskID": 41,
+      "taskIDs": [41, 42],
+      "peakSubscriberCount": 1,
+      "createdAt": 1788606000.0014,
+      "endedAt": 1788606000.4694,
+      "outcome": "success",
+      "joinedAt": 1788606000.1202,
+      "priorityHistory": [
+        { "at": 1788606000.0014, "priority": "normal", "causeTaskID": 41 }
+      ],
+      "stages": [
+        { "kind": "decode", "queuedAt": 1788606000.4142, "startedAt": 1788606000.431, "duration": 0.0384, "workDuration": 0.0379, "attributedDuration": 0.0384, "isProgressive": false, "decoder": "ImageDecoders.Default", "format": "jpeg", "pixels": [4032, 3024] }
+      ]
+    },
+    {
+      "id": 8,
+      "kind": "fetchOriginalData",
+      "processors": [],
+      "createdByTaskID": 41,
+      "taskIDs": [41, 42],
+      "peakSubscriberCount": 1,
+      "createdAt": 1788606000.0014,
+      "endedAt": 1788606000.4141,
+      "outcome": "success",
+      "joinedAt": 1788606000.1202,
+      "priorityHistory": [
+        { "at": 1788606000.0014, "priority": "normal", "causeTaskID": 41 }
+      ],
+      "stages": [
+        { "kind": "willLoadData", "startedAt": 1788606000.0016, "duration": 0.0015, "attributedDuration": 0 },
+        { "kind": "download", "queuedAt": 1788606000.0014, "startedAt": 1788606000.0031, "duration": 0.4109, "attributedDuration": 0.2938, "source": "network", "bytes": 1204113, "resumedBytes": 0, "expectedBytes": 1204113, "chunkCount": 38, "statusCode": 200, "firstByteAt": 1788606000.096, "urlSessionTaskID": 17 },
+        { "kind": "diskStore", "startedAt": 1788606000.4141, "duration": 0.0001, "attributedDuration": 0.0001, "bytes": 1204113 }
+      ]
+    }
+  ]
+}

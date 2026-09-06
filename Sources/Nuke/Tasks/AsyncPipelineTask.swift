@@ -11,9 +11,11 @@ class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> 
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
 
-    init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
+    init(_ pipeline: ImagePipeline, _ request: ImageRequest, kind: ImagePipeline.Diagnostics.Unit.Kind) {
         self.pipeline = pipeline
         self.request = request
+        super.init()
+        self.diagnostics = pipeline.recorder?.makeUnitRecord(kind: kind, request: request)
     }
 }
 
@@ -48,7 +50,10 @@ extension AsyncPipelineTask {
     /// is called, so the callers never see a stale handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
+            let stage = diagnostics?.beginStage(.decode, queued: true)
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+                self?.diagnostics?.startStage(stage)
+                let start: ContinuousClock.Instant? = stage != nil ? .now : nil
                 let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                     do {
                         return .success(try await decoder.decode(context))
@@ -57,24 +62,76 @@ extension AsyncPipelineTask {
                     }
                 }
                 self?.operation = nil
+                self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { ContinuousClock.now - $0 })
                 completion(result)
             }
             return
         }
 
-        @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
-            signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+        let isRecording = diagnostics != nil
+        @Sendable func decode() -> (Result<ImageResponse, ImagePipeline.Error>, Duration?) {
+            let start: ContinuousClock.Instant? = isRecording ? .now : nil
+            let result: Result<ImageResponse, ImagePipeline.Error> = signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                 Result { try decoder.decode(context) }
                     .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
             }
+            return (result, start.map { ContinuousClock.now - $0 })
         }
         guard decoder.isAsynchronous else {
-            return completion(decode())
+            let stage = diagnostics?.beginStage(.decode)
+            let (result, workDuration) = decode()
+            diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
+            return completion(result)
         }
+        let stage = diagnostics?.beginStage(.decode, queued: true)
         operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-            let result = await performInBackground(decode)
+            self?.diagnostics?.startStage(stage)
+            let (result, workDuration) = await performInBackground(decode)
             self?.operation = nil
+            self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
             completion(result)
         }
+    }
+}
+
+extension AsyncPipelineTask {
+    /// Reads the memory cache, recording the lookup when diagnostics are on
+    /// and there is a cache to look into.
+    func lookUpCachedImage(for request: ImageRequest) -> ImageContainer? {
+        guard let diagnostics else {
+            return pipeline.cache[request]
+        }
+        guard !request.options.contains(.disableMemoryCacheReads),
+              pipeline.delegate.imageCache(for: request, pipeline: pipeline) != nil else {
+            return nil
+        }
+        let stage = diagnostics.beginStage(.memoryLookup)
+        let container = pipeline.cache[request]
+        diagnostics.endStage(stage) {
+            $0.result = container == nil ? .miss : .hit
+            if container?.isPreview == true {
+                $0.isProgressive = true
+            }
+        }
+        return container
+    }
+
+    /// Reads the disk cache, recording the lookup when diagnostics are on and
+    /// there is a cache to look into.
+    func lookUpCachedData(for request: ImageRequest) -> Data? {
+        guard let diagnostics else {
+            return pipeline.cache.cachedData(for: request)
+        }
+        guard !request.options.contains(.disableDiskCacheReads),
+              pipeline.delegate.dataCache(for: request, pipeline: pipeline) != nil else {
+            return nil
+        }
+        let stage = diagnostics.beginStage(.diskLookup)
+        let data = pipeline.cache.cachedData(for: request)
+        diagnostics.endStage(stage) {
+            $0.result = data == nil ? .miss : .hit
+            $0.bytes = data.map { Int64($0.count) }
+        }
+        return data
     }
 }

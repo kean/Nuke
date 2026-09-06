@@ -90,7 +90,7 @@ public final class ImageCache: ImageCaching {
         get { impl.value(forKey: key) }
         set {
             if let image = newValue {
-                impl.set(image, forKey: key, cost: cost(for: image))
+                impl.set(image, forKey: key, cost: Self.cost(for: image))
             } else {
                 impl.removeValue(forKey: key)
             }
@@ -116,6 +116,11 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for container: ImageContainer) -> Int {
+        Self.cost(for: container)
+    }
+
+    /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
+    static func cost(for container: ImageContainer) -> Int {
         // `ImageContainer/animation` shares this buffer, so it is counted once.
         let dataCost = container.data?.count ?? 0
 

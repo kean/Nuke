@@ -148,7 +148,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             self.handlers[task] = handler
         }
         task.resume()
-        return AnonymousCancellable { task.cancel() }
+        return task
     }
 
     // MARK: URLSessionDelegate

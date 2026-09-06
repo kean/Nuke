@@ -63,7 +63,11 @@ public final class ImagePipeline: Sendable {
     private nonisolated let _nextTaskId = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     let rateLimiter: RateLimiter?
-    nonisolated let id = UUID()
+    /// Records the diagnostics. `nil` unless
+    /// ``Configuration-swift.struct/isDiagnosticsEnabled`` is set, so a
+    /// recording point costs one nil-check when they are off.
+    nonisolated let recorder: Diagnostics.Recorder?
+    nonisolated let id: UUID
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     /// The number of image tasks the pipeline currently retains. Debug purposes.
@@ -83,6 +87,8 @@ public final class ImagePipeline: Sendable {
         configuration: Configuration = Configuration(),
         delegate: (any ImagePipeline.Delegate)? = nil
     ) {
+        let id = UUID()
+        self.id = id
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
@@ -94,8 +100,8 @@ public final class ImagePipeline: Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
+        self.recorder = configuration.isDiagnosticsEnabled ? Diagnostics.Recorder(pipelineID: id) : nil
 
-        let id = self.id
         Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }
 
@@ -170,8 +176,10 @@ public final class ImagePipeline: Sendable {
 
     // MARK: - ImageTask (Internal)
 
-    nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
+    nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+        // The creation time is the one thing the diagnostics read off the actor.
+        let createdAt: ContinuousClock.Instant? = recorder != nil ? .now : nil
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: createdAt)
         // Important to call it before `imageTaskStartCalled`
         imageTaskCreated(task, isDataTask: isDataTask)
         task._task = Task { @ImagePipelineActor in
@@ -185,6 +193,7 @@ public final class ImagePipeline: Sendable {
 
     // By this time, the task has `continuation` set and is fully wired.
     private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+        task._diagnostics = recorder?.makeTaskRecord(for: task, pipeline: self)
         guard !task._isFinished else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
@@ -194,6 +203,7 @@ public final class ImagePipeline: Sendable {
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
+        task._diagnostics?.didStart()
         let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
         // Important: the task has to be registered and reported as started
         // _before_ it subscribes to the worker. The worker can finish the task
@@ -224,6 +234,7 @@ public final class ImagePipeline: Sendable {
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
+        task._diagnostics?.recordPriority(priority)
         task._subscription?.setPriority(priority.taskPriority)
     }
 
@@ -262,25 +273,25 @@ public final class ImagePipeline: Sendable {
 
     func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
         tasksLoadImage.publisherForKey(TaskLoadImageKey(request)) {
-            TaskLoadImage(self, request)
+            TaskLoadImage(self, request, kind: .loadImage)
         }
     }
 
     func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
         tasksLoadData.publisherForKey(TaskLoadImageKey(request)) {
-            TaskLoadData(self, request)
+            TaskLoadData(self, request, kind: .loadData)
         }
     }
 
     func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
         tasksFetchOriginalImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
-            TaskFetchOriginalImage(self, request)
+            TaskFetchOriginalImage(self, request, kind: .fetchOriginalImage)
         }
     }
 
     func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
-            TaskFetchOriginalData(self, request)
+            TaskFetchOriginalData(self, request, kind: .fetchOriginalData)
         }
     }
 
