@@ -23,10 +23,10 @@ final class RateLimiter {
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameters:
-    ///   - rate: Maximum number of requests per second. 80 by default.
+    ///   - rate: Maximum number of requests per second. 100 by default.
     ///   - burst: Maximum number of requests which can be executed without any
     ///   delays when "bucket is full". 25 by default.
-    nonisolated init(rate: Int = 80, burst: Int = 25) {
+    nonisolated init(rate: Int = 100, burst: Int = 25) {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
