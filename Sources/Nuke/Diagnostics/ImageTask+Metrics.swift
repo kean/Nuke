@@ -145,13 +145,15 @@ extension ImageTask.Metrics {
     ///
     /// The units form a tree, root first. The stages of a unit and the unit it
     /// waited on are listed under it in the order they started, so the tree
-    /// reads top to bottom as the task ran. The column is the time the task
-    /// spent on every stage, from its queue to its end, and the stages that
-    /// took a large share of the task carry a bar next to it.
+    /// reads top to bottom as the task ran. The first column is the time the
+    /// task spent on every stage, from its queue to its end. The second is
+    /// how much of that was the queue, for the stages that have one. The
+    /// stages that took a large share of the task carry a bar next to it,
+    /// light for the part spent in the queue.
     public var description: String {
         var rows: [Row] = []
         if let startedAt {
-            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: bar(for: startedAt - createdAt) ?? ""))
+            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: bar(for: Wait(total: startedAt - createdAt)) ?? ""))
         }
         var remaining = units
         while let root = remaining.first {
@@ -160,9 +162,12 @@ extension ImageTask.Metrics {
         rows.append(Row(label: "finished", value: ms(duration)))
 
         // The columns are as wide as the rows need, and no wider.
-        let labelWidth = rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0
-        let valueWidth = rows.map(\.value.count).max() ?? 0
-        let lines = headerLines + [""] + rows.map { $0.formatted(labelWidth: labelWidth, valueWidth: valueWidth) }
+        let widths = Row.Widths(
+            label: rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0,
+            value: rows.map(\.value.count).max() ?? 0,
+            queued: rows.map(\.queued.count).max() ?? 0
+        )
+        let lines = headerLines + [""] + rows.map { $0.formatted(widths: widths) }
         return lines.joined(separator: "\n")
     }
 
@@ -221,7 +226,7 @@ extension ImageTask.Metrics {
             let connector = isLast ? "└─ " : "├─ "
             switch entry {
             case .stage(let stage):
-                rows.append(Row(label: childPrefix + connector + stage.kind.rawValue, value: wait(for: stage, in: unit).map(ms) ?? "–", details: details(of: stage, in: unit)))
+                rows.append(row(for: stage, in: unit, label: childPrefix + connector + stage.kind.rawValue))
             case .unit(let child):
                 rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: unit.joinedAt, remaining: &remaining)
             }
@@ -265,22 +270,43 @@ extension ImageTask.Metrics {
 
     // MARK: Stages
 
+    private func row(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, label: String) -> Row {
+        let wait = wait(for: stage, in: unit)
+        var row = Row(label: label, value: wait.map { ms($0.total) } ?? "–", details: details(of: stage, in: unit, wait: wait))
+        if let wait, stage.queuedAt != nil {
+            row.queued = "\(ms(wait.queued)) queued"
+        }
+        return row
+    }
+
+    /// The time the task spent on a stage, and how much of it was the wait
+    /// for the stage's queue.
+    private struct Wait {
+        var queued: TimeInterval = 0
+        var total: TimeInterval
+    }
+
     /// The time the task spent on the stage: from its queue to its end,
     /// clamped to the part of the stage the task was there for. Unlike
     /// ``ImagePipeline/Diagnostics-swift.struct/Stage/attributedDuration``, it
     /// includes the wait for the queue, which is where the time goes when
-    /// the pipeline is busy.
-    private func wait(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> TimeInterval? {
+    /// the pipeline is busy, and says how much of it that was.
+    private func wait(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> Wait? {
         guard let begin = stage.queuedAt ?? stage.startedAt else { return nil }
         let from = max(begin, unit.joinedAt ?? begin)
         let to = min(stage.endedAt ?? endedAt, endedAt)
-        return max(0, to - from)
+        var wait = Wait(total: max(0, to - from))
+        if stage.queuedAt != nil {
+            // A stage that never left its queue was queued for the whole wait.
+            wait.queued = max(0, min(stage.startedAt ?? to, to) - from)
+        }
+        return wait
     }
 
     /// The details, in the same order for every kind of stage: the share of
     /// the task, the state, the result, the transfer, the output, then the
     /// timing.
-    private func details(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> String {
+    private func details(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, wait: Wait?) -> String {
         var parts: [String] = []
         if stage.startedAt == nil {
             parts.append("never started")
@@ -290,7 +316,7 @@ extension ImageTask.Metrics {
         parts += stage.result.map { [$0.rawValue] } ?? []
         parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: unit)
         let details = parts.joined(separator: " · ")
-        guard let bar = wait(for: stage, in: unit).flatMap(bar(for:)) else { return details }
+        guard let bar = wait.flatMap(bar(for:)) else { return details }
         return details.isEmpty ? bar : "\(bar)  \(details)"
     }
 
@@ -324,14 +350,11 @@ extension ImageTask.Metrics {
         return parts
     }
 
-    /// What the column doesn't say: how much of the wait was the queue, how
-    /// much of the stage was the work itself, and where in the stage the
-    /// task joined, on the stage's own clock.
+    /// What the columns don't say: how much of the stage was the work
+    /// itself, and where in the stage the task joined, on the stage's own
+    /// clock.
     private func timing(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> [String] {
         var parts: [String] = []
-        if let queueWait = stage.queueWait, queueWait >= 0.001 {
-            parts.append("queued \(ms(queueWait))")
-        }
         if let workDuration = stage.workDuration, let duration = stage.duration, duration - workDuration >= 0.001 {
             parts.append("work \(ms(workDuration))")
         }
@@ -348,11 +371,14 @@ extension ImageTask.Metrics {
     }
 
     /// A bar for a wait that took a large share of the task, so the
-    /// bottleneck stands out without arithmetic. Nothing under a millisecond.
-    private func bar(for wait: TimeInterval) -> String? {
-        guard wait >= 0.001, duration > 0 else { return nil }
-        let width = Int((wait / duration * 20).rounded())
-        return width >= 2 ? String(repeating: "█", count: width) : nil
+    /// bottleneck stands out without arithmetic, light for the part of it
+    /// spent in a queue. Nothing under a millisecond.
+    private func bar(for wait: Wait) -> String? {
+        guard wait.total >= 0.001, duration > 0 else { return nil }
+        let width = Int((wait.total / duration * 20).rounded())
+        guard width >= 2 else { return nil }
+        let queued = min(width, Int((wait.queued / duration * 20).rounded()))
+        return String(repeating: "░", count: queued) + String(repeating: "█", count: width - queued)
     }
 
     // MARK: Formatting
@@ -363,18 +389,34 @@ extension ImageTask.Metrics {
     private struct Row {
         var label: String
         var value = ""
+        var queued = ""
         var details = ""
 
-        func formatted(labelWidth: Int, valueWidth: Int) -> String {
+        /// The widths of the columns: as wide as the rows need, and no wider.
+        struct Widths {
+            var label: Int
+            var value: Int
+            var queued: Int
+        }
+
+        func formatted(widths: Widths) -> String {
             guard !value.isEmpty else {
                 return details.isEmpty ? label : "\(label) · \(details)"
             }
-            var line = label.padding(toLength: labelWidth + 2, withPad: " ", startingAt: 0)
-            line += String(repeating: " ", count: valueWidth - value.count) + value
+            var line = label.padding(toLength: widths.label + 2, withPad: " ", startingAt: 0)
+            line += Self.aligned(value, to: widths.value)
+            // The queue column is left out of the rows that have nothing after it.
+            if widths.queued > 0, !queued.isEmpty || !details.isEmpty {
+                line += "   " + Self.aligned(queued, to: widths.queued)
+            }
             if !details.isEmpty {
                 line += "   " + details
             }
             return line
+        }
+
+        private static func aligned(_ text: String, to width: Int) -> String {
+            String(repeating: " ", count: max(0, width - text.count)) + text
         }
     }
 
