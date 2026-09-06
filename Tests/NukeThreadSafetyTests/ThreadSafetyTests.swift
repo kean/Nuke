@@ -32,8 +32,6 @@ struct ThreadSafetyTests {
             $0.isDiagnosticsEnabled = true
         }
         pipeline.diagnostics.retainedTaskCount = 50
-        let observer = _CountingObserver()
-        pipeline.diagnostics.addObserver(observer)
         let consumer = Task {
             var count = 0
             for await _ in pipeline.diagnostics.events {
@@ -55,8 +53,8 @@ struct ThreadSafetyTests {
         let trace = await pipeline.diagnostics.export()
         #expect(!trace.tasks.isEmpty)
         #expect(trace.tasks.count <= 50)
-        #expect(await observer.count > 0)
         consumer.cancel()
+        #expect(await consumer.value > 0)
 
         _ = (dataLoader, pipeline)
     }
@@ -302,17 +300,6 @@ struct RandomizedTests {
         }
 
         _ = pipeline
-    }
-}
-
-@ImagePipelineActor
-private final class _CountingObserver: ImagePipeline.Diagnostics.Observer {
-    var count = 0
-
-    nonisolated init() {}
-
-    func pipeline(_ pipeline: ImagePipeline, didRecord event: ImagePipeline.Diagnostics.Event) {
-        count += 1
     }
 }
 

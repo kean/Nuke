@@ -20,8 +20,8 @@ extension ImagePipeline.Diagnostics {
     ///
     /// The records are written on the pipeline actor, where the task graph
     /// already runs, so they need no locks. The one lock guards the surface
-    /// the app reaches from anywhere: the runtime switch, the observers, the
-    /// streams, and the retention count.
+    /// the app reaches from anywhere: the runtime switch, the streams, and
+    /// the retention count.
     ///
     /// Time is read from `ContinuousClock`, which keeps counting through
     /// sleep, and converted to seconds since 1970 only when a record is
@@ -29,8 +29,6 @@ extension ImagePipeline.Diagnostics {
     @ImagePipelineActor
     final class Recorder {
         nonisolated let pipelineID: UUID
-        /// The pipeline, set when it starts its first task.
-        private(set) weak var pipeline: ImagePipeline?
 
         nonisolated private let anchorInstant = ContinuousClock.now
         nonisolated private let anchorTime = Date().timeIntervalSince1970
@@ -44,7 +42,6 @@ extension ImagePipeline.Diagnostics {
         private struct State {
             var isEnabled = true
             var retainedTaskCount = 0
-            var observers: [any Observer] = []
             var continuations: [Int: AsyncStream<Event>.Continuation] = [:]
             var nextContinuationID = 0
         }
@@ -76,17 +73,7 @@ extension ImagePipeline.Diagnostics {
         /// unit records are captured only to be sent, so they are not built
         /// when nobody reads them.
         nonisolated var hasConsumers: Bool {
-            state.withLock { !$0.observers.isEmpty || !$0.continuations.isEmpty || $0.retainedTaskCount > 0 }
-        }
-
-        nonisolated func addObserver(_ observer: any Observer) {
-            state.withLock { $0.observers.append(observer) }
-        }
-
-        nonisolated func removeObserver(_ observer: any Observer) {
-            state.withLock { state in
-                state.observers.removeAll { $0 === observer }
-            }
+            state.withLock { !$0.continuations.isEmpty || $0.retainedTaskCount > 0 }
         }
 
         nonisolated func makeStream() -> AsyncStream<Event> {
@@ -114,10 +101,7 @@ extension ImagePipeline.Diagnostics {
 
         /// Starts recording a task, or returns `nil` if the runtime switch is
         /// off. The switch is read here, once per task.
-        func makeTaskRecord(for task: ImageTask, pipeline: ImagePipeline) -> TaskRecord? {
-            if self.pipeline == nil {
-                self.pipeline = pipeline
-            }
+        func makeTaskRecord(for task: ImageTask) -> TaskRecord? {
             guard isEnabled else { return nil }
             let record = TaskRecord(task: task, recorder: self)
             emit(.taskCreated(record.created))
@@ -130,13 +114,7 @@ extension ImagePipeline.Diagnostics {
         }
 
         func emit(_ event: Event) {
-            guard let pipeline else { return }
-            let (observers, continuations) = state.withLock { state in
-                (state.observers, Array(state.continuations.values))
-            }
-            for observer in observers {
-                observer.pipeline(pipeline, didRecord: event)
-            }
+            let continuations = state.withLock { Array($0.continuations.values) }
             for continuation in continuations {
                 continuation.yield(event)
             }

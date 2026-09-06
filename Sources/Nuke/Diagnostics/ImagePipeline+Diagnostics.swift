@@ -22,9 +22,8 @@ extension ImagePipeline {
     /// Every task then finishes with an ``ImageTask/Metrics`` record that says
     /// where the image came from, what it cost, what the task waited on, and
     /// whether another task shared the work. The pipeline also publishes
-    /// ``Event``s through ``events`` and to the observers added with
-    /// ``addObserver(_:)``. All of it is `Codable` and encodes to the same JSON,
-    /// versioned with ``schemaVersion``.
+    /// ``Event``s through ``events``. All of it is `Codable` and encodes to
+    /// the same JSON, versioned with ``schemaVersion``.
     ///
     /// The recording is done on the pipeline actor, alongside the work it
     /// measures, and costs nothing when it is off.
@@ -70,21 +69,6 @@ extension ImagePipeline {
                 return AsyncStream { $0.finish() }
             }
             return recorder.makeStream()
-        }
-
-        /// Adds an observer that receives every event synchronously, on the
-        /// pipeline actor, as it is recorded.
-        ///
-        /// Use it when the events must not be buffered, such as when writing
-        /// them to a logging store. The observer is retained until
-        /// ``removeObserver(_:)`` is called.
-        public func addObserver(_ observer: any Observer) {
-            pipeline.recorder?.addObserver(observer)
-        }
-
-        /// Removes an observer added with ``addObserver(_:)``.
-        public func removeObserver(_ observer: any Observer) {
-            pipeline.recorder?.removeObserver(observer)
         }
 
         /// The number of finished tasks the pipeline keeps for ``export()``.
@@ -175,16 +159,6 @@ extension ImagePipeline.Diagnostics {
             /// Seconds since 1970.
             public let createdAt: TimeInterval
         }
-    }
-
-    /// Receives the events synchronously, on the pipeline actor, as they are
-    /// recorded.
-    ///
-    /// - seealso: ``ImagePipeline/Diagnostics-swift.struct/addObserver(_:)``
-    public protocol Observer: AnyObject, Sendable {
-        /// Called for every event, in the order the pipeline recorded them.
-        @ImagePipelineActor
-        func pipeline(_ pipeline: ImagePipeline, didRecord event: Event)
     }
 }
 

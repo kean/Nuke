@@ -163,7 +163,7 @@ let image = try await task.image
 print(task.metrics!)
 ```
 
-The pipeline also publishes the records, along with the units of work the tasks share, as ``ImagePipeline/Diagnostics-swift.struct/Event``s through ``ImagePipeline/diagnostics``. Feed the stream to your telemetry, or add an ``ImagePipeline/Diagnostics-swift.struct/Observer`` to receive the events synchronously, on the pipeline actor.
+The pipeline also publishes the records, along with the units of work the tasks share, as ``ImagePipeline/Diagnostics-swift.struct/Event``s through ``ImagePipeline/diagnostics``. Feed the stream to your telemetry.
 
 ```swift
 Task.detached {

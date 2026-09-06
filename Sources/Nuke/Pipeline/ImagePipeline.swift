@@ -193,7 +193,7 @@ public final class ImagePipeline: Sendable {
 
     // By this time, the task has `continuation` set and is fully wired.
     private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
-        task._diagnostics = recorder?.makeTaskRecord(for: task, pipeline: self)
+        task._diagnostics = recorder?.makeTaskRecord(for: task)
         guard !task._isFinished else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that

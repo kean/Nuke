@@ -706,28 +706,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(unitsCreated == 3)
     }
 
-    @Test func observerReceivesTheEventsSynchronously() async throws {
-        // GIVEN
-        let observer = _EventCollector()
-        pipeline.diagnostics.addObserver(observer)
-
-        // WHEN
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-
-        // THEN the observer saw the terminal event by the time the task finished
-        let names = await observer.events.map(\.name)
-        #expect(names.first == "taskCreated")
-        #expect(names.contains("taskFinished"))
-
-        // WHEN the observer is removed
-        pipeline.diagnostics.removeObserver(observer)
-        _ = try await pipeline.imageTask(with: Test.request).response
-
-        // THEN it receives nothing else
-        #expect(await observer.events.count == names.count)
-    }
-
     // MARK: - Export
 
     @Test func exportRetainsTheLastTasks() async throws {
@@ -904,17 +882,6 @@ struct ImagePipelineDiagnosticsTests {
             #expect(description.contains(stage), "Missing \(stage) in:\n\(description)")
         }
         #expect(description.hasSuffix("finished"))
-    }
-}
-
-@ImagePipelineActor
-private final class _EventCollector: ImagePipeline.Diagnostics.Observer {
-    var events: [ImagePipeline.Diagnostics.Event] = []
-
-    nonisolated init() {}
-
-    func pipeline(_ pipeline: ImagePipeline, didRecord event: ImagePipeline.Diagnostics.Event) {
-        events.append(event)
     }
 }
 
