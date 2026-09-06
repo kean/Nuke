@@ -149,12 +149,12 @@ private final class CachingDemoModel: ObservableObject {
         // them shows what the disk cache alone is doing.
         var urlCacheConfiguration = ImagePipeline.Configuration.withURLCache
         urlCacheConfiguration.imageCache = ImageCache()
-        urlCachePipeline = ImagePipeline(configuration: urlCacheConfiguration)
+        urlCachePipeline = DemoDiagnostics.makePipeline(configuration: urlCacheConfiguration)
 
         var dataCacheConfiguration = ImagePipeline.Configuration.withDataCache(name: "com.github.kean.NukeDemo.DataCache")
         dataCacheConfiguration.imageCache = ImageCache()
         dataCache = dataCacheConfiguration.dataCache as? DataCache
-        dataCachePipeline = ImagePipeline(configuration: dataCacheConfiguration)
+        dataCachePipeline = DemoDiagnostics.makePipeline(configuration: dataCacheConfiguration)
     }
 
     func didComplete(_ url: URL, _ result: Result<ImageResponse, ImagePipeline.Error>) {

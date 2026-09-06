@@ -44,6 +44,32 @@ shows, with the API it is about and the details worth knowing.
 | **Caching** | The memory cache, `URLCache`, and `DataCache` side by side, with the source of every image |
 | **Stress Test** | The pipeline under fast scrolling with every cache disabled |
 
+## Diagnostics
+
+Launch the app with the `NUKE_DIAGNOSTICS` environment variable set – it is in
+the scheme, unticked, under Run › Arguments › Environment Variables – and every
+image task logs where its time went to Console, under the
+`com.github.kean.NukeDemo` subsystem:
+
+```
+ImageTask #41 · image · normal · 496.0 ms · success · source: network
+https://cdn.example.com/photos/1024.jpg · [Resize(300×300)]
+coalesced: no
+
+  +0.3      started
+  +0.3      u5 · loadImage [Resize(300×300)]
+  +0.3        memoryLookup  miss
+  +0.3        diskLookup    miss · 0.6 ms
+  …
+  +496.0    finished
+```
+
+From the terminal, with the simulator booted:
+
+```bash
+xcrun simctl spawn booted log stream --predicate 'subsystem == "com.github.kean.NukeDemo"'
+```
+
 ## Structure
 
 ```

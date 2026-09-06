@@ -17,6 +17,12 @@ struct NukeDemoApp: App {
         // consulted by the default `ImagePipeline.Configuration/makeImageDecoder`,
         // so this one line is enough to make every screen video-aware.
         ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
+
+        // Launched with `NUKE_DIAGNOSTICS` set, the shared pipeline logs a
+        // timeline of every task to Console. See `DemoDiagnostics`.
+        if DemoDiagnostics.isEnabled {
+            ImagePipeline.shared = DemoDiagnostics.makePipeline(configuration: .withURLCache)
+        }
     }
 
     var body: some Scene {
