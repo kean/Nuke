@@ -149,16 +149,20 @@ extension ImageTask.Metrics {
     /// spent on every stage, from its queue to its end, and the stages that
     /// took a large share of the task carry a bar next to it.
     public var description: String {
-        var lines = headerLines
-        lines.append("")
+        var rows: [Row] = []
         if let startedAt {
-            lines.append(row("started", value: ms(startedAt - createdAt), details: bar(for: startedAt - createdAt) ?? ""))
+            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: bar(for: startedAt - createdAt) ?? ""))
         }
         var remaining = units
         while let root = remaining.first {
-            lines += rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining)
+            rows += self.rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining)
         }
-        lines.append(row("finished", value: ms(duration)))
+        rows.append(Row(label: "finished", value: ms(duration)))
+
+        // The columns are as wide as the rows need, and no wider.
+        let labelWidth = rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0
+        let valueWidth = rows.map(\.value.count).max() ?? 0
+        let lines = headerLines + [""] + rows.map { $0.formatted(labelWidth: labelWidth, valueWidth: valueWidth) }
         return lines.joined(separator: "\n")
     }
 
@@ -203,9 +207,9 @@ extension ImageTask.Metrics {
     /// it waited on, in the order they started. Removes the units it prints
     /// from `remaining`, so a unit no chain reaches is printed as a root of
     /// its own.
-    private func rows(for unit: ImagePipeline.Diagnostics.Unit, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Unit]) -> [String] {
+    private func rows(for unit: ImagePipeline.Diagnostics.Unit, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Unit]) -> [Row] {
         remaining.removeAll { $0.id == unit.id }
-        var lines = [row(prefix + label(of: unit), details: details(of: unit, parentJoinedAt: parentJoinedAt))]
+        var rows = [Row(label: prefix + label(of: unit), details: details(of: unit, parentJoinedAt: parentJoinedAt))]
 
         var entries: [(at: TimeInterval, entry: Entry)] = []
         entries += unit.stages.map { ($0.startedAt ?? $0.queuedAt ?? unit.createdAt, .stage($0)) }
@@ -217,12 +221,12 @@ extension ImageTask.Metrics {
             let connector = isLast ? "└─ " : "├─ "
             switch entry {
             case .stage(let stage):
-                lines.append(row(childPrefix + connector + stage.kind.rawValue, value: wait(for: stage, in: unit).map(ms) ?? "–", details: details(of: stage, in: unit)))
+                rows.append(Row(label: childPrefix + connector + stage.kind.rawValue, value: wait(for: stage, in: unit).map(ms) ?? "–", details: details(of: stage, in: unit)))
             case .unit(let child):
-                lines += rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: unit.joinedAt, remaining: &remaining)
+                rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: unit.joinedAt, remaining: &remaining)
             }
         }
-        return lines
+        return rows
     }
 
     /// A line under a unit: one of its stages, or the unit it waited on.
@@ -353,18 +357,25 @@ extension ImageTask.Metrics {
 
     // MARK: Formatting
 
-    private static let labelWidth = 40
-    private static let valueWidth = 11
+    /// A line of the timeline. A stage has a value, which puts it in the
+    /// columns. A unit has none, and is a heading: its details follow the
+    /// label.
+    private struct Row {
+        var label: String
+        var value = ""
+        var details = ""
 
-    /// A label, the duration column right-aligned after it, and the details.
-    private func row(_ label: String, value: String = "", details: String = "") -> String {
-        guard !value.isEmpty || !details.isEmpty else { return label }
-        var line = label.padding(toLength: max(label.count, Self.labelWidth), withPad: " ", startingAt: 0)
-        line += String(repeating: " ", count: max(0, Self.valueWidth - value.count)) + value
-        if !details.isEmpty {
-            line += "   " + details
+        func formatted(labelWidth: Int, valueWidth: Int) -> String {
+            guard !value.isEmpty else {
+                return details.isEmpty ? label : "\(label) · \(details)"
+            }
+            var line = label.padding(toLength: labelWidth + 2, withPad: " ", startingAt: 0)
+            line += String(repeating: " ", count: valueWidth - value.count) + value
+            if !details.isEmpty {
+                line += "   " + details
+            }
+            return line
         }
-        return line
     }
 
     private func ms(_ duration: TimeInterval) -> String {
