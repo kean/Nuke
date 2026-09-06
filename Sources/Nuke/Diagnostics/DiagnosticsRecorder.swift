@@ -208,7 +208,7 @@ extension ImagePipeline.Diagnostics {
                 isCoalesced: units.contains { $0.joinedAt != nil },
                 rootUnitID: rootUnit?.id,
                 previewCount: previewCount,
-                priorityHistory: priorityHistory.map { PriorityChange(at: recorder.time($0.at), priority: $0.priority, causeTaskID: nil) },
+                priorityHistory: priorityHistory.map { PriorityChange(at: recorder.time($0.at), priority: $0.priority) },
                 bytes: Self.bytes(of: units),
                 image: image,
                 units: units
@@ -271,8 +271,6 @@ extension ImagePipeline.Diagnostics {
         private var outcome: Outcome?
         private var error: ErrorSummary?
         private var priorityHistory: [PriorityRecord] = []
-        /// The task whose join, leave, or priority change is being applied.
-        private var lastCauseTaskID: UInt64?
         private var stages = ContiguousArray<StageRecord>()
         private var pendingTrailingWork = 0
         /// `true` once the unit ended and its trailing work is done.
@@ -289,7 +287,6 @@ extension ImagePipeline.Diagnostics {
         private struct PriorityRecord {
             let at: ContinuousClock.Instant
             let priority: TaskPriority
-            let causeTaskID: UInt64?
         }
 
         init(id: UInt64, kind: Unit.Kind, request: ImageRequest, recorder: Recorder) {
@@ -302,19 +299,9 @@ extension ImagePipeline.Diagnostics {
 
         // MARK: Subscribers
 
-        /// The task that last changed the unit, which is what its dependency
-        /// records as the cause when the change propagates to it.
-        var causeTaskID: UInt64? { lastCauseTaskID }
-
         func didSubscribe(_ subscriber: AnyObject, didJoin: Bool, subscriberCount: Int) {
             peakSubscriberCount = max(peakSubscriberCount, subscriberCount)
-            guard let subscriber = subscriber as? any DiagnosticsSubscriber else { return }
-            lastCauseTaskID = subscriber.diagnosticsCauseTaskID
-            subscriber.diagnosticsDidSubscribe(to: self, didJoin: didJoin)
-        }
-
-        func setCause(from subscriber: AnyObject?) {
-            lastCauseTaskID = (subscriber as? any DiagnosticsSubscriber)?.diagnosticsCauseTaskID
+            (subscriber as? any DiagnosticsSubscriber)?.diagnosticsDidSubscribe(to: self, didJoin: didJoin)
         }
 
         /// An image task subscribed to the unit.
@@ -386,7 +373,7 @@ extension ImagePipeline.Diagnostics {
 
         func recordPriority(_ priority: TaskPriority) {
             guard priorityHistory.last?.priority != priority else { return }
-            priorityHistory.append(PriorityRecord(at: .now, priority: priority, causeTaskID: lastCauseTaskID))
+            priorityHistory.append(PriorityRecord(at: .now, priority: priority))
         }
 
         // MARK: Stages
@@ -460,7 +447,7 @@ extension ImagePipeline.Diagnostics {
                 error: error,
                 joinedAt: joinedAt.map(recorder.time),
                 priorityHistory: priorityHistory.map {
-                    PriorityChange(at: recorder.time($0.at), priority: $0.priority.requestPriority, causeTaskID: $0.causeTaskID)
+                    PriorityChange(at: recorder.time($0.at), priority: $0.priority.requestPriority)
                 },
                 stages: stages.map { $0.makeSnapshot(recorder: recorder, joinedAt: joinedAt, taskEnd: taskEnd) }
             )
@@ -554,17 +541,14 @@ extension ImagePipeline.Diagnostics {
 
 // MARK: - Subscribers
 
-/// A subscriber of an `AsyncTask` that the diagnostics can attribute a change
-/// to: an image task, or a unit acting on behalf of its tasks.
+/// A subscriber of an `AsyncTask` that the diagnostics attach to the unit:
+/// an image task, or a unit acting on behalf of its tasks.
 @ImagePipelineActor
 protocol DiagnosticsSubscriber: AnyObject {
-    var diagnosticsCauseTaskID: UInt64? { get }
     func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool)
 }
 
 extension ImageTask: DiagnosticsSubscriber {
-    var diagnosticsCauseTaskID: UInt64? { taskId }
-
     func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool) {
         guard let record = _diagnostics else { return }
         unit.attach(task: record, didJoin: didJoin)
@@ -572,8 +556,6 @@ extension ImageTask: DiagnosticsSubscriber {
 }
 
 extension AsyncTask: DiagnosticsSubscriber {
-    var diagnosticsCauseTaskID: UInt64? { diagnostics?.causeTaskID }
-
     func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool) {
         guard let diagnostics else { return }
         unit.attach(child: diagnostics, didJoin: didJoin)

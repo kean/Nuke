@@ -109,8 +109,8 @@ extension ImagePipeline.Diagnostics {
         /// since 1970. `nil` if the task's chain created the unit, and in the
         /// copies of ``Trace/units``, which belong to no task.
         public let joinedAt: TimeInterval?
-        /// The priority of the unit over time, with the task that caused each
-        /// change by joining, leaving, or changing its own priority.
+        /// The priority of the unit over time. It moves when a task joins,
+        /// leaves, or changes its own priority.
         public let priorityHistory: [PriorityChange]
         public let stages: [Stage]
 
@@ -293,9 +293,6 @@ extension ImagePipeline.Diagnostics {
         /// Seconds since 1970.
         public let at: TimeInterval
         public let priority: ImageRequest.Priority
-        /// The task whose join, leave, or priority change moved the priority
-        /// of a unit. `nil` in a task's own history.
-        public let causeTaskID: UInt64?
 
         public var date: Date { Date(timeIntervalSince1970: at) }
     }

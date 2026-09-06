@@ -37,7 +37,7 @@
       "outcome": "success",
       "joinedAt": 1788606000.1202,
       "priorityHistory": [
-        { "at": 1788606000.0009, "priority": "normal", "causeTaskID": 41 }
+        { "at": 1788606000.0009, "priority": "normal" }
       ],
       "stages": [
         { "kind": "memoryLookup", "startedAt": 1788606000.0009, "duration": 0.000004, "attributedDuration": 0, "result": "miss" },
@@ -59,7 +59,7 @@
       "outcome": "success",
       "joinedAt": 1788606000.1202,
       "priorityHistory": [
-        { "at": 1788606000.0014, "priority": "normal", "causeTaskID": 41 }
+        { "at": 1788606000.0014, "priority": "normal" }
       ],
       "stages": [
         { "kind": "decode", "queuedAt": 1788606000.4142, "startedAt": 1788606000.431, "duration": 0.0384, "workDuration": 0.0379, "attributedDuration": 0.0384, "isProgressive": false, "decoder": "ImageDecoders.Default", "format": "jpeg", "pixels": [4032, 3024] }
@@ -77,7 +77,7 @@
       "outcome": "success",
       "joinedAt": 1788606000.1202,
       "priorityHistory": [
-        { "at": 1788606000.0014, "priority": "normal", "causeTaskID": 41 }
+        { "at": 1788606000.0014, "priority": "normal" }
       ],
       "stages": [
         { "kind": "willLoadData", "startedAt": 1788606000.0016, "duration": 0.0015, "attributedDuration": 0 },

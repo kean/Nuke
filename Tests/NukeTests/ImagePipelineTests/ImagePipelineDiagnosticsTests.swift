@@ -591,7 +591,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
-    @Test func unitPriorityHistoryNamesTheCause() async throws {
+    @Test func unitPriorityHistoryFollowsTheTasks() async throws {
         // GIVEN a low priority task that a high priority one joins
         dataLoader.isSuspended = true
         let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
@@ -613,11 +613,8 @@ struct ImagePipelineDiagnosticsTests {
         // THEN every unit records the escalation, the demotion, and the change
         let metrics = try #require(task1.metrics)
         #expect(metrics.priorityHistory.map(\.priority) == [.veryHigh])
-        #expect(metrics.priorityHistory.map(\.causeTaskID) == [nil])
         for unit in metrics.units {
-            let history = unit.priorityHistory.map { ($0.priority, $0.causeTaskID) }
-            #expect(history.map(\.0) == [.low, .high, .low, .veryHigh])
-            #expect(history.map(\.1) == [task1.taskId, task2.taskId, task2.taskId, task1.taskId])
+            #expect(unit.priorityHistory.map(\.priority) == [.low, .high, .low, .veryHigh])
         }
     }
 

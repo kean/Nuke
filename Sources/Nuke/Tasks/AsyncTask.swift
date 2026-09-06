@@ -149,10 +149,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         if key == 0 {
             inlineSubscription?.priority = priority
-            diagnostics?.setCause(from: inlineSubscription?.subscriber)
         } else if let idx = subscriptions?.firstIndex(where: { $0.key == key }) {
             subscriptions![idx].sub.priority = priority
-            diagnostics?.setCause(from: subscriptions![idx].sub.subscriber)
         }
         updatePriority(suggestedPriority: priority)
     }
@@ -160,11 +158,9 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
         if key == 0 {
             guard inlineSubscription != nil else { return }
-            diagnostics?.setCause(from: inlineSubscription?.subscriber)
             inlineSubscription = nil
         } else {
             guard let idx = subscriptions?.firstIndex(where: { $0.key == key }) else { return }
-            diagnostics?.setCause(from: subscriptions![idx].sub.subscriber)
             subscriptions!.remove(at: idx)
         }
 
