@@ -48,26 +48,6 @@ extension ImagePipeline {
             get { pipeline.recorder?.isEnabled ?? false }
             nonmutating set { pipeline.recorder?.isEnabled = newValue }
         }
-
-        /// The number of finished tasks the pipeline keeps for ``export()``.
-        ///
-        /// Zero by default: the pipeline retains nothing. Set it in a debug
-        /// screen that wants a trace of the recent loads.
-        public var retainedTaskCount: Int {
-            get { pipeline.recorder?.retainedTaskCount ?? 0 }
-            nonmutating set { pipeline.recorder?.retainedTaskCount = newValue }
-        }
-
-        /// Returns the tasks retained so far, along with the configuration
-        /// that explains them.
-        ///
-        /// - seealso: ``retainedTaskCount``
-        public func export() async -> Trace {
-            guard let recorder = pipeline.recorder else {
-                return Trace(pipeline: pipeline, tasks: [])
-            }
-            return await recorder.makeTrace(pipeline: pipeline)
-        }
     }
 }
 
@@ -386,79 +366,6 @@ extension ImagePipeline.Diagnostics {
             var container = encoder.unkeyedContainer()
             try container.encode(width)
             try container.encode(height)
-        }
-    }
-}
-
-// MARK: - Trace
-
-extension ImagePipeline.Diagnostics {
-    /// The tasks a pipeline retained, with the configuration that explains
-    /// their numbers. A unit two tasks shared appears in both records, and
-    /// is joined by ``Unit/id``.
-    ///
-    /// - seealso: ``ImagePipeline/Diagnostics-swift.struct/export()``
-    public struct Trace: Codable, Sendable {
-        public let schemaVersion: Int
-        public let pipelineID: UUID
-        /// Seconds since 1970.
-        public let exportedAt: TimeInterval
-        public let configuration: ConfigurationSummary
-        /// The most recently finished tasks, oldest first.
-        public let tasks: [ImageTask.Metrics]
-
-        init(pipeline: ImagePipeline, tasks: [ImageTask.Metrics]) {
-            self.schemaVersion = ImagePipeline.Diagnostics.schemaVersion
-            self.pipelineID = pipeline.id
-            self.exportedAt = Date().timeIntervalSince1970
-            self.configuration = ConfigurationSummary(pipeline.configuration)
-            self.tasks = tasks
-        }
-    }
-
-    /// The parts of ``ImagePipeline/Configuration-swift.struct`` that explain
-    /// the numbers in a trace: a decode queue wait means nothing without the
-    /// width of the queue.
-    public struct ConfigurationSummary: Codable, Sendable {
-        public let isTaskCoalescingEnabled: Bool
-        public let isRateLimiterEnabled: Bool
-        public let isProgressiveDecodingEnabled: Bool
-        public let isResumableDataEnabled: Bool
-        public let isDecompressionEnabled: Bool
-        /// The name of the ``ImagePipeline/DataCachePolicy``.
-        public let dataCachePolicy: String
-        public let hasDataCache: Bool
-        public let hasImageCache: Bool
-        /// The `maxConcurrentTaskCount` of the queue.
-        public let dataLoadingQueue: Int
-        /// The `maxConcurrentTaskCount` of the queue.
-        public let imageDecodingQueue: Int
-        /// The `maxConcurrentTaskCount` of the queue.
-        public let imageEncodingQueue: Int
-        /// The `maxConcurrentTaskCount` of the queue.
-        public let imageProcessingQueue: Int
-        /// The `maxConcurrentTaskCount` of the queue.
-        public let imageDecompressingQueue: Int
-
-        init(_ configuration: ImagePipeline.Configuration) {
-            self.isTaskCoalescingEnabled = configuration.isTaskCoalescingEnabled
-            self.isRateLimiterEnabled = configuration.isRateLimiterEnabled
-            self.isProgressiveDecodingEnabled = configuration.isProgressiveDecodingEnabled
-            self.isResumableDataEnabled = configuration.isResumableDataEnabled
-            self.isDecompressionEnabled = configuration.isDecompressionEnabled
-            self.dataCachePolicy = switch configuration.dataCachePolicy {
-            case .automatic: "automatic"
-            case .storeOriginalData: "storeOriginalData"
-            case .storeEncodedImages: "storeEncodedImages"
-            case .storeAll: "storeAll"
-            }
-            self.hasDataCache = configuration.dataCache != nil
-            self.hasImageCache = configuration.imageCache != nil
-            self.dataLoadingQueue = configuration.dataLoadingQueue.maxConcurrentTaskCount
-            self.imageDecodingQueue = configuration.imageDecodingQueue.maxConcurrentTaskCount
-            self.imageEncodingQueue = configuration.imageEncodingQueue.maxConcurrentTaskCount
-            self.imageProcessingQueue = configuration.imageProcessingQueue.maxConcurrentTaskCount
-            self.imageDecompressingQueue = configuration.imageDecompressingQueue.maxConcurrentTaskCount
         }
     }
 }

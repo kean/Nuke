@@ -31,7 +31,6 @@ struct ThreadSafetyTests {
             $0.imageCache = nil
             $0.isDiagnosticsEnabled = true
         }
-        pipeline.diagnostics.retainedTaskCount = 50
         let toggler = Task.detached {
             for _ in 0..<100 {
                 pipeline.diagnostics.isEnabled.toggle()
@@ -42,10 +41,6 @@ struct ThreadSafetyTests {
 
         await performPipelineThreadSafetyTest(pipeline)
         await toggler.value
-
-        let trace = await pipeline.diagnostics.export()
-        #expect(!trace.tasks.isEmpty)
-        #expect(trace.tasks.count <= 50)
 
         _ = (dataLoader, pipeline)
     }

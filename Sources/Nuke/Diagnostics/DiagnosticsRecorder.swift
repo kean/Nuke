@@ -20,8 +20,7 @@ extension ImagePipeline.Diagnostics {
     ///
     /// The records are written on the pipeline actor, where the task graph
     /// already runs, so they need no locks. The one lock guards the surface
-    /// the app reaches from anywhere: the runtime switch and the retention
-    /// count.
+    /// the app reaches from anywhere: the runtime switch.
     ///
     /// Time is read from `ContinuousClock`, which keeps counting through
     /// sleep, and converted to seconds since 1970 only when a record is
@@ -35,11 +34,9 @@ extension ImagePipeline.Diagnostics {
         nonisolated private let state = OSAllocatedUnfairLock(initialState: State())
 
         private var nextUnitID: UInt64 = 0
-        private var retainedTasks: [ImageTask.Metrics] = []
 
         private struct State {
             var isEnabled = true
-            var retainedTaskCount = 0
         }
 
         nonisolated init(pipelineID: UUID) {
@@ -51,11 +48,6 @@ extension ImagePipeline.Diagnostics {
         nonisolated var isEnabled: Bool {
             get { state.withLock { $0.isEnabled } }
             set { state.withLock { $0.isEnabled = newValue } }
-        }
-
-        nonisolated var retainedTaskCount: Int {
-            get { state.withLock { $0.retainedTaskCount } }
-            set { state.withLock { $0.retainedTaskCount = newValue } }
         }
 
         // MARK: Time
@@ -77,25 +69,6 @@ extension ImagePipeline.Diagnostics {
         func makeUnitRecord(kind: Unit.Kind, request: ImageRequest) -> UnitRecord {
             nextUnitID += 1
             return UnitRecord(id: nextUnitID, kind: kind, request: request, recorder: self)
-        }
-
-        /// Keeps the last ``retainedTaskCount`` records for the trace.
-        func didFinishTask(_ metrics: ImageTask.Metrics) {
-            let limit = retainedTaskCount
-            guard limit > 0 else {
-                if !retainedTasks.isEmpty {
-                    retainedTasks.removeAll()
-                }
-                return
-            }
-            retainedTasks.append(metrics)
-            if retainedTasks.count > limit {
-                retainedTasks.removeFirst(retainedTasks.count - limit)
-            }
-        }
-
-        func makeTrace(pipeline: ImagePipeline) -> Trace {
-            Trace(pipeline: pipeline, tasks: retainedTasks)
         }
     }
 }
@@ -189,7 +162,6 @@ extension ImagePipeline.Diagnostics {
                 image: image,
                 units: units
             )
-            recorder.didFinishTask(metrics)
             return metrics
         }
 

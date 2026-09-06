@@ -577,41 +577,6 @@ struct ImagePipelineDiagnosticsTests {
         }
     }
 
-    // MARK: - Export
-
-    @Test func exportRetainsTheLastTasks() async throws {
-        // GIVEN
-        pipeline.diagnostics.retainedTaskCount = 2
-        #expect(pipeline.diagnostics.retainedTaskCount == 2)
-        let requests = (1...3).map { ImageRequest(url: URL(string: "http://test.com/\($0).jpeg")!) }
-
-        // WHEN
-        var taskIDs: [UInt64] = []
-        for request in requests {
-            let task = pipeline.imageTask(with: request)
-            _ = try await task.response
-            taskIDs.append(task.taskId)
-        }
-        let trace = await pipeline.diagnostics.export()
-
-        // THEN the last two tasks are retained
-        #expect(trace.schemaVersion == ImagePipeline.Diagnostics.schemaVersion)
-        #expect(trace.pipelineID == pipeline.id)
-        #expect(trace.tasks.map(\.taskID) == Array(taskIDs.suffix(2)))
-
-        // THEN the trace names the configuration that explains them
-        #expect(trace.configuration.isTaskCoalescingEnabled)
-        #expect(trace.configuration.imageDecodingQueue == 1)
-        #expect(trace.configuration.dataCachePolicy == "storeOriginalData")
-        #expect(trace.configuration.hasDataCache)
-    }
-
-    @Test func nothingIsRetainedByDefault() async throws {
-        _ = try await pipeline.imageTask(with: Test.request).response
-        let trace = await pipeline.diagnostics.export()
-        #expect(trace.tasks.isEmpty)
-    }
-
     // MARK: - Codable
 
     @Test func metricsRoundTripThroughJSON() async throws {
