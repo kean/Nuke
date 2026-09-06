@@ -711,16 +711,36 @@ struct ImagePipelineDiagnosticsTests {
         #expect(columns.count >= 8)
         #expect(Set(columns).count == 1, "Misaligned durations in:\n\(description)")
         #expect(lines.last?.hasPrefix("finished ") == true)
-        #expect(lines.last?.hasSuffix(" ms") == true)
 
-        // THEN the stages that have a queue say how long they waited in it, in a column
-        let queued = lines.compactMap { line in
-            line.range(of: #"[0-9.]+ ms queued"#, options: .regularExpression).map { (String(line), line[..<$0.upperBound].count) }
-        }
-        #expect(queued.map(\.0).filter { $0.contains("─ download ") }.count == 1)
-        #expect(queued.map(\.0).filter { $0.contains("─ process ") }.count == 1)
-        #expect(queued.map(\.0).filter { $0.contains("Lookup ") }.isEmpty)
-        #expect(Set(queued.map(\.1)).count == 1, "Misaligned queue waits in:\n\(description)")
+        // THEN the first and the last row carry the time of day
+        let clock = #"^(started|finished) +[0-9.]+ ms   (█+  )?at [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}$"#
+        #expect(lines.first { $0.hasPrefix("started") }?.range(of: clock, options: .regularExpression) != nil)
+        #expect(lines.last?.range(of: clock, options: .regularExpression) != nil)
+    }
+
+    @Test func queueWaitIsARowOfItsOwn() async throws {
+        // GIVEN a processing queue that holds its work
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+        defer { queue.isSuspended = false }
+
+        // WHEN
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [.resize(width: 100)]))
+        let response = Task { try await task.response }
+        try await Task.sleep(for: .milliseconds(50))
+        queue.isSuspended = false
+        _ = try await response.value
+        let description = try #require(task.metrics).description
+
+        // THEN the wait is a row above the stage, named after the queue
+        let lines = description.split(separator: "\n")
+        let index = try #require(lines.firstIndex { $0.contains("├─ imageProcessingQueue ") }, "No queue row in:\n\(description)")
+        #expect(lines[index + 1].contains("─ process "))
+        let waitRange = try #require(lines[index].range(of: #"[0-9.]+ ms"#, options: .regularExpression))
+        let process = try #require(task.metrics?.units.first?.stages.first { $0.kind == .process })
+        let printed = try #require(Double(lines[index][waitRange].dropLast(3)))
+        let queueWait = try #require(process.queueWait)
+        #expect(abs(printed - queueWait * 1000) < 0.1)
     }
 }
 

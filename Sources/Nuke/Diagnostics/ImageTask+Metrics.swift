@@ -145,29 +145,28 @@ extension ImageTask.Metrics {
     ///
     /// The units form a tree, root first. The stages of a unit and the unit it
     /// waited on are listed under it in the order they started, so the tree
-    /// reads top to bottom as the task ran. The first column is the time the
-    /// task spent on every stage, from its queue to its end. The second is
-    /// how much of that was the queue, for the stages that have one. The
-    /// stages that took a large share of the task carry a bar next to it,
-    /// light for the part spent in the queue.
+    /// reads top to bottom as the task ran. The column is the time the task
+    /// spent on every row, and the rows that took a large share of the task
+    /// carry a bar next to it, light for a wait. A stage that waited a
+    /// millisecond, or a tenth of the task, for its queue gets a row for the
+    /// queue above it, named after the queue in `ImagePipeline.Configuration`.
+    /// A shorter wait is folded into the stage. The first and the last row
+    /// carry the time of day, to line the task up with the log around it.
     public var description: String {
         var rows: [Row] = []
         if let startedAt {
-            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: bar(for: Wait(total: startedAt - createdAt)) ?? ""))
+            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: details(bar: bar(for: startedAt - createdAt), ["at \(clock(startedAt))"])))
         }
         var remaining = units
         while let root = remaining.first {
             rows += self.rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining)
         }
-        rows.append(Row(label: "finished", value: ms(duration)))
+        rows.append(Row(label: "finished", value: ms(duration), details: "at \(clock(endedAt))"))
 
         // The columns are as wide as the rows need, and no wider.
-        let widths = Row.Widths(
-            label: rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0,
-            value: rows.map(\.value.count).max() ?? 0,
-            queued: rows.map(\.queued.count).max() ?? 0
-        )
-        let lines = headerLines + [""] + rows.map { $0.formatted(widths: widths) }
+        let labelWidth = rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0
+        let valueWidth = rows.map(\.value.count).max() ?? 0
+        let lines = headerLines + [""] + rows.map { $0.formatted(labelWidth: labelWidth, valueWidth: valueWidth) }
         return lines.joined(separator: "\n")
     }
 
@@ -226,7 +225,7 @@ extension ImageTask.Metrics {
             let connector = isLast ? "└─ " : "├─ "
             switch entry {
             case .stage(let stage):
-                rows.append(row(for: stage, in: unit, label: childPrefix + connector + stage.kind.rawValue))
+                rows += self.rows(for: stage, in: unit, prefix: childPrefix, connector: connector)
             case .unit(let child):
                 rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: unit.joinedAt, remaining: &remaining)
             }
@@ -270,13 +269,39 @@ extension ImageTask.Metrics {
 
     // MARK: Stages
 
-    private func row(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, label: String) -> Row {
-        let wait = wait(for: stage, in: unit)
-        var row = Row(label: label, value: wait.map { ms($0.total) } ?? "–", details: details(of: stage, in: unit, wait: wait))
-        if let wait, stage.queuedAt != nil {
-            row.queued = "\(ms(wait.queued)) queued"
+    /// The row of a stage, under a row for its queue when the wait for it is
+    /// worth one.
+    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, prefix: String, connector: String) -> [Row] {
+        let label = prefix + connector + stage.kind.rawValue
+        guard let wait = wait(for: stage, in: unit) else {
+            return [Row(label: label, value: "–", details: details(of: stage, in: unit, bar: nil))]
         }
-        return row
+        var rows: [Row] = []
+        var total = wait.total
+        if hasRow(queued: wait.queued) {
+            rows.append(Row(label: prefix + "├─ " + queueName(for: stage.kind), value: ms(wait.queued), details: bar(for: wait.queued, fill: "░") ?? ""))
+            total -= wait.queued
+        }
+        let fill: Character = stage.kind == .rateLimit ? "░" : "█"
+        rows.append(Row(label: label, value: ms(total), details: details(of: stage, in: unit, bar: bar(for: total, fill: fill))))
+        return rows
+    }
+
+    /// A wait for a queue is a row of its own when it took a millisecond, or
+    /// a tenth of the task. A shorter one is folded into its stage.
+    private func hasRow(queued: TimeInterval) -> Bool {
+        queued >= 0.001 || (queued > 0 && queued >= duration / 10)
+    }
+
+    /// The queue in `ImagePipeline.Configuration` a stage waits for.
+    private func queueName(for kind: ImagePipeline.Diagnostics.Stage.Kind) -> String {
+        switch kind {
+        case .download: "dataLoadingQueue"
+        case .decode: "imageDecodingQueue"
+        case .process: "imageProcessingQueue"
+        case .decompress: "imageDecompressingQueue"
+        default: "queue"
+        }
     }
 
     /// The time the task spent on a stage, and how much of it was the wait
@@ -306,7 +331,7 @@ extension ImageTask.Metrics {
     /// The details, in the same order for every kind of stage: the share of
     /// the task, the state, the result, the transfer, the output, then the
     /// timing.
-    private func details(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, wait: Wait?) -> String {
+    private func details(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, bar: String?) -> String {
         var parts: [String] = []
         if stage.startedAt == nil {
             parts.append("never started")
@@ -315,9 +340,7 @@ extension ImageTask.Metrics {
         }
         parts += stage.result.map { [$0.rawValue] } ?? []
         parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: unit)
-        let details = parts.joined(separator: " · ")
-        guard let bar = wait.flatMap(bar(for:)) else { return details }
-        return details.isEmpty ? bar : "\(bar)  \(details)"
+        return details(bar: bar, parts)
     }
 
     private func transfer(of stage: ImagePipeline.Diagnostics.Stage) -> [String] {
@@ -350,7 +373,7 @@ extension ImageTask.Metrics {
         return parts
     }
 
-    /// What the columns don't say: how much of the stage was the work
+    /// What the column doesn't say: how much of the stage was the work
     /// itself, and where in the stage the task joined, on the stage's own
     /// clock.
     private func timing(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> [String] {
@@ -370,15 +393,20 @@ extension ImageTask.Metrics {
         return parts
     }
 
-    /// A bar for a wait that took a large share of the task, so the
-    /// bottleneck stands out without arithmetic, light for the part of it
-    /// spent in a queue. Nothing under a millisecond.
-    private func bar(for wait: Wait) -> String? {
-        guard wait.total >= 0.001, duration > 0 else { return nil }
-        let width = Int((wait.total / duration * 20).rounded())
-        guard width >= 2 else { return nil }
-        let queued = min(width, Int((wait.queued / duration * 20).rounded()))
-        return String(repeating: "░", count: queued) + String(repeating: "█", count: width - queued)
+    /// A bar for a time that took a large share of the task, so the
+    /// bottleneck stands out without arithmetic. Light for a wait. Nothing
+    /// under a millisecond.
+    private func bar(for time: TimeInterval, fill: Character = "█") -> String? {
+        guard time >= 0.001, duration > 0 else { return nil }
+        let width = Int((time / duration * 20).rounded())
+        return width >= 2 ? String(repeating: fill, count: width) : nil
+    }
+
+    /// The details of a row: its bar, then its parts.
+    private func details(bar: String?, _ parts: [String]) -> String {
+        let details = parts.joined(separator: " · ")
+        guard let bar else { return details }
+        return details.isEmpty ? bar : "\(bar)  \(details)"
     }
 
     // MARK: Formatting
@@ -389,39 +417,35 @@ extension ImageTask.Metrics {
     private struct Row {
         var label: String
         var value = ""
-        var queued = ""
         var details = ""
 
-        /// The widths of the columns: as wide as the rows need, and no wider.
-        struct Widths {
-            var label: Int
-            var value: Int
-            var queued: Int
-        }
-
-        func formatted(widths: Widths) -> String {
+        func formatted(labelWidth: Int, valueWidth: Int) -> String {
             guard !value.isEmpty else {
                 return details.isEmpty ? label : "\(label) · \(details)"
             }
-            var line = label.padding(toLength: widths.label + 2, withPad: " ", startingAt: 0)
-            line += Self.aligned(value, to: widths.value)
-            // The queue column is left out of the rows that have nothing after it.
-            if widths.queued > 0, !queued.isEmpty || !details.isEmpty {
-                line += "   " + Self.aligned(queued, to: widths.queued)
-            }
+            var line = label.padding(toLength: labelWidth + 2, withPad: " ", startingAt: 0)
+            line += String(repeating: " ", count: valueWidth - value.count) + value
             if !details.isEmpty {
                 line += "   " + details
             }
             return line
         }
-
-        private static func aligned(_ text: String, to width: Int) -> String {
-            String(repeating: " ", count: max(0, width - text.count)) + text
-        }
     }
 
     private func ms(_ duration: TimeInterval) -> String {
         String(format: "%.1f ms", duration * 1000)
+    }
+
+    /// The time of day to the millisecond, in the local time zone and on a
+    /// 24-hour clock whatever the locale: what Console prints next to a log
+    /// line, so the two can be lined up.
+    private func clock(_ time: TimeInterval) -> String {
+        let format = Date.VerbatimFormatStyle(
+            format: "\(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased)):\(minute: .twoDigits):\(second: .twoDigits).\(secondFraction: .fractional(3))",
+            timeZone: .current,
+            calendar: .current
+        )
+        return Date(timeIntervalSince1970: time).formatted(format)
     }
 
     /// `"resize"` for `"com.github.kean/nuke/resize?s=…"`: the identifier up
