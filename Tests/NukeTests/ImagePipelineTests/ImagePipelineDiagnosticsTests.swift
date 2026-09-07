@@ -903,6 +903,24 @@ struct ImagePipelineDiagnosticsTests {
         #expect(try #require(lines.first { $0.contains("480.2 ms") }).contains("░"), "No light bar in:\n\(description)")
     }
 
+    @Test func aRequestTheSessionTimedNothingForSaysSo() throws {
+        // GIVEN a `URLCache` hit with no timestamps on it, the way the
+        // session reports one it answered without fetching anything
+        let data = try Test.data(name: "diagnostics-metrics-revalidated", extension: "json")
+        var text = try #require(String(data: data, encoding: .utf8))
+        let hit = try #require(text.range(of: #"\{[^{}]*"fetchType": "localCache"[^{}]*\}"#, options: .regularExpression))
+        text.replaceSubrange(hit, with: text[hit].replacing(#/,\s+"[a-zA-Z]+At": [0-9.]+/#, with: ""))
+        let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Data(text.utf8))
+
+        // THEN the request keeps its row, and says why it has no time on it
+        // rather than borrowing the reason a coalesced task has
+        let description = metrics.description
+        let line = try #require(description.split(separator: "\n").first { $0.contains("localCache") }, "No localCache in:\n\(description)")
+        #expect(line.contains("HTTP 200 · not timed"), "Unexpected row in:\n\(description)")
+        #expect(!description.contains("before join"))
+        #expect(metrics.isServedFromHTTPCache)
+    }
+
     @Test func aURLCacheHitIsNotReportedAsANetworkLoad() throws {
         // GIVEN the same record: 325 KB delivered, 392 bytes on the wire
         let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics-revalidated", extension: "json"))

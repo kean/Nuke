@@ -516,9 +516,11 @@ extension ImageTask.Metrics {
             let span = span(of: transaction)
             var details = details(of: transaction)
             if span == nil {
-                // The request ran before the task reached the download, the
-                // way a stage the task didn't wait for does.
-                details.append("before join")
+                // Either the session timed nothing for the request, which is
+                // what a `URLCache` hit it answered without fetching anything
+                // leaves behind, or the request ran before the task reached
+                // the download, the way a stage it didn't wait for does.
+                details.append(transaction.fetchStartedAt == nil ? "not timed" : "before join")
             }
             rows.append(Row(label: prefix + connector + transaction.fetchType.rawValue, span: span, details: details))
 
