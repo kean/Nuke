@@ -499,7 +499,8 @@ struct FetchImageTests {
         let started = TestExpectation()
 
         var localImage: FetchImage? = FetchImage()
-        weak var weakImage = localImage
+        weak var weakImage: FetchImage?
+        weakImage = localImage
 
         localImage?.load {
             started.fulfill()

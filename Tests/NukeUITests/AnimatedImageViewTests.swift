@@ -176,7 +176,7 @@ struct AnimatedImageViewTests {
     }
 #endif
 
-    @Test func settingAnImageStopsTheAnimation() async throws {
+    @Test func settingAnImageStopsTheAnimation() async {
         let host = TestWindow(view: view)
         display(Test.animatedGIF())
         #expect(view.isPlaying)
@@ -286,7 +286,7 @@ struct AnimatedImageViewTests {
         #expect(player.diagnostics.decodedFrameCount > 0)
     }
 
-    @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async throws {
+    @Test func derivesTheSizeAtTheFirstLayoutWhenItHasNoneYet() async {
         // A cell hasn't been laid out when the image arrives, and a SwiftUI
         // view has no size at all when it is made.
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
@@ -397,23 +397,23 @@ struct AnimatedImageViewTests {
 
     // MARK: Playback and Visibility
 
-    @Test func doesNotPlayOutsideAWindow() throws {
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+    @Test func doesNotPlayOutsideAWindow() {
+        view.animatedImage = Test.animatedGIFSource()
 
         #expect(view.isPlaying == false)
     }
 
-    @Test func playsOnceItIsInAWindow() throws {
+    @Test func playsOnceItIsInAWindow() {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
         host.close()
     }
 
-    @Test func pausesWhenItLeavesTheWindow() throws {
+    @Test func pausesWhenItLeavesTheWindow() {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         view.removeFromSuperview()
@@ -424,7 +424,7 @@ struct AnimatedImageViewTests {
 
     @Test func releasesTheBufferWhenItLeavesTheWindow() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
@@ -438,7 +438,7 @@ struct AnimatedImageViewTests {
 
     @Test func keepsTheBufferWhenPlaybackIsPausedInPlace() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
 
@@ -450,9 +450,9 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func pausesWhileHidden() throws {
+    @Test func pausesWhileHidden() {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         view.isHidden = true
@@ -464,9 +464,9 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func pausesWhileFullyTransparent() throws {
+    @Test func pausesWhileFullyTransparent() {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         setOpacity(0)
@@ -478,9 +478,9 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func keepsPlayingWhileBarelyVisible() throws {
+    @Test func keepsPlayingWhileBarelyVisible() {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
 
         setOpacity(0.01)
 
@@ -489,11 +489,11 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func doesNotPlayAnAnimationItIsGivenWhileHidden() throws {
+    @Test func doesNotPlayAnAnimationItIsGivenWhileHidden() {
         let host = TestWindow(view: view)
         view.isHidden = true
 
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
 
         #expect(view.isPlaying == false)
         host.close()
@@ -501,7 +501,7 @@ struct AnimatedImageViewTests {
 
     @Test func releasesTheBufferWhenItIsHidden() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 8)))
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
@@ -512,29 +512,29 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
-    @Test func playsOutsideAWindowWhenAsked() throws {
+    @Test func playsOutsideAWindowWhenAsked() {
         layOut(CGSize(width: 100, height: 100))
         view.isPlaybackPausedWhenOffscreen = false
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
     }
 
-    @Test func playsWhileHiddenWhenAsked() throws {
+    @Test func playsWhileHiddenWhenAsked() {
         let host = TestWindow(view: view)
         view.isPlaybackPausedWhenOffscreen = false
         view.isHidden = true
 
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
         host.close()
     }
 
-    @Test func playbackCanBeDisabled() throws {
+    @Test func playbackCanBeDisabled() {
         let host = TestWindow(view: view)
         view.isPlaybackEnabled = false
-        view.animatedImage = try #require(AnimatedImageSource(data: Test.animatedGIF()))
+        view.animatedImage = Test.animatedGIFSource()
         #expect(view.isPlaying == false)
 
         view.isPlaybackEnabled = true
