@@ -49,20 +49,20 @@ extension AsyncPipelineTask {
     /// flag for the progressive decoding – and is cleared before the completion
     /// is called, so the callers never see a stale handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
+        let isProgressive = !context.isCompleted
         if let decoder = decoder as? any AsyncImageDecoding {
-            let stage = diagnostics?.beginStage(.decode, queued: true)
+            let stage = diagnostics?.beginStage(.decode, queued: true, isProgressive: isProgressive)
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
                 self?.diagnostics?.startStage(stage)
                 let start: ContinuousClock.Instant? = stage != nil ? .now : nil
-                let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                    do {
-                        return .success(try await decoder.decode(context))
-                    } catch {
-                        return .failure(.decodingFailed(decoder: decoder, context: context, error: error))
-                    }
+                let result: Result<ImageResponse, ImagePipeline.Error>
+                do {
+                    result = .success(try await decoder.decode(context))
+                } catch {
+                    result = .failure(.decodingFailed(decoder: decoder, context: context, error: error))
                 }
                 self?.operation = nil
-                self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { (ContinuousClock.now - $0).timeInterval })
+                self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, workDuration: start.map { (ContinuousClock.now - $0).timeInterval })
                 completion(result)
             }
             return
@@ -71,24 +71,22 @@ extension AsyncPipelineTask {
         let isRecording = diagnostics != nil
         @Sendable func decode() -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) {
             let start: ContinuousClock.Instant? = isRecording ? .now : nil
-            let result: Result<ImageResponse, ImagePipeline.Error> = signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                Result { try decoder.decode(context) }
-                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
-            }
+            let result = Result { try decoder.decode(context) }
+                .mapError { ImagePipeline.Error.decodingFailed(decoder: decoder, context: context, error: $0) }
             return (result, start.map { (ContinuousClock.now - $0).timeInterval })
         }
         guard decoder.isAsynchronous else {
-            let stage = diagnostics?.beginStage(.decode)
+            let stage = diagnostics?.beginStage(.decode, isProgressive: isProgressive)
             let (result, workDuration) = decode()
-            diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
+            diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, workDuration: workDuration)
             return completion(result)
         }
-        let stage = diagnostics?.beginStage(.decode, queued: true)
+        let stage = diagnostics?.beginStage(.decode, queued: true, isProgressive: isProgressive)
         operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
             self?.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground(decode)
             self?.operation = nil
-            self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
+            self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, workDuration: workDuration)
             completion(result)
         }
     }
