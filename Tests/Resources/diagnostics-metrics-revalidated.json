@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 2,
+  "pipelineID": "CE10C604-06C1-4DE0-8CC0-0F88D9167EE5",
+  "taskID": 1,
+  "kind": "image",
+  "request": {
+    "url": "https://images.example.com/photos/512.jpg",
+    "imageID": "https://images.example.com/photos/512.jpg",
+    "processors": [],
+    "options": [],
+    "priority": "normal"
+  },
+  "createdAt": 1788606000.0,
+  "startedAt": 1788606000.0004,
+  "endedAt": 1788606000.7558,
+  "duration": 0.7558,
+  "outcome": "success",
+  "source": "httpCache",
+  "isCoalesced": false,
+  "rootJobID": 1,
+  "previewCount": 0,
+  "priorityHistory": [],
+  "bytes": {
+    "downloaded": 324608,
+    "resumed": 0,
+    "expected": 324608
+  },
+  "image": {
+    "width": 1440,
+    "height": 960,
+    "format": "jpeg",
+    "isAnimated": false,
+    "memoryCost": 5529600
+  },
+  "jobs": [
+    {
+      "id": 1,
+      "kind": "loadImage",
+      "processors": [],
+      "parentID": 2,
+      "createdByTaskID": 1,
+      "taskIDs": [
+        1
+      ],
+      "createdAt": 1788606000.0004,
+      "endedAt": 1788606000.7558,
+      "outcome": "success",
+      "priorityHistory": [],
+      "stages": [
+        {
+          "kind": "memoryLookup",
+          "cacheKey": "4f2a91c3",
+          "startedAt": 1788606000.0004,
+          "duration": 3e-05,
+          "attributedDuration": 3e-05,
+          "result": "miss"
+        },
+        {
+          "kind": "decompress",
+          "queuedAt": 1788606000.7079,
+          "startedAt": 1788606000.7081,
+          "duration": 0.0477,
+          "workDuration": 0.047,
+          "attributedDuration": 0.0477,
+          "format": "jpeg",
+          "pixels": [
+            1440,
+            960
+          ]
+        },
+        {
+          "kind": "memoryStore",
+          "cacheKey": "4f2a91c3",
+          "startedAt": 1788606000.7557,
+          "duration": 2e-05,
+          "attributedDuration": 2e-05
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "kind": "fetchOriginalImage",
+      "processors": [],
+      "parentID": 3,
+      "createdByTaskID": 1,
+      "taskIDs": [
+        1
+      ],
+      "createdAt": 1788606000.0005,
+      "endedAt": 1788606000.7078,
+      "outcome": "success",
+      "priorityHistory": [],
+      "stages": [
+        {
+          "kind": "decode",
+          "queuedAt": 1788606000.6712,
+          "startedAt": 1788606000.6714,
+          "duration": 0.0364,
+          "workDuration": 0.0313,
+          "attributedDuration": 0.0364,
+          "isProgressive": false,
+          "decoder": "ImageDecoders.Default",
+          "format": "jpeg",
+          "pixels": [
+            1440,
+            960
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "kind": "fetchOriginalData",
+      "processors": [],
+      "createdByTaskID": 1,
+      "taskIDs": [
+        1
+      ],
+      "createdAt": 1788606000.0005,
+      "endedAt": 1788606000.6711,
+      "outcome": "success",
+      "priorityHistory": [],
+      "stages": [
+        {
+          "kind": "download",
+          "queuedAt": 1788606000.0006,
+          "startedAt": 1788606000.0034,
+          "duration": 0.6677,
+          "attributedDuration": 0.6677,
+          "source": "httpCache",
+          "bytes": 324608,
+          "resumedBytes": 0,
+          "expectedBytes": 324608,
+          "statusCode": 200,
+          "firstByteAt": 1788606000.6689,
+          "urlSessionTaskID": 1,
+          "urlSessionMetrics": {
+            "urlSessionTaskID": 1,
+            "startedAt": 1788606000.0037,
+            "endedAt": 1788606000.6706,
+            "redirectCount": 0,
+            "transactions": [
+              {
+                "url": "https://images.example.com/photos/512.jpg",
+                "statusCode": 200,
+                "fetchType": "localCache",
+                "isReusedConnection": false,
+                "isProxyConnection": false,
+                "isCellular": false,
+                "isExpensive": false,
+                "isConstrained": false,
+                "requestBytes": 0,
+                "responseBytes": 0,
+                "fetchStartedAt": 1788606000.0043,
+                "requestStartedAt": 1788606000.0043,
+                "requestEndedAt": 1788606000.00434,
+                "responseStartedAt": 1788606000.0109,
+                "responseEndedAt": 1788606000.01094
+              },
+              {
+                "url": "https://images.example.com/photos/512.jpg",
+                "statusCode": 304,
+                "fetchType": "networkLoad",
+                "networkProtocol": "h2",
+                "tlsVersion": "TLS 1.3",
+                "remoteAddress": "185.199.108.133",
+                "isReusedConnection": false,
+                "isProxyConnection": false,
+                "isCellular": false,
+                "isExpensive": false,
+                "isConstrained": false,
+                "requestBytes": 216,
+                "responseBytes": 392,
+                "fetchStartedAt": 1788606000.011,
+                "domainLookupStartedAt": 1788606000.0286,
+                "domainLookupEndedAt": 1788606000.02864,
+                "connectStartedAt": 1788606000.0287,
+                "secureConnectionStartedAt": 1788606000.1627,
+                "secureConnectionEndedAt": 1788606000.1887,
+                "connectEndedAt": 1788606000.1887,
+                "requestStartedAt": 1788606000.1888,
+                "requestEndedAt": 1788606000.1889,
+                "responseStartedAt": 1788606000.6691,
+                "responseEndedAt": 1788606000.6697
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

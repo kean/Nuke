@@ -162,6 +162,8 @@ private final class DemoPipelineDelegate: ImagePipeline.Delegate {
             case .failure(let error):
                 record("didReceiveEvent(.finished)", "\(name) · \(error)")
             }
+            // A pipeline with a delegate of its own forwards the record.
+            DemoImagePipelineDelegate.log(task)
         }
     }
 

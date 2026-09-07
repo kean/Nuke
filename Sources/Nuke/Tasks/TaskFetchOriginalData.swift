@@ -14,6 +14,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var dataLoadContinuation: UnsafeContinuation<Void, Error>?
     private var dataLoadCancellable: (any Cancellable)?
     private var dataLoadTask: Task<Void, Never>?
+    /// The diagnostics stage of the download, from the moment it is enqueued.
+    private var downloadStage: Int?
 
     override func start() {
         if case .data(let closure) = request.resource {
@@ -28,10 +30,16 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         if url.isLocalResource && pipeline.configuration.isLocalResourcesSupportEnabled {
+            let stage = diagnostics?.beginStage(.download)
             do {
                 let data = try Data(contentsOf: url)
+                diagnostics?.endStage(stage) {
+                    $0.source = .file
+                    $0.bytes = Int64(data.count)
+                }
                 send(value: (data, nil), isCompleted: true)
             } catch {
+                diagnostics?.endStage(stage) { $0.source = .file }
                 send(error: .dataLoadingFailed(error: error))
             }
             return
@@ -40,19 +48,28 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.
+            let queuedAt: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
+            var isDeferred = false
             rateLimiter.execute { [weak self] in
                 guard let self, !self.isDisposed else {
                     return false
                 }
+                if isDeferred, let queuedAt {
+                    // The limiter held the request: `execute` returned before
+                    // it ran the work.
+                    self.diagnostics?.recordStage(.rateLimit, from: queuedAt)
+                }
                 self.loadData(urlRequest: urlRequest)
                 return true
             }
+            isDeferred = true
         } else { // Start loading immediately.
             loadData(urlRequest: urlRequest)
         }
     }
 
     private func loadData(urlRequest: URLRequest) {
+        downloadStage = diagnostics?.beginStage(.download, queued: true)
         if request.options.contains(.skipDataLoadingQueue) {
             dataLoadTask = Task { @ImagePipelineActor in
                 await self.performDataLoad(urlRequest: urlRequest)
@@ -98,11 +115,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
-            urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
+            let willLoadDataStage = pipeline.isDefaultDelegate ? nil : diagnostics?.beginStage(.willLoadData)
+            do {
+                urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
+            } catch {
+                diagnostics?.endStage(willLoadDataStage)
+                throw error
+            }
+            diagnostics?.endStage(willLoadDataStage)
             // The task can get cancelled while the delegate is suspended.
             // `onCancelled` already ran, so there is nothing left to clean up.
             guard !isDisposed else { return }
 
+            diagnostics?.startStage(downloadStage)
             try await loadData(with: urlRequest, dataLoader: dataLoader)
 
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
@@ -122,24 +147,36 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
-            dataLoadCancellable = dataLoader.loadData(
-                with: urlRequest,
-                didReceiveData: { [weak self] chunk, response in
+            let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
+                Task { @ImagePipelineActor in
+                    self?.dataTaskDidReceive(chunk: chunk, response: response)
+                }
+            }
+            // Each branch passes its own completion so that the common one
+            // isn't wrapped in a closure that only exists to drop the metrics.
+            if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
+                // The diagnostics are on: ask for what `URLSession` measured.
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
                     Task { @ImagePipelineActor in
-                        self?.dataTaskDidReceive(chunk: chunk, response: response)
+                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
                     }
-                },
-                completion: { [weak self] error in
+                }
+                if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
+                    diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
+                }
+            } else {
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
                     Task { @ImagePipelineActor in
                         self?.finishDataLoad(error: error)
                     }
                 }
-            )
+            }
         }
     }
 
     private func dataTaskDidReceive(chunk: Data, response: URLResponse) {
         guard dataLoadContinuation != nil, !isDisposed else { return }
+        diagnostics?.recordFirstByte(downloadStage, statusCode: (response as? HTTPURLResponse)?.statusCode)
         do {
             if urlResponse == nil {
                 try dataTask(didReceiveResponse: response)
@@ -151,10 +188,17 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
     }
 
-    private func finishDataLoad(error: Swift.Error?) {
+    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil) {
         guard let continuation = dataLoadContinuation else { return }
         dataLoadContinuation = nil
         dataLoadCancellable = nil
+        if let urlSessionMetrics {
+            diagnostics?.updateStage(downloadStage) { stage in
+                if let taskID = stage.urlSessionTaskID {
+                    stage.urlSessionMetrics = .init(urlSessionMetrics, urlSessionTaskID: taskID)
+                }
+            }
+        }
         if let error {
             continuation.resume(throwing: error)
         } else {
@@ -217,6 +261,18 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
         guard !isDisposed else { return }
 
+        diagnostics?.endStage(downloadStage) { stage in
+            // `URLSession` collected its metrics before the continuation that
+            // brought us here resumed, so they say whether the bytes came off
+            // the network or out of the session's own cache.
+            stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
+            stage.bytes = Int64(data.count)
+            stage.resumedBytes = resumedDataCount
+            if let urlResponse, urlResponse.expectedContentLength >= 0 {
+                stage.expectedBytes = urlResponse.expectedContentLength + resumedDataCount
+            }
+        }
+
         if let error {
             tryToSaveResumableData()
             send(error: error)
@@ -238,6 +294,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     // MARK: Async Data Loading
 
     private func loadAsyncData(_ fetch: @Sendable @escaping () async throws -> Data) {
+        downloadStage = diagnostics?.beginStage(.download, queued: true)
         if request.options.contains(.skipDataLoadingQueue) {
             dataLoadTask = Task {
                 await self.performAsyncDataLoad(fetch)
@@ -254,10 +311,16 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
     private func performAsyncDataLoad(_ fetch: @Sendable @escaping () async throws -> Data) async {
         guard !isDisposed else { return }
+        diagnostics?.startStage(downloadStage)
         do {
             let data = try await fetch()
+            diagnostics?.endStage(downloadStage) {
+                $0.source = .closure
+                $0.bytes = Int64(data.count)
+            }
             await asyncDataDidFinish(data)
         } catch {
+            diagnostics?.endStage(downloadStage) { $0.source = .closure }
             send(error: .dataLoadingFailed(error: error))
         }
     }
@@ -297,9 +360,17 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
             return
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        guard let data = await pipeline.willCache(data: data, image: nil, for: request) else { return }
+        let stage = diagnostics?.beginStage(.diskStore)
+        guard let data = await pipeline.willCache(data: data, image: nil, for: request) else {
+            diagnostics?.endStage(stage) { $0.cacheKey = diagnosticsDigest(of: key) }
+            return
+        }
         // Important! Storing directly ignoring `ImageRequest.Options`.
         dataCache.storeData(data, for: key)
+        diagnostics?.endStage(stage) {
+            $0.cacheKey = diagnosticsDigest(of: key)
+            $0.bytes = Int64(data.count)
+        }
     }
 
     /// Returns a request that doesn't contain any information non-related

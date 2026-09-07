@@ -151,6 +151,107 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
 
+To collect the same information in a shipping app, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isDiagnosticsEnabled = true
+}
+
+let task = pipeline.imageTask(with: url)
+let image = try await task.image
+print(task.metrics!)
+```
+
+The print is the record in full: a header, one line that says where the time went, and the tree of the work the task waited on – with the requests `URLSession` made nested under the download that made them. Here is a feed image, resized for the cell, on a host the app hadn't talked to yet:
+
+```
+ImageTask #2 "feed" · success · 140.9 ms · from network
+url:         https://cdn.example.com/photos/1024.jpg
+processors:  com.github.kean/nuke/resize?s=(900.0, 900.0),cm=.aspectFill,crop=false,upscale=false
+priority:    normal
+image:       1350×900 · jpeg · 4.9 MB in memory
+transfer:    317 KB
+pipeline:    44A3F653
+time:        network 93.6 ms (66%) · process 42.5 ms (30%) · cache 0.5 ms · decode 0.3 ms · queue 0.1 ms · other 3.8 ms (3%)
+
+pending                              <0.1 ms  ▏                          started at 17:24:14.677
+j4 loadImage [resize]               139.5 ms  ████████████████████  99%
+├─ memoryLookup                      <0.1 ms  ▏                          miss · key aa429747
+├─ diskLookup                         0.3 ms  ▏                          miss · key f6d8540b
+├─ j5 loadImage                      96.3 ms  ██████████████        68%
+│  ├─ memoryLookup                   <0.1 ms  ▏                          miss · key 38c326ae
+│  ├─ diskLookup                      0.1 ms  ▏                          miss · key 19d1c77c
+│  └─ j6 fetchOriginalImage          96.0 ms  ██████████████        68%
+│     ├─ j7 fetchOriginalData        95.2 ms  ██████████████        68%
+│     │  ├─ download                 93.6 ms  ██████████████        66%  network · 317 KB · HTTP 200 · first byte 50.3 ms · session #2
+│     │  │  └─ networkLoad           93.1 ms  ██████████████        66%  HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 164 bytes · received 318 KB
+│     │  │     ├─ blocked             1.4 ms  ░                      1%
+│     │  │     ├─ domainLookup        1.0 ms   ▏                     1%
+│     │  │     ├─ connect            10.0 ms   █                     7%
+│     │  │     ├─ secureConnection   21.0 ms    ███                 15%
+│     │  │     ├─ request            <0.1 ms       ▏
+│     │  │     ├─ waiting            16.1 ms       ░░               11%
+│     │  │     └─ response           43.3 ms         ███████        31%
+│     │  └─ diskStore                <0.1 ms                ▏            317 KB · key 19d1c77c
+│     └─ decode                       0.3 ms                ▏            ImageDecoders.Default · jpeg 1440×960
+├─ process                           42.6 ms                ██████  30%  jpeg 1350×900
+└─ memoryStore                        0.1 ms                     ▕       key aa429747
+total                               140.9 ms                             finished at 17:24:14.818
+```
+
+The tree reads top to bottom as the task ran. The column is the time *this* task spent on every row, and the chart beside it says where in the task that time was, so a gap or an overlap takes no arithmetic to see; a wait is light. Nothing here overlaps: the pipeline looked in both caches, downloaded 317 KB, decoded it, and resized it, in that order. A third of the download went on reaching the host: the domain lookup, the connection, and the handshake all sit in front of the first byte, and a connection the app already had open would have skipped the 31 ms of `connect` and `secureConnection`.
+
+The `time:` line names the part worth making faster before the tree is read. Its categories are exclusive and add up to the length of the task, so nothing is counted twice and what the stages don't account for lands in `other`. Here two thirds of the task was the network and most of the rest was the resize. It is also available as ``ImageTask/Metrics/timeShares``.
+
+When a task attaches to work another task started, the record says so, and it charges the task only for the part it waited on. The same image, asked for by a cell 48 ms after a prefetcher had started fetching it:
+
+```
+coalesced:   yes · shared with #2 (j4, j5, j6)
+time:        network 44.4 ms (65%) · process 10.9 ms (16%) · decompress 9.3 ms (14%) · cache 0.3 ms · decode 0.3 ms · queue 0.2 ms · other 3.0 ms (4%)
+
+pending                        <0.1 ms  ▏                          started at 17:25:08.898
+j7 loadImage [resize]          67.1 ms  ████████████████████  98%
+├─ memoryLookup                <0.1 ms  ▏                          miss · key aa429747
+├─ diskLookup                   0.1 ms  ▏                          miss · key f6d8540b
+├─ j4 loadImage                55.6 ms  █████████████████     81%  joined at 47.7 ms of 103.3 ms
+│  ├─ memoryLookup                   –                             miss · before join · key 38c326ae
+│  ├─ diskLookup                     –                             miss · before join · key 19d1c77c
+│  ├─ j5 fetchOriginalImage    46.2 ms  ██████████████        68%
+│  │  ├─ j6 fetchOriginalData  45.5 ms  ██████████████        67%
+│  │  │  ├─ download           44.4 ms  █████████████         65%  network · 317 KB · HTTP 200 · first byte 86.4 ms · joined at 46.7 ms of 91.1 ms · session #2
+…
+```
+
+Only `j7` is this task's. `j4`, `j5`, and `j6` are the prefetcher's: the lookups it had already done by the time this task joined print `–` and say `before join`, and the download is charged the 44.4 ms this task waited for rather than the 91.1 ms it ran for. Every attributed duration is clamped to the lifetime of the task, so the records of two tasks that shared a download never add up to more than the download.
+
+``ImageTask/Metrics/source`` says where the image came from, and it tells a `URLCache` hit apart from a real download – a request the session revalidated and the server answered `304` costs the time of a download and none of the bytes:
+
+```
+ImageTask #2 "feed" · success · 31.0 ms · from httpCache
+transfer:  317 KB · 81 bytes on the wire · revalidated
+```
+
+Print less with ``ImageTask/Metrics/formatted(_:)``. Its ``ImageTask/Metrics/Options`` are the four sections – the header, the `time:` line, the timeline, and the `URLSession` rows – and the four columns the timeline decorates its rows with, so a report can be cut down to what its destination can use:
+
+```swift
+print(metrics.formatted(.plain)) // The sections, none of the columns
+print(metrics.formatted(.all.subtracting([.chart, .percentages])))
+print(metrics.formatted([.header, .breakdown]))
+```
+
+The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
+
+```swift
+final class Telemetry: ImagePipeline.Delegate, Sendable {
+    @ImagePipelineActor
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let metrics = task.metrics else { return }
+        send(metrics) // Encode it with JSONEncoder, or print it
+    }
+}
+```
+
 ## Selecting a System
 
 Make sure you select one image loading framework and stick to it. If you use more than one framework, it will prevent them from managing the system resources efficiently, such as caches. If, for any reason, you must use more than one framework, ensure that they at least share the same memory and disk caches.

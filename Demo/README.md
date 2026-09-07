@@ -44,6 +44,23 @@ shows, with the API it is about and the details worth knowing.
 | **Caching** | The memory cache, `URLCache`, and `DataCache` side by side, with the source of every image |
 | **Stress Test** | The pipeline under fast scrolling with every cache disabled |
 
+## Diagnostics
+
+Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
+the scheme, unticked, under Run › Arguments › Environment Variables – and every
+image task logs where its time went to Console, under the
+`com.github.kean.NukeDemo` subsystem.
+
+From the terminal, with the simulator booted:
+
+```bash
+xcrun simctl spawn booted log stream --predicate 'subsystem == "com.github.kean.NukeDemo"'
+```
+
+For what a record contains and how to read the timeline, see
+[Measure](../Documentation/Nuke.docc/Performance/performance-guide.md#measure) in the
+Performance Guide.
+
 ## Structure
 
 ```

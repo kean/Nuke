@@ -62,11 +62,16 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     var onCancelled: (@ImagePipelineActor @Sendable () -> Void)?
 
+    /// The diagnostics record of the job the task represents. `nil`
+    /// when diagnostics are off, which makes every recording point a nil-check.
+    var diagnostics: ImagePipeline.Diagnostics.JobRecord?
+
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.priority = priority
             dependency?.setPriority(priority)
+            diagnostics?.recordPriority(priority)
         }
     }
 
@@ -114,7 +119,14 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             subscriptions!.append((key: subscriptionKey, sub: Subscription(closure: closure, subscriber: subscriber, priority: priority)))
         }
 
+        if let diagnostics {
+            // A job that already had a subscription existed before the
+            // subscriber asked for it: the subscriber joined the job.
+            diagnostics.didSubscribe(subscriber, didJoin: subscriptionKey > 0)
+        }
+
         updatePriority(suggestedPriority: priority)
+        diagnostics?.recordPriority(self.priority)
 
         if !isStarted {
             isStarted = true
@@ -177,11 +189,13 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         switch event {
         case let .value(_, isCompleted):
             if isCompleted {
+                diagnostics?.finish(.success)
                 terminate(reason: .finished)
             }
         case .progress:
             break // Simply send the event
-        case .error:
+        case let .error(error):
+            diagnostics?.finish(.failure, error: error as? ImagePipeline.Error)
             terminate(reason: .finished)
         }
 
@@ -204,6 +218,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         isDisposed = true
 
         if reason == .cancelled {
+            diagnostics?.finish(.cancelled)
             operation?.cancel()
             dependency.take()?.unsubscribe()
             onCancelled?()

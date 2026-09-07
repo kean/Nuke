@@ -131,17 +131,20 @@ extension ImagePipeline.Cache {
         return imageCache[makeImageCacheKey(for: request)]
     }
 
-    private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
+    /// Returns `true` if the image was stored.
+    @discardableResult
+    func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) -> Bool {
         guard !request.options.contains(.disableMemoryCacheWrites) else {
-            return
+            return false
         }
         guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
-            return
+            return false
         }
         guard let imageCache = imageCache(for: request) else {
-            return
+            return false
         }
         imageCache[makeImageCacheKey(for: request)] = image
+        return true
     }
 
     private func removeCachedImageFromMemoryCache(for request: ImageRequest) {
@@ -211,6 +214,17 @@ extension ImagePipeline.Cache {
             return ImageCacheKey(key: customKey)
         }
         return ImageCacheKey(request: request) // Use the default key
+    }
+
+    /// A short digest of the memory cache key, for the diagnostics: the same
+    /// fields ``makeImageCacheKey(for:)`` keys on, in a form two records can
+    /// be compared on. Computed only while diagnostics are recording.
+    func makeImageCacheKeyDigest(for request: ImageRequest) -> String {
+        if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
+            return diagnosticsDigest(of: customKey)
+        }
+        let key = "\(request.imageID ?? "")|\(request.scale)|\(request.thumbnail?.identifier ?? "")|\(ImageProcessors.Composition(request.processors).identifier)"
+        return diagnosticsDigest(of: key)
     }
 
     /// Returns data cache (disk cache) key for the given request.

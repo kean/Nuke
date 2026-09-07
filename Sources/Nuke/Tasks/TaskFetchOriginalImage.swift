@@ -134,17 +134,24 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
     // MARK: Async Image Loading
 
     private func loadAsyncImage(_ fetch: @Sendable @escaping () async throws -> ImageContainer) {
+        let stage = diagnostics?.beginStage(.download, queued: true)
         operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
-            await self?.performAsyncImageLoad(fetch)
+            await self?.performAsyncImageLoad(fetch, stage: stage)
         }
     }
 
-    private func performAsyncImageLoad(_ fetch: @Sendable @escaping () async throws -> ImageContainer) async {
+    private func performAsyncImageLoad(_ fetch: @Sendable @escaping () async throws -> ImageContainer, stage: Int?) async {
         guard !isDisposed else { return }
+        diagnostics?.startStage(stage)
         do {
             let container = try await fetch()
+            diagnostics?.endStage(stage) {
+                $0.source = .closure
+                $0.setOutput(container)
+            }
             send(value: ImageResponse(container: container, request: request), isCompleted: true)
         } catch {
+            diagnostics?.endStage(stage) { $0.source = .closure }
             send(error: .dataLoadingFailed(error: error))
         }
     }

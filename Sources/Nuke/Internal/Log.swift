@@ -40,6 +40,8 @@ enum Formatter {
     }
 
     static func bytes(_ count: Int64) -> String {
-        ByteCountFormatter().string(fromByteCount: count)
+        let formatter = ByteCountFormatter()
+        formatter.allowsNonnumericFormatting = false // "0 bytes", not "Zero KB"
+        return formatter.string(fromByteCount: count)
     }
 }

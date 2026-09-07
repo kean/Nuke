@@ -146,7 +146,7 @@ public final class ImagePrefetcher: Sendable {
         let pipeline = self.pipeline
         let isDataTask = destination == .diskCache
         let operation = queue.add { [weak self] in
-            let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: isDataTask)
+            let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: isDataTask, isPrefetch: true)
             task.imageTask = imageTask
             _ = try? await imageTask.response
             self?._remove(task)

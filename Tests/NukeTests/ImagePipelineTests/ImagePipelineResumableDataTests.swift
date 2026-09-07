@@ -57,6 +57,36 @@ struct ImagePipelineResumableDataTests {
         ])
     }
 
+    @Test func resumedBytesAreReportedInTheMetrics() async throws {
+        // GIVEN a pipeline that records diagnostics and a download that failed
+        // mid-way
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let task1 = pipeline.imageTask(with: Test.request)
+        _ = try? await task1.response
+        let metrics1 = try #require(task1.metrics)
+        #expect(metrics1.outcome == .failure)
+        #expect(metrics1.bytes?.downloaded == 11397)
+        #expect(metrics1.bytes?.expected == 22789)
+        let failed = try #require(metrics1.jobs.last?.stages.first { $0.kind == .download })
+        #expect(failed.resumedBytes == 0)
+
+        // WHEN the download is resumed
+        let task2 = pipeline.imageTask(with: Test.request)
+        _ = try await task2.response
+
+        // THEN the resumed bytes are reported
+        let metrics2 = try #require(task2.metrics)
+        #expect(metrics2.bytes?.downloaded == 22789)
+        #expect(metrics2.bytes?.resumed == 11397)
+        #expect(metrics2.bytes?.expected == 22789)
+        let resumed = try #require(metrics2.jobs.last?.stages.first { $0.kind == .download })
+        #expect(resumed.statusCode == 206)
+    }
+
     /// On a "206 Partial Content" response, `expectedContentLength` covers only
     /// the remaining bytes while the accumulated data already contains the
     /// resumed prefix. The guard that decides whether to give the decoder a

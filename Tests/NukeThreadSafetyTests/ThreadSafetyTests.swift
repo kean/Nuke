@@ -24,6 +24,27 @@ struct ThreadSafetyTests {
         _ = (dataLoader, pipeline)
     }
 
+    @Test func imagePipelineThreadSafetyWithDiagnostics() async {
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let toggler = Task.detached {
+            for _ in 0..<100 {
+                pipeline.diagnostics.isEnabled.toggle()
+                await Task.yield()
+            }
+            pipeline.diagnostics.isEnabled = true
+        }
+
+        await performPipelineThreadSafetyTest(pipeline)
+        await toggler.value
+
+        _ = (dataLoader, pipeline)
+    }
+
     @Test func sharingConfigurationBetweenPipelines() async { // Especially operation queues
         var configuration = ImagePipeline.Configuration()
         configuration.dataLoader = MockDataLoader()

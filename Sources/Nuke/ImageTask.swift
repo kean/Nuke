@@ -114,6 +114,12 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
         /// the total resource size is known.
         public internal(set) var progress = Progress(completed: 0, total: 0)
 
+        /// Where the time of the task went. Recorded before the task finishes,
+        /// like ``result``, and only when diagnostics are on.
+        ///
+        /// - seealso: ``ImageTask/metrics``
+        public internal(set) var metrics: Metrics?
+
         /// Initializes the status describing a task that has just started.
         ///
         /// The pipeline creates the status for you – use this initializer to
@@ -231,6 +237,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
 
     private let _status: OSAllocatedUnfairLock<Status>
     private let isDataTask: Bool
+    let _kind: Metrics.Kind
+    /// The time the task was created, in seconds since 1970 on the clock of
+    /// the recorder. `nil` unless diagnostics are on.
+    let _createdAt: TimeInterval?
     private let onEvent: ((Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
 
@@ -240,13 +250,16 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     @ImagePipelineActor var _isFinished = false
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
+    @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
-    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
+    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
         self.taskId = taskId
         self.request = request
         self._status = OSAllocatedUnfairLock(initialState: Status(priority: request.priority))
         self.isDataTask = isDataTask
+        self._kind = isPrefetch ? .prefetch : isDataTask ? .data : .image
+        self._createdAt = createdAt
         self.pipeline = pipeline
         self.onEvent = onEvent
     }
@@ -313,6 +326,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
             if isCompleted {
                 _finish(.success(response))
             } else {
+                _diagnostics?.previewCount += 1
                 _dispatch(.preview(response))
             }
         case let .progress(value):
@@ -342,7 +356,12 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
         // Record the result first so that it is already visible to everyone
         // observing the terminal event.
         if case .finished(let result) = event {
-            _status.withLock { $0.result = result }
+            let metrics = _diagnostics?.finish(with: result)
+            _diagnostics = nil
+            _status.withLock {
+                $0.result = result
+                $0.metrics = metrics
+            }
         }
         for continuation in _streamContinuations {
             continuation.yield(event)

@@ -25,6 +25,62 @@ struct ImagePipelinePerformanceTests {
     }
 
     @Test
+    func asyncAwaitPerformanceWithDiagnostics() async {
+        let pipeline = makePipeline { $0.isDiagnosticsEnabled = true }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    func memoryHitPerformance() async {
+        let pipeline = makePipeline { $0.imageCache = ImageCache() }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        let container = Test.container
+        for request in requests {
+            pipeline.cache[request] = container
+        }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    func memoryHitPerformanceWithDiagnostics() async {
+        let pipeline = makePipeline {
+            $0.imageCache = ImageCache()
+            $0.isDiagnosticsEnabled = true
+        }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        let container = Test.container
+        for request in requests {
+            pipeline.cache[request] = container
+        }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     func asyncImageTaskPerformance() async {
         let pipeline = makePipeline()
         let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
@@ -40,7 +96,7 @@ struct ImagePipelinePerformanceTests {
     }
 }
 
-private func makePipeline() -> ImagePipeline {
+private func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
     struct MockDecoder: ImageDecoding {
         static let container = ImageContainer(image: Test.image)
 
@@ -62,6 +118,8 @@ private func makePipeline() -> ImagePipeline {
 
         // Remove decoding from the equation
         $0.makeImageDecoder = { _ in ImageDecoders.Empty() }
+
+        configure(&$0)
     }
 
     return pipeline

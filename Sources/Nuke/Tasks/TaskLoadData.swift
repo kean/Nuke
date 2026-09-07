@@ -7,7 +7,7 @@ import Foundation
 /// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: AsyncPipelineTask<ImageResponse> {
     override func start() {
-        if let data = pipeline.cache.cachedData(for: request) {
+        if let data = lookUpCachedData(for: request) {
             let container = ImageContainer(image: .init(), data: data)
             let response = ImageResponse(container: container, request: request)
             self.send(value: response, isCompleted: true)

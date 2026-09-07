@@ -116,13 +116,21 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for container: ImageContainer) -> Int {
+        container.memoryCost
+    }
+}
+
+extension ImageContainer {
+    /// An approximation of what the image costs in memory, in bytes, and what
+    /// ``ImageCache`` charges it against its cost limit.
+    var memoryCost: Int {
         // `ImageContainer/animation` shares this buffer, so it is counted once.
-        let dataCost = container.data?.count ?? 0
+        let dataCost = data?.count ?? 0
 
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a
         // conservative default cost limit works OK.
-        guard let cgImage = container.image.cgImage else {
+        guard let cgImage = image.cgImage else {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost
