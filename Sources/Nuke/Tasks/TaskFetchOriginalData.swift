@@ -152,19 +152,24 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                     self?.dataTaskDidReceive(chunk: chunk, response: response)
                 }
             }
-            let completion: @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void = { [weak self] error, metrics in
-                Task { @ImagePipelineActor in
-                    self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
-                }
-            }
+            // Each branch passes its own completion so that the common one
+            // isn't wrapped in a closure that only exists to drop the metrics.
             if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
                 // The diagnostics are on: ask for what `URLSession` measured.
-                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData, completion: completion)
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
+                    Task { @ImagePipelineActor in
+                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
+                    }
+                }
+                if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
+                    diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
+                }
             } else {
-                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { completion($0, nil) }
-            }
-            if downloadStage != nil, let handle = dataLoadCancellable as? URLSessionTaskCancellable {
-                diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
+                    Task { @ImagePipelineActor in
+                        self?.finishDataLoad(error: error)
+                    }
+                }
             }
         }
     }
