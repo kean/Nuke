@@ -56,6 +56,16 @@ struct ImagePipelineDiagnosticsTests {
         #expect(task2.metrics != nil)
     }
 
+    @Test func theEnvironmentVariableIsReadAsAFlag() {
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: [:]))
+        #expect(ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "1"]))
+        #expect(ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "YES"]))
+        // A variable that spells "off" is off, not merely set
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "0"]))
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "false"]))
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": ""]))
+    }
+
     // MARK: - Sources and Stages
 
     @Test func networkLoadRecordsTheWholeChain() async throws {
