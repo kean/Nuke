@@ -62,6 +62,7 @@
 - The default `ImagePipeline/Configuration-swift.struct/rateLimiter` rate goes from 80 to 100 requests per second – https://github.com/kean/Nuke/pull/960
 - `ImageTask` and `ImageDecoders/Video` are now `Sendable` instead of `@unchecked Sendable` – https://github.com/kean/Nuke/pull/965
 - Add `TaskQueue/reservedTaskCount`: the number of slots that the work with a priority lower than `.normal` can't take – https://github.com/kean/Nuke/pull/981
+- Remove `ImagePipeline/Configuration/isSignpostLoggingEnabled`. The pipeline emits the same `os_signpost` intervals from the stages the diagnostics record, so they come with `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` and cost nothing unless something is recording them – https://github.com/kean/Nuke/pull/966
 
 **Performance**
 

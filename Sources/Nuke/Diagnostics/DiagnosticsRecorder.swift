@@ -204,6 +204,19 @@ extension ImagePipeline.Diagnostics {
         /// one created it.
         private var joins: [Join] = []
 
+        /// `true` if something was collecting signposts when the job started:
+        /// Instruments, or `log stream`. It's read once so that every interval
+        /// the job opens is also closed, whenever the collection stops.
+        private let isSignpostingEnabled: Bool
+        /// Shared by every interval the job emits. The stages of a job that
+        /// map to the same signpost name never overlap, so one id is enough
+        /// to tell the jobs apart in a trace.
+        private let signpostID: OSSignpostID
+        /// The image the job is for, for the message of its opening signposts.
+        private let signpostLabel: String
+        /// The stages with an open interval.
+        private var openSignpostStages: Set<Int> = []
+
         var id: UInt64 { job.id }
 
         private struct Join {
@@ -214,6 +227,9 @@ extension ImagePipeline.Diagnostics {
 
         init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
             self.recorder = recorder
+            self.isSignpostingEnabled = signpostLog.signpostsEnabled
+            self.signpostID = isSignpostingEnabled ? OSSignpostID(log: signpostLog) : .invalid
+            self.signpostLabel = isSignpostingEnabled ? (request.url?.absoluteString ?? "") : ""
             self.job = Job(
                 id: id,
                 kind: kind,
@@ -267,6 +283,7 @@ extension ImagePipeline.Diagnostics {
             // The work that was running is cancelled along with the job.
             for index in job.stages.indices {
                 job.stages[index].end(at: now)
+                endSignpost(index, outcome.rawValue)
             }
         }
 
@@ -280,17 +297,28 @@ extension ImagePipeline.Diagnostics {
 
         /// Appends a stage and returns its index, which is stable: stages are
         /// never removed.
+        ///
+        /// - parameter isProgressive: Whether the stage works on a preview,
+        /// for the work that knows it upfront. The signpost interval is named
+        /// after it, so it can't wait until the stage ends.
         @discardableResult
-        func beginStage(_ kind: Stage.Kind, queued: Bool = false) -> Int {
+        func beginStage(_ kind: Stage.Kind, queued: Bool = false, isProgressive: Bool? = nil) -> Int {
             let now = recorder.now
-            job.stages.append(Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now))
-            return job.stages.count - 1
+            var stage = Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now)
+            stage.isProgressive = isProgressive
+            job.stages.append(stage)
+            let index = job.stages.count - 1
+            if !queued {
+                beginSignpost(index)
+            }
+            return index
         }
 
         /// The queued stage left its queue.
         func startStage(_ index: Int?) {
             guard let index else { return }
             job.stages[index].startedAt = recorder.now
+            beginSignpost(index)
         }
 
         func updateStage(_ index: Int?, _ update: (inout Stage) -> Void) {
@@ -302,9 +330,11 @@ extension ImagePipeline.Diagnostics {
             guard let index else { return }
             update(&job.stages[index])
             job.stages[index].end(at: recorder.now)
+            endSignpost(index, job.stages[index].signpostMessage)
         }
 
-        /// Records a stage that ran synchronously, from `start` to now.
+        /// Records a stage that ran synchronously, from `start` to now. It is
+        /// already over by the time it's recorded, so it opens no interval.
         func recordStage(_ kind: Stage.Kind, from start: ContinuousClock.Instant, _ update: (inout Stage) -> Void = { _ in }) {
             var stage = Stage(kind: kind, queuedAt: nil, startedAt: recorder.time(start))
             update(&stage)
@@ -322,15 +352,30 @@ extension ImagePipeline.Diagnostics {
             }
         }
 
-        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, context: ImageDecodingContext, workDuration: TimeInterval?) {
+        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, workDuration: TimeInterval?) {
             endStage(index) {
                 $0.decoder = diagnosticsTypeName(of: decoder)
-                $0.isProgressive = !context.isCompleted
                 $0.workDuration = workDuration
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
                 }
             }
+        }
+
+        // MARK: Signposts
+
+        /// Opens the interval of the stage, if it has one.
+        private func beginSignpost(_ index: Int) {
+            guard isSignpostingEnabled, let name = job.stages[index].signpostName else { return }
+            openSignpostStages.insert(index)
+            os_signpost(.begin, log: signpostLog, name: name, signpostID: signpostID, "%{public}s", signpostLabel)
+        }
+
+        /// Closes the interval of the stage, if it has one open. A stage the
+        /// job closed on its way out doesn't get closed twice.
+        private func endSignpost(_ index: Int, _ message: @autoclosure () -> String) {
+            guard openSignpostStages.remove(index) != nil, let name = job.stages[index].signpostName else { return }
+            os_signpost(.end, log: signpostLog, name: name, signpostID: signpostID, "%{public}s", message())
         }
 
         // MARK: Snapshot

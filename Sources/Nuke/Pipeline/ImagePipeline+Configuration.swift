@@ -4,7 +4,6 @@
 
 import Foundation
 import ImageIO
-import os
 
 extension ImagePipeline {
     /// The pipeline configuration.
@@ -149,9 +148,11 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        /// Records ``ImageTask/Metrics`` for every task. `false` by default,
-        /// unless the process was launched with `NUKE_DIAGNOSTICS_ENABLED`,
-        /// which ``ImagePipeline/Diagnostics-swift.struct/isEnabledByEnvironment``
+        /// Records ``ImageTask/Metrics`` for every task, and emits the
+        /// `os_signpost` intervals the Instruments app shows. `false` by
+        /// default, unless the process was launched with
+        /// `NUKE_DIAGNOSTICS_ENABLED`, which
+        /// ``ImagePipeline/Diagnostics-swift.struct/isEnabledByEnvironment``
         /// reflects.
         ///
         /// The recording is done on the pipeline actor, alongside the work it
@@ -171,21 +172,6 @@ extension ImagePipeline {
             let limit = min(209_715_200 /* 200 MB */, physicalMemory / 10)
             return Int(limit)
         }()
-
-        // MARK: - Options (Shared)
-
-        /// Enables `os_signpost` logging for measuring performance. When enabled,
-        /// all performance metrics are visible in the Instruments app. `false`
-        /// by default.
-        ///
-        /// For more information, see the [Logging](https://developer.apple.com/documentation/os/logging)
-        /// documentation and [WWDC 2018 Session 405](https://developer.apple.com/videos/play/wwdc2018/405/).
-        public static var isSignpostLoggingEnabled: Bool {
-            get { _isSignpostLoggingEnabled.withLock { $0 } }
-            set { _isSignpostLoggingEnabled.withLock { $0 = newValue } }
-        }
-
-        private static let _isSignpostLoggingEnabled = OSAllocatedUnfairLock(initialState: false)
 
         private var isCustomImageCacheProvided = false
 

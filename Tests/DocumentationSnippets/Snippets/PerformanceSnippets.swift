@@ -5,6 +5,7 @@
 // Snippets from `Documentation/Nuke.docc/Performance/performance-guide.md`.
 
 import Foundation
+import os
 import Nuke
 
 private func aggressiveDiskCache() {
@@ -54,6 +55,23 @@ private final class Telemetry: ImagePipeline.Delegate, Sendable {
     }
 
     nonisolated func send(_ metrics: ImageTask.Metrics) {}
+}
+
+private let signposter = OSSignposter(subsystem: "com.example.app", category: "Images")
+
+private final class ImageSignposts: ImagePipeline.Delegate, Sendable {
+    @ImagePipelineActor private var intervals: [ImageTask.ID: OSSignpostIntervalState] = [:]
+
+    @ImagePipelineActor
+    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
+        intervals[task.id] = signposter.beginInterval("LoadImage", id: signposter.makeSignpostID())
+    }
+
+    @ImagePipelineActor
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let interval = intervals.removeValue(forKey: task.id) else { return }
+        signposter.endInterval("LoadImage", interval)
+    }
 }
 
 private func progressiveDecoding() {

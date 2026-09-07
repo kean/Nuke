@@ -27,6 +27,14 @@ extension ImagePipeline {
     ///
     /// The recording is done on the pipeline actor, alongside the work it
     /// measures, and costs nothing when it is off.
+    ///
+    /// The same switch publishes the timeline to the `os_signpost` Instrument
+    /// as it happens: the pipeline emits an interval for the work of every
+    /// job – the download, the decoding, the processing, the decompression –
+    /// and one for the image encoding. They cost nothing unless something is
+    /// recording them. The pipeline traces its own work and not the app's: an
+    /// interval for a whole load is a few lines in the delegate, with
+    /// `OSSignposter`. See <doc:performance-guide>.
     nonisolated public var diagnostics: Diagnostics { Diagnostics(pipeline: self) }
 
     /// The diagnostics of a pipeline. See ``ImagePipeline/diagnostics``.

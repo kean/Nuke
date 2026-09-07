@@ -67,12 +67,6 @@ struct ImagePipelineConfigurationTests {
         #expect((configuration.dataLoader as? DataLoader)?.session.configuration.urlCache != nil)
     }
 
-    @Test func enablingSignposts() {
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = false // Just padding
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = false
-    }
-
     // MARK: - Default Values
 
     @Test func isTaskCoalescingEnabledByDefault() {
