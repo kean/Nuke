@@ -18,12 +18,12 @@
   "outcome": "success",
   "source": "network",
   "isCoalesced": true,
-  "rootUnitID": 6,
+  "rootJobID": 6,
   "previewCount": 0,
   "priorityHistory": [],
   "bytes": { "downloaded": 1204113, "resumed": 0, "expected": 1204113 },
   "image": { "width": 4032, "height": 3024, "format": "jpeg", "isAnimated": false },
-  "units": [
+  "jobs": [
     {
       "id": 6,
       "kind": "loadImage",

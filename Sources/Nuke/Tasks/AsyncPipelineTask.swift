@@ -8,14 +8,14 @@ import Foundation
 // user does not need to hold a strong reference to the pipeline.
 class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
-    // A canonical request representing the unit work performed by the task.
+    // A canonical request representing the job performed by the task.
     let request: ImageRequest
 
-    init(_ pipeline: ImagePipeline, _ request: ImageRequest, kind: ImagePipeline.Diagnostics.Unit.Kind) {
+    init(_ pipeline: ImagePipeline, _ request: ImageRequest, kind: ImagePipeline.Diagnostics.Job.Kind) {
         self.pipeline = pipeline
         self.request = request
         super.init()
-        self.diagnostics = pipeline.recorder?.makeUnitRecord(kind: kind, request: request)
+        self.diagnostics = pipeline.recorder?.makeJobRecord(kind: kind, request: request)
     }
 }
 

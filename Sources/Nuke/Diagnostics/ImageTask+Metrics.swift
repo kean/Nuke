@@ -18,9 +18,9 @@ extension ImageTask {
     /// A record of one task: where the image came from, what it cost, what
     /// the task waited on, and whether another task shared the work.
     ///
-    /// The record is self-contained. It carries a copy of every ``units`` the
+    /// The record is self-contained. It carries a copy of every ``jobs`` the
     /// task waited on, so it can be printed, encoded, and compared without a
-    /// trace. The copies keep the identifiers of the units, so a trace can join
+    /// trace. The copies keep the identifiers of the jobs, so a trace can join
     /// the records of the tasks that shared work.
     ///
     /// Coalesced work is neither double-counted nor hidden. ``duration`` is the
@@ -59,11 +59,11 @@ extension ImageTask {
         /// original found on disk is ``ImagePipeline/Diagnostics-swift.struct/Source/disk``.
         /// `nil` if the task produced no image.
         public let source: ImagePipeline.Diagnostics.Source?
-        /// `true` if the task attached to a unit that already existed, that
+        /// `true` if the task attached to a job that already existed, that
         /// is, if another task started the work.
         public let isCoalesced: Bool
-        /// The unit the task subscribed to. `nil` if the task never started.
-        public let rootUnitID: UInt64?
+        /// The job the task subscribed to. `nil` if the task never started.
+        public let rootJobID: UInt64?
         /// The progressive previews the task delivered.
         public let previewCount: Int
         /// The changes made to ``ImageTask/priority`` while the task ran.
@@ -72,9 +72,9 @@ extension ImageTask {
         public let bytes: Bytes?
         /// The image the task produced.
         public let image: ImageSummary?
-        /// Every unit the task waited on, root first. Copies, each stamped with
+        /// Every job the task waited on, root first. Copies, each stamped with
         /// the time this task reached it.
-        public let units: [ImagePipeline.Diagnostics.Unit]
+        public let jobs: [ImagePipeline.Diagnostics.Job]
 
         /// The kind of a task.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {
@@ -126,11 +126,11 @@ extension ImageTask.Metrics {
     public var startedDate: Date? { startedAt.map(Date.init(timeIntervalSince1970:)) }
     public var endedDate: Date { Date(timeIntervalSince1970: endedAt) }
 
-    /// The tasks that shared a unit with this one.
+    /// The tasks that shared a job with this one.
     public var sharedTaskIDs: [UInt64] {
         var ids: [UInt64] = []
-        for unit in units {
-            for id in unit.taskIDs where id != taskID && !ids.contains(id) {
+        for job in jobs {
+            for id in job.taskIDs where id != taskID && !ids.contains(id) {
                 ids.append(id)
             }
         }
@@ -142,8 +142,8 @@ extension ImageTask.Metrics {
     /// its download stage. `nil` if the data loader isn't a ``DataLoader``,
     /// or if the task ended before the download did.
     public var urlSessionMetrics: ImagePipeline.Diagnostics.URLSessionMetrics? {
-        for unit in units {
-            for stage in unit.stages {
+        for job in jobs {
+            for stage in job.stages {
                 if let metrics = stage.urlSessionMetrics {
                     return metrics
                 }
@@ -167,7 +167,7 @@ extension ImageTask.Metrics {
         /// A title with the outcome, then a field per fact of the request
         /// and the result.
         public static let header = Sections(rawValue: 1 << 0)
-        /// The tree of the units the task waited on, with the time the task
+        /// The tree of the jobs the task waited on, with the time the task
         /// spent on every row.
         public static let timeline = Sections(rawValue: 1 << 1)
         /// The download as `URLSession` saw it: every request the session
@@ -187,8 +187,8 @@ extension ImageTask.Metrics {
     /// The header is a title with the outcome, then a field per fact of the
     /// request and the result.
     ///
-    /// In the timeline, the units form a tree, root first. The stages of a
-    /// unit and the unit it waited on are listed under it in the order they
+    /// In the timeline, the jobs form a tree, root first. The stages of a
+    /// job and the job it waited on are listed under it in the order they
     /// started, so the tree reads top to bottom as the task ran. The column is
     /// the time the task spent on every row, and the rows that took a large
     /// share of the task carry a bar next to it, light for a wait. A stage
@@ -290,8 +290,8 @@ extension ImageTask.Metrics {
         let sharedTaskIDs = self.sharedTaskIDs
         if !sharedTaskIDs.isEmpty {
             let tasks = sharedTaskIDs.map { "#\($0)" }.joined(separator: ", ")
-            let units = self.units.filter { $0.taskIDs.count > 1 }.map { "u\($0.id)" }.joined(separator: ", ")
-            text += " · shared with \(tasks) (\(units))"
+            let jobs = self.jobs.filter { $0.taskIDs.count > 1 }.map { "j\($0.id)" }.joined(separator: ", ")
+            text += " · shared with \(tasks) (\(jobs))"
         }
         return text
     }
@@ -356,7 +356,7 @@ extension ImageTask.Metrics {
         if let startedAt {
             rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: details(bar: bar(for: startedAt - createdAt, of: duration), ["at \(clock(startedAt))"])))
         }
-        var remaining = units
+        var remaining = jobs
         while let root = remaining.first {
             rows += self.rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining)
         }
@@ -366,17 +366,17 @@ extension ImageTask.Metrics {
 
     // MARK: Tree
 
-    /// The rows of a unit and everything under it: its stages and the unit
-    /// it waited on, in the order they started. Removes the units it prints
-    /// from `remaining`, so a unit no chain reaches is printed as a root of
+    /// The rows of a job and everything under it: its stages and the job
+    /// it waited on, in the order they started. Removes the jobs it prints
+    /// from `remaining`, so a job no chain reaches is printed as a root of
     /// its own.
-    private func rows(for unit: ImagePipeline.Diagnostics.Unit, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Unit]) -> [Row] {
-        remaining.removeAll { $0.id == unit.id }
-        var rows = [Row(label: prefix + label(of: unit), details: details(of: unit, parentJoinedAt: parentJoinedAt))]
+    private func rows(for job: ImagePipeline.Diagnostics.Job, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Job]) -> [Row] {
+        remaining.removeAll { $0.id == job.id }
+        var rows = [Row(label: prefix + label(of: job), details: details(of: job, parentJoinedAt: parentJoinedAt))]
 
         var entries: [(at: TimeInterval, entry: Entry)] = []
-        entries += unit.stages.map { ($0.startedAt ?? $0.queuedAt ?? unit.createdAt, .stage($0)) }
-        entries += remaining.filter { $0.id == unit.parentID }.map { ($0.joinedAt ?? $0.createdAt, .unit($0)) }
+        entries += job.stages.map { ($0.startedAt ?? $0.queuedAt ?? job.createdAt, .stage($0)) }
+        entries += remaining.filter { $0.id == job.parentID }.map { ($0.joinedAt ?? $0.createdAt, .job($0)) }
         entries.sort { $0.at < $1.at }
 
         for (index, (_, entry)) in entries.enumerated() {
@@ -384,39 +384,39 @@ extension ImageTask.Metrics {
             let connector = isLast ? "└─ " : "├─ "
             switch entry {
             case .stage(let stage):
-                rows += self.rows(for: stage, in: unit, prefix: childPrefix, connector: connector)
-            case .unit(let child):
-                rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: unit.joinedAt, remaining: &remaining)
+                rows += self.rows(for: stage, in: job, prefix: childPrefix, connector: connector)
+            case .job(let child):
+                rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: job.joinedAt, remaining: &remaining)
             }
         }
         return rows
     }
 
-    /// A line under a unit: one of its stages, or the unit it waited on.
+    /// A line under a job: one of its stages, or the job it waited on.
     private enum Entry {
         case stage(ImagePipeline.Diagnostics.Stage)
-        case unit(ImagePipeline.Diagnostics.Unit)
+        case job(ImagePipeline.Diagnostics.Job)
     }
 
-    private func label(of unit: ImagePipeline.Diagnostics.Unit) -> String {
-        var label = "u\(unit.id) \(unit.kind.rawValue)"
-        if !unit.processors.isEmpty {
-            label += " [\(unit.processors.map(shortName(of:)).joined(separator: ", "))]"
+    private func label(of job: ImagePipeline.Diagnostics.Job) -> String {
+        var label = "j\(job.id) \(job.kind.rawValue)"
+        if !job.processors.isEmpty {
+            label += " [\(job.processors.map(shortName(of:)).joined(separator: ", "))]"
         }
         return label
     }
 
-    /// When the task joined the unit, on the unit's own clock, unless the
-    /// parent says the same, and how the unit ended, unless the task ended
+    /// When the task joined the job, on the job's own clock, unless the
+    /// parent says the same, and how the job ended, unless the task ended
     /// the same way.
-    private func details(of unit: ImagePipeline.Diagnostics.Unit, parentJoinedAt: TimeInterval?) -> String {
+    private func details(of job: ImagePipeline.Diagnostics.Job, parentJoinedAt: TimeInterval?) -> String {
         var parts: [String] = []
-        if let joinedAt = unit.joinedAt, joinedAt != parentJoinedAt {
-            var text = "joined at \(ms(joinedAt - unit.createdAt))"
-            text += unit.duration.map { " of \(ms($0))" } ?? ""
+        if let joinedAt = job.joinedAt, joinedAt != parentJoinedAt {
+            var text = "joined at \(ms(joinedAt - job.createdAt))"
+            text += job.duration.map { " of \(ms($0))" } ?? ""
             parts.append(text)
         }
-        if let outcome = unit.outcome {
+        if let outcome = job.outcome {
             if outcome != self.outcome {
                 parts.append(outcome.rawValue)
             }
@@ -430,10 +430,10 @@ extension ImageTask.Metrics {
 
     /// The row of a stage, under a row for its queue when the wait for it is
     /// worth one.
-    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, prefix: String, connector: String) -> [Row] {
+    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, prefix: String, connector: String) -> [Row] {
         let label = prefix + connector + stage.kind.rawValue
-        guard let wait = wait(for: stage, in: unit) else {
-            return [Row(label: label, value: "–", details: details(of: stage, in: unit, bar: nil))]
+        guard let wait = wait(for: stage, in: job) else {
+            return [Row(label: label, value: "–", details: details(of: stage, in: job, bar: nil))]
         }
         var rows: [Row] = []
         var total = wait.total
@@ -442,7 +442,7 @@ extension ImageTask.Metrics {
             total -= wait.queued
         }
         let fill: Character = stage.kind == .rateLimit ? "░" : "█"
-        rows.append(Row(label: label, value: ms(total), details: details(of: stage, in: unit, bar: bar(for: total, of: duration, fill: fill))))
+        rows.append(Row(label: label, value: ms(total), details: details(of: stage, in: job, bar: bar(for: total, of: duration, fill: fill))))
         return rows
     }
 
@@ -475,9 +475,9 @@ extension ImageTask.Metrics {
     /// ``ImagePipeline/Diagnostics-swift.struct/Stage/attributedDuration``, it
     /// includes the wait for the queue, which is where the time goes when
     /// the pipeline is busy, and says how much of it that was.
-    private func wait(for stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> Wait? {
+    private func wait(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> Wait? {
         guard let begin = stage.queuedAt ?? stage.startedAt else { return nil }
-        let from = max(begin, unit.joinedAt ?? begin)
+        let from = max(begin, job.joinedAt ?? begin)
         let to = min(stage.endedAt ?? endedAt, endedAt)
         var wait = Wait(total: max(0, to - from))
         if stage.queuedAt != nil {
@@ -490,7 +490,7 @@ extension ImageTask.Metrics {
     /// The details, in the same order for every kind of stage: the share of
     /// the task, the state, the result, the transfer, the output, then the
     /// timing.
-    private func details(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit, bar: String?) -> String {
+    private func details(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, bar: String?) -> String {
         var parts: [String] = []
         if stage.startedAt == nil {
             parts.append("never started")
@@ -498,7 +498,7 @@ extension ImageTask.Metrics {
             parts.append("running")
         }
         parts += stage.result.map { [$0.rawValue] } ?? []
-        parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: unit)
+        parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: job)
         return details(bar: bar, parts)
     }
 
@@ -535,12 +535,12 @@ extension ImageTask.Metrics {
     /// What the column doesn't say: how much of the stage was the work
     /// itself, and where in the stage the task joined, on the stage's own
     /// clock.
-    private func timing(of stage: ImagePipeline.Diagnostics.Stage, in unit: ImagePipeline.Diagnostics.Unit) -> [String] {
+    private func timing(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> [String] {
         var parts: [String] = []
         if let workDuration = stage.workDuration, let duration = stage.duration, duration - workDuration >= 0.001 {
             parts.append("work \(ms(workDuration))")
         }
-        if let joinedAt = unit.joinedAt, let begin = stage.queuedAt ?? stage.startedAt, joinedAt > begin {
+        if let joinedAt = job.joinedAt, let begin = stage.queuedAt ?? stage.startedAt, joinedAt > begin {
             if let endedAt = stage.endedAt, endedAt <= joinedAt {
                 parts.append("before join")
             } else {
@@ -674,7 +674,7 @@ extension ImageTask.Metrics {
     }
 
     /// A line of the timeline. A stage has a value, which puts it in the
-    /// columns. A unit has none, and is a heading: its details follow the
+    /// columns. A job has none, and is a heading: its details follow the
     /// label.
     private struct Row {
         var label: String

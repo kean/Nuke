@@ -173,18 +173,18 @@ processors:  com.github.kean/nuke/resize?s=(300.0, 300.0),cm=.aspectFill,crop=fa
 priority:    normal
 image:       450×300 · jpeg
 download:    317 KB
-coalesced:   yes · shared with #1 (u1, u2, u3)
+coalesced:   yes · shared with #1 (j1, j2, j3)
 pipeline:    F7DE81F8-43A3-4F9C-BA41-8C2DF4DEC581
 
 started                  1.2 ms   at 16:12:58.715
-u4 loadImage [resize]
+j4 loadImage [resize]
 ├─ memoryLookup          0.0 ms   miss
 ├─ diskLookup            0.1 ms   miss
-├─ u1 loadImage · joined at 131.4 ms of 350.4 ms
+├─ j1 loadImage · joined at 131.4 ms of 350.4 ms
 │  ├─ memoryLookup       0.0 ms   miss · before join
 │  ├─ diskLookup         0.0 ms   miss · before join
-│  ├─ u2 fetchOriginalImage
-│  │  ├─ u3 fetchOriginalData
+│  ├─ j2 fetchOriginalImage
+│  │  ├─ j3 fetchOriginalData
 │  │  │  ├─ download   169.8 ms   ███████████████  network · 317 KB · HTTP 200 · first byte 261.0 ms · joined at 130.6 ms of 300.4 ms
 │  │  │  └─ diskStore    0.1 ms   317 KB
 │  │  └─ decode         17.8 ms   ██  ImageDecoders.Default · jpeg 1440×960 · work 13.4 ms
@@ -207,7 +207,7 @@ networkLoad · https://cdn.example.com/photos/1024.jpg · HTTP 200 · h2 · TLS 
 finished             299.9 ms   at 16:12:58.884
 ```
 
-The tree reads top to bottom as the task ran, and the column is the time *this* task spent on every row, with a bar where a row took a large share of it, light for a wait. Only `u4` belongs to the task; `u1`, `u2`, and `u3` are the prefetcher's, which is why the lookups above the download say `before join` and the download is charged the 169.8 ms this task waited for rather than the 300.4 ms it took. The `URLSessionTask` block is on the clock of the session task, which was already fetching before the task existed – 218.2 ms of it was spent waiting on the server.
+The tree reads top to bottom as the task ran, and the column is the time *this* task spent on every row, with a bar where a row took a large share of it, light for a wait. Only `j4` belongs to the task; `j1`, `j2`, and `j3` are the prefetcher's, which is why the lookups above the download say `before join` and the download is charged the 169.8 ms this task waited for rather than the 300.4 ms it took. The `URLSessionTask` block is on the clock of the session task, which was already fetching before the task existed – 218.2 ms of it was spent waiting on the server.
 
 Print less with ``ImageTask/Metrics/formatted(_:)``, which takes any subset of the three sections.
 

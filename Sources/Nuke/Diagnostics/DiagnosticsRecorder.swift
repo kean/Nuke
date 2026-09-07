@@ -33,7 +33,7 @@ extension ImagePipeline.Diagnostics {
         nonisolated private let anchorTime = Date().timeIntervalSince1970
         nonisolated private let state = OSAllocatedUnfairLock(initialState: State())
 
-        private var nextUnitID: UInt64 = 0
+        private var nextJobID: UInt64 = 0
 
         private struct State {
             var isEnabled = true
@@ -66,9 +66,9 @@ extension ImagePipeline.Diagnostics {
             return TaskRecord(task: task, recorder: self)
         }
 
-        func makeUnitRecord(kind: Unit.Kind, request: ImageRequest) -> UnitRecord {
-            nextUnitID += 1
-            return UnitRecord(id: nextUnitID, kind: kind, request: request, recorder: self)
+        func makeJobRecord(kind: Job.Kind, request: ImageRequest) -> JobRecord {
+            nextJobID += 1
+            return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self)
         }
     }
 }
@@ -87,7 +87,7 @@ extension ImagePipeline.Diagnostics {
         let request: ImageTask.Metrics.RequestSummary
         let createdAt: ContinuousClock.Instant
         private(set) var startedAt: ContinuousClock.Instant?
-        private(set) var rootUnit: UnitRecord?
+        private(set) var rootJob: JobRecord?
         var previewCount = 0
         private var priorityHistory: [(at: ContinuousClock.Instant, priority: ImageRequest.Priority)] = []
 
@@ -105,9 +105,9 @@ extension ImagePipeline.Diagnostics {
             startedAt = .now
         }
 
-        /// The task subscribed to its root unit.
-        func didAttach(to unit: UnitRecord) {
-            rootUnit = unit
+        /// The task subscribed to its root job.
+        func didAttach(to job: JobRecord) {
+            rootJob = job
         }
 
         func recordPriority(_ priority: ImageRequest.Priority) {
@@ -118,13 +118,13 @@ extension ImagePipeline.Diagnostics {
         func finish(with result: Result<ImageResponse, ImagePipeline.Error>) -> ImageTask.Metrics {
             let now = ContinuousClock.now
 
-            var records: [UnitRecord] = []
-            var unit = rootUnit
-            while let current = unit {
+            var records: [JobRecord] = []
+            var job = rootJob
+            while let current = job {
                 records.append(current)
-                unit = current.parent
+                job = current.parent
             }
-            let units = records.map { $0.makeSnapshot(for: self, at: now) }
+            let jobs = records.map { $0.makeSnapshot(for: self, at: now) }
 
             let outcome: Outcome
             var error: ErrorSummary?
@@ -153,14 +153,14 @@ extension ImagePipeline.Diagnostics {
                 duration: (now - createdAt).timeInterval,
                 outcome: outcome,
                 error: error,
-                source: outcome == .success ? Self.source(of: units) : nil,
-                isCoalesced: units.contains { $0.joinedAt != nil },
-                rootUnitID: rootUnit?.id,
+                source: outcome == .success ? Self.source(of: jobs) : nil,
+                isCoalesced: jobs.contains { $0.joinedAt != nil },
+                rootJobID: rootJob?.id,
                 previewCount: previewCount,
                 priorityHistory: priorityHistory.map { PriorityChange(at: recorder.time($0.at), priority: $0.priority) },
-                bytes: Self.bytes(of: units),
+                bytes: Self.bytes(of: jobs),
                 image: image,
-                units: units
+                jobs: jobs
             )
             return metrics
         }
@@ -168,10 +168,10 @@ extension ImagePipeline.Diagnostics {
         /// The deepest stage that produced the image or its data decides:
         /// a processed image built from an original found on disk came from
         /// the disk.
-        private static func source(of units: [Unit]) -> Source? {
+        private static func source(of jobs: [Job]) -> Source? {
             var source: Source?
-            for unit in units {
-                for stage in unit.stages {
+            for job in jobs {
+                for stage in job.stages {
                     switch stage.kind {
                     case .download:
                         source = stage.source ?? source
@@ -187,9 +187,9 @@ extension ImagePipeline.Diagnostics {
             return source
         }
 
-        private static func bytes(of units: [Unit]) -> ImageTask.Metrics.Bytes? {
-            for unit in units.reversed() {
-                for stage in unit.stages where stage.kind == .download {
+        private static func bytes(of jobs: [Job]) -> ImageTask.Metrics.Bytes? {
+            for job in jobs.reversed() {
+                for stage in job.stages where stage.kind == .download {
                     guard let bytes = stage.bytes else { continue }
                     return ImageTask.Metrics.Bytes(downloaded: bytes, resumed: stage.resumedBytes ?? 0, expected: stage.expectedBytes ?? bytes)
                 }
@@ -199,19 +199,19 @@ extension ImagePipeline.Diagnostics {
     }
 }
 
-// MARK: - UnitRecord
+// MARK: - JobRecord
 
 extension ImagePipeline.Diagnostics {
     /// One piece of shared work, recorded once. Every task that waits on it
     /// gets a copy stamped with the time the task reached it.
     @ImagePipelineActor
-    final class UnitRecord {
+    final class JobRecord {
         let recorder: Recorder
         let id: UInt64
-        let kind: Unit.Kind
+        let kind: Job.Kind
         let createdAt = ContinuousClock.now
-        /// The unit this one subscribed to.
-        private(set) var parent: UnitRecord?
+        /// The job this one subscribed to.
+        private(set) var parent: JobRecord?
         private(set) var createdByTaskID: UInt64?
         private var joins = ContiguousArray<Join>()
         private(set) var endedAt: ContinuousClock.Instant?
@@ -224,7 +224,7 @@ extension ImagePipeline.Diagnostics {
 
         private struct Join {
             let taskID: UInt64
-            /// `nil` if the task's chain created the unit.
+            /// `nil` if the task's chain created the job.
             let joinedAt: ContinuousClock.Instant?
         }
 
@@ -233,7 +233,7 @@ extension ImagePipeline.Diagnostics {
             let priority: TaskPriority
         }
 
-        init(id: UInt64, kind: Unit.Kind, request: ImageRequest, recorder: Recorder) {
+        init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
             self.id = id
             self.kind = kind
             self.request = request
@@ -247,14 +247,14 @@ extension ImagePipeline.Diagnostics {
             (subscriber as? any DiagnosticsSubscriber)?.diagnosticsDidSubscribe(to: self, didJoin: didJoin)
         }
 
-        /// An image task subscribed to the unit.
+        /// An image task subscribed to the job.
         func attach(task: TaskRecord, didJoin: Bool) {
             addJoin(task.taskID, at: didJoin ? .now : nil)
             task.didAttach(to: self)
         }
 
-        /// A unit subscribed to the unit, which makes this one its parent.
-        func attach(child: UnitRecord, didJoin: Bool) {
+        /// Another job subscribed to this one, which makes this one its parent.
+        func attach(child: JobRecord, didJoin: Bool) {
             child.parent = self
             if didJoin {
                 let now = ContinuousClock.now
@@ -285,7 +285,7 @@ extension ImagePipeline.Diagnostics {
             endedAt = now
             self.outcome = outcome
             self.error = error.map(ErrorSummary.init)
-            // The work that was running is cancelled along with the unit.
+            // The work that was running is cancelled along with the job.
             for index in stages.indices where stages[index].endedAt == nil && stages[index].startedAt != nil {
                 stages[index].endedAt = now
             }
@@ -350,9 +350,9 @@ extension ImagePipeline.Diagnostics {
         /// - parameter task: The task the copy belongs to.
         /// - parameter taskEnd: The end of the task, which the attributed
         /// durations are clamped to.
-        func makeSnapshot(for task: TaskRecord, at taskEnd: ContinuousClock.Instant) -> Unit {
+        func makeSnapshot(for task: TaskRecord, at taskEnd: ContinuousClock.Instant) -> Job {
             let joinedAt = joins.first { $0.taskID == task.taskID }?.joinedAt
-            return Unit(
+            return Job(
                 id: id,
                 kind: kind,
                 processors: processors,
@@ -451,24 +451,24 @@ extension ImagePipeline.Diagnostics {
 
 // MARK: - Subscribers
 
-/// A subscriber of an `AsyncTask` that the diagnostics attach to the unit:
-/// an image task, or a unit acting on behalf of its tasks.
+/// A subscriber of an `AsyncTask` that the diagnostics attach to the job:
+/// an image task, or a job acting on behalf of its tasks.
 @ImagePipelineActor
 protocol DiagnosticsSubscriber: AnyObject {
-    func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool)
+    func diagnosticsDidSubscribe(to job: ImagePipeline.Diagnostics.JobRecord, didJoin: Bool)
 }
 
 extension ImageTask: DiagnosticsSubscriber {
-    func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool) {
+    func diagnosticsDidSubscribe(to job: ImagePipeline.Diagnostics.JobRecord, didJoin: Bool) {
         guard let record = _diagnostics else { return }
-        unit.attach(task: record, didJoin: didJoin)
+        job.attach(task: record, didJoin: didJoin)
     }
 }
 
 extension AsyncTask: DiagnosticsSubscriber {
-    func diagnosticsDidSubscribe(to unit: ImagePipeline.Diagnostics.UnitRecord, didJoin: Bool) {
+    func diagnosticsDidSubscribe(to job: ImagePipeline.Diagnostics.JobRecord, didJoin: Bool) {
         guard let diagnostics else { return }
-        unit.attach(child: diagnostics, didJoin: didJoin)
+        job.attach(child: diagnostics, didJoin: didJoin)
     }
 }
 

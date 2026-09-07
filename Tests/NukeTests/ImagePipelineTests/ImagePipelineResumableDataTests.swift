@@ -71,7 +71,7 @@ struct ImagePipelineResumableDataTests {
         #expect(metrics1.outcome == .failure)
         #expect(metrics1.bytes?.downloaded == 11397)
         #expect(metrics1.bytes?.expected == 22789)
-        let failed = try #require(metrics1.units.last?.stages.first { $0.kind == .download })
+        let failed = try #require(metrics1.jobs.last?.stages.first { $0.kind == .download })
         #expect(failed.resumedBytes == 0)
 
         // WHEN the download is resumed
@@ -83,7 +83,7 @@ struct ImagePipelineResumableDataTests {
         #expect(metrics2.bytes?.downloaded == 22789)
         #expect(metrics2.bytes?.resumed == 11397)
         #expect(metrics2.bytes?.expected == 22789)
-        let resumed = try #require(metrics2.units.last?.stages.first { $0.kind == .download })
+        let resumed = try #require(metrics2.jobs.last?.stages.first { $0.kind == .download })
         #expect(resumed.statusCode == 206)
     }
 

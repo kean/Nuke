@@ -62,9 +62,9 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     var onCancelled: (@ImagePipelineActor @Sendable () -> Void)?
 
-    /// The diagnostics record of the unit of work the task represents. `nil`
+    /// The diagnostics record of the job the task represents. `nil`
     /// when diagnostics are off, which makes every recording point a nil-check.
-    var diagnostics: ImagePipeline.Diagnostics.UnitRecord?
+    var diagnostics: ImagePipeline.Diagnostics.JobRecord?
 
     var priority: TaskPriority = .normal {
         didSet {
@@ -120,8 +120,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
 
         if let diagnostics {
-            // A unit that already had a subscription existed before the
-            // subscriber asked for it: the subscriber joined the unit.
+            // A job that already had a subscription existed before the
+            // subscriber asked for it: the subscriber joined the job.
             diagnostics.didSubscribe(subscriber, didJoin: subscriptionKey > 0)
         }
 

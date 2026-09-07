@@ -48,8 +48,8 @@ extension ImagePipeline {
         /// and is `true` by default when it is set.
         ///
         /// The switch is read once per task, when the pipeline starts it, so a
-        /// task is either recorded in full or not at all. The units of work the
-        /// tasks share are reported only when a recorded task reached them.
+        /// task is either recorded in full or not at all. The jobs the tasks
+        /// share are reported only when a recorded task reached them.
         public var isEnabled: Bool {
             get { pipeline.recorder?.isEnabled ?? false }
             nonmutating set { pipeline.recorder?.isEnabled = newValue }
@@ -57,46 +57,46 @@ extension ImagePipeline {
     }
 }
 
-// MARK: - Unit
+// MARK: - Job
 
 extension ImagePipeline.Diagnostics {
     /// One piece of work the pipeline performs for a task and shares with
     /// the other tasks that need the same thing.
     ///
-    /// A request becomes a chain of units: one that loads the processed image,
+    /// A request becomes a chain of jobs: one that loads the processed image,
     /// one that decodes the original, and one that fetches its data. Two tasks
     /// coalesced on the same download see the same ``id``, which is the key
-    /// to deduplicate the copies the tasks carry in ``ImageTask/Metrics/units``.
-    public struct Unit: Codable, Sendable {
+    /// to deduplicate the copies the tasks carry in ``ImageTask/Metrics/jobs``.
+    public struct Job: Codable, Sendable {
         /// Unique within the pipeline.
         public let id: UInt64
         public let kind: Kind
-        /// The identifiers of the processors the unit applies.
+        /// The identifiers of the processors the job applies.
         public let processors: [String]
-        /// The unit this one subscribed to, which makes the chain
+        /// The job this one subscribed to, which makes the chain
         /// reconstructible from a flat list.
         public let parentID: UInt64?
-        /// The task whose request created the unit.
+        /// The task whose request created the job.
         public let createdByTaskID: UInt64
-        /// Every task that reached the unit, in the order they did.
+        /// Every task that reached the job, in the order they did.
         public let taskIDs: [UInt64]
         /// Seconds since 1970.
         public let createdAt: TimeInterval
-        /// Seconds since 1970. `nil` in a task's copy if the unit outlived
+        /// Seconds since 1970. `nil` in a task's copy if the job outlived
         /// the task.
         public let endedAt: TimeInterval?
-        /// `nil` while the unit is running.
+        /// `nil` while the job is running.
         public let outcome: Outcome?
         public let error: ErrorSummary?
-        /// When the task the copy belongs to reached the unit, in seconds
-        /// since 1970. `nil` if the task's chain created the unit.
+        /// When the task the copy belongs to reached the job, in seconds
+        /// since 1970. `nil` if the task's chain created the job.
         public let joinedAt: TimeInterval?
-        /// The priority of the unit over time. It moves when a task joins,
+        /// The priority of the job over time. It moves when a task joins,
         /// leaves, or changes its own priority.
         public let priorityHistory: [PriorityChange]
         public let stages: [Stage]
 
-        /// The kind of work a unit performs.
+        /// The kind of work a job performs.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {
             /// Produces the processed, decompressed image the request asks for.
             case loadImage
@@ -111,8 +111,8 @@ extension ImagePipeline.Diagnostics {
     }
 }
 
-extension ImagePipeline.Diagnostics.Unit {
-    /// `nil` while the unit is running.
+extension ImagePipeline.Diagnostics.Job {
+    /// `nil` while the job is running.
     public var duration: TimeInterval? {
         endedAt.map { $0 - createdAt }
     }
@@ -125,7 +125,7 @@ extension ImagePipeline.Diagnostics.Unit {
 // MARK: - Stage
 
 extension ImagePipeline.Diagnostics {
-    /// A bracketed piece of work inside a unit: a cache lookup, a download,
+    /// A bracketed piece of work inside a job: a cache lookup, a download,
     /// a decode.
     ///
     /// The typed fields that describe the work are optional and set only for
@@ -309,7 +309,7 @@ extension ImagePipeline.Diagnostics.URLSessionMetrics {
 // MARK: - Shared Types
 
 extension ImagePipeline.Diagnostics {
-    /// How a task or a unit ended.
+    /// How a task or a job ended.
     public enum Outcome: String, Sendable, DiagnosticsStringEnum {
         case success
         case failure

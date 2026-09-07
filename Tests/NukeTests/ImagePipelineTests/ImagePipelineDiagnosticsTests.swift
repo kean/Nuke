@@ -84,26 +84,26 @@ struct ImagePipelineDiagnosticsTests {
         #expect(startedAt <= metrics.endedAt)
         #expect(abs((metrics.endedAt - metrics.createdAt) - metrics.duration) < 0.001)
 
-        // THEN the chain of units is recorded, root first
-        #expect(metrics.units.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
-        #expect(metrics.rootUnitID == metrics.units[0].id)
-        #expect(metrics.units.map(\.parentID) == [metrics.units[1].id, metrics.units[2].id, nil])
-        for unit in metrics.units {
-            #expect(unit.createdByTaskID == task.taskId)
-            #expect(unit.taskIDs == [task.taskId])
-            #expect(unit.joinedAt == nil)
-            #expect(unit.outcome == .success)
-            #expect(unit.endedAt != nil)
+        // THEN the chain of jobs is recorded, root first
+        #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
+        #expect(metrics.rootJobID == metrics.jobs[0].id)
+        #expect(metrics.jobs.map(\.parentID) == [metrics.jobs[1].id, metrics.jobs[2].id, nil])
+        for job in metrics.jobs {
+            #expect(job.createdByTaskID == task.taskId)
+            #expect(job.taskIDs == [task.taskId])
+            #expect(job.joinedAt == nil)
+            #expect(job.outcome == .success)
+            #expect(job.endedAt != nil)
         }
 
         // THEN the stages are recorded
-        let root = metrics.units[0]
+        let root = metrics.jobs[0]
         #expect(root.stages.map(\.kind).filter { $0 != .decompress } == [.memoryLookup, .diskLookup, .memoryStore])
         #expect(root.stages[0].result == .miss)
         #expect(root.stages[1].result == .miss)
 
-        let decode = try #require(metrics.units[1].stages.first)
-        #expect(metrics.units[1].stages.count == 1)
+        let decode = try #require(metrics.jobs[1].stages.first)
+        #expect(metrics.jobs[1].stages.count == 1)
         #expect(decode.kind == .decode)
         #expect(decode.decoder == "ImageDecoders.Default")
         #expect(decode.format == "jpeg")
@@ -116,7 +116,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(workDuration <= duration)
         #expect(decode.attributedDuration == duration)
 
-        let fetch = metrics.units[2]
+        let fetch = metrics.jobs[2]
         #expect(fetch.stages.map(\.kind) == [.download, .diskStore])
         let download = fetch.stages[0]
         #expect(download.source == .network)
@@ -140,7 +140,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.image?.isAnimated == false)
     }
 
-    @Test func memoryHitIsOneUnitAndOneStage() async throws {
+    @Test func memoryHitIsOneJobAndOneStage() async throws {
         // GIVEN
         pipeline.cache[Test.request] = Test.container
 
@@ -151,9 +151,9 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.source == .memory)
-        #expect(metrics.units.count == 1)
-        #expect(metrics.units[0].stages.map(\.kind) == [.memoryLookup])
-        #expect(metrics.units[0].stages[0].result == .hit)
+        #expect(metrics.jobs.count == 1)
+        #expect(metrics.jobs[0].stages.map(\.kind) == [.memoryLookup])
+        #expect(metrics.jobs[0].stages[0].result == .hit)
         #expect(metrics.bytes == nil)
         #expect(metrics.image?.width == 640)
     }
@@ -169,8 +169,8 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.source == .disk)
-        #expect(metrics.units.map(\.kind) == [.loadImage])
-        let stages = metrics.units[0].stages
+        #expect(metrics.jobs.map(\.kind) == [.loadImage])
+        let stages = metrics.jobs[0].stages
         #expect(stages.map(\.kind).filter { $0 != .decompress } == [.memoryLookup, .diskLookup, .decode, .memoryStore])
         #expect(stages[1].result == .hit)
         #expect(stages[1].bytes == Int64(Test.data.count))
@@ -192,14 +192,14 @@ struct ImagePipelineDiagnosticsTests {
 
         // THEN
         let metrics = try #require(task.metrics)
-        let kinds = metrics.units.flatMap(\.stages).map(\.kind)
+        let kinds = metrics.jobs.flatMap(\.stages).map(\.kind)
         #expect(!kinds.contains(.memoryLookup))
         #expect(!kinds.contains(.diskLookup))
         #expect(!kinds.contains(.memoryStore))
         #expect(!kinds.contains(.diskStore))
     }
 
-    @Test func processorAddsAUnitAndAStage() async throws {
+    @Test func processorAddsAJobAndAStage() async throws {
         // GIVEN
         let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 240), unit: .pixels)
         let request = ImageRequest(url: Test.url, processors: [processor])
@@ -211,10 +211,10 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.request.processors == [processor.identifier])
-        #expect(metrics.units.map(\.kind) == [.loadImage, .loadImage, .fetchOriginalImage, .fetchOriginalData])
-        #expect(metrics.units[0].processors == [processor.identifier])
-        #expect(metrics.units[1].processors == [])
-        let process = try #require(metrics.units[0].stages.first { $0.kind == .process })
+        #expect(metrics.jobs.map(\.kind) == [.loadImage, .loadImage, .fetchOriginalImage, .fetchOriginalData])
+        #expect(metrics.jobs[0].processors == [processor.identifier])
+        #expect(metrics.jobs[1].processors == [])
+        let process = try #require(metrics.jobs[0].stages.first { $0.kind == .process })
         #expect(process.processor == processor.identifier)
         #expect(process.pixels == .init(width: 320, height: 240))
         #expect(process.isProgressive == false)
@@ -233,7 +233,7 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.source == .file)
-        let fetch = try #require(metrics.units.last)
+        let fetch = try #require(metrics.jobs.last)
         #expect(fetch.kind == .fetchOriginalData)
         #expect(fetch.stages.map(\.kind) == [.download])
         #expect(fetch.stages[0].source == .file)
@@ -254,7 +254,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.request.url == nil)
         #expect(metrics.request.imageID == "closure")
         #expect(metrics.source == .closure)
-        let fetch = try #require(metrics.units.last)
+        let fetch = try #require(metrics.jobs.last)
         #expect(fetch.kind == .fetchOriginalData)
         let download = try #require(fetch.stages.first { $0.kind == .download })
         #expect(download.source == .closure)
@@ -272,8 +272,8 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.source == .closure)
-        #expect(metrics.units.map(\.kind) == [.loadImage, .fetchOriginalImage])
-        let download = try #require(metrics.units[1].stages.first)
+        #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage])
+        let download = try #require(metrics.jobs[1].stages.first)
         #expect(download.kind == .download)
         #expect(download.source == .closure)
         #expect(download.pixels == .init(width: 640, height: 480))
@@ -298,7 +298,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(error.underlyingCode == URLError.notConnectedToInternet.rawValue)
         #expect(!error.description.isEmpty)
 
-        let fetch = try #require(metrics.units.last)
+        let fetch = try #require(metrics.jobs.last)
         #expect(fetch.outcome == .failure)
         #expect(fetch.error?.code == "dataLoadingFailed")
         #expect(fetch.stages.map(\.kind) == [.download])
@@ -324,10 +324,10 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.outcome == .cancelled)
         #expect(metrics.error == nil)
         #expect(metrics.source == nil)
-        #expect(metrics.units.count == 3)
-        for unit in metrics.units {
-            #expect(unit.outcome == .cancelled)
-            #expect(unit.endedAt != nil)
+        #expect(metrics.jobs.count == 3)
+        for job in metrics.jobs {
+            #expect(job.outcome == .cancelled)
+            #expect(job.endedAt != nil)
         }
     }
 
@@ -353,8 +353,8 @@ struct ImagePipelineDiagnosticsTests {
         let metrics = try #require(task.metrics)
         #expect(metrics.kind == .data)
         #expect(metrics.source == .network)
-        #expect(metrics.units.map(\.kind) == [.loadData, .fetchOriginalData])
-        #expect(metrics.units[0].stages.map(\.kind) == [.diskLookup])
+        #expect(metrics.jobs.map(\.kind) == [.loadData, .fetchOriginalData])
+        #expect(metrics.jobs[0].stages.map(\.kind) == [.diskLookup])
         #expect(metrics.bytes?.downloaded == 22789)
     }
 
@@ -399,7 +399,7 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         #expect(metrics.previewCount == 2)
-        let decodes = metrics.units[1].stages.filter { $0.kind == .decode }
+        let decodes = metrics.jobs[1].stages.filter { $0.kind == .decode }
         #expect(decodes.filter { $0.isProgressive == true }.count == 2)
         #expect(decodes.filter { $0.isProgressive == false }.count == 1)
     }
@@ -418,7 +418,7 @@ struct ImagePipelineDiagnosticsTests {
 
         // THEN
         let metrics = try #require(task.metrics)
-        let fetch = try #require(metrics.units.last)
+        let fetch = try #require(metrics.jobs.last)
         #expect(Set(fetch.stages.map(\.kind)) == [.willLoadData, .download])
         let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData }?.duration)
         #expect(willLoadData >= 0.02)
@@ -431,7 +431,7 @@ struct ImagePipelineDiagnosticsTests {
 
     // MARK: - Coalescing
 
-    @Test func coalescedTaskJoinsTheUnits() async throws {
+    @Test func coalescedTaskJoinsTheJobs() async throws {
         // GIVEN two tasks for the same request
         let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
             (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
@@ -447,32 +447,32 @@ struct ImagePipelineDiagnosticsTests {
         #expect(joiner.isCoalesced)
         #expect(dataLoader.createdTaskCount == 1)
 
-        // THEN they carry the same units
-        #expect(creator.units.count == 3)
-        #expect(creator.units.map(\.id) == joiner.units.map(\.id))
-        #expect(creator.rootUnitID == joiner.rootUnitID)
+        // THEN they carry the same jobs
+        #expect(creator.jobs.count == 3)
+        #expect(creator.jobs.map(\.id) == joiner.jobs.map(\.id))
+        #expect(creator.rootJobID == joiner.rootJobID)
         #expect(creator.sharedTaskIDs == [joiner.taskID])
         #expect(joiner.sharedTaskIDs == [creator.taskID])
 
         // THEN the join is recorded on the edge
-        #expect(creator.units.allSatisfy { $0.joinedAt == nil })
-        #expect(joiner.units.allSatisfy { $0.joinedAt != nil })
-        for (unit, copy) in zip(creator.units, joiner.units) {
-            #expect(unit.createdByTaskID == creator.taskID)
-            #expect(unit.taskIDs == [creator.taskID, joiner.taskID])
-            #expect(copy.taskIDs == unit.taskIDs)
-            #expect(unit.stages.count == copy.stages.count)
+        #expect(creator.jobs.allSatisfy { $0.joinedAt == nil })
+        #expect(joiner.jobs.allSatisfy { $0.joinedAt != nil })
+        for (job, copy) in zip(creator.jobs, joiner.jobs) {
+            #expect(job.createdByTaskID == creator.taskID)
+            #expect(job.taskIDs == [creator.taskID, joiner.taskID])
+            #expect(copy.taskIDs == job.taskIDs)
+            #expect(job.stages.count == copy.stages.count)
         }
 
         // THEN the attributed durations are clamped to the task
-        for unit in joiner.units {
-            for stage in unit.stages {
+        for job in joiner.jobs {
+            for stage in job.stages {
                 guard let attributed = stage.attributedDuration, let duration = stage.duration else { continue }
                 #expect(attributed <= duration + 0.0001)
                 #expect(attributed <= joiner.duration + 0.0001)
             }
         }
-        let lookups = joiner.units[0].stages.filter { $0.kind == .memoryLookup || $0.kind == .diskLookup }
+        let lookups = joiner.jobs[0].stages.filter { $0.kind == .memoryLookup || $0.kind == .diskLookup }
         #expect(lookups.allSatisfy { $0.attributedDuration == 0 })
     }
 
@@ -492,16 +492,16 @@ struct ImagePipelineDiagnosticsTests {
         // THEN the roots differ and the rest is shared
         let metrics1 = try #require(task1.metrics)
         let metrics2 = try #require(task2.metrics)
-        #expect(metrics1.units.count == 4)
-        #expect(metrics1.units[0].id != metrics2.units[0].id)
-        #expect(metrics1.units.dropFirst().map(\.id) == metrics2.units.dropFirst().map(\.id))
+        #expect(metrics1.jobs.count == 4)
+        #expect(metrics1.jobs[0].id != metrics2.jobs[0].id)
+        #expect(metrics1.jobs.dropFirst().map(\.id) == metrics2.jobs.dropFirst().map(\.id))
 
         let (creator, joiner) = metrics1.isCoalesced ? (metrics2, metrics1) : (metrics1, metrics2)
         #expect(!creator.isCoalesced)
         #expect(joiner.isCoalesced)
-        #expect(joiner.units[0].joinedAt == nil)
-        #expect(joiner.units.dropFirst().allSatisfy { $0.joinedAt != nil })
-        #expect(joiner.units[1].taskIDs == [creator.taskID, joiner.taskID])
+        #expect(joiner.jobs[0].joinedAt == nil)
+        #expect(joiner.jobs.dropFirst().allSatisfy { $0.joinedAt != nil })
+        #expect(joiner.jobs[1].taskIDs == [creator.taskID, joiner.taskID])
     }
 
     @Test func dataTaskAndImageTaskShareTheDownload() async throws {
@@ -515,13 +515,13 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let imageMetrics = try #require(imageTask.metrics)
         let dataMetrics = try #require(dataTask.metrics)
-        #expect(imageMetrics.units.last?.kind == .fetchOriginalData)
-        #expect(imageMetrics.units.last?.id == dataMetrics.units.last?.id)
-        #expect(imageMetrics.units.last?.taskIDs.count == 2)
+        #expect(imageMetrics.jobs.last?.kind == .fetchOriginalData)
+        #expect(imageMetrics.jobs.last?.id == dataMetrics.jobs.last?.id)
+        #expect(imageMetrics.jobs.last?.taskIDs.count == 2)
         #expect(dataLoader.createdTaskCount == 1)
     }
 
-    @Test func cancellingOneOfTwoTasksLeavesTheUnitRunning() async throws {
+    @Test func cancellingOneOfTwoTasksLeavesTheJobRunning() async throws {
         // GIVEN two tasks sharing a download that hasn't completed
         dataLoader.isSuspended = true
         let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
@@ -541,16 +541,16 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics1 = try #require(task1.metrics)
         #expect(metrics1.outcome == .cancelled)
-        #expect(metrics1.units.allSatisfy { $0.outcome == nil && $0.endedAt == nil })
+        #expect(metrics1.jobs.allSatisfy { $0.outcome == nil && $0.endedAt == nil })
 
         let metrics2 = try #require(task2.metrics)
         #expect(metrics2.outcome == .success)
-        #expect(metrics2.units.allSatisfy { $0.outcome == .success })
-        #expect(metrics2.units[0].taskIDs == [task1.taskId, task2.taskId])
+        #expect(metrics2.jobs.allSatisfy { $0.outcome == .success })
+        #expect(metrics2.jobs[0].taskIDs == [task1.taskId, task2.taskId])
         #expect(dataLoader.createdTaskCount == 1)
     }
 
-    @Test func unitPriorityHistoryFollowsTheTasks() async throws {
+    @Test func jobPriorityHistoryFollowsTheTasks() async throws {
         // GIVEN a low priority task that a high priority one joins
         dataLoader.isSuspended = true
         let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
@@ -569,11 +569,11 @@ struct ImagePipelineDiagnosticsTests {
         dataLoader.isSuspended = false
         _ = try await task1.response
 
-        // THEN every unit records the escalation, the demotion, and the change
+        // THEN every job records the escalation, the demotion, and the change
         let metrics = try #require(task1.metrics)
         #expect(metrics.priorityHistory.map(\.priority) == [.veryHigh])
-        for unit in metrics.units {
-            #expect(unit.priorityHistory.map(\.priority) == [.low, .high, .low, .veryHigh])
+        for job in metrics.jobs {
+            #expect(job.priorityHistory.map(\.priority) == [.low, .high, .low, .veryHigh])
         }
     }
 
@@ -595,8 +595,8 @@ struct ImagePipelineDiagnosticsTests {
         #expect(decoded.pipelineID == metrics.pipelineID)
         #expect(decoded.request.priority == .high)
         #expect(decoded.request.processors == metrics.request.processors)
-        #expect(decoded.units.map(\.id) == metrics.units.map(\.id))
-        #expect(decoded.units.flatMap(\.stages).map(\.kind) == metrics.units.flatMap(\.stages).map(\.kind))
+        #expect(decoded.jobs.map(\.id) == metrics.jobs.map(\.id))
+        #expect(decoded.jobs.flatMap(\.stages).map(\.kind) == metrics.jobs.flatMap(\.stages).map(\.kind))
         #expect(decoded.duration == metrics.duration)
         #expect(decoded.image?.width == metrics.image?.width)
 
@@ -622,9 +622,9 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.kind == .prefetch)
         #expect(metrics.label == "feed")
         #expect(metrics.isCoalesced)
-        #expect(metrics.units.count == 3)
-        #expect(metrics.units[0].joinedAt == 1788606000.1202)
-        let download = try #require(metrics.units[2].stages.first { $0.kind == .download })
+        #expect(metrics.jobs.count == 3)
+        #expect(metrics.jobs[0].joinedAt == 1788606000.1202)
+        let download = try #require(metrics.jobs[2].stages.first { $0.kind == .download })
         #expect(download.attributedDuration == 0.2938)
         #expect(download.urlSessionTaskID == 17)
         let urlSession = try #require(download.urlSessionMetrics)
@@ -636,7 +636,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(urlSession.transactions[0].domainLookupStartedAt == nil)
         #expect(urlSession.transactions[1].domainLookupStartedAt == 1788606000.043)
         #expect(metrics.description.hasPrefix("ImageTask #42 \"feed\" · success · 366.3 ms · from network\n"))
-        #expect(metrics.description.range(of: #"\ncoalesced: +yes · shared with #41 \(u6, u7, u8\)\n"#, options: .regularExpression) != nil)
+        #expect(metrics.description.range(of: #"\ncoalesced: +yes · shared with #41 \(j6, j7, j8\)\n"#, options: .regularExpression) != nil)
 
         // THEN encoding it again produces the same JSON
         let encoded = try JSONEncoder().encode(metrics)
@@ -690,8 +690,8 @@ struct ImagePipelineDiagnosticsTests {
         #expect(valueColumns.count == header.count - 1)
         #expect(Set(valueColumns).count == 1, "Misaligned header in:\n\(description)")
 
-        // THEN the units form a tree, root first, with the durations in a column
-        #expect(description.contains("\nu\(task.metrics!.rootUnitID!) loadImage [resize]\n├─ memoryLookup "))
+        // THEN the jobs form a tree, root first, with the durations in a column
+        #expect(description.contains("\nj\(task.metrics!.rootJobID!) loadImage [resize]\n├─ memoryLookup "))
         #expect(description.contains("\n│     └─ decode "))
         #expect(description.contains("\n└─ memoryStore "))
         for stage in ["diskLookup", "download", "process"] {
@@ -752,7 +752,7 @@ struct ImagePipelineDiagnosticsTests {
         let index = try #require(lines.firstIndex { $0.contains("├─ imageProcessingQueue ") }, "No queue row in:\n\(description)")
         #expect(lines[index + 1].contains("─ process "))
         let waitRange = try #require(lines[index].range(of: #"[0-9.]+ ms"#, options: .regularExpression))
-        let process = try #require(task.metrics?.units.first?.stages.first { $0.kind == .process })
+        let process = try #require(task.metrics?.jobs.first?.stages.first { $0.kind == .process })
         let printed = try #require(Double(lines[index][waitRange].dropLast(3)))
         let queueWait = try #require(process.queueWait)
         #expect(abs(printed - queueWait * 1000) < 0.1)
@@ -771,7 +771,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(header.hasPrefix("ImageTask #42 \"feed\" · success"))
         #expect(header.range(of: #"\npipeline: +3B0C6E4A-6D5C-4F0E-9E43-2C7D1A9B5F10$"#, options: .regularExpression) != nil, "Unexpected header:\n\(header)")
         #expect(timeline.hasPrefix("started "))
-        #expect(timeline.contains("\nu6 loadImage"))
+        #expect(timeline.contains("\nj6 loadImage"))
         #expect(timeline.hasSuffix("\n") == false && timeline.split(separator: "\n").last?.hasPrefix("finished ") == true)
         #expect(urlSession.hasPrefix("URLSessionTask #17 · "))
 
@@ -853,7 +853,7 @@ struct ImagePipelineDiagnosticsTests {
         // protocol gets one transaction with the request and the time the
         // fetch started, and nothing about the response.
         let metrics = try #require(task.metrics)
-        let download = try #require(metrics.units.last?.stages.first { $0.kind == .download })
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
         let urlSession = try #require(download.urlSessionMetrics)
         #expect(urlSession.urlSessionTaskID == download.urlSessionTaskID)
         #expect(metrics.urlSessionMetrics?.urlSessionTaskID == urlSession.urlSessionTaskID)
