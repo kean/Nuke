@@ -149,6 +149,16 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 // Actual data loader implementation. Hide NSObject inheritance, hide
 // URLSessionDataDelegate conformance, and break retain cycle between URLSession
 // and URLSessionDataDelegate.
+/// The handle a ``DataLoader`` returns. It carries the task itself, which is
+/// where the diagnostics read its `taskIdentifier` from.
+struct URLSessionTaskCancellable: Cancellable {
+    let task: URLSessionTask
+
+    func cancel() {
+        task.cancel()
+    }
+}
+
 private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
@@ -174,7 +184,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Se
             self.handlers[task] = handler
         }
         task.resume()
-        return task
+        return URLSessionTaskCancellable(task: task)
     }
 
     // MARK: URLSessionDelegate

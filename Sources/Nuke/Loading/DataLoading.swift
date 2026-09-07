@@ -22,7 +22,3 @@ public protocol DataLoading: Sendable {
 public protocol Cancellable: Sendable {
     func cancel()
 }
-
-/// `DataLoader` returns its tasks directly, which exposes `taskIdentifier`
-/// to the diagnostics without changing the ``DataLoading`` contract.
-extension URLSessionTask: Cancellable {}

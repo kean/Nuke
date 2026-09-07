@@ -163,8 +163,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             } else {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { completion($0, nil) }
             }
-            if downloadStage != nil, let task = dataLoadCancellable as? URLSessionTask {
-                diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = task.taskIdentifier }
+            if downloadStage != nil, let handle = dataLoadCancellable as? URLSessionTaskCancellable {
+                diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
             }
         }
     }

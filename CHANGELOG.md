@@ -57,7 +57,6 @@
 - `ImagePipeline/Configuration/imageDecodingQueue` now runs 2 concurrent tasks instead of 1, matching `imageDecompressingQueue`. It carries the pixel work of a thumbnail request, which decodes and downsamples in one step and skips decompression – https://github.com/kean/Nuke/pull/962
 - Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, what `URLSession` measured for the download, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set – https://github.com/kean/Nuke/pull/960
 - `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
-- `DataLoader` now returns the `URLSessionTask` as the `Cancellable` – https://github.com/kean/Nuke/pull/960
 
 **Bug Fixes**
 
