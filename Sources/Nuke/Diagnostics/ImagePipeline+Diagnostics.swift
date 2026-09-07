@@ -75,26 +75,26 @@ extension ImagePipeline.Diagnostics {
         public let processors: [String]
         /// The job this one subscribed to, which makes the chain
         /// reconstructible from a flat list.
-        public let parentID: UInt64?
+        public internal(set) var parentID: UInt64?
         /// The task whose request created the job.
-        public let createdByTaskID: UInt64
+        public internal(set) var createdByTaskID: UInt64
         /// Every task that reached the job, in the order they did.
-        public let taskIDs: [UInt64]
+        public internal(set) var taskIDs: [UInt64] = []
         /// Seconds since 1970.
         public let createdAt: TimeInterval
         /// Seconds since 1970. `nil` in a task's copy if the job outlived
         /// the task.
-        public let endedAt: TimeInterval?
+        public internal(set) var endedAt: TimeInterval?
         /// `nil` while the job is running.
-        public let outcome: Outcome?
-        public let error: ErrorSummary?
+        public internal(set) var outcome: Outcome?
+        public internal(set) var error: ErrorSummary?
         /// When the task the copy belongs to reached the job, in seconds
         /// since 1970. `nil` if the task's chain created the job.
-        public let joinedAt: TimeInterval?
+        public internal(set) var joinedAt: TimeInterval?
         /// The priority of the job over time. It moves when a task joins,
         /// leaves, or changes its own priority.
-        public let priorityHistory: [PriorityChange]
-        public let stages: [Stage]
+        public internal(set) var priorityHistory: [PriorityChange] = []
+        public internal(set) var stages: [Stage] = []
 
         /// The kind of work a job performs.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {
@@ -137,53 +137,53 @@ extension ImagePipeline.Diagnostics {
         /// stage started without waiting for a queue.
         public let queuedAt: TimeInterval?
         /// Seconds since 1970. `nil` if the stage never left its queue.
-        public let startedAt: TimeInterval?
+        public internal(set) var startedAt: TimeInterval?
         /// Measured on the pipeline actor, so it includes the hop to and from
         /// a background queue. `nil` if the stage was still running when the
         /// record was captured, or if it never started.
-        public let duration: TimeInterval?
+        public internal(set) var duration: TimeInterval?
         /// Measured inside the work closure for decoding, processing, and
         /// decompression.
-        public let workDuration: TimeInterval?
+        public internal(set) var workDuration: TimeInterval?
         /// ``duration`` clamped to the lifetime of the task the copy belongs
         /// to, so the stages a task didn't wait for attribute zero. `nil` if
         /// the stage never started.
-        public let attributedDuration: TimeInterval?
+        public internal(set) var attributedDuration: TimeInterval?
 
         /// The result of a lookup.
-        public let result: LookupResult?
+        public internal(set) var result: LookupResult?
         /// `true` if the stage produced or handled a progressive preview.
-        public let isProgressive: Bool?
+        public internal(set) var isProgressive: Bool?
         /// The type of the decoder.
-        public let decoder: String?
+        public internal(set) var decoder: String?
         /// The identifier of the processor.
-        public let processor: String?
+        public internal(set) var processor: String?
         /// The format of the image the stage produced, such as `"jpeg"`.
-        public let format: String?
+        public internal(set) var format: String?
         /// The size of the image the stage produced.
-        public let pixels: PixelSize?
+        public internal(set) var pixels: PixelSize?
         /// Where a download got the data from.
-        public let source: Source?
+        public internal(set) var source: Source?
         /// The bytes downloaded, read, or written.
-        public let bytes: Int64?
+        public internal(set) var bytes: Int64?
         /// The bytes a download reused from a previous attempt.
-        public let resumedBytes: Int64?
+        public internal(set) var resumedBytes: Int64?
         /// The bytes a download expected, including the resumed ones.
-        public let expectedBytes: Int64?
+        public internal(set) var expectedBytes: Int64?
         /// The HTTP status code of a download.
-        public let statusCode: Int?
+        public internal(set) var statusCode: Int?
         /// When the first chunk of a download arrived, in seconds since 1970.
-        public let firstByteAt: TimeInterval?
+        public internal(set) var firstByteAt: TimeInterval?
         /// The `taskIdentifier` of the `URLSessionTask` that performed the
         /// download. Known from the start of the download, so it is there for
         /// a task that ended before the download did, when
         /// ``urlSessionMetrics`` isn't.
-        public let urlSessionTaskID: Int?
+        public internal(set) var urlSessionTaskID: Int?
         /// What `URLSession` measured for the download: every request the
         /// session made, and the time each step of it took. `nil` if the data
         /// loader isn't a ``DataLoader``, or if the download hadn't completed
         /// when the record was captured.
-        public let urlSessionMetrics: URLSessionMetrics?
+        public internal(set) var urlSessionMetrics: URLSessionMetrics?
 
         /// The kind of work a stage performs.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {

@@ -15,8 +15,8 @@ extension ImagePipeline.Diagnostics {
     /// the app reaches from anywhere: the runtime switch.
     ///
     /// Time is read from `ContinuousClock`, which keeps counting through
-    /// sleep, and converted to seconds since 1970 only when a record is
-    /// captured, using the anchor taken when the recorder was created.
+    /// sleep, and written as seconds since 1970 against the anchor taken
+    /// when the recorder was created.
     @ImagePipelineActor
     final class Recorder {
         nonisolated let pipelineID: UUID
@@ -37,13 +37,12 @@ extension ImagePipeline.Diagnostics {
             set { _isEnabled.withLock { $0 = newValue } }
         }
 
+        /// Now, in seconds since 1970.
+        nonisolated var now: TimeInterval { time(.now) }
+
         /// Seconds since 1970.
         nonisolated func time(_ instant: ContinuousClock.Instant) -> TimeInterval {
             anchorTime + (instant - anchorInstant).timeInterval
-        }
-
-        nonisolated func priorityChanges(_ history: [PriorityRecord]) -> [PriorityChange] {
-            history.map { PriorityChange(at: time($0.at), priority: $0.priority) }
         }
 
         /// Starts recording a task, or returns `nil` if the runtime switch is
@@ -57,13 +56,6 @@ extension ImagePipeline.Diagnostics {
             nextJobID += 1
             return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self)
         }
-    }
-
-    /// A priority change as it is recorded, before the instant becomes
-    /// seconds since 1970.
-    struct PriorityRecord {
-        let at: ContinuousClock.Instant
-        let priority: ImageRequest.Priority
     }
 }
 
@@ -79,11 +71,12 @@ extension ImagePipeline.Diagnostics {
         let kind: ImageTask.Metrics.Kind
         let label: String?
         let request: ImageTask.Metrics.RequestSummary
-        let createdAt: ContinuousClock.Instant
-        private(set) var startedAt: ContinuousClock.Instant?
+        /// Seconds since 1970.
+        let createdAt: TimeInterval
+        private(set) var startedAt: TimeInterval?
         private(set) var rootJob: JobRecord?
         var previewCount = 0
-        private var priorityHistory: [PriorityRecord] = []
+        private var priorityHistory: [PriorityChange] = []
 
         init(task: ImageTask, recorder: Recorder) {
             self.recorder = recorder
@@ -91,12 +84,12 @@ extension ImagePipeline.Diagnostics {
             self.kind = task._kind
             self.label = task.request.userInfo[.labelKey] as? String
             self.request = ImageTask.Metrics.RequestSummary(task.request)
-            self.createdAt = task._createdAt ?? .now
+            self.createdAt = task._createdAt.map(recorder.time) ?? recorder.now
         }
 
         /// The pipeline started working on the task.
         func didStart() {
-            startedAt = .now
+            startedAt = recorder.now
         }
 
         /// The task subscribed to its root job.
@@ -105,12 +98,12 @@ extension ImagePipeline.Diagnostics {
         }
 
         func recordPriority(_ priority: ImageRequest.Priority) {
-            priorityHistory.append(PriorityRecord(at: .now, priority: priority))
+            priorityHistory.append(PriorityChange(at: recorder.now, priority: priority))
         }
 
         /// Captures the record. Called once, when the task finishes.
         func finish(with result: Result<ImageResponse, ImagePipeline.Error>) -> ImageTask.Metrics {
-            let now = ContinuousClock.now
+            let now = recorder.now
 
             var jobs: [Job] = []
             var job = rootJob
@@ -140,17 +133,17 @@ extension ImagePipeline.Diagnostics {
                 kind: kind,
                 label: label,
                 request: request,
-                createdAt: recorder.time(createdAt),
-                startedAt: startedAt.map(recorder.time),
-                endedAt: recorder.time(now),
-                duration: (now - createdAt).timeInterval,
+                createdAt: createdAt,
+                startedAt: startedAt,
+                endedAt: now,
+                duration: now - createdAt,
                 outcome: outcome,
                 error: error,
                 source: outcome == .success ? Self.source(of: jobs) : nil,
                 isCoalesced: jobs.contains { $0.joinedAt != nil },
                 rootJobID: rootJob?.id,
                 previewCount: previewCount,
-                priorityHistory: recorder.priorityChanges(priorityHistory),
+                priorityHistory: priorityHistory,
                 bytes: Self.bytes(of: jobs),
                 image: image,
                 jobs: jobs
@@ -194,37 +187,38 @@ extension ImagePipeline.Diagnostics {
 // MARK: - JobRecord
 
 extension ImagePipeline.Diagnostics {
-    /// One piece of shared work, recorded once. Every task that waits on it
-    /// gets a copy stamped with the time the task reached it.
+    /// One piece of shared work, recorded once into the ``Job`` it becomes.
+    /// Every task that waits on it captures a copy, stamped with what is true
+    /// for that task.
     @ImagePipelineActor
     final class JobRecord {
         let recorder: Recorder
-        let id: UInt64
-        let kind: Job.Kind
-        let createdAt = ContinuousClock.now
+        /// The job as it is recorded. The fields a task decides – the time it
+        /// joined, and what it waited for – are stamped on its copy.
+        private var job: Job
         /// The job this one subscribed to.
         private(set) var parent: JobRecord?
-        private(set) var createdByTaskID: UInt64?
+        /// Every task that reached the job, in the order they did. The first
+        /// one created it.
         private var joins: [Join] = []
-        private(set) var endedAt: ContinuousClock.Instant?
-        private var outcome: Outcome?
-        private var error: ErrorSummary?
-        private var priorityHistory: [PriorityRecord] = []
-        private var stages: [StageRecord] = []
-        /// The identifiers of the processors the job applies.
-        private let processors: [String]
+
+        var id: UInt64 { job.id }
 
         private struct Join {
             let taskID: UInt64
             /// `nil` if the task's chain created the job.
-            let joinedAt: ContinuousClock.Instant?
+            let joinedAt: TimeInterval?
         }
 
         init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
-            self.id = id
-            self.kind = kind
-            self.processors = request.processors.map(\.identifier)
             self.recorder = recorder
+            self.job = Job(
+                id: id,
+                kind: kind,
+                processors: request.processors.map(\.identifier),
+                createdByTaskID: 0,
+                createdAt: recorder.now
+            )
         }
 
         // MARK: Subscribers
@@ -235,52 +229,49 @@ extension ImagePipeline.Diagnostics {
 
         /// An image task subscribed to the job.
         func attach(task: TaskRecord, didJoin: Bool) {
-            addJoin(task.taskID, at: didJoin ? .now : nil)
+            addJoin(task.taskID, at: didJoin ? recorder.now : nil)
             task.didAttach(to: self)
         }
 
         /// Another job subscribed to this one, which makes this one its parent.
         func attach(child: JobRecord, didJoin: Bool) {
             child.parent = self
+            child.job.parentID = job.id
             if didJoin {
-                let now = ContinuousClock.now
+                let now = recorder.now
                 for join in child.joins {
                     addJoin(join.taskID, at: now)
                 }
             } else {
                 // Created on behalf of the tasks the child already has, who
                 // reached it at the same time they reached the child.
-                createdByTaskID = child.createdByTaskID
                 joins = child.joins
             }
         }
 
-        private func addJoin(_ taskID: UInt64, at joinedAt: ContinuousClock.Instant?) {
-            if createdByTaskID == nil {
-                createdByTaskID = taskID
-            }
+        private func addJoin(_ taskID: UInt64, at joinedAt: TimeInterval?) {
             joins.append(Join(taskID: taskID, joinedAt: joinedAt))
-            parent?.addJoin(taskID, at: joinedAt ?? .now)
+            parent?.addJoin(taskID, at: joinedAt ?? recorder.now)
         }
 
         // MARK: Lifecycle
 
         func finish(_ outcome: Outcome, error: ImagePipeline.Error? = nil) {
-            guard endedAt == nil else { return }
-            let now = ContinuousClock.now
-            endedAt = now
-            self.outcome = outcome
-            self.error = error.map(ErrorSummary.init)
+            guard job.endedAt == nil else { return }
+            let now = recorder.now
+            job.endedAt = now
+            job.outcome = outcome
+            job.error = error.map(ErrorSummary.init)
             // The work that was running is cancelled along with the job.
-            for index in stages.indices where stages[index].endedAt == nil && stages[index].startedAt != nil {
-                stages[index].endedAt = now
+            for index in job.stages.indices {
+                job.stages[index].end(at: now)
             }
         }
 
         func recordPriority(_ priority: TaskPriority) {
             let priority = priority.requestPriority
-            guard priorityHistory.last?.priority != priority else { return }
-            priorityHistory.append(PriorityRecord(at: .now, priority: priority))
+            guard job.priorityHistory.last?.priority != priority else { return }
+            job.priorityHistory.append(PriorityChange(at: recorder.now, priority: priority))
         }
 
         // MARK: Stages
@@ -289,41 +280,51 @@ extension ImagePipeline.Diagnostics {
         /// never removed.
         @discardableResult
         func beginStage(_ kind: Stage.Kind, queued: Bool = false) -> Int {
-            let now = ContinuousClock.now
-            stages.append(StageRecord(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now))
-            return stages.count - 1
+            let now = recorder.now
+            job.stages.append(Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now))
+            return job.stages.count - 1
         }
 
         /// The queued stage left its queue.
         func startStage(_ index: Int?) {
             guard let index else { return }
-            stages[index].startedAt = .now
+            job.stages[index].startedAt = recorder.now
         }
 
-        func updateStage(_ index: Int?, _ update: (inout StageRecord) -> Void) {
+        func updateStage(_ index: Int?, _ update: (inout Stage) -> Void) {
             guard let index else { return }
-            update(&stages[index])
+            update(&job.stages[index])
         }
 
-        func endStage(_ index: Int?, _ update: (inout StageRecord) -> Void = { _ in }) {
+        func endStage(_ index: Int?, _ update: (inout Stage) -> Void = { _ in }) {
             guard let index else { return }
-            update(&stages[index])
-            stages[index].endedAt = .now
+            update(&job.stages[index])
+            job.stages[index].end(at: recorder.now)
         }
 
         /// Records a stage that ran synchronously, from `start` to now.
-        func recordStage(_ kind: Stage.Kind, from start: ContinuousClock.Instant, _ update: (inout StageRecord) -> Void = { _ in }) {
-            var stage = StageRecord(kind: kind, startedAt: start)
+        func recordStage(_ kind: Stage.Kind, from start: ContinuousClock.Instant, _ update: (inout Stage) -> Void = { _ in }) {
+            var stage = Stage(kind: kind, queuedAt: nil, startedAt: recorder.time(start))
             update(&stage)
-            stage.endedAt = .now
-            stages.append(stage)
+            stage.end(at: recorder.now)
+            job.stages.append(stage)
+        }
+
+        /// The first chunk of a download arrived.
+        func recordFirstByte(_ index: Int?, statusCode: Int?) {
+            let now = recorder.now
+            updateStage(index) {
+                guard $0.firstByteAt == nil else { return }
+                $0.firstByteAt = now
+                $0.statusCode = statusCode
+            }
         }
 
         func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, context: ImageDecodingContext, workDuration: Duration?) {
             endStage(index) {
                 $0.decoder = diagnosticsTypeName(of: decoder)
                 $0.isProgressive = !context.isCompleted
-                $0.workDuration = workDuration
+                $0.workDuration = workDuration?.timeInterval
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
                 }
@@ -335,94 +336,44 @@ extension ImagePipeline.Diagnostics {
         /// - parameter task: The task the copy belongs to.
         /// - parameter taskEnd: The end of the task, which the attributed
         /// durations are clamped to.
-        func makeSnapshot(for task: TaskRecord, at taskEnd: ContinuousClock.Instant) -> Job {
-            let joinedAt = joins.first { $0.taskID == task.taskID }?.joinedAt
-            return Job(
-                id: id,
-                kind: kind,
-                processors: processors,
-                parentID: parent?.id,
-                createdByTaskID: createdByTaskID ?? 0,
-                taskIDs: joins.map(\.taskID),
-                createdAt: recorder.time(createdAt),
-                endedAt: endedAt.map(recorder.time),
-                outcome: outcome,
-                error: error,
-                joinedAt: joinedAt.map(recorder.time),
-                priorityHistory: recorder.priorityChanges(priorityHistory),
-                stages: stages.map { $0.makeSnapshot(recorder: recorder, joinedAt: joinedAt, taskEnd: taskEnd) }
-            )
+        func makeSnapshot(for task: TaskRecord, at taskEnd: TimeInterval) -> Job {
+            var copy = job
+            copy.createdByTaskID = joins.first?.taskID ?? 0
+            copy.taskIDs = joins.map(\.taskID)
+            copy.joinedAt = joins.first { $0.taskID == task.taskID }?.joinedAt
+            copy.stages = job.stages.map { $0.attributed(joinedAt: copy.joinedAt, taskEnd: taskEnd) }
+            return copy
         }
     }
 }
 
-// MARK: - StageRecord
+// MARK: - Stage
 
-extension ImagePipeline.Diagnostics {
-    /// A stage as it is recorded: instants instead of seconds since 1970, and
-    /// the typed fields the recording points fill in.
-    struct StageRecord {
-        let kind: Stage.Kind
-        var queuedAt: ContinuousClock.Instant?
-        var startedAt: ContinuousClock.Instant?
-        var endedAt: ContinuousClock.Instant?
-        var workDuration: Duration?
-        var result: Stage.LookupResult?
-        var isProgressive: Bool?
-        var decoder: String?
-        var processor: String?
-        var format: String?
-        var pixels: PixelSize?
-        var source: Source?
-        var bytes: Int64?
-        var resumedBytes: Int64?
-        var expectedBytes: Int64?
-        var statusCode: Int?
-        var firstByteAt: ContinuousClock.Instant?
-        var urlSessionTaskID: Int?
-        /// What `URLSession` measured for a download, once it completed.
-        var urlSessionMetrics: URLSessionMetrics?
+extension ImagePipeline.Diagnostics.Stage {
+    /// Records what a decode, process, or decompress stage produced.
+    mutating func setOutput(_ container: ImageContainer) {
+        pixels = container.image.diagnosticsPixelSize
+        format = container.type?.diagnosticsName
+    }
 
-        /// Records what a decode, process, or decompress stage produced.
-        mutating func setOutput(_ container: ImageContainer) {
-            pixels = container.image.diagnosticsPixelSize
-            format = container.type?.diagnosticsName
-        }
+    /// Closes the stage, if it is running. A stage that never left its queue
+    /// has nothing to measure.
+    mutating func end(at now: TimeInterval) {
+        guard let startedAt, duration == nil else { return }
+        duration = max(0, now - startedAt)
+    }
 
-        func makeSnapshot(recorder: Recorder, joinedAt: ContinuousClock.Instant?, taskEnd: ContinuousClock.Instant) -> Stage {
-            var duration: TimeInterval?
-            if let startedAt, let endedAt {
-                duration = (endedAt - startedAt).timeInterval
-            }
-            var attributedDuration: TimeInterval?
-            if let startedAt {
-                let start = joinedAt.map { max($0, startedAt) } ?? startedAt
-                let end = min(endedAt ?? taskEnd, taskEnd)
-                attributedDuration = max(0, (end - start).timeInterval)
-            }
-            return Stage(
-                kind: kind,
-                queuedAt: queuedAt.map(recorder.time),
-                startedAt: startedAt.map(recorder.time),
-                duration: duration,
-                workDuration: workDuration?.timeInterval,
-                attributedDuration: attributedDuration,
-                result: result,
-                isProgressive: isProgressive,
-                decoder: decoder,
-                processor: processor,
-                format: format,
-                pixels: pixels,
-                source: source,
-                bytes: bytes,
-                resumedBytes: resumedBytes,
-                expectedBytes: expectedBytes,
-                statusCode: statusCode,
-                firstByteAt: firstByteAt.map(recorder.time),
-                urlSessionTaskID: urlSessionTaskID,
-                urlSessionMetrics: urlSessionMetrics
-            )
-        }
+    /// The copy one task carries: the same stage with the share of its
+    /// duration the task waited for. The work that ran before the task
+    /// joined, or after the task ended, is not the task's to pay for.
+    func attributed(joinedAt: TimeInterval?, taskEnd: TimeInterval) -> Self {
+        guard let startedAt else { return self }
+        let duration = duration ?? max(0, taskEnd - startedAt)
+        let joinWait = max(0, (joinedAt ?? startedAt) - startedAt)
+        let overrun = max(0, (startedAt + duration) - taskEnd)
+        var copy = self
+        copy.attributedDuration = max(0, duration - joinWait - overrun)
+        return copy
     }
 }
 

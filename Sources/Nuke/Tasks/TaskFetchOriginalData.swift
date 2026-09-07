@@ -171,12 +171,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
     private func dataTaskDidReceive(chunk: Data, response: URLResponse) {
         guard dataLoadContinuation != nil, !isDisposed else { return }
-        diagnostics?.updateStage(downloadStage) { stage in
-            if stage.firstByteAt == nil {
-                stage.firstByteAt = .now
-                stage.statusCode = (response as? HTTPURLResponse)?.statusCode
-            }
-        }
+        diagnostics?.recordFirstByte(downloadStage, statusCode: (response as? HTTPURLResponse)?.statusCode)
         do {
             if urlResponse == nil {
                 try dataTask(didReceiveResponse: response)

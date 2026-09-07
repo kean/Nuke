@@ -96,7 +96,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             self.diagnostics?.endStage(stage) {
                 $0.processor = processor.identifier
                 $0.isProgressive = !isCompleted
-                $0.workDuration = workDuration
+                $0.workDuration = workDuration?.timeInterval
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
                 }
@@ -143,7 +143,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             self.operation = nil
             self.diagnostics?.endStage(stage) {
                 $0.isProgressive = !isCompleted
-                $0.workDuration = workDuration
+                $0.workDuration = workDuration?.timeInterval
                 $0.setOutput(response.container)
             }
             self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
