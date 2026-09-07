@@ -426,7 +426,14 @@ struct ImagePipelineDiagnosticsTests {
         // includes the delegate.
         let queueWait = try #require(fetch.stages.first { $0.kind == .download }?.queueWait)
         #expect(queueWait >= 0.02)
-        #expect(metrics.description.range(of: "willLoadData")!.lowerBound < metrics.description.range(of: "download ")!.lowerBound)
+        // THEN the rows read in the order the work ran: the download is
+        // enqueued first, the delegate runs once the queue admits it, and the
+        // download follows
+        let labels = ["dataLoadingQueue", "willLoadData", "download"]
+        let order = metrics.description.split(separator: "\n").compactMap { line in
+            labels.first { line.contains("─ \($0) ") }
+        }
+        #expect(order == labels, "Unexpected order in:\n\(metrics.description)")
     }
 
     // MARK: - Coalescing

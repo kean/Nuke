@@ -98,8 +98,9 @@ extension ImageTask.Metrics {
     /// the task spent on every row, and the chart next to it says where in the
     /// task that time was, which is what makes a gap or an overlap visible. A
     /// stage that waited a millisecond, or a tenth of the task, for its queue
-    /// gets a row for the queue above it, named after the queue in
-    /// `ImagePipeline.Configuration`. A shorter wait is folded into the stage.
+    /// gets a row for the wait, named after the queue in
+    /// `ImagePipeline.Configuration` and placed where the wait began. A
+    /// shorter wait is folded into the stage.
     ///
     /// Under a download sit the requests `URLSession` made for it, on the same
     /// clock and the same chart: the wait for a connection, the domain lookup,
@@ -334,18 +335,35 @@ extension ImageTask.Metrics {
         let span = span(of: job)
         var rows = [Row(label: prefix + label(of: job), duration: span?.duration, span: span, details: details(of: job, parentJoinedAt: parentJoinedAt))]
 
-        var entries: [(at: TimeInterval, entry: Entry)] = []
-        entries += job.stages.map { ($0.startedAt ?? $0.queuedAt ?? job.createdAt, .stage($0)) }
-        entries += remaining.filter { $0.id == job.parentID }.map { ($0.joinedAt ?? $0.createdAt, .job($0)) }
-        entries.sort { $0.at < $1.at }
+        var entries: [Entry] = []
+        for stage in job.stages {
+            guard let split = split(stage, in: job) else {
+                entries.append(Entry(at: stage.startedAt ?? stage.queuedAt ?? job.createdAt, kind: .stage(stage, nil)))
+                continue
+            }
+            // The wait is an entry of its own, not a line glued above the
+            // stage: a stage that runs inside the wait – the delegate the
+            // pipeline asks before it downloads – belongs between the two.
+            if let queue = split.queue {
+                entries.append(Entry(at: queue.from, kind: .queue(stage.kind, queue)))
+            }
+            entries.append(Entry(at: split.body.from, kind: .stage(stage, split.body)))
+        }
+        entries += remaining.filter { $0.id == job.parentID }.map { Entry(at: $0.joinedAt ?? $0.createdAt, kind: .job($0)) }
+        // The order of the entries breaks a tie, so a wait keeps its stage.
+        entries = entries.enumerated().sorted {
+            ($0.element.at, $0.offset) < ($1.element.at, $1.offset)
+        }.map(\.element)
 
-        for (index, (_, entry)) in entries.enumerated() {
+        for (index, entry) in entries.enumerated() {
             let isLast = index == entries.count - 1
             let connector = isLast ? "└─ " : "├─ "
             let grandchildPrefix = childPrefix + (isLast ? "   " : "│  ")
-            switch entry {
-            case .stage(let stage):
-                rows += self.rows(for: stage, in: job, prefix: childPrefix, connector: connector, childPrefix: grandchildPrefix, options: options)
+            switch entry.kind {
+            case .queue(let kind, let span):
+                rows.append(Row(label: childPrefix + connector + queueName(for: kind), duration: span.duration, span: span, isWait: true))
+            case .stage(let stage, let span):
+                rows += self.rows(for: stage, in: job, span: span, prefix: childPrefix, connector: connector, childPrefix: grandchildPrefix, options: options)
             case .job(let child):
                 rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: grandchildPrefix, parentJoinedAt: job.joinedAt, remaining: &remaining, options: options)
             }
@@ -353,10 +371,17 @@ extension ImageTask.Metrics {
         return rows
     }
 
-    /// A line under a job: one of its stages, or the job it waited on.
-    private enum Entry {
-        case stage(ImagePipeline.Diagnostics.Stage)
-        case job(ImagePipeline.Diagnostics.Job)
+    /// A line under a job, and when it starts: the wait for the queue of a
+    /// stage, a stage, or the job it waited on.
+    private struct Entry {
+        var at: TimeInterval
+        var kind: Kind
+
+        enum Kind {
+            case queue(ImagePipeline.Diagnostics.Stage.Kind, Span)
+            case stage(ImagePipeline.Diagnostics.Stage, Span?)
+            case job(ImagePipeline.Diagnostics.Job)
+        }
     }
 
     private func label(of job: ImagePipeline.Diagnostics.Job) -> String {
@@ -389,24 +414,25 @@ extension ImageTask.Metrics {
 
     // MARK: Stages
 
-    /// The row of a stage, under a row for its queue when the wait for it is
-    /// worth one, and above the requests `URLSession` made for it.
-    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, prefix: String, connector: String, childPrefix: String, options: Options) -> [Row] {
+    /// The wait a stage spent in its queue, when the wait is worth a row of
+    /// its own, and the part of the stage that ran. `nil` for a stage the
+    /// task was never there for, which has no span to draw.
+    private func split(_ stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> (queue: Span?, body: Span)? {
+        guard let span = span(of: stage, in: job) else { return nil }
+        guard stage.queuedAt != nil, let startedAt = stage.startedAt else { return (nil, span) }
+        let queueEnd = min(max(startedAt, span.from), span.to)
+        guard isWorthARow(queueEnd - span.from, of: duration) else { return (nil, span) }
+        return (Span(from: span.from, to: queueEnd), Span(from: queueEnd, to: span.to))
+    }
+
+    /// The row of a stage, above the requests `URLSession` made for it. The
+    /// wait for its queue is a row of its own, placed by ``split(_:in:)``.
+    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, span: Span?, prefix: String, connector: String, childPrefix: String, options: Options) -> [Row] {
         let label = prefix + connector + stage.kind.rawValue
-        guard var span = span(of: stage, in: job) else {
+        guard let span else {
             return [Row(label: label, details: details(of: stage, in: job, options: options))]
         }
-        var rows: [Row] = []
-        if stage.queuedAt != nil, let startedAt = stage.startedAt {
-            let queueEnd = min(max(startedAt, span.from), span.to)
-            let wait = queueEnd - span.from
-            if isWorthARow(wait, of: duration) {
-                let queue = Span(from: span.from, to: queueEnd)
-                rows.append(Row(label: prefix + "├─ " + queueName(for: stage.kind), duration: wait, span: queue, isWait: true))
-                span = Span(from: queueEnd, to: span.to)
-            }
-        }
-        rows.append(Row(label: label, duration: span.duration, span: span, isWait: stage.kind == .rateLimit, details: details(of: stage, in: job, options: options)))
+        var rows = [Row(label: label, duration: span.duration, span: span, isWait: stage.kind == .rateLimit, details: details(of: stage, in: job, options: options))]
         if options.contains(.urlSession), let metrics = stage.urlSessionMetrics {
             rows += self.rows(of: metrics, prefix: childPrefix, options: options)
         }
