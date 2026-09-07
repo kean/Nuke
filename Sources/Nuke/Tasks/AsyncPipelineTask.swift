@@ -62,20 +62,20 @@ extension AsyncPipelineTask {
                     }
                 }
                 self?.operation = nil
-                self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { ContinuousClock.now - $0 })
+                self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { (ContinuousClock.now - $0).timeInterval })
                 completion(result)
             }
             return
         }
 
         let isRecording = diagnostics != nil
-        @Sendable func decode() -> (Result<ImageResponse, ImagePipeline.Error>, Duration?) {
+        @Sendable func decode() -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) {
             let start: ContinuousClock.Instant? = isRecording ? .now : nil
             let result: Result<ImageResponse, ImagePipeline.Error> = signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                 Result { try decoder.decode(context) }
                     .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
             }
-            return (result, start.map { ContinuousClock.now - $0 })
+            return (result, start.map { (ContinuousClock.now - $0).timeInterval })
         }
         guard decoder.isAsynchronous else {
             let stage = diagnostics?.beginStage(.decode)

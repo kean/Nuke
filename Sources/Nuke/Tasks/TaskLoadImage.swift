@@ -79,7 +79,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
-            let (result, workDuration) = await performInBackground { () -> (Result<ImageResponse, ImagePipeline.Error>, Duration?) in
+            let (result, workDuration) = await performInBackground { () -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
                 let result = signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
                     Result {
@@ -90,13 +90,13 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                         ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                     }
                 }
-                return (result, start.map { ContinuousClock.now - $0 })
+                return (result, start.map { (ContinuousClock.now - $0).timeInterval })
             }
             self.operation = nil
             self.diagnostics?.endStage(stage) {
                 $0.processor = processor.identifier
                 $0.isProgressive = !isCompleted
-                $0.workDuration = workDuration?.timeInterval
+                $0.workDuration = workDuration
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
                 }
@@ -133,17 +133,17 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
-            let (response, workDuration) = await performInBackground { () -> (ImageResponse, Duration?) in
+            let (response, workDuration) = await performInBackground { () -> (ImageResponse, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
                 let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                     self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 }
-                return (response, start.map { ContinuousClock.now - $0 })
+                return (response, start.map { (ContinuousClock.now - $0).timeInterval })
             }
             self.operation = nil
             self.diagnostics?.endStage(stage) {
                 $0.isProgressive = !isCompleted
-                $0.workDuration = workDuration?.timeInterval
+                $0.workDuration = workDuration
                 $0.setOutput(response.container)
             }
             self.didReceiveDecompressedImage(response, isCompleted: isCompleted)

@@ -84,14 +84,14 @@ extension ImagePipeline.Diagnostics {
             self.kind = task._kind
             self.label = task.request.userInfo[.labelKey] as? String
             self.request = ImageTask.Metrics.RequestSummary(task.request)
-            self.createdAt = task._createdAt.map(recorder.time) ?? recorder.now
+            self.createdAt = task._createdAt ?? recorder.now
         }
 
-        /// The pipeline started working on the task, at the given instant.
-        /// Taking the instant instead of reading the clock here keeps the cost
+        /// The pipeline started working on the task, at the given time.
+        /// Taking the time instead of reading the clock here keeps the cost
         /// of building this record out of the wait that the record reports.
-        func didStart(at instant: ContinuousClock.Instant) {
-            startedAt = recorder.time(instant)
+        func didStart(at time: TimeInterval) {
+            startedAt = time
         }
 
         /// The task subscribed to its root job.
@@ -322,11 +322,11 @@ extension ImagePipeline.Diagnostics {
             }
         }
 
-        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, context: ImageDecodingContext, workDuration: Duration?) {
+        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, context: ImageDecodingContext, workDuration: TimeInterval?) {
             endStage(index) {
                 $0.decoder = diagnosticsTypeName(of: decoder)
                 $0.isProgressive = !context.isCompleted
-                $0.workDuration = workDuration?.timeInterval
+                $0.workDuration = workDuration
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
                 }

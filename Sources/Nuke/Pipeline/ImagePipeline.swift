@@ -178,8 +178,7 @@ public final class ImagePipeline: Sendable {
 
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         // The creation time is the one thing the diagnostics read off the actor.
-        let createdAt: ContinuousClock.Instant? = recorder != nil ? .now : nil
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: createdAt)
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
         // Important to call it before `imageTaskStartCalled`
         imageTaskCreated(task, isDataTask: isDataTask)
         task._task = Task { @ImagePipelineActor in
@@ -195,7 +194,7 @@ public final class ImagePipeline: Sendable {
     private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
         // Stamped before the record is built: building it reads the request,
         // and that cost belongs to the pipeline, not to the wait it measures.
-        let startedAt: ContinuousClock.Instant? = recorder != nil ? .now : nil
+        let startedAt = recorder?.now
         task._diagnostics = recorder?.makeTaskRecord(for: task)
         guard !task._isFinished else {
             // The task gets started asynchronously in a `Task` and cancellation

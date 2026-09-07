@@ -238,8 +238,9 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     private let _status: OSAllocatedUnfairLock<Status>
     private let isDataTask: Bool
     let _kind: Metrics.Kind
-    /// The time the task was created. Read only when diagnostics are on.
-    let _createdAt: ContinuousClock.Instant?
+    /// The time the task was created, in seconds since 1970 on the clock of
+    /// the recorder. `nil` unless diagnostics are on.
+    let _createdAt: TimeInterval?
     private let onEvent: ((Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
 
@@ -252,7 +253,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
-    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?, createdAt: ContinuousClock.Instant? = nil) {
+    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
         self.taskId = taskId
         self.request = request
         self._status = OSAllocatedUnfairLock(initialState: Status(priority: request.priority))
