@@ -362,7 +362,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// A short name for the role of the request in the app, such as
         /// `"feed"` or `"avatar"`. The pipeline records it in
         /// ``ImageTask/Metrics/label``, and does nothing else with it.
-        public static let labelKey: UserInfoKey = "com.github/kean/nuke/label"
+        public static let labelKey: UserInfoKey = "com.github.kean/nuke/label"
     }
 
     /// Thumbnail options.
