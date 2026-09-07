@@ -62,7 +62,6 @@ public final class ImagePipeline: Sendable {
     }
     private nonisolated let _nextTaskId = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
-    let rateLimiter: RateLimiter?
     /// Records the diagnostics. `nil` unless
     /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
     /// ``Configuration-swift.struct/isDiagnosticsLoggingEnabled`` is set, so a
@@ -94,7 +93,6 @@ public final class ImagePipeline: Sendable {
         let id = UUID()
         self.id = id
         self.configuration = configuration
-        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
         self.isDefaultDelegate = delegate == nil
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled

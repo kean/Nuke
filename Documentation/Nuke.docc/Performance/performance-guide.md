@@ -155,10 +155,6 @@ ImagePipeline.shared = ImagePipeline {
 
 > Tip: To see whether the images on screen wait for a slot, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled`` and check the ``ImageTask/Metrics/Category/queue`` share of their ``ImageTask/Metrics/timeShares``.
 
-## Rate Limiting
-
-If the app starts and cancels requests at a fast rate, the pipeline will rate limit the requests, protecting `URLSession`. `RateLimiter` uses a classic [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. The implementation supports quick bursts of requests which can be executed without any delays when "the bucket is full". It is important to make sure `RateLimiter` only kicks in when needed, but when the user opens the screen, all the requests are fired immediately.
-
 ## Auto Retry
 
 Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/2908812-waitsforconnectivity) on `URLSession` to indicate that the session should wait for connectivity to become available instead of failing the request immediately in case of a network failure.

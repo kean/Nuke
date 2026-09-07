@@ -107,12 +107,6 @@ extension ImagePipeline {
         /// once — no duplicated work at any stage.
         public var isTaskCoalescingEnabled = true
 
-        /// Enables the rate limiter. When enabled, the pipeline throttles requests
-        /// to prevent thrashing the underlying systems (e.g. `URLSession`). The
-        /// rate limiter only activates when requests are started and cancelled at
-        /// a high rate, such as during fast scrolling. `true` by default.
-        public var isRateLimiterEnabled = true
-
         /// Enables progressive decoding. When enabled, the pipeline produces a
         /// new image preview each time it receives a new chunk of data. Whether
         /// a preview is produced depends on the decoder — ``ImageDecoders/Default``

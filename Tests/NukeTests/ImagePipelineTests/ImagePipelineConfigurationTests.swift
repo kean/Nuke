@@ -21,7 +21,6 @@ struct ImagePipelineConfigurationTests {
         #expect((configuration.imageCache as? ImageCache) === ImageCache.shared)
         #expect(configuration.dataCachePolicy == .storeOriginalData)
         #expect(configuration.isTaskCoalescingEnabled == true)
-        #expect(configuration.isRateLimiterEnabled == true)
         #expect(configuration.isProgressiveDecodingEnabled == false)
         #expect(configuration.progressiveDecodingInterval == 0.5)
         #expect(configuration.isStoringPreviewsInMemoryCache == true)
@@ -259,16 +258,6 @@ struct ImagePipelineConfigurationSharingTests {
         #expect(pipeline.configuration.dataCachePolicy == .storeOriginalData)
         #expect(pipeline.configuration.isDecompressionEnabled == ImagePipeline.Configuration().isDecompressionEnabled)
         #expect(pipeline.configuration.maximumResponseDataSize != 1)
-    }
-
-    @Test @ImagePipelineActor func rateLimiterIsCreatedOnlyWhenEnabled() {
-        let enabled = ImagePipeline { $0.dataLoader = MockDataLoader() }
-        let disabled = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-            $0.isRateLimiterEnabled = false
-        }
-        #expect(enabled.rateLimiter != nil)
-        #expect(disabled.rateLimiter == nil)
     }
 
     @Test func diagnosticsRecorderIsCreatedOnlyWhenEnabled() {
