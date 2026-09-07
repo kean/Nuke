@@ -182,8 +182,15 @@ extension ImagePipeline {
         /// Data loading queue. Default maximum concurrent task count is 6.
         public var dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6)
 
-        /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
+        /// Image decoding queue. Default maximum concurrent task count is 2.
+        ///
+        /// Only the decoders that ask for it run here – see
+        /// ``ImageDecoding/isAsynchronous``. ``ImageDecoders/Default`` asks for
+        /// it for a thumbnail request, where the decode also downsamples the
+        /// image and no decompression follows it, so the count matches
+        /// ``imageDecompressingQueue``: the pixel work of a request costs the
+        /// same whichever of the two paths it takes.
+        public var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 2)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.
         public var imageEncodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
