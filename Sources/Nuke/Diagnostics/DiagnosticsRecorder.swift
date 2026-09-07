@@ -87,9 +87,11 @@ extension ImagePipeline.Diagnostics {
             self.createdAt = task._createdAt.map(recorder.time) ?? recorder.now
         }
 
-        /// The pipeline started working on the task.
-        func didStart() {
-            startedAt = recorder.now
+        /// The pipeline started working on the task, at the given instant.
+        /// Taking the instant instead of reading the clock here keeps the cost
+        /// of building this record out of the wait that the record reports.
+        func didStart(at instant: ContinuousClock.Instant) {
+            startedAt = recorder.time(instant)
         }
 
         /// The task subscribed to its root job.

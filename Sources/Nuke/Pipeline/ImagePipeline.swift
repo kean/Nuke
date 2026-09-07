@@ -193,6 +193,9 @@ public final class ImagePipeline: Sendable {
 
     // By this time, the task has `continuation` set and is fully wired.
     private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+        // Stamped before the record is built: building it reads the request,
+        // and that cost belongs to the pipeline, not to the wait it measures.
+        let startedAt: ContinuousClock.Instant? = recorder != nil ? .now : nil
         task._diagnostics = recorder?.makeTaskRecord(for: task)
         guard !task._isFinished else {
             // The task gets started asynchronously in a `Task` and cancellation
@@ -203,7 +206,9 @@ public final class ImagePipeline: Sendable {
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
-        task._diagnostics?.didStart()
+        if let startedAt {
+            task._diagnostics?.didStart(at: startedAt)
+        }
         let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
         // Important: the task has to be registered and reported as started
         // _before_ it subscribes to the worker. The worker can finish the task
