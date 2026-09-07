@@ -243,7 +243,7 @@ print(metrics.formatted([.header, .breakdown]))
 The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
 
 ```swift
-final class Telemetry: ImagePipeline.Delegate {
+final class Telemetry: ImagePipeline.Delegate, Sendable {
     @ImagePipelineActor
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
         guard case .finished = event, let metrics = task.metrics else { return }
