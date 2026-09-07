@@ -9,19 +9,6 @@ import Foundation
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineConfigurationTests {
 
-    @Test func imageIsLoadedWithRateLimiterDisabled() async throws {
-        // Given
-        let dataLoader = MockDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isRateLimiterEnabled = false
-        }
-
-        // When/Then
-        _ = try await pipeline.image(for: Test.request)
-    }
-
     // MARK: DataCache
 
     @Test func withDataCache() {
@@ -78,11 +65,6 @@ struct ImagePipelineConfigurationTests {
     @Test func isTaskCoalescingEnabledByDefault() {
         let config = ImagePipeline.Configuration()
         #expect(config.isTaskCoalescingEnabled == true)
-    }
-
-    @Test func isRateLimiterEnabledByDefault() {
-        let config = ImagePipeline.Configuration()
-        #expect(config.isRateLimiterEnabled == true)
     }
 
     @Test func isProgressiveDecodingDisabledByDefault() {

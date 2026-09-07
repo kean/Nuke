@@ -444,7 +444,7 @@ extension ImageTask.Metrics {
         guard let span else {
             return [Row(label: label, details: details(of: stage, in: job, options: options))]
         }
-        var rows = [Row(label: label, duration: span.duration, span: span, isWait: stage.kind == .rateLimit, details: details(of: stage, in: job, options: options))]
+        var rows = [Row(label: label, duration: span.duration, span: span, details: details(of: stage, in: job, options: options))]
         if options.contains(.urlSession), let metrics = stage.urlSessionMetrics {
             rows += self.rows(of: metrics, prefixes: prefixes, options: options)
         }

@@ -237,8 +237,6 @@ extension ImageTask.Metrics {
         /// ``ImagePipeline/Configuration-swift.struct``, which is where the
         /// time goes when the pipeline is busy.
         case queue
-        /// The wait in ``ImagePipeline/Configuration-swift.struct/rateLimiter``.
-        case rateLimit
         case process
         case decompress
         case decode
@@ -321,7 +319,6 @@ extension ImageTask.Metrics {
     private func category(of kind: ImagePipeline.Diagnostics.Stage.Kind) -> Category {
         switch kind {
         case .download: .network
-        case .rateLimit: .rateLimit
         case .process: .process
         case .decompress: .decompress
         case .decode: .decode

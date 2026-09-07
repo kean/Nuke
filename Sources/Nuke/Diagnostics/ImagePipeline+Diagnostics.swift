@@ -206,8 +206,6 @@ extension ImagePipeline.Diagnostics {
         public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             case memoryLookup
             case diskLookup
-            /// The time the request spent in the rate limiter.
-            case rateLimit
             /// ``ImagePipeline/Delegate/willLoadData(for:urlRequest:pipeline:)``.
             case willLoadData
             case download

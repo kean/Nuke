@@ -32,7 +32,6 @@ To learn more about caching, see <doc:caching>.
 
 - ``isDecompressionEnabled``
 - ``isTaskCoalescingEnabled``
-- ``isRateLimiterEnabled``
 - ``isProgressiveDecodingEnabled``
 - ``progressiveDecodingInterval``
 - ``isResumableDataEnabled``
