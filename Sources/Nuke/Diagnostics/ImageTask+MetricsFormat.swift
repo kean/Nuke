@@ -312,7 +312,7 @@ extension ImageTask.Metrics {
         }
         var remaining = jobs
         while let root = remaining.first {
-            rows += self.rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining, options: options)
+            rows += self.rows(for: root, prefixes: Prefixes(), parentJoinedAt: nil, remaining: &remaining, options: options)
         }
         // The total is not a row of the chart: it is what the chart is drawn
         // against.
@@ -330,10 +330,10 @@ extension ImageTask.Metrics {
     /// it waited on, in the order they started. Removes the jobs it prints
     /// from `remaining`, so a job no chain reaches is printed as a root of
     /// its own.
-    private func rows(for job: ImagePipeline.Diagnostics.Job, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Job], options: Options) -> [Row] {
+    private func rows(for job: ImagePipeline.Diagnostics.Job, prefixes: Prefixes, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Job], options: Options) -> [Row] {
         remaining.removeAll { $0.id == job.id }
         let span = span(of: job)
-        var rows = [Row(label: prefix + label(of: job), duration: span?.duration, span: span, details: details(of: job, parentJoinedAt: parentJoinedAt))]
+        var rows = [Row(label: prefixes.row + label(of: job), duration: span?.duration, span: span, details: details(of: job, parentJoinedAt: parentJoinedAt))]
 
         var entries: [Entry] = []
         for stage in job.stages {
@@ -357,18 +357,30 @@ extension ImageTask.Metrics {
 
         for (index, entry) in entries.enumerated() {
             let isLast = index == entries.count - 1
-            let connector = isLast ? "└─ " : "├─ "
-            let grandchildPrefix = childPrefix + (isLast ? "   " : "│  ")
+            let nested = prefixes.nested(isLast: isLast)
             switch entry.kind {
-            case .queue(let kind, let span):
-                rows.append(Row(label: childPrefix + connector + queueName(for: kind), duration: span.duration, span: span, isWait: true))
-            case .stage(let stage, let span):
-                rows += self.rows(for: stage, in: job, span: span, prefix: childPrefix, connector: connector, childPrefix: grandchildPrefix, options: options)
-            case .job(let child):
-                rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: grandchildPrefix, parentJoinedAt: job.joinedAt, remaining: &remaining, options: options)
+            case let .queue(kind, span):
+                rows.append(Row(label: nested.row + queueName(for: kind), duration: span.duration, span: span, isWait: true))
+            case let .stage(stage, span):
+                rows += self.rows(for: stage, in: job, span: span, prefixes: nested, options: options)
+            case let .job(child):
+                rows += self.rows(for: child, prefixes: nested, parentJoinedAt: job.joinedAt, remaining: &remaining, options: options)
             }
         }
         return rows
+    }
+
+    /// What draws a row's place in the tree: the branch in front of the row
+    /// itself, and the one in front of everything nested under it.
+    private struct Prefixes {
+        var row = ""
+        var children = ""
+
+        /// The prefixes of a line under this one, given whether it is the
+        /// last of them.
+        func nested(isLast: Bool) -> Prefixes {
+            Prefixes(row: children + (isLast ? "└─ " : "├─ "), children: children + (isLast ? "   " : "│  "))
+        }
     }
 
     /// A line under a job, and when it starts: the wait for the queue of a
@@ -427,14 +439,14 @@ extension ImageTask.Metrics {
 
     /// The row of a stage, above the requests `URLSession` made for it. The
     /// wait for its queue is a row of its own, placed by ``split(_:in:)``.
-    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, span: Span?, prefix: String, connector: String, childPrefix: String, options: Options) -> [Row] {
-        let label = prefix + connector + stage.kind.rawValue
+    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, span: Span?, prefixes: Prefixes, options: Options) -> [Row] {
+        let label = prefixes.row + stage.kind.rawValue
         guard let span else {
             return [Row(label: label, details: details(of: stage, in: job, options: options))]
         }
         var rows = [Row(label: label, duration: span.duration, span: span, isWait: stage.kind == .rateLimit, details: details(of: stage, in: job, options: options))]
         if options.contains(.urlSession), let metrics = stage.urlSessionMetrics {
-            rows += self.rows(of: metrics, prefix: childPrefix, options: options)
+            rows += self.rows(of: metrics, prefixes: prefixes, options: options)
         }
         return rows
     }
@@ -534,12 +546,10 @@ extension ImageTask.Metrics {
 
     /// Every request the session made for a download, each a heading with its
     /// steps under it, on the clock of the task that waited for it.
-    private func rows(of metrics: ImagePipeline.Diagnostics.URLSessionMetrics, prefix: String, options: Options) -> [Row] {
+    private func rows(of metrics: ImagePipeline.Diagnostics.URLSessionMetrics, prefixes: Prefixes, options: Options) -> [Row] {
         var rows: [Row] = []
         for (index, transaction) in metrics.transactions.enumerated() {
-            let isLast = index == metrics.transactions.count - 1
-            let connector = isLast ? "└─ " : "├─ "
-            let childPrefix = prefix + (isLast ? "   " : "│  ")
+            let nested = prefixes.nested(isLast: index == metrics.transactions.count - 1)
             let span = span(of: transaction)
             var details = details(of: transaction)
             if span == nil {
@@ -549,12 +559,12 @@ extension ImageTask.Metrics {
                 // the download, the way a stage it didn't wait for does.
                 details.append(transaction.fetchStartedAt == nil ? "not timed" : "before join")
             }
-            rows.append(Row(label: prefix + connector + transaction.fetchType.rawValue, span: span, details: details))
+            rows.append(Row(label: nested.row + transaction.fetchType.rawValue, span: span, details: details))
 
             let steps = self.steps(of: transaction)
             for (index, step) in steps.enumerated() {
-                let connector = index == steps.count - 1 ? "└─ " : "├─ "
-                rows.append(Row(label: childPrefix + connector + step.name, duration: step.span.duration, span: step.span, isWait: step.isWait))
+                let line = nested.nested(isLast: index == steps.count - 1)
+                rows.append(Row(label: line.row + step.name, duration: step.span.duration, span: step.span, isWait: step.isWait))
             }
         }
         return rows
