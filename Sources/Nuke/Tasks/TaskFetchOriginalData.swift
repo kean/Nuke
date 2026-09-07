@@ -45,27 +45,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             return
         }
 
-        if let rateLimiter = pipeline.rateLimiter {
-            // Rate limiter is synchronized on pipeline's queue. Delayed work is
-            // executed asynchronously also on the same queue.
-            let queuedAt: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
-            var isDeferred = false
-            rateLimiter.execute { [weak self] in
-                guard let self, !self.isDisposed else {
-                    return false
-                }
-                if isDeferred, let queuedAt {
-                    // The limiter held the request: `execute` returned before
-                    // it ran the work.
-                    self.diagnostics?.recordStage(.rateLimit, from: queuedAt)
-                }
-                self.loadData(urlRequest: urlRequest)
-                return true
-            }
-            isDeferred = true
-        } else { // Start loading immediately.
-            loadData(urlRequest: urlRequest)
-        }
+        loadData(urlRequest: urlRequest)
     }
 
     private func loadData(urlRequest: URLRequest) {
