@@ -54,6 +54,7 @@
 - `ImageDecoders/Default` now parses every animated image it recognizes, once per image on the decoding queue, and attaches the result to the new `ImageContainer/animation` along with the encoded `ImageContainer/data` – which was previously attached to GIFs only. Processing an image, or requesting a thumbnail, clears both. `AnimatedImageSource` moves from `NukeUI` to `Nuke`. Adds `ImagePipeline/Configuration/isAnimatedImageParsingEnabled` – https://github.com/kean/Nuke/pull/958
 - An animated format Image I/O can't read can be played too: a decoder registered with `ImageDecoderRegistry` attaches an `AnimatedImageSource` it describes itself, along with the `AnimatedImageFrameDecoding` that produces its frames – https://github.com/kean/Nuke/pull/958
 - `Nuke_ImageDisplaying` is renamed to `ImageDisplaying`, is no longer `@objc`, and takes an `ImageContainer`: `nuke_display(image:data:)` becomes `nuke_display(_:)`. A conformance declared in an extension can no longer be overridden by a subclass – https://github.com/kean/Nuke/pull/958
+- `ImagePipeline/Configuration/imageDecodingQueue` now runs 2 concurrent tasks instead of 1, matching `imageDecompressingQueue`. It carries the pixel work of a thumbnail request, which decodes and downsamples in one step and skips decompression – https://github.com/kean/Nuke/pull/962
 
 **Bug Fixes**
 
