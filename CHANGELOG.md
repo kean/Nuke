@@ -58,6 +58,7 @@
 - Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, what `URLSession` measured for the download, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set – https://github.com/kean/Nuke/pull/960
 - `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
 - Add `ImageRequest/UserInfoKey/labelKey`: a short name for the role of a request in the app, such as `"feed"`, that the pipeline records in `ImageTask/Metrics/label` – https://github.com/kean/Nuke/pull/960
+- Add `ImageDiagnosticsStringEnum`: the `Codable` conformance the diagnostics enums share, which decodes a name it doesn't know as `unknown` – https://github.com/kean/Nuke/pull/960
 - The default `ImagePipeline/Configuration-swift.struct/rateLimiter` rate goes from 80 to 100 requests per second – https://github.com/kean/Nuke/pull/960
 
 **Bug Fixes**
