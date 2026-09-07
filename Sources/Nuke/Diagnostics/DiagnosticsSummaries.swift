@@ -26,6 +26,7 @@ extension ImageTask.Metrics.ImageSummary {
         self.height = pixels?.height ?? 0
         self.format = container.type?.diagnosticsName
         self.isAnimated = container.animation != nil
+        self.memoryCost = pixels == nil ? nil : container.memoryCost
     }
 }
 
@@ -167,6 +168,20 @@ extension AssetType {
         default: rawValue
         }
     }
+}
+
+/// A short, stable digest of a cache key: the same string always prints the
+/// same eight characters, in this process and the next, so two records can be
+/// compared for whether they were after the same entry. FNV-1a, which is not a
+/// hash anything relies on – only one that doesn't move between runs the way
+/// `Hasher` does.
+func diagnosticsDigest(of key: String) -> String {
+    var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+    for byte in key.utf8 {
+        hash ^= UInt64(byte)
+        hash &*= 0x0000_0100_0000_01b3
+    }
+    return String(format: "%08x", UInt32(truncatingIfNeeded: hash &>> 32 ^ hash))
 }
 
 /// The name of the type of the value without its module, such as

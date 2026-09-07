@@ -216,6 +216,17 @@ extension ImagePipeline.Cache {
         return ImageCacheKey(request: request) // Use the default key
     }
 
+    /// A short digest of the memory cache key, for the diagnostics: the same
+    /// fields ``makeImageCacheKey(for:)`` keys on, in a form two records can
+    /// be compared on. Computed only while diagnostics are recording.
+    func makeImageCacheKeyDigest(for request: ImageRequest) -> String {
+        if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
+            return diagnosticsDigest(of: customKey)
+        }
+        let key = "\(request.imageID ?? "")|\(request.scale)|\(request.thumbnail?.identifier ?? "")|\(ImageProcessors.Composition(request.processors).identifier)"
+        return diagnosticsDigest(of: key)
+    }
+
     /// Returns data cache (disk cache) key for the given request.
     public func makeDataCacheKey(for request: ImageRequest) -> String {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {

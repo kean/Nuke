@@ -35,7 +35,7 @@ extension ImagePipeline {
 
         /// The version of the JSON the records encode to. It is written into
         /// every record, and bumped whenever the shape changes.
-        static let schemaVersion = 1
+        static let schemaVersion = 2
 
         /// `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED`
         /// set. ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``
@@ -152,6 +152,13 @@ extension ImagePipeline.Diagnostics {
 
         /// The result of a lookup.
         public internal(set) var result: LookupResult?
+        /// A short digest of the key a cache stage looked up or wrote, such
+        /// as `"4f2a91c3"`. The same key always digests to the same eight
+        /// characters, in this process and the next, so two records can be
+        /// compared for whether they were after the same entry – which is
+        /// what a cache miss, or a coalescing that didn't happen, comes down
+        /// to. `nil` for a stage that isn't a cache stage.
+        public internal(set) var cacheKey: String?
         /// `true` if the stage produced or handled a progressive preview.
         public internal(set) var isProgressive: Bool?
         /// The type of the decoder.
@@ -304,6 +311,41 @@ extension ImagePipeline.Diagnostics.URLSessionMetrics {
 
     public var startedDate: Date { Date(timeIntervalSince1970: startedAt) }
     public var endedDate: Date { Date(timeIntervalSince1970: endedAt) }
+
+    /// `true` if the session served the response out of its `URLCache`, so
+    /// the bytes the pipeline received are not the bytes that crossed the
+    /// network.
+    public var isServedFromCache: Bool {
+        transactions.contains { $0.fetchType == .localCache }
+    }
+
+    /// `true` if the session revalidated a cached response with a conditional
+    /// request the server answered `304 Not Modified`.
+    public var isRevalidated: Bool {
+        transactions.contains { $0.fetchType == .networkLoad && $0.statusCode == 304 }
+    }
+
+    /// The bytes the session took off the network, headers and body, across
+    /// every request it made.
+    public var networkBytesReceived: Int64 {
+        transactions.filter { $0.fetchType == .networkLoad }.reduce(0) { $0 + $1.responseBytes }
+    }
+
+    /// The bytes the session put on the network, headers and body, across
+    /// every request it made.
+    public var networkBytesSent: Int64 {
+        transactions.filter { $0.fetchType == .networkLoad }.reduce(0) { $0 + $1.requestBytes }
+    }
+}
+
+extension ImagePipeline.Diagnostics.URLSessionMetrics.Transaction {
+    /// The last of the timestamps the session recorded. `nil` if it recorded
+    /// none, which is what a custom `URLProtocol` leaves behind.
+    public var endedAt: TimeInterval? {
+        [responseEndedAt, responseStartedAt, requestEndedAt, requestStartedAt,
+         connectEndedAt, secureConnectionEndedAt, domainLookupEndedAt, fetchStartedAt]
+            .compactMap { $0 }.max()
+    }
 }
 
 // MARK: - Shared Types
@@ -323,8 +365,15 @@ extension ImagePipeline.Diagnostics {
         case memory
         /// The disk cache (``DataCaching``).
         case disk
-        /// The data loader (``DataLoading``), including any HTTP cache it uses.
+        /// The data loader (``DataLoading``). The bytes crossed the network,
+        /// or enough of them did that the response wasn't a `URLCache` hit.
         case network
+        /// The `URLCache` of the ``DataLoader``: the session answered the
+        /// download out of its own cache, either outright or after
+        /// revalidating it with a request the server answered `304`. Almost
+        /// nothing crossed the network, whatever
+        /// ``ImageTask/Metrics/bytes`` says it cost.
+        case httpCache
         /// A local `file` or `data` URL.
         case file
         /// The `data` or `image` closure of the request.

@@ -617,7 +617,7 @@ struct ImagePipelineDiagnosticsTests {
         let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: data)
 
         // THEN
-        #expect(metrics.schemaVersion == 1)
+        #expect(metrics.schemaVersion == 2)
         #expect(metrics.taskID == 42)
         #expect(metrics.kind == .prefetch)
         #expect(metrics.label == "feed")
@@ -635,6 +635,8 @@ struct ImagePipelineDiagnosticsTests {
         #expect(urlSession.transactions.map(\.fetchType) == [.networkLoad, .networkLoad])
         #expect(urlSession.transactions[0].domainLookupStartedAt == nil)
         #expect(urlSession.transactions[1].domainLookupStartedAt == 1788606000.043)
+        #expect(metrics.image?.memoryCost == 48_771_072)
+        #expect(metrics.jobs[0].stages.first?.cacheKey == "4f2a91c3")
         #expect(metrics.description.hasPrefix("ImageTask #42 \"feed\" · success · 366.3 ms · from network\n"))
         #expect(metrics.description.range(of: #"\ncoalesced: +yes · shared with #41 \(j6, j7, j8\)\n"#, options: .regularExpression) != nil)
 
@@ -657,7 +659,7 @@ struct ImagePipelineDiagnosticsTests {
 
     // MARK: - Description
 
-    @Test func descriptionPrintsTheTimeline() async throws {
+    @Test func descriptionPrintsTheHeader() async throws {
         // GIVEN
         var request = ImageRequest(url: Test.url, processors: [.resize(width: 100)])
         request.userInfo[.labelKey] = "avatar"
@@ -665,21 +667,21 @@ struct ImagePipelineDiagnosticsTests {
         // WHEN
         let task = pipeline.imageTask(with: request)
         _ = try await task.response
-        let description = try #require(task.metrics).description
+        let metrics = try #require(task.metrics)
+        let description = metrics.description
 
         // THEN the header is a title, then a field per fact with the values in a column
         let header = description.split(separator: "\n", omittingEmptySubsequences: false).prefix { !$0.isEmpty }
         let title = #"^ImageTask #\#(task.taskId) "avatar" · success · [0-9.]+ ms · from network$"#
         #expect(header.first?.range(of: title, options: .regularExpression) != nil, "No title in:\n\(description)")
         let fields = [
-            "kind: +image",
             "url: +\(NSRegularExpression.escapedPattern(for: Test.url.absoluteString))",
             "processors: +\(NSRegularExpression.escapedPattern(for: request.processors[0].identifier))",
             "priority: +normal",
-            "image: +[0-9]+×[0-9]+ · jpeg",
-            "download: +[0-9.,]+ [a-zA-Z]+",
-            "coalesced: +no",
-            "pipeline: +\(task.metrics!.pipelineID.uuidString)"
+            "image: +[0-9]+×[0-9]+ · jpeg · [0-9.,]+ [a-zA-Z]+ in memory",
+            "transfer: +[0-9.,]+ [a-zA-Z]+",
+            "pipeline: +\(String(metrics.pipelineID.uuidString.prefix(8)))",
+            "time: +[a-z]+ [0-9.]+ ms.*"
         ]
         for field in fields {
             #expect(header.contains { $0.range(of: "^\(field)$", options: .regularExpression) != nil }, "Missing \(field) in:\n\(description)")
@@ -690,26 +692,47 @@ struct ImagePipelineDiagnosticsTests {
         #expect(valueColumns.count == header.count - 1)
         #expect(Set(valueColumns).count == 1, "Misaligned header in:\n\(description)")
 
+        // THEN a fact that says nothing has no field: the usual kind of task,
+        // and a task nothing coalesced with
+        #expect(!description.contains("\nkind:"))
+        #expect(!description.contains("\ncoalesced:"))
+        #expect(!description.contains(metrics.pipelineID.uuidString))
+    }
+
+    @Test func descriptionPrintsTheTimeline() async throws {
+        // WHEN
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [.resize(width: 100)]))
+        _ = try await task.response
+        let metrics = try #require(task.metrics)
+        let description = metrics.description
+
         // THEN the jobs form a tree, root first, with the durations in a column
-        #expect(description.contains("\nj\(task.metrics!.rootJobID!) loadImage [resize]\n├─ memoryLookup "))
+        #expect(description.contains("\nj\(metrics.rootJobID!) loadImage [resize] "))
+        #expect(description.contains("\n├─ memoryLookup "))
         #expect(description.contains("\n│     └─ decode "))
         #expect(description.contains("\n└─ memoryStore "))
         for stage in ["diskLookup", "download", "process"] {
             #expect(description.contains("─ \(stage) "), "Missing \(stage) in:\n\(description)")
         }
-        let lines = description.split(separator: "\n")
-        let pattern = #"^([│ ]*[├└]─ [a-zA-Z]+|started|finished) +[0-9.]+ ms"#
+
+        // THEN every row that carries a time carries it in the same column
+        let lines = metrics.formatted(.all.subtracting([.header, .breakdown])).split(separator: "\n").map(String.init)
         let columns = lines.compactMap { line in
-            line.range(of: pattern, options: .regularExpression).map { line[..<$0.upperBound].count }
+            line.range(of: #"^.*?  +(–|<0\.1 ms|[0-9.]+ ms)"#, options: .regularExpression).map { line[..<$0.upperBound].count }
         }
         #expect(columns.count >= 8)
         #expect(Set(columns).count == 1, "Misaligned durations in:\n\(description)")
-        #expect(lines.last?.hasPrefix("finished ") == true)
 
-        // THEN the first and the last row carry the time of day
-        let clock = #"^(started|finished) +[0-9.]+ ms   (█+  )?at [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}$"#
-        #expect(lines.first { $0.hasPrefix("started") }?.range(of: clock, options: .regularExpression) != nil)
-        #expect(lines.last?.range(of: clock, options: .regularExpression) != nil)
+        // THEN the first row is the wait before the pipeline started the task,
+        // and the last one is the length of the task, both with the time of day
+        let clock = #"(started|finished) at [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}$"#
+        #expect(lines.first?.hasPrefix("pending ") == true, "Unexpected first row in:\n\(description)")
+        #expect(lines.first?.range(of: clock, options: .regularExpression) != nil, "No clock in:\n\(description)")
+        #expect(lines.last?.hasPrefix("total ") == true, "Unexpected last row in:\n\(description)")
+        #expect(lines.last?.range(of: clock, options: .regularExpression) != nil, "No clock in:\n\(description)")
+
+        // THEN no row is rounded to a zero that isn't one
+        #expect(description.range(of: #"(^|[^0-9.])0\.0 ms"#, options: [.regularExpression]) == nil, "Rounded to zero in:\n\(description)")
     }
 
     @Test func headerListsTheOptionsAndThePriorityChanges() async throws {
@@ -756,78 +779,149 @@ struct ImagePipelineDiagnosticsTests {
         let printed = try #require(Double(lines[index][waitRange].dropLast(3)))
         let queueWait = try #require(process.queueWait)
         #expect(abs(printed - queueWait * 1000) < 0.1)
+
+        // THEN the wait is its own category in the breakdown
+        #expect(description.range(of: #"\ntime: +.*queue [0-9.]+ ms"#, options: .regularExpression) != nil, "No queue share in:\n\(description)")
     }
 
-    @Test func formattedPicksTheSections() async throws {
+    @Test func breakdownAddsUpToTheTask() async throws {
+        // WHEN
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [.resize(width: 100)]))
+        _ = try await task.response
+        let metrics = try #require(task.metrics)
+
+        // THEN the shares partition the task: nothing is counted twice, and
+        // what the stages don't account for lands in `other`
+        let shares = metrics.timeShares
+        #expect(shares.contains { $0.category == .network })
+        #expect(shares.last?.category == .other)
+        #expect(abs(shares.map(\.duration).reduce(0, +) - metrics.duration) < 1e-9)
+        #expect(abs(shares.map(\.share).reduce(0, +) - 1) < 1e-6)
+        for (lhs, rhs) in zip(shares, shares.dropFirst()) where rhs.category != .other {
+            #expect(lhs.duration >= rhs.duration, "Unsorted shares: \(shares)")
+        }
+    }
+
+    @Test func optionsPickWhatIsPrinted() throws {
         // GIVEN a record with a download `URLSession` measured
         let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics", extension: "json"))
 
-        // WHEN
-        let header = metrics.formatted(.header)
-        let timeline = metrics.formatted(.timeline)
-        let urlSession = metrics.formatted(.urlSessionTimeline)
+        // THEN the sections stand on their own, and `description` is all of them
+        let head = metrics.formatted(.all.subtracting([.timeline, .urlSession]))
+        let timeline = metrics.formatted(.all.subtracting([.header, .breakdown]))
+        #expect(head.hasPrefix("ImageTask #42 \"feed\" · success"))
+        #expect(head.range(of: #"\npipeline: +3B0C6E4A\ntime: +network "#, options: .regularExpression) != nil, "Unexpected header:\n\(head)")
+        #expect(timeline.hasPrefix("pending "))
+        #expect(timeline.split(separator: "\n").last?.hasPrefix("total ") == true)
+        #expect(metrics.description == head + "\n\n" + timeline)
+        #expect(!metrics.formatted(.header).contains("\ntime:"))
+        #expect(metrics.formatted(.breakdown).range(of: #"^time: +network "#, options: .regularExpression) != nil)
+        #expect(!metrics.formatted(.breakdown).contains("\n"))
+        #expect(metrics.formatted([]).isEmpty)
 
-        // THEN every section stands on its own
-        #expect(header.hasPrefix("ImageTask #42 \"feed\" · success"))
-        #expect(header.range(of: #"\npipeline: +3B0C6E4A-6D5C-4F0E-9E43-2C7D1A9B5F10$"#, options: .regularExpression) != nil, "Unexpected header:\n\(header)")
-        #expect(timeline.hasPrefix("started "))
-        #expect(timeline.contains("\nj6 loadImage"))
-        #expect(timeline.hasSuffix("\n") == false && timeline.split(separator: "\n").last?.hasPrefix("finished ") == true)
-        #expect(urlSession.hasPrefix("URLSessionTask #17 · "))
+        // THEN the columns come off one at a time
+        let clock = #"at [0-9]{2}:[0-9]{2}:[0-9]{2}"#
+        #expect(metrics.description.range(of: clock, options: .regularExpression) != nil)
+        let columns: [(ImageTask.Metrics.Options, String)] = [(.chart, "█"), (.percentages, "%"), (.cacheKeys, "key 4f2a91c3"), (.urlSession, "networkLoad")]
+        for (option, sample) in columns {
+            let without = metrics.formatted(.all.subtracting(option))
+            #expect(metrics.description.contains(sample), "Missing \(sample) in:\n\(metrics.description)")
+            #expect(!without.contains(sample), "Unexpected \(sample) in:\n\(without)")
+        }
+        #expect(metrics.formatted(.all.subtracting(.timestamps)).range(of: clock, options: .regularExpression) == nil)
+        #expect(!metrics.formatted(.all.subtracting(.chart)).contains("░"))
+        #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains("session #17"))
 
-        // THEN the description is every section, in order, a blank line apart
-        #expect(metrics.description == [header, timeline, urlSession].joined(separator: "\n\n"))
-        #expect(metrics.formatted([.header, .urlSessionTimeline]) == header + "\n\n" + urlSession)
-
-        // THEN a task without a download `URLSession` measured has no section for it
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-        let recorded = try #require(task.metrics)
-        #expect(recorded.formatted(.urlSessionTimeline).isEmpty)
-        #expect(recorded.description == recorded.formatted([.header, .timeline]))
+        // THEN `.plain` is the sections with none of the columns
+        #expect(metrics.formatted(.plain) == metrics.formatted(.all.subtracting([.urlSession, .chart, .percentages, .timestamps, .cacheKeys])))
     }
 
-    @Test func descriptionPrintsTheURLSessionTimeline() throws {
-        // GIVEN a download that was redirected once
-        let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics", extension: "json"))
+    @Test func chartCellsGoToTheRowThatCoversThem() throws {
+        // GIVEN a record whose rows follow one another closely
+        let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics-revalidated", extension: "json"))
+        let description = metrics.description
+        let lines = description.split(separator: "\n").map(String.init)
 
-        // WHEN
-        let section = metrics.formatted(.urlSessionTimeline)
-        let lines = section.split(separator: "\n")
+        func row(_ needle: String) throws -> String {
+            try #require(lines.first { $0.contains(needle) }, "No \(needle) in:\n\(description)")
+        }
+        // The columns of the chart a row draws in. Every label is padded to
+        // the same width, so the columns compare across rows.
+        func lane(_ needle: String) throws -> Range<Int> {
+            let line = try row(needle)
+            let bar = try #require(line.range(of: #"[█░]+"#, options: .regularExpression), "No bar for \(needle) in:\n\(description)")
+            return line.distance(from: line.startIndex, to: bar.lowerBound)..<line.distance(from: line.startIndex, to: bar.upperBound)
+        }
 
-        // THEN the title names the task, and the first and the last row carry the time of day
-        #expect(lines.first == "URLSessionTask #17 · 410.7 ms · 1 redirect")
-        let clock = #"^(started|finished) +[0-9.]+ ms   (█+  )?at [0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}$"#
-        #expect(lines[1].range(of: clock, options: .regularExpression) != nil, "No clock in:\n\(section)")
-        #expect(lines[1].hasPrefix("started "))
-        #expect(lines[1].contains(" 0.3 ms "))
-        #expect(lines.last?.range(of: clock, options: .regularExpression) != nil, "No clock in:\n\(section)")
-        #expect(lines.last?.hasPrefix("finished ") == true)
-
-        // THEN every request is a heading: the request, the response, the connection, the network
-        #expect(section.contains("\nnetworkLoad · https://cdn.example.com/photos/1024.jpg · HTTP 301 · h2 · TLS 1.3 · reused connection · 151.101.1.1 · sent 412 bytes · received 318 bytes\n├─ request "), "Unexpected section:\n\(section)")
-        #expect(section.contains("\nnetworkLoad · https://img.example.com/photos/1024.jpg · HTTP 200 · h2 · TLS 1.3 · 151.101.2.2 · sent 398 bytes · received 1.2 MB · cellular · expensive\n├─ blocked "), "Unexpected section:\n\(section)")
-
-        // THEN the steps are under it, in order, the waits light, and the wait for a connection only when it is worth a row
-        let pattern = #"^[├└]─ ([a-zA-Z]+) +([0-9.]+) ms(?:   ([█░]+))?$"#
-        let steps: [[String]] = lines.compactMap { line in
-            guard let match = try? NSRegularExpression(pattern: pattern).firstMatch(in: String(line), range: NSRange(line.startIndex..., in: line)) else { return nil }
-            return (1...3).map { index in
-                Range(match.range(at: index), in: line).map { String(line[$0]) } ?? ""
+        // THEN work that merely follows other work never shares a cell with it
+        for chain in [["─ connect ", "─ secureConnection ", "480.2 ms"], ["─ decode ", "─ decompress "]] {
+            for (before, after) in zip(chain, chain.dropFirst()) {
+                let (lhs, rhs) = (try lane(before), try lane(after))
+                #expect(lhs.upperBound <= rhs.lowerBound, "\(before)\(lhs) overlaps \(after)\(rhs) in:\n\(description)")
             }
         }
-        #expect(steps == [
-            ["request", "0.1", ""], ["waiting", "37.5", "░░"], ["response", "0.2", ""],
-            ["blocked", "1.4", ""], ["domainLookup", "3.2", ""], ["connect", "10.1", ""], ["secureConnection", "20.0", ""], ["request", "0.3", ""], ["waiting", "18.8", ""], ["response", "318.0", String(repeating: "█", count: 15)]
-        ], "Unexpected steps in:\n\(section)")
-        #expect(lines.filter { $0.hasPrefix("└─ ") }.count == 2)
 
-        // THEN the durations are in a column
-        let columns = lines.compactMap { line in
-            line.range(of: #"^([├└]─ [a-zA-Z]+|started|finished) +[0-9.]+ ms"#, options: .regularExpression).map { line[..<$0.upperBound].count }
+        // THEN a bar is as wide as the row's share of the task, to the cell
+        for needle in ["j1 loadImage", "─ download ", "─ connect ", "480.2 ms", "─ decompress "] {
+            let line = try row(needle)
+            let value = try #require(line.range(of: #"[0-9.]+(?= ms)"#, options: .regularExpression))
+            let duration = try #require(Double(line[value]))
+            let cells = Double(try lane(needle).count)
+            let exact = duration / 1000 / metrics.duration * 20
+            #expect(abs(cells - exact) <= 1, "\(needle)draws \(cells) cells for \(exact) in:\n\(description)")
         }
-        #expect(columns.count == 12)
-        #expect(Set(columns).count == 1, "Misaligned durations in:\n\(section)")
+    }
+
+    @Test func timelineNestsTheURLSessionRequests() throws {
+        // GIVEN a download the session answered out of its `URLCache`, after
+        // revalidating it with a request the server answered `304`
+        let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics-revalidated", extension: "json"))
+        let description = metrics.description
+        let lines = description.split(separator: "\n").map(String.init)
+
+        // THEN the requests sit under the download that made them, indented
+        // past it, each with its steps under it
+        let download = try #require(lines.firstIndex { $0.contains("─ download ") }, "No download in:\n\(description)")
+        #expect(lines[download].contains("session #1"))
+        let indent = { (line: String) in line.prefix { $0 == "│" || $0 == " " }.count }
+        #expect(indent(lines[download + 1]) > indent(lines[download]))
+
+        let rows = lines[download...].compactMap { line -> String? in
+            guard let range = line.range(of: #"[├└]─ [a-zA-Z]+ +(–|<0\.1 ms|[0-9.]+ ms)"#, options: .regularExpression) else { return nil }
+            return line[range].dropFirst(3).split(separator: " ", maxSplits: 1).joined(separator: " ").replacing(#/ +/#, with: " ")
+        }
+        #expect(Array(rows.prefix(13)) == [
+            "download 667.7 ms",
+            "localCache 6.6 ms", "request <0.1 ms", "waiting 6.6 ms", "response <0.1 ms",
+            "networkLoad 658.7 ms", "blocked 17.6 ms", "domainLookup <0.1 ms", "connect 134.0 ms",
+            "secureConnection 26.0 ms", "request 0.1 ms", "waiting 480.2 ms", "response 0.6 ms"
+        ], "Unexpected rows in:\n\(description)")
+
+        // THEN a request to the URL of the task doesn't repeat it, and the
+        // waits are the light part of the chart
+        #expect(lines.filter { $0.contains(metrics.request.url!) }.count == 1)
+        #expect(try #require(lines.first { $0.contains("480.2 ms") }).contains("░"), "No light bar in:\n\(description)")
+    }
+
+    @Test func aURLCacheHitIsNotReportedAsANetworkLoad() throws {
+        // GIVEN the same record: 325 KB delivered, 392 bytes on the wire
+        let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: Test.data(name: "diagnostics-metrics-revalidated", extension: "json"))
+
+        // THEN
+        #expect(metrics.source == .httpCache)
+        #expect(metrics.isServedFromHTTPCache)
+        #expect(metrics.isRevalidated)
+        #expect(metrics.wireBytes == 392)
+        #expect(metrics.urlSessionMetrics?.networkBytesSent == 216)
+
+        // THEN the header says so, rather than calling 325 KB a download
+        let description = metrics.description
+        #expect(description.hasPrefix("ImageTask #1 · success · 755.8 ms · from httpCache\n"))
+        #expect(description.range(of: #"\ntransfer: +325 KB · 392 bytes on the wire · revalidated\n"#, options: .regularExpression) != nil, "Unexpected transfer in:\n\(description)")
+        #expect(description.range(of: #"\nimage: +1440×960 · jpeg · 5.5 MB in memory\n"#, options: .regularExpression) != nil, "Unexpected image in:\n\(description)")
+
+        // THEN the breakdown names the download as the part worth fixing
+        #expect(description.range(of: #"\ntime: +network 667.7 ms \(88%\) · decompress 47.7 ms \(6%\) · decode 36.4 ms \(5%\)"#, options: .regularExpression) != nil, "Unexpected breakdown in:\n\(description)")
     }
 
     // MARK: - URLSession
@@ -866,10 +960,16 @@ struct ImagePipelineDiagnosticsTests {
         #expect(transaction.url == url.absoluteString)
         #expect(transaction.fetchStartedAt != nil)
 
-        // THEN the description has a section for it
+        // THEN the request is a row under the download that made it, and it
+        // doesn't repeat the URL the header already carries
         let taskID = try #require(download.urlSessionTaskID)
-        #expect(metrics.description.contains("\n\nURLSessionTask #\(taskID) · "))
-        #expect(metrics.formatted(.urlSessionTimeline).contains("\n\(transaction.fetchType.rawValue) · \(url.absoluteString)\n"), "Unexpected section:\n\(metrics.formatted(.urlSessionTimeline))")
+        let description = metrics.description
+        let lines = description.split(separator: "\n").map(String.init)
+        let index = try #require(lines.firstIndex { $0.contains("─ download ") }, "No download in:\n\(description)")
+        #expect(lines[index].contains("session #\(taskID)"))
+        #expect(lines[index + 1].contains("─ \(transaction.fetchType.rawValue)"), "Unexpected row in:\n\(description)")
+        #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
+        #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
     }
 }
 

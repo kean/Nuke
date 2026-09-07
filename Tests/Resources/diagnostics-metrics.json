@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "pipelineID": "3B0C6E4A-6D5C-4F0E-9E43-2C7D1A9B5F10",
   "taskID": 42,
   "kind": "prefetch",
@@ -22,7 +22,7 @@
   "previewCount": 0,
   "priorityHistory": [],
   "bytes": { "downloaded": 1204113, "resumed": 0, "expected": 1204113 },
-  "image": { "width": 4032, "height": 3024, "format": "jpeg", "isAnimated": false },
+  "image": { "width": 4032, "height": 3024, "format": "jpeg", "isAnimated": false, "memoryCost": 48771072 },
   "jobs": [
     {
       "id": 6,
@@ -39,10 +39,10 @@
         { "at": 1788606000.0009, "priority": "normal" }
       ],
       "stages": [
-        { "kind": "memoryLookup", "startedAt": 1788606000.0009, "duration": 0.000004, "attributedDuration": 0, "result": "miss" },
-        { "kind": "diskLookup", "startedAt": 1788606000.0009, "duration": 0.0005, "attributedDuration": 0, "result": "miss" },
+        { "kind": "memoryLookup", "cacheKey": "4f2a91c3", "startedAt": 1788606000.0009, "duration": 0.000004, "attributedDuration": 0, "result": "miss" },
+        { "kind": "diskLookup", "cacheKey": "9b1e0d57", "startedAt": 1788606000.0009, "duration": 0.0005, "attributedDuration": 0, "result": "miss" },
         { "kind": "decompress", "queuedAt": 1788606000.4695, "startedAt": 1788606000.4697, "duration": 0.0164, "workDuration": 0.0161, "attributedDuration": 0.0164, "isProgressive": false, "pixels": [4032, 3024] },
-        { "kind": "memoryStore", "startedAt": 1788606000.4862, "duration": 0.00002, "attributedDuration": 0.00002 }
+        { "kind": "memoryStore", "cacheKey": "4f2a91c3", "startedAt": 1788606000.4862, "duration": 0.00002, "attributedDuration": 0.00002 }
       ]
     },
     {
@@ -146,7 +146,7 @@
             ]
           }
         },
-        { "kind": "diskStore", "startedAt": 1788606000.4141, "duration": 0.0001, "attributedDuration": 0.0001, "bytes": 1204113 }
+        { "kind": "diskStore", "cacheKey": "9b1e0d57", "startedAt": 1788606000.4141, "duration": 0.0001, "attributedDuration": 0.0001, "bytes": 1204113 }
       ]
     }
   ]

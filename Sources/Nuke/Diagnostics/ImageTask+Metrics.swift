@@ -30,7 +30,7 @@ extension ImageTask {
     /// for.
     ///
     /// `description` prints a text timeline of the task, which is what a bug
-    /// report should paste.
+    /// report should paste. ``formatted(_:)`` prints the parts of it.
     public struct Metrics: Codable, Sendable, CustomStringConvertible {
         /// The version of the JSON the record encodes to.
         public let schemaVersion: Int
@@ -117,6 +117,11 @@ extension ImageTask {
             /// The format of the image data, such as `"jpeg"`.
             public let format: String?
             public let isAnimated: Bool
+            /// What the image costs in memory, which is what ``ImageCache``
+            /// charges it: the bitmap, plus the data an animation keeps. It
+            /// dwarfs the bytes downloaded, and it is the figure a cache limit
+            /// is spent on. `nil` if the image has no bitmap to measure.
+            public let memoryCost: Int?
         }
     }
 }
@@ -151,576 +156,180 @@ extension ImageTask.Metrics {
         }
         return nil
     }
+
+    /// The bytes the session took off the network for the download the task
+    /// waited on, which is far less than ``bytes`` when the response came out
+    /// of the `URLCache`. `nil` unless `URLSession` measured the download.
+    ///
+    /// ``ImagePipeline/Diagnostics-swift.struct/Source/network`` counts a
+    /// `URLCache` hit as a download, because the pipeline can't tell the
+    /// difference; this can.
+    public var wireBytes: Int64? { urlSessionMetrics?.networkBytesReceived }
+
+    /// `true` if the download the task waited on was answered out of the
+    /// `URLCache` of the ``DataLoader``, so ``bytes`` is what the pipeline
+    /// received and not what the network carried.
+    public var isServedFromHTTPCache: Bool { urlSessionMetrics?.isServedFromCache ?? false }
+
+    /// `true` if the download the task waited on was a conditional request
+    /// the server answered with `304 Not Modified`, so only the headers
+    /// crossed the network and the bytes came out of the `URLCache`.
+    public var isRevalidated: Bool { urlSessionMetrics?.isRevalidated ?? false }
 }
 
-// MARK: - Description
+// MARK: - Time Shares
 
 extension ImageTask.Metrics {
-    /// The sections of ``formatted(_:)``.
-    public struct Sections: OptionSet, Sendable {
-        public let rawValue: Int
-
-        public init(rawValue: Int) {
-            self.rawValue = rawValue
-        }
-
-        /// A title with the outcome, then a field per fact of the request
-        /// and the result.
-        public static let header = Sections(rawValue: 1 << 0)
-        /// The tree of the jobs the task waited on, with the time the task
-        /// spent on every row.
-        public static let timeline = Sections(rawValue: 1 << 1)
-        /// The download as `URLSession` saw it: every request the session
-        /// made, with the time each step of it took. Nothing without
-        /// ``urlSessionMetrics``.
-        public static let urlSessionTimeline = Sections(rawValue: 1 << 2)
-
-        public static let all: Sections = [.header, .timeline, .urlSessionTimeline]
-    }
-
-    /// ``formatted(_:)`` with every section: what a bug report should paste.
-    public var description: String { formatted() }
-
-    /// A text report of the task: the `sections`, in the order ``Sections``
-    /// lists them, separated by a blank line.
+    /// A kind of work the time of a task goes into.
     ///
-    /// The header is a title with the outcome, then a field per fact of the
-    /// request and the result.
+    /// The categories are exclusive: when two pieces of work overlap, such as
+    /// a progressive decode that runs during the download it reads from, the
+    /// time counts once, for the category declared first here. So the shares
+    /// of a task always add up to its ``ImageTask/Metrics/duration``.
+    public enum Category: String, Sendable, CaseIterable {
+        /// A download, whatever it took its bytes from.
+        case network
+        /// The wait for one of the queues in
+        /// ``ImagePipeline/Configuration-swift.struct``, which is where the
+        /// time goes when the pipeline is busy.
+        case queue
+        /// The wait in ``ImagePipeline/Configuration-swift.struct/rateLimiter``.
+        case rateLimit
+        case process
+        case decompress
+        case decode
+        /// A cache lookup or a cache write, in memory or on disk.
+        case cache
+        /// What the stages don't account for: the time before the pipeline
+        /// started the task, the hops between the jobs, and the work that
+        /// isn't bracketed.
+        case other
+
+        /// Which category claims a stretch of time two of them cover. Lower
+        /// wins, and it is the order they are declared in.
+        var rank: Int { Self.allCases.firstIndex(of: self) ?? Self.allCases.count }
+    }
+
+    /// How much of a task one ``Category`` took.
+    public struct TimeShare: Sendable {
+        public let category: Category
+        /// Seconds.
+        public let duration: TimeInterval
+        /// The share of ``ImageTask/Metrics/duration``, from 0 to 1.
+        public let share: Double
+    }
+
+    /// Where the time of the task went, largest first, and
+    /// ``ImageTask/Metrics/Category/other`` last.
     ///
-    /// In the timeline, the jobs form a tree, root first. The stages of a
-    /// job and the job it waited on are listed under it in the order they
-    /// started, so the tree reads top to bottom as the task ran. The column is
-    /// the time the task spent on every row, and the rows that took a large
-    /// share of the task carry a bar next to it, light for a wait. A stage
-    /// that waited a millisecond, or a tenth of the task, for its queue gets
-    /// a row for the queue above it, named after the queue in
-    /// `ImagePipeline.Configuration`. A shorter wait is folded into the
-    /// stage. The first and the last row carry the time of day, to line the
-    /// task up with the log around it.
-    ///
-    /// The URLSession timeline has the same shape, on the clock of the
-    /// session task, which may have started before the image task joined it.
-    /// Every request the session made is a heading, and the steps of the
-    /// request are the rows under it: the wait for a connection, the domain
-    /// lookup, the connection and its securing, the request, the wait for the
-    /// first byte of the response, and the response. A step the session
-    /// skipped has no row.
-    public func formatted(_ sections: Sections = .all) -> String {
-        var blocks: [[String]] = []
-        if sections.contains(.header) {
-            blocks.append(headerLines)
-        }
-        if sections.contains(.timeline) {
-            blocks.append(timelineLines)
-        }
-        if sections.contains(.urlSessionTimeline), let urlSessionMetrics {
-            blocks.append(lines(of: urlSessionMetrics))
-        }
-        return blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
-    }
+    /// The durations add up to ``duration``, so the line answers the question
+    /// the timeline leaves to arithmetic: which part of the task is worth
+    /// making faster.
+    public var timeShares: [TimeShare] {
+        guard duration > 0 else { return [] }
 
-    // MARK: Header
-
-    /// A title with what a reader scans a log for, then a field per fact: the
-    /// error first, the request, the result, and the pipeline last, since a
-    /// task number is unique only within one.
-    private var headerLines: [String] {
-        var title = "ImageTask #\(taskID)"
-        title += label.map { " \"\($0)\"" } ?? ""
-        title += " · \(outcome.rawValue) · \(ms(duration))"
-        title += source.map { " · from \($0.rawValue)" } ?? ""
-
-        var fields: [Field] = []
-        fields += error.map { [Field("error", text(of: $0))] } ?? []
-        fields.append(Field("kind", kind.rawValue))
-        fields += requestFields
-        fields += resultFields
-        fields.append(Field("pipeline", pipelineID.uuidString))
-
-        let keyWidth = fields.map(\.key.count).max() ?? 0
-        return [title] + fields.flatMap { $0.formatted(keyWidth: keyWidth) }
-    }
-
-    private var requestFields: [Field] {
-        var fields: [Field] = []
-        if request.url != nil || request.imageID == nil {
-            fields.append(Field("url", request.url ?? "none"))
-        }
-        if let imageID = request.imageID, imageID != request.url {
-            fields.append(Field("imageID", imageID))
-        }
-        fields += request.thumbnail.map { [Field("thumbnail", $0)] } ?? []
-        if !request.processors.isEmpty {
-            fields.append(Field("processors", request.processors))
-        }
-        if !request.options.isEmpty {
-            fields.append(Field("options", request.options.joined(separator: ", ")))
-        }
-        fields.append(Field("priority", priorityText))
-        return fields
-    }
-
-    private var resultFields: [Field] {
-        var fields: [Field] = []
-        if let image, let text = text(of: image) {
-            fields.append(Field("image", text))
-        }
-        fields += bytes.map { [Field("download", text(of: $0))] } ?? []
-        if previewCount > 0 {
-            fields.append(Field("previews", "\(previewCount)"))
-        }
-        fields.append(Field("coalesced", coalescedText))
-        return fields
-    }
-
-    /// The priority the request was created with, then every change made to
-    /// the task's priority while it ran, on the task's clock.
-    private var priorityText: String {
-        var text = request.priority.name
-        var priority = request.priority
-        for change in priorityHistory where change.priority != priority {
-            text += " → \(change.priority.name) at \(ms(change.at - createdAt))"
-            priority = change.priority
-        }
-        return text
-    }
-
-    private var coalescedText: String {
-        var text = isCoalesced ? "yes" : "no"
-        let sharedTaskIDs = self.sharedTaskIDs
-        if !sharedTaskIDs.isEmpty {
-            let tasks = sharedTaskIDs.map { "#\($0)" }.joined(separator: ", ")
-            let jobs = self.jobs.filter { $0.taskIDs.count > 1 }.map { "j\($0.id)" }.joined(separator: ", ")
-            text += " · shared with \(tasks) (\(jobs))"
-        }
-        return text
-    }
-
-    /// The code and the description, which names the underlying error.
-    private func text(of error: ImagePipeline.Diagnostics.ErrorSummary) -> String {
-        "\(error.code) · \(error.description)"
-    }
-
-    private func text(of image: ImageSummary) -> String? {
-        var parts: [String] = []
-        if image.width > 0 || image.height > 0 {
-            parts.append("\(image.width)×\(image.height)")
-        }
-        parts += image.format.map { [$0] } ?? []
-        if image.isAnimated {
-            parts.append("animated")
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-
-    /// The bytes downloaded, the part of them reused from an earlier attempt,
-    /// and what the server announced if the download stopped short of it.
-    private func text(of bytes: Bytes) -> String {
-        var text = Formatter.bytes(bytes.downloaded)
-        if bytes.resumed > 0 {
-            text += " (\(Formatter.bytes(bytes.resumed)) resumed)"
-        }
-        if bytes.expected > bytes.downloaded {
-            text += " of \(Formatter.bytes(bytes.expected))"
-        }
-        return text
-    }
-
-    /// A fact of the header: a key and its value, or values, one per line.
-    private struct Field {
-        var key: String
-        var values: [String]
-
-        init(_ key: String, _ value: String) {
-            self.init(key, [value])
-        }
-
-        init(_ key: String, _ values: [String]) {
-            self.key = key
-            self.values = values
-        }
-
-        /// The key, then the values in a column past the widest key.
-        func formatted(keyWidth: Int) -> [String] {
-            let indent = String(repeating: " ", count: keyWidth + 3)
-            return values.enumerated().map { index, value in
-                (index == 0 ? "\(key):".padding(toLength: indent.count, withPad: " ", startingAt: 0) : indent) + value
+        var intervals: [(category: Category, span: Span)] = []
+        for job in jobs {
+            for stage in job.stages {
+                guard let span = span(of: stage, in: job) else { continue }
+                // The wait for a queue is not the work it held up.
+                if stage.queuedAt != nil, let startedAt = stage.startedAt, startedAt > span.from {
+                    let queueEnd = min(startedAt, span.to)
+                    intervals.append((.queue, Span(from: span.from, to: queueEnd)))
+                    if queueEnd < span.to {
+                        intervals.append((category(of: stage.kind), Span(from: queueEnd, to: span.to)))
+                    }
+                } else {
+                    intervals.append((category(of: stage.kind), span))
+                }
             }
         }
-    }
 
-    // MARK: Timeline
-
-    private var timelineLines: [String] {
-        var rows: [Row] = []
-        if let startedAt {
-            rows.append(Row(label: "started", value: ms(startedAt - createdAt), details: details(bar: bar(for: startedAt - createdAt, of: duration), ["at \(clock(startedAt))"])))
+        // Cut the lifetime of the task at every boundary, and give each of
+        // the pieces to the category that claims it, so nothing is counted
+        // twice and the leftovers land in `other`.
+        var points = Set([createdAt, endedAt])
+        for (_, span) in intervals {
+            points.insert(min(max(span.from, createdAt), endedAt))
+            points.insert(min(max(span.to, createdAt), endedAt))
         }
-        var remaining = jobs
-        while let root = remaining.first {
-            rows += self.rows(for: root, prefix: "", childPrefix: "", parentJoinedAt: nil, remaining: &remaining)
+        var totals: [Category: TimeInterval] = [:]
+        let sorted = points.sorted()
+        for (from, to) in zip(sorted, sorted.dropFirst()) where to > from {
+            let middle = (from + to) / 2
+            let category = intervals.lazy
+                .filter { $0.span.contains(middle) }
+                .min { $0.category.rank < $1.category.rank }?.category
+            totals[category ?? .other, default: 0] += to - from
         }
-        rows.append(Row(label: "finished", value: ms(duration), details: "at \(clock(endedAt))"))
-        return format(rows)
-    }
 
-    // MARK: Tree
-
-    /// The rows of a job and everything under it: its stages and the job
-    /// it waited on, in the order they started. Removes the jobs it prints
-    /// from `remaining`, so a job no chain reaches is printed as a root of
-    /// its own.
-    private func rows(for job: ImagePipeline.Diagnostics.Job, prefix: String, childPrefix: String, parentJoinedAt: TimeInterval?, remaining: inout [ImagePipeline.Diagnostics.Job]) -> [Row] {
-        remaining.removeAll { $0.id == job.id }
-        var rows = [Row(label: prefix + label(of: job), details: details(of: job, parentJoinedAt: parentJoinedAt))]
-
-        var entries: [(at: TimeInterval, entry: Entry)] = []
-        entries += job.stages.map { ($0.startedAt ?? $0.queuedAt ?? job.createdAt, .stage($0)) }
-        entries += remaining.filter { $0.id == job.parentID }.map { ($0.joinedAt ?? $0.createdAt, .job($0)) }
-        entries.sort { $0.at < $1.at }
-
-        for (index, (_, entry)) in entries.enumerated() {
-            let isLast = index == entries.count - 1
-            let connector = isLast ? "└─ " : "├─ "
-            switch entry {
-            case .stage(let stage):
-                rows += self.rows(for: stage, in: job, prefix: childPrefix, connector: connector)
-            case .job(let child):
-                rows += self.rows(for: child, prefix: childPrefix + connector, childPrefix: childPrefix + (isLast ? "   " : "│  "), parentJoinedAt: job.joinedAt, remaining: &remaining)
+        return totals
+            .filter { $0.value > 0 }
+            .map { TimeShare(category: $0.key, duration: $0.value, share: $0.value / duration) }
+            .sorted { lhs, rhs in
+                guard (lhs.category == .other) == (rhs.category == .other) else {
+                    return rhs.category == .other
+                }
+                return lhs.duration > rhs.duration
             }
-        }
-        return rows
     }
 
-    /// A line under a job: one of its stages, or the job it waited on.
-    private enum Entry {
-        case stage(ImagePipeline.Diagnostics.Stage)
-        case job(ImagePipeline.Diagnostics.Job)
-    }
-
-    private func label(of job: ImagePipeline.Diagnostics.Job) -> String {
-        var label = "j\(job.id) \(job.kind.rawValue)"
-        if !job.processors.isEmpty {
-            label += " [\(job.processors.map(shortName(of:)).joined(separator: ", "))]"
-        }
-        return label
-    }
-
-    /// When the task joined the job, on the job's own clock, unless the
-    /// parent says the same, and how the job ended, unless the task ended
-    /// the same way.
-    private func details(of job: ImagePipeline.Diagnostics.Job, parentJoinedAt: TimeInterval?) -> String {
-        var parts: [String] = []
-        if let joinedAt = job.joinedAt, joinedAt != parentJoinedAt {
-            var text = "joined at \(ms(joinedAt - job.createdAt))"
-            text += job.duration.map { " of \(ms($0))" } ?? ""
-            parts.append(text)
-        }
-        if let outcome = job.outcome {
-            if outcome != self.outcome {
-                parts.append(outcome.rawValue)
-            }
-        } else {
-            parts.append("running")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    // MARK: Stages
-
-    /// The row of a stage, under a row for its queue when the wait for it is
-    /// worth one.
-    private func rows(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, prefix: String, connector: String) -> [Row] {
-        let label = prefix + connector + stage.kind.rawValue
-        guard let wait = wait(for: stage, in: job) else {
-            return [Row(label: label, value: "–", details: details(of: stage, in: job, bar: nil))]
-        }
-        var rows: [Row] = []
-        var total = wait.total
-        if isWorthARow(wait.queued, of: duration) {
-            rows.append(Row(label: prefix + "├─ " + queueName(for: stage.kind), value: ms(wait.queued), details: bar(for: wait.queued, of: duration, fill: "░") ?? ""))
-            total -= wait.queued
-        }
-        let fill: Character = stage.kind == .rateLimit ? "░" : "█"
-        rows.append(Row(label: label, value: ms(total), details: details(of: stage, in: job, bar: bar(for: total, of: duration, fill: fill))))
-        return rows
-    }
-
-    /// A wait is a row of its own when it took a millisecond, or a tenth of
-    /// the whole. A shorter one is folded into the row it held up.
-    private func isWorthARow(_ wait: TimeInterval, of total: TimeInterval) -> Bool {
-        wait >= 0.001 || (wait > 0 && wait >= total / 10)
-    }
-
-    /// The queue in `ImagePipeline.Configuration` a stage waits for.
-    private func queueName(for kind: ImagePipeline.Diagnostics.Stage.Kind) -> String {
+    private func category(of kind: ImagePipeline.Diagnostics.Stage.Kind) -> Category {
         switch kind {
-        case .download: "dataLoadingQueue"
-        case .decode: "imageDecodingQueue"
-        case .process: "imageProcessingQueue"
-        case .decompress: "imageDecompressingQueue"
-        default: "queue"
+        case .download: .network
+        case .rateLimit: .rateLimit
+        case .process: .process
+        case .decompress: .decompress
+        case .decode: .decode
+        case .memoryLookup, .diskLookup, .memoryStore, .diskStore: .cache
+        case .willLoadData, .unknown: .other
         }
     }
+}
 
-    /// The time the task spent on a stage, and how much of it was the wait
-    /// for the stage's queue.
-    private struct Wait {
-        var queued: TimeInterval = 0
-        var total: TimeInterval
+// MARK: - Spans
+
+extension ImageTask.Metrics {
+    /// A stretch of the timeline of a task, in seconds since 1970.
+    struct Span {
+        var from: TimeInterval
+        var to: TimeInterval
+
+        var duration: TimeInterval { max(0, to - from) }
+
+        func contains(_ time: TimeInterval) -> Bool { time >= from && time < to }
     }
 
-    /// The time the task spent on the stage: from its queue to its end,
-    /// clamped to the part of the stage the task was there for. Unlike
+    /// The part of a job the task was there for: from the moment it reached
+    /// the job to the end of the job, clamped to the lifetime of the task.
+    func span(of job: ImagePipeline.Diagnostics.Job) -> Span? {
+        span(from: job.joinedAt ?? job.createdAt, to: job.endedAt)
+    }
+
+    /// The time the task spent on a stage: from its queue to its end, clamped
+    /// to the part of the stage the task was there for. Unlike
     /// ``ImagePipeline/Diagnostics-swift.struct/Stage/attributedDuration``, it
-    /// includes the wait for the queue, which is where the time goes when
-    /// the pipeline is busy, and says how much of it that was.
-    private func wait(for stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> Wait? {
+    /// includes the wait for the queue, which is where the time goes when the
+    /// pipeline is busy.
+    func span(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> Span? {
         guard let begin = stage.queuedAt ?? stage.startedAt else { return nil }
-        let from = max(begin, job.joinedAt ?? begin)
-        let to = min(stage.endedAt ?? endedAt, endedAt)
-        var wait = Wait(total: max(0, to - from))
-        if stage.queuedAt != nil {
-            // A stage that never left its queue was queued for the whole wait.
-            wait.queued = max(0, min(stage.startedAt ?? to, to) - from)
-        }
-        return wait
+        return span(from: max(begin, job.joinedAt ?? begin), to: stage.endedAt)
     }
 
-    /// The details, in the same order for every kind of stage: the share of
-    /// the task, the state, the result, the transfer, the output, then the
-    /// timing.
-    private func details(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job, bar: String?) -> String {
-        var parts: [String] = []
-        if stage.startedAt == nil {
-            parts.append("never started")
-        } else if stage.duration == nil {
-            parts.append("running")
-        }
-        parts += stage.result.map { [$0.rawValue] } ?? []
-        parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: job)
-        return details(bar: bar, parts)
+    /// The request as the session timed it, from the start of the fetch to
+    /// the last step it recorded.
+    func span(of transaction: ImagePipeline.Diagnostics.URLSessionMetrics.Transaction) -> Span? {
+        guard let from = transaction.fetchStartedAt else { return nil }
+        return span(from: from, to: transaction.endedAt)
     }
 
-    private func transfer(of stage: ImagePipeline.Diagnostics.Stage) -> [String] {
-        var parts: [String] = []
-        parts += stage.source.map { [$0.rawValue] } ?? []
-        if let bytes = stage.bytes {
-            var text = Formatter.bytes(bytes)
-            if let resumedBytes = stage.resumedBytes, resumedBytes > 0 {
-                text += " (\(Formatter.bytes(resumedBytes)) resumed)"
-            }
-            parts.append(text)
-        }
-        parts += stage.statusCode.map { ["HTTP \($0)"] } ?? []
-        if let firstByteAt = stage.firstByteAt, let startedAt = stage.startedAt {
-            parts.append("first byte \(ms(firstByteAt - startedAt))")
-        }
-        return parts
-    }
-
-    private func output(of stage: ImagePipeline.Diagnostics.Stage) -> [String] {
-        var parts: [String] = []
-        if stage.isProgressive == true {
-            parts.append("preview")
-        }
-        parts += stage.decoder.map { [$0] } ?? []
-        let image = [stage.format, stage.pixels.map { "\($0.width)×\($0.height)" }].compactMap { $0 }
-        if !image.isEmpty {
-            parts.append(image.joined(separator: " "))
-        }
-        return parts
-    }
-
-    /// What the column doesn't say: how much of the stage was the work
-    /// itself, and where in the stage the task joined, on the stage's own
-    /// clock.
-    private func timing(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> [String] {
-        var parts: [String] = []
-        if let workDuration = stage.workDuration, let duration = stage.duration, duration - workDuration >= 0.001 {
-            parts.append("work \(ms(workDuration))")
-        }
-        if let joinedAt = job.joinedAt, let begin = stage.queuedAt ?? stage.startedAt, joinedAt > begin {
-            if let endedAt = stage.endedAt, endedAt <= joinedAt {
-                parts.append("before join")
-            } else {
-                var text = "joined at \(ms(joinedAt - begin))"
-                text += stage.endedAt.map { " of \(ms($0 - begin))" } ?? ""
-                parts.append(text)
-            }
-        }
-        return parts
-    }
-
-    /// A bar for a time that took a large share of the whole, so the
-    /// bottleneck stands out without arithmetic. Light for a wait. Nothing
-    /// under a millisecond.
-    private func bar(for time: TimeInterval, of total: TimeInterval, fill: Character = "█") -> String? {
-        guard time >= 0.001, total > 0 else { return nil }
-        let width = Int((time / total * 20).rounded())
-        return width >= 2 ? String(repeating: fill, count: width) : nil
-    }
-
-    /// The details of a row: its bar, then its parts.
-    private func details(bar: String?, _ parts: [String]) -> String {
-        let details = parts.joined(separator: " · ")
-        guard let bar else { return details }
-        return details.isEmpty ? bar : "\(bar)  \(details)"
-    }
-
-    // MARK: URLSession
-
-    /// The title names the session task. The `started` row is the time the
-    /// session held the task before it began to fetch, and the last row is
-    /// the length of the task, both with the time of day. In between, every
-    /// request is a heading with its steps under it.
-    private func lines(of metrics: ImagePipeline.Diagnostics.URLSessionMetrics) -> [String] {
-        var title = "URLSessionTask #\(metrics.urlSessionTaskID) · \(ms(metrics.duration))"
-        if metrics.redirectCount > 0 {
-            title += " · \(metrics.redirectCount) redirect\(metrics.redirectCount == 1 ? "" : "s")"
-        }
-
-        let total = metrics.duration
-        var rows: [Row] = []
-        let fetchStartedAt = max(metrics.transactions.first?.fetchStartedAt ?? metrics.startedAt, metrics.startedAt)
-        let wait = fetchStartedAt - metrics.startedAt
-        rows.append(Row(label: "started", value: ms(wait), details: details(bar: bar(for: wait, of: total), ["at \(clock(fetchStartedAt))"])))
-        for transaction in metrics.transactions {
-            rows.append(Row(label: transaction.fetchType.rawValue, details: details(of: transaction)))
-            let steps = self.steps(of: transaction, of: total)
-            for (index, step) in steps.enumerated() {
-                let connector = index == steps.count - 1 ? "└─ " : "├─ "
-                let fill: Character = step.isWait ? "░" : "█"
-                rows.append(Row(label: connector + step.name, value: ms(step.duration), details: bar(for: step.duration, of: total, fill: fill) ?? ""))
-            }
-        }
-        rows.append(Row(label: "finished", value: ms(total), details: "at \(clock(metrics.endedAt))"))
-        return [title] + format(rows)
-    }
-
-    /// The request and the response, then the connection that carried them
-    /// and the network it ran on: what a reader checks when a download was
-    /// slow.
-    private func details(of transaction: ImagePipeline.Diagnostics.URLSessionMetrics.Transaction) -> String {
-        var parts: [String] = []
-        parts += transaction.url.map { [$0] } ?? []
-        parts += transaction.statusCode.map { ["HTTP \($0)"] } ?? []
-        parts += transaction.networkProtocol.map { [$0] } ?? []
-        parts += transaction.tlsVersion.map { [$0] } ?? []
-        if transaction.isReusedConnection {
-            parts.append("reused connection")
-        }
-        if transaction.isProxyConnection {
-            parts.append("proxy")
-        }
-        parts += transaction.remoteAddress.map { [$0] } ?? []
-        if transaction.requestBytes > 0 {
-            parts.append("sent \(Formatter.bytes(transaction.requestBytes))")
-        }
-        if transaction.responseBytes > 0 {
-            parts.append("received \(Formatter.bytes(transaction.responseBytes))")
-        }
-        if transaction.isCellular {
-            parts.append("cellular")
-        }
-        if transaction.isExpensive {
-            parts.append("expensive")
-        }
-        if transaction.isConstrained {
-            parts.append("constrained")
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    /// A step of a request: the time between two of its timestamps.
-    private struct Step {
-        var name: String
-        var duration: TimeInterval
-        /// `true` if the session was waiting on something else: a
-        /// connection, or the server.
-        var isWait = false
-    }
-
-    /// The steps the session took, in the order it took them. A step it
-    /// skipped, such as the lookup for a connection it reused, is left out.
-    /// The wait for a connection before the first step is a row on the terms
-    /// of a queue wait.
-    private func steps(of transaction: ImagePipeline.Diagnostics.URLSessionMetrics.Transaction, of total: TimeInterval) -> [Step] {
-        var steps: [Step] = []
-        func add(_ name: String, from start: TimeInterval?, to end: TimeInterval?, isWait: Bool = false) {
-            guard let start, let end, end >= start else { return }
-            steps.append(Step(name: name, duration: end - start, isWait: isWait))
-        }
-        let firstStep = [transaction.domainLookupStartedAt, transaction.connectStartedAt, transaction.requestStartedAt].compactMap { $0 }.min()
-        if let fetchStartedAt = transaction.fetchStartedAt, let firstStep, isWorthARow(firstStep - fetchStartedAt, of: total) {
-            add("blocked", from: fetchStartedAt, to: firstStep, isWait: true)
-        }
-        add("domainLookup", from: transaction.domainLookupStartedAt, to: transaction.domainLookupEndedAt)
-        add("connect", from: transaction.connectStartedAt, to: transaction.secureConnectionStartedAt ?? transaction.connectEndedAt)
-        add("secureConnection", from: transaction.secureConnectionStartedAt, to: transaction.secureConnectionEndedAt)
-        add("request", from: transaction.requestStartedAt, to: transaction.requestEndedAt)
-        add("waiting", from: transaction.requestEndedAt, to: transaction.responseStartedAt, isWait: true)
-        add("response", from: transaction.responseStartedAt, to: transaction.responseEndedAt)
-        return steps
-    }
-
-    // MARK: Formatting
-
-    /// The rows with the columns as wide as they need, and no wider.
-    private func format(_ rows: [Row]) -> [String] {
-        let labelWidth = rows.filter { !$0.value.isEmpty }.map(\.label.count).max() ?? 0
-        let valueWidth = rows.map(\.value.count).max() ?? 0
-        return rows.map { $0.formatted(labelWidth: labelWidth, valueWidth: valueWidth) }
-    }
-
-    /// A line of the timeline. A stage has a value, which puts it in the
-    /// columns. A job has none, and is a heading: its details follow the
-    /// label.
-    private struct Row {
-        var label: String
-        var value = ""
-        var details = ""
-
-        func formatted(labelWidth: Int, valueWidth: Int) -> String {
-            guard !value.isEmpty else {
-                return details.isEmpty ? label : "\(label) · \(details)"
-            }
-            var line = label.padding(toLength: labelWidth + 2, withPad: " ", startingAt: 0)
-            line += String(repeating: " ", count: valueWidth - value.count) + value
-            if !details.isEmpty {
-                line += "   " + details
-            }
-            return line
-        }
-    }
-
-    private func ms(_ duration: TimeInterval) -> String {
-        String(format: "%.1f ms", duration * 1000)
-    }
-
-    /// The time of day to the millisecond, in the local time zone and on a
-    /// 24-hour clock whatever the locale: what Console prints next to a log
-    /// line, so the two can be lined up.
-    private func clock(_ time: TimeInterval) -> String {
-        let format = Date.VerbatimFormatStyle(
-            format: "\(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased)):\(minute: .twoDigits):\(second: .twoDigits).\(secondFraction: .fractional(3))",
-            timeZone: .current,
-            calendar: .current
-        )
-        return Date(timeIntervalSince1970: time).formatted(format)
-    }
-
-    /// `"resize"` for `"com.github.kean/nuke/resize?s=…"`: the identifier up
-    /// to its parameters, and after its namespace.
-    private func shortName(of identifier: String) -> String {
-        var name = Substring(identifier)
-        if let end = name.firstIndex(where: { $0 == "?" || $0 == ":" || $0 == " " }) {
-            name = name[..<end]
-        }
-        if let slash = name.lastIndex(of: "/") {
-            name = name[name.index(after: slash)...]
-        }
-        return name.isEmpty ? identifier : String(name)
+    /// A span clamped to the lifetime of the task. An open end is the end of
+    /// the task, which is as far as this record can see.
+    func span(from: TimeInterval, to: TimeInterval?) -> Span? {
+        let from = max(from, createdAt)
+        let to = min(to ?? endedAt, endedAt)
+        guard to >= from else { return nil }
+        return Span(from: from, to: to)
     }
 }
 

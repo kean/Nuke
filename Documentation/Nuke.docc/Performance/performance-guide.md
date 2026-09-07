@@ -163,53 +163,59 @@ let image = try await task.image
 print(task.metrics!)
 ```
 
-The print is the record in full: a header, the tree of the work the task waited on, and the download as `URLSession` measured it. Here is a task from a feed, resizing an image that a prefetcher had started fetching 130 ms earlier:
+The print is the record in full: a header, one line that says where the time went, and the tree of the work the task waited on – with the requests `URLSession` made nested under the download that made them. Here is a task from a feed, resizing an image that a prefetcher had started fetching 130 ms earlier:
 
 ```
 ImageTask #2 "feed" · success · 225.4 ms · from network
-kind:        image
 url:         https://cdn.example.com/photos/1024.jpg
 processors:  com.github.kean/nuke/resize?s=(300.0, 300.0),cm=.aspectFill,crop=false,upscale=false
 priority:    normal
-image:       450×300 · jpeg
-download:    317 KB
+image:       450×300 · jpeg · 540 KB in memory
+transfer:    325 KB
 coalesced:   yes · shared with #1 (j1, j2, j3)
-pipeline:    F7DE81F8-43A3-4F9C-BA41-8C2DF4DEC581
+pipeline:    F7DE81F8
+time:        network 168.4 ms (75%) · decompress 26.3 ms (12%) · decode 17.8 ms (8%) · process 4.4 ms (2%) · queue 0.6 ms · cache 0.3 ms · other 7.6 ms (3%)
 
-started                  1.2 ms   at 16:12:58.715
-j4 loadImage [resize]
-├─ memoryLookup          0.0 ms   miss
-├─ diskLookup            0.1 ms   miss
-├─ j1 loadImage · joined at 131.4 ms of 350.4 ms
-│  ├─ memoryLookup       0.0 ms   miss · before join
-│  ├─ diskLookup         0.0 ms   miss · before join
-│  ├─ j2 fetchOriginalImage
-│  │  ├─ j3 fetchOriginalData
-│  │  │  ├─ download   169.8 ms   ███████████████  network · 317 KB · HTTP 200 · first byte 261.0 ms · joined at 130.6 ms of 300.4 ms
-│  │  │  └─ diskStore    0.1 ms   317 KB
-│  │  └─ decode         17.8 ms   ██  ImageDecoders.Default · jpeg 1440×960 · work 13.4 ms
-│  ├─ decompress        26.3 ms   ██  jpeg 1440×960
-│  └─ memoryStore        0.0 ms
-├─ process               4.4 ms   jpeg 450×300
-└─ memoryStore           0.0 ms
-finished               225.4 ms   at 16:12:58.939
-
-URLSessionTask #1 · 299.9 ms
-started                1.5 ms   at 16:12:58.586
-networkLoad · https://cdn.example.com/photos/1024.jpg · HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 178 bytes · received 318 KB
-├─ blocked             3.3 ms
-├─ domainLookup        1.0 ms
-├─ connect            15.0 ms
-├─ secureConnection   21.0 ms
-├─ request             0.0 ms
-├─ waiting           218.2 ms   ░░░░░░░░░░░░░░░
-└─ response           39.3 ms   ███
-finished             299.9 ms   at 16:12:58.884
+pending                          1.2 ms  ▏                      1%  started at 16:12:58.716
+j4 loadImage [resize]          224.2 ms  ████████████████████  99%
+├─ memoryLookup                 <0.1 ms  ▏                          miss · key a71c34e2
+├─ diskLookup                    0.1 ms  ▏                          miss · key 5d09fb18
+├─ j1 loadImage                218.4 ms  ████████████████████  97%  joined at 132.8 ms of 351.2 ms
+│  ├─ memoryLookup                    –                             miss · before join · key c0d4e711
+│  ├─ diskLookup                      –                             miss · before join · key 5d09fb18
+│  ├─ j2 fetchOriginalImage    191.6 ms  █████████████████     85%
+│  │  ├─ j3 fetchOriginalData  173.4 ms  ████████████████      77%
+│  │  │  ├─ download           168.4 ms  ███████████████       75%  network · 325 KB · HTTP 200 · first byte 260.3 ms · joined at 132.6 ms of 301.0 ms · session #1
+│  │  │  │  └─ networkLoad     169.0 ms  ███████████████       75%  HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 178 bytes · received 325 KB
+│  │  │  │     ├─ waiting      129.7 ms  ░░░░░░░░░░░░          58%
+│  │  │  │     └─ response      39.3 ms              ███       17%
+│  │  │  └─ diskStore            0.1 ms                 ▏           325 KB · key 5d09fb18
+│  │  └─ decode                 18.0 ms                  █      8%  ImageDecoders.Default · jpeg 1440×960 · work 13.4 ms
+│  ├─ decompress                26.5 ms                   ██   12%  jpeg 1440×960
+│  └─ memoryStore               <0.1 ms                     ▏       key c0d4e711
+├─ process                       4.6 ms                     ▏   2%  jpeg 450×300
+└─ memoryStore                  <0.1 ms                     ▏       key a71c34e2
+total                          225.4 ms                             finished at 16:12:58.940
 ```
 
-The tree reads top to bottom as the task ran, and the column is the time *this* task spent on every row, with a bar where a row took a large share of it, light for a wait. Only `j4` belongs to the task; `j1`, `j2`, and `j3` are the prefetcher's, which is why the lookups above the download say `before join` and the download is charged the 169.8 ms this task waited for rather than the 300.4 ms it took. The `URLSessionTask` block is on the clock of the session task, which was already fetching before the task existed – 218.2 ms of it was spent waiting on the server.
+The tree reads top to bottom as the task ran. The column is the time *this* task spent on every row, and the chart beside it says where in the task that time was, so a gap or an overlap takes no arithmetic to see; a wait is light. Only `j4` belongs to the task – `j1`, `j2`, and `j3` are the prefetcher's – which is why the lookups above the download say `before join` with no time against them, and why the download is charged the 168.4 ms this task waited for rather than the 301.0 ms it took. For the same reason the connection setup has no rows under `networkLoad`: it was over before the task existed.
 
-Print less with ``ImageTask/Metrics/formatted(_:)``, which takes any subset of the three sections.
+The `time:` line names the part worth making faster before the tree is read. Its categories are exclusive and add up to the length of the task, so nothing is counted twice and what the stages don't account for lands in `other`. Here three quarters of the task was the download, and most of that was the server. It is also available as ``ImageTask/Metrics/timeShares``.
+
+``ImageTask/Metrics/source`` says where the image came from, and it tells a `URLCache` hit apart from a real download – a request the session revalidated and the server answered `304` costs the time of a download and none of the bytes:
+
+```
+ImageTask #1 · success · 755.8 ms · from httpCache
+transfer:    325 KB · 392 bytes on the wire · revalidated
+```
+
+Print less with ``ImageTask/Metrics/formatted(_:)``. Its ``ImageTask/Metrics/Options`` are the four sections – the header, the `time:` line, the timeline, and the `URLSession` rows – and the four columns the timeline decorates its rows with, so a report can be cut down to what its destination can use:
+
+```swift
+print(metrics.formatted(.plain)) // The sections, none of the columns
+print(metrics.formatted(.all.subtracting([.chart, .percentages])))
+print(metrics.formatted([.header, .breakdown]))
+```
 
 The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
 

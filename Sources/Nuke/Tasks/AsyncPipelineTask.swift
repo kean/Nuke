@@ -109,6 +109,7 @@ extension AsyncPipelineTask {
         let container = pipeline.cache[request]
         diagnostics.endStage(stage) {
             $0.result = container == nil ? .miss : .hit
+            $0.cacheKey = pipeline.cache.makeImageCacheKeyDigest(for: request)
             if container?.isPreview == true {
                 $0.isProgressive = true
             }
@@ -130,6 +131,7 @@ extension AsyncPipelineTask {
         let data = pipeline.cache.cachedData(for: request)
         diagnostics.endStage(stage) {
             $0.result = data == nil ? .miss : .hit
+            $0.cacheKey = diagnosticsDigest(of: pipeline.cache.makeDataCacheKey(for: request))
             $0.bytes = data.map { Int64($0.count) }
         }
         return data

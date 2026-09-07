@@ -257,7 +257,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         guard !isDisposed else { return }
 
         diagnostics?.endStage(downloadStage) { stage in
-            stage.source = .network
+            // `URLSession` collected its metrics before the continuation that
+            // brought us here resumed, so they say whether the bytes came off
+            // the network or out of the session's own cache.
+            stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
             stage.bytes = Int64(data.count)
             stage.resumedBytes = resumedDataCount
             if let urlResponse, urlResponse.expectedContentLength >= 0 {
@@ -354,12 +357,15 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
         let key = pipeline.cache.makeDataCacheKey(for: request)
         let stage = diagnostics?.beginStage(.diskStore)
         guard let data = await pipeline.willCache(data: data, image: nil, for: request) else {
-            diagnostics?.endStage(stage)
+            diagnostics?.endStage(stage) { $0.cacheKey = diagnosticsDigest(of: key) }
             return
         }
         // Important! Storing directly ignoring `ImageRequest.Options`.
         dataCache.storeData(data, for: key)
-        diagnostics?.endStage(stage) { $0.bytes = Int64(data.count) }
+        diagnostics?.endStage(stage) {
+            $0.cacheKey = diagnosticsDigest(of: key)
+            $0.bytes = Int64(data.count)
+        }
     }
 
     /// Returns a request that doesn't contain any information non-related
