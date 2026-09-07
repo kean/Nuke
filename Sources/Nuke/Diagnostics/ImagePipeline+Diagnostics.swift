@@ -107,7 +107,7 @@ extension ImagePipeline.Diagnostics {
         public internal(set) var stages: [Stage] = []
 
         /// The kind of work a job performs.
-        public enum Kind: String, Sendable, DiagnosticsStringEnum {
+        public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             /// Produces the processed, decompressed image the request asks for.
             case loadImage
             /// Decodes the original image.
@@ -203,7 +203,7 @@ extension ImagePipeline.Diagnostics {
         public internal(set) var urlSessionMetrics: URLSessionMetrics?
 
         /// The kind of work a stage performs.
-        public enum Kind: String, Sendable, DiagnosticsStringEnum {
+        public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             case memoryLookup
             case diskLookup
             /// The time the request spent in the rate limiter.
@@ -220,7 +220,7 @@ extension ImagePipeline.Diagnostics {
         }
 
         /// The result of a cache lookup.
-        public enum LookupResult: String, Sendable, DiagnosticsStringEnum {
+        public enum LookupResult: String, Sendable, ImageDiagnosticsStringEnum {
             case hit
             case miss
             case unknown
@@ -305,7 +305,7 @@ extension ImagePipeline.Diagnostics {
         }
 
         /// `URLSessionTaskMetrics.ResourceFetchType`.
-        public enum FetchType: String, Sendable, DiagnosticsStringEnum {
+        public enum FetchType: String, Sendable, ImageDiagnosticsStringEnum {
             case networkLoad
             /// The `URLCache` of the session.
             case localCache
@@ -362,7 +362,7 @@ extension ImagePipeline.Diagnostics.URLSessionMetrics.Transaction {
 
 extension ImagePipeline.Diagnostics {
     /// How a task or a job ended.
-    public enum Outcome: String, Sendable, DiagnosticsStringEnum {
+    public enum Outcome: String, Sendable, ImageDiagnosticsStringEnum {
         case success
         case failure
         case cancelled
@@ -370,7 +370,7 @@ extension ImagePipeline.Diagnostics {
     }
 
     /// Where an image or its data came from.
-    public enum Source: String, Sendable, DiagnosticsStringEnum {
+    public enum Source: String, Sendable, ImageDiagnosticsStringEnum {
         /// The memory cache (``ImageCaching``).
         case memory
         /// The disk cache (``DataCaching``).
@@ -440,11 +440,11 @@ extension ImagePipeline.Diagnostics {
 /// An enum that encodes as its lowercase name and decodes any name it doesn't
 /// know as `.unknown`, so a consumer built against an older schema still opens
 /// a newer file.
-public protocol DiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String {
+public protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String {
     static var unknown: Self { get }
 }
 
-extension DiagnosticsStringEnum {
+extension ImageDiagnosticsStringEnum {
     public init(from decoder: any Decoder) throws {
         let rawValue = try decoder.singleValueContainer().decode(String.self)
         self = Self(rawValue: rawValue) ?? .unknown

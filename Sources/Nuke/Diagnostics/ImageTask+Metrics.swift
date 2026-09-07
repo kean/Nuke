@@ -121,7 +121,7 @@ extension ImageTask {
         }
 
         /// The kind of a task.
-        public enum Kind: String, Sendable, DiagnosticsStringEnum {
+        public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             /// The image loading methods, such as `imageTask(with:)`.
             case image
             /// ``ImagePipeline/data(for:)``.
