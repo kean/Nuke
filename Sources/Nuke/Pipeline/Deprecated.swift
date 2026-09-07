@@ -4,6 +4,20 @@
 
 import Foundation
 
+// MARK: - Deprecated in Nuke 14
+
+extension ImagePipeline.Configuration {
+    /// Enables the rate limiter.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. The pipeline no longer has a rate
+    /// limiter, and setting this does nothing.
+    @available(*, deprecated, message: "Deprecated in Nuke 14.0. The pipeline no longer has a rate limiter, and setting this does nothing.")
+    public var isRateLimiterEnabled: Bool {
+        get { false }
+        set { /* The rate limiter is gone. */ }
+    }
+}
+
 // MARK: - Removed in Nuke 14
 //
 // Removed APIs are kept as unavailable stubs that name their replacement: the
