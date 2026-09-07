@@ -21,9 +21,9 @@ extension ImagePipeline {
     /// Every task then finishes with an ``ImageTask/Metrics`` record that says
     /// where the image came from, what it cost, what the task waited on, and
     /// whether another task shared the work. The record is `Codable`,
-    /// versioned with ``schemaVersion``, and reaches the pipeline delegate
-    /// with the ``ImageTask/Event/finished(_:)`` event, which is where a
-    /// logger picks it up.
+    /// versioned with ``ImageTask/Metrics/schemaVersion``, and reaches the
+    /// pipeline delegate with the ``ImageTask/Event/finished(_:)`` event,
+    /// which is where a logger picks it up.
     ///
     /// The recording is done on the pipeline actor, alongside the work it
     /// measures, and costs nothing when it is off.
@@ -35,7 +35,7 @@ extension ImagePipeline {
 
         /// The version of the JSON the records encode to. It is written into
         /// every record, and bumped whenever the shape changes.
-        public static let schemaVersion = 1
+        static let schemaVersion = 1
 
         /// `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED`
         /// set. ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``

@@ -21,7 +21,7 @@ struct NukeDemoApp: App {
         // Launched with `NUKE_DIAGNOSTICS_ENABLED` set, the shared pipeline
         // logs a timeline of every task to Console. See `DemoDiagnostics`.
         if ImagePipeline.Diagnostics.isEnabledByEnvironment {
-            ImagePipeline.shared = DemoDiagnostics.makePipeline(configuration: .withURLCache)
+            ImagePipeline.shared = ImagePipeline(configuration: .withURLCache, delegate: DemoDiagnostics.delegate)
         }
     }
 

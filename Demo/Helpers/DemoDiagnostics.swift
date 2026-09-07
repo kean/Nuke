@@ -18,25 +18,15 @@ import OSLog
 ///
 /// The switch itself lives in Nuke — see
 /// ``ImagePipeline/Diagnostics-swift.struct/isEnabledByEnvironment`` — so
-/// every pipeline records with it set, whether or not it goes through
-/// ``makePipeline(_:)`` or ``makePipeline(configuration:)``. Those two only
-/// add the delegate that prints the records to Console.
+/// every pipeline records with it set, whether or not it passes ``delegate``
+/// to `ImagePipeline.init`.
 enum DemoDiagnostics {
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "ImageTask")
 
-    /// The delegate that logs the records, or `nil` when the switch is off,
-    /// which leaves the pipeline on its default delegate.
-    private static let delegate: (any ImagePipeline.Delegate)? = ImagePipeline.Diagnostics.isEnabledByEnvironment ? DiagnosticsLogger() : nil
-
-    /// `ImagePipeline.init(_:)`, with the records logged when the switch is set.
-    static func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
-        ImagePipeline(delegate: delegate, configure)
-    }
-
-    /// `ImagePipeline.init(configuration:)`, with the records logged when the switch is set.
-    static func makePipeline(configuration: ImagePipeline.Configuration) -> ImagePipeline {
-        ImagePipeline(configuration: configuration, delegate: delegate)
-    }
+    /// Pass this to `ImagePipeline.init(delegate:)` so the pipeline logs
+    /// every finished task to Console. `nil` when the switch is off, which
+    /// leaves the pipeline on its default delegate.
+    static let delegate: (any ImagePipeline.Delegate)? = ImagePipeline.Diagnostics.isEnabledByEnvironment ? DiagnosticsLogger() : nil
 
     /// Logs the record of a finished task. A pipeline with a delegate of its
     /// own calls this from `imageTask(_:didReceiveEvent:pipeline:)`.

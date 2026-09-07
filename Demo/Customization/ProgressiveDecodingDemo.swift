@@ -99,7 +99,7 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
 
     /// A pipeline with progressive decoding enabled. The caches are disabled
     /// so that every run starts from scratch.
-    private let pipeline = DemoDiagnostics.makePipeline {
+    private let pipeline = ImagePipeline(delegate: DemoDiagnostics.delegate) {
         $0.dataLoader = ThrottledDataLoader()
         $0.imageCache = nil
         $0.isProgressiveDecodingEnabled = true
