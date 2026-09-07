@@ -46,10 +46,10 @@ final class RateLimiter {
         isExecutingPendingTasks = true
         // Compute a delay such that by the time the closure is executed the
         // bucket is refilled to a point that is able to execute at least one
-        // pending task. With a rate of 80 tasks we expect a refill every ~26 ms
+        // pending task. With a rate of 100 tasks we expect a refill every ~10 ms
         // or as soon as the new tasks are added.
         let bucketRate = 1000.0 / bucket.rate
-        let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
+        let delay = Int(2.1 * bucketRate) // 21 ms for rate 100 (default)
         let bounds = min(100, max(15, delay))
         Task { @ImagePipelineActor in
             try? await Task.sleep(nanoseconds: UInt64(bounds) * 1_000_000)
