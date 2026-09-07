@@ -31,7 +31,7 @@ extension ImageTask {
     ///
     /// `description` prints a text timeline of the task, which is what a bug
     /// report should paste. ``formatted(_:)`` prints the parts of it.
-    public struct Metrics: Codable, Sendable, CustomStringConvertible {
+    public final class Metrics: Codable, Sendable, CustomStringConvertible {
         /// The version of the JSON the record encodes to.
         public let schemaVersion: Int
         /// The pipeline that performed the task.
@@ -75,6 +75,50 @@ extension ImageTask {
         /// Every job the task waited on, root first. Copies, each stamped with
         /// the time this task reached it.
         public let jobs: [ImagePipeline.Diagnostics.Job]
+
+        init(
+            schemaVersion: Int,
+            pipelineID: UUID,
+            taskID: UInt64,
+            kind: Kind,
+            label: String?,
+            request: RequestSummary,
+            createdAt: TimeInterval,
+            startedAt: TimeInterval?,
+            endedAt: TimeInterval,
+            duration: TimeInterval,
+            outcome: ImagePipeline.Diagnostics.Outcome,
+            error: ImagePipeline.Diagnostics.ErrorSummary?,
+            source: ImagePipeline.Diagnostics.Source?,
+            isCoalesced: Bool,
+            rootJobID: UInt64?,
+            previewCount: Int,
+            priorityHistory: [ImagePipeline.Diagnostics.PriorityChange],
+            bytes: Bytes?,
+            image: ImageSummary?,
+            jobs: [ImagePipeline.Diagnostics.Job]
+        ) {
+            self.schemaVersion = schemaVersion
+            self.pipelineID = pipelineID
+            self.taskID = taskID
+            self.kind = kind
+            self.label = label
+            self.request = request
+            self.createdAt = createdAt
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+            self.duration = duration
+            self.outcome = outcome
+            self.error = error
+            self.source = source
+            self.isCoalesced = isCoalesced
+            self.rootJobID = rootJobID
+            self.previewCount = previewCount
+            self.priorityHistory = priorityHistory
+            self.bytes = bytes
+            self.image = image
+            self.jobs = jobs
+        }
 
         /// The kind of a task.
         public enum Kind: String, Sendable, DiagnosticsStringEnum {
