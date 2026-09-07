@@ -19,10 +19,9 @@ struct NukeDemoApp: App {
         ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
 
         // Launched with `NUKE_DIAGNOSTICS_ENABLED` set, the shared pipeline
-        // logs a timeline of every task to Console. See `DemoDiagnostics`.
-        if ImagePipeline.Diagnostics.isEnabledByEnvironment {
-            ImagePipeline.shared = ImagePipeline(configuration: .withURLCache, delegate: DemoDiagnostics.delegate)
-        }
+        // logs a timeline of every task to Console. See
+        // `DemoImagePipelineDelegate`.
+        ImagePipeline.shared = ImagePipeline(configuration: .withURLCache, delegate: DemoImagePipelineDelegate())
     }
 
     var body: some Scene {

@@ -163,7 +163,7 @@ private final class DemoPipelineDelegate: ImagePipeline.Delegate {
                 record("didReceiveEvent(.finished)", "\(name) · \(error)")
             }
             // A pipeline with a delegate of its own forwards the record.
-            DemoDiagnostics.log(task)
+            DemoImagePipelineDelegate.log(task)
         }
     }
 

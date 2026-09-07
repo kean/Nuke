@@ -45,7 +45,7 @@ private final class StressTestViewController: PhotoGridViewController {
 
         // Nothing is cached and nothing is coalesced: every cell has to go
         // through the entire pipeline.
-        pipeline = ImagePipeline(delegate: DemoDiagnostics.delegate) {
+        pipeline = ImagePipeline(delegate: DemoImagePipelineDelegate()) {
             $0.dataLoader = DataLoader(configuration: {
                 let configuration = URLSessionConfiguration.default
                 configuration.urlCache = nil
