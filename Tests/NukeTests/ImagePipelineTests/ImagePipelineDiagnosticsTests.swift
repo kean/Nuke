@@ -842,31 +842,47 @@ struct ImagePipelineDiagnosticsTests {
         let description = metrics.description
         let lines = description.split(separator: "\n").map(String.init)
 
-        func row(_ needle: String) throws -> String {
-            try #require(lines.first { $0.contains(needle) }, "No \(needle) in:\n\(description)")
+        // The first row past `start` that says `needle`. A label repeats from
+        // one request to the next, so a chain of rows is looked up in order.
+        func row(_ needle: String, from start: Int = 0) throws -> Int {
+            try #require(lines[start...].firstIndex { $0.contains(needle) }, "No \(needle) in:\n\(description)")
         }
-        // The columns of the chart a row draws in. Every label is padded to
-        // the same width, so the columns compare across rows.
-        func lane(_ needle: String) throws -> Range<Int> {
-            let line = try row(needle)
-            let bar = try #require(line.range(of: #"[█░]+"#, options: .regularExpression), "No bar for \(needle) in:\n\(description)")
-            return line.distance(from: line.startIndex, to: bar.lowerBound)..<line.distance(from: line.startIndex, to: bar.upperBound)
+        // The cell edges a row draws between: a bar runs from the left edge of
+        // its first cell to the right edge of its last, and a row too short
+        // for a cell is a point on one of the edges. Every label is padded to
+        // the same width, so the edges compare across rows.
+        func edges(_ index: Int) throws -> ClosedRange<Int> {
+            let line = lines[index]
+            let offset = { line.distance(from: line.startIndex, to: $0) }
+            if let bar = line.range(of: #"[█░]+"#, options: .regularExpression) {
+                return offset(bar.lowerBound)...offset(bar.upperBound)
+            }
+            let mark = try #require(line.firstIndex { $0 == "▏" || $0 == "▕" }, "Nothing drawn in:\n\(line)")
+            let edge = offset(mark) + (line[mark] == "▕" ? 1 : 0)
+            return edge...edge
         }
 
-        // THEN work that merely follows other work never shares a cell with it
-        for chain in [["─ connect ", "─ secureConnection ", "480.2 ms"], ["─ decode ", "─ decompress "]] {
+        // THEN work that merely follows other work is never drawn before the
+        // work it came after ended, the marks of the sub-cell rows included
+        let chains = [
+            ["─ blocked ", "─ domainLookup ", "─ connect ", "─ secureConnection ", "─ request ", "─ waiting ", "─ response "],
+            ["─ decode ", "─ decompress ", "─ memoryStore "]
+        ]
+        for chain in chains {
+            var start = 0
             for (before, after) in zip(chain, chain.dropFirst()) {
-                let (lhs, rhs) = (try lane(before), try lane(after))
-                #expect(lhs.upperBound <= rhs.lowerBound, "\(before)\(lhs) overlaps \(after)\(rhs) in:\n\(description)")
+                start = try row(before, from: start)
+                let (lhs, rhs) = (try edges(start), try edges(try row(after, from: start + 1)))
+                #expect(lhs.upperBound <= rhs.lowerBound, "\(before)\(lhs) outruns \(after)\(rhs) in:\n\(description)")
             }
         }
 
         // THEN a bar is as wide as the row's share of the task, to the cell
         for needle in ["j1 loadImage", "─ download ", "─ connect ", "480.2 ms", "─ decompress "] {
-            let line = try row(needle)
+            let line = lines[try row(needle)]
             let value = try #require(line.range(of: #"[0-9.]+(?= ms)"#, options: .regularExpression))
             let duration = try #require(Double(line[value]))
-            let cells = Double(try lane(needle).count)
+            let cells = Double(try edges(try row(needle)).count - 1)
             let exact = duration / 1000 / metrics.duration * 20
             #expect(abs(cells - exact) <= 1, "\(needle)draws \(cells) cells for \(exact) in:\n\(description)")
         }

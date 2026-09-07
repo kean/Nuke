@@ -193,8 +193,8 @@ j4 loadImage [resize]          224.2 ms  █████████████
 │  │  └─ decode                 18.0 ms                  █      8%  ImageDecoders.Default · jpeg 1440×960 · work 13.4 ms
 │  ├─ decompress                26.5 ms                   ██   12%  jpeg 1440×960
 │  └─ memoryStore               <0.1 ms                     ▏       key c0d4e711
-├─ process                       4.6 ms                     ▏   2%  jpeg 450×300
-└─ memoryStore                  <0.1 ms                     ▏       key a71c34e2
+├─ process                       4.6 ms                     ▕   2%  jpeg 450×300
+└─ memoryStore                  <0.1 ms                     ▕       key a71c34e2
 total                          225.4 ms                             finished at 16:12:58.940
 ```
 

@@ -47,7 +47,8 @@ extension ImageTask.Metrics {
         /// The chart: a lane per row, filled where the work ran on the clock
         /// of the task, so the order of the work, the gaps between it, and
         /// anything that overlapped are visible without arithmetic. Light for
-        /// a wait, and a thin mark for a row too short to fill a cell.
+        /// a wait, and a thin mark, on the cell edge nearest to when it
+        /// happened, for a row too short to fill a cell.
         public static let chart = Options(rawValue: 1 << 8)
         /// The share of the task every row took, and the share of every
         /// category in ``breakdown``: what a bar can't be read off precisely,
@@ -660,7 +661,7 @@ extension ImageTask.Metrics {
 
     /// The lane of a row: the cells of the chart the row covers, so the
     /// bottleneck stands out and so does the time nothing covers. A row too
-    /// short for a cell keeps a mark, at the place it happened.
+    /// short for a cell keeps a mark, on the edge it happened at.
     private func chart(of row: Row) -> String {
         var cells = [Character](repeating: " ", count: Self.chartWidth)
         guard let span = row.span, duration > 0 else { return String(cells) }
@@ -675,7 +676,13 @@ extension ImageTask.Metrics {
         let first = Int((start - 0.5).rounded(.up))
         let last = Int((end - 0.5).rounded(.up)) - 1
         guard first <= last else {
-            cells[min(Int((start + end) / 2), Self.chartWidth - 1)] = "▏"
+            // A row too short for a cell is a point in time, so it goes on
+            // the edge the bars round to, not in the middle of the cell that
+            // happens to hold it: the left edge of the cell that would start
+            // there, or the right edge of the chart when nothing follows it.
+            // Anything else draws work to the left of the work it came after.
+            let edge = Int(((start + end) / 2 - 0.5).rounded(.up))
+            cells[min(edge, Self.chartWidth - 1)] = edge < Self.chartWidth ? "▏" : "▕"
             return String(cells)
         }
         for index in max(0, first)...min(last, Self.chartWidth - 1) {
