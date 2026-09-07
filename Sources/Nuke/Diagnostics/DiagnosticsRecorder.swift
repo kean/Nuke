@@ -5,14 +5,6 @@
 import Foundation
 import os
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
-#if canImport(AppKit)
-import AppKit
-#endif
-
 // MARK: - Recorder
 
 extension ImagePipeline.Diagnostics {
@@ -31,33 +23,28 @@ extension ImagePipeline.Diagnostics {
 
         nonisolated private let anchorInstant = ContinuousClock.now
         nonisolated private let anchorTime = Date().timeIntervalSince1970
-        nonisolated private let state = OSAllocatedUnfairLock(initialState: State())
+        nonisolated private let _isEnabled = OSAllocatedUnfairLock(initialState: true)
 
         private var nextJobID: UInt64 = 0
-
-        private struct State {
-            var isEnabled = true
-        }
 
         nonisolated init(pipelineID: UUID) {
             self.pipelineID = pipelineID
         }
 
-        // MARK: Surface
-
+        /// The runtime switch, which the app reaches from any thread.
         nonisolated var isEnabled: Bool {
-            get { state.withLock { $0.isEnabled } }
-            set { state.withLock { $0.isEnabled = newValue } }
+            get { _isEnabled.withLock { $0 } }
+            set { _isEnabled.withLock { $0 = newValue } }
         }
-
-        // MARK: Time
 
         /// Seconds since 1970.
         nonisolated func time(_ instant: ContinuousClock.Instant) -> TimeInterval {
             anchorTime + (instant - anchorInstant).timeInterval
         }
 
-        // MARK: Recording
+        nonisolated func priorityChanges(_ history: [PriorityRecord]) -> [PriorityChange] {
+            history.map { PriorityChange(at: time($0.at), priority: $0.priority) }
+        }
 
         /// Starts recording a task, or returns `nil` if the runtime switch is
         /// off. The switch is read here, once per task.
@@ -70,6 +57,13 @@ extension ImagePipeline.Diagnostics {
             nextJobID += 1
             return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self)
         }
+    }
+
+    /// A priority change as it is recorded, before the instant becomes
+    /// seconds since 1970.
+    struct PriorityRecord {
+        let at: ContinuousClock.Instant
+        let priority: ImageRequest.Priority
     }
 }
 
@@ -89,7 +83,7 @@ extension ImagePipeline.Diagnostics {
         private(set) var startedAt: ContinuousClock.Instant?
         private(set) var rootJob: JobRecord?
         var previewCount = 0
-        private var priorityHistory: [(at: ContinuousClock.Instant, priority: ImageRequest.Priority)] = []
+        private var priorityHistory: [PriorityRecord] = []
 
         init(task: ImageTask, recorder: Recorder) {
             self.recorder = recorder
@@ -111,20 +105,19 @@ extension ImagePipeline.Diagnostics {
         }
 
         func recordPriority(_ priority: ImageRequest.Priority) {
-            priorityHistory.append((.now, priority))
+            priorityHistory.append(PriorityRecord(at: .now, priority: priority))
         }
 
         /// Captures the record. Called once, when the task finishes.
         func finish(with result: Result<ImageResponse, ImagePipeline.Error>) -> ImageTask.Metrics {
             let now = ContinuousClock.now
 
-            var records: [JobRecord] = []
+            var jobs: [Job] = []
             var job = rootJob
             while let current = job {
-                records.append(current)
+                jobs.append(current.makeSnapshot(for: self, at: now))
                 job = current.parent
             }
-            let jobs = records.map { $0.makeSnapshot(for: self, at: now) }
 
             let outcome: Outcome
             var error: ErrorSummary?
@@ -133,14 +126,14 @@ extension ImagePipeline.Diagnostics {
             case .success(let response):
                 outcome = .success
                 image = ImageTask.Metrics.ImageSummary(response.container)
+            case .failure(let failure) where failure.isCancelled:
+                outcome = .cancelled
             case .failure(let failure):
-                outcome = failure.isCancelled ? .cancelled : .failure
-                if !failure.isCancelled {
-                    error = ErrorSummary(failure)
-                }
+                outcome = .failure
+                error = ErrorSummary(failure)
             }
 
-            let metrics = ImageTask.Metrics(
+            return ImageTask.Metrics(
                 schemaVersion: ImagePipeline.Diagnostics.schemaVersion,
                 pipelineID: recorder.pipelineID,
                 taskID: taskID,
@@ -157,12 +150,11 @@ extension ImagePipeline.Diagnostics {
                 isCoalesced: jobs.contains { $0.joinedAt != nil },
                 rootJobID: rootJob?.id,
                 previewCount: previewCount,
-                priorityHistory: priorityHistory.map { PriorityChange(at: recorder.time($0.at), priority: $0.priority) },
+                priorityHistory: recorder.priorityChanges(priorityHistory),
                 bytes: Self.bytes(of: jobs),
                 image: image,
                 jobs: jobs
             )
-            return metrics
         }
 
         /// The deepest stage that produced the image or its data decides:
@@ -213,14 +205,14 @@ extension ImagePipeline.Diagnostics {
         /// The job this one subscribed to.
         private(set) var parent: JobRecord?
         private(set) var createdByTaskID: UInt64?
-        private var joins = ContiguousArray<Join>()
+        private var joins: [Join] = []
         private(set) var endedAt: ContinuousClock.Instant?
         private var outcome: Outcome?
         private var error: ErrorSummary?
         private var priorityHistory: [PriorityRecord] = []
-        private var stages = ContiguousArray<StageRecord>()
-        private lazy var processors = request.processors.map(\.identifier)
-        private let request: ImageRequest
+        private var stages: [StageRecord] = []
+        /// The identifiers of the processors the job applies.
+        private let processors: [String]
 
         private struct Join {
             let taskID: UInt64
@@ -228,17 +220,11 @@ extension ImagePipeline.Diagnostics {
             let joinedAt: ContinuousClock.Instant?
         }
 
-        private struct PriorityRecord {
-            let at: ContinuousClock.Instant
-            let priority: TaskPriority
-        }
-
         init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
             self.id = id
             self.kind = kind
-            self.request = request
+            self.processors = request.processors.map(\.identifier)
             self.recorder = recorder
-            stages.reserveCapacity(4)
         }
 
         // MARK: Subscribers
@@ -291,9 +277,8 @@ extension ImagePipeline.Diagnostics {
             }
         }
 
-        // MARK: Priority
-
         func recordPriority(_ priority: TaskPriority) {
+            let priority = priority.requestPriority
             guard priorityHistory.last?.priority != priority else { return }
             priorityHistory.append(PriorityRecord(at: .now, priority: priority))
         }
@@ -328,7 +313,7 @@ extension ImagePipeline.Diagnostics {
 
         /// Records a stage that ran synchronously, from `start` to now.
         func recordStage(_ kind: Stage.Kind, from start: ContinuousClock.Instant, _ update: (inout StageRecord) -> Void = { _ in }) {
-            var stage = StageRecord(kind: kind, queuedAt: nil, startedAt: start)
+            var stage = StageRecord(kind: kind, startedAt: start)
             update(&stage)
             stage.endedAt = .now
             stages.append(stage)
@@ -364,9 +349,7 @@ extension ImagePipeline.Diagnostics {
                 outcome: outcome,
                 error: error,
                 joinedAt: joinedAt.map(recorder.time),
-                priorityHistory: priorityHistory.map {
-                    PriorityChange(at: recorder.time($0.at), priority: $0.priority.requestPriority)
-                },
+                priorityHistory: recorder.priorityChanges(priorityHistory),
                 stages: stages.map { $0.makeSnapshot(recorder: recorder, joinedAt: joinedAt, taskEnd: taskEnd) }
             )
         }
@@ -399,12 +382,6 @@ extension ImagePipeline.Diagnostics {
         var urlSessionTaskID: Int?
         /// What `URLSession` measured for a download, once it completed.
         var urlSessionMetrics: URLSessionMetrics?
-
-        init(kind: Stage.Kind, queuedAt: ContinuousClock.Instant?, startedAt: ContinuousClock.Instant?) {
-            self.kind = kind
-            self.queuedAt = queuedAt
-            self.startedAt = startedAt
-        }
 
         /// Records what a decode, process, or decompress stage produced.
         mutating func setOutput(_ container: ImageContainer) {
@@ -470,196 +447,4 @@ extension AsyncTask: DiagnosticsSubscriber {
         guard let diagnostics else { return }
         job.attach(child: diagnostics, didJoin: didJoin)
     }
-}
-
-// MARK: - Summaries
-
-extension ImageTask.Metrics.RequestSummary {
-    init(_ request: ImageRequest) {
-        self.url = request.url?.absoluteString
-        self.imageID = request.imageID
-        self.processors = request.processors.map(\.identifier)
-        self.thumbnail = request.thumbnail?.identifier
-        self.options = request.options.diagnosticsNames
-        self.priority = request.priority
-    }
-}
-
-extension ImageTask.Metrics.ImageSummary {
-    init(_ container: ImageContainer) {
-        let pixels = container.image.diagnosticsPixelSize
-        self.width = pixels?.width ?? 0
-        self.height = pixels?.height ?? 0
-        self.format = container.type?.diagnosticsName
-        self.isAnimated = container.animation != nil
-    }
-}
-
-extension ImagePipeline.Diagnostics.URLSessionMetrics {
-    init(_ metrics: URLSessionTaskMetrics, urlSessionTaskID: Int) {
-        self.urlSessionTaskID = urlSessionTaskID
-        self.startedAt = metrics.taskInterval.start.timeIntervalSince1970
-        self.endedAt = metrics.taskInterval.end.timeIntervalSince1970
-        self.redirectCount = metrics.redirectCount
-        self.transactions = metrics.transactionMetrics.map(Transaction.init)
-    }
-}
-
-extension ImagePipeline.Diagnostics.URLSessionMetrics.Transaction {
-    init(_ metrics: URLSessionTaskTransactionMetrics) {
-        self.url = metrics.request.url?.absoluteString
-        self.statusCode = (metrics.response as? HTTPURLResponse)?.statusCode
-        self.fetchType = ImagePipeline.Diagnostics.URLSessionMetrics.FetchType(metrics.resourceFetchType)
-        self.networkProtocol = metrics.networkProtocolName
-        self.tlsVersion = metrics.negotiatedTLSProtocolVersion.map { Self.tlsVersionName($0.rawValue) }
-        self.remoteAddress = metrics.remoteAddress
-        self.isReusedConnection = metrics.isReusedConnection
-        self.isProxyConnection = metrics.isProxyConnection
-        self.isCellular = metrics.isCellular
-        self.isExpensive = metrics.isExpensive
-        self.isConstrained = metrics.isConstrained
-        self.requestBytes = metrics.countOfRequestHeaderBytesSent + metrics.countOfRequestBodyBytesSent
-        self.responseBytes = metrics.countOfResponseHeaderBytesReceived + metrics.countOfResponseBodyBytesReceived
-        self.fetchStartedAt = metrics.fetchStartDate?.timeIntervalSince1970
-        self.domainLookupStartedAt = metrics.domainLookupStartDate?.timeIntervalSince1970
-        self.domainLookupEndedAt = metrics.domainLookupEndDate?.timeIntervalSince1970
-        self.connectStartedAt = metrics.connectStartDate?.timeIntervalSince1970
-        self.secureConnectionStartedAt = metrics.secureConnectionStartDate?.timeIntervalSince1970
-        self.secureConnectionEndedAt = metrics.secureConnectionEndDate?.timeIntervalSince1970
-        self.connectEndedAt = metrics.connectEndDate?.timeIntervalSince1970
-        self.requestStartedAt = metrics.requestStartDate?.timeIntervalSince1970
-        self.requestEndedAt = metrics.requestEndDate?.timeIntervalSince1970
-        self.responseStartedAt = metrics.responseStartDate?.timeIntervalSince1970
-        self.responseEndedAt = metrics.responseEndDate?.timeIntervalSince1970
-    }
-
-    /// `"TLS 1.3"` for the `tls_protocol_version_t` the connection
-    /// negotiated, which is the version as it appears on the wire.
-    private static func tlsVersionName(_ version: UInt16) -> String {
-        switch version {
-        case 0x0301: "TLS 1.0"
-        case 0x0302: "TLS 1.1"
-        case 0x0303: "TLS 1.2"
-        case 0x0304: "TLS 1.3"
-        case 0xFEFF: "DTLS 1.0"
-        case 0xFEFD: "DTLS 1.2"
-        default: String(format: "TLS 0x%04X", version)
-        }
-    }
-}
-
-extension ImagePipeline.Diagnostics.URLSessionMetrics.FetchType {
-    init(_ type: URLSessionTaskMetrics.ResourceFetchType) {
-        self = switch type {
-        case .networkLoad: .networkLoad
-        case .localCache: .localCache
-        case .serverPush: .serverPush
-        case .unknown: .unknown
-        @unknown default: .unknown
-        }
-    }
-}
-
-extension ImagePipeline.Diagnostics.ErrorSummary {
-    init(_ error: ImagePipeline.Error) {
-        let code: String
-        var underlying: (any Swift.Error)?
-        switch error {
-        case .dataMissingInCache: code = "dataMissingInCache"
-        case .dataLoadingFailed(let error):
-            code = "dataLoadingFailed"
-            underlying = error
-        case .dataIsEmpty: code = "dataIsEmpty"
-        case .decoderNotRegistered: code = "decoderNotRegistered"
-        case .decodingFailed(_, _, let error):
-            code = "decodingFailed"
-            underlying = error
-        case .processingFailed(_, _, let error):
-            code = "processingFailed"
-            underlying = error
-        case .imageRequestMissing: code = "imageRequestMissing"
-        case .pipelineInvalidated: code = "pipelineInvalidated"
-        case .dataDownloadExceededMaximumSize: code = "dataDownloadExceededMaximumSize"
-        case .cancelled: code = "cancelled"
-        }
-        let nsError = underlying.map { $0 as NSError }
-        self.init(code: code, description: error.description, underlyingDomain: nsError?.domain, underlyingCode: nsError?.code)
-    }
-}
-
-extension ImageRequest.Options {
-    private static let diagnosticsNames: [(ImageRequest.Options, String)] = [
-        (.disableMemoryCacheReads, "disableMemoryCacheReads"),
-        (.disableMemoryCacheWrites, "disableMemoryCacheWrites"),
-        (.disableDiskCacheReads, "disableDiskCacheReads"),
-        (.disableDiskCacheWrites, "disableDiskCacheWrites"),
-        (.returnCacheDataDontLoad, "returnCacheDataDontLoad"),
-        (.skipDecompression, "skipDecompression"),
-        (.skipDataLoadingQueue, "skipDataLoadingQueue")
-    ]
-
-    var diagnosticsNames: [String] {
-        guard !isEmpty else { return [] }
-        return Self.diagnosticsNames.filter { contains($0.0) }.map(\.1)
-    }
-}
-
-extension AssetType {
-    /// A short name for the records, such as `"jpeg"`.
-    var diagnosticsName: String {
-        switch self {
-        case .jpeg: "jpeg"
-        case .png: "png"
-        case .gif: "gif"
-        case .heic: "heic"
-        case .webp: "webp"
-        case .avif: "avif"
-        case .bmp: "bmp"
-        case .tiff: "tiff"
-        case .ico: "ico"
-        case .jpeg2000: "jpeg2000"
-        case .jxl: "jxl"
-        case .mp4: "mp4"
-        case .m4v: "m4v"
-        case .mov: "mov"
-        default: rawValue
-        }
-    }
-}
-
-extension PlatformImage {
-    /// The size of the bitmap, measured the way ``ImageCache`` measures its cost.
-    var diagnosticsPixelSize: ImagePipeline.Diagnostics.PixelSize? {
-        guard let cgImage else { return nil }
-        return .init(width: cgImage.width, height: cgImage.height)
-    }
-}
-
-extension TaskPriority {
-    var requestPriority: ImageRequest.Priority {
-        switch self {
-        case .veryLow: .veryLow
-        case .low: .low
-        case .normal: .normal
-        case .high: .high
-        case .veryHigh: .veryHigh
-        }
-    }
-}
-
-extension Duration {
-    var timeInterval: TimeInterval {
-        let (seconds, attoseconds) = components
-        return TimeInterval(seconds) + TimeInterval(attoseconds) / 1e18
-    }
-}
-
-/// The name of the type of the value without its module, such as
-/// `"ImageDecoders.Default"`.
-func diagnosticsTypeName(of value: Any) -> String {
-    let name = String(reflecting: type(of: value))
-    guard let dot = name.firstIndex(of: "."), !name.hasPrefix("(") else {
-        return name
-    }
-    return String(name[name.index(after: dot)...])
 }
