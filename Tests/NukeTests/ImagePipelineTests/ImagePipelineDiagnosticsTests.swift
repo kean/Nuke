@@ -71,7 +71,7 @@ struct ImagePipelineDiagnosticsTests {
     @Test func networkLoadRecordsTheWholeChain() async throws {
         // WHEN
         let task = pipeline.imageTask(with: Test.request)
-        let response = try await task.response
+        _ = try await task.response
 
         // THEN the task is described
         let metrics = try #require(task.metrics)
@@ -939,7 +939,7 @@ struct ImagePipelineDiagnosticsTests {
     @Test func aRequestTheSessionTimedNothingForSaysSo() throws {
         // GIVEN a `URLCache` hit with no timestamps on it, the way the
         // session reports one it answered without fetching anything
-        let data = try Test.data(name: "diagnostics-metrics-revalidated", extension: "json")
+        let data = Test.data(name: "diagnostics-metrics-revalidated", extension: "json")
         var text = try #require(String(data: data, encoding: .utf8))
         let hit = try #require(text.range(of: #"\{[^{}]*"fetchType": "localCache"[^{}]*\}"#, options: .regularExpression))
         text.replaceSubrange(hit, with: text[hit].replacing(#/,\s+"[a-zA-Z]+At": [0-9.]+/#, with: ""))
