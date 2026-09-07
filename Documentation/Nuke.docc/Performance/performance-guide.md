@@ -163,50 +163,73 @@ let image = try await task.image
 print(task.metrics!)
 ```
 
-The print is the record in full: a header, one line that says where the time went, and the tree of the work the task waited on – with the requests `URLSession` made nested under the download that made them. Here is a task from a feed, resizing an image that a prefetcher had started fetching 130 ms earlier:
+The print is the record in full: a header, one line that says where the time went, and the tree of the work the task waited on – with the requests `URLSession` made nested under the download that made them. Here is a feed image, resized for the cell, on a host the app hadn't talked to yet:
 
 ```
-ImageTask #2 "feed" · success · 225.4 ms · from network
+ImageTask #2 "feed" · success · 140.9 ms · from network
 url:         https://cdn.example.com/photos/1024.jpg
-processors:  com.github.kean/nuke/resize?s=(300.0, 300.0),cm=.aspectFill,crop=false,upscale=false
+processors:  com.github.kean/nuke/resize?s=(900.0, 900.0),cm=.aspectFill,crop=false,upscale=false
 priority:    normal
-image:       450×300 · jpeg · 540 KB in memory
-transfer:    325 KB
-coalesced:   yes · shared with #1 (j1, j2, j3)
-pipeline:    F7DE81F8
-time:        network 168.4 ms (75%) · decompress 26.3 ms (12%) · decode 17.8 ms (8%) · process 4.4 ms (2%) · queue 0.6 ms · cache 0.3 ms · other 7.6 ms (3%)
+image:       1350×900 · jpeg · 4.9 MB in memory
+transfer:    317 KB
+pipeline:    44A3F653
+time:        network 93.6 ms (66%) · process 42.5 ms (30%) · cache 0.5 ms · decode 0.3 ms · queue 0.1 ms · other 3.8 ms (3%)
 
-pending                          1.2 ms  ▏                      1%  started at 16:12:58.716
-j4 loadImage [resize]          224.2 ms  ████████████████████  99%
-├─ memoryLookup                 <0.1 ms  ▏                          miss · key a71c34e2
-├─ diskLookup                    0.1 ms  ▏                          miss · key 5d09fb18
-├─ j1 loadImage                218.4 ms  ████████████████████  97%  joined at 132.8 ms of 351.2 ms
-│  ├─ memoryLookup                    –                             miss · before join · key c0d4e711
-│  ├─ diskLookup                      –                             miss · before join · key 5d09fb18
-│  ├─ j2 fetchOriginalImage    191.6 ms  █████████████████     85%
-│  │  ├─ j3 fetchOriginalData  173.4 ms  ████████████████      77%
-│  │  │  ├─ download           168.4 ms  ███████████████       75%  network · 325 KB · HTTP 200 · first byte 260.3 ms · joined at 132.6 ms of 301.0 ms · session #1
-│  │  │  │  └─ networkLoad     169.0 ms  ███████████████       75%  HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 178 bytes · received 325 KB
-│  │  │  │     ├─ waiting      129.7 ms  ░░░░░░░░░░░░          58%
-│  │  │  │     └─ response      39.3 ms              ███       17%
-│  │  │  └─ diskStore            0.1 ms                 ▏           325 KB · key 5d09fb18
-│  │  └─ decode                 18.0 ms                  █      8%  ImageDecoders.Default · jpeg 1440×960 · work 13.4 ms
-│  ├─ decompress                26.5 ms                   ██   12%  jpeg 1440×960
-│  └─ memoryStore               <0.1 ms                     ▏       key c0d4e711
-├─ process                       4.6 ms                     ▕   2%  jpeg 450×300
-└─ memoryStore                  <0.1 ms                     ▕       key a71c34e2
-total                          225.4 ms                             finished at 16:12:58.940
+pending                              <0.1 ms  ▏                          started at 17:24:14.677
+j4 loadImage [resize]               139.5 ms  ████████████████████  99%
+├─ memoryLookup                      <0.1 ms  ▏                          miss · key aa429747
+├─ diskLookup                         0.3 ms  ▏                          miss · key f6d8540b
+├─ j5 loadImage                      96.3 ms  ██████████████        68%
+│  ├─ memoryLookup                   <0.1 ms  ▏                          miss · key 38c326ae
+│  ├─ diskLookup                      0.1 ms  ▏                          miss · key 19d1c77c
+│  └─ j6 fetchOriginalImage          96.0 ms  ██████████████        68%
+│     ├─ j7 fetchOriginalData        95.2 ms  ██████████████        68%
+│     │  ├─ download                 93.6 ms  ██████████████        66%  network · 317 KB · HTTP 200 · first byte 50.3 ms · session #2
+│     │  │  └─ networkLoad           93.1 ms  ██████████████        66%  HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 164 bytes · received 318 KB
+│     │  │     ├─ blocked             1.4 ms  ░                      1%
+│     │  │     ├─ domainLookup        1.0 ms   ▏                     1%
+│     │  │     ├─ connect            10.0 ms   █                     7%
+│     │  │     ├─ secureConnection   21.0 ms    ███                 15%
+│     │  │     ├─ request            <0.1 ms       ▏
+│     │  │     ├─ waiting            16.1 ms       ░░               11%
+│     │  │     └─ response           43.3 ms         ███████        31%
+│     │  └─ diskStore                <0.1 ms                ▏            317 KB · key 19d1c77c
+│     └─ decode                       0.3 ms                ▏            ImageDecoders.Default · jpeg 1440×960
+├─ process                           42.6 ms                ██████  30%  jpeg 1350×900
+└─ memoryStore                        0.1 ms                     ▕       key aa429747
+total                               140.9 ms                             finished at 17:24:14.818
 ```
 
-The tree reads top to bottom as the task ran. The column is the time *this* task spent on every row, and the chart beside it says where in the task that time was, so a gap or an overlap takes no arithmetic to see; a wait is light. Only `j4` belongs to the task – `j1`, `j2`, and `j3` are the prefetcher's – which is why the lookups above the download say `before join` with no time against them, and why the download is charged the 168.4 ms this task waited for rather than the 301.0 ms it took. For the same reason the connection setup has no rows under `networkLoad`: it was over before the task existed.
+The tree reads top to bottom as the task ran. The column is the time *this* task spent on every row, and the chart beside it says where in the task that time was, so a gap or an overlap takes no arithmetic to see; a wait is light. Nothing here overlaps: the pipeline looked in both caches, downloaded 317 KB, decoded it, and resized it, in that order. A third of the download went on reaching the host: the domain lookup, the connection, and the handshake all sit in front of the first byte, and a connection the app already had open would have skipped the 31 ms of `connect` and `secureConnection`.
 
-The `time:` line names the part worth making faster before the tree is read. Its categories are exclusive and add up to the length of the task, so nothing is counted twice and what the stages don't account for lands in `other`. Here three quarters of the task was the download, and most of that was the server. It is also available as ``ImageTask/Metrics/timeShares``.
+The `time:` line names the part worth making faster before the tree is read. Its categories are exclusive and add up to the length of the task, so nothing is counted twice and what the stages don't account for lands in `other`. Here two thirds of the task was the network and most of the rest was the resize. It is also available as ``ImageTask/Metrics/timeShares``.
+
+When a task attaches to work another task started, the record says so, and it charges the task only for the part it waited on. The same image, asked for by a cell 48 ms after a prefetcher had started fetching it:
+
+```
+coalesced:   yes · shared with #2 (j4, j5, j6)
+time:        network 44.4 ms (65%) · process 10.9 ms (16%) · decompress 9.3 ms (14%) · cache 0.3 ms · decode 0.3 ms · queue 0.2 ms · other 3.0 ms (4%)
+
+pending                        <0.1 ms  ▏                          started at 17:25:08.898
+j7 loadImage [resize]          67.1 ms  ████████████████████  98%
+├─ memoryLookup                <0.1 ms  ▏                          miss · key aa429747
+├─ diskLookup                   0.1 ms  ▏                          miss · key f6d8540b
+├─ j4 loadImage                55.6 ms  █████████████████     81%  joined at 47.7 ms of 103.3 ms
+│  ├─ memoryLookup                   –                             miss · before join · key 38c326ae
+│  ├─ diskLookup                     –                             miss · before join · key 19d1c77c
+│  ├─ j5 fetchOriginalImage    46.2 ms  ██████████████        68%
+│  │  ├─ j6 fetchOriginalData  45.5 ms  ██████████████        67%
+│  │  │  ├─ download           44.4 ms  █████████████         65%  network · 317 KB · HTTP 200 · first byte 86.4 ms · joined at 46.7 ms of 91.1 ms · session #2
+…
+```
+
+Only `j7` is this task's. `j4`, `j5`, and `j6` are the prefetcher's: the lookups it had already done by the time this task joined print `–` and say `before join`, and the download is charged the 44.4 ms this task waited for rather than the 91.1 ms it ran for. Every attributed duration is clamped to the lifetime of the task, so the records of two tasks that shared a download never add up to more than the download.
 
 ``ImageTask/Metrics/source`` says where the image came from, and it tells a `URLCache` hit apart from a real download – a request the session revalidated and the server answered `304` costs the time of a download and none of the bytes:
 
 ```
-ImageTask #1 · success · 755.8 ms · from httpCache
-transfer:    325 KB · 392 bytes on the wire · revalidated
+ImageTask #2 "feed" · success · 31.0 ms · from httpCache
+transfer:  317 KB · 81 bytes on the wire · revalidated
 ```
 
 Print less with ``ImageTask/Metrics/formatted(_:)``. Its ``ImageTask/Metrics/Options`` are the four sections – the header, the `time:` line, the timeline, and the `URLSession` rows – and the four columns the timeline decorates its rows with, so a report can be cut down to what its destination can use:
