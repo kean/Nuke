@@ -353,11 +353,11 @@ struct LazyImageTests {
         await started.wait()
 
         let imageTask = try #require(task.value)
-        #expect(imageTask.state == .running)
+        #expect(!imageTask.isCancelled)
 
-        await host.hideContent(until: { imageTask.state == .cancelled })
+        await host.hideContent(until: { imageTask.isCancelled })
 
-        #expect(imageTask.state == .cancelled)
+        #expect(imageTask.isCancelled)
     }
 
     @Test func requestCancelledWhenViewIsRemovedFromHierarchy() async throws {
@@ -377,10 +377,10 @@ struct LazyImageTests {
         await started.wait()
 
         let imageTask = try #require(task.value)
-        await host.removeContent(until: { imageTask.state == .cancelled })
+        await host.removeContent(until: { imageTask.isCancelled })
 
         // The view model is released with the view, and its deinit cancels the task.
-        #expect(imageTask.state == .cancelled)
+        #expect(imageTask.isCancelled)
     }
 
     @Test func requestPriorityLoweredOnDisappear() async throws {
@@ -405,7 +405,7 @@ struct LazyImageTests {
         await host.hideContent(until: { imageTask.priority == .veryLow })
 
         #expect(imageTask.priority == .veryLow)
-        #expect(imageTask.state == .running)
+        #expect(!imageTask.isCancelled)
     }
 
     @Test func requestNotCancelledWhenDisappearBehaviorIsNil() async throws {
@@ -428,7 +428,7 @@ struct LazyImageTests {
         await host.hideContent()
 
         #expect(imageTask.priority == .normal)
-        #expect(imageTask.state == .running)
+        #expect(!imageTask.isCancelled)
     }
 
     @Test func priorityRestoredWhenViewReappears() async throws {

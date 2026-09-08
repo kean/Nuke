@@ -14,7 +14,7 @@ struct ImageProcessorsAnimatedImageDataTests {
     @Test func processingDropsTheAttachedData() throws {
         // GIVEN an animated image, whose data describes the animation the
         // processor is about to replace with a single processed still
-        let container = try animatedContainer()
+        let container = animatedContainer()
         let processor = ImageProcessors.Resize(size: CGSize(width: 40, height: 40), unit: .pixels)
 
         let output = try processor.process(container, context: .mock)
@@ -30,7 +30,7 @@ struct ImageProcessorsAnimatedImageDataTests {
     @Test func coreImageFilterDropsTheAttachedData() throws {
         // GIVEN a processor that implements the container method itself and so
         // does not go through the default implementation
-        let container = try animatedContainer()
+        let container = animatedContainer()
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
 
         let output = try processor.process(container, context: .mock)
@@ -49,7 +49,7 @@ struct ImageProcessorsAnimatedImageDataTests {
             }
             var identifier: String { "test.keeps-data" }
         }
-        let container = try animatedContainer()
+        let container = animatedContainer()
 
         let output = try KeepsData().process(container, context: .mock)
 
@@ -59,8 +59,8 @@ struct ImageProcessorsAnimatedImageDataTests {
 
     /// A container shaped the way the pipeline hands one over: the encoded
     /// animation, and the metadata parsed out of it.
-    private func animatedContainer() throws -> ImageContainer {
-        let data = Test.animatedGIF()
-        return ImageContainer(image: Test.image, type: .gif, data: data, animation: try #require(AnimatedImageSource(data: data)))
+    private func animatedContainer() -> ImageContainer {
+        let source = Test.animatedGIFSource()
+        return ImageContainer(image: Test.image, type: .gif, data: source.data, animation: source)
     }
 }

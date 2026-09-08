@@ -40,6 +40,23 @@ extension Test {
         )! // Image I/O writes GIF on every platform
     }
 
+    /// Builds an animated GIF and the source that reads it.
+    ///
+    /// The parameters are the ones ``animatedGIF(frameCount:delays:loopCount:size:)``
+    /// takes. The source is not optional because a fixture with more than one
+    /// frame always declares an animation: a caller can assign it straight into
+    /// an `AnimatedImageSource?` property without a `#require` that unwraps into
+    /// the contextual type and leaves the value optional anyway.
+    static func animatedGIFSource(
+        frameCount: Int = 4,
+        delays: [TimeInterval]? = nil,
+        loopCount: Int? = 0,
+        size: CGSize = CGSize(width: 8, height: 8)
+    ) -> AnimatedImageSource {
+        let data = animatedGIF(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
+        return AnimatedImageSource(data: data)!
+    }
+
     /// Builds an animated PNG, or returns `nil` if Image I/O on this platform
     /// can't write one.
     ///
