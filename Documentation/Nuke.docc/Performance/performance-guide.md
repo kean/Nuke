@@ -252,7 +252,9 @@ final class Telemetry: ImagePipeline.Delegate, Sendable {
 
 ### Instruments
 
-The diagnostics also emit `os_signpost` intervals for the work the pipeline does – the download, the decoding, the processing, the decompression, and the image encoding – so the `os_signpost` Instrument shows the same timeline live, with the concurrency of every queue. They come with ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``: there is nothing else to turn on, and nothing is emitted unless something is recording them. Launching the app with `NUKE_DIAGNOSTICS_ENABLED` in the environment profiles a build that doesn't ask for the diagnostics in code. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
+The diagnostics also emit an `os_signpost` interval for every stage of the timeline worth one, so the `os_signpost` Instrument shows the same timeline live, with the concurrency of every queue. The intervals are named after the stages – `diskLookup`, `willLoadData`, `download`, `diskStore`, `decode`, `process`, `decompress`, and a `Preview` variant of the last three – and each closes with the same words its row in the record ends with, such as `network · 317 KB · HTTP 200`. The memory cache is not traced: it is over in less time than an interval costs to emit.
+
+The intervals come with ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``: there is nothing else to turn on, and nothing is emitted unless something is recording them. Launching the app with `NUKE_DIAGNOSTICS_ENABLED` in the environment profiles a build that doesn't ask for the diagnostics in code. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
 
 The pipeline traces its own work, not yours. An interval for the whole load – the request the app made, rather than the download it turned into – is a few lines in the delegate:
 

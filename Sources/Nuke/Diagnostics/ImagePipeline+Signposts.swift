@@ -10,45 +10,35 @@ let signpostLog = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", categor
 
 extension ImagePipeline.Diagnostics.Stage {
     /// The name of the `os_signpost` interval the pipeline emits for the
-    /// stage, or `nil` for a stage it doesn't trace.
+    /// stage: the ``Kind`` it is, and whether it worked on a preview. The
+    /// Instruments app aggregates the intervals by name, and a preview is
+    /// decoded, processed, and decompressed on a different scale than the
+    /// image, so the two are worth counting apart.
     ///
-    /// The traced stages are the work: the download, the decoding, the
-    /// processing, and the decompression. The lookups and the waits are in
-    /// the ``ImageTask/Metrics`` record, which is where they read better than
-    /// as a row of hairlines in a trace.
+    /// `nil` for the stages that aren't worth an interval: the memory cache,
+    /// which is over in less time than an interval costs to emit, and the
+    /// rate limiter, which is recorded once it's already over. Everything
+    /// else the diagnostics bracket is traced.
     ///
-    /// - important: The name has to be the same at both ends of the interval,
-    /// so it's decided by ``kind`` and ``isProgressive``, which are set when
-    /// the stage begins and never change.
+    /// The names spell out ``Kind`` again because `os_signpost` takes a
+    /// `StaticString`, which a raw value isn't.
     var signpostName: StaticString? {
         switch kind {
-        case .download: "LoadImageData"
-        case .decode: isProgressive == true ? "DecodeProgressiveImageData" : "DecodeImageData"
-        case .process: isProgressive == true ? "ProcessProgressiveImage" : "ProcessImage"
-        case .decompress: isProgressive == true ? "DecompressProgressiveImage" : "DecompressImage"
-        default: nil
+        case .diskLookup: "diskLookup"
+        case .willLoadData: "willLoadData"
+        case .download: "download"
+        case .diskStore: "diskStore"
+        case .decode: isProgressive == true ? "decodePreview" : "decode"
+        case .process: isProgressive == true ? "processPreview" : "process"
+        case .decompress: isProgressive == true ? "decompressPreview" : "decompress"
+        case .memoryLookup, .memoryStore, .rateLimit, .unknown: nil
         }
     }
 
-    /// What the stage did, for the message of its closing signpost, in the
-    /// words the ``ImageTask/Metrics`` timeline uses for the same row:
-    /// `"network · 317 KB · HTTP 200"`, `"ImageDecoders.Default · jpeg 640×480"`.
+    /// What the interval closes with, in the words the ``ImageTask/Metrics``
+    /// timeline uses for the row of the same stage: `"network · 317 KB ·
+    /// HTTP 200"`, `"ImageDecoders.Default · jpeg 640×480"`.
     var signpostMessage: String {
-        (transferDetails + outputDetails).joined(separator: " · ")
+        details.joined(separator: " · ")
     }
-}
-
-/// Emits an `os_signpost` interval around the work.
-///
-/// The pipeline brackets the stages of a job itself – see
-/// ``ImagePipeline/Diagnostics-swift.struct/Stage``. This is for the work that
-/// isn't one of them: the image encoding, which a job schedules and doesn't
-/// wait for.
-func signpost<T>(_ name: StaticString, isEnabled: Bool, _ work: () -> T) -> T {
-    guard isEnabled, signpostLog.signpostsEnabled else { return work() }
-
-    let signpostID = OSSignpostID(log: signpostLog)
-    os_signpost(.begin, log: signpostLog, name: name, signpostID: signpostID)
-    defer { os_signpost(.end, log: signpostLog, name: name, signpostID: signpostID) }
-    return work()
 }

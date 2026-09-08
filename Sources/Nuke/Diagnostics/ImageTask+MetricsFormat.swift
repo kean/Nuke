@@ -478,8 +478,7 @@ extension ImageTask.Metrics {
         } else if stage.isRunning {
             parts.append("running")
         }
-        parts += stage.result.map { [$0.rawValue] } ?? []
-        parts += stage.transferDetails + stage.outputDetails + timing(of: stage, in: job)
+        parts += stage.details + timing(of: stage, in: job)
         if options.contains(.cacheKeys), let key = stage.cacheKey {
             parts.append("key \(key)")
         }
@@ -751,11 +750,13 @@ extension ImageTask.Metrics {
 // MARK: - Stage
 
 extension ImagePipeline.Diagnostics.Stage {
-    /// Where the bytes came from and what they cost. Shared with the
-    /// `os_signpost` interval the stage closes with, so a trace and a record
-    /// of the same load describe it in the same words.
-    var transferDetails: [String] {
+    /// What the stage did: what it found, where the bytes came from, what
+    /// they cost, and what it produced. The timeline prints it in the row of
+    /// the stage and the `os_signpost` interval closes with it, so a trace
+    /// and a record of the same load describe it in the same words.
+    var details: [String] {
         var parts: [String] = []
+        parts += result.map { [$0.rawValue] } ?? []
         parts += source.map { [$0.rawValue] } ?? []
         if let bytes {
             var text = Formatter.bytes(bytes)
@@ -768,12 +769,6 @@ extension ImagePipeline.Diagnostics.Stage {
         if let firstByteAt, let startedAt {
             parts.append("first byte \(Formatter.milliseconds(firstByteAt - startedAt))")
         }
-        return parts
-    }
-
-    /// What the stage produced.
-    var outputDetails: [String] {
-        var parts: [String] = []
         if isProgressive == true {
             parts.append("preview")
         }
