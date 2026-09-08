@@ -5,6 +5,7 @@
 #if !os(watchOS) && !os(visionOS)
 
 import Foundation
+import os
 import AVKit
 import AVFoundation
 import Nuke
@@ -17,14 +18,12 @@ extension ImageDecoders {
     /// ```swift
     /// ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
     /// ```
-    public final class Video: ImageDecoding, @unchecked Sendable {
-        private var didProducePreview = false
+    public final class Video: ImageDecoding, Sendable {
+        private let didProducePreview = OSAllocatedUnfairLock(initialState: false)
         private let type: AssetType
 
         /// Always `true` — decoding is performed asynchronously to avoid blocking the pipeline.
         public var isAsynchronous: Bool { true }
-
-        private let lock = NSLock()
 
         /// Returns `nil` if the data is not a recognized video format (MP4, M4V, or MOV).
         public init?(context: ImageDecodingContext) {
@@ -44,17 +43,21 @@ extension ImageDecoders {
         /// Returns a single thumbnail preview for the first frame of partially downloaded
         /// video data, or `nil` if the data is not yet decodable or a preview was already produced.
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            lock.lock()
-            defer { lock.unlock() }
-
             guard let type = AssetType(data), type.isVideo else { return nil }
-            guard !didProducePreview else {
+            guard !didProducePreview.withLock({ $0 }) else {
                 return nil // We only need one preview
             }
             guard let preview = makePreview(for: data, type: type) else {
+                return nil // Not enough data to decode a frame yet; try again later
+            }
+            // Claim the slot only now: the flag marks a preview that was made,
+            // and the claim is what keeps two racing calls from both returning one.
+            guard didProducePreview.withLock({ isProduced in
+                defer { isProduced = true }
+                return !isProduced
+            }) else {
                 return nil
             }
-            didProducePreview = true
             return ImageContainer(image: preview, type: type, isPreview: true, data: data, userInfo: [
                 .videoAssetKey: AVDataAsset(data: data, type: type)
             ])

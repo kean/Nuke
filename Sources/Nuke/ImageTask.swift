@@ -35,7 +35,7 @@ import AppKit
 /// The pipeline maintains a strong reference to the task until the request
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
-public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @unchecked Sendable {
+public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     public let taskId: UInt64
 
@@ -241,10 +241,13 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     /// The time the task was created, in seconds since 1970 on the clock of
     /// the recorder. `nil` unless diagnostics are on.
     let _createdAt: TimeInterval?
-    private let onEvent: ((Event, ImageTask) -> Void)?
-    private weak var pipeline: ImagePipeline?
+    private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
+    @ImagePipelineActor private weak var pipeline: ImagePipeline?
 
-    // Set once during creation, then read-only from `response` getter.
+    /// Set once during creation, before the task is handed to anyone, then
+    /// read-only from the `response` getter, so it needs no synchronization.
+    /// `nonisolated(unsafe)` keeps that unchecked to this one property instead
+    /// of `@unchecked Sendable` waiving the check for the whole class.
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
@@ -253,7 +256,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, @
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
-    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
+    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
         self.taskId = taskId
         self.request = request
         self._status = OSAllocatedUnfairLock(initialState: Status(priority: request.priority))

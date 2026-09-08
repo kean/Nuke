@@ -28,7 +28,9 @@ private extension AssetType {
     }
 }
 
-// This class keeps strong pointer to DataAssetResourceLoader
+// This class keeps strong pointer to DataAssetResourceLoader.
+// Unchecked only because `AVURLAsset` is: a subclass has to restate what it
+// inherits. The delegate it adds is checked.
 final class AVDataAsset: AVURLAsset, @unchecked Sendable {
     private let resourceLoaderDelegate: DataAssetResourceLoader
 
@@ -47,7 +49,7 @@ final class AVDataAsset: AVURLAsset, @unchecked Sendable {
 }
 
 // This allows LazyImage to play video from memory.
-private final class DataAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
+private final class DataAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate, Sendable {
     private let data: Data
     private let contentType: String
 

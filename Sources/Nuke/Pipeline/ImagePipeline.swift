@@ -176,7 +176,7 @@ public final class ImagePipeline: Sendable {
 
     // MARK: - ImageTask (Internal)
 
-    nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+    nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         // The creation time is the one thing the diagnostics read off the actor.
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
         // Important to call it before `imageTaskStartCalled`
