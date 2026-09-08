@@ -204,18 +204,14 @@ extension ImagePipeline.Diagnostics {
         /// one created it.
         private var joins: [Join] = []
 
-        /// `true` if something was collecting signposts when the job started:
-        /// Instruments, or `log stream`. It's read once so that every interval
-        /// the job opens is also closed, whenever the collection stops.
-        private let isSignpostingEnabled: Bool
-        /// Shared by every interval the job emits. The stages of a job that
-        /// map to the same signpost name never overlap, so one id is enough
-        /// to tell the jobs apart in a trace.
-        private let signpostID: OSSignpostID
+        /// Shared by every `os_signpost` interval the job emits, and `nil`
+        /// when nothing was collecting them as the job started. Read once, so
+        /// that every interval the job opens is also closed, whenever the
+        /// collection stops; shared, because the stages of a job that map to
+        /// the same name never overlap.
+        private let signpostID: OSSignpostID?
         /// The image the job is for, for the message of its opening signposts.
         private let signpostLabel: String
-        /// The stages with an open interval.
-        private var openSignpostStages: Set<Int> = []
 
         var id: UInt64 { job.id }
 
@@ -227,9 +223,9 @@ extension ImagePipeline.Diagnostics {
 
         init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
             self.recorder = recorder
-            self.isSignpostingEnabled = signpostLog.signpostsEnabled
-            self.signpostID = isSignpostingEnabled ? OSSignpostID(log: signpostLog) : .invalid
-            self.signpostLabel = isSignpostingEnabled ? (request.url?.absoluteString ?? "") : ""
+            let isSignposting = signpostLog.signpostsEnabled
+            self.signpostID = isSignposting ? OSSignpostID(log: signpostLog) : nil
+            self.signpostLabel = isSignposting ? (request.url?.absoluteString ?? "") : ""
             self.job = Job(
                 id: id,
                 kind: kind,
@@ -281,7 +277,7 @@ extension ImagePipeline.Diagnostics {
             job.outcome = outcome
             job.error = error.map(ErrorSummary.init)
             // The work that was running is cancelled along with the job.
-            for index in job.stages.indices {
+            for index in job.stages.indices where job.stages[index].isRunning {
                 job.stages[index].end(at: now)
                 endSignpost(index, outcome.rawValue)
             }
@@ -329,6 +325,7 @@ extension ImagePipeline.Diagnostics {
         func endStage(_ index: Int?, _ update: (inout Stage) -> Void = { _ in }) {
             guard let index else { return }
             update(&job.stages[index])
+            guard job.stages[index].isRunning else { return } // The job ended it
             job.stages[index].end(at: recorder.now)
             endSignpost(index, job.stages[index].signpostMessage)
         }
@@ -364,17 +361,15 @@ extension ImagePipeline.Diagnostics {
 
         // MARK: Signposts
 
-        /// Opens the interval of the stage, if it has one.
+        /// Opens the interval of a stage that is starting, if it has one.
         private func beginSignpost(_ index: Int) {
-            guard isSignpostingEnabled, let name = job.stages[index].signpostName else { return }
-            openSignpostStages.insert(index)
+            guard let signpostID, let name = job.stages[index].signpostName else { return }
             os_signpost(.begin, log: signpostLog, name: name, signpostID: signpostID, "%{public}s", signpostLabel)
         }
 
-        /// Closes the interval of the stage, if it has one open. A stage the
-        /// job closed on its way out doesn't get closed twice.
+        /// Closes the interval of a stage that was running, if it has one.
         private func endSignpost(_ index: Int, _ message: @autoclosure () -> String) {
-            guard openSignpostStages.remove(index) != nil, let name = job.stages[index].signpostName else { return }
+            guard let signpostID, let name = job.stages[index].signpostName else { return }
             os_signpost(.end, log: signpostLog, name: name, signpostID: signpostID, "%{public}s", message())
         }
 
@@ -403,8 +398,11 @@ extension ImagePipeline.Diagnostics.Stage {
         format = container.type?.diagnosticsName
     }
 
-    /// Closes the stage, if it is running. A stage that never left its queue
-    /// has nothing to measure.
+    /// `true` between the moment the work starts and the moment it ends. A
+    /// stage that never left its queue never runs, and has nothing to measure.
+    var isRunning: Bool { startedAt != nil && duration == nil }
+
+    /// Closes the stage, if it is running.
     mutating func end(at now: TimeInterval) {
         guard let startedAt, duration == nil else { return }
         duration = max(0, now - startedAt)

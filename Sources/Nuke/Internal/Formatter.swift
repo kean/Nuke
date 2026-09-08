@@ -14,4 +14,11 @@ enum Formatter {
         formatter.allowsNonnumericFormatting = false // "0 bytes", not "Zero KB"
         return formatter.string(fromByteCount: count)
     }
+
+    /// A duration in milliseconds, never rounded to a `0.0 ms` that isn't true.
+    static func milliseconds(_ duration: TimeInterval) -> String {
+        let milliseconds = duration * 1000
+        guard milliseconds >= 0.05 else { return "<0.1 ms" }
+        return String(format: "%.1f ms", milliseconds)
+    }
 }
