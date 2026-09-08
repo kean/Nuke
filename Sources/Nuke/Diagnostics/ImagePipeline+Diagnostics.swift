@@ -29,9 +29,8 @@ extension ImagePipeline {
     /// measures, and costs nothing when it is off.
     ///
     /// The same switch publishes the timeline to the `os_signpost` Instrument
-    /// as it happens: the pipeline emits an interval for the work of every
-    /// job – the download, the decoding, the processing, the decompression –
-    /// and one for the image encoding. They cost nothing unless something is
+    /// as it happens: every ``Stage`` worth an interval gets one, named after
+    /// it and closing with what it did. They cost nothing unless something is
     /// recording them. The pipeline traces its own work and not the app's: an
     /// interval for a whole load is a few lines in the delegate, with
     /// `OSSignposter`. See <doc:performance-guide>.

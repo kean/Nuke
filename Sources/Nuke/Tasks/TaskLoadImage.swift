@@ -183,15 +183,10 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        let isRecording = pipeline.recorder != nil
         pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
             guard let pipeline else { return }
             let data = await performInBackground {
-                // The encoding is scheduled by the job and outlives it, so it
-                // isn't one of its stages – the interval is emitted here.
-                signpost("EncodeImage", isEnabled: isRecording) {
-                    encoder.encode(response.container, context: context)
-                }
+                encoder.encode(response.container, context: context)
             }
             guard let data, !data.isEmpty else { return }
             guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }
