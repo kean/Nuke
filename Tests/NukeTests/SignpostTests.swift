@@ -46,7 +46,8 @@ struct SignpostTests {
         var stage = makeStage(.download)
         stage.source = .network
         stage.bytes = 325_000
-        #expect(stage.signpostMessage == "network · 325 KB")
+        stage.statusCode = 200
+        #expect(stage.signpostMessage == "network · 325 KB · HTTP 200")
     }
 
     @Test func downloadMessageSaysWhatWasResumed() {
@@ -66,9 +67,18 @@ struct SignpostTests {
 
     @Test func decodeMessageSaysWhatWasDecoded() {
         var stage = makeStage(.decode)
+        stage.decoder = "ImageDecoders.Default"
         stage.format = "jpeg"
         stage.pixels = ImagePipeline.Diagnostics.PixelSize(width: 1350, height: 900)
-        #expect(stage.signpostMessage == "jpeg · 1350×900")
+        #expect(stage.signpostMessage == "ImageDecoders.Default · jpeg 1350×900")
+    }
+
+    /// The same words the `ImageTask/Metrics` timeline uses for the row.
+    @Test func messageMatchesTheTimelineDetails() {
+        var stage = makeStage(.process, isProgressive: true)
+        stage.pixels = ImagePipeline.Diagnostics.PixelSize(width: 640, height: 480)
+        #expect(stage.signpostMessage == (stage.transferDetails + stage.outputDetails).joined(separator: " · "))
+        #expect(stage.signpostMessage == "preview · 640×480")
     }
 
     @Test func messageIsEmptyWhenTheStageProducedNothing() {

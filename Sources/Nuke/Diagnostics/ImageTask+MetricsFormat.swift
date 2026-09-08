@@ -475,11 +475,11 @@ extension ImageTask.Metrics {
         var parts: [String] = []
         if stage.startedAt == nil {
             parts.append("never started")
-        } else if stage.duration == nil {
+        } else if stage.isRunning {
             parts.append("running")
         }
         parts += stage.result.map { [$0.rawValue] } ?? []
-        parts += transfer(of: stage) + output(of: stage) + timing(of: stage, in: job)
+        parts += stage.transferDetails + stage.outputDetails + timing(of: stage, in: job)
         if options.contains(.cacheKeys), let key = stage.cacheKey {
             parts.append("key \(key)")
         }
@@ -488,36 +488,6 @@ extension ImageTask.Metrics {
             if let count = stage.urlSessionMetrics?.redirectCount, count > 0 {
                 parts.append("\(count) redirect\(count == 1 ? "" : "s")")
             }
-        }
-        return parts
-    }
-
-    private func transfer(of stage: ImagePipeline.Diagnostics.Stage) -> [String] {
-        var parts: [String] = []
-        parts += stage.source.map { [$0.rawValue] } ?? []
-        if let bytes = stage.bytes {
-            var text = Formatter.bytes(bytes)
-            if let resumedBytes = stage.resumedBytes, resumedBytes > 0 {
-                text += " (\(Formatter.bytes(resumedBytes)) resumed)"
-            }
-            parts.append(text)
-        }
-        parts += stage.statusCode.map { ["HTTP \($0)"] } ?? []
-        if let firstByteAt = stage.firstByteAt, let startedAt = stage.startedAt {
-            parts.append("first byte \(ms(firstByteAt - startedAt))")
-        }
-        return parts
-    }
-
-    private func output(of stage: ImagePipeline.Diagnostics.Stage) -> [String] {
-        var parts: [String] = []
-        if stage.isProgressive == true {
-            parts.append("preview")
-        }
-        parts += stage.decoder.map { [$0] } ?? []
-        let image = [stage.format, stage.pixels.map { "\($0.width)×\($0.height)" }].compactMap { $0 }
-        if !image.isEmpty {
-            parts.append(image.joined(separator: " "))
         }
         return parts
     }
@@ -747,12 +717,9 @@ extension ImageTask.Metrics {
         duration >= 10 ? String(format: "%.2f s", duration) : ms(duration)
     }
 
-    /// A duration for the column, always in milliseconds so the rows compare,
-    /// and never rounded to a `0.0 ms` that isn't true.
+    /// A duration for the column, always in milliseconds so the rows compare.
     private func ms(_ duration: TimeInterval) -> String {
-        let milliseconds = duration * 1000
-        guard milliseconds >= 0.05 else { return "<0.1 ms" }
-        return String(format: "%.1f ms", milliseconds)
+        Formatter.milliseconds(duration)
     }
 
     /// The time of day to the millisecond, in the local time zone and on a
@@ -778,5 +745,43 @@ extension ImageTask.Metrics {
             name = name[name.index(after: slash)...]
         }
         return name.isEmpty ? identifier : String(name)
+    }
+}
+
+// MARK: - Stage
+
+extension ImagePipeline.Diagnostics.Stage {
+    /// Where the bytes came from and what they cost. Shared with the
+    /// `os_signpost` interval the stage closes with, so a trace and a record
+    /// of the same load describe it in the same words.
+    var transferDetails: [String] {
+        var parts: [String] = []
+        parts += source.map { [$0.rawValue] } ?? []
+        if let bytes {
+            var text = Formatter.bytes(bytes)
+            if let resumedBytes, resumedBytes > 0 {
+                text += " (\(Formatter.bytes(resumedBytes)) resumed)"
+            }
+            parts.append(text)
+        }
+        parts += statusCode.map { ["HTTP \($0)"] } ?? []
+        if let firstByteAt, let startedAt {
+            parts.append("first byte \(Formatter.milliseconds(firstByteAt - startedAt))")
+        }
+        return parts
+    }
+
+    /// What the stage produced.
+    var outputDetails: [String] {
+        var parts: [String] = []
+        if isProgressive == true {
+            parts.append("preview")
+        }
+        parts += decoder.map { [$0] } ?? []
+        let image = [format, pixels.map { "\($0.width)×\($0.height)" }].compactMap { $0 }
+        if !image.isEmpty {
+            parts.append(image.joined(separator: " "))
+        }
+        return parts
     }
 }

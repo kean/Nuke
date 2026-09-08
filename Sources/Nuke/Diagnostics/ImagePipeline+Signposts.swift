@@ -30,27 +30,11 @@ extension ImagePipeline.Diagnostics.Stage {
         }
     }
 
-    /// What the stage produced, for the message of its closing signpost,
-    /// such as `"network · 317 KB"` or `"jpeg · 1350×900"`.
+    /// What the stage did, for the message of its closing signpost, in the
+    /// words the ``ImageTask/Metrics`` timeline uses for the same row:
+    /// `"network · 317 KB · HTTP 200"`, `"ImageDecoders.Default · jpeg 640×480"`.
     var signpostMessage: String {
-        var parts: [String] = []
-        if let source {
-            parts.append(source.rawValue)
-        }
-        if let format {
-            parts.append(format)
-        }
-        if let pixels {
-            parts.append("\(pixels.width)×\(pixels.height)")
-        }
-        if let bytes {
-            var text = Formatter.bytes(bytes)
-            if let resumedBytes, resumedBytes > 0 {
-                text += " (\(Formatter.bytes(resumedBytes)) resumed)"
-            }
-            parts.append(text)
-        }
-        return parts.joined(separator: " · ")
+        (transferDetails + outputDetails).joined(separator: " · ")
     }
 }
 
