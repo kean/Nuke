@@ -110,6 +110,11 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         /// The priority of the task.
         public internal(set) var priority: ImageRequest.Priority = .normal
 
+        /// Set when the pipeline gets to the task, under the same lock as
+        /// `isCancelled`, so a cancellation that finds it `false` can leave the
+        /// task to the pipeline instead of hopping to its actor.
+        var isStarted = false
+
         /// The download progress. Contains zeros until the download starts and
         /// the total resource size is known.
         public internal(set) var progress = Progress(completed: 0, total: 0)
@@ -280,15 +285,17 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// The method is thread-safe and calling it more than once, or after the
     /// task has already finished, has no effect.
     public func cancel() {
-        let didChange: Bool = _status.withLock {
+        let isRunning: Bool = _status.withLock {
             let didChange = !$0.isCancelled && $0.result == nil
             $0.isCancelled = true
-            return didChange
+            return didChange && $0.isStarted
         }
         // Reaching the pipeline requires a hop to its actor, which then
         // unsubscribes the task and tears down the work no one else needs,
-        // so make sure it happens at most once.
-        guard didChange else { return }
+        // so make sure it happens at most once. A task the pipeline hasn't
+        // started doesn't need one: the pipeline checks `isCancelled` before
+        // it starts the task, and finishes it without starting any work.
+        guard isRunning else { return }
         Task { @ImagePipelineActor in
             self.pipeline?.imageTaskCancelCalled(self)
         }
@@ -314,6 +321,20 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// the lock and the actor hop used by the public `cancel()` method.
     @ImagePipelineActor func _cancelTask() {
         pipeline?.imageTaskCancelCalled(self)
+    }
+
+    /// Records that the pipeline is starting the task, and returns `false` if
+    /// the task was cancelled first, in which case it must not start.
+    ///
+    /// It takes the same lock as ``cancel()``, so every cancellation lands on
+    /// exactly one side of it: before, and the pipeline doesn't start the task,
+    /// or after, and ``cancel()`` finds it started and hops to the actor to
+    /// tear it down.
+    @ImagePipelineActor func _markStarted() -> Bool {
+        _status.withLock {
+            $0.isStarted = true
+            return !$0.isCancelled
+        }
     }
 
     /// Gets called when the task is cancelled either by the user or by an

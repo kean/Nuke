@@ -205,6 +205,11 @@ public final class ImagePipeline: Sendable {
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
+        guard task._markStarted() else {
+            // `cancel()` doesn't hop to the actor for a task that hasn't started,
+            // so nothing gets started here just to be torn down.
+            return task._cancel()
+        }
         if let startedAt {
             task._diagnostics?.didStart(at: startedAt)
         }
