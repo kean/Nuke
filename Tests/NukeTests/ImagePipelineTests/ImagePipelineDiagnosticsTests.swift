@@ -341,6 +341,25 @@ struct ImagePipelineDiagnosticsTests {
         }
     }
 
+    @Test @ImagePipelineActor func cancellationBeforeTheTaskStartsIsRecorded() async throws {
+        // GIVEN a task cancelled while the test holds the actor, so the
+        // pipeline can't have started it yet
+        let task = pipeline.imageTask(with: Test.request)
+        task.cancel()
+
+        // WHEN
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN
+        let metrics = try #require(task.metrics)
+        #expect(metrics.outcome == .cancelled)
+        #expect(metrics.startedAt == nil)
+        #expect(metrics.rootJobID == nil)
+        #expect(metrics.jobs.isEmpty)
+    }
+
     @Test func labelIsRecorded() async throws {
         // GIVEN
         var request = Test.request
