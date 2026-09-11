@@ -463,8 +463,131 @@ struct ImagePrefetcherTests {
         #expect(count.withLock { $0 } == 1)
     }
 
+    @Test @ImagePipelineActor func didCompleteIsCalledOnceWhenEveryRequestLoads() async {
+        // GIVEN more requests than the prefetcher loads at a time
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let completed = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            completed.fulfill()
+        }
+
+        // WHEN every one of them loads
+        prefetcher.startPrefetching(with: Self.batch)
+        await completed.wait()
+
+        // THEN the closure is called once for the batch, not once per request
+        await prefetcher.queue.waitUntilIdle()
+        await waitForDelivery()
+        #expect(count.withLock { $0 } == 1)
+        #expect(observer.startedTaskCount == Self.batch.count)
+    }
+
+    @Test @ImagePipelineActor func didCompleteIsCalledWhenEveryRequestIsStopped() async {
+        // GIVEN requests that can't finish on their own: two are loading, and
+        // the rest wait in the prefetcher's queue
+        dataLoader.isSuspended = true
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let completed = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            completed.fulfill()
+        }
+        _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
+            prefetcher.startPrefetching(with: Self.batch)
+        }
+
+        // WHEN every one of them is stopped
+        prefetcher.stopPrefetching(with: Self.batch)
+
+        // THEN the prefetcher reports that it ran out of work, and doesn't
+        // report it again when the loads it cancelled unwind
+        await completed.wait()
+        await prefetcher.queue.waitUntilIdle()
+        await waitForDelivery()
+        #expect(count.withLock { $0 } == 1)
+    }
+
+    @Test @ImagePipelineActor func didCompleteIsCalledWhenAllPrefetchingIsStopped() async {
+        // GIVEN requests that can't finish on their own: two are loading, and
+        // the rest wait in the prefetcher's queue
+        dataLoader.isSuspended = true
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let completed = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            completed.fulfill()
+        }
+        _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
+            prefetcher.startPrefetching(with: Self.batch)
+        }
+
+        // WHEN all prefetching is stopped
+        prefetcher.stopPrefetching()
+
+        // THEN the prefetcher reports that it ran out of work, and doesn't
+        // report it again when the loads it cancelled unwind
+        await completed.wait()
+        await prefetcher.queue.waitUntilIdle()
+        await waitForDelivery()
+        #expect(count.withLock { $0 } == 1)
+    }
+
+    @Test @ImagePipelineActor func didCompleteIsNotCalledUntilTheLastRequestIsStopped() async {
+        // GIVEN requests that can't finish on their own
+        dataLoader.isSuspended = true
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let completed = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            completed.fulfill()
+        }
+        _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
+            prefetcher.startPrefetching(with: Self.batch)
+        }
+
+        // WHEN all but one of them are stopped
+        prefetcher.stopPrefetching(with: Array(Self.batch.dropLast()))
+        await waitForDelivery()
+
+        // THEN the closure isn't called while there is work outstanding
+        #expect(count.withLock { $0 } == 0)
+
+        // WHEN the last one is stopped too
+        prefetcher.stopPrefetching(with: Array(Self.batch.suffix(1)))
+
+        // THEN it is
+        await completed.wait()
+        #expect(count.withLock { $0 } == 1)
+    }
+
+    @Test @ImagePipelineActor func didCompleteIsNotCalledWhenThereIsNothingToStop() async {
+        // GIVEN a batch that already completed
+        let count = OSAllocatedUnfairLock(initialState: 0)
+        let completed = TestExpectation()
+        prefetcher.didComplete = { @MainActor @Sendable in
+            count.withLock { $0 += 1 }
+            completed.fulfill()
+        }
+        prefetcher.startPrefetching(with: [Test.url])
+        await completed.wait()
+        await prefetcher.queue.waitUntilIdle()
+
+        // WHEN prefetching is stopped with nothing left to cancel, as a list
+        // does when it scrolls past rows that were already prefetched
+        prefetcher.stopPrefetching(with: [Test.url])
+        prefetcher.stopPrefetching()
+        await waitForDelivery()
+
+        // THEN the closure isn't called again: a stop that cancels nothing
+        // doesn't run the prefetcher out of work, it had none left
+        #expect(count.withLock { $0 } == 1)
+    }
+
     private static let otherURL = URL(string: "http://test.com/example-2.jpeg")!
     private static let thirdURL = URL(string: "http://test.com/example-3.jpeg")!
+    /// Twice as many as the prefetcher loads at a time.
+    private static let batch = (0..<4).map { URL(string: "http://test.com/batch-\($0).jpeg")! }
 
     // MARK: Empty Inputs
 
@@ -513,5 +636,31 @@ struct ImagePrefetcherTests {
                 localPrefetcher = nil
             }
         }
+    }
+}
+
+/// Waits until the calls made so far reach the prefetcher, then for the main
+/// queue to run the `didComplete` they scheduled, if any.
+private func waitForDelivery() async {
+    await Task { @ImagePipelineActor in }.value
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        DispatchQueue.main.async { continuation.resume() }
+    }
+}
+
+private extension TaskQueue {
+    /// Waits until no operation is pending or running. An operation runs until
+    /// its work returns, and the prefetcher's work ends by removing its task –
+    /// the point where it reports completion.
+    func waitUntilIdle() async {
+        guard operationCount > 0 else { return }
+        let idle = TestExpectation()
+        let previous = onEvent
+        onEvent = { event in
+            previous?(event)
+            if self.operationCount == 0 { idle.fulfill() }
+        }
+        await idle.wait()
+        onEvent = previous
     }
 }
