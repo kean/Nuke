@@ -25,6 +25,27 @@ struct ImagePipelinePerformanceTests {
     }
 
     @Test
+    func asyncAwaitPerformanceWithChunkedResponse() async {
+        // The transport decides how a response is sliced; a real download
+        // rarely arrives in one piece.
+        let pipeline = makePipeline {
+            let dataLoader = MockDataLoader()
+            dataLoader.chunkCount = 16
+            $0.dataLoader = dataLoader
+        }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     func asyncAwaitPerformanceWithDiagnostics() async {
         let pipeline = makePipeline { $0.isDiagnosticsEnabled = true }
         let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }

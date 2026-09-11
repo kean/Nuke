@@ -23,6 +23,8 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
     private let _createdTaskCount = OSAllocatedUnfairLock(initialState: 0)
 
     var results = [URL: Result<(Data, URLResponse), NSError>]()
+    /// The number of chunks the default response is delivered in.
+    var chunkCount = 1
     let queue = OperationQueue()
     var isSuspended: Bool {
         get { queue.isSuspended }
@@ -36,7 +38,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         _createdTaskCount.withLock { $0 += 1 }
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
-
+        let chunkCount = self.chunkCount
         let operation = BlockOperation {
             if let result = self.results[request.url!] {
                 switch result {
@@ -55,7 +57,19 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
                     completion(err)
                 }
             } else {
-                didReceiveData(data, URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
+                let response = URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil)
+                if chunkCount > 1 {
+                    let chunkSize = data.count / chunkCount
+                    var offset = 0
+                    for index in 0..<chunkCount {
+                        // The last chunk takes the remainder.
+                        let end = index == chunkCount - 1 ? data.count : offset + chunkSize
+                        didReceiveData(data.subdata(in: offset..<end), response)
+                        offset = end
+                    }
+                } else {
+                    didReceiveData(data, response)
+                }
                 completion(nil)
             }
         }
