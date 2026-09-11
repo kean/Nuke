@@ -11,7 +11,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     private let imageId: String?
     private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
-    private let processors: [any ImageProcessing]
+    private let processors: [ProcessorID]
     private let _hashValue: Int
 
     init(customKey: String) {
@@ -31,10 +31,10 @@ final class MemoryCacheKey: Hashable, Sendable {
         self.imageId = request.imageID
         self.scale = request.scale
         self.thumbnail = request.thumbnail
-        self.processors = request.processors
+        self.processors = request.processorsIdentity
 
         var hasher = Hasher()
-        hasher.combine(imageId)
+        hasher.combine(request.idHash)
         hasher.combine(scale)
         hasher.combine(thumbnail)
         hasher.combine(processors.count)
@@ -56,15 +56,15 @@ final class MemoryCacheKey: Hashable, Sendable {
 final class TaskLoadImageKey: Hashable, Sendable {
     private let loadKey: TaskFetchOriginalImageKey
     private let options: ImageRequest.Options
-    private let processors: [any ImageProcessing]
+    private let processors: [ProcessorID]
     // Computed once: the pool hashes a key on lookup, on insert, and again when
-    // the task is disposed, and hashing the fields walks the image ID.
+    // the task is disposed.
     private let _hashValue: Int
 
     init(_ request: ImageRequest) {
         self.loadKey = TaskFetchOriginalImageKey(request)
         self.options = request.options
-        self.processors = request.processors
+        self.processors = request.processorsIdentity
 
         var hasher = Hasher()
         hasher.combine(loadKey)
@@ -129,7 +129,7 @@ struct TaskFetchOriginalDataKey: Hashable {
         }
 
         var hasher = Hasher()
-        hasher.combine(imageId)
+        hasher.combine(request.originalIDHash)
         hasher.combine(cachePolicy)
         hasher.combine(allowsCellularAccess)
         self._hashValue = hasher.finalize()
