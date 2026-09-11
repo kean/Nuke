@@ -330,6 +330,48 @@ struct ImagePipelineTests {
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
     }
 
+    @Test func cacheKeyForRequestWithResize() {
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 320, unit: .pixels)])
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false")
+    }
+
+    @Test func cacheKeyForRequestWithMultipleProcessors() {
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Circle()])
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle")
+    }
+
+    @Test func cacheKeyForRequestWithThumbnailAndProcessors() {
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 320, unit: .pixels)]).with {
+            $0.thumbnail = .init(maxPixelSize: 400)
+        }
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetruecom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false")
+    }
+
+    @Test func cacheKeyForRequestWithoutURL() {
+        let request = ImageRequest(url: nil, processors: [ImageProcessors.Resize(width: 320, unit: .pixels)])
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "com.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false")
+    }
+
+    @Test func cacheKeyForRequestWithoutURLOrProcessors() {
+        #expect(pipeline.cache.makeDataCacheKey(for: ImageRequest(url: nil)).isEmpty)
+    }
+
+    @Test func cacheKeyForRequestWithNestedComposition() {
+        let resize = ImageProcessors.Resize(width: 320, unit: .pixels)
+        let anonymous = ImageProcessors.Anonymous(id: "1", { $0 })
+        let nested = ImageRequest(url: Test.url, processors: [ImageProcessors.Composition([resize, ImageProcessors.Circle()]), anonymous])
+        let flat = ImageRequest(url: Test.url, processors: [resize, ImageProcessors.Circle(), anonymous])
+        let key = "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle1"
+        #expect(pipeline.cache.makeDataCacheKey(for: nested) == key)
+        #expect(pipeline.cache.makeDataCacheKey(for: flat) == key)
+    }
+
+    @Test func cacheKeyForRequestWithEmptyProcessorIdentifiers() {
+        let empty = ImageProcessors.Anonymous(id: "", { $0 })
+        let request = ImageRequest(url: Test.url, processors: [empty, ImageProcessors.Resize(width: 320, unit: .pixels), empty])
+        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false")
+    }
+
     // MARK: - Invalidate
 
     @Test func whenInvalidatedTasksAreCancelled() async {
