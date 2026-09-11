@@ -64,7 +64,7 @@
 
 **Performance**
 
-- `ImagePipeline/Error` is now 8 bytes instead of 97, and a memory cache hit is up to 21% faster – https://github.com/kean/Nuke/pull/967
+- `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
 
 **Bug Fixes**
 
