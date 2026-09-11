@@ -59,6 +59,34 @@ struct ImagePipelinePerformanceTests {
     }
 
     @Test
+    func memoryHitPerformanceWithProcessor() async {
+        let imageCache = ImageCache()
+        let pipeline = makePipeline { $0.imageCache = imageCache }
+        let resize = ImageProcessors.Resize(width: 320)
+        let requests = (0..<5000).map {
+            ImageRequest(url: URL(string: "http://test.com/\($0)"), processors: [resize])
+        }
+        // Small enough for every entry to stay in the cache. The cache charges
+        // `Test.container` 1.2 MB, and 5000 of those evict each other, which
+        // times the load path instead of the hit.
+        let container = ImageContainer(image: Test.rgbImage(width: 8, height: 8))
+        for request in requests {
+            pipeline.cache[request] = container
+        }
+        #expect(imageCache.totalCount == requests.count)
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+        #expect(imageCache.totalCount == requests.count)
+    }
+
+    @Test
     func memoryHitPerformanceWithDiagnostics() async {
         let pipeline = makePipeline {
             $0.imageCache = ImageCache()
