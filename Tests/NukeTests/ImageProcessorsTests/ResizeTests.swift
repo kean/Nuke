@@ -363,6 +363,61 @@ struct ImageProcessorsResizeTests {
         )
     }
 
+    /// The identifier is part of the disk cache key: a change to its format
+    /// orphans every processed image that is already on disk.
+    @Test(arguments: [
+        (ImageProcessors.Resize(size: CGSize(width: 320, height: 240), unit: .pixels), "com.github.kean/nuke/resize?s=(320.0, 240.0),cm=.aspectFill,crop=false,upscale=false"),
+        (ImageProcessors.Resize(width: 320, unit: .pixels), "com.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false"),
+        (ImageProcessors.Resize(height: 240, unit: .pixels, upscale: true), "com.github.kean/nuke/resize?s=(9999.0, 240.0),cm=.aspectFit,crop=false,upscale=true"),
+        // Every content mode, crop, and upscale
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFill, crop: false, upscale: false), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFill,crop=false,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFill, crop: false, upscale: true), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFill,crop=false,upscale=true"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFill, crop: true, upscale: false), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFill,crop=true,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFill, crop: true, upscale: true), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFill,crop=true,upscale=true"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFit, crop: false, upscale: false), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFit,crop=false,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFit, crop: false, upscale: true), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFit,crop=false,upscale=true"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFit, crop: true, upscale: false), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFit,crop=true,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 30, height: 40), unit: .pixels, contentMode: .aspectFit, crop: true, upscale: true), "com.github.kean/nuke/resize?s=(30.0, 40.0),cm=.aspectFit,crop=true,upscale=true"),
+        // Sizes that aren't integral, aren't representable as `Float`, print
+        // with an exponent, or aren't finite
+        (ImageProcessors.Resize(size: CGSize(width: 100.5, height: 33.3), unit: .pixels, crop: true), "com.github.kean/nuke/resize?s=(100.5, 33.29999923706055),cm=.aspectFill,crop=true,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 1.0 / 3, height: 2.0 / 3), unit: .pixels, contentMode: .aspectFit, crop: true, upscale: true), "com.github.kean/nuke/resize?s=(0.3333333432674408, 0.6666666865348816),cm=.aspectFit,crop=true,upscale=true"),
+        (ImageProcessors.Resize(size: CGSize(width: 16_777_217, height: 1e7), unit: .pixels), "com.github.kean/nuke/resize?s=(16777216.0, 10000000.0),cm=.aspectFill,crop=false,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: 1e-7, height: 1e20), unit: .pixels), "com.github.kean/nuke/resize?s=(1.0000000116860974e-07, 1.0000000200408773e+20),cm=.aspectFill,crop=false,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: -0.0, height: 0), unit: .pixels), "com.github.kean/nuke/resize?s=(-0.0, 0.0),cm=.aspectFill,crop=false,upscale=false"),
+        (ImageProcessors.Resize(size: CGSize(width: CGFloat.infinity, height: CGFloat.nan), unit: .pixels), "com.github.kean/nuke/resize?s=(inf, nan),cm=.aspectFill,crop=false,upscale=false")
+    ])
+    func identifierFormat(processor: ImageProcessors.Resize, identifier: String) {
+        #expect(processor.identifier == identifier)
+    }
+
+#if os(macOS)
+    @Test func identifierFormatInPoints() {
+        // Points are pixels on macOS, where the screen scale is always 1
+        #expect(
+            ImageProcessors.Resize(size: CGSize(width: 40, height: 30)).identifier ==
+            "com.github.kean/nuke/resize?s=(40.0, 30.0),cm=.aspectFill,crop=false,upscale=false"
+        )
+    }
+#endif
+
+#if os(iOS) || os(tvOS)
+    @Test func identifierFormatInPoints() {
+        UITraitCollection(displayScale: 2).performAsCurrent {
+            #expect(
+                ImageProcessors.Resize(size: CGSize(width: 33.3, height: 40)).identifier ==
+                "com.github.kean/nuke/resize?s=(66.5999984741211, 80.0),cm=.aspectFill,crop=false,upscale=false"
+            )
+        }
+        UITraitCollection(displayScale: 3).performAsCurrent {
+            #expect(
+                ImageProcessors.Resize(size: CGSize(width: 33.3, height: 40)).identifier ==
+                "com.github.kean/nuke/resize?s=(99.9000015258789, 120.0),cm=.aspectFill,crop=false,upscale=false"
+            )
+        }
+    }
+#endif
+
     @Test func description() {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels, contentMode: .aspectFit)
