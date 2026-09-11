@@ -62,6 +62,10 @@
 - The default `ImagePipeline/Configuration-swift.struct/rateLimiter` rate goes from 80 to 100 requests per second – https://github.com/kean/Nuke/pull/960
 - `ImageTask` and `ImageDecoders/Video` are now `Sendable` instead of `@unchecked Sendable` – https://github.com/kean/Nuke/pull/965
 
+**Performance**
+
+- Batch the data loader's callbacks instead of spawning a `Task` for each: 15% faster when the response arrives in 16 chunks – https://github.com/kean/Nuke/pull/970
+
 **Bug Fixes**
 
 - Remove an unused `AVKit` import from `Nuke`, which linked AVKit, AVFoundation, and their dependencies into every app – https://github.com/kean/Nuke/pull/947
