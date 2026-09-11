@@ -242,7 +242,11 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// the recorder. `nil` unless diagnostics are on.
     let _createdAt: TimeInterval?
     private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
-    @ImagePipelineActor private weak var pipeline: ImagePipeline?
+    /// Retained until the task finishes: a weak reference costs a side-table
+    /// load on every event. The work a running task waits for retains the
+    /// pipeline too, and a finished task releases it, so a task the app keeps
+    /// doesn't keep the pipeline.
+    @ImagePipelineActor private var pipeline: ImagePipeline?
 
     /// Set once during creation, before the task is handed to anyone, then
     /// read-only from the `response` getter, so it needs no synchronization.
@@ -254,7 +258,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
-    @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
+    /// Retains the node that retains the task: `removeTask` breaks the cycle
+    /// when it takes the task off the list. A weak reference would give every
+    /// node a side table.
+    @ImagePipelineActor var _node: LinkedList<ImageTask>.Node?
 
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
         self.taskId = taskId
@@ -381,7 +388,13 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         }
 
         onEvent?(event, self)
-        pipeline?.imageTask(self, didProcessEvent: event, isDataTask: isDataTask)
+        guard let pipeline else { return }
+        if case .finished = event {
+            // The last call that needs the pipeline: cancelling a finished
+            // task, or changing its priority, has nothing left to do.
+            self.pipeline = nil
+        }
+        pipeline.imageTask(self, didProcessEvent: event, isDataTask: isDataTask)
     }
 
     // MARK: Identifiable

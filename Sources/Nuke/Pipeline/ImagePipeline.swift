@@ -218,8 +218,8 @@ public final class ImagePipeline: Sendable {
         task._node = tasks.append(task)
         imageTaskDidStart(task, isDataTask: isDataTask)
         onTaskStarted?(task)
-        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
-            task?._process($0)
+        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) {
+            task._process($0)
         }
     }
 
@@ -234,7 +234,7 @@ public final class ImagePipeline: Sendable {
     private func removeTask(_ task: ImageTask) {
         guard let node = task._node else { return }
         tasks.remove(node)
-        task._node = nil
+        task._node = nil // Break the retain cycle
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
