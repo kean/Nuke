@@ -262,16 +262,69 @@ struct ImageTaskTests {
         task._cancelTask()
 
         // Then it receives all of them, in order
-        var events: [String] = []
-        for await event in stream {
-            switch event {
-            case .progress(let progress): events.append("progress(\(progress.completed))")
-            case .preview: events.append("preview")
-            case .finished(.failure(.cancelled)): events.append("cancelled")
-            case .finished: events.append("finished")
-            }
-        }
+        let events = await names(of: stream)
         #expect(events == ["progress(1)", "preview", "progress(2)", "cancelled"])
+    }
+
+    /// The pipeline calls its delegate once it has sent the event to the
+    /// streams, so a stream created from the delegate starts from that event:
+    /// it's primed with the progress the task recorded and receives only the
+    /// events sent after.
+    @Test @ImagePipelineActor func streamCreatedFromTheDelegateStartsFromTheEventItIsCalledFor() async throws {
+        // Given a started task whose delegate creates a stream for every event
+        let delegate = StreamCreatingDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        dataLoader.isSuspended = true
+        let started = TestExpectation()
+        pipeline.onTaskStarted = { _ in started.fulfill() }
+        let task = pipeline.imageTask(with: Test.request)
+        await started.wait()
+
+        // When the pipeline sends the events
+        let preview = ImageResponse(container: ImageContainer(image: Test.image, isPreview: true), request: Test.request)
+        task._process(.progress(ImageTask.Progress(completed: 1, total: 2)))
+        task._process(.value(preview, isCompleted: false))
+        task._process(.progress(ImageTask.Progress(completed: 2, total: 2)))
+        task._cancelTask()
+
+        // Then each stream starts from the event it was created for
+        var events: [[String]] = []
+        for stream in delegate.streams {
+            events.append(await names(of: stream))
+        }
+        #expect(events == [
+            ["progress(1)", "preview", "progress(2)", "cancelled"],
+            ["progress(1)", "progress(2)", "cancelled"],
+            ["progress(2)", "cancelled"],
+            ["cancelled"]
+        ])
+    }
+
+    /// A task cancelled before the pipeline starts it records the result only
+    /// once the pipeline gets to it, so the streams created until then register
+    /// instead of replaying the result, and the pipeline has to finish them.
+    @Test @ImagePipelineActor func streamsCreatedBeforeACancelledTaskStartsReceiveTheCancellation() async throws {
+        // Given a task that the pipeline hasn't started yet
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When it's cancelled, with a stream created before and after that
+        let streamBefore = task.events
+        task._cancelTask()
+        #expect(task.status.result == nil)
+        let streamAfter = task.events
+
+        // Then both receive the cancellation once the pipeline starts the task
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        let eventsBefore = await names(of: streamBefore)
+        let eventsAfter = await names(of: streamAfter)
+        #expect(eventsBefore == ["cancelled"])
+        #expect(eventsAfter == ["cancelled"])
     }
 
     // MARK: - Status
@@ -392,5 +445,27 @@ struct ImageTaskTests {
 
         // Then
         #expect(task.priority == .veryLow)
+    }
+}
+
+/// Collects the events of the stream as short names that are easy to compare
+/// and to read in a failure message.
+private func names(of stream: AsyncStream<ImageTask.Event>) async -> [String] {
+    await stream.reduce(into: [String]()) { names, event in
+        switch event {
+        case .progress(let progress): names.append("progress(\(progress.completed))")
+        case .preview: names.append("preview")
+        case .finished(.failure(.cancelled)): names.append("cancelled")
+        case .finished: names.append("finished")
+        }
+    }
+}
+
+/// Creates a stream for the task every time the pipeline sends it an event.
+private final class StreamCreatingDelegate: ImagePipeline.Delegate, Sendable {
+    @ImagePipelineActor private(set) var streams: [AsyncStream<ImageTask.Event>] = []
+
+    @ImagePipelineActor func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        streams.append(task.events)
     }
 }
