@@ -157,6 +157,164 @@ struct ImagePipelineTaskLifetimeTests {
 
     // MARK: - Task Deallocation
 
+    @Test func taskIsDeallocatedAfterAsynchronousCompletion() async throws {
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            _ = try await task.response
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(weakTask == nil)
+    }
+
+    @Test func dataTaskIsDeallocatedAfterAsynchronousCompletion() async throws {
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
+            weakTask = task
+            _ = try await task.response
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(weakTask == nil)
+    }
+
+    @Test func taskIsDeallocatedAfterFailure() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(URLError(.unknown) as NSError)
+
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            await #expect(throws: (any Error).self) {
+                try await task.response
+            }
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(weakTask == nil)
+    }
+
+    @Test func taskIsDeallocatedAfterCancellation() async throws {
+        // Given a task waiting for the data
+        dataLoader.isSuspended = true
+        let started = TestExpectation()
+        pipeline.onTaskStarted = { _ in started.fulfill() }
+
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            await started.wait()
+            task.cancel()
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task.response
+            }
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(weakTask == nil)
+    }
+
+    @Test func taskIsDeallocatedAfterCancellationBeforeStart() async throws {
+        // When the task is cancelled before the pipeline starts it
+        let pipeline = pipeline
+        weak var weakTask: ImageTask?
+        do {
+            let task = await Task { @ImagePipelineActor in
+                let task = pipeline.imageTask(with: Test.request)
+                task._cancelTask()
+                return task
+            }.value
+            weakTask = task
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task.response
+            }
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(weakTask == nil)
+    }
+
+    @Test func taskIsDeallocatedWhenPipelineIsInvalidated() async throws {
+        // Given a task waiting for the data
+        dataLoader.isSuspended = true
+        let started = TestExpectation()
+        pipeline.onTaskStarted = { _ in started.fulfill() }
+
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            await started.wait()
+            pipeline.invalidate()
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task.response
+            }
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(weakTask == nil)
+    }
+
+    @Test func taskIsDeallocatedWhenStartedOnInvalidatedPipeline() async throws {
+        // Given
+        pipeline.invalidate()
+        await drainPipeline()
+
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            await #expect(throws: ImagePipeline.Error.pipelineInvalidated) {
+                try await task.response
+            }
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(weakTask == nil)
+    }
+
+    @Test func coalescedTasksAreDeallocated() async throws {
+        // When two tasks wait for the same job
+        weak var weakTask1: ImageTask?
+        weak var weakTask2: ImageTask?
+        do {
+            let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+                (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+            }
+            weakTask1 = task1
+            weakTask2 = task2
+            _ = try await task1.response
+            _ = try await task2.response
+        }
+        await drainPipeline()
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(weakTask1 == nil)
+        #expect(weakTask2 == nil)
+    }
+
     @Test func taskIsDeallocatedAfterSynchronousCompletion() async throws {
         // Given
         imageCache[Test.request] = Test.container
