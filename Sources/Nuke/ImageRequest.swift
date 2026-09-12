@@ -500,7 +500,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// ``processors``, each boxed into its identity when they were set.
-    var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
+    package var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
 
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }

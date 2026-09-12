@@ -4,46 +4,8 @@
 
 import Testing
 import Foundation
-// `Nuke` is imported without `@testable` on purpose: it declares an internal
-// `==` for `[any ImageProcessing]` identical to the one under test in `NukeUI`,
-// and having both in scope makes every use of the operator ambiguous.
 import Nuke
 @testable import NukeUI
-
-@Suite(.timeLimit(.minutes(1))) @MainActor
-struct NukeUIInternalTests {
-
-    // MARK: - Processor Comparison
-
-    @Test func emptyProcessorListsAreEqual() {
-        let empty: [any ImageProcessing] = []
-        #expect(empty == [])
-    }
-
-    @Test func processorListsWithSameProcessorsAreEqual() {
-        let lhs: [any ImageProcessing] = [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")]
-        let rhs: [any ImageProcessing] = [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")]
-        #expect(lhs == rhs)
-    }
-
-    @Test func processorListsWithDifferentProcessorsAreNotEqual() {
-        let lhs: [any ImageProcessing] = [MockImageProcessor(id: "p1")]
-        let rhs: [any ImageProcessing] = [MockImageProcessor(id: "p2")]
-        #expect(!(lhs == rhs))
-    }
-
-    @Test func processorListsWithDifferentCountsAreNotEqual() {
-        let lhs: [any ImageProcessing] = [MockImageProcessor(id: "p1")]
-        let rhs: [any ImageProcessing] = [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")]
-        #expect(!(lhs == rhs))
-    }
-
-    @Test func processorOrderMatters() {
-        let lhs: [any ImageProcessing] = [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")]
-        let rhs: [any ImageProcessing] = [MockImageProcessor(id: "p2"), MockImageProcessor(id: "p1")]
-        #expect(!(lhs == rhs))
-    }
-}
 
 #if !os(watchOS)
 

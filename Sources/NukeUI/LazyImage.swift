@@ -213,7 +213,7 @@ private struct LazyImageContext: Equatable {
         }
         return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
-        lhs.processors == rhs.processors &&
+        lhs.processorsIdentity == rhs.processorsIdentity &&
         lhs.options == rhs.options
     }
 }

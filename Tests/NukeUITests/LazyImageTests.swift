@@ -508,6 +508,56 @@ struct LazyImageTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
+    @Test func noNewRequestWhenProcessorsAreUnchanged() async {
+        let completions = Ref(0)
+        let first = TestExpectation()
+
+        let host = ViewHost([MockImageProcessor(id: "p1")] as [any ImageProcessing]) { processors in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .processors(processors)
+                .onCompletion { _ in
+                    completions.value += 1
+                    if completions.value == 1 { first.fulfill() }
+                }
+        }
+        await first.wait()
+
+        // Re-render with a new instance of an equal processor: the request is
+        // rebuilt, but it is equal, so no new load may start.
+        await host.update([MockImageProcessor(id: "p1")])
+        await host.render()
+
+        #expect(completions.value == 1)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func newRequestStartedWhenProcessorIdentifierChangesAfterItIsSet() async {
+        let completions = Ref(0)
+        let first = TestExpectation()
+        let second = TestExpectation()
+        let processor = MutableIdentifierProcessor(identifier: "p1")
+
+        let host = ViewHost(0) { _ in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .processors([processor])
+                .onCompletion { _ in
+                    completions.value += 1
+                    if completions.value == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        // A request compares the identifiers its processors had when they
+        // were set, so the request rebuilt after the change is a new one.
+        processor.identifier = "p2"
+        await host.update(1)
+        await second.wait()
+
+        #expect(completions.value == 2)
+    }
+
     @Test func newRequestStartedWhenProcessorsChange() async {
         let completions = Ref(0)
         let first = TestExpectation()
@@ -550,6 +600,19 @@ struct LazyImageTests {
         await second.wait()
 
         #expect(completions.value == 2)
+    }
+}
+
+/// A processor whose identifier can change after it's added to a request.
+private final class MutableIdentifierProcessor: ImageProcessing, @unchecked Sendable {
+    var identifier: String
+
+    init(identifier: String) {
+        self.identifier = identifier
+    }
+
+    func process(_ image: PlatformImage) -> PlatformImage? {
+        image
     }
 }
 
