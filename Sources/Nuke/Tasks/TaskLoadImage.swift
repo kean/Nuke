@@ -74,7 +74,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             return // Back pressure - already processing another progressive image
         }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
-        operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             let result = await performInBackground {
                 signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
@@ -115,7 +115,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         } else if operation != nil {
             return  // Back-pressure: receiving progressive scans too fast
         }
-        operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecompressingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             let response = await performInBackground {
                 signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {

@@ -362,6 +362,24 @@ struct TaskQueueTests {
         #expect(order.value == ["B", "C", "A"])
     }
 
+    @Test(arguments: TaskPriority.allCases)
+    func fifoOrderForWorkAddedAtAPriority(priority: TaskPriority) async {
+        // Given
+        let queue = TaskQueue(maxConcurrentOperationCount: 1)
+        queue.isSuspended = true
+        let order = Ref<[Int]>([])
+
+        // When
+        for index in 0..<3 {
+            queue.add(priority: priority) { order.value.append(index) }
+        }
+        queue.isSuspended = false
+        await queue.waitUntilAllOperationsAreFinished()
+
+        // Then
+        #expect(order.value == [0, 1, 2], "priority: \(priority)")
+    }
+
     @Test func twoDecreasesPrependInOrder() async {
         // Given – A(high), B(high), C(normal)
         let queue = TaskQueue(maxConcurrentOperationCount: 1)

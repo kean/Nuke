@@ -48,7 +48,7 @@ extension AsyncPipelineTask {
     /// is called, so the callers never see a stale handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
-            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+            operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
                 let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                     do {
                         return .success(try await decoder.decode(context))
@@ -71,7 +71,7 @@ extension AsyncPipelineTask {
         guard decoder.isAsynchronous else {
             return completion(decode())
         }
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
             let result = await performInBackground(decode)
             self?.operation = nil
             completion(result)

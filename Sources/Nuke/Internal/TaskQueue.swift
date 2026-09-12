@@ -72,9 +72,14 @@ public final class TaskQueue: Sendable {
     ///
     /// If the work needs to be performed in a background, the caller needs to
     /// ensure that happens.
+    ///
+    /// The priority is passed here rather than set on the returned operation
+    /// because lowering the priority of a pending operation moves it to the
+    /// front of its bucket, which would run work added below `.normal` in
+    /// reverse order.
     @discardableResult
-    func add(_ work: @ImagePipelineActor @Sendable @escaping () async throws -> Void) -> TaskQueue.Operation {
-        let operation = TaskQueue.Operation(queue: self)
+    func add(priority: TaskPriority = .normal, _ work: @ImagePipelineActor @Sendable @escaping () async throws -> Void) -> TaskQueue.Operation {
+        let operation = TaskQueue.Operation(queue: self, priority: priority)
         operation.work = work
         enqueue(operation)
         return operation
@@ -180,8 +185,9 @@ public final class TaskQueue: Sendable {
         var onCancelled: (() -> Void)?
         var onPriorityChanged: ((TaskPriority) -> Void)?
 
-        init(queue: TaskQueue? = nil) {
+        init(queue: TaskQueue? = nil, priority: TaskPriority = .normal) {
             self.queue = queue
+            self.priority = priority
         }
 
         /// Cancels the operation. If the work hasn't started executing yet, it

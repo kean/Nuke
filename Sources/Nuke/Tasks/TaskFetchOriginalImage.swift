@@ -134,7 +134,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
     // MARK: Async Image Loading
 
     private func loadAsyncImage(_ fetch: @Sendable @escaping () async throws -> ImageContainer) {
-        operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+        operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
             await self?.performAsyncImageLoad(fetch)
         }
     }
