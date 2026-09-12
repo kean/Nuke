@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
@@ -147,29 +148,40 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
-            let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
-                Task { @ImagePipelineActor in
-                    self?.dataTaskDidReceive(chunk: chunk, response: response)
-                }
+            // The loader calls back on its own thread, once per chunk. The
+            // inbox batches the callbacks instead of paying for a `Task` each.
+            let inbox = DataLoadInbox { [weak self] events in
+                self?.apply(events)
+            }
+            let didReceiveData: @Sendable (Data, URLResponse) -> Void = { chunk, response in
+                inbox.post(.chunk(chunk, response))
             }
             // Each branch passes its own completion so that the common one
             // isn't wrapped in a closure that only exists to drop the metrics.
             if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
                 // The diagnostics are on: ask for what `URLSession` measured.
-                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
-                    }
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { error, metrics in
+                    inbox.post(.finished(error, metrics))
                 }
                 if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
                     diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
                 }
             } else {
-                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
-                    }
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { error in
+                    inbox.post(.finished(error, nil))
                 }
+            }
+        }
+    }
+
+    /// Applies the data loader's callbacks in the order it made them.
+    private func apply(_ events: [DataLoadInbox.Event]) {
+        for event in events {
+            switch event {
+            case let .chunk(chunk, response):
+                dataTaskDidReceive(chunk: chunk, response: response)
+            case let .finished(error, metrics):
+                finishDataLoad(error: error, urlSessionMetrics: metrics)
             }
         }
     }
@@ -349,6 +361,65 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             // The request ended before the server responded – put the data that
             // `performDataLoad` took out of the storage back where it was.
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
+        }
+    }
+}
+
+// MARK: - DataLoadInbox
+
+/// Carries the callbacks a ``DataLoading`` makes on its own thread over to
+/// ``ImagePipelineActor``, in the order it made them.
+///
+/// A response arrives in as many chunks as the transport decides to deliver,
+/// and spawning a `Task` for each one made the cost of reaching the actor
+/// scale with the chunk count. The inbox keeps at most one delivery scheduled
+/// at a time: callbacks that arrive while it waits for the actor, or runs on
+/// it, join its next batch instead of scheduling their own.
+private struct DataLoadInbox: Sendable {
+    enum Event {
+        case chunk(Data, URLResponse)
+        case finished((any Error)?, URLSessionTaskMetrics?)
+    }
+
+    private struct State {
+        var events: [Event] = []
+        /// A delivery is scheduled or running, and will pick up `events`.
+        var isDelivering = false
+    }
+
+    private let state = OSAllocatedUnfairLock(initialState: State())
+    private let deliver: @ImagePipelineActor @Sendable ([Event]) -> Void
+
+    init(deliver: @escaping @ImagePipelineActor @Sendable ([Event]) -> Void) {
+        self.deliver = deliver
+    }
+
+    func post(_ event: Event) {
+        let needsDelivery: Bool = state.withLock {
+            $0.events.append(event)
+            guard !$0.isDelivering else { return false }
+            $0.isDelivering = true
+            return true
+        }
+        guard needsDelivery else { return }
+        Task { @ImagePipelineActor in
+            while let events = takeEvents() {
+                deliver(events)
+            }
+        }
+    }
+
+    /// Returns the events posted since the last call, or `nil` if there are
+    /// none, which ends the delivery.
+    private func takeEvents() -> [Event]? {
+        state.withLock {
+            guard !$0.events.isEmpty else {
+                $0.isDelivering = false
+                return nil
+            }
+            let events = $0.events
+            $0.events = []
+            return events
         }
     }
 }
