@@ -162,7 +162,11 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     public var response: ImageResponse {
         get async throws(ImagePipeline.Error) {
             let result = await withTaskCancellationHandler {
-                await _task.value
+                // A task that runs on the Swift task of its caller has no
+                // `_task`, so wait for its terminal event instead – in a `Task`
+                // of its own: a stream ends early when the task iterating it is
+                // cancelled, and a cancelled awaiter still gets the outcome.
+                await (_task ?? Task { await self.terminalResult() }).value
             } onCancel: {
                 cancel()
             }
@@ -248,7 +252,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// read-only from the `response` getter, so it needs no synchronization.
     /// `nonisolated(unsafe)` keeps that unchecked to this one property instead
     /// of `@unchecked Sendable` waiving the check for the whole class.
-    nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
+    ///
+    /// `nil` for a task that `image(for:)` or `data(for:)` runs on the Swift
+    /// task of its caller.
+    nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
@@ -442,6 +449,16 @@ extension ImageTask {
                 self._streamContinuations.append(continuation)
             }
         }
+    }
+
+    /// Returns the result carried by the terminal event.
+    private func terminalResult() async -> Result<ImageResponse, ImagePipeline.Error> {
+        for await event in events {
+            if case .finished(let result) = event {
+                return result
+            }
+        }
+        return .failure(.cancelled) // Unreachable: a stream always ends with `.finished`
     }
 }
 

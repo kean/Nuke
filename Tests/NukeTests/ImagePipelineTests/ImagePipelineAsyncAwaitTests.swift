@@ -247,6 +247,154 @@ struct ImagePipelineAsyncAwaitTests {
         #expect(imageTask != nil)
     }
 
+    // MARK: - Running on the Caller's Task
+
+    @Test func taskCreatedByImageForCanBeAwaitedByOthers() async throws {
+        // GIVEN an observer awaiting the task that `image(for:)` runs on the
+        // caller's own Swift task
+        nonisolated(unsafe) var imageTask: ImageTask?
+        nonisolated(unsafe) var observer: Task<ImageResponse, any Error>?
+        pipelineDelegate.onTaskCreated = { task in
+            imageTask = task
+            observer = Task { try await task.response }
+        }
+
+        // WHEN
+        let image = try await pipeline.image(for: Test.request)
+
+        // THEN the observer gets the same response
+        let observerTask = try #require(observer)
+        let response = try await observerTask.value
+        #expect(response.image === image)
+        #expect(try #require(imageTask)._task == nil)
+    }
+
+    @Test func cancellingAnotherAwaiterCancelsTaskCreatedByImageFor() async throws {
+        // GIVEN a request that doesn't finish on its own, and an observer
+        // awaiting the task that `image(for:)` runs
+        dataLoader.queue.isSuspended = true
+        let didCreateObserver = TestExpectation()
+        nonisolated(unsafe) var observer: Task<ImageResponse, any Error>?
+        pipelineDelegate.onTaskCreated = { task in
+            observer = Task { try await task.response }
+            didCreateObserver.fulfill()
+        }
+        let pipeline = self.pipeline
+        let caller = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        await didCreateObserver.wait()
+        let observerTask = try #require(observer)
+
+        // WHEN
+        observerTask.cancel()
+
+        // THEN the task is cancelled for everyone awaiting it
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await caller.value
+        }
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await observerTask.value
+        }
+    }
+
+    @Test func imageForStartsTaskInTaskWhileAnotherCallerRunsOne() async throws {
+        // GIVEN a caller that runs its task on its own Swift task and waits
+        // for the data loader
+        dataLoader.queue.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let didCreateSecondTask = TestExpectation()
+        nonisolated(unsafe) var tasks: [ImageTask] = []
+        pipelineDelegate.onTaskCreated = { task in
+            tasks.append(task)
+            if tasks.count == 2 { didCreateSecondTask.fulfill() }
+        }
+        let pipeline = self.pipeline
+        let first = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        await didStartLoading.wait()
+
+        // WHEN another caller loads the image at the same time and is cancelled
+        let second = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        await didCreateSecondTask.wait()
+        second.cancel()
+
+        // THEN the second task gets a `Task` of its own and is cancelled,
+        // and the first one still finishes
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await second.value
+        }
+        dataLoader.queue.isSuspended = false
+        _ = try await first.value
+        #expect(tasks.count == 2)
+        #expect(tasks.first?._task == nil)
+        #expect(tasks.last?._task != nil)
+    }
+
+    @Test func imageForStartsTaskInTaskWhenCallerIsAlreadyCancelled() async throws {
+        // GIVEN a caller that is cancelled before it asks for the image
+        let pipeline = self.pipeline
+        nonisolated(unsafe) var isStartCancelled: Bool?
+        pipeline.onTaskStarted = { _ in isStartCancelled = Task.isCancelled }
+        nonisolated(unsafe) var imageTask: ImageTask?
+        pipelineDelegate.onTaskCreated = { imageTask = $0 }
+
+        // WHEN
+        let caller = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await pipeline.image(for: Test.request)
+        }
+        _ = try? await caller.value
+
+        // THEN the task starts in a `Task` of its own, not on the cancelled one
+        #expect(isStartCancelled == false)
+        #expect(try #require(imageTask)._task != nil)
+    }
+
+    @Test func imageForRunsTaskOnCallersTaskAgainAfterCancellation() async throws {
+        // GIVEN a caller that was cancelled
+        dataLoader.queue.isSuspended = true
+        let pipeline = self.pipeline
+        let cancelled = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        cancelled.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await cancelled.value
+        }
+        dataLoader.queue.isSuspended = false
+
+        // WHEN
+        nonisolated(unsafe) var imageTask: ImageTask?
+        pipelineDelegate.onTaskCreated = { imageTask = $0 }
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN the next request runs on its caller's task too
+        #expect(try #require(imageTask)._task == nil)
+    }
+
+    @Test func imageForStartsTaskWithCallersPriority() async throws {
+        // GIVEN
+        let pipeline = self.pipeline
+        nonisolated(unsafe) var startPriority: _Concurrency.TaskPriority?
+        pipeline.onTaskStarted = { _ in startPriority = Task.currentPriority }
+
+        // WHEN a utility task loads an image, resumed through a continuation
+        // so that nothing escalates it
+        await withCheckedContinuation { continuation in
+            Task.detached(priority: .utility) {
+                _ = try? await pipeline.image(for: Test.request)
+                continuation.resume()
+            }
+        }
+
+        // THEN
+        #expect(startPriority == _Concurrency.TaskPriority.utility)
+    }
+
     @Test func progressUpdated() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success(

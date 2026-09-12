@@ -55,12 +55,18 @@ public final class ImagePipeline: Sendable {
     private var isInvalidated = false
 
     private nonisolated var nextTaskId: UInt64 {
-        _nextTaskId.withLock { value in
-            value += 1
-            return value
+        _counters.withLock { counters in
+            counters.taskId += 1
+            return counters.taskId
         }
     }
-    private nonisolated let _nextTaskId = OSAllocatedUnfairLock<UInt64>(initialState: 0)
+    private nonisolated let _counters = OSAllocatedUnfairLock(initialState: Counters())
+
+    private struct Counters {
+        var taskId: UInt64 = 0
+        /// The number of `image(for:)` and `data(for:)` calls in flight.
+        var responseCount = 0
+    }
 
     let rateLimiter: RateLimiter?
     /// Records the diagnostics. `nil` unless
@@ -160,7 +166,12 @@ public final class ImagePipeline: Sendable {
 
     /// Returns an image for the given request.
     nonisolated public func image(for request: ImageRequest) async throws(ImagePipeline.Error) -> PlatformImage {
-        try await imageTask(with: request).image
+        let (task, isStarted) = makeTaskForResponse(with: request, isDataTask: false)
+        defer { didFinishResponse() }
+        guard isStarted else {
+            return try await run(task, isDataTask: false).get().image
+        }
+        return try await task.image
     }
 
     // MARK: - Loading Data (Async/Await)
@@ -169,25 +180,87 @@ public final class ImagePipeline: Sendable {
     ///
     /// - parameter request: An image request.
     nonisolated public func data(for request: ImageRequest) async throws(ImagePipeline.Error) -> (Data, URLResponse?) {
-        let task = makeStartedImageTask(with: request, isDataTask: true)
-        let response = try await task.response
+        let (task, isStarted) = makeTaskForResponse(with: request, isDataTask: true)
+        defer { didFinishResponse() }
+        let response: ImageResponse
+        if isStarted {
+            response = try await task.response
+        } else {
+            response = try await run(task, isDataTask: true).get()
+        }
         return (response.container.data ?? Data(), response.urlResponse)
     }
 
     // MARK: - ImageTask (Internal)
 
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        // The creation time is the one thing the diagnostics read off the actor.
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
-        // Important to call it before `imageTaskStartCalled`
-        imageTaskCreated(task, isDataTask: isDataTask)
+        let task = makeImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, onEvent: onEvent)
+        startInTask(task, isDataTask: isDataTask)
+        return task
+    }
+
+    nonisolated private func startInTask(_ task: ImageTask, isDataTask: Bool) {
         task._task = Task { @ImagePipelineActor in
             await withUnsafeContinuation { continuation in
                 task._continuation = continuation
                 self.startImageTask(task, isDataTask: isDataTask)
             }
         }
+    }
+
+    nonisolated private func makeImageTask(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)?) -> ImageTask {
+        // The creation time is the one thing the diagnostics read off the actor.
+        let task = ImageTask(taskId: taskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
+        // Important to call it before `imageTaskStartCalled`
+        imageTaskCreated(task, isDataTask: isDataTask)
         return task
+    }
+
+    /// Creates a task for `image(for:)` or `data(for:)`, which await its
+    /// response right away, and starts it in a `Task` only when another such
+    /// call is in flight or the caller is already cancelled. Otherwise the
+    /// caller runs it on its own Swift task with `run(_:isDataTask:)`, which
+    /// saves the `Task`.
+    ///
+    /// Only a call with no other in flight skips the `Task`: a Swift task
+    /// leaving the actor takes the actor's thread with it and reschedules the
+    /// actor's remaining jobs on a new one. With other requests queued on the
+    /// actor, that thread wakeup delays all of them and costs more than the
+    /// `Task` it saves.
+    ///
+    /// Balance every call with `didFinishResponse()`.
+    nonisolated private func makeTaskForResponse(with request: ImageRequest, isDataTask: Bool) -> (ImageTask, isStarted: Bool) {
+        let (taskId, isOnlyResponse) = _counters.withLock { counters in
+            counters.taskId += 1
+            counters.responseCount += 1
+            return (counters.taskId, counters.responseCount == 1)
+        }
+        let task = makeImageTask(taskId: taskId, request: request, isDataTask: isDataTask, isPrefetch: false, onEvent: nil)
+        // The delegate callbacks the start makes run on the Swift task that
+        // starts it, and a cancelled one shouldn't be it.
+        let isStarted = !isOnlyResponse || Task.isCancelled
+        if isStarted {
+            startInTask(task, isDataTask: isDataTask)
+        }
+        return (task, isStarted)
+    }
+
+    nonisolated private func didFinishResponse() {
+        _counters.withLock { $0.responseCount -= 1 }
+    }
+
+    private func run(_ task: ImageTask, isDataTask: Bool) async -> Result<ImageResponse, Error> {
+        // The handler is installed after the hop to the actor, so a caller
+        // cancelled on its way here still starts the task before it cancels
+        // it, the same as when it awaits `ImageTask/response`.
+        await withTaskCancellationHandler {
+            await withUnsafeContinuation { continuation in
+                task._continuation = continuation
+                startImageTask(task, isDataTask: isDataTask)
+            }
+        } onCancel: {
+            task.cancel()
+        }
     }
 
     // By this time, the task has `continuation` set and is fully wired.

@@ -174,6 +174,25 @@ struct ImagePipelineTaskLifetimeTests {
         #expect(weakTask == nil)
     }
 
+    @Test func taskIsDeallocatedAfterSynchronousCompletionWithImageFor() async throws {
+        // Given
+        let observer = ImagePipelineObserver()
+        let pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+        imageCache[Test.request] = Test.container
+        let weakTask = WeakRef<ImageTask>()
+        observer.onTaskCreated = { weakTask.value = $0 }
+
+        // When `image(for:)` runs the task on the caller's own Swift task
+        _ = try await pipeline.image(for: Test.request)
+        await drainPipeline()
+
+        // Then
+        #expect(weakTask.value == nil)
+    }
+
     // MARK: - Events
 
     @Test func startedEventIsDeliveredBeforeFinishedOnMemoryCacheHit() async throws {
@@ -195,6 +214,29 @@ struct ImagePipelineTaskLifetimeTests {
             .started,
             .completed(result: .success(response))
         ])
+    }
+
+    @Test func startedEventIsDeliveredBeforeFinishedOnMemoryCacheHitWithImageFor() async throws {
+        // Given
+        let observer = ImagePipelineObserver()
+        let pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+        imageCache[Test.request] = Test.container
+
+        // When `image(for:)` runs the task on the caller's own Swift task
+        _ = try await pipeline.image(for: Test.request)
+        await drainPipeline()
+
+        // Then
+        let events = observer.events
+        #expect(events.count == 3)
+        #expect(Array(events.prefix(2)) == [ImageTaskEvent.created, .started])
+        guard case .completed(result: .success)? = events.last else {
+            Issue.record("Expected a successful completion, got \(events)")
+            return
+        }
     }
 
     // MARK: - Helpers
