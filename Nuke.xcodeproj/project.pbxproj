@@ -996,6 +996,7 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_PACKAGE_NAME = Nuke;
 			};
 			name = Debug;
 		};
@@ -1013,6 +1014,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_PACKAGE_NAME = Nuke;
 			};
 			name = Release;
 		};
@@ -1452,6 +1454,7 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
+				SWIFT_PACKAGE_NAME = Nuke;
 			};
 			name = Debug;
 		};
@@ -1469,6 +1472,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
+				SWIFT_PACKAGE_NAME = Nuke;
 			};
 			name = Release;
 		};

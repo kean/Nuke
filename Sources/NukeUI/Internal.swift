@@ -103,14 +103,3 @@ extension UIColor {
     }
 }
 #endif
-
-func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
-    guard lhs.count == rhs.count else {
-        return false
-    }
-    // Lazily creates `hashableIdentifiers` because for some processors the
-    // identifiers might be expensive to compute.
-    return zip(lhs, rhs).allSatisfy {
-        $0.hashableIdentifier == $1.hashableIdentifier
-    }
-}
