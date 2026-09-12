@@ -269,7 +269,7 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
-    @Test func nilProcessorsClearRequestProcessors() async {
+    @Test func nilProcessorsKeepRequestProcessors() async {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         let completed = TestExpectation()
@@ -286,7 +286,28 @@ struct LazyImageTests {
         }
         await completed.wait()
 
-        #expect(response.value?.image.nk_test_processorIDs == [])
+        #expect(response.value?.image.nk_test_processorIDs == ["p1"])
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func processorsFromRequestTakePrecedenceOverViewProcessors() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p2")])
+
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors([MockImageProcessor(id: "p1")])
+                .onCompletion {
+                    response.value = $0.value
+                    completed.fulfill()
+                }
+        }
+        await completed.wait()
+
+        #expect(response.value?.image.nk_test_processorIDs == ["p2"])
         withExtendedLifetime(host) {}
     }
 
@@ -313,7 +334,7 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
-    @Test func nilPriorityResetsRequestPriorityToNormal() async throws {
+    @Test func nilPriorityKeepsRequestPriority() async throws {
         dataLoader.isSuspended = true
 
         let started = TestExpectation()
@@ -331,7 +352,7 @@ struct LazyImageTests {
         }
         await started.wait()
 
-        #expect(try #require(task.value).priority == .normal)
+        #expect(try #require(task.value).priority == .high)
         withExtendedLifetime(host) {}
     }
 
