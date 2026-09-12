@@ -112,6 +112,24 @@ struct ImagePipelinePerformanceTests {
             }
         }
     }
+
+    /// The disk cache key is built on every read, write, and existence check
+    /// against the data cache, and it includes the identifier of every
+    /// processor in the request.
+    @Test
+    func makingDataCacheKeys() {
+        let pipeline = makePipeline()
+        let requests = (0..<64).map {
+            ImageRequest(url: URL(string: "http://test.com/\($0)"), processors: [ImageProcessors.Resize(width: 320)])
+        }
+        measure {
+            var count = 0
+            for index in 0..<100_000 {
+                count &+= pipeline.cache.makeDataCacheKey(for: requests[index & 63]).utf8.count
+            }
+            return count
+        }
+    }
 }
 
 /// Never has the data, so every iteration downloads it again.

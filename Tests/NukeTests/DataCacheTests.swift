@@ -95,6 +95,23 @@ final class DataCacheTests {
         #expect("http://test.com".sha1 == "50334ee0b51600df6397ce93ceed4728c37fee4e")
     }
 
+    /// The names of the files that are already on disk: a change to the
+    /// default generator orphans every one of them.
+    @Test func defaultFilenames() {
+        #expect(DataCache.filename(for: "") == nil)
+        #expect(DataCache.filename(for: "http://test.com/example.jpeg") == "d6508d77a18185fe66de6d86114ab5ec047601f1")
+        // Longer than a single SHA-1 block
+        #expect(DataCache.filename(for: "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false") == "2b9ba15e11fdeb66d16c9a567ec76daffede4d19")
+        #expect(DataCache.filename(for: "ключ-🙂-キー") == "3501d5a013096b5cddfd72bae019d21233fc221b")
+        // Strings bridged from Objective-C, which aren't stored as native UTF-8
+        #expect(DataCache.filename(for: NSString(string: "http://test.com/example.jpeg") as String) == "d6508d77a18185fe66de6d86114ab5ec047601f1")
+        #expect(DataCache.filename(for: NSString(string: "ключ-🙂-キー") as String) == "3501d5a013096b5cddfd72bae019d21233fc221b")
+        // Lone surrogates are hashed as U+FFFD
+        let units: [unichar] = [0x61, 0xD83D, 0x62, 0xDC00]
+        #expect(DataCache.filename(for: NSString(characters: units, length: units.count) as String) == "100bcf494247472b60afe6f0d383d037b522cd76")
+        #expect(DataCache.filename(for: "a\u{FFFD}b\u{FFFD}") == "100bcf494247472b60afe6f0d383d037b522cd76")
+    }
+
     // MARK: Add
 
     @Test func add() {
