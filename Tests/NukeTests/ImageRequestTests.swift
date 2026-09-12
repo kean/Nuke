@@ -44,6 +44,62 @@ struct ImageRequestTests {
         #expect(copy.priority == .low)
     }
 
+    // MARK: - Processors Identity
+
+    // `LazyImage` compares requests by `processorsIdentity` instead of by their
+    // processors, so the two comparisons have to agree.
+
+    @Test func processorsIdentityComparesIdentifiersInOrder() {
+        expectProcessorsIdentity([], [], isEqual: true)
+        expectProcessorsIdentity([MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")], [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")], isEqual: true)
+        expectProcessorsIdentity([MockImageProcessor(id: "p1")], [MockImageProcessor(id: "p2")], isEqual: false)
+        expectProcessorsIdentity([MockImageProcessor(id: "p1")], [MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")], isEqual: false)
+        expectProcessorsIdentity([MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")], [MockImageProcessor(id: "p2"), MockImageProcessor(id: "p1")], isEqual: false)
+    }
+
+    @Test func processorsIdentityOfHashableProcessors() {
+        expectProcessorsIdentity([ImageProcessors.Resize(width: 320)], [ImageProcessors.Resize(width: 320)], isEqual: true)
+        expectProcessorsIdentity([ImageProcessors.Resize(width: 320)], [ImageProcessors.Resize(width: 160)], isEqual: false)
+    }
+
+    @Test func processorsIdentityOfDifferentTypesWithEqualIdentifiers() {
+        // Both identify themselves by `identifier`.
+        expectProcessorsIdentity([MockImageProcessor(id: "p1")], [ImageProcessors.Anonymous(id: "p1") { $0 }], isEqual: true)
+        // A `Hashable` processor identifies itself by its value instead.
+        let resize = ImageProcessors.Resize(width: 320)
+        expectProcessorsIdentity([resize], [MockImageProcessor(id: resize.identifier)], isEqual: false)
+    }
+
+    @Test func processorsIdentityOfCompositions() {
+        let resize = ImageProcessors.Resize(width: 320)
+        expectProcessorsIdentity([ImageProcessors.Composition([resize, MockImageProcessor(id: "p1")])], [ImageProcessors.Composition([resize, MockImageProcessor(id: "p1")])], isEqual: true)
+        expectProcessorsIdentity([ImageProcessors.Composition([resize, MockImageProcessor(id: "p1")])], [ImageProcessors.Composition([MockImageProcessor(id: "p1"), resize])], isEqual: false)
+        expectProcessorsIdentity([ImageProcessors.Composition([resize])], [resize], isEqual: false)
+    }
+
+    @Test func processorsIdentityOfCustomHashableIdentifiers() {
+        expectProcessorsIdentity([MockIdentifierProcessor(id: 1)], [MockIdentifierProcessor(id: 1)], isEqual: true)
+        expectProcessorsIdentity([MockIdentifierProcessor(id: 1)], [MockIdentifierProcessor(id: 2)], isEqual: false)
+        expectProcessorsIdentity([MockIdentifierProcessor(id: 1)], [MockImageProcessor(id: MockIdentifierProcessor(id: 1).identifier)], isEqual: false)
+    }
+
+    private func expectProcessorsIdentity(_ lhs: [any ImageProcessing], _ rhs: [any ImageProcessing], isEqual: Bool, sourceLocation: SourceLocation = #_sourceLocation) {
+        let processorsEqual = lhs == rhs
+        #expect(processorsEqual == isEqual, sourceLocation: sourceLocation)
+        let lhs = ImageRequest(url: Test.url, processors: lhs)
+        let rhs = ImageRequest(url: Test.url, processors: rhs)
+        #expect((lhs.processorsIdentity == rhs.processorsIdentity) == isEqual, sourceLocation: sourceLocation)
+    }
+
+    /// Identifies itself by a number instead of its `identifier`.
+    private struct MockIdentifierProcessor: ImageProcessing {
+        let id: Int
+        var identifier: String { "MockIdentifierProcessor.\(id)" }
+        var hashableIdentifier: AnyHashable { id }
+
+        func process(_ image: PlatformImage) -> PlatformImage? { image }
+    }
+
     // MARK: - Misc
 
     // Just to make sure that comparison works as expected.

@@ -494,7 +494,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     var originalImageID: String? { ref.originalImageID }
 
     /// ``processors``, each boxed into its identity when they were set.
-    var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
+    package var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
 
     /// The hash of ``imageID``, computed when it was set.
     var idHash: Int { ref.idHash }

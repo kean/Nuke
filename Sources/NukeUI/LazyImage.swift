@@ -208,7 +208,7 @@ private struct LazyImageContext: Equatable {
         let rhs = rhs.request
         return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
-        lhs.processors == rhs.processors &&
+        lhs.processorsIdentity == rhs.processorsIdentity &&
         lhs.priority == rhs.priority &&
         lhs.options == rhs.options
     }
