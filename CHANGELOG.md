@@ -66,6 +66,7 @@
 
 - `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
 - Memory cache lookups for requests with `ImageProcessors/Resize` are 2× faster – https://github.com/kean/Nuke/pull/972
+- `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 
 **Bug Fixes**
 
