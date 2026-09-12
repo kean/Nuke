@@ -206,10 +206,14 @@ private struct LazyImageContext: Equatable {
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
         let lhs = lhs.request
         let rhs = rhs.request
+        // A view that keeps its request passes a copy of the same one on every
+        // update, and that is equal without comparing the processors.
+        if lhs.isIdentical(to: rhs) {
+            return true
+        }
         return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
         lhs.processors == rhs.processors &&
-        lhs.priority == rhs.priority &&
         lhs.options == rhs.options
     }
 }

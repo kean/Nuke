@@ -493,6 +493,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// where the actual URL determines what gets fetched.
     var originalImageID: String? { ref.originalImageID }
 
+    /// Returns `true` if both requests share the same storage, which makes them
+    /// equal. `false` doesn't mean they are different.
+    package func isIdentical(to other: ImageRequest) -> Bool {
+        ref === other.ref
+    }
+
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
 

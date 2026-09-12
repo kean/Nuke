@@ -7,6 +7,10 @@ import Foundation
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
     public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+        // The cases that carry a decoding or processing context are `indirect`:
+        // stored inline, the context would make every error – and every `Result`
+        // and task event that holds one – about a hundred bytes.
+
         /// Returned if data is not cached and ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` option is specified.
         case dataMissingInCache
         /// Data loader failed to load image data with a wrapped error.
@@ -17,11 +21,11 @@ extension ImagePipeline {
         ///
         /// This error can only be thrown if the pipeline has custom decoders.
         /// By default, the pipeline uses ``ImageDecoders/Default`` as a catch-all.
-        case decoderNotRegistered(context: ImageDecodingContext)
+        indirect case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
-        case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
+        indirect case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
         /// Processor failed to produce a final image.
-        case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
+        indirect case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request or no URL.
         case imageRequestMissing
         /// Image pipeline is invalidated and no requests can be made.

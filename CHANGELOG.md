@@ -65,6 +65,8 @@
 **Performance**
 
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
+- `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
+- `LazyImage` checks whether its request changed up to 5× faster on every body update when it keeps the same request – https://github.com/kean/Nuke/pull/969
 
 **Bug Fixes**
 
@@ -82,6 +84,7 @@
 - Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
 - Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
+- Fix `ImagePrefetcher/didComplete` not being called when stopping prefetching cancels the last outstanding request – https://github.com/kean/Nuke/pull/968
 
 **Documentation**
 
