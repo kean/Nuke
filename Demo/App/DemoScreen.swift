@@ -8,7 +8,7 @@ import SwiftUI
 ///
 /// The catalog and the Lab menu are both built from this one list, so adding a
 /// screen is adding a case. ``id`` is the name a screen is opened by from
-/// outside the app: a title can change, an id can't.
+/// outside the app, with `-demoScreen <id>`: a title can change, an id can't.
 enum DemoScreen: String, CaseIterable, Identifiable {
     // Essentials
     case imagePipeline = "image-pipeline"
@@ -181,11 +181,45 @@ extension DemoScreen {
 /// A stop on the demo's navigation stack: the Lab menu, or a screen.
 ///
 /// Every row in the menus pushes one of these rather than a view, so a stack
-/// can be put together without a tap: a catalog screen is `[.screen(screen)]`,
-/// a Lab screen `[.lab, .screen(screen)]`.
+/// can be put together without a tap – see ``stack``.
 enum DemoRoute: Hashable {
     case lab
     case screen(DemoScreen)
+
+    /// The name the route is opened by from outside the app: the screen's
+    /// ``DemoScreen/id``, or `lab` for the Lab menu, which no screen can take.
+    var id: String {
+        switch self {
+        case .lab: "lab"
+        case .screen(let screen): screen.id
+        }
+    }
+
+    init?(id: String) {
+        if id == DemoRoute.lab.id {
+            self = .lab
+        } else if let screen = DemoScreen(rawValue: id) {
+            self = .screen(screen)
+        } else {
+            return nil
+        }
+    }
+
+    /// The navigation stack that shows the route, with the menus it is reached
+    /// through beneath it, so that Back goes where it would after a tap: a
+    /// catalog screen is `[.screen(screen)]`, a Lab screen
+    /// `[.lab, .screen(screen)]`.
+    var stack: [DemoRoute] {
+        switch self {
+        case .lab:
+            [.lab]
+        case .screen(let screen):
+            switch screen.placement {
+            case .catalog: [self]
+            case .lab: [.lab, self]
+            }
+        }
+    }
 }
 
 extension View {
