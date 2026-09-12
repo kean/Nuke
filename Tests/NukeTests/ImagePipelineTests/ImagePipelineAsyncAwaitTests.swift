@@ -285,7 +285,7 @@ struct ImagePipelineAsyncAwaitTests {
         // WHEN
         var recordedPreviews: [ImageResponse] = []
         let task = pipeline.imageTask(with: Test.url)
-        let stream = await task.subscribedPreviews()
+        let stream = task.previews
         dataLoader.resume()
         for try await preview in stream {
             recordedPreviews.append(preview)

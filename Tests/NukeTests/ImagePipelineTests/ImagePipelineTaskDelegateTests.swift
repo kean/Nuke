@@ -135,7 +135,7 @@ struct ImagePipelineTaskDelegateTests {
 
         // WHEN
         let task = pipeline.imageTask(with: Test.url)
-        let stream = await task.subscribedPreviews()
+        let stream = task.previews
         dataLoader.resume()
         for try await _ in stream {
             dataLoader.resume()
