@@ -76,7 +76,7 @@ struct DemoMenu: View {
             DemoLink("Animation Memory", "A wall of animations sharing one memory budget") {
                 AnimationMemoryDemo()
             }
-            DemoLink("Progressive JPEG", "Progressive decoding side by side with baseline") {
+            DemoLink("Progressive Decoding", "The scans of a progressive JPEG as they arrive") {
                 ProgressiveDecodingDemo()
             }
             DemoLink("Pipeline Delegate", "Intercept requests and observe pipeline events") {
@@ -95,8 +95,8 @@ struct DemoMenu: View {
             DemoLink("Caching", "Memory, HTTP, and aggressive disk cache") {
                 CachingDemo()
             }
-            DemoLink("Stress Test", "Rate limiting and coalescing under pressure") {
-                StressTestDemo()
+            DemoLink("Scroll Stress", "Fast scrolling with every cache disabled") {
+                ScrollStressDemo()
             }
         } header: {
             Text("Performance")

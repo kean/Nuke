@@ -13,14 +13,14 @@ import UIKit
 /// This is where the rate limiter earns its keep: it protects `URLSession`
 /// from the bursts of requests that a scroll view creates without adding any
 /// delay when the screen is opened.
-struct StressTestDemo: View {
+struct ScrollStressDemo: View {
     var body: some View {
-        ViewControllerView { StressTestViewController() }
+        ViewControllerView { ScrollStressViewController() }
             .demoInfo(Self.info)
     }
 
     private static let info = DemoInfo(
-        "Stress Test",
+        "Scroll Stress",
         "Scroll as fast as you can. Every cell that appears starts a request and every cell it replaces cancels one, which is hundreds of requests a second. Nothing here is cached and nothing is coalesced, so each one goes through the entire pipeline.",
         code: """
         ImagePipeline {
@@ -37,7 +37,7 @@ struct StressTestDemo: View {
     )
 }
 
-private final class StressTestViewController: PhotoGridViewController {
+private final class ScrollStressViewController: PhotoGridViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 

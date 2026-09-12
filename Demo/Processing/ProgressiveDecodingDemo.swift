@@ -66,7 +66,7 @@ struct ProgressiveDecodingDemo: View {
     }
 
     private static let info = DemoInfo(
-        "Progressive JPEG",
+        "Progressive Decoding",
         "A progressive JPEG is encoded as a series of scans, each one sharper than the last. With progressive decoding enabled, the pipeline delivers the scans as previews through the same task that delivers the final image.",
         code: """
         let pipeline = ImagePipeline {
