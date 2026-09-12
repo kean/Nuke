@@ -502,6 +502,15 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// The hash of ``originalImageID``, computed once.
     var originalIDHash: Int { ref.originalIDHash }
 
+    // The container's `init` and its `imageID` observer must agree, or a request
+    // whose `imageID` is reset would no longer find its own cache entries. So
+    // must `TaskFetchOriginalDataKey(url:)`, or a stop by URL would miss.
+    static func makeIDHash(_ id: String?) -> Int {
+        var hasher = Hasher()
+        hasher.combine(id)
+        return hasher.finalize()
+    }
+
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
 
@@ -521,7 +530,7 @@ extension ImageRequest {
         // It is stored partially for performance reasons (`absoluteString` can be expensive to compute)
         let originalImageID: String?
         var customImageID: String? {
-            didSet { idHash = Container.makeIDHash(customImageID ?? originalImageID) }
+            didSet { idHash = ImageRequest.makeIDHash(customImageID ?? originalImageID) }
         }
         var processors: [any ImageProcessing] {
             didSet { processorsIdentity = Container.makeIdentity(processors) }
@@ -546,7 +555,7 @@ extension ImageRequest {
             self.options = options
             self.originalImageID = originalImageID
             self.processorsIdentity = Container.makeIdentity(processors)
-            let idHash = Container.makeIDHash(originalImageID)
+            let idHash = ImageRequest.makeIDHash(originalImageID)
             self.idHash = idHash
             self.originalIDHash = idHash
         }
@@ -569,14 +578,6 @@ extension ImageRequest {
 
         private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ProcessorID] {
             processors.isEmpty ? [] : processors.map(ProcessorID.init)
-        }
-
-        // `init` and both observers must agree, or a request whose `imageID`
-        // is reset would no longer find its own cache entries.
-        private static func makeIDHash(_ id: String?) -> Int {
-            var hasher = Hasher()
-            hasher.combine(id)
-            return hasher.finalize()
         }
     }
 

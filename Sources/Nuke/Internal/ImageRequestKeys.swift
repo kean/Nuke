@@ -73,6 +73,22 @@ final class TaskLoadImageKey: Hashable, Sendable {
         self._hashValue = hasher.finalize()
     }
 
+    /// The key of `ImageRequest(url: url)`, without creating the request.
+    ///
+    /// It restates the defaults that request is created with, so the two have
+    /// to change together; `ImageRequestLoadKeyTests` fails if they drift apart.
+    init(url: URL) {
+        self.loadKey = TaskFetchOriginalImageKey(url: url)
+        self.options = []
+        self.processors = []
+
+        var hasher = Hasher()
+        hasher.combine(loadKey)
+        hasher.combine(options)
+        hasher.combine(processors.count)
+        self._hashValue = hasher.finalize()
+    }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(_hashValue)
     }
@@ -95,6 +111,18 @@ struct TaskFetchOriginalImageKey: Hashable {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
         self.scale = request.scale
         self.thumbnail = request.thumbnail
+
+        var hasher = Hasher()
+        hasher.combine(dataLoadKey)
+        hasher.combine(scale)
+        hasher.combine(thumbnail)
+        self._hashValue = hasher.finalize()
+    }
+
+    init(url: URL) {
+        self.dataLoadKey = TaskFetchOriginalDataKey(url: url)
+        self.scale = 1
+        self.thumbnail = nil
 
         var hasher = Hasher()
         hasher.combine(dataLoadKey)
@@ -130,6 +158,19 @@ struct TaskFetchOriginalDataKey: Hashable {
 
         var hasher = Hasher()
         hasher.combine(request.originalIDHash)
+        hasher.combine(cachePolicy)
+        hasher.combine(allowsCellularAccess)
+        self._hashValue = hasher.finalize()
+    }
+
+    init(url: URL) {
+        let imageId = url.absoluteString
+        self.imageId = imageId
+        self.cachePolicy = .useProtocolCachePolicy
+        self.allowsCellularAccess = true
+
+        var hasher = Hasher()
+        hasher.combine(ImageRequest.makeIDHash(imageId))
         hasher.combine(cachePolicy)
         hasher.combine(allowsCellularAccess)
         self._hashValue = hasher.finalize()
