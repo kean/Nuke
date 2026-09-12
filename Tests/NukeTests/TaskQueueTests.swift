@@ -526,6 +526,85 @@ struct TaskQueueTests {
         await queue.waitUntilAllOperationsAreFinished()
     }
 
+    @Test func normalPriorityWorkLeavesLowPrioritySlotAvailable() async {
+        // Given – two slots, one of them reserved, and normal-priority work running
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let gate = AsyncGate()
+        queue.add { await gate.wait() }
+
+        // When
+        queue.add(priority: .low) { await gate.wait() }
+
+        // Then – only the low-priority work counts toward the low-priority slot
+        #expect(queue.runningCount == 2)
+
+        // Cleanup
+        gate.open()
+        await queue.waitUntilAllOperationsAreFinished()
+    }
+
+    @Test func raisingPriorityOfRunningWorkFreesLowPrioritySlot() async {
+        // Given – the low-priority slot taken and low-priority work waiting
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let gate = AsyncGate()
+        let running = queue.add(priority: .low) { await gate.wait() }
+        queue.add(priority: .low) { await gate.wait() }
+        #expect(queue.pendingCount == 1)
+
+        // When
+        running.priority = .normal
+
+        // Then – the waiting work starts
+        #expect(queue.pendingCount == 0)
+        #expect(queue.runningCount == 2)
+
+        // Cleanup
+        gate.open()
+        await queue.waitUntilAllOperationsAreFinished()
+    }
+
+    @Test func loweringPriorityOfRunningWorkTakesLowPrioritySlot() async {
+        // Given – two slots, one of them reserved, and normal-priority work running
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let gate = AsyncGate()
+        let running = queue.add { await gate.wait() }
+
+        // When
+        running.priority = .veryLow
+        queue.add(priority: .low) { await gate.wait() }
+
+        // Then – the lowered work holds the low-priority slot
+        #expect(queue.runningCount == 1)
+        #expect(queue.pendingCount == 1)
+
+        // Cleanup
+        gate.open()
+        await queue.waitUntilAllOperationsAreFinished()
+    }
+
+    @Test func decreasingReservedTaskCountDrainsPendingWork() async {
+        // Given – low-priority work waiting for the reserved slot
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let gate = AsyncGate()
+        let secondStarted = TestExpectation()
+        queue.add(priority: .low) { await gate.wait() }
+        queue.add(priority: .low) {
+            secondStarted.fulfill()
+            await gate.wait()
+        }
+        #expect(queue.pendingCount == 1)
+
+        // When
+        queue.reservedTaskCount = 0
+
+        // Then – it starts without waiting for the first one to finish
+        await secondStarted.wait()
+
+        // Cleanup
+        gate.open()
+        await queue.waitUntilAllOperationsAreFinished()
+    }
+
     // MARK: - Cancellation
 
     @Test func cancelledOperationIsNotExecuted() async {

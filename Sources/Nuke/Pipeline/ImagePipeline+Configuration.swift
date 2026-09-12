@@ -191,12 +191,12 @@ extension ImagePipeline {
 
         // MARK: - Task Queues
 
-        /// Data loading queue. Default maximum concurrent task count is 7.
+        /// Data loading queue. Default maximum concurrent task count is 6.
         ///
         /// The requests with a priority lower than ``ImageRequest/Priority-swift.enum/normal``,
-        /// such as prefetching, take at most 6 of the slots, so the images the
-        /// user is waiting for never queue behind them.
-        public var dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 7, reservedTaskCount: 1)
+        /// such as prefetching, run in at most 3 of the slots, so the images the
+        /// user is waiting for don't queue behind them. See ``TaskQueue/reservedTaskCount``.
+        public var dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6, reservedTaskCount: 3)
 
         /// Image decoding queue. Default maximum concurrent task count is 2.
         ///
