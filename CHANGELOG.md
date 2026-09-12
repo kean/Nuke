@@ -75,6 +75,7 @@
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 - Creating data cache keys is up to 3x faster – https://github.com/kean/Nuke/pull/979
 - `ImageTask/cancel()` no longer starts a task the pipeline hasn't started yet, 3.7× faster to create and cancel a task – https://github.com/kean/Nuke/pull/973
+- Creating and immediately cancelling an `ImageTask` is 3.7× faster – https://github.com/kean/Nuke/pull/973
 
 **Bug Fixes**
 
