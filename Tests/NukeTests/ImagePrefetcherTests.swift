@@ -163,6 +163,51 @@ struct ImagePrefetcherTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    @Test func stopPrefetchingWithRequests() async {
+        dataLoader.isSuspended = true
+
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+
+        await notification(ImagePipelineObserver.didStartTask, object: observer) {
+            prefetcher.startPrefetching(with: [request])
+        }
+
+        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
+            prefetcher.stopPrefetching(with: [request])
+        }
+    }
+
+    @Test @ImagePipelineActor func stopPrefetchingWithURLLeavesOtherRequestsForThatURL() async {
+        // GIVEN two outstanding prefetches of one URL, one of them with a
+        // processor, and neither started
+        prefetcher.isPaused = true
+        let processed = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+        let operations = await prefetcher.queue.waitForOperations(count: 2) {
+            prefetcher.startPrefetching(with: [processed, ImageRequest(url: Test.url)])
+        }
+        #expect(operations.count == 2)
+
+        // WHEN stopping prefetching by that URL
+        nonisolated(unsafe) var cancelled: [TaskQueue.Operation] = []
+        let expectation = TestExpectation()
+        prefetcher.queue.onEvent = { event in
+            if case .cancelled(let operation) = event {
+                cancelled.append(operation)
+                expectation.fulfill()
+            }
+        }
+        prefetcher.stopPrefetching(with: [Test.url])
+        await expectation.wait()
+
+        // THEN only the prefetch without a processor is cancelled
+        #expect(cancelled.count == 1)
+        #expect(cancelled.first === operations.last)
+        #expect(prefetcher.queue.pendingCount == 1)
+
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
     // MARK: Destination
 
     @Test func startPrefetchingDestinationDisk() async {

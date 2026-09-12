@@ -184,6 +184,55 @@ struct ImageRequestLoadKeyTests {
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
+    // `ImagePrefetcher` stops prefetching by URL with `TaskLoadImageKey(url:)`,
+    // which restates the defaults of `ImageRequest(url:)` instead of creating
+    // the request. It has to match exactly the tasks that request's key matches.
+    @Test func keyForURLMatchesTheKeyOfARequestWithThatURL() {
+        let urls = [
+            Test.url,
+            URL(string: "http://test.com/example.jpeg?token=1#fragment")!,
+            URL(string: "example.jpeg", relativeTo: URL(string: "http://test.com/images/"))!,
+            URL(fileURLWithPath: "/tmp/an image.png")
+        ]
+        for url in urls {
+            assertHashableEqual(TaskLoadImageKey(url: url), TaskLoadImageKey(ImageRequest(url: url)))
+        }
+
+        // So does every request that differs from it only outside the key
+        let url = Test.url
+        var processorsRemoved = ImageRequest(url: url, processors: [MockImageProcessor(id: "1")])
+        processorsRemoved.processors = []
+        let requests = [
+            ImageRequest(url: url, priority: .veryHigh),
+            ImageRequest(url: url).with { $0.imageID = "custom" },
+            ImageRequest(url: url).with { $0.userInfo[.labelKey] = "feed" },
+            ImageRequest(urlRequest: URLRequest(url: url)),
+            ImageRequest(url: URL(string: "example.jpeg", relativeTo: URL(string: "http://test.com/"))),
+            processorsRemoved
+        ]
+        for request in requests {
+            assertHashableEqual(TaskLoadImageKey(url: url), TaskLoadImageKey(request))
+        }
+    }
+
+    @Test func keyForURLDiffersInEveryComponentOfTheKey() {
+        let url = Test.url
+        var cellularDisallowed = URLRequest(url: url)
+        cellularDisallowed.allowsCellularAccess = false
+        let requests = [
+            ImageRequest(url: URL(string: "http://test.com/example-2.jpeg")),
+            ImageRequest(urlRequest: URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)),
+            ImageRequest(urlRequest: cellularDisallowed),
+            ImageRequest(url: url).with { $0.scale = 2 },
+            ImageRequest(url: url).with { $0.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 400) },
+            ImageRequest(url: url, options: [.disableMemoryCacheReads]),
+            ImageRequest(url: url, processors: [MockImageProcessor(id: "1")])
+        ]
+        for request in requests {
+            #expect(TaskLoadImageKey(url: url) != TaskLoadImageKey(request))
+        }
+    }
+
     @Test func mockImageProcessorCorrectlyImplementsIdentifiers() {
         #expect(MockImageProcessor(id: "1").identifier == MockImageProcessor(id: "1").identifier)
         #expect(MockImageProcessor(id: "1").hashableIdentifier == MockImageProcessor(id: "1").hashableIdentifier)

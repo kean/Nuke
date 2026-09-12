@@ -174,7 +174,11 @@ public final class ImagePrefetcher: Sendable {
     ///
     /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
     nonisolated public func stopPrefetching(with urls: [URL]) {
-        stopPrefetching(with: urls.map { ImageRequest(url: $0) })
+        // Straight from the URLs to the keys, on the actor: a request per URL
+        // would be allocated on the caller's thread only to derive its key.
+        Task { @ImagePipelineActor in
+            self._stopPrefetching(with: urls.map { TaskLoadImageKey(url: $0) })
+        }
     }
 
     /// Stops prefetching images for the given requests and cancels outstanding
@@ -187,15 +191,17 @@ public final class ImagePrefetcher: Sendable {
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
     nonisolated public func stopPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
-            for request in requests {
-                self._stopPrefetching(with: request)
-            }
+            self._stopPrefetching(with: requests.map { TaskLoadImageKey($0) })
         }
     }
 
-    private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
-            task.cancel()
+    // The keys are built before the first one is looked up: a lazy map, which
+    // interleaves building them with the removals, measured slower.
+    private func _stopPrefetching(with keys: [TaskLoadImageKey]) {
+        for key in keys {
+            if let task = tasks.removeValue(forKey: key) {
+                task.cancel()
+            }
         }
     }
 
