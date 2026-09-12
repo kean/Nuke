@@ -94,6 +94,33 @@ struct ImagePipelinePerformanceTests {
             }
         }
     }
+
+    /// Up to a hundred image tasks coalesced onto each download, with a data
+    /// cache configured: every completed download asks the tasks waiting on it
+    /// whether to store the data.
+    @Test
+    func coalescedLoadsWithDataCachePerformance() async {
+        let pipeline = makePipeline { $0.dataCache = DataCacheMiss() }
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0 % 50)")) }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        _ = try? await pipeline.image(for: request)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Never has the data, so every iteration downloads it again.
+private struct DataCacheMiss: DataCaching {
+    func cachedData(for key: String) -> Data? { nil }
+    func containsData(for key: String) -> Bool { false }
+    func storeData(_ data: Data, for key: String) {}
+    func removeData(for key: String) {}
+    func removeAll() {}
 }
 
 private func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {

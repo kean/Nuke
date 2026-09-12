@@ -601,6 +601,77 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataCache.store.count == 2)
     }
 
+    // MARK: Coalesced Requests
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeOriginalData], CoalescedRequest.mixes)
+    func policyGivenCoalescedRequests(policy: ImagePipeline.DataCachePolicy, requests: [CoalescedRequest]) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // WHEN the requests wait for the same download
+        let loads = await withSuspendedDataLoading(for: pipeline, expectedCount: requests.count) {
+            requests.map { request in
+                Task {
+                    if request.isDataTask {
+                        _ = try await pipeline.data(for: request.imageRequest)
+                    } else {
+                        _ = try await pipeline.image(for: request.imageRequest)
+                    }
+                }
+            }
+        }
+        for load in loads {
+            try await load.value
+        }
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN the original data is stored if any of the requests allows disk
+        // cache writes and, with `.automatic`, any of them has no processors –
+        // not necessarily the same one
+        let isStored = requests.contains { !$0.disablesDiskCacheWrites } &&
+            (policy == .storeOriginalData || requests.contains { !$0.hasProcessor })
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(dataCache.containsData(for: Test.url.absoluteString) == isStored)
+    }
+
+    /// A request that waits for the same download as the others in its test case.
+    struct CoalescedRequest: Sendable, CustomStringConvertible {
+        var isDataTask = false
+        var hasProcessor = false
+        var disablesDiskCacheWrites = false
+
+        var imageRequest: ImageRequest {
+            ImageRequest(
+                url: Test.url,
+                processors: hasProcessor ? [MockImageProcessor(id: "p1")] : [],
+                options: disablesDiskCacheWrites ? [.disableDiskCacheWrites] : []
+            )
+        }
+
+        var description: String {
+            [isDataTask ? "data" : "image", hasProcessor ? "p1" : nil, disablesDiskCacheWrites ? "disableDiskCacheWrites" : nil]
+                .compactMap { $0 }
+                .joined(separator: " ")
+        }
+
+        /// Every kind of request on its own, and every pair of them.
+        static var mixes: [[CoalescedRequest]] {
+            let kinds = [
+                CoalescedRequest(),
+                CoalescedRequest(disablesDiskCacheWrites: true),
+                CoalescedRequest(hasProcessor: true),
+                CoalescedRequest(hasProcessor: true, disablesDiskCacheWrites: true),
+                CoalescedRequest(isDataTask: true),
+                CoalescedRequest(isDataTask: true, disablesDiskCacheWrites: true)
+            ]
+            return kinds.indices.flatMap { i in
+                [[kinds[i]]] + kinds[i...].map { [kinds[i], $0] }
+            }
+        }
+    }
+
     // MARK: Local Resources
 
     @Test func imagesFromLocalStorageNotCached() async throws {

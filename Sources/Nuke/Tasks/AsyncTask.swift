@@ -18,10 +18,13 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     private final class Subscription {
         let closure: (Event) -> Void
-        weak var subscriber: AnyObject?
+        // The protocol and not `AnyObject`: walking the subscribers is then a
+        // witness call rather than a conditional cast, which has the runtime
+        // search the protocol conformance tables.
+        weak var subscriber: (any ImageTaskSubscribers)?
         var priority: TaskPriority
 
-        init(closure: @escaping (Event) -> Void, subscriber: AnyObject, priority: TaskPriority) {
+        init(closure: @escaping (Event) -> Void, subscriber: any ImageTaskSubscribers, priority: TaskPriority) {
             self.closure = closure
             self.subscriber = subscriber
             self.priority = priority
@@ -36,13 +39,15 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     private var subscriptions: ContiguousArray<(key: TaskSubscriptionKey, sub: Subscription)>? // Create lazily
     private var nextSubscriptionKey = 0
 
-    var subscribers: [AnyObject] {
-        var output = [AnyObject?]()
-        output.append(inlineSubscription?.subscriber)
+    /// Returns `true` if `predicate` returns `true` for any of the subscribers.
+    func containsSubscriber(where predicate: (any ImageTaskSubscribers) -> Bool) -> Bool {
+        if let subscriber = inlineSubscription?.subscriber, predicate(subscriber) { return true }
         if let subscriptions {
-            for entry in subscriptions { output.append(entry.sub.subscriber) }
+            for entry in subscriptions {
+                if let subscriber = entry.sub.subscriber, predicate(subscriber) { return true }
+            }
         }
-        return output.compactMap { $0 }
+        return false
     }
 
     func hasSubscriber<T>(of type: T.Type) -> Bool {
@@ -105,7 +110,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     // MARK: - Managing Observers
 
     /// - note: Returns `nil` if the task was disposed.
-    private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+    private func subscribe(priority: TaskPriority = .normal, subscriber: any ImageTaskSubscribers, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         let subscriptionKey = nextSubscriptionKey
@@ -260,7 +265,7 @@ extension AsyncTask {
 
         /// Attaches the subscriber to the task.
         /// - note: Returns `nil` if the task is already disposed.
-        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+        func subscribe(priority: TaskPriority = .normal, subscriber: any ImageTaskSubscribers, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
             task.subscribe(priority: priority, subscriber: subscriber, closure)
         }
 

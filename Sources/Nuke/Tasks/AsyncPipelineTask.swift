@@ -19,24 +19,26 @@ class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> 
     }
 }
 
-// Returns all image tasks subscribed to the current pipeline task.
-// A suboptimal approach just to make the new DiskCachPolicy.automatic work.
+/// An image task, or a task that image tasks are subscribed to, directly or
+/// through the tasks that depend on it.
 @ImagePipelineActor
-protocol ImageTaskSubscribers {
-    var imageTasks: [ImageTask] { get }
+protocol ImageTaskSubscribers: AnyObject {
+    /// Returns `true` if `predicate` returns `true` for any of the image tasks.
+    ///
+    /// The callers only ask whether there is one, so the walk stops at the
+    /// first match instead of collecting the image tasks into an array.
+    func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool
 }
 
 extension ImageTask: ImageTaskSubscribers {
-    var imageTasks: [ImageTask] {
-        [self]
+    func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
+        predicate(self)
     }
 }
 
-extension AsyncPipelineTask: ImageTaskSubscribers {
-    var imageTasks: [ImageTask] {
-        subscribers.flatMap { subscribers -> [ImageTask] in
-            (subscribers as? ImageTaskSubscribers)?.imageTasks ?? []
-        }
+extension AsyncTask: ImageTaskSubscribers {
+    func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
+        containsSubscriber { $0.containsImageTask(where: predicate) }
     }
 }
 

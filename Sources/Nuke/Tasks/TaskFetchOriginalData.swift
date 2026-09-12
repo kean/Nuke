@@ -383,8 +383,7 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
     }
 
     private func shouldStoreDataInDiskCache() -> Bool {
-        let imageTasks = imageTasks
-        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
+        guard containsImageTask(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }
         guard !(request.url?.isLocalResource ?? false) else {
@@ -392,7 +391,7 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
         }
         switch pipeline.configuration.dataCachePolicy {
         case .automatic:
-            return imageTasks.contains { $0.request.processors.isEmpty }
+            return containsImageTask { $0.request.processors.isEmpty }
         case .storeOriginalData:
             return true
         case .storeEncodedImages:
