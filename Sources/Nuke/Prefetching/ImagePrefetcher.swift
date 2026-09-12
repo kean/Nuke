@@ -62,7 +62,8 @@ public final class ImagePrefetcher: Sendable {
     /// The closure runs every time the prefetcher runs out of outstanding work,
     /// which includes the batches that finish without starting a single task:
     /// an empty list of requests, or one where every image is already in the
-    /// memory cache.
+    /// memory cache. Stopping the last outstanding requests runs it too, but a
+    /// stop that finds nothing to cancel doesn't.
     nonisolated public var didComplete: (@MainActor @Sendable () -> Void)? {
         get { _didComplete.withLock { $0 } }
         set { _didComplete.withLock { $0 = newValue } }
@@ -187,10 +188,20 @@ public final class ImagePrefetcher: Sendable {
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
     nonisolated public func stopPrefetching(with requests: [ImageRequest]) {
         Task { @ImagePipelineActor in
-            for request in requests {
-                self._stopPrefetching(with: request)
-            }
+            self._stopPrefetching(with: requests)
         }
+    }
+
+    private func _stopPrefetching(with requests: [ImageRequest]) {
+        // A stop that finds nothing outstanding doesn't run the prefetcher out
+        // of work, so there is no completion to report.
+        guard !tasks.isEmpty else {
+            return
+        }
+        for request in requests {
+            _stopPrefetching(with: request)
+        }
+        sendCompletionIfNeeded()
     }
 
     private func _stopPrefetching(with request: ImageRequest) {
@@ -202,8 +213,12 @@ public final class ImagePrefetcher: Sendable {
     /// Stops all prefetching tasks.
     nonisolated public func stopPrefetching() {
         Task { @ImagePipelineActor in
+            guard !self.tasks.isEmpty else {
+                return
+            }
             self.tasks.values.forEach { $0.cancel() }
             self.tasks.removeAll()
+            self.sendCompletionIfNeeded()
         }
     }
 

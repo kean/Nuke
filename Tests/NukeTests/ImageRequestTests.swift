@@ -44,6 +44,19 @@ struct ImageRequestTests {
         #expect(copy.priority == .low)
     }
 
+    @Test func copyIsIdenticalUntilMutated() {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+        var copy = request
+        #expect(copy.isIdentical(to: request))
+
+        copy.priority = .high
+        #expect(!copy.isIdentical(to: request))
+    }
+
+    @Test func equalRequestsCreatedSeparatelyAreNotIdentical() {
+        #expect(!ImageRequest(url: Test.url).isIdentical(to: ImageRequest(url: Test.url)))
+    }
+
     // MARK: - Misc
 
     // Just to make sure that comparison works as expected.
