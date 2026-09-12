@@ -101,6 +101,47 @@ struct ImagePipelineTaskDelegateTests {
         ])
     }
 
+    /// The pipeline starts a task in a hop to its actor. A task cancelled before
+    /// that hop runs is finished there, without being started.
+    @Test @ImagePipelineActor func cancellationBeforeTheTaskStartsSkipsTheStart() async {
+        // Given a task cancelled while the test holds the actor, so the
+        // pipeline can't have started it yet
+        let task = pipeline.imageTask(with: Test.request)
+        task.cancel()
+
+        // When
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // Then
+        #expect(delegate.events == [
+            ImageTaskEvent.created,
+            .cancelled
+        ])
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(pipeline.taskCount == 0)
+    }
+
+    /// A task cancelled from `imageTaskCreated` is cancelled before the
+    /// pipeline gets to it, so it reports no start either.
+    @Test @ImagePipelineActor func cancellationFromTaskCreatedSkipsTheStart() async {
+        // Given
+        delegate.onTaskCreated = { $0.cancel() }
+
+        // When
+        let task = pipeline.imageTask(with: Test.request)
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // Then
+        #expect(delegate.events == [
+            ImageTaskEvent.created,
+            .cancelled
+        ])
+    }
+
     @Test func errorCompletionEventDelivered() async throws {
         // GIVEN a data loader that fails
         let error = URLError(.notConnectedToInternet)

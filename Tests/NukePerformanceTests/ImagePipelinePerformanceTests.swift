@@ -112,6 +112,23 @@ struct ImagePipelinePerformanceTests {
             }
         }
     }
+
+    @Test
+    func cancelImmediatelyPerformance() async {
+        let pipeline = makePipeline()
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        let task = pipeline.imageTask(with: request)
+                        task.cancel()
+                        _ = try? await task.response
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Never has the data, so every iteration downloads it again.

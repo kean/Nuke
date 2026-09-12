@@ -72,6 +72,42 @@ struct ImagePipelineTaskLifetimeTests {
         #expect(await pipeline.taskCount == 0)
     }
 
+    /// `cancel()` races the pipeline, which is starting the task on its actor,
+    /// for the task's lock. Whichever side gets it first, the task has to
+    /// finish and leave the list.
+    @Test func cancellationRacingTheStartIsNeverLost() async {
+        // Given a data loader that never finishes, so only the cancellation
+        // can finish a task
+        dataLoader.isSuspended = true
+
+        // When
+        let pipeline = self.pipeline
+        let cancelledCount = await withTaskGroup(of: Bool.self) { group in
+            for index in 0..<500 {
+                group.addTask {
+                    let task = pipeline.imageTask(with: URL(string: "https://example.com/image-\(index).jpeg")!)
+                    if index % 2 == 0 {
+                        await Task.yield()
+                    }
+                    task.cancel()
+                    do {
+                        _ = try await task.response
+                        return false
+                    } catch ImagePipeline.Error.cancelled {
+                        return true
+                    } catch {
+                        return false
+                    }
+                }
+            }
+            return await group.reduce(0) { $0 + ($1 ? 1 : 0) }
+        }
+
+        // Then
+        #expect(cancelledCount == 500)
+        #expect(await pipeline.taskCount == 0)
+    }
+
     // MARK: - Synchronous Completion
 
     @Test func taskIsRemovedOnMemoryCacheHit() async throws {
