@@ -66,7 +66,7 @@ struct ProgressiveDecodingDemo: View {
     }
 
     private static let info = DemoInfo(
-        "Progressive JPEG",
+        "Progressive Decoding",
         "A progressive JPEG is encoded as a series of scans, each one sharper than the last. With progressive decoding enabled, the pipeline delivers the scans as previews through the same task that delivers the final image.",
         code: """
         let pipeline = ImagePipeline {
@@ -99,7 +99,7 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
 
     /// A pipeline with progressive decoding enabled. The caches are disabled
     /// so that every run starts from scratch.
-    private let pipeline = ImagePipeline(delegate: DemoImagePipelineDelegate()) {
+    private let pipeline = DemoPipelineProbe.makePipeline("Progressive Decoding") {
         $0.dataLoader = ThrottledDataLoader()
         $0.imageCache = nil
         $0.isProgressiveDecodingEnabled = true

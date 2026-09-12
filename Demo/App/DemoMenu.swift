@@ -4,13 +4,22 @@
 
 import SwiftUI
 
-/// The demo catalog. The sections mirror the structure of the Nuke
-/// documentation: Essentials, Customization, and Performance.
+/// The demo catalog: the screens for adopting Nuke, in the order an app tends
+/// to need them rather than the order of the documentation, and one row at the
+/// bottom into the Lab.
+///
+/// The rows come from ``DemoScreen``, and every one of them pushes a
+/// ``DemoRoute`` rather than a view.
 struct DemoMenu: View {
+    /// Starts out holding the screen the app was launched on, if it was
+    /// launched on one – see ``DemoLaunchOptions``.
+    @State private var path: [DemoRoute] = DemoLaunchOptions.current.route?.stack ?? []
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    private let showsLab = DemoLaunchOptions.current.showsLab
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             if horizontalSizeClass == .regular {
                 // iPad: the logo takes the left pane, the catalog the right.
                 HStack(spacing: 0) {
@@ -38,71 +47,50 @@ struct DemoMenu: View {
                 }
                 .listRowBackground(Color.clear)
             }
-            sections
+            catalog
+            if showsLab {
+                lab
+            }
+        }
+        .demoDestinations()
+    }
+
+    /// The sections of the catalog that have screens in them.
+    private var catalog: some View {
+        let sections = DemoScreen.CatalogSection.allCases.filter { !$0.screens.isEmpty }
+        return ForEach(sections, id: \.self) { section in
+            Section {
+                ForEach(section.screens) { screen in
+                    DemoLink(screen)
+                }
+            } header: {
+                Text(section.title)
+            } footer: {
+                if !showsLab, section == sections.last {
+                    // With the Lab row left out, the page ends here.
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text(section.footer)
+                        pageFooter
+                    }
+                } else {
+                    Text(section.footer)
+                }
+            }
         }
     }
 
-    /// The three sections of the catalog.
-    @ViewBuilder private var sections: some View {
+    /// A single row, last, where it stays out of the way of someone adopting
+    /// Nuke. `-demoLab 0` leaves it out.
+    private var lab: some View {
         Section {
-            DemoLink("Image Pipeline", "Async/await, progress, cancellation") {
-                ImagePipelineDemo()
-            }
-            DemoLink("LazyImage", "The SwiftUI view and all of its options") {
-                LazyImageDemo()
-            }
-            DemoLink("UIImageView", "loadImage(with:into:) and cell reuse") {
-                ImageViewDemo()
-            }
-            DemoLink("LazyImageView", "The UIKit and AppKit view") {
-                LazyImageViewDemo()
-            }
-        } header: {
-            Text("Essentials")
+            DemoLink(.lab, title: "Lab", subtitle: "Instruments and stress rigs for working on Nuke")
         } footer: {
-            Text("The APIs you need for most apps: ImagePipeline, LazyImage, and the image view extensions.")
+            pageFooter
         }
+    }
 
-        Section {
-            DemoLink("Image Processing", "Resize, blur, circle, and custom processors") {
-                ImageProcessingDemo()
-            }
-            DemoLink("Image Formats", "JPEG, PNG, GIF, WebP, and MP4") {
-                ImageFormatsDemo()
-            }
-            DemoLink("Animated Images", "GIF, APNG, WebP, and HEIC with live diagnostics") {
-                AnimatedImagesDemo()
-            }
-            DemoLink("Animation Memory", "A wall of animations sharing one memory budget") {
-                AnimationMemoryDemo()
-            }
-            DemoLink("Progressive JPEG", "Progressive decoding side by side with baseline") {
-                ProgressiveDecodingDemo()
-            }
-            DemoLink("Pipeline Delegate", "Intercept requests and observe pipeline events") {
-                PipelineDelegateDemo()
-            }
-        } header: {
-            Text("Customization")
-        } footer: {
-            Text("Every stage of the pipeline is replaceable: data loading, decoding, processing, and caching.")
-        }
-
-        Section {
-            DemoLink("Prefetching", "ImagePrefetcher in UIKit and SwiftUI") {
-                PrefetchingDemo()
-            }
-            DemoLink("Caching", "Memory, HTTP, and aggressive disk cache") {
-                CachingDemo()
-            }
-            DemoLink("Stress Test", "Rate limiting and coalescing under pressure") {
-                StressTestDemo()
-            }
-        } header: {
-            Text("Performance")
-        } footer: {
-            Text("Nuke Demo · Documentation: kean-docs.github.io/nuke")
-        }
+    private var pageFooter: some View {
+        Text("Nuke Demo · Documentation: kean-docs.github.io/nuke")
     }
 }
 
@@ -124,24 +112,24 @@ private struct DemoLogoHeader: View {
     }
 }
 
-/// A menu row that pushes a demo screen.
-private struct DemoLink<Destination: View>: View {
+/// A menu row that pushes a screen, or the Lab: the title over a caption.
+struct DemoLink: View {
+    private let route: DemoRoute
     private let title: String
     private let subtitle: String
-    private let destination: () -> Destination
 
-    init(_ title: String, _ subtitle: String, @ViewBuilder destination: @escaping () -> Destination) {
+    init(_ screen: DemoScreen) {
+        self.init(.screen(screen), title: screen.title, subtitle: screen.subtitle)
+    }
+
+    init(_ route: DemoRoute, title: String, subtitle: String) {
+        self.route = route
         self.title = title
         self.subtitle = subtitle
-        self.destination = destination
     }
 
     var body: some View {
-        NavigationLink {
-            destination()
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-        } label: {
+        NavigationLink(value: route) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 Text(subtitle)

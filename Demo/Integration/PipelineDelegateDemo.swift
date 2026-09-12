@@ -103,7 +103,9 @@ private final class PipelineDelegateDemoModel: ObservableObject {
 
     init() {
         self.delegate = DemoPipelineDelegate(log: log)
-        self.pipeline = ImagePipeline(delegate: delegate) {
+        // The probe every demo pipeline has sits in front of this delegate and
+        // forwards every call to it.
+        self.pipeline = DemoPipelineProbe.makePipeline("Pipeline Delegate", delegate: delegate) {
             $0.imageCache = nil
             $0.dataLoader = DataLoader(configuration: {
                 let configuration = URLSessionConfiguration.ephemeral
@@ -162,8 +164,6 @@ private final class DemoPipelineDelegate: ImagePipeline.Delegate {
             case .failure(let error):
                 record("didReceiveEvent(.finished)", "\(name) · \(error)")
             }
-            // A pipeline with a delegate of its own forwards the record.
-            DemoImagePipelineDelegate.log(task)
         }
     }
 
