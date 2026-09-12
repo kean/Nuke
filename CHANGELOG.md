@@ -68,7 +68,7 @@
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
 - `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
 - `LazyImage` checks whether its request changed up to 5× faster on every body update when it keeps the same request – https://github.com/kean/Nuke/pull/969
-- `ImageTask/cancel()` no longer starts a task the pipeline hasn't started yet, 3.7× faster to create and cancel a task – https://github.com/kean/Nuke/pull/973
+- Creating and immediately cancelling an `ImageTask` is 3.7× faster – https://github.com/kean/Nuke/pull/973
 
 **Bug Fixes**
 
