@@ -48,7 +48,7 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         }
     }
 
-    private var _conf: Configuration {
+    @exclusivity(unchecked) private var _conf: Configuration {
         didSet { _trim() }
     }
 
@@ -64,8 +64,13 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         return map.count
     }
 
-    private var _totalCost = 0
-    private var map = [Key: LinkedList<Entry>.Node]()
+    // These and `_conf` are only accessed under `lock`, so the runtime
+    // exclusivity checks can't catch anything, and they cost a
+    // `swift_beginAccess` on every lookup. Moving the state into the lock's
+    // storage would drop them too, but put `map` on the cache line that
+    // contending threads write the lock word to.
+    @exclusivity(unchecked) private var _totalCost = 0
+    @exclusivity(unchecked) private var map = [Key: LinkedList<Entry>.Node]()
     private let list = LinkedList<Entry>()
     private let lock = OSAllocatedUnfairLock()
     private let memoryPressure: DispatchSourceMemoryPressure
