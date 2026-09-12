@@ -179,6 +179,29 @@ struct TaskTests {
         }
     }
 
+    // MARK: - Subscribers
+
+    @Test func containsImageTaskVisitsEverySubscriber() {
+        // Given a task with no subscribers
+        let pipeline = ImagePipeline()
+        let imageTask = ImageTask(taskId: 1, request: ImageRequest(url: Test.url), isDataTask: false, pipeline: pipeline, onEvent: nil)
+        let task = SimpleTask<Int, MyError>()
+        #expect(!task.containsImageTask { _ in true })
+
+        // When the first subscriber isn't an image task
+        _ = task.subscribe { _ in }
+        #expect(!task.containsImageTask { _ in true })
+
+        // When an image task is subscribed through another task
+        let child = SimpleTask<Int, MyError>()
+        _ = task.publisher.subscribe(child) { _, _ in }
+        _ = child.publisher.subscribe(subscriber: imageTask) { _ in }
+
+        // Then the walk finds it past the first subscriber
+        #expect(task.containsImageTask { $0 === imageTask })
+        #expect(!task.containsImageTask { $0 !== imageTask })
+    }
+
     // MARK: - Unsubscribe
 
     @Test func whenSubscriptionIsRemovedNoEventsAreSent() async {
@@ -548,10 +571,21 @@ private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
     }
 }
 
+/// A subscriber that isn't an image task. The tasks hold their subscribers
+/// weakly, so the tests share one that stays alive.
+@ImagePipelineActor
+private final class Observer: ImageTaskSubscribers {
+    static let shared = Observer()
+
+    func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
+        false
+    }
+}
+
 @ImagePipelineActor
 extension AsyncTask {
     func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-        publisher.subscribe(priority: priority, subscriber: "" as AnyObject, observer)
+        publisher.subscribe(priority: priority, subscriber: Observer.shared, observer)
     }
 }
 

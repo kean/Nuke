@@ -97,7 +97,11 @@ public final class TaskQueue: Sendable {
 
     private func drain() {
         guard !isSuspended else { return }
-        while runningCount < maxConcurrentTaskCount && pendingCount > 0 {
+        // The limit is settable from any thread, so every read takes a lock.
+        // Read it once: a limit raised mid-drain schedules a drain of its own,
+        // and one lowered mid-drain is no different from one lowered right after.
+        let limit = maxConcurrentTaskCount
+        while runningCount < limit && pendingCount > 0 {
             guard let operation = dequeueHighestPriority() else { break }
             execute(operation)
         }
