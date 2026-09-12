@@ -34,6 +34,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Lab
     case scrollStress = "scroll-stress"
     case animationMemory = "animation-memory"
+    case automation = "automation"
 
     var id: String { rawValue }
 
@@ -52,6 +53,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: "Pipeline Delegate"
         case .scrollStress: "Scroll Stress"
         case .animationMemory: "Animation Memory"
+        case .automation: "Automation"
         }
     }
 
@@ -71,6 +73,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: "Intercept requests and observe pipeline events"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationMemory: "A wall of animations sharing one memory budget"
+        case .automation: "Launch arguments and the id of every screen"
         }
     }
 
@@ -83,6 +86,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: .catalog(.integration)
         case .scrollStress: .lab(.stress)
         case .animationMemory: .lab(.animation)
+        case .automation: .lab(.rig)
         }
     }
 
@@ -104,6 +108,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: PipelineDelegateDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationMemory: AnimationMemoryDemo()
+        case .automation: AutomationDemo()
         }
     }
 }
