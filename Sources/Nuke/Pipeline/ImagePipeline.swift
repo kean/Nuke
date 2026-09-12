@@ -218,8 +218,8 @@ public final class ImagePipeline: Sendable {
         task._node = tasks.append(task)
         imageTaskDidStart(task, isDataTask: isDataTask)
         onTaskStarted?(task)
-        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
-            task?._process($0)
+        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) {
+            task._process($0)
         }
     }
 
