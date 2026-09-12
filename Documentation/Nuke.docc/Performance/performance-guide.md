@@ -149,9 +149,7 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 
 ## Measure
 
-If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
-
-To collect the same information in a shipping app, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
+To see how the system behaves, how long each operation takes, and how many are performed in parallel, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
 
 ```swift
 let pipeline = ImagePipeline {
@@ -248,6 +246,33 @@ final class Telemetry: ImagePipeline.Delegate, Sendable {
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
         guard case .finished = event, let metrics = task.metrics else { return }
         send(metrics) // Encode it with JSONEncoder, or print it
+    }
+}
+```
+
+### Instruments
+
+The diagnostics also emit an `os_signpost` interval for every stage of the timeline worth one, so the `os_signpost` Instrument shows the same timeline live, with the concurrency of every queue. The intervals are named after the stages – `diskLookup`, `willLoadData`, `download`, `diskStore`, `decode`, `process`, `decompress`, and a `Preview` variant of the last three – and each closes with the same words its row in the record ends with, such as `network · 317 KB · HTTP 200`. The memory cache is not traced: it is over in less time than an interval costs to emit.
+
+The intervals come with ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``: there is nothing else to turn on, and nothing is emitted unless something is recording them. Launching the app with `NUKE_DIAGNOSTICS_ENABLED` in the environment profiles a build that doesn't ask for the diagnostics in code. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
+
+The pipeline traces its own work, not yours. An interval for the whole load – the request the app made, rather than the download it turned into – is a few lines in the delegate:
+
+```swift
+private let signposter = OSSignposter(subsystem: "com.example.app", category: "Images")
+
+final class ImageSignposts: ImagePipeline.Delegate, Sendable {
+    @ImagePipelineActor private var intervals: [ImageTask.ID: OSSignpostIntervalState] = [:]
+
+    @ImagePipelineActor
+    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
+        intervals[task.id] = signposter.beginInterval("LoadImage", id: signposter.makeSignpostID())
+    }
+
+    @ImagePipelineActor
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
+        guard case .finished = event, let interval = intervals.removeValue(forKey: task.id) else { return }
+        signposter.endInterval("LoadImage", interval)
     }
 }
 ```

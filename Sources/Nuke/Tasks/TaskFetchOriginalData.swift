@@ -102,11 +102,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             self.resumableData = resumableData
         }
 
-        signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
-
         onCancelled = { [weak self] in
             guard let self else { return }
-            signpost(self, "LoadImageData", .end, "Cancelled")
             self.dataLoadTask?.cancel()
             self.dataLoadCancellable?.cancel()
             self.tryToSaveResumableData()
@@ -130,10 +127,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             diagnostics?.startStage(downloadStage)
             try await loadData(with: urlRequest, dataLoader: dataLoader)
 
-            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
             await dataTaskDidFinish()
         } catch {
-            signpost(self, "LoadImageData", .end, "Failed")
             if let error = error as? ImagePipeline.Error {
                 await dataTaskDidFinish(error: error)
             } else {
@@ -217,7 +212,6 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             if expectedSize > 0, expectedSize <= Int.max {
                 data.reserveCapacity(Int(expectedSize))
             }
-            signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
         }
         resumableData = nil // Get rid of resumable data
 

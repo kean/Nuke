@@ -204,6 +204,10 @@ extension ImagePipeline.Diagnostics {
         /// one created it.
         private var joins: [Join] = []
 
+        /// Publishes the stages to the Instruments app, and `nil` when
+        /// nothing was collecting them as the job started.
+        private let signposter: Signposter?
+
         var id: UInt64 { job.id }
 
         private struct Join {
@@ -214,6 +218,7 @@ extension ImagePipeline.Diagnostics {
 
         init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
             self.recorder = recorder
+            self.signposter = Signposter(request: request)
             self.job = Job(
                 id: id,
                 kind: kind,
@@ -265,8 +270,9 @@ extension ImagePipeline.Diagnostics {
             job.outcome = outcome
             job.error = error.map(ErrorSummary.init)
             // The work that was running is cancelled along with the job.
-            for index in job.stages.indices {
+            for index in job.stages.indices where job.stages[index].isRunning {
                 job.stages[index].end(at: now)
+                signposter?.end(job.stages[index], outcome.rawValue)
             }
         }
 
@@ -280,17 +286,28 @@ extension ImagePipeline.Diagnostics {
 
         /// Appends a stage and returns its index, which is stable: stages are
         /// never removed.
+        ///
+        /// - parameter isProgressive: Whether the stage works on a preview,
+        /// for the work that knows it upfront. The signpost interval is named
+        /// after it, so it can't wait until the stage ends.
         @discardableResult
-        func beginStage(_ kind: Stage.Kind, queued: Bool = false) -> Int {
+        func beginStage(_ kind: Stage.Kind, queued: Bool = false, isProgressive: Bool? = nil) -> Int {
             let now = recorder.now
-            job.stages.append(Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now))
-            return job.stages.count - 1
+            var stage = Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now)
+            stage.isProgressive = isProgressive
+            job.stages.append(stage)
+            let index = job.stages.count - 1
+            if !queued {
+                signposter?.begin(stage)
+            }
+            return index
         }
 
         /// The queued stage left its queue.
         func startStage(_ index: Int?) {
             guard let index else { return }
             job.stages[index].startedAt = recorder.now
+            signposter?.begin(job.stages[index])
         }
 
         func updateStage(_ index: Int?, _ update: (inout Stage) -> Void) {
@@ -301,10 +318,13 @@ extension ImagePipeline.Diagnostics {
         func endStage(_ index: Int?, _ update: (inout Stage) -> Void = { _ in }) {
             guard let index else { return }
             update(&job.stages[index])
+            guard job.stages[index].isRunning else { return } // The job ended it
             job.stages[index].end(at: recorder.now)
+            signposter?.end(job.stages[index])
         }
 
-        /// Records a stage that ran synchronously, from `start` to now.
+        /// Records a stage that ran synchronously, from `start` to now. It is
+        /// already over by the time it's recorded, so it opens no interval.
         func recordStage(_ kind: Stage.Kind, from start: ContinuousClock.Instant, _ update: (inout Stage) -> Void = { _ in }) {
             var stage = Stage(kind: kind, queuedAt: nil, startedAt: recorder.time(start))
             update(&stage)
@@ -322,10 +342,9 @@ extension ImagePipeline.Diagnostics {
             }
         }
 
-        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, context: ImageDecodingContext, workDuration: TimeInterval?) {
+        func endDecodeStage(_ index: Int?, result: Result<ImageResponse, ImagePipeline.Error>, decoder: any ImageDecoding, workDuration: TimeInterval?) {
             endStage(index) {
                 $0.decoder = diagnosticsTypeName(of: decoder)
-                $0.isProgressive = !context.isCompleted
                 $0.workDuration = workDuration
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
@@ -358,8 +377,11 @@ extension ImagePipeline.Diagnostics.Stage {
         format = container.type?.diagnosticsName
     }
 
-    /// Closes the stage, if it is running. A stage that never left its queue
-    /// has nothing to measure.
+    /// `true` between the moment the work starts and the moment it ends. A
+    /// stage that never left its queue never runs, and has nothing to measure.
+    var isRunning: Bool { startedAt != nil && duration == nil }
+
+    /// Closes the stage, if it is running.
     mutating func end(at now: TimeInterval) {
         guard let startedAt, duration == nil else { return }
         duration = max(0, now - startedAt)

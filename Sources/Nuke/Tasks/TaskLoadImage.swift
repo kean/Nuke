@@ -74,28 +74,25 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             return // Back pressure - already processing another progressive image
         }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
-        let stage = diagnostics?.beginStage(.process, queued: true)
+        let stage = diagnostics?.beginStage(.process, queued: true, isProgressive: !isCompleted)
         let isRecording = stage != nil
         operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground { () -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
-                let result = signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
-                    Result {
-                        var response = response
-                        response.container = try processor.process(response.container, context: context)
-                        return response
-                    }.mapError { error in
-                        ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
-                    }
+                let result = Result {
+                    var response = response
+                    response.container = try processor.process(response.container, context: context)
+                    return response
+                }.mapError { error in
+                    ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                 }
                 return (result, start.map { (ContinuousClock.now - $0).timeInterval })
             }
             self.operation = nil
             self.diagnostics?.endStage(stage) {
                 $0.processor = processor.identifier
-                $0.isProgressive = !isCompleted
                 $0.workDuration = workDuration
                 if case .success(let response) = result {
                     $0.setOutput(response.container)
@@ -128,21 +125,18 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         } else if operation != nil {
             return  // Back-pressure: receiving progressive scans too fast
         }
-        let stage = diagnostics?.beginStage(.decompress, queued: true)
+        let stage = diagnostics?.beginStage(.decompress, queued: true, isProgressive: !isCompleted)
         let isRecording = stage != nil
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
             let (response, workDuration) = await performInBackground { () -> (ImageResponse, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
-                let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
-                    self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
-                }
+                let response = self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 return (response, start.map { (ContinuousClock.now - $0).timeInterval })
             }
             self.operation = nil
             self.diagnostics?.endStage(stage) {
-                $0.isProgressive = !isCompleted
                 $0.workDuration = workDuration
                 $0.setOutput(response.container)
             }
@@ -192,9 +186,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
             guard let pipeline else { return }
             let data = await performInBackground {
-                signpost("EncodeImage") {
-                    encoder.encode(response.container, context: context)
-                }
+                encoder.encode(response.container, context: context)
             }
             guard let data, !data.isEmpty else { return }
             guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }
