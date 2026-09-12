@@ -674,6 +674,36 @@ struct ImagePipelineDiagnosticsTests {
         }
     }
 
+    // MARK: - Cache Key Digests
+
+    @Test func digestIsTheSameInEveryProcess() {
+        // Records from different runs are compared on these
+        #expect(diagnosticsDigest(of: "") == "4fd0bfc1")
+        #expect(diagnosticsDigest(of: "custom-key") == "30c58e0d")
+        #expect(diagnosticsDigest(of: "http://test.com/example.jpeg") == "0dc5ca88")
+    }
+
+    @Test func hexStringMatchesStringFormat() {
+        let values: [UInt32] = [
+            // Edges
+            0, 0x7fff_ffff, 0x8000_0000, UInt32.max,
+            // Leading zeros
+            0x1, 0xf, 0x10, 0xabc, 0x00c0_ffee, 0x0dc5_ca88,
+            // Random
+            0x4f2a_91c3, 0x9b0e_6d27, 0x3a7f_c014, 0xe52d_08b9, 0x61d8_f35a
+        ]
+        for value in values {
+            #expect(diagnosticsHexString(of: value) == String(format: "%08x", value))
+        }
+        // Every digit in every position
+        for position in 0..<8 {
+            for digit in 0..<UInt32(16) {
+                let value = digit << (4 * position)
+                #expect(diagnosticsHexString(of: value) == String(format: "%08x", value))
+            }
+        }
+    }
+
     // MARK: - Description
 
     @Test func descriptionPrintsTheHeader() async throws {
