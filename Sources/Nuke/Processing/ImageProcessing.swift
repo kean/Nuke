@@ -110,6 +110,25 @@ public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
     public var description: String { "Unknown" }
 }
 
+/// A processor's ``ImageProcessing/hashableIdentifier``, boxed once.
+///
+/// Asking a `Hashable` processor for its `hashableIdentifier` converts it to
+/// `AnyHashable`, which looks up the conformance at runtime, and comparing two
+/// `[any ImageProcessing]` does that for every element on both sides. The
+/// memory cache compares processors on every hit, so a request boxes them
+/// once, when they are set, and its keys compare these instead.
+struct ProcessorID: Hashable, Sendable {
+    // `AnyHashable` erases the `Sendable` conformance of whatever it wraps.
+    // Here it wraps what a processor returned – by default the processor
+    // itself or its identifier, both `Sendable` – and the keys carry it across
+    // isolation domains. It's immutable, so a lock would protect nothing.
+    nonisolated(unsafe) let value: AnyHashable
+
+    init(_ processor: any ImageProcessing) {
+        self.value = processor.hashableIdentifier
+    }
+}
+
 func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
     if lhs.isEmpty && rhs.isEmpty { return true }
     guard lhs.count == rhs.count else { return false }

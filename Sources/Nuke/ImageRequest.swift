@@ -493,6 +493,15 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// where the actual URL determines what gets fetched.
     var originalImageID: String? { ref.originalImageID }
 
+    /// ``processors``, each boxed into its identity when they were set.
+    var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
+
+    /// The hash of ``imageID``, computed when it was set.
+    var idHash: Int { ref.idHash }
+
+    /// The hash of ``originalImageID``, computed once.
+    var originalIDHash: Int { ref.originalIDHash }
+
     /// Returns `true` if both requests share the same storage, which makes them
     /// equal. `false` doesn't mean they are different.
     package func isIdentical(to other: ImageRequest) -> Bool {
@@ -516,9 +525,23 @@ extension ImageRequest {
         var scale: Float = 1.0
 
         // It is stored partially for performance reasons (`absoluteString` can be expensive to compute)
-        var originalImageID: String?
-        var customImageID: String?
-        var processors: [any ImageProcessing]
+        let originalImageID: String?
+        var customImageID: String? {
+            didSet { idHash = Container.makeIDHash(customImageID ?? originalImageID) }
+        }
+        var processors: [any ImageProcessing] {
+            didSet { processorsIdentity = Container.makeIdentity(processors) }
+        }
+
+        // Derived when the fields above are set, so that the keys the pipeline
+        // builds for the request don't derive them again: hashing an ID walks
+        // the string, and comparing processors boxes each of them on both
+        // sides. Eager rather than lazy: the container is only mutated while
+        // uniquely referenced, so there is nothing to synchronize.
+        private(set) var processorsIdentity: [ProcessorID]
+        private(set) var idHash: Int
+        let originalIDHash: Int
+
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
 
@@ -528,6 +551,10 @@ extension ImageRequest {
             self.priority = priority
             self.options = options
             self.originalImageID = originalImageID
+            self.processorsIdentity = Container.makeIdentity(processors)
+            let idHash = Container.makeIDHash(originalImageID)
+            self.idHash = idHash
+            self.originalIDHash = idHash
         }
 
         /// Creates a copy.
@@ -541,6 +568,21 @@ extension ImageRequest {
             self.customImageID = ref.customImageID
             self.scale = ref.scale
             self.thumbnail = ref.thumbnail
+            self.processorsIdentity = ref.processorsIdentity
+            self.idHash = ref.idHash
+            self.originalIDHash = ref.originalIDHash
+        }
+
+        private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ProcessorID] {
+            processors.isEmpty ? [] : processors.map(ProcessorID.init)
+        }
+
+        // `init` and both observers must agree, or a request whose `imageID`
+        // is reset would no longer find its own cache entries.
+        private static func makeIDHash(_ id: String?) -> Int {
+            var hasher = Hasher()
+            hasher.combine(id)
+            return hasher.finalize()
         }
     }
 

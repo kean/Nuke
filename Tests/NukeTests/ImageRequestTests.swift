@@ -125,6 +125,39 @@ struct ImageRequestCacheKeyTests {
         let rhs = ImageRequest(url: Test.url, processors: lhs.processors)
         assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
+
+    @Test func changingProcessorsChangesTheKey() {
+        var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+        let key = MemoryCacheKey(request)
+
+        request.processors = [MockImageProcessor(id: "2")]
+
+        #expect(MemoryCacheKey(request) != key)
+        assertHashableEqual(MemoryCacheKey(request), MemoryCacheKey(ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "2")])))
+    }
+
+    @Test func changingProcessorsOfCopyDoesNotChangeOriginalKey() {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+        let key = MemoryCacheKey(request)
+
+        var copy = request
+        copy.processors = []
+
+        #expect(MemoryCacheKey(copy) != key)
+        assertHashableEqual(MemoryCacheKey(request), key)
+        assertHashableEqual(MemoryCacheKey(copy), MemoryCacheKey(ImageRequest(url: Test.url)))
+    }
+
+    @Test func resettingImageIDRestoresTheKey() {
+        var request = ImageRequest(url: Test.url)
+        let key = MemoryCacheKey(request)
+
+        request.imageID = "custom"
+        #expect(MemoryCacheKey(request) != key)
+
+        request.imageID = nil
+        assertHashableEqual(MemoryCacheKey(request), key)
+    }
 }
 
 @Suite(.timeLimit(.minutes(5)))
@@ -228,7 +261,7 @@ struct ImageRequestImageIdTests {
     }
 
     @Test(.disabled()) func memoryLayout() {
-        #expect(ImageRequest._containerInstanceSize == 104)
+        #expect(ImageRequest._containerInstanceSize == 128)
 
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.stride == 12)
