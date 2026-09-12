@@ -174,6 +174,62 @@ struct ImagePipelineTaskLifetimeTests {
         #expect(weakTask == nil)
     }
 
+    @Test func cancelledTaskIsDeallocatedWhileTheJobItJoinedIsRunning() async throws {
+        // Given two tasks waiting for the same job, which is held in the queue
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+
+        // When one of them is cancelled
+        weak var weakTask1: ImageTask?
+        let task2: ImageTask
+        do {
+            let (task1, other) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+                (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+            }
+            weakTask1 = task1
+            task2 = other
+            task1.cancel()
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task1.response
+            }
+        }
+        await drainPipeline()
+
+        // Then it isn't retained by the job the other one still waits for
+        #expect(weakTask1 == nil)
+
+        pipeline.configuration.dataLoadingQueue.isSuspended = false
+        _ = try await task2.response
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func taskIsDeallocatedWhileTheJobItSharedIsStillRetained() async throws {
+        // Given a task that shares its job with a request that processes the
+        // job's result: the processing job retains the shared job until it
+        // finishes too, and the processing is held back
+        let processed = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+        pipeline.configuration.imageProcessingQueue.isSuspended = true
+
+        // When the shared job finishes
+        weak var weakTask: ImageTask?
+        let processedTask: ImageTask
+        do {
+            let (task, other) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+                (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: processed))
+            }
+            weakTask = task
+            processedTask = other
+            _ = try await task.response
+        }
+        await drainPipeline()
+
+        // Then the finished task isn't retained along with the shared job
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(weakTask == nil)
+
+        pipeline.configuration.imageProcessingQueue.isSuspended = false
+        _ = try await processedTask.response
+    }
+
     // MARK: - Events
 
     @Test func startedEventIsDeliveredBeforeFinishedOnMemoryCacheHit() async throws {
