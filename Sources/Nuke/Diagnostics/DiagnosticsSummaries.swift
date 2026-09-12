@@ -181,7 +181,19 @@ func diagnosticsDigest(of key: String) -> String {
         hash ^= UInt64(byte)
         hash &*= 0x0000_0100_0000_01b3
     }
-    return String(format: "%08x", UInt32(truncatingIfNeeded: hash &>> 32 ^ hash))
+    return diagnosticsHexString(of: UInt32(truncatingIfNeeded: hash &>> 32 ^ hash))
+}
+
+/// The value as eight lowercase hex digits, the same as `String(format: "%08x")`,
+/// written by hand: the format engine costs ten times as much as the hash.
+func diagnosticsHexString(of value: UInt32) -> String {
+    String(unsafeUninitializedCapacity: 8) { buffer in
+        for index in 0..<8 {
+            let nibble = UInt8(truncatingIfNeeded: value &>> (28 - 4 * index)) & 0xf
+            buffer[index] = nibble < 10 ? UInt8(ascii: "0") + nibble : UInt8(ascii: "a") + nibble - 10
+        }
+        return 8
+    }
 }
 
 /// The name of the type of the value without its module, such as

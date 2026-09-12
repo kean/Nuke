@@ -57,26 +57,36 @@ final class TaskLoadImageKey: Hashable, Sendable {
     private let loadKey: TaskFetchOriginalImageKey
     private let options: ImageRequest.Options
     private let processors: [any ImageProcessing]
+    // Computed once: the pool hashes a key on lookup, on insert, and again when
+    // the task is disposed, and hashing the fields walks the image ID.
+    private let _hashValue: Int
 
     init(_ request: ImageRequest) {
         self.loadKey = TaskFetchOriginalImageKey(request)
         self.options = request.options
         self.processors = request.processors
-    }
 
-    func hash(into hasher: inout Hasher) {
+        var hasher = Hasher()
         hasher.combine(loadKey)
         hasher.combine(options)
         hasher.combine(processors.count)
+        self._hashValue = hasher.finalize()
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(_hashValue)
     }
 
     static func == (lhs: TaskLoadImageKey, rhs: TaskLoadImageKey) -> Bool {
-        lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors
+        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors)
     }
 }
 
 /// Uniquely identifies a task of retrieving the original image.
 struct TaskFetchOriginalImageKey: Hashable {
+    // Declared first, so the synthesized `==` rejects on it before it compares
+    // the image IDs.
+    private let _hashValue: Int
     private let dataLoadKey: TaskFetchOriginalDataKey
     private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
@@ -85,11 +95,24 @@ struct TaskFetchOriginalImageKey: Hashable {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
         self.scale = request.scale
         self.thumbnail = request.thumbnail
+
+        var hasher = Hasher()
+        hasher.combine(dataLoadKey)
+        hasher.combine(scale)
+        hasher.combine(thumbnail)
+        self._hashValue = hasher.finalize()
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(_hashValue)
     }
 }
 
 /// Uniquely identifies a task of retrieving the original image data.
 struct TaskFetchOriginalDataKey: Hashable {
+    // Declared first, so the synthesized `==` rejects on it before it compares
+    // the image IDs.
+    private let _hashValue: Int
     private let imageId: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool
@@ -104,5 +127,15 @@ struct TaskFetchOriginalDataKey: Hashable {
             self.cachePolicy = urlRequest.cachePolicy
             self.allowsCellularAccess = urlRequest.allowsCellularAccess
         }
+
+        var hasher = Hasher()
+        hasher.combine(imageId)
+        hasher.combine(cachePolicy)
+        hasher.combine(allowsCellularAccess)
+        self._hashValue = hasher.finalize()
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(_hashValue)
     }
 }
