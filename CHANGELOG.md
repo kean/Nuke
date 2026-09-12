@@ -64,6 +64,7 @@
 
 **Performance**
 
+- `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` now has 7 slots and keeps one for requests with `.normal` or higher priority, so an image on screen shows up to 22% sooner while prefetching fills the queue – https://github.com/kean/Nuke/pull/981
 - `ImageCache` lookups are 6% faster – https://github.com/kean/Nuke/pull/975
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
 - `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
