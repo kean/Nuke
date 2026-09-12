@@ -76,7 +76,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         let stage = diagnostics?.beginStage(.process, queued: true)
         let isRecording = stage != nil
-        operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageProcessingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground { () -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) in
@@ -130,7 +130,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         }
         let stage = diagnostics?.beginStage(.decompress, queued: true)
         let isRecording = stage != nil
-        operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecompressingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             self.diagnostics?.startStage(stage)
             let (response, workDuration) = await performInBackground { () -> (ImageResponse, TimeInterval?) in

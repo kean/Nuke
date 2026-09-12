@@ -54,6 +54,12 @@ public final class TaskQueue: Sendable {
         }
     }
 
+    /// The number of slots that the work below the `.normal` priority – such as
+    /// prefetching – leaves free, so that the work added at a higher priority
+    /// never waits for it to finish. The low-priority work always gets at
+    /// least one slot.
+    nonisolated let reservedTaskCount: Int
+
     nonisolated private let _maxConcurrentTaskCount: OSAllocatedUnfairLock<Int>
     nonisolated private let _isSuspended = OSAllocatedUnfairLock(initialState: false)
 
@@ -71,16 +77,26 @@ public final class TaskQueue: Sendable {
     /// Initializes the queue.
     nonisolated public init(maxConcurrentTaskCount: Int = ProcessInfo.processInfo.processorCount) {
         self._maxConcurrentTaskCount = OSAllocatedUnfairLock(initialState: maxConcurrentTaskCount)
+        self.reservedTaskCount = 0
+    }
+
+    nonisolated init(maxConcurrentTaskCount: Int, reservedTaskCount: Int) {
+        self._maxConcurrentTaskCount = OSAllocatedUnfairLock(initialState: maxConcurrentTaskCount)
+        self.reservedTaskCount = reservedTaskCount
     }
 
     /// Adds work to the queue. The closure runs `@ImagePipelineActor`. The
     /// concurrency slot is freed when the closure returns.
     ///
+    /// The priority is passed here rather than set on the returned operation
+    /// because the work can start right away, and the priority decides whether
+    /// it may take a reserved slot.
+    ///
     /// If the work needs to be performed in a background, the caller needs to
     /// ensure that happens.
     @discardableResult
-    func add(_ work: @ImagePipelineActor @Sendable @escaping () async throws -> Void) -> TaskQueue.Operation {
-        let operation = TaskQueue.Operation(queue: self)
+    func add(priority: TaskPriority = .normal, _ work: @ImagePipelineActor @Sendable @escaping () async throws -> Void) -> TaskQueue.Operation {
+        let operation = TaskQueue.Operation(queue: self, priority: priority)
         operation.work = work
         enqueue(operation)
         return operation
@@ -101,14 +117,16 @@ public final class TaskQueue: Sendable {
         // Read it once: a limit raised mid-drain schedules a drain of its own,
         // and one lowered mid-drain is no different from one lowered right after.
         let limit = maxConcurrentTaskCount
+        let lowPriorityLimit = max(1, limit - reservedTaskCount)
         while runningCount < limit && pendingCount > 0 {
-            guard let operation = dequeueHighestPriority() else { break }
+            guard let operation = dequeueHighestPriority(isLowPriorityAllowed: runningCount < lowPriorityLimit) else { break }
             execute(operation)
         }
     }
 
-    private func dequeueHighestPriority() -> TaskQueue.Operation? {
-        for i in stride(from: buckets.count - 1, through: 0, by: -1) {
+    private func dequeueHighestPriority(isLowPriorityAllowed: Bool) -> TaskQueue.Operation? {
+        let lowest = isLowPriorityAllowed ? 0 : TaskPriority.normal.rawValue
+        for i in stride(from: buckets.count - 1, through: lowest, by: -1) {
             if let node = buckets[i].first {
                 buckets[i].remove(node)
                 node.value.node = nil
@@ -151,6 +169,10 @@ public final class TaskQueue: Sendable {
             buckets[operation.priority.rawValue].append(node)
         }
         onEvent?(.priorityChanged(operation))
+        // The work that is no longer low-priority can take a reserved slot.
+        if oldPriority < .normal && operation.priority >= .normal {
+            drain()
+        }
     }
 
     fileprivate func operationCancelled(_ operation: TaskQueue.Operation) {
@@ -190,8 +212,9 @@ public final class TaskQueue: Sendable {
         var onCancelled: (() -> Void)?
         var onPriorityChanged: ((TaskPriority) -> Void)?
 
-        init(queue: TaskQueue? = nil) {
+        init(queue: TaskQueue? = nil, priority: TaskPriority = .normal) {
             self.queue = queue
+            self.priority = priority
         }
 
         /// Cancels the operation. If the work hasn't started executing yet, it
