@@ -12,7 +12,8 @@ import SwiftUI
 ///
 /// `LazyImage` plays animated images on its own; this screen creates the
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
-/// The **Animation Memory** screen is the same thing for a wall of them.
+/// The **Animation Memory** screen in the Lab is the same thing for a wall of
+/// them.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
