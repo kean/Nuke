@@ -43,7 +43,8 @@ import OSLog
 ///
 /// Create pipelines with ``makePipeline(_:configuration:delegate:)``, then
 /// sample the figures on a timer: ``total`` for every pipeline,
-/// ``pipelines`` for each one alive, and ``diagnostics(for:)`` for one of them.
+/// ``pipelines`` for each one alive, ``diagnostics(for:)`` for one of them, and
+/// ``sampleCaches(for:)``, less often, for what the caches hold.
 ///
 /// A screen that needs a delegate of its own passes it in: the probe forwards
 /// every call to it and counts what it returns.
