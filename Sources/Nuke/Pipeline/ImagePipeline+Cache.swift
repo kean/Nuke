@@ -232,7 +232,16 @@ extension ImagePipeline.Cache {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return customKey
         }
-        return "\(request.imageID ?? "")\(request.thumbnail?.identifier ?? "")\(ImageProcessors.Composition(request.processors).identifier)"
+        // Appends to the image ID instead of interpolating the pieces, so the
+        // processor identifiers aren't joined into an intermediate string first.
+        var key = request.imageID ?? ""
+        if let thumbnail = request.thumbnail {
+            key += thumbnail.identifier
+        }
+        for processor in request.processors {
+            key += processor.identifier
+        }
+        return key
     }
 
     // MARK: Misc
