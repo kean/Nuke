@@ -98,6 +98,39 @@ struct ThreadSafetyTests {
         }
     }
 
+    /// Streams created on many threads while tasks finish – on a memory cache
+    /// hit, as the pipeline starts the task, or on a cancellation – each
+    /// receive the result the task finished with, exactly once.
+    @Test func imageTaskTerminalEventThreadSafety() async {
+        let dataLoader = MockDataLoader()
+        dataLoader.isSuspended = true
+        let imageCache = ImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        for index in 0..<200 {
+            // Given a request that is either in the memory cache or never loads
+            let request = ImageRequest(url: URL(string: "http://example.com/\(index).jpeg"))
+            let isCached = index.isMultiple(of: 2)
+            if isCached {
+                imageCache[request] = Test.container
+            }
+
+            // When the task finishes – cancelled, unless it's a cache hit –
+            // while streams are created for it
+            let (task, streams) = await makeStreamsAcrossTheTerminalEvent(of: request, in: pipeline, cancels: !isCached)
+
+            // Then
+            _ = try? await task.response
+            for stream in streams {
+                let received = await stream.reduce(into: [String]()) { $0.append(name(of: $1)) }
+                #expect(received == [isCached ? "success" : "cancelled"], "\(index)")
+            }
+        }
+    }
+
     @Test func prefetcherThreadSafety() {
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
@@ -459,5 +492,42 @@ private enum EventKey: Equatable {
         case .preview(let response): self = .preview(ObjectIdentifier(response.image))
         case .finished: self = .finished
         }
+    }
+}
+
+/// Creates a task and, right away, streams for it on several threads at once
+/// until each of them sees the task finish, and one more after that. With
+/// `cancels`, one of the threads cancels the task after its first stream.
+private func makeStreamsAcrossTheTerminalEvent(of request: ImageRequest, in pipeline: ImagePipeline, cancels: Bool) async -> (ImageTask, [AsyncStream<ImageTask.Event>]) {
+    await withCheckedContinuation { continuation in
+        DispatchQueue.global().async {
+            let task = pipeline.imageTask(with: request)
+            let streams = OSAllocatedUnfairLock<[AsyncStream<ImageTask.Event>]>(initialState: [])
+            DispatchQueue.concurrentPerform(iterations: 8) { thread in
+                for iteration in 0..<1000 {
+                    let isFinished = task.status.result != nil
+                    let stream = task.events
+                    streams.withLock { $0.append(stream) }
+                    if cancels && thread == 0 && iteration == 0 {
+                        task.cancel()
+                    }
+                    if isFinished {
+                        return
+                    }
+                }
+            }
+            continuation.resume(returning: (task, streams.withLock { $0 }))
+        }
+    }
+}
+
+/// The name of the event, telling apart only how the task finished.
+private func name(of event: ImageTask.Event) -> String {
+    switch event {
+    case .progress: "progress"
+    case .preview: "preview"
+    case .finished(.success): "success"
+    case .finished(.failure(.cancelled)): "cancelled"
+    case .finished(.failure): "failure"
     }
 }
