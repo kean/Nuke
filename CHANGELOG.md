@@ -65,6 +65,7 @@
 **Performance**
 
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
+- A memory cache hit is 12% faster – https://github.com/kean/Nuke/pull/974
 
 **Bug Fixes**
 
