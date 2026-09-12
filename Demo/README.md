@@ -65,6 +65,25 @@ screen for that API does the explaining.
 |--|--|--|
 | **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled |
 | **Animation Memory** | Animation | A wall of animations sharing one memory budget, and what happens when they don't all fit |
+| **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
+
+## Launch arguments
+
+A few launch arguments open the app in a known state, so a script can take a
+screenshot of any screen without tapping its way there. Pass them after the
+bundle id, or add them under Edit Scheme › Run › Arguments Passed On Launch:
+
+```bash
+xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab 0
+```
+
+| Argument | Does |
+|--|--|
+| `-demoScreen <id>` | Opens the app on a screen, with the menus it is reached through beneath it. `lab` is the Lab menu; an id that no screen has opens the catalog and logs why |
+| `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
+
+The **Automation** screen in the Lab lists every id. An id stays the same when a
+title changes.
 
 ## Diagnostics
 
@@ -87,7 +106,7 @@ Performance Guide.
 
 ```
 Demo
-├── App              The app, the catalog and Lab menus, and the screen registry
+├── App              The app, the catalog and Lab menus, the screen registry, and the launch arguments
 ├── Essentials       ImagePipeline, LazyImage, and the image views
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching and prefetching
