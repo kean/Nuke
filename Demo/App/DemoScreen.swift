@@ -13,8 +13,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Essentials
     case imagePipeline = "image-pipeline"
     case lazyImage = "lazy-image"
-    case imageView = "image-view"
-    case lazyImageView = "lazy-image-view"
+    case uikitViews = "uikit-views"
 
     // Processing & Formats
     case imageProcessing = "image-processing"
@@ -42,8 +41,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         switch self {
         case .imagePipeline: "Image Pipeline"
         case .lazyImage: "LazyImage"
-        case .imageView: "UIImageView"
-        case .lazyImageView: "LazyImageView"
+        case .uikitViews: "UIKit Views"
         case .imageProcessing: "Image Processing"
         case .imageFormats: "Image Formats"
         case .progressiveDecoding: "Progressive Decoding"
@@ -62,8 +60,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         switch self {
         case .imagePipeline: "Async/await, progress, cancellation"
         case .lazyImage: "The SwiftUI view and all of its options"
-        case .imageView: "loadImage(with:into:) and cell reuse"
-        case .lazyImageView: "The UIKit and AppKit view"
+        case .uikitViews: "loadImage(with:into:) next to LazyImageView"
         case .imageProcessing: "Resize, blur, circle, and custom processors"
         case .imageFormats: "JPEG, PNG, GIF, WebP, and MP4"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
@@ -79,7 +76,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     var placement: Placement {
         switch self {
-        case .imagePipeline, .lazyImage, .imageView, .lazyImageView: .catalog(.essentials)
+        case .imagePipeline, .lazyImage, .uikitViews: .catalog(.essentials)
         case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
         case .caching, .prefetching: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
@@ -97,8 +94,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         switch self {
         case .imagePipeline: ImagePipelineDemo()
         case .lazyImage: LazyImageDemo()
-        case .imageView: ImageViewDemo()
-        case .lazyImageView: LazyImageViewDemo()
+        case .uikitViews: UIKitViewsDemo()
         case .imageProcessing: ImageProcessingDemo()
         case .imageFormats: ImageFormatsDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
@@ -143,7 +139,7 @@ extension DemoScreen {
 
         var footer: String {
             switch self {
-            case .essentials: "The APIs you need for most apps: ImagePipeline, LazyImage, and the image view extensions."
+            case .essentials: "The APIs you need for most apps: ImagePipeline, LazyImage, and the image views for UIKit."
             case .requests: "What a request can ask of the pipeline, and what the pipeline does when many ask at once."
             case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
             case .cachingAndPerformance: "Where an image comes from the second time it's needed, and how to have it ready before the first."

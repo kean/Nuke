@@ -24,8 +24,7 @@ and the details worth knowing.
 |--|--|
 | **Image Pipeline** | `ImagePipeline.imageTask(with:)`, the event stream, progress, cancellation, and where the response came from |
 | **LazyImage** | The SwiftUI view: loading states, transitions, processors, priority, and completion |
-| **UIImageView** | `loadImage(with:options:into:)` in a collection view: cell reuse, placeholders, failure images, transitions |
-| **LazyImageView** | The UIKit view with its placeholder and failure views |
+| **UIKit Views** | `loadImage(with:options:into:)` next to `LazyImageView` in a collection view, on a picker: with the extension you own the placeholder, the failure image, and the transition; `LazyImageView` owns them. Cell reuse either way |
 
 ### Processing & Formats
 

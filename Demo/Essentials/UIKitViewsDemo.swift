@@ -6,34 +6,118 @@ import NukeUI
 import SwiftUI
 import UIKit
 
-/// Demonstrates ``LazyImageView`` – the UIKit and AppKit counterpart of
-/// ``LazyImage``. Unlike the `UIImageView` extensions, it manages the
-/// placeholder and failure views for you.
-struct LazyImageViewDemo: View {
+/// Demonstrates the two ways to load images in UIKit, one grid on each side of
+/// a picker: the `loadImage(with:options:into:)` extension on a plain
+/// `UIImageView`, and ``LazyImageView`` – the UIKit and AppKit counterpart of
+/// ``LazyImage``.
+///
+/// The difference is who owns the loading states. With the extension, you do:
+/// the placeholder, the failure image, and the transition come with every call.
+/// `LazyImageView` owns them, so a cell sets them once.
+struct UIKitViewsDemo: View {
+    private enum Kind: String, CaseIterable, Identifiable {
+        case imageView = "UIImageView"
+        case lazyImageView = "LazyImageView"
+
+        var id: Self { self }
+
+        var caption: LocalizedStringKey {
+            switch self {
+            case .imageView: "You own the states: every call passes the placeholder, failure image, and transition in `ImageLoadingOptions`."
+            case .lazyImageView: "The view owns the states: it shows its own placeholder and failure views, and reports the result in `onCompletion`."
+            }
+        }
+    }
+
+    @State private var kind: Kind = .imageView
+
     var body: some View {
-        ViewControllerView { LazyImageViewDemoViewController() }
-            .demoInfo(Self.info)
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Picker("View", selection: $kind) {
+                    ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+
+                Text(kind.caption)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+
+            // Only the selected grid exists. The other one is released, and its
+            // image views cancel whatever they were still loading as they go.
+            switch kind {
+            case .imageView:
+                ViewControllerView { ImageViewGridViewController() }
+            case .lazyImageView:
+                ViewControllerView { LazyImageViewGridViewController() }
+            }
+        }
+        .demoInfo(Self.info)
     }
 
     private static let info = DemoInfo(
-        "LazyImageView",
-        "`LazyImageView` is the UIKit and AppKit counterpart of `LazyImage`. Unlike the `UIImageView` extensions, it owns the placeholder and the failure view, so there is nothing to wire up for the loading states.",
+        "UIKit Views",
+        "Two ways to load images in UIKit, one on each side of the picker. `loadImage(with:options:into:)` works with any `UIImageView` and leaves the loading states to you. `LazyImageView`, the UIKit and AppKit counterpart of `LazyImage`, owns them: a cell sets them once and the view takes it from there.",
         code: """
-        let imageView = LazyImageView()
+        // You own the states
+        loadImage(with: request,
+                  options: options,
+                  into: cell.imageView)
+
+        // The view owns them
         imageView.placeholderView = spinner
         imageView.failureImage = warningImage
         imageView.url = url
         """,
         points: [
-            .init("Starting a request", "Setting `url` starts one. Setting `request` does the same with processors, priority, and options attached."),
-            .init("Reuse", "`reset()` cancels the request and clears the view, which is what a cell does before it is used again. Setting a new `url` does the same thing on its own."),
-            .init("Views, not images", "The placeholder and the failure view are real views, so they can animate or show progress."),
-            .init("Failure", "The first cell uses a URL that always fails.")
+            .init("You own the states", "`ImageLoadingOptions` carries the placeholder, the failure image, the transition, the content modes, and the tint colors. They are images rather than views, and they come with every call unless you set them once on `ImageLoadingOptions.shared`."),
+            .init("The view owns them", "`LazyImageView` shows its placeholder and failure view itself. They are real views, so they can animate or show progress, like the spinner here. `onStart`, `onProgress`, `onSuccess`, `onFailure`, and `onCompletion` report the rest."),
+            .init("Starting a request", "Every `loadImage` call starts one. Setting `url` on a `LazyImageView` starts one too, and setting `request` does the same with processors, priority, and options attached."),
+            .init("Reuse", "Nothing else is needed for cell reuse with either one: a new call, or a new `url`, removes the previous image and cancels the previous request. `reset()` does the same for a `LazyImageView` up front, which is what its cell does before it is used again."),
+            .init("Switching", "A request is cancelled when its view goes away. Switching the picker releases the other grid, and with it everything that grid was still loading."),
+            .init("Downsampling", "The `UIImageView` cells ask for the image at their own size. A bitmap of the full photo is many times larger, and it is the bitmap that the memory cache holds."),
+            .init("Failure", "The first cell of each grid uses a URL that always fails, which is what puts the failure image on screen.")
         ]
     )
 }
 
-private final class LazyImageViewDemoViewController: UICollectionViewController {
+// MARK: - UIImageView
+
+/// Loads with `loadImage(with:options:into:)`, and passes the placeholder, the
+/// failure image, and the transition along with every request.
+private final class ImageViewGridViewController: PhotoGridViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        itemsPerRow = 3
+        photos = [DemoImages.failing] + DemoImages.photos
+    }
+
+    override func makeLoadingOptions() -> ImageLoadingOptions {
+        var options = ImageLoadingOptions()
+        options.placeholder = UIImage(systemName: "photo")
+        options.failureImage = UIImage(systemName: "exclamationmark.triangle")
+        options.transition = .fadeIn(duration: 0.33)
+        options.contentModes = .init(success: .scaleAspectFill, failure: .center, placeholder: .center)
+        options.tintColors = .init(success: nil, failure: .systemRed, placeholder: .tertiaryLabel)
+        options.pipeline = pipeline
+        return options
+    }
+
+    override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {
+        // Downsampling the image to the size of the cell keeps the memory
+        // cache small: a bitmap of the original photo is many times larger.
+        ImageRequest(url: url, processors: [.resize(size: size)])
+    }
+}
+
+// MARK: - LazyImageView
+
+/// Gives every `LazyImageView` its placeholder, failure image, and transition
+/// once, when the cell is created, and after that only a URL.
+private final class LazyImageViewGridViewController: UICollectionViewController {
     private let photos = [DemoImages.failing] + DemoImages.photos
 
     init() {
