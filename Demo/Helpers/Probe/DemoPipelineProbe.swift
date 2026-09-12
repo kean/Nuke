@@ -2,28 +2,40 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import Nuke
+// The asynchronous decoders are found by a cast, which a wrapper would fail –
+// see `imageDecoder(for:pipeline:)`.
+@_spi(AsyncImageDecoding) import Nuke
 import OSLog
 
 // A probe on every pipeline the demo builds, with nothing in Nuke changed.
 //
 // `DemoPipelineProbe` is the pipeline's delegate. It forwards every call to the
-// delegate the screen passed in, or to the defaults, and counts on the way. The
-// pipeline does what it did without the probe: every argument and result is
-// passed on unchanged, and `willLoadData`, which holds a data loading slot
-// while it runs, gains no suspension.
+// delegate the screen passed in, or to the defaults, and counts on the way.
+// Where a hook returns something the pipeline works with – the data loader, the
+// decoder, the encoder, the caches – it returns the same thing behind a
+// decorator that counts what passes through. A `DataLoader` isn't wrapped: it
+// is heard through its session delegate instead (see `SessionObserver`). The
+// pipeline does what it did without the probe: the decorators pass on every
+// argument, result, and callback, and `willLoadData`, which holds a data
+// loading slot while it runs, gains no suspension.
 //
 // What the probe can't see:
 // - Work waiting in a queue. `TaskQueue` keeps its counts to itself, so a
-//   queue reports its public limit, and the work running only where the probe
-//   sees it start and end.
+//   queue reports the work the decorators see running, and its public limit.
 // - Processing. Processors come with the request, not from the delegate, and
 //   wrapping them would change the requests.
 // - `data(for:)` and prefetching into the disk cache. They run data tasks, which
-//   no task hook hears of.
-// - Memory cache hits without a task. NukeUI's views look the image up before
-//   they start a task, and a hit never becomes one.
+//   no task hook hears of; their downloads and disk reads are still counted.
+// - Memory cache hits without a task, beyond the ones on the main thread (see
+//   `DemoPipelineDiagnostics.memoryHitWithoutTaskCount`).
 // - The rate limiter. A download it holds back is counted once it starts.
+// - The decoders of a pipeline that records diagnostics. The record names the
+//   decoder's type, which a wrapper would replace, so they aren't wrapped and
+//   their times come from the finished tasks' metrics, without failures or a
+//   count in flight. The same goes for asynchronous decoders.
+// - Where a custom loader's data came from: only a `DataLoader` says `URLCache`.
+// - A `DataLoader` that already has a delegate. One that two pipelines share
+//   is counted by the probe of the first.
 
 /// The delegate of every pipeline the demo builds: it counts what the pipeline
 /// does, forwards every call to the delegate it wraps, and logs the record of
@@ -42,12 +54,24 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 
     private let counters: Counters
     private let base: any ImagePipeline.Delegate
+    private let imageCache: CountingImageCache?
+    /// `true` for a pipeline recording diagnostics, whose decoders aren't wrapped.
+    private let isRecordingDiagnostics: Bool
 
     private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?) {
+        let counters = Counters(label: label)
         self.label = label
         self.configuration = configuration
-        self.counters = Counters(label: label)
+        self.counters = counters
         self.base = delegate ?? DefaultDelegate()
+        self.imageCache = configuration.imageCache.map { CountingImageCache($0, counters: counters) }
+        self.isRecordingDiagnostics = configuration.isDiagnosticsEnabled
+
+        // The loader reads its delegate without a lock, so it is set before
+        // the pipeline exists and can start a download.
+        if let dataLoader = configuration.dataLoader as? DataLoader, dataLoader.delegate == nil {
+            dataLoader.delegate = SessionObserver(counters: counters)
+        }
     }
 
     // MARK: Creating Pipelines
@@ -93,6 +117,9 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         diagnostics.processingQueue.set(configuration.imageProcessingQueue)
         diagnostics.decompressingQueue.set(configuration.imageDecompressingQueue)
         diagnostics.encodingQueue.set(configuration.imageEncodingQueue)
+        if isRecordingDiagnostics {
+            diagnostics.decodingQueue.inFlightCount = nil
+        }
         return diagnostics
     }
 
@@ -210,11 +237,20 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     // MARK: ImagePipeline.Delegate
 
     func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
-        base.imageDecoder(for: context, pipeline: pipeline)
+        guard let decoder = base.imageDecoder(for: context, pipeline: pipeline) else {
+            return nil
+        }
+        // The pipeline records the type of the decoder, which a wrapper would
+        // replace, and finds an asynchronous decoder by a cast, which a wrapper
+        // would fail.
+        guard !isRecordingDiagnostics, !(decoder is any AsyncImageDecoding) else {
+            return decoder
+        }
+        return CountingDecoder(decoder, counters: counters)
     }
 
     func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
-        base.imageEncoder(for: context, pipeline: pipeline)
+        CountingEncoder(base.imageEncoder(for: context, pipeline: pipeline), counters: counters)
     }
 
     func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
@@ -223,7 +259,13 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         counters.downloadRequested()
-        return base.dataLoader(for: request, pipeline: pipeline)
+        let dataLoader = base.dataLoader(for: request, pipeline: pipeline)
+        // Wrapped, a `DataLoader` would lose the `URLSession` metrics the
+        // pipeline records. Its session delegate counts it instead.
+        guard !(dataLoader is DataLoader) else {
+            return dataLoader
+        }
+        return CountingDataLoader(dataLoader, counters: counters)
     }
 
     @ImagePipelineActor
@@ -232,11 +274,19 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     }
 
     func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
-        base.imageCache(for: request, pipeline: pipeline)
+        guard let cache = base.imageCache(for: request, pipeline: pipeline) else {
+            return nil
+        }
+        if let imageCache, imageCache.base === cache {
+            return imageCache
+        }
+        return CountingImageCache(cache, counters: counters)
     }
 
     func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
-        base.dataCache(for: request, pipeline: pipeline)
+        base.dataCache(for: request, pipeline: pipeline).map {
+            CountingDataCache(base: $0, counters: counters)
+        }
     }
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
@@ -283,6 +333,9 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
             counters.taskFinished(task, with: result)
             if let metrics = task.metrics {
                 Self.log(metrics)
+                if isRecordingDiagnostics {
+                    counters.recordDecodes(from: metrics)
+                }
             }
         }
         base.imageTask(task, didReceiveEvent: event, pipeline: pipeline)
