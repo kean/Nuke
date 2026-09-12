@@ -18,30 +18,15 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
     private final class Subscription {
         let closure: (Event) -> Void
-        /// An image task is retained. A weak reference would move its reference
-        /// count to a side table for the rest of its life, which puts every
-        /// retain and release of it on the slow path. The task retains the job
-        /// back through its `TaskSubscription`, and the cycle ends with either
-        /// side: the task unsubscribes, or the job sends the terminal event.
-        let imageTask: ImageTask?
-        /// A job is not: it retains its dependency until it is deallocated
-        /// rather than until it finishes. The protocol and not `AnyObject`:
-        /// walking the subscribers is then a witness call rather than a
-        /// conditional cast, which has the runtime search the protocol
-        /// conformance tables.
-        weak var job: (any ImageTaskSubscribers)?
+        // The protocol and not `AnyObject`: walking the subscribers is then a
+        // witness call rather than a conditional cast, which has the runtime
+        // search the protocol conformance tables.
+        weak var subscriber: (any ImageTaskSubscribers)?
         var priority: TaskPriority
-
-        var subscriber: (any ImageTaskSubscribers)? { imageTask ?? job }
 
         init(closure: @escaping (Event) -> Void, subscriber: any ImageTaskSubscribers, priority: TaskPriority) {
             self.closure = closure
-            if let imageTask = subscriber as? ImageTask {
-                self.imageTask = imageTask
-            } else {
-                self.imageTask = nil
-                self.job = subscriber
-            }
+            self.subscriber = subscriber
             self.priority = priority
         }
     }
@@ -224,13 +209,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             for entry in subscriptions {
                 entry.sub.closure(event)
             }
-        }
-        if isDisposed {
-            // Nothing is sent after the terminal event: release the
-            // subscriptions and the image tasks they retain, which a job that
-            // depends on this one would otherwise keep until it finishes too.
-            inlineSubscription = nil
-            subscriptions = nil
         }
     }
 
