@@ -139,6 +139,22 @@ final class ImageView: UIView {
 }
 ```
 
+## Data Loading Slots
+
+Prefetching and the images on screen share ``ImagePipeline/Configuration-swift.struct/dataLoadingQueue``, which runs up to 6 downloads at a time. A download that has started can't be interrupted, so the requests with a priority lower than `.normal` run in at most 3 of the slots, and an image on screen starts loading right away even when prefetching is busy.
+
+The limit, ``TaskQueue/reservedTaskCount``, only matters when there is more low-priority work than it allows: an ``ImagePrefetcher`` with `maxConcurrentRequestCount` above 3 (the default is 2), several prefetchers at once, or requests that you start or lower to `.low` or `.veryLow`. When an image appears on screen while it's still being prefetched, its download gets the higher priority and frees its slot.
+
+Reserving more slots gets the images on screen sooner, but slows prefetching down when it has more work than slots. Reserve 4 for large images, such as a feed or a gallery, and 0–2 if prefetching has to keep up with fast scrolling through thumbnails.
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6, reservedTaskCount: 4)
+}
+```
+
+> Tip: To see whether the images on screen wait for a slot, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled`` and check the ``ImageTask/Metrics/Category/queue`` share of their ``ImageTask/Metrics/timeShares``.
+
 ## Rate Limiting
 
 If the app starts and cancels requests at a fast rate, the pipeline will rate limit the requests, protecting `URLSession`. `RateLimiter` uses a classic [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. The implementation supports quick bursts of requests which can be executed without any delays when "the bucket is full". It is important to make sure `RateLimiter` only kicks in when needed, but when the user opens the screen, all the requests are fired immediately.
