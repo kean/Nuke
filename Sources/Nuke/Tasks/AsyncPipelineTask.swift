@@ -53,7 +53,7 @@ extension AsyncPipelineTask {
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
             let stage = diagnostics?.beginStage(.decode, queued: true)
-            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+            operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
                 self?.diagnostics?.startStage(stage)
                 let start: ContinuousClock.Instant? = stage != nil ? .now : nil
                 let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
@@ -86,7 +86,7 @@ extension AsyncPipelineTask {
             return completion(result)
         }
         let stage = diagnostics?.beginStage(.decode, queued: true)
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
             self?.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground(decode)
             self?.operation = nil
