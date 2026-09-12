@@ -234,7 +234,7 @@ public final class ImagePipeline: Sendable {
     private func removeTask(_ task: ImageTask) {
         guard let node = task._node else { return }
         tasks.remove(node)
-        task._node = nil
+        task._node = nil // Break the retain cycle
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {

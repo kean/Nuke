@@ -254,7 +254,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
-    @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
+    /// Retains the node that retains the task: `removeTask` breaks the cycle
+    /// when it takes the task off the list. A weak reference would give every
+    /// node a side table.
+    @ImagePipelineActor var _node: LinkedList<ImageTask>.Node?
 
     init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
         self.taskId = taskId
