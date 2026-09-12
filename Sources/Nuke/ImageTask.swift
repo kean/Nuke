@@ -212,11 +212,12 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// iterating both ``progress`` and ``previews`` creates two subscriptions –
     /// store the stream in a variable if you want a single subscription.
     ///
-    /// A stream always ends with the terminal ``Event/finished(_:)`` event.
-    /// Subscribing is safe at any point in the task lifetime: a stream created
-    /// after the task has already finished replays the terminal event, and a
-    /// stream created mid-download starts with the current
-    /// ``Event/progress(_:)`` value, if any.
+    /// A stream always ends with the terminal ``Event/finished(_:)`` event and
+    /// receives every event sent after it is created. Subscribing is safe at
+    /// any point in the task lifetime: a stream created after the task has
+    /// already finished replays the terminal event, and a stream created
+    /// mid-download starts with the current ``Event/progress(_:)`` value, if
+    /// any.
     ///
     /// - note: A stream buffers the events that the consumer hasn't picked up
     /// yet, so a slow consumer never misses one.
@@ -251,7 +252,9 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
-    @ImagePipelineActor var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+    /// Guarded by the lock of `_status` rather than by the pipeline actor, so
+    /// that a stream is registered before `events` returns, without a hop.
+    nonisolated(unsafe) private var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
@@ -333,7 +336,6 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
                 _dispatch(.preview(response))
             }
         case let .progress(value):
-            _status.withLock { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
             _finish(.failure(error))
@@ -356,25 +358,40 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
             return // Task isn't fully wired yet
         }
 
-        // Record the result first so that it is already visible to everyone
-        // observing the terminal event.
-        if case .finished(let result) = event {
+        // Record the state the event changes and read the streams in one
+        // critical section. `makeStream` reads that state and registers a
+        // stream under the same lock, so a stream created concurrently either
+        // starts from this state or receives this event – never both, and
+        // never neither.
+        let continuations: ContiguousArray<AsyncStream<Event>.Continuation>
+        switch event {
+        case .progress(let progress):
+            continuations = _status.withLock {
+                $0.progress = progress
+                return _streamContinuations
+            }
+        case .preview:
+            continuations = _status.withLock { _ in _streamContinuations }
+        case .finished(let result):
+            // Record the result first so that it is already visible to everyone
+            // observing the terminal event. A stream created after that replays
+            // it instead of registering, so the list is taken.
             let metrics = _diagnostics?.finish(with: result)
             _diagnostics = nil
-            _status.withLock {
+            continuations = _status.withLock {
                 $0.result = result
                 $0.metrics = metrics
+                return exchange(&_streamContinuations, with: [])
             }
         }
-        for continuation in _streamContinuations {
+        for continuation in continuations {
             continuation.yield(event)
         }
         switch event {
         case .finished(let result):
-            for continuation in _streamContinuations {
+            for continuation in continuations {
                 continuation.finish()
             }
-            _streamContinuations.removeAll()
             _continuation?.resume(returning: result)
         default:
             break
@@ -420,26 +437,25 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
 extension ImageTask {
     /// Creates a new stream of events for this task.
     ///
-    /// A subscription reaches the pipeline actor asynchronously, so the task
-    /// can finish before it is registered – a memory cache hit, for example,
-    /// finishes the task while the pipeline is still starting it. To make sure
-    /// no subscriber misses the outcome, a stream created after the task
-    /// finished replays the terminal event recorded in ``Status/result``.
+    /// The stream is registered before it is returned, under the lock that
+    /// `_dispatch` takes to record an event, so it receives every event sent
+    /// after it was created. A stream created after the task finished replays
+    /// the terminal event recorded in ``Status/result`` instead.
     private func makeStream() -> AsyncStream<Event> {
         AsyncStream { continuation in
-            Task { @ImagePipelineActor in
-                let status = self.status
+            _status.withLock { status in
                 if let result = status.result {
                     continuation.yield(.finished(result))
                     return continuation.finish()
                 }
                 // Prime the stream with the progress reported so far so that a
                 // progress bar attached mid-download doesn't sit at zero until
-                // the next chunk arrives.
+                // the next chunk arrives. It's sent under the lock to be ahead
+                // of the events the pipeline sends once the stream is registered.
                 if status.progress.completed > 0 || status.progress.total > 0 {
                     continuation.yield(.progress(status.progress))
                 }
-                self._streamContinuations.append(continuation)
+                _streamContinuations.append(continuation)
             }
         }
     }
