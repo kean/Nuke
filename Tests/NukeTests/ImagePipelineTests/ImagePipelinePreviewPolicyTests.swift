@@ -24,7 +24,7 @@ struct ImagePipelinePreviewPolicyTests {
 
         // WHEN loading the image and collecting previews
         let task = pipeline.imageTask(with: Test.url)
-        let stream = await task.subscribedPreviews()
+        let stream = task.previews
         dataLoader.resume()
         var previews: [ImageResponse] = []
         for try await preview in stream {
@@ -108,7 +108,7 @@ struct ImagePipelinePreviewPolicyTests {
 
         // WHEN loading the image
         let task = pipeline.imageTask(with: Test.url)
-        let stream = await task.subscribedPreviews()
+        let stream = task.previews
         dataLoader.resume()
         var previews: [ImageResponse] = []
         for try await preview in stream {
