@@ -130,5 +130,5 @@ Demo
 ├── Integration      The pipeline delegate
 ├── Lab              Stress rigs and instruments for working on Nuke
 ├── Helpers          Shared views, the pipeline probe and HUD, demo URLs, and a few small utilities
-└── Resources        The app icon, the logo, and a bundled animation
+└── Resources        The app icon, the logo, a bundled animation, and the photo stream's URLs
 ```
