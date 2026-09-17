@@ -298,7 +298,7 @@ private final class Load: Cancellable, Sendable {
     }
 
     func start() {
-        let latency = plan.latency.seconds
+        let latency = plan.latency.demoTimeInterval
         DemoConditionedDataLoader.record { statistics in
             statistics.loadCount += 1
             statistics.inFlightCount += 1
@@ -429,7 +429,7 @@ private final class Load: Cancellable, Sendable {
             let arrivedAt = ContinuousClock.now
             let deadline = DemoConditionedDataLoader.reserveLink(byteCount: end - offset, bandwidth: bandwidth)
             try await Task.sleep(until: deadline, clock: .continuous)
-            let wait = (deadline - arrivedAt).seconds
+            let wait = (deadline - arrivedAt).demoTimeInterval
             DemoConditionedDataLoader.record { $0.bandwidthWait += wait }
             guard send(data[offset..<end], response) else { return }
             offset = end
@@ -488,11 +488,5 @@ private final class Load: Cancellable, Sendable {
             case .cancelled: statistics.cancelledCount += 1
             }
         }
-    }
-}
-
-extension Duration {
-    fileprivate var seconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

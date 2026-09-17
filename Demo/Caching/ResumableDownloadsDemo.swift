@@ -533,7 +533,7 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
         }
 
         var duration: TimeInterval? {
-            endedAt.map { seconds(startedAt.duration(to: $0)) }
+            endedAt.map { startedAt.duration(to: $0).demoTimeInterval }
         }
 
         /// What the pipeline keeps of the attempt if it ends now, by the
@@ -1009,11 +1009,6 @@ private final class Wire: Sendable {
 /// The color of an attempt, in the bar and in the list.
 private func attemptColor(_ number: Int) -> Color {
     [Color.blue, .green, .orange, .purple, .pink, .teal][(number - 1) % 6]
-}
-
-private func seconds(_ duration: Duration) -> TimeInterval {
-    let (seconds, attoseconds) = duration.components
-    return Double(seconds) + Double(attoseconds) / 1e18
 }
 
 /// "1 attempt", "2 attempts".

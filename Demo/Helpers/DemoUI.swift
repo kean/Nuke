@@ -288,6 +288,15 @@ func demoByteCount(_ count: Int) -> String {
     demoByteCount(Int64(count))
 }
 
+extension Duration {
+    /// The duration in seconds, which is what the demo's figures and
+    /// formatters take: a clock reading is a `Duration`, a figure a
+    /// `TimeInterval`.
+    var demoTimeInterval: TimeInterval {
+        Double(components.seconds) + Double(components.attoseconds) / 1e18
+    }
+}
+
 /// Embeds a `UIViewController` in SwiftUI. The demo uses it to show the
 /// UIKit screens in the same navigation stack as the SwiftUI ones.
 struct ViewControllerView<ViewController: UIViewController>: UIViewControllerRepresentable {

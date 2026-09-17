@@ -228,7 +228,7 @@ final class AnimationLabModel {
             var fps = self.samples[cell.id]?.framesPerSecond
             if readsFrameRate {
                 if let mark = fpsMarks[cell.id] {
-                    let seconds = (now - mark.time).seconds
+                    let seconds = (now - mark.time).demoTimeInterval
                     fps = seconds > 0 ? Double(diagnostics.displayedFrameCount - mark.frames) / seconds : nil
                 }
                 fpsMarks[cell.id] = (diagnostics.displayedFrameCount, now)
@@ -585,7 +585,7 @@ final class AnimationLabModel {
 
     private func advanceSoak(now: ContinuousClock.Instant) {
         guard var soak else { return }
-        let elapsed = min(Soak.duration, (now - soak.startedAt).seconds)
+        let elapsed = min(Soak.duration, (now - soak.startedAt).demoTimeInterval)
         let previous = soak.elapsed
         soak.elapsed = elapsed
         let counts = recordSoakCounts()
@@ -806,10 +806,4 @@ private func demoDrawnFrame(_ frame: CGImage, _ draw: (CGContext, CGRect) -> Voi
     let rect = CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
     draw(context, rect)
     return context.makeImage()
-}
-
-extension Duration {
-    fileprivate var seconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
-    }
 }

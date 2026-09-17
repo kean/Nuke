@@ -183,7 +183,7 @@ final class DataCacheTorture: Sendable {
     var progress: Progress {
         state.withLock { state in
             Progress(
-                elapsed: state.start.map { (clock.now - $0).timeInterval } ?? 0,
+                elapsed: state.start.map { (clock.now - $0).demoTimeInterval } ?? 0,
                 step: state.step,
                 samples: state.samples,
                 sweeps: state.sweeps
@@ -389,9 +389,9 @@ final class DataCacheTorture: Sendable {
         for time in Self.manualSweepTimes {
             try? await Task.sleep(until: start + .milliseconds(Int(time * 1000)), clock: clock)
             guard !Task.isCancelled, time < TimeInterval(seconds) else { return }
-            let startedAt = (clock.now - start).timeInterval
+            let startedAt = (clock.now - start).demoTimeInterval
             let duration = await measure { await cache.sweep() }
-            let endedAt = (clock.now - start).timeInterval
+            let endedAt = (clock.now - start).demoTimeInterval
             let allocated = cache.totalAllocatedSize
             let sweep = Report.ManualSweep(startedAt: startedAt, endedAt: endedAt, duration: duration, allocatedAfter: allocated)
             state.withLock { $0.manualSweeps.append(sweep) }
@@ -405,7 +405,7 @@ final class DataCacheTorture: Sendable {
             let date = Self.lastSweepDate(at: metadataURL)
             state.withLock { state in
                 guard let start = state.start else { return }
-                let time = (clock.now - start).timeInterval
+                let time = (clock.now - start).demoTimeInterval
                 state.samples.append(.init(time: time, value: Double(size)))
                 if let date, date != state.lastSweepDate {
                     state.lastSweepDate = date
@@ -501,7 +501,7 @@ final class DataCacheTorture: Sendable {
         let start = clock.now
         // After a Stop too: the directory goes next.
         let isReleased = await demoWait(timeout: .seconds(3), whenCancelled: .keepWaiting) { released == nil }
-        let releasedAfter = isReleased ? (clock.now - start).timeInterval : nil
+        let releasedAfter = isReleased ? (clock.now - start).demoTimeInterval : nil
         try? FileManager.default.removeItem(at: Self.parentDirectory)
         let isRemoved = !FileManager.default.fileExists(atPath: directory.path)
         note(releasedAfter.map { "cache released after \(tortureDuration($0))" } ?? "cache still alive after 3 s")
@@ -578,7 +578,7 @@ final class DataCacheTorture: Sendable {
 
     private func note(_ text: String) {
         state.withLock { state in
-            let time = state.start.map { (clock.now - $0).timeInterval } ?? 0
+            let time = state.start.map { (clock.now - $0).demoTimeInterval } ?? 0
             state.log.append(.init(id: state.log.count, time: time, text: text))
         }
     }
@@ -590,7 +590,7 @@ final class DataCacheTorture: Sendable {
     private func measure(_ body: () async -> Void) async -> TimeInterval {
         let start = clock.now
         await body()
-        return (clock.now - start).timeInterval
+        return (clock.now - start).demoTimeInterval
     }
 }
 
@@ -692,7 +692,7 @@ extension DataCacheTorture {
                 }
             }
             if let start, let last = samples.last {
-                spans.append(Span(start: start, duration: last.time - start + DataCacheTorture.sampleInterval.timeInterval))
+                spans.append(Span(start: start, duration: last.time - start + DataCacheTorture.sampleInterval.demoTimeInterval))
             }
             return spans
         }
@@ -1040,7 +1040,7 @@ enum ImageCacheTorture {
                 }
             }
         }
-        let duration = (clock.now - start).timeInterval
+        let duration = (clock.now - start).demoTimeInterval
         let figures = shared.withLock { $0 }
         let inserts = writerCount * insertsPerWriter
         log.append("\(inserts) inserts from \(writerCount) threads in \(demoDuration(duration)); \(figures.reads) reads, \(figures.trims) trims, \(figures.removeAlls) removeAll(); \(figures.samples) samples, max \(figures.maxCost) B / \(figures.maxCount)")
@@ -1174,12 +1174,5 @@ private struct TortureRandom {
     /// A number from 0 up to `bound`.
     mutating func next(_ bound: Int) -> Int {
         Int(nextRaw() % UInt64(bound))
-    }
-}
-
-extension Duration {
-    /// In seconds.
-    fileprivate var timeInterval: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

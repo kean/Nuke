@@ -333,7 +333,7 @@ private struct CallTimeline: View {
     private func draw(in context: inout GraphicsContext, size: CGSize, span: Duration, end: Duration) {
         let baseline = size.height - 4
         func x(_ time: Duration) -> CGFloat {
-            min(size.width - 3, 3 + (size.width - 6) * CGFloat(demoSeconds(time) / demoSeconds(span)))
+            min(size.width - 3, 3 + (size.width - 6) * CGFloat(time.demoTimeInterval / span.demoTimeInterval))
         }
         var line = Path()
         line.move(to: CGPoint(x: 0, y: baseline))
@@ -1258,19 +1258,14 @@ private func demoErrorDescription(_ error: any Error) -> String {
     }
 }
 
-private func demoSeconds(_ duration: Duration) -> Double {
-    let (seconds, attoseconds) = duration.components
-    return Double(seconds) + Double(attoseconds) / 1e18
-}
-
 /// "+1.24 s".
 private func demoTime(_ duration: Duration, sign: Bool = true) -> String {
-    (sign ? "+" : "") + String(format: "%.2f s", demoSeconds(duration))
+    (sign ? "+" : "") + String(format: "%.2f s", duration.demoTimeInterval)
 }
 
 /// "4 ms", "0.3 ms", "2.1 s".
 private func demoDelay(_ duration: Duration) -> String {
-    let seconds = demoSeconds(duration)
+    let seconds = duration.demoTimeInterval
     switch seconds {
     case ..<0.001: return String(format: "%.1f ms", seconds * 1000)
     case ..<1: return String(format: "%.0f ms", seconds * 1000)

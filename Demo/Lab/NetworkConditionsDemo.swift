@@ -175,8 +175,7 @@ struct NetworkConditionsDemo: View {
 
     private func milliseconds(_ duration: Binding<Duration>) -> Binding<Double> {
         Binding {
-            let components = duration.wrappedValue.components
-            return Double(components.seconds) * 1000 + Double(components.attoseconds) / 1e15
+            duration.wrappedValue.demoTimeInterval * 1000
         } set: {
             duration.wrappedValue = .milliseconds($0)
         }

@@ -1327,6 +1327,6 @@ private func counted(_ count: Int, _ noun: String) -> String {
 }
 
 private func milliseconds(_ duration: Duration) -> String {
-    let milliseconds = Double(duration.components.seconds) * 1000 + Double(duration.components.attoseconds) / 1e15
+    let milliseconds = duration.demoTimeInterval * 1000
     return milliseconds < 10 ? String(format: "%.2f ms", milliseconds) : String(format: "%.0f ms", milliseconds)
 }

@@ -452,7 +452,7 @@ final class TortureRecorder: Sendable {
     }
 
     static func format(_ duration: Duration) -> String {
-        tortureDuration(duration.seconds)
+        tortureDuration(duration.demoTimeInterval)
     }
 }
 
@@ -481,12 +481,6 @@ extension TortureTaskLog {
     /// The task, as a log line names it.
     var summary: String {
         [key.description, kind.title, api.title, point.map { "cancel \($0.title)" } ?? "kept"].joined(separator: " · ")
-    }
-}
-
-extension Duration {
-    fileprivate var seconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }
 

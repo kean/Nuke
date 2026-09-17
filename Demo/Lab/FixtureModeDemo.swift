@@ -79,7 +79,7 @@ struct FixtureModeDemo: View {
                 size: made.isEmpty ? nil : demoByteCount(byteCount),
                 figures: made.isEmpty
                     ? "not made yet"
-                    : "\(made.count) of \(fixtures.count) made · \(average.milliseconds) avg · \((durations.max() ?? .zero).milliseconds) max"
+                    : "\(made.count) of \(fixtures.count) made · \(demoMilliseconds(average.demoTimeInterval)) avg · \(demoMilliseconds((durations.max() ?? .zero).demoTimeInterval)) max"
             )
         } header: {
             Text("Photos")
@@ -121,7 +121,7 @@ struct FixtureModeDemo: View {
         guard let record = records[fixture] else {
             return "not made yet"
         }
-        var parts = [record.isBundled ? "read in \(record.duration.milliseconds)" : "made in \(record.duration.milliseconds)"]
+        var parts = [record.isBundled ? "read in \(demoMilliseconds(record.duration.demoTimeInterval))" : "made in \(demoMilliseconds(record.duration.demoTimeInterval))"]
         if record.scanOffsets.count > 1 {
             parts.append("\(record.scanOffsets.count) scans")
         }
@@ -180,12 +180,5 @@ private struct FixtureRow: View {
                 .foregroundStyle(.secondary)
             DemoMonoLabel(figures)
         }
-    }
-}
-
-extension Duration {
-    /// In milliseconds, the way the demo writes them: `18.4ms`.
-    fileprivate var milliseconds: String {
-        demoMilliseconds(Double(components.seconds) + Double(components.attoseconds) / 1e18)
     }
 }

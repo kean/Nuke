@@ -373,11 +373,11 @@ private struct PoolFigures: View {
         if let pressure = model.pressure {
             let drop = "#\(pressure.number) · \(demoByteCount(pressure.poolBefore)) → \(demoByteCount(pressure.poolLowest))"
             if let restored = pressure.restoredAfter {
-                DemoDiagnosticsRow("warning", "\(drop) · back after \(demoSeconds(restored.timeInterval))")
+                DemoDiagnosticsRow("warning", "\(drop) · back after \(demoSeconds(restored.demoTimeInterval))")
             } else if pressure.capacityBefore <= AnimationLabModel.floorFrameCount {
                 DemoDiagnosticsRow("warning", "\(drop) · windows were at the floor already")
             } else {
-                let held = (ContinuousClock.now - pressure.sentAt).timeInterval
+                let held = (ContinuousClock.now - pressure.sentAt).demoTimeInterval
                 DemoDiagnosticsRow("warning", "\(drop) · 2 frames for \(demoPad(demoSeconds(held), to: 5))", tint: .orange)
             }
         } else {
@@ -679,12 +679,6 @@ private struct PlayerRow: View {
         let fps = sample.framesPerSecond.map { demoPad(String(format: "%.0f", $0), to: 3) } ?? "  –"
         let text = "\(frames) · \(held) of \(demoByteCount(diagnostics.bufferByteLimit)) · \(fps) fps"
         return diagnostics.sharingPlayerCount > 1 ? text + " · ×\(diagnostics.sharingPlayerCount)" : text
-    }
-}
-
-extension Duration {
-    fileprivate var timeInterval: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }
 

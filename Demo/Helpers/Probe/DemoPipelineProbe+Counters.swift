@@ -76,7 +76,7 @@ extension DemoPipelineProbe {
                 switch outcome {
                 case .image(let cacheType):
                     state.figures.succeededTaskCount += 1
-                    state.figures.taskDuration.record((now - createdAt).seconds, at: now)
+                    state.figures.taskDuration.record((now - createdAt).demoTimeInterval, at: now)
                     switch cacheType {
                     case .memory?: state.figures.memoryResponseCount += 1
                     case .disk?: state.figures.diskResponseCount += 1
@@ -167,7 +167,7 @@ extension DemoPipelineProbe {
             state.withLock { state in
                 guard var load = state.loads[id] else { return }
                 if load.timeToFirstByte == nil {
-                    load.timeToFirstByte = (now - load.startedAt).seconds
+                    load.timeToFirstByte = (now - load.startedAt).demoTimeInterval
                 }
                 load.byteCount += Int64(byteCount)
                 state.loads[id] = load
@@ -252,7 +252,7 @@ extension DemoPipelineProbe {
                 if isAsynchronous {
                     state.figures.decodingQueue.inFlightCount? -= 1
                 }
-                state.recordDecode((now - startedAt).seconds, at: now, result: result)
+                state.recordDecode((now - startedAt).demoTimeInterval, at: now, result: result)
             }
         }
 
@@ -300,7 +300,7 @@ extension DemoPipelineProbe {
             let now = ContinuousClock.now
             state.withLock { state in
                 state.figures.decompressingQueue.inFlightCount? -= 1
-                state.figures.decompression.record((now - startedAt).seconds, at: now)
+                state.figures.decompression.record((now - startedAt).demoTimeInterval, at: now)
             }
         }
 
@@ -318,7 +318,7 @@ extension DemoPipelineProbe {
             let now = ContinuousClock.now
             state.withLock { state in
                 state.figures.encodingQueue.inFlightCount? -= 1
-                state.figures.encoding.record((now - startedAt).seconds, at: now)
+                state.figures.encoding.record((now - startedAt).demoTimeInterval, at: now)
             }
         }
     }
@@ -419,12 +419,5 @@ extension DemoPipelineProbe.Counters {
                 self = .failed(error.demoCaseName)
             }
         }
-    }
-}
-
-extension Duration {
-    /// In seconds, the unit of every duration in ``DemoPipelineDiagnostics``.
-    fileprivate var seconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

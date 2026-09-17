@@ -331,7 +331,7 @@ private final class TortureRun {
         isStarting = true
         while createdCount < total {
             guard !Task.isCancelled else { return abandon() }
-            let due = min(total, Int(Double(rate) * (clock.now - startedAt).seconds) + 1)
+            let due = min(total, Int(Double(rate) * (clock.now - startedAt).demoTimeInterval) + 1)
             while createdCount < due {
                 startRequest(requestCount)
                 requestCount += 1
@@ -343,7 +343,7 @@ private final class TortureRun {
             try? await Task.sleep(for: .milliseconds(4))
         }
         isStarting = false
-        let startSpan = (firstCreatedAt.flatMap { first in lastCreatedAt.map { $0 - first } } ?? .zero).seconds
+        let startSpan = (firstCreatedAt.flatMap { first in lastCreatedAt.map { $0 - first } } ?? .zero).demoTimeInterval
         note("started \(createdCount.formatted()) tasks for \(requestCount.formatted()) requests in \(demoSeconds(startSpan)); \(cancelCount.formatted()) cancelled so far")
 
         // Drain
@@ -359,7 +359,7 @@ private final class TortureRun {
             try? await Task.sleep(for: .milliseconds(50))
             unsettled = recorder.unsettledCount
         }
-        let drainDuration = (clock.now - drainStart).seconds
+        let drainDuration = (clock.now - drainStart).demoTimeInterval
         note("every task finished \(demoSeconds(drainDuration)) after the last one started; \(recorder.snapshot.loadCount.formatted()) loads")
 
         // Anything late has half a second to show up.
@@ -471,7 +471,7 @@ private final class TortureRun {
     private func waitUntil(timeout: Duration, _ condition: (TortureRun) -> Bool) async -> TimeInterval? {
         let start = clock.now
         guard await demoWait(timeout: timeout, until: { condition(self) }) else { return nil }
-        return (clock.now - start).seconds
+        return (clock.now - start).demoTimeInterval
     }
 
     private func startFreshRequest() async -> TortureReport.Fresh {
@@ -480,7 +480,7 @@ private final class TortureRun {
         let task = pipeline.imageTask(with: ImageRequest(url: url))
         let start = clock.now
         await demoWait(timeout: .seconds(5), every: .milliseconds(5)) { task.status.result != nil }
-        let time = (clock.now - start).seconds
+        let time = (clock.now - start).demoTimeInterval
         switch task.status.result {
         case .success?:
             return .completed(time)
@@ -644,7 +644,7 @@ private final class TortureRun {
     }
 
     private func note(_ text: String) {
-        lines.append(.init(id: lines.count, time: (clock.now - startedAt).seconds, text: text))
+        lines.append(.init(id: lines.count, time: (clock.now - startedAt).demoTimeInterval, text: text))
     }
 }
 
@@ -867,7 +867,7 @@ enum SlotCheck {
         var dataLoaderAfter: TimeInterval?
         while clock.now - freshStart < timeout, !Task.isCancelled {
             if let calledAt = calls.calledAt(freshURL) {
-                dataLoaderAfter = (calledAt - freshStart).seconds
+                dataLoaderAfter = (calledAt - freshStart).demoTimeInterval
                 break
             }
             try? await Task.sleep(for: .milliseconds(5))
@@ -876,7 +876,7 @@ enum SlotCheck {
         if dataLoaderAfter != nil {
             await demoWait(timeout: .seconds(5) - (clock.now - freshStart), every: .milliseconds(10)) { fresh?.status.result != nil }
             if case .success? = fresh?.status.result {
-                completedAfter = (clock.now - freshStart).seconds
+                completedAfter = (clock.now - freshStart).demoTimeInterval
             }
         }
         fresh?.cancel()
@@ -886,7 +886,7 @@ enum SlotCheck {
         let releaseStart = clock.now
         var releasedAfter: TimeInterval?
         if await demoWait(timeout: timeout, until: { releasedPipeline == nil }) {
-            releasedAfter = (clock.now - releaseStart).seconds
+            releasedAfter = (clock.now - releaseStart).demoTimeInterval
         }
 
         return Result(
@@ -899,7 +899,7 @@ enum SlotCheck {
             dataLoaderAfter: dataLoaderAfter,
             completedAfter: completedAfter,
             releasedAfter: releasedAfter,
-            timeout: timeout.seconds
+            timeout: timeout.demoTimeInterval
         )
     }
 }
@@ -931,11 +931,5 @@ private final class SlotDelegate: ImagePipeline.Delegate {
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         calls.record(request.url)
         return pipeline.configuration.dataLoader
-    }
-}
-
-extension Duration {
-    fileprivate var seconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

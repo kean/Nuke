@@ -183,7 +183,7 @@ final class MemorySoakModel {
 
     /// The seconds since the run started, or since the last one ended.
     fileprivate var elapsed: TimeInterval {
-        startedAt.map { (ContinuousClock.now - $0).soakSeconds } ?? record?.elapsed ?? 0
+        startedAt.map { (ContinuousClock.now - $0).demoTimeInterval } ?? record?.elapsed ?? 0
     }
 
     /// The highest sample since `time`.
@@ -648,7 +648,7 @@ private final class SoakRun {
         let start = clock.now
         // After a Stop too, which is when it runs most.
         let isReleased = await demoWait(timeout: .seconds(3), every: .milliseconds(10), whenCancelled: .keepWaiting) { released == nil }
-        return isReleased ? (clock.now - start).soakSeconds : nil
+        return isReleased ? (clock.now - start).demoTimeInterval : nil
     }
 
     // MARK: Cycle
@@ -673,7 +673,7 @@ private final class SoakRun {
         var started = 0
         while started < Self.loadsPerCycle {
             guard !Task.isCancelled else { return nil }
-            let elapsed = (clock.now - start).soakSeconds
+            let elapsed = (clock.now - start).demoTimeInterval
             let due = min(Self.loadsPerCycle, Int(elapsed * Self.loadRate) + 1)
             while started < due {
                 startLoad()
@@ -957,11 +957,5 @@ enum SoakLoad: CaseIterable {
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.queryItems = [item]
         return components?.url ?? url
-    }
-}
-
-extension Duration {
-    fileprivate var soakSeconds: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }

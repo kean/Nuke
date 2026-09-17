@@ -97,7 +97,7 @@ struct FixtureZooDemo: View {
         var parts = ["\(DemoZooInput.allCases.count) inputs"]
         if let run = model.lastRun {
             parts.append(run.mode == .safe ? "safe run" : "full run")
-            parts.append(demoDuration(run.duration.timeInterval))
+            parts.append(demoDuration(run.duration.demoTimeInterval))
         }
         return parts.joined(separator: " · ")
     }
@@ -533,12 +533,6 @@ extension Image {
 /// Milliseconds with a decimal under a second, seconds above it.
 private func demoTime(_ value: TimeInterval) -> String {
     value < 1 ? demoMilliseconds(value) : demoSeconds(value)
-}
-
-extension Duration {
-    fileprivate var timeInterval: TimeInterval {
-        Double(components.seconds) + Double(components.attoseconds) / 1e18
-    }
 }
 
 extension DemoZooInput: Identifiable {
