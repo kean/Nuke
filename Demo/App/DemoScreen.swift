@@ -82,7 +82,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageProcessing: "Resize, blur, circle, and custom processors"
         case .imageFormats: "JPEG, PNG, GIF, WebP, and MP4"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
-        case .caching: "Memory, HTTP, and aggressive disk cache"
+        case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher in UIKit and SwiftUI"
         case .resumableDownloads: "A cancelled download picks up where it stopped"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"

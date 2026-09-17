@@ -46,7 +46,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Caching** | The memory cache, `URLCache`, and `DataCache` side by side, with the source of every image |
+| **Caching** | Three requests – an original, a resize, and a thumbnail – loaded into the memory cache and `URLCache` or `DataCache`: the files each `DataCachePolicy` leaves on disk and their keys, what `.disableDiskCacheWrites` doesn't stop, and the `pipeline.cache` calls that read and write the same entries |
 | **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid |
 | **Resumable Downloads** | A photo handed to the pipeline a few kilobytes at a time: cancel it partway and resume, and see the `Range` request that goes out, the `206 Partial Content` that comes back, and the bytes that weren't downloaded twice. Two switches show when a download can't resume: a server without validators, and a new pipeline |
 
@@ -157,8 +157,8 @@ Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – 
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**,
-**Priority & Coalescing**, and **Resumable Downloads** screens record their
-tasks either way, and show what the records say on screen.
+**Priority & Coalescing**, **Caching**, and **Resumable Downloads** screens
+record their tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
 
