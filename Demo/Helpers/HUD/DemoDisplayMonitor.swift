@@ -86,9 +86,6 @@ final class DemoDisplayMonitor {
     /// the frame by then.
     var onHitch: (@MainActor (Hitch) -> Void)?
 
-    /// Whether the monitor is watching.
-    var isWatching: Bool { link != nil }
-
     private var link: CADisplayLink?
     /// The previous frame, or `nil` when the next one is the first one watched.
     private var previousFrame: (timestamp: CFTimeInterval, targetTimestamp: CFTimeInterval)?
