@@ -2,9 +2,8 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-// The asynchronous decoders are found by a cast, which a wrapper would fail –
-// see `imageDecoder(for:pipeline:)`.
-@_spi(AsyncImageDecoding) import Nuke
+import Nuke
+import NukeVideo
 import OSLog
 
 // A probe on every pipeline the demo builds, with nothing in Nuke changed.
@@ -32,7 +31,10 @@ import OSLog
 // - The decoders of a pipeline that records diagnostics. The record names the
 //   decoder's type, which a wrapper would replace, so they aren't wrapped and
 //   their times come from the finished tasks' metrics, without failures or a
-//   count in flight. The same goes for asynchronous decoders.
+//   count in flight.
+// - Any decoder other than the ones Nuke ships, on a pipeline that doesn't
+//   record diagnostics. It isn't wrapped, and its decodes aren't counted –
+//   see `isTimed(_:)`.
 // - Where a custom loader's data came from: only a `DataLoader` says `URLCache`.
 // - A `DataLoader` that already has a delegate. One that two pipelines share
 //   is counted by the probe of the first.
@@ -242,12 +244,24 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
             return nil
         }
         // The pipeline records the type of the decoder, which a wrapper would
-        // replace, and finds an asynchronous decoder by a cast, which a wrapper
-        // would fail.
-        guard !isRecordingDiagnostics, !(decoder is any AsyncImageDecoding) else {
+        // replace.
+        guard !isRecordingDiagnostics, Self.isTimed(decoder) else {
             return decoder
         }
         return CountingDecoder(decoder, counters: counters)
+    }
+
+    /// Whether the probe wraps `decoder` to time it: only the decoders that
+    /// ship with Nuke, which all decode in the synchronous `decode(_:)`.
+    ///
+    /// Any other decoder is passed on as it is, and its decodes aren't
+    /// counted. The pipeline finds a decoder that decodes asynchronously by a
+    /// cast to `AsyncImageDecoding`, which is SPI rather than public API. A
+    /// wrapper would fail that cast and the pipeline would call a `decode(_:)`
+    /// that throws, and the demo builds against the public API only, so it
+    /// can't tell such a decoder apart before wrapping it.
+    private static func isTimed(_ decoder: any ImageDecoding) -> Bool {
+        decoder is ImageDecoders.Default || decoder is ImageDecoders.Video || decoder is ImageDecoders.Empty
     }
 
     func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {

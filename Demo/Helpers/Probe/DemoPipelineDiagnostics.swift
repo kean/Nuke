@@ -147,6 +147,8 @@ struct DemoPipelineDiagnostics: Sendable {
     // MARK: Decoding
 
     /// The final decodes (`ImageDecoding.decode(_:)`) that produced an image.
+    /// With diagnostics off, only the decoders that ship with Nuke are timed:
+    /// a decoder of the app's own isn't counted in any of the decoding figures.
     var decoding = Timing()
     /// The partial decodes that produced a preview. The attempts that had
     /// nothing new to show aren't counted.
