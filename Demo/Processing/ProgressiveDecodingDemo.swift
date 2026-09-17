@@ -48,9 +48,18 @@ struct ProgressiveDecodingDemo: View {
                     if let scanNumber = model.scanNumber {
                         DemoBadge("Scan \(scanNumber)")
                     }
-                    if model.image != nil, !model.isLoading {
+                    if model.isFinal {
                         DemoBadge("Final", color: .green)
                     }
+                    if model.error != nil {
+                        DemoBadge("Failed", color: .red)
+                    }
+                }
+                if let error = model.error {
+                    Text(error.description)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(16)
@@ -88,6 +97,8 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
     @Published private(set) var progress = ImageTask.Progress(completed: 0, total: 0)
     @Published private(set) var scanNumber: Int?
     @Published private(set) var isLoading = false
+    @Published private(set) var isFinal = false
+    @Published private(set) var error: ImagePipeline.Error?
 
     @Published var isProgressive = true {
         didSet { load() }
@@ -118,6 +129,8 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
 
         image = nil
         scanNumber = nil
+        isFinal = false
+        error = nil
         progress = ImageTask.Progress(completed: 0, total: 0)
         isLoading = true
 
@@ -137,8 +150,14 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
                     self.scanNumber = response.container.userInfo[.scanNumberKey] as? Int
                 case .finished(let result):
                     self.isLoading = false
-                    if case .success(let response) = result {
+                    switch result {
+                    case .success(let response):
                         self.image = response.image
+                        self.isFinal = true
+                    case .failure(.cancelled):
+                        break
+                    case .failure(let error):
+                        self.error = error
                     }
                 }
             }
