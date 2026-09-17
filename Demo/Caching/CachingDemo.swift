@@ -591,7 +591,7 @@ private final class CachingDemoModel: ObservableObject {
         let isOptionOn: Bool
 
         var text: String {
-            "\(counted(fileCount, "file")) · \(demoByteCount(byteCount))"
+            "\(demoCount(fileCount, "file")) · \(demoByteCount(byteCount))"
         }
     }
 
@@ -1076,7 +1076,7 @@ private final class CachingDemoModel: ObservableObject {
                 EntryRow(id: filename, title: "No key of these requests", detail: filename, status: demoByteCount(listing.files[filename] ?? 0), isStored: true)
             }
             diskRows = rows
-            diskFooter = "The key of each request, and of the image a processed one starts from, with what the disk keeps under it: **data** is the file as downloaded, **encoded** an image the pipeline encoded, **direct** a store through `pipeline.cache` below. Orange is a write that the request's `.disableDiskCacheWrites` didn't stop. `DataCache` holds \(counted(caches.dataCacheCount ?? 0, "file")), \(demoByteCount(caches.dataCacheSize ?? 0))."
+            diskFooter = "The key of each request, and of the image a processed one starts from, with what the disk keeps under it: **data** is the file as downloaded, **encoded** an image the pipeline encoded, **direct** a store through `pipeline.cache` below. Orange is a write that the request's `.disableDiskCacheWrites` didn't stop. `DataCache` holds \(demoCount(caches.dataCacheCount ?? 0, "file")), \(demoByteCount(caches.dataCacheSize ?? 0))."
         case .urlCache:
             diskRows = Item.allCases.map { item in
                 let url = urls[item]?.absoluteString ?? ""
@@ -1126,23 +1126,23 @@ private final class CachingDemoModel: ObservableObject {
                 isStored: true
             )
         }
-        memoryFooter = "The decoded image each request ended with, under a key of its image ID, scale, thumbnail, and processors. `ImageCache` holds \(counted(imageCache.totalCount, "image")), \(demoByteCount(imageCache.totalCost))."
+        memoryFooter = "The decoded image each request ended with, under a key of its image ID, scale, thumbnail, and processors. `ImageCache` holds \(demoCount(imageCache.totalCount, "image")), \(demoByteCount(imageCache.totalCost))."
     }
 
     /// The probe's figures for the pipeline on screen, since it was built.
     private func refreshCounts() {
         guard let figures = DemoPipelineProbe.diagnostics(for: pipeline) else { return }
         let loads = figures.fixtureLoadCount > 0
-            ? counted(figures.fixtureLoadCount, "fixture load")
-            : counted(figures.downloadCount, "download")
+            ? demoCount(figures.fixtureLoadCount, "fixture load")
+            : demoCount(figures.downloadCount, "download")
         let stored = diskRows.filter(\.isStored).count
         switch kind {
         case .dataCache:
             cacheContents = "\(imageCache.totalCount) in memory · \(stored) on disk"
             let encoding = figures.encoding.count > 0 ? String(format: " · %.1f ms avg", figures.encoding.average * 1000) : ""
             counts = [
-                "\(loads) · \(figures.diskCacheHitCount) of \(counted(figures.diskCacheLookupCount, "disk lookup")) hit",
-                "\(counted(figures.diskWriteCount, "disk write")), \(figures.encodedImageWriteCount) encoded · \(counted(figures.encoding.count, "encode"))\(encoding)"
+                "\(loads) · \(figures.diskCacheHitCount) of \(demoCount(figures.diskCacheLookupCount, "disk lookup")) hit",
+                "\(demoCount(figures.diskWriteCount, "disk write")), \(figures.encodedImageWriteCount) encoded · \(demoCount(figures.encoding.count, "encode"))\(encoding)"
             ]
         case .urlCache:
             cacheContents = "\(imageCache.totalCount) in memory · \(stored) in URLCache"
@@ -1154,7 +1154,7 @@ private final class CachingDemoModel: ObservableObject {
         if kind == .dataCache, isDiskWriteDisabled {
             let ignored = writes.values.filter(\.ignoredOption).count
             mismatch = ignored > 0
-                ? (".disableDiskCacheWrites on: \(counted(ignored, "image")) written anyway", true)
+                ? (".disableDiskCacheWrites on: \(demoCount(ignored, "image")) written anyway", true)
                 : (".disableDiskCacheWrites on: nothing written", false)
         } else {
             mismatch = nil
@@ -1319,11 +1319,6 @@ private final class CachingDemoModel: ObservableObject {
 private func formatName(of prefix: Data?) -> String {
     guard let prefix, let type = AssetType(prefix) else { return "unknown" }
     return type.utType?.preferredFilenameExtension ?? type.rawValue
-}
-
-/// "1 file", "2 files".
-private func counted(_ count: Int, _ noun: String) -> String {
-    "\(count) \(noun)\(count == 1 ? "" : "s")"
 }
 
 private func milliseconds(_ duration: Duration) -> String {

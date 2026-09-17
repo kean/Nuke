@@ -517,16 +517,3 @@ extension ImagePrefetcher.Destination {
         }
     }
 }
-
-extension ImageRequest.Priority {
-    /// The name of the case, as it is written in code.
-    fileprivate var demoName: String {
-        switch self {
-        case .veryLow: ".veryLow"
-        case .low: ".low"
-        case .normal: ".normal"
-        case .high: ".high"
-        case .veryHigh: ".veryHigh"
-        }
-    }
-}

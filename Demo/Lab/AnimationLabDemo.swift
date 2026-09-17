@@ -573,7 +573,7 @@ private struct SoakFigures: View {
         let last = soak.samples.last
         VStack(alignment: .leading, spacing: 8) {
             ProgressView(value: soak.elapsed, total: Soak.duration)
-            DemoDiagnosticsRow("time", "\(clock(soak.elapsed)) of \(clock(Soak.duration)) · \(count(soak.rebuildCount, "rebuild")) · \(count(soak.warnings.count, "warning"))")
+            DemoDiagnosticsRow("time", "\(clock(soak.elapsed)) of \(clock(Soak.duration)) · \(demoCount(soak.rebuildCount, "rebuild")) · \(demoCount(soak.warnings.count, "warning"))")
             chart("memory", soak.samples.map { ($0.time, $0.footprint) }, peak: soak.peakFootprint)
             chart("pool", soak.samples.map { ($0.time, $0.poolCost) }, peak: soak.peakPoolCost)
             VStack(spacing: 4) {
@@ -618,10 +618,6 @@ private struct SoakFigures: View {
         }
         let delta = last.footprint - baseline.footprint
         return "\(delta < 0 ? "−" : "+")\(demoByteCount(abs(delta))) since \(clock(baseline.time))"
-    }
-
-    private func count(_ count: Int, _ noun: String) -> String {
-        "\(count) \(noun)\(count == 1 ? "" : "s")"
     }
 
     private func rate(_ count: Int) -> String {

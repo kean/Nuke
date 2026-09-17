@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Nuke
 import SwiftUI
 
 /// The explanation of a demo screen: a summary, a snippet of the API it is
@@ -288,12 +289,30 @@ func demoByteCount(_ count: Int) -> String {
     demoByteCount(Int64(count))
 }
 
+/// "1 file", "2 files": a count and a noun that takes an "s".
+func demoCount(_ count: Int, _ noun: String) -> String {
+    "\(count) \(noun)\(count == 1 ? "" : "s")"
+}
+
 extension Duration {
     /// The duration in seconds, which is what the demo's figures and
     /// formatters take: a clock reading is a `Duration`, a figure a
     /// `TimeInterval`.
     var demoTimeInterval: TimeInterval {
         Double(components.seconds) + Double(components.attoseconds) / 1e18
+    }
+}
+
+extension ImageRequest.Priority {
+    /// The name of the case, as it is written in code: `.high`.
+    var demoName: String {
+        switch self {
+        case .veryLow: ".veryLow"
+        case .low: ".low"
+        case .normal: ".normal"
+        case .high: ".high"
+        case .veryHigh: ".veryHigh"
+        }
     }
 }
 

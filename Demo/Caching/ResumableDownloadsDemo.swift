@@ -181,7 +181,7 @@ private struct FiguresView: View {
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
             row("image", image)
-            row("downloaded", attemptCount == 0 ? "–" : "\(demoByteCount(figures.downloadedByteCount)) in \(counted(attemptCount, "attempt"))")
+            row("downloaded", attemptCount == 0 ? "–" : "\(demoByteCount(figures.downloadedByteCount)) in \(demoCount(attemptCount, "attempt"))")
             row("saved", attemptCount == 0 ? "–" : "\(demoByteCount(figures.resumedByteCount)) resumed", tint: figures.resumedByteCount > 0 ? .green : nil)
             row("wasted", attemptCount == 0 ? "–" : "\(demoByteCount(figures.wastedByteCount)) re-downloaded", tint: figures.wastedByteCount > 0 ? .orange : nil)
         }
@@ -1009,9 +1009,4 @@ private final class Wire: Sendable {
 /// The color of an attempt, in the bar and in the list.
 private func attemptColor(_ number: Int) -> Color {
     [Color.blue, .green, .orange, .purple, .pink, .teal][(number - 1) % 6]
-}
-
-/// "1 attempt", "2 attempts".
-private func counted(_ count: Int, _ noun: String) -> String {
-    "\(count) \(noun)\(count == 1 ? "" : "s")"
 }

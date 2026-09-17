@@ -944,19 +944,6 @@ private final class TaskRowModel: ObservableObject, Identifiable {
 
 // MARK: - Helpers
 
-extension ImageRequest.Priority {
-    /// The name of the case, as it is written in code.
-    fileprivate var demoName: String {
-        switch self {
-        case .veryLow: ".veryLow"
-        case .low: ".low"
-        case .normal: ".normal"
-        case .high: ".high"
-        case .veryHigh: ".veryHigh"
-        }
-    }
-}
-
 private func seconds(_ interval: TimeInterval) -> String {
     String(format: "%.1f s", interval)
 }

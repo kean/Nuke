@@ -548,9 +548,9 @@ private final class RequestOptionsDemoModel: ObservableObject {
         }
         if let figures = DemoPipelineProbe.diagnostics(for: pipeline) {
             totals = "so far: " + [
-                counted(figures.downloadCount, "download"),
-                counted(figures.diskCacheHitCount, "disk read"),
-                counted(figures.decoding.count, "decode")
+                demoCount(figures.downloadCount, "download"),
+                demoCount(figures.diskCacheHitCount, "disk read"),
+                demoCount(figures.decoding.count, "decode")
             ].joined(separator: " · ")
         }
         sampleCaches()
@@ -754,19 +754,6 @@ extension ImageRequest.Options {
     }
 }
 
-extension ImageRequest.Priority {
-    /// The name of the case, as it is written in code.
-    fileprivate var demoName: String {
-        switch self {
-        case .veryLow: ".veryLow"
-        case .low: ".low"
-        case .normal: ".normal"
-        case .high: ".high"
-        case .veryHigh: ".veryHigh"
-        }
-    }
-}
-
 extension ImageTask.Metrics.Category {
     fileprivate var color: Color {
         switch self {
@@ -786,11 +773,6 @@ extension ImageTask.Metrics.Category {
 /// decoded JPEG or PNG takes.
 private func bitmapCost(_ pixels: ImagePipeline.Diagnostics.PixelSize) -> Int {
     pixels.width * pixels.height * 4
-}
-
-/// "1 download", "2 downloads".
-private func counted(_ count: Int, _ noun: String) -> String {
-    "\(count) \(noun)\(count == 1 ? "" : "s")"
 }
 
 private func milliseconds(_ seconds: TimeInterval) -> String {
