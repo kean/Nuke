@@ -450,11 +450,10 @@ private struct FixtureZooDetail: View {
     }
 
     @ViewBuilder
-    private func fileRows(_ file: FixtureZooModel.FileFigures) -> some View {
-        row("Image I/O", "\(file.type ?? "not an image type") · \(file.imageCount) \(file.imageCount == 1 ? "image" : "images")")
-        if let width = file.width, let height = file.height {
-            let parts = ["\(width)×\(height)", file.depth.map { "\($0) bpc" }, file.colorModel, file.orientation.map { "orientation \($0)" }]
-            row("Header", parts.compactMap { $0 }.joined(separator: " · "))
+    private func fileRows(_ file: DemoImageHeader) -> some View {
+        row("Image I/O", file.typeSummary)
+        if let pixels = file.pixelSummary {
+            row("Header", pixels)
         }
         if let profile = file.profile {
             row("Profile", profile)

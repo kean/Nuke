@@ -4,7 +4,6 @@
 
 import CoreGraphics
 import Foundation
-import ImageIO
 import Nuke
 import Observation
 #if canImport(UIKit)
@@ -194,42 +193,14 @@ final class FixtureZooModel {
 // MARK: - File
 
 extension FixtureZooModel {
-    /// What Image I/O reads in a file without decoding it: what it takes the
-    /// file for, how many images it counts, and the first one's properties.
-    /// It says why a decoder refused an input, or what a decode changed.
-    struct FileFigures {
-        let type: String?
-        let imageCount: Int
-        let width: Int?
-        let height: Int?
-        let depth: Int?
-        let colorModel: String?
-        let profile: String?
-        let orientation: Int?
-    }
-
-    /// Reads the input's header off the main actor. The data is the fixture
-    /// store's, already made for the load.
-    fileprivate static func inspect(_ input: DemoZooInput) async -> FileFigures? {
+    /// Reads the input's header off the main actor: why a decoder refused an
+    /// input, or what a decode changed. The data is the fixture store's,
+    /// already made for the load.
+    fileprivate static func inspect(_ input: DemoZooInput) async -> DemoImageHeader? {
         guard let data = try? await DemoFixtureStore.shared.entry(for: .zoo(input)).data else {
             return nil
         }
-        return await Task.detached(priority: .userInitiated) {
-            guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
-                return FileFigures(type: nil, imageCount: 0, width: nil, height: nil, depth: nil, colorModel: nil, profile: nil, orientation: nil)
-            }
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
-            return FileFigures(
-                type: CGImageSourceGetType(source) as String?,
-                imageCount: CGImageSourceGetCount(source),
-                width: properties[kCGImagePropertyPixelWidth] as? Int,
-                height: properties[kCGImagePropertyPixelHeight] as? Int,
-                depth: properties[kCGImagePropertyDepth] as? Int,
-                colorModel: properties[kCGImagePropertyColorModel] as? String,
-                profile: properties[kCGImagePropertyProfileName] as? String,
-                orientation: properties[kCGImagePropertyOrientation] as? Int
-            )
-        }.value
+        return await DemoImageHeader.read(data)
     }
 }
 
@@ -287,7 +258,7 @@ extension FixtureZooModel {
         /// more than something before it did, or not much.
         var peakFootprintIncrease: Int?
         /// What Image I/O reads in the file's header.
-        var file: FileFigures?
+        var file: DemoImageHeader?
 
         /// Why the outcome isn't the one expected, or `nil` if it is or if
         /// nothing is expected of the input.
@@ -327,7 +298,7 @@ extension FixtureZooModel {
             date = Date()
             let stages = metrics?.jobs.flatMap(\.stages) ?? []
             let decode = stages.last { $0.kind == .decode }
-            decoder = decode?.decoder.map(Self.withoutExtension)
+            decoder = decode?.decoder.map(demoRecordedTypeName)
             decodeDuration = decode?.workDuration
             decompressDuration = stages.first { $0.kind == .decompress }?.workDuration
             duration = metrics?.duration
@@ -349,7 +320,7 @@ extension FixtureZooModel {
                 self.error = summary.name
                 errorDetail = summary.detail
                 if case .decodingFailed(let failed, _, _) = error {
-                    decoder = Self.typeName(failed)
+                    decoder = demoTypeName(of: failed)
                 }
             }
             mismatch = findMismatch(against: input.expectation)
@@ -411,7 +382,7 @@ extension FixtureZooModel {
                 return ("dataLoadingFailed", brief(underlying), true)
             }
             if case .decodingFailed(let decoder, _, let underlying) = error {
-                return ("decodingFailed", underlying is ImageDecodingError ? typeName(decoder) : brief(underlying), false)
+                return ("decodingFailed", underlying is ImageDecodingError ? demoTypeName(of: decoder) : brief(underlying), false)
             }
             if case .dataIsEmpty = error {
                 return ("dataIsEmpty", "the loader sent no bytes", false)
@@ -436,31 +407,6 @@ extension FixtureZooModel {
                 return error.description
             }
             return String(describing: error)
-        }
-
-        /// The type's name without its module, `ImageDecoders.Default`, the
-        /// way the records write it.
-        private static func typeName(_ value: Any) -> String {
-            let name = String(reflecting: type(of: value))
-            return name.contains(":") ? withoutExtension(name) : withoutModule(name)
-        }
-
-        /// `ImageDecoders.Video` for
-        /// `(extension in NukeVideo):Nuke.ImageDecoders.Video`: a type
-        /// declared in an extension from another module reflects that way, and
-        /// the records keep all of it. Any other name is returned as it is.
-        private static func withoutExtension(_ name: String) -> String {
-            guard let colon = name.lastIndex(of: ":") else {
-                return name
-            }
-            return withoutModule(String(name[name.index(after: colon)...]))
-        }
-
-        private static func withoutModule(_ name: String) -> String {
-            guard let dot = name.firstIndex(of: ".") else {
-                return name
-            }
-            return String(name[name.index(after: dot)...])
         }
     }
 }

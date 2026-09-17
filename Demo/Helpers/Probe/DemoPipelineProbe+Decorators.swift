@@ -310,7 +310,7 @@ extension DemoPipelineProbe {
 extension Optional<AssetType> {
     /// The short name the pipeline's diagnostics use for a format, such as
     /// `"jpeg"`, so the figures read the same with them on or off.
-    fileprivate var demoFormatName: String {
+    var demoFormatName: String {
         switch self {
         case .jpeg?: "jpeg"
         case .png?: "png"
