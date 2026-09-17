@@ -41,12 +41,16 @@ import os
 final class DemoFixtureLoader: DataLoading, Sendable {
     /// How the data arrives.
     let pace: Pace
+    /// What a screen hears of every load: see ``PacedDataLoader``, whose
+    /// stand-in offline this loader is.
+    let hooks: DemoLoadHooks
 
     private let store: DemoFixtureStore
 
-    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared) {
+    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared, hooks: DemoLoadHooks = DemoLoadHooks()) {
         self.pace = pace
         self.store = store
+        self.hooks = hooks
     }
 
     /// When a fixture's bytes arrive, fixed rather than jittered, so a run is
@@ -102,7 +106,7 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-        let load = Load(request: request, pace: pace, store: store, didReceiveData: didReceiveData, completion: completion)
+        let load = Load(load: DemoLoad(request), pace: pace, hooks: hooks, store: store, didReceiveData: didReceiveData, completion: completion)
         Task {
             await load.start()
         }
@@ -113,8 +117,9 @@ final class DemoFixtureLoader: DataLoading, Sendable {
 /// One load. An actor, so a cancel and the chunks are handled in turn: once
 /// `completion` has been called, from either side, nothing else is.
 private actor Load: Cancellable {
-    private let request: URLRequest
+    private let load: DemoLoad
     private let pace: DemoFixtureLoader.Pace
+    private let hooks: DemoLoadHooks
     private let store: DemoFixtureStore
     private let didReceiveData: @Sendable (Data, URLResponse) -> Void
     private let completion: @Sendable (Error?) -> Void
@@ -122,17 +127,20 @@ private actor Load: Cancellable {
     private var isFinished = false
 
     init(
-        request: URLRequest,
+        load: DemoLoad,
         pace: DemoFixtureLoader.Pace,
+        hooks: DemoLoadHooks,
         store: DemoFixtureStore,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) {
-        self.request = request
+        self.load = load
         self.pace = pace
+        self.hooks = hooks
         self.store = store
         self.didReceiveData = didReceiveData
         self.completion = completion
+        hooks.didStart?(load)
     }
 
     func start() {
@@ -149,6 +157,7 @@ private actor Load: Cancellable {
     }
 
     private func run() async {
+        let request = load.request
         let url = request.url
         do {
             guard let fixture = url.flatMap(DemoFixture.standIn(for:)) else {
@@ -158,11 +167,12 @@ private actor Load: Cancellable {
             // Suspends while the fixture is made, which lets a cancel through.
             let entry = try await store.entry(for: fixture)
             let reply = Reply(to: request, url: url ?? fixture.url, fixture: fixture, entry: entry)
+            let response = hooks.willPassResponse?(load, reply.response) ?? reply.response
             try await wait(pace.latency)
             for (range, wait) in chunks(of: entry, in: reply.body) {
                 try await self.wait(wait)
                 guard !isFinished else { return }
-                didReceiveData(entry.data[range], reply.response)
+                didReceiveData(entry.data[range], response)
             }
             finish(nil)
         } catch {

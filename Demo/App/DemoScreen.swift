@@ -27,6 +27,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Caching & Performance
     case caching = "caching"
     case prefetching = "prefetching"
+    case resumableDownloads = "resumable-downloads"
 
     // Animated Images
     case animatedImages = "animated-images"
@@ -56,6 +57,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .progressiveDecoding: "Progressive Decoding"
         case .caching: "Caching"
         case .prefetching: "Prefetching"
+        case .resumableDownloads: "Resumable Downloads"
         case .animatedImages: "Animated Images"
         case .pipelineDelegate: "Pipeline Delegate"
         case .pipelineHUD: "Pipeline HUD"
@@ -80,6 +82,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
         case .caching: "Memory, HTTP, and aggressive disk cache"
         case .prefetching: "ImagePrefetcher in UIKit and SwiftUI"
+        case .resumableDownloads: "A cancelled download picks up where it stopped"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .pipelineHUD: "Every figure the probe counts, over any screen"
@@ -97,7 +100,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .requestOptions: .catalog(.requests)
         case .priorityAndCoalescing: .catalog(.requests)
         case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
-        case .caching, .prefetching: .catalog(.cachingAndPerformance)
+        case .caching, .prefetching, .resumableDownloads: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
         case .pipelineDelegate: .catalog(.integration)
         case .pipelineHUD: .lab(.instruments)
@@ -124,6 +127,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .progressiveDecoding: ProgressiveDecodingDemo()
         case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()
+        case .resumableDownloads: ResumableDownloadsDemo()
         case .animatedImages: AnimatedImagesDemo()
         case .pipelineDelegate: PipelineDelegateDemo()
         case .pipelineHUD: PipelineHUDDemo()
@@ -169,7 +173,7 @@ extension DemoScreen {
             case .essentials: "The APIs you need for most apps: ImagePipeline, LazyImage, and the image views for UIKit."
             case .requests: "What a request can ask of the pipeline, and what the pipeline does when many ask at once."
             case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
-            case .cachingAndPerformance: "Where an image comes from the second time it's needed, and how to have it ready before the first."
+            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and how a cancelled download resumes."
             case .animatedImages: "Frames decoded as they play, within a memory budget you can watch."
             case .integration: "Where an app plugs into the pipeline: changing its requests and observing its events."
             }
