@@ -61,6 +61,7 @@ and the details worth knowing.
 | Screen | Shows |
 |--|--|
 | **Pipeline Delegate** | A delegate that adds a header in `willLoadData`, leaves a URL token out of `cacheKey`, and keeps a private photo off the disk in `willCache`, with a live log of what the pipeline asks it |
+| **Custom Data Loader** | Three `DataLoading` implementations on a picker – a throttled download, a file from the app bundle picked by the delegate, and a server that fails – loading the same image on a new pipeline each run, with every call between the pipeline and the loader: the chunks, the pipeline's cancel, and the one `completion`. A throttled load cancelled partway never completes, and the screen shows the data loading slot and the pipeline it keeps |
 
 ## Lab
 
@@ -117,7 +118,9 @@ Every pipeline's delegate sends a request for a fixture, and every request
 while offline, to the fixture loader, which also answers the demo's network
 URLs with their stand-ins; any other URL fails and says so in Console, under
 the `Fixtures` category. It answers the way a server that supports range
-requests does, so a download cancelled offline resumes too. Launch with `-demoFixtures offline`, or flip the switch
+requests does, so a download cancelled offline resumes too. A loader that never
+goes to the network, such as the bundle and failing loaders of **Custom Data
+Loader**, keeps its requests offline. Launch with `-demoFixtures offline`, or flip the switch
 in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
 screens that load photos start on fixtures either way.
 
@@ -182,7 +185,7 @@ Demo
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching, prefetching, and resumable downloads
 ├── AnimatedImages   Animated image playback and its diagnostics
-├── Integration      The pipeline delegate
+├── Integration      The pipeline delegate and custom data loaders
 ├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
 ├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
