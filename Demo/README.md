@@ -32,6 +32,7 @@ and the details worth knowing.
 | Screen | Shows |
 |--|--|
 | **Request Options** | One image and a panel of every `ImageRequest.Options` flag, the priority, and a thumbnail next to a resize processor. Each change runs the request again and shows where the image came from, what it cost in time, bytes, and memory, and the stages the task went through, read from its `ImageTask.Metrics` |
+| **Priority & Coalescing** | Twenty requests for six photos against a data loading queue of two slots: a counter of tasks and downloads, the downloads running and waiting in the order they will start, and a priority on every request that moves its download in the line. Hold suspends the queue, and one request shows what `.skipDataLoadingQueue` does when its URL is already loading |
 
 ### Processing & Formats
 
@@ -127,8 +128,9 @@ counts.
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
-`com.github.kean.NukeDemo` subsystem. The pipeline of the **Request Options**
-screen records its tasks either way, and shows the record on screen.
+`com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**
+and **Priority & Coalescing** screens record their tasks either way, and show
+what the records say on screen.
 
 From the terminal, with the simulator booted:
 
@@ -146,7 +148,7 @@ Performance Guide.
 Demo
 ├── App              The app, the catalog and Lab menus, the screen registry, and the launch arguments
 ├── Essentials       ImagePipeline, LazyImage, and the image views
-├── Requests         Request options, priority, and thumbnails
+├── Requests         Request options, thumbnails, priority, and coalescing
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching and prefetching
 ├── AnimatedImages   Animated image playback and its diagnostics
