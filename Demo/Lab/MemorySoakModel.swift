@@ -665,6 +665,9 @@ private final class SoakRun {
         model.setStatus(.running(cycle: cycle, phase: .loading))
 
         let animations = Task { await self.startAnimations(cycle: cycle) }
+        // A cycle that ends early takes its animations with it: they are
+        // still loading, and would start playing after the tear-down.
+        defer { animations.cancel() }
 
         var churn = SoakChurn.imageCacheEmptied
         var hasChurned = false
