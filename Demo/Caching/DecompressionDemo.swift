@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import NukeUI
+import os
 import SwiftUI
 import UIKit
 
@@ -29,7 +30,7 @@ import UIKit
 /// empty, so every image is decoded fresh, and the screen's own
 /// ``DemoDisplayMonitor`` counts the frames the main thread missed. Each
 /// configuration keeps its last run, next to the probe's decompression
-/// figures.
+/// figures and the footprint's peak.
 ///
 /// A decoded 12 MP image takes 46 MB, whichever thread decoded it, so the
 /// grid holds no more than a phone can: two images to a row (three on an
@@ -70,7 +71,7 @@ struct DecompressionDemo: View {
 
     private static let info = DemoInfo(
         "Decompression",
-        "A JPEG stays compressed until something draws it, and what draws it first is Core Animation, on the main thread, as the cell comes on screen. Nuke decodes each image into a bitmap on a background queue before it hands it over. Pick a configuration and run Auto-Scroll over a grid of 12 MP images: the frames the main thread missed say what each one costs.",
+        "A JPEG stays compressed until something draws it, and what draws it first is Core Animation, on the main thread, as the cell comes on screen. Nuke decodes each image into a bitmap on a background queue before it hands it over. Pick a configuration and run Auto-Scroll over a grid of 12 MP images: the frames the main thread missed, and the memory the app took, say what each one costs.",
         code: """
         ImagePipeline {
             // The default on iOS, tvOS, and visionOS
@@ -88,7 +89,7 @@ struct DecompressionDemo: View {
         """,
         points: [
             .init("Why", "`UIImage(data:)` reads a JPEG's header and nothing more. The pixels are decoded when Core Animation first needs them – when the frame with the image in it is committed, on the main thread – and a 12 MP JPEG takes tens of milliseconds, several frames' worth. A decompressed image arrives as a bitmap, and the view only has to show it."),
-            .init("Off", "`isDecompressionEnabled = false`: every image reaches the view as soon as its header is read, and the main thread decodes it on the way to the screen. The pipeline asks its delegate's `shouldDecompress` and hears no, which the probe counts as declined."),
+            .init("Off", "`isDecompressionEnabled = false`: every image reaches the view as soon as its header is read, and the main thread decodes it on the way to the screen. The pipeline asks its delegate's `shouldDecompress` and hears no, which the HUD counts as declined."),
             .init("On", "The default. Each image is drawn into a bitmap with Core Graphics on `imageDecompressingQueue`, two at a time. A cell that scrolls away before its turn is cancelled and costs nothing. An image arrives a little later, and the main thread doesn't pay for it."),
             .init("Prepare", "`isUsingPrepareForDisplay = true` swaps the drawing for `UIImage.preparingForDisplay()`, the system's own, on the same queue."),
             .init("Thumbnail", "`ImageRequest.thumbnail` has Image I/O decode the image at the size of the cell, on the decoding queue: a sliver of the pixels, and a bitmap already, so there is nothing to decompress. For a grid, that is the bigger saving. Decompression is what is left to do for images shown at full size."),
@@ -98,8 +99,8 @@ struct DecompressionDemo: View {
             .init("Disk cache", "The disk cache keeps the downloaded data by default, and a disk hit is decoded and decompressed again. `.storeEncodedImages` stores the decompressed image instead, encoded again as a JPEG at 0.8, so a disk hit decodes that: often larger than the original for a photo, and a still for an animation or a video, whose first frame is all it keeps."),
             .init("The run", "Auto-Scroll scrolls the grid from the top at 1,000 points a second for 6 seconds. Before each run, the screen builds a pipeline with the configuration and an empty memory cache, and waits a second for the first screenful. Every cell asks for the same 12 MP JPEG fixture under a URL of its own, so each image is decoded fresh: one the memory cache already had was decompressed or drawn before, and would cost nothing. Run All runs the four in turn."),
             .init("Frames", "Counted by a display link of the screen's own, on the main thread: a frame that came a refresh or more late. It sees what decoding on the main thread costs, not what the render server drops on its own. ms/s is the time the late frames were late by, per second scrolled."),
-            .init("Simulator", "The difference shows on a simulator too, but its figures are the Mac's: it decodes on the Mac's cores, and a phone takes longer over each image. Compare runs on the same device, not a simulator with a phone."),
-            .init("Figures", "Images are the tasks that finished with one while the grid scrolled. Decode and decompress are the probe's averages and slowest, from the pipeline's decoder and its `decompress` call; declined is how often `shouldDecompress` said no. The HUD's decompress line shows the same figures live.")
+            .init("Simulator", "The difference shows on a simulator too, but its figures are the Mac's: it decodes on the Mac's cores, and a phone takes longer over each image. The simulator also leaves the bitmaps Nuke draws with Core Graphics out of the footprint, so On peaks lower than Prepare, though its images are as large. Compare runs on the same device, not a simulator with a phone."),
+            .init("Figures", "Images are the tasks that finished with one while the grid scrolled. Decode and decompress are the probe's averages and slowest, from the pipeline's decoder and its `decompress` call. Peak is the app's highest footprint while the grid scrolled, the figure the system terminates an app over, read every 20 ms. The HUD shows the same figures live, and how often `shouldDecompress` said no.")
         ]
     )
 }
@@ -257,10 +258,10 @@ private struct DecompressionPanel: View {
                 Text("dropped")
                 Text("ms/s")
                 Text("worst")
+                Text("peak")
                 Text("images")
                 Text("decode")
                 Text("decomp")
-                Text("declined")
             }
             .foregroundStyle(.secondary)
             ForEach(DecompressionSetting.allCases) { setting in
@@ -272,10 +273,10 @@ private struct DecompressionPanel: View {
                             .foregroundStyle(result.frames.droppedFrameCount > 0 ? .orange : .primary)
                         Text(String(format: "%.0f", (result.frames.hitchTimeRatio ?? 0) * 1000))
                         Text(demoDelay(result.frames.longestFrame))
+                        Text(result.footprintPeak.map { demoByteCount($0) } ?? "–")
                         Text(result.imageCount.formatted())
                         Text(Self.timing(result.decoding, showsMax: false))
                         Text(Self.timing(result.decompression, showsMax: true))
-                        Text(result.declinedCount.formatted())
                     } else {
                         ForEach(0..<7, id: \.self) { _ in
                             Text("–")
@@ -339,11 +340,13 @@ private final class DecompressionDemoModel {
 
     struct Result {
         let frames: DemoDisplayMonitor.Figures
+        /// The highest footprint while the grid scrolled, or `nil` if the
+        /// kernel didn't answer.
+        let footprintPeak: Int?
         /// The tasks that finished with an image during the run.
         let imageCount: Int
         let decoding: DemoPipelineDiagnostics.Timing
         let decompression: DemoPipelineDiagnostics.Timing
-        let declinedCount: Int
     }
 
     /// The grid on screen.
@@ -354,6 +357,7 @@ private final class DecompressionDemoModel {
     /// The configurations still to run.
     @ObservationIgnored private var pending: [DecompressionSetting] = []
     @ObservationIgnored private var preparation: Task<Void, Never>?
+    @ObservationIgnored private var footprintPeak: FootprintPeak?
 
     /// Called by the grid once it has a collection view.
     func gridDidLoad(_ grid: DecompressionGridViewController) {
@@ -432,6 +436,7 @@ private final class DecompressionDemoModel {
         pending = []
         preparation?.cancel()
         preparation = nil
+        footprintPeak = nil
         let wasScrolling = phase.map { if case .scrolling = $0 { true } else { false } } ?? false
         phase = nil
         if wasScrolling {
@@ -467,6 +472,7 @@ private final class DecompressionDemoModel {
         }
         monitor.reset()
         live = monitor.figures
+        footprintPeak = FootprintPeak()
         elapsed = 0
         phase = .scrolling(setting)
         grid.startAutoScroll(speed: Self.speed, duration: Self.duration) { [weak self] elapsed in
@@ -483,11 +489,12 @@ private final class DecompressionDemoModel {
         let frames = monitor.figures
         results[setting] = Result(
             frames: frames,
+            footprintPeak: footprintPeak?.value,
             imageCount: figures.succeededTaskCount - baseline.succeededTaskCount,
             decoding: figures.decoding.since(baseline.decoding),
-            decompression: figures.decompression.since(baseline.decompression),
-            declinedCount: figures.declinedDecompressionCount - baseline.declinedDecompressionCount
+            decompression: figures.decompression.since(baseline.decompression)
         )
+        footprintPeak = nil
         live = frames
         self.elapsed = elapsed
         next()
@@ -503,6 +510,40 @@ private extension DemoPipelineDiagnostics.Timing {
         timing.count -= baseline.count
         timing.total -= baseline.total
         return timing
+    }
+}
+
+/// The highest footprint since it was created, read every 20 ms by a task of
+/// its own.
+///
+/// Not on the main thread, which decoding holds up for a tenth of a second
+/// at a time with decompression off, and not ``DemoFootprint``'s lifetime
+/// peak, which can't be started over for each run. It stops when released.
+private final class FootprintPeak: Sendable {
+    private let peak: OSAllocatedUnfairLock<Int?>
+    private let task: Task<Void, Never>
+
+    init() {
+        let peak = OSAllocatedUnfairLock<Int?>(initialState: nil)
+        self.peak = peak
+        task = Task.detached(priority: .userInitiated) {
+            while !Task.isCancelled {
+                if let footprint = DemoFootprint.read()?.footprint {
+                    peak.withLock { $0 = max($0 ?? 0, footprint) }
+                }
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+        }
+    }
+
+    deinit {
+        task.cancel()
+    }
+
+    /// The highest footprint read so far, or `nil` if the kernel hasn't
+    /// answered.
+    var value: Int? {
+        peak.withLock { $0 }
     }
 }
 
