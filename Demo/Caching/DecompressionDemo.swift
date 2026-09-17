@@ -554,6 +554,8 @@ private final class DecompressionGridViewController: PhotoGridViewController {
     private let model: DecompressionDemoModel
     private var isThumbnail = false
     private var autoScroll: DemoAutoScroll?
+    /// The cells that let go of their image when they left the screen.
+    private var clearedCells: Set<ObjectIdentifier> = []
 
     init(model: DecompressionDemoModel) {
         self.model = model
@@ -607,6 +609,21 @@ private final class DecompressionGridViewController: PhotoGridViewController {
         guard let cell = cell as? PhotoCell else { return }
         NukeUI.cancelRequest(for: cell.imageView)
         cell.imageView.image = nil
+        clearedCells.insert(ObjectIdentifier(cell))
+    }
+
+    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = super.collectionView(collectionView, cellForItemAt: indexPath)
+        clearedCells.remove(ObjectIdentifier(cell))
+        return cell
+    }
+
+    /// With cell prefetching, a cell that scrolls straight back is shown
+    /// again without `cellForItemAt`, so it asks again here.
+    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard let cell = cell as? PhotoCell, clearedCells.remove(ObjectIdentifier(cell)) != nil else { return }
+        let request = makeRequest(for: photos[indexPath.item], size: cell.bounds.size)
+        loadImage(with: request, options: makeLoadingOptions(), into: cell.imageView)
     }
 
     override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {
