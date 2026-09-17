@@ -522,8 +522,8 @@ private final class CustomDecoderDemoModel {
 
     func disappear() {
         isOnScreen = false
+        // Kept, so that the next run waits for this one to stop.
         runTask?.cancel()
-        runTask = nil
         setRegistered(false)
     }
 

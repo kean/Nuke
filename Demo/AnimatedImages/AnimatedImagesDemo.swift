@@ -435,6 +435,8 @@ struct AnimatedImagesDemo: View {
         status = nil
         let maxPixelSize = settings.maxPixelSize(viewPixelSize: viewPixelSize)
         let load = await loadDemoAnimations([image], options: settings.playerOptions(maxPixelSize: maxPixelSize))
+        // A newer load replaced this one, and its "cancelled" isn't news.
+        guard !Task.isCancelled else { return }
         animation = load.animations.first
         status = load.status
         sample()

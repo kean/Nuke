@@ -254,6 +254,10 @@ private final class ImagePipelineDemoModel: ObservableObject {
         observer = nil
         task?.cancel()
         task = nil
+        // The observer is gone before the task's `.cancelled` would reach it.
+        if state == .loading {
+            state = .cancelled
+        }
     }
 
     /// Loads the bytes of the same image, with nothing decoded.

@@ -123,8 +123,8 @@ final class FixtureZooModel {
     }
 
     func cancel() {
+        // Kept, so that the next run waits for this one to stop.
         task?.cancel()
-        task = nil
         queue = []
         current = nil
     }
@@ -141,6 +141,8 @@ final class FixtureZooModel {
             // One decode at a time, even across runs, so that the note in the
             // crash log is always the input being decoded.
             await previous?.value
+            // Replaced while it waited: the queue is the next run's.
+            guard !Task.isCancelled else { return }
             let start = ContinuousClock.now
             while !queue.isEmpty {
                 let input = queue.removeFirst()
