@@ -23,7 +23,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Getting Started** | The snippets the README and the documentation open with, each running under its code: `ImagePipeline.shared.imageTask(with:)` with its progress, `LazyImage(url:)`, and `loadImage(with:into:)` with a `UIImageView`. They load one photo in turn, so the second and third find it in the memory cache. It is the catalog's first row |
+| **Getting Started** | The snippets the README and the documentation open with, each running under its code: `ImagePipeline.shared.imageTask(with:)` with its progress, `LazyImage(url:)`, and `loadImage(with:into:)` with a `UIImageView`. They load one photo in turn, so the second and third find it in the memory cache. It is the catalog's first row, and on an iPad it runs beside the catalog from launch |
 | **Image Pipeline** | `ImagePipeline.imageTask(with:)`, the event stream, progress, cancellation, and where the response came from |
 | **LazyImage** | The SwiftUI view: loading states, transitions, processors, priority, and completion |
 | **UIKit Views** | `loadImage(with:options:into:)` next to `LazyImageView` in a collection view, on a picker: with the extension you own the placeholder, the failure image, and the transition; `LazyImageView` owns them. Cell reuse either way |

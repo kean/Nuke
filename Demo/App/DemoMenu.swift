@@ -10,6 +10,10 @@ import SwiftUI
 ///
 /// The rows come from ``DemoScreen``, and every one of them pushes a
 /// ``DemoRoute`` rather than a view.
+///
+/// The app opens on Getting Started: on an iPad it runs beside the catalog,
+/// and on a phone it is the first row. The logo is in the navigation bar,
+/// which also gives the rows a bar to scroll under.
 struct DemoMenu: View {
     /// Starts out holding the screen the app was launched on, if it was
     /// launched on one – see ``DemoLaunchOptions``.
@@ -20,19 +24,34 @@ struct DemoMenu: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            if horizontalSizeClass == .regular {
-                // iPad: the logo takes the left pane, the catalog the right.
-                HStack(spacing: 0) {
-                    DemoLogoHeader(logoHeight: 96, taglineFont: .title2.weight(.bold))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    menu(showsLogo: false)
-                        .frame(maxWidth: .infinity)
+            Group {
+                if horizontalSizeClass == .regular {
+                    // iPad: Getting Started takes the left pane, running from
+                    // launch, and the catalog the right.
+                    HStack(spacing: 0) {
+                        GettingStartedDemo(isPane: true)
+                            .demoHUDRoom()
+                            .frame(maxWidth: .infinity)
+                        Divider()
+                            .ignoresSafeArea(edges: .bottom)
+                        menu
+                            .frame(maxWidth: .infinity)
+                    }
+                    .background(Color(.systemGroupedBackground).ignoresSafeArea())
+                    // Two scroll views sit under the bar, so it keeps its
+                    // background rather than follow one of them.
+                    .toolbarBackground(.visible, for: .navigationBar)
+                } else {
+                    menu
                 }
-                .background(Color(.systemGroupedBackground).ignoresSafeArea())
-                .toolbar(.hidden, for: .navigationBar)
-            } else {
-                // iPhone: the logo crowns the list, the way the README opens.
-                menu(showsLogo: true)
+            }
+            // The title is what the back button of the next screen reads.
+            .navigationTitle("Nuke")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    DemoWordmark()
+                }
             }
         }
         // For the rows that can't be a `NavigationLink` – see `DemoLink`.
@@ -41,16 +60,8 @@ struct DemoMenu: View {
         .demoPipelineHUD()
     }
 
-    private func menu(showsLogo: Bool) -> some View {
+    private var menu: some View {
         List {
-            if showsLogo {
-                Section {
-                    DemoLogoHeader(logoHeight: 56, taglineFont: .headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 16)
-                }
-                .listRowBackground(Color.clear)
-            }
             catalog
             if showsLab {
                 lab
@@ -99,21 +110,21 @@ struct DemoMenu: View {
     }
 }
 
-/// The Nuke wordmark over its tagline, the way the README opens.
-private struct DemoLogoHeader: View {
-    let logoHeight: CGFloat
-    let taglineFont: Font
-
+/// The Nuke logo beside its tagline, the way the README opens, in the
+/// navigation bar of the catalog.
+private struct DemoWordmark: View {
     var body: some View {
-        VStack(spacing: logoHeight / 4) {
+        HStack(spacing: 8) {
             Image("NukeLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: logoHeight)
-                .accessibilityLabel("Nuke")
+                .frame(height: 24)
             Text("Image Loading System")
-                .font(taglineFont)
+                .font(.headline)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Nuke, Image Loading System")
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
