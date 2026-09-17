@@ -48,6 +48,11 @@ struct DemoLaunchOptions {
     /// exist.
     private(set) var networkPreset: DemoNetworkConditions.Preset?
 
+    /// `-demoAutorun 1` starts the run of a Lab screen that has one as soon
+    /// as the screen opens, once per launch: Scroll Stress scrolls. A script
+    /// can then take a screenshot of the results without a tap.
+    private(set) var autoruns = false
+
     /// What each argument was set to, as written, for the **Automation** screen
     /// to report. An argument that wasn't passed isn't in it.
     private(set) var values: [Argument: String] = [:]
@@ -85,6 +90,9 @@ struct DemoLaunchOptions {
                 Self.logger.error("-demoFixtures \(value, privacy: .public): not a mode, so the app starts \(fallback, privacy: .public). The modes are offline and network.")
             }
         }
+        if values[.autorun] != nil {
+            autoruns = defaults.bool(forKey: Argument.autorun.rawValue)
+        }
         if let value = values[.network], value != "off" {
             networkPreset = DemoNetworkConditions.Preset(rawValue: value)
             if networkPreset == nil {
@@ -108,6 +116,7 @@ extension DemoLaunchOptions {
         case fixtures = "demoFixtures"
         case deterministic = "demoDeterministic"
         case network = "demoNetwork"
+        case autorun = "demoAutorun"
 
         var id: String { rawValue }
 
@@ -123,6 +132,7 @@ extension DemoLaunchOptions {
             case .fixtures: "offline | network"
             case .deterministic: "0 | 1"
             case .network: (["off"] + DemoNetworkConditions.Preset.allCases.map(\.rawValue)).joined(separator: " | ")
+            case .autorun: "0 | 1"
             }
         }
 
@@ -135,6 +145,7 @@ extension DemoLaunchOptions {
             case .fixtures: "`offline` serves every image from fixtures – generated or bundled stand-ins for the demo's URLs – and sends nothing to the network. `network`, the default, loads the catalog over the network; Lab screens start on fixtures either way. Fixture Mode in the Lab switches it while the app runs."
             case .deterministic: "`1` starts the app the same way every time: offline unless `-demoFixtures network` says otherwise, with the disk caches emptied, no fade on UIKit image views, and counted tokens instead of random ones. Timings, animation frames, and the HUD's figures still vary."
             case .network: "Starts the app with the network conditions of a preset on, so every download of every pipeline is slowed, lost, failed, or cut off the way the preset says. `off`, the default, leaves the network as it is. Network Conditions in the Lab switches them while the app runs."
+            case .autorun: "`1` starts the run of a Lab screen as soon as it opens, once per launch: Scroll Stress scrolls for 10 s. `0`, the default, waits for a tap."
             }
         }
     }
