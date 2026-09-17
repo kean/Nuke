@@ -43,8 +43,8 @@ import OSLog
 //   their times come from the finished tasks' metrics, without failures or a
 //   count in flight.
 // - Any decoder other than the ones Nuke ships, on a pipeline that doesn't
-//   record diagnostics. It isn't wrapped, and its decodes aren't counted –
-//   see `isTimed(_:)`.
+//   record diagnostics, unless it is a `DemoSynchronousDecoding`. It isn't
+//   wrapped, and its decodes aren't counted – see `isTimed(_:)`.
 // - Where a custom loader's data came from: only a `DataLoader` says `URLCache`.
 // - A `DataLoader` that already has a delegate. One that two pipelines share
 //   is counted by the probe of the first.
@@ -279,7 +279,8 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     }
 
     /// Whether the probe wraps `decoder` to time it: only the decoders that
-    /// ship with Nuke, which all decode in the synchronous `decode(_:)`.
+    /// ship with Nuke, which all decode in the synchronous `decode(_:)`, and
+    /// the demo's own that say they do (``DemoSynchronousDecoding``).
     ///
     /// Any other decoder is passed on as it is, and its decodes aren't
     /// counted. The pipeline finds a decoder that decodes asynchronously by a
@@ -289,6 +290,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// can't tell such a decoder apart before wrapping it.
     private static func isTimed(_ decoder: any ImageDecoding) -> Bool {
         decoder is ImageDecoders.Default || decoder is ImageDecoders.Video || decoder is ImageDecoders.Empty
+            || decoder is any DemoSynchronousDecoding
     }
 
     func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
@@ -493,6 +495,14 @@ private final class DefaultDelegate: ImagePipeline.Delegate {}
 protocol DemoLocalDataLoading: DataLoading {}
 
 extension DemoFixtureLoader: DemoLocalDataLoading {}
+
+/// A decoder of the demo's own that decodes in `decode(_:)`, as the ones
+/// Nuke ships do – a decorator around one of them, say – which the probe can
+/// wrap and time like them.
+///
+/// A decoder that decodes through `AsyncImageDecoding` must not conform:
+/// wrapped, it would lose the cast the pipeline finds it by.
+protocol DemoSynchronousDecoding: ImageDecoding {}
 
 extension DemoPipelineDiagnostics.Queue {
     fileprivate mutating func set(_ queue: TaskQueue) {
