@@ -501,6 +501,7 @@ extension SoakRecord {
         let worst = cycles.reduce(into: SoakCycle.Leftovers()) { worst, cycle in
             worst.tasks = max(worst.tasks, cycle.left.tasks)
             worst.players = max(worst.players, cycle.left.players)
+            worst.poolPlayers = max(worst.poolPlayers, cycle.left.poolPlayers)
             worst.poolAnimations = max(worst.poolAnimations, cycle.left.poolAnimations)
             worst.imageCacheCount = max(worst.imageCacheCount, cycle.left.imageCacheCount)
             worst.dataCacheCount = max(worst.dataCacheCount, cycle.left.dataCacheCount)
@@ -508,7 +509,7 @@ extension SoakRecord {
         verdicts.append(DemoVerdict(
             title: "Nothing left after a cycle",
             state: cycles.isEmpty ? .skipped : dirty.isEmpty ? .passed : .failed,
-            figures: "\(cycles.count - dirty.count) of \(cycles.count) clean · at most \(worst.tasks) tasks · \(worst.players) players · \(worst.poolAnimations) animations · \(worst.imageCacheCount) images · \(worst.dataCacheCount) files",
+            figures: "\(cycles.count - dirty.count) of \(cycles.count) clean · at most \(worst.tasks) tasks · \(worst.players) players · \(worst.poolPlayers) pool players · \(worst.poolAnimations) animations · \(worst.imageCacheCount) images · \(worst.dataCacheCount) files",
             detail: "Once a cycle's loads have finished and its caches are emptied, none of its `ImageTask`s or players may still be in memory, the frame pool may hold no animation, and both caches must be empty. Tasks are given a second to go, and players two. Before the count, the pool is asked to give back what nobody plays, with `removeIdleAnimations()`: "
                 + (kept.isEmpty ? "it kept nothing of any cycle." : "it still kept the frames of animations the cache had let go of after \(kept.count) cycles, at most \(kept.map(\.poolKeptAnimations).max() ?? 0) animations and \(demoByteCount(kept.map(\.poolKeptBytes).max() ?? 0)). It sweeps them only when it next divides its budget – on the framework asks.")
                 + (dirty.isEmpty ? "" : " Left behind in cycles " + dirty.prefix(8).map { "\($0.number)" }.joined(separator: ", ") + ".")

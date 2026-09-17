@@ -353,12 +353,12 @@ private struct CycleRow: View {
         let parts = [
             (left.tasks, "tasks"),
             (left.players, "players"),
+            (left.poolPlayers, "pool players"),
             (left.poolAnimations, "animations"),
             (left.imageCacheCount, "images"),
             (left.dataCacheCount, "files")
         ].filter { $0.0 > 0 }.map { "\($0.0) \($0.1)" }
-        let pipelines = left.pipelines == 1 ? "1 pipeline" : "\(left.pipelines) pipelines"
-        var text = (parts.isEmpty ? "nothing left" : "left " + parts.joined(separator: ", ")) + " · \(pipelines)"
+        var text = (parts.isEmpty ? "nothing left" : "left " + parts.joined(separator: ", ")) + " · \(demoCount(left.pipelines, "pipeline"))"
         if cycle.poolKeptAnimations > 0 {
             text += " · pool kept \(cycle.poolKeptAnimations), \(demoByteCount(cycle.poolKeptBytes))"
         }
