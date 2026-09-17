@@ -84,7 +84,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         self.label = label
         self.configuration = configuration
         self.counters = counters
-        self.base = delegate ?? DefaultDelegate()
+        self.base = delegate ?? DemoDefaultDelegate()
         self.onEvent = onEvent
         self.onLoad = onLoad
         self.imageCache = configuration.imageCache.map { CountingImageCache($0, counters: counters) }
@@ -486,9 +486,13 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     }
 }
 
-/// The delegate a probe forwards to when the screen has none: every method is
-/// the protocol's default.
-private final class DefaultDelegate: ImagePipeline.Delegate {}
+/// A delegate whose every method is the protocol's default: what Nuke does
+/// with no delegate.
+///
+/// A probe forwards to it when the screen has none. A delegate that changes a
+/// few hooks calls through it for the rest: Nuke's decompression is internal,
+/// so this is the way to reach it.
+final class DemoDefaultDelegate: ImagePipeline.Delegate {}
 
 /// A data loader that never goes to the network: it answers from memory,
 /// from files, or not at all.

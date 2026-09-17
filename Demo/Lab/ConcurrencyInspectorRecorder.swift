@@ -752,7 +752,7 @@ extension InspectorState {
 /// and counts on top.
 final class InspectorDelegate: ImagePipeline.Delegate {
     private let recorder: InspectorRecorder
-    private let defaults = NukeDefaults()
+    private let defaults = DemoDefaultDelegate()
 
     init(recorder: InspectorRecorder) {
         self.recorder = recorder
@@ -802,11 +802,6 @@ final class InspectorDelegate: ImagePipeline.Delegate {
         recorder.taskFinished(key, result)
     }
 }
-
-/// Every method is Nuke's own: the delegate calls through it for what it
-/// doesn't change. Nuke's decompression is internal, so this is the way to
-/// reach it.
-private final class NukeDefaults: ImagePipeline.Delegate {}
 
 /// Tells the recorder when a decode starts and ends. Built around a new
 /// decoder each time the pipeline asks, as the probe's is:
