@@ -46,13 +46,13 @@ struct PipelineDelegateDemo: View {
                         .clipped()
                         .overlay(alignment: .topTrailing) {
                             if photo.isPrivate {
-                                DemoBadge("Private", color: .purple)
+                                DemoBadge("Private", color: .purple, style: .overImage)
                                     .padding(4)
                             }
                         }
                         .overlay(alignment: .bottomLeading) {
                             if let source = model.sources[photo.id] {
-                                DemoBadge(source.title, color: source.color)
+                                DemoBadge(source.title, color: source.color, style: .overImage)
                                     .padding(4)
                             }
                         }

@@ -201,21 +201,52 @@ struct DemoMonoLabel: View {
 
 /// A small rounded label, e.g. the cache type of a response.
 struct DemoBadge: View {
+    enum Style {
+        /// The text in the badge's color, on a light blur: for a badge on a
+        /// plain background.
+        case plain
+        /// White text on a dark capsule, with the color as a dot before it:
+        /// for a badge over a photo, where colored text on a blur of the
+        /// photo can all but vanish.
+        case overImage
+    }
+
     private let text: String
     private let color: Color
+    private let style: Style
 
-    init(_ text: String, color: Color = .accentColor) {
+    init(_ text: String, color: Color = .accentColor, style: Style = .plain) {
         self.text = text
         self.color = color
+        self.style = style
     }
 
     var body: some View {
-        Text(text)
+        switch style {
+        case .plain:
+            Text(text)
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.thinMaterial, in: Capsule())
+                .foregroundStyle(color)
+        case .overImage:
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 7, height: 7)
+                Text(text)
+                    .foregroundStyle(.white)
+            }
             .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6)
+            .padding(.leading, 5)
+            .padding(.trailing, 7)
             .padding(.vertical, 3)
-            .background(.thinMaterial, in: Capsule())
-            .foregroundStyle(color)
+            .background(.black.opacity(0.6), in: Capsule())
+            // The dot in the colors made for a dark background, whatever the
+            // app's appearance: the capsule is dark in both.
+            .environment(\.colorScheme, .dark)
+        }
     }
 }
 

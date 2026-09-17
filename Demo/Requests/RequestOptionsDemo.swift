@@ -135,7 +135,7 @@ private struct RequestOptionsStage: View {
             }
             .overlay(alignment: .bottomLeading) {
                 if !model.isLoading, let source = model.outcome?.source {
-                    DemoBadge(source.title, color: source.color)
+                    DemoBadge(source.title, color: source.color, style: .overImage)
                         .padding(6)
                 }
             }
