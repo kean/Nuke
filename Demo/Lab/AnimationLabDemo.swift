@@ -559,7 +559,7 @@ private struct SoakSection: View {
         } header: {
             Text("Soak")
         } footer: {
-            Text("An hour of play, with the wall rebuilt every minute, a memory warning every five, and a sample every five seconds. The screen stays awake, and leaving it stops the soak.")
+            Text("An hour of play, with the wall rebuilt every minute, a memory warning every five, and a sample every five seconds. The charts mark each warning with an orange tick. The screen stays awake, and leaving it stops the soak.")
         }
     }
 }
@@ -573,7 +573,7 @@ private struct SoakFigures: View {
         let last = soak.samples.last
         VStack(alignment: .leading, spacing: 8) {
             ProgressView(value: soak.elapsed, total: Soak.duration)
-            DemoDiagnosticsRow("time", "\(clock(soak.elapsed)) of \(clock(Soak.duration)) · \(count(soak.rebuildCount, "rebuild")) · \(count(soak.warningCount, "warning"))")
+            DemoDiagnosticsRow("time", "\(clock(soak.elapsed)) of \(clock(Soak.duration)) · \(count(soak.rebuildCount, "rebuild")) · \(count(soak.warnings.count, "warning"))")
             chart("memory", soak.samples.map { ($0.time, $0.footprint) }, peak: soak.peakFootprint)
             chart("pool", soak.samples.map { ($0.time, $0.poolCost) }, peak: soak.peakPoolCost)
             VStack(spacing: 4) {
@@ -593,13 +593,20 @@ private struct SoakFigures: View {
         .padding(.vertical, 4)
     }
 
-    /// A line over the hour so far, with the latest value and the peak.
+    /// A line laid across the whole hour, so that it grows to the right as
+    /// the soak goes on, with a tick at each memory warning; under it, the
+    /// latest value and the peak.
     private func chart(_ title: String, _ points: [(time: TimeInterval, value: Int)], peak: Int) -> some View {
         HStack(alignment: .top, spacing: 10) {
             DemoMonoLabel(title)
                 .frame(width: 62, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
-                SoakSparkline(points: points, duration: Soak.duration)
+            VStack(alignment: .leading, spacing: 4) {
+                DemoSparkline(
+                    samples: points.map { DemoSparkline.Sample(time: $0.time, value: Double($0.value)) },
+                    ticks: soak.warnings,
+                    duration: Soak.duration
+                )
+                .frame(height: 40)
                 DemoMonoLabel("\(demoByteCount(points.last?.value ?? 0)) · peak \(demoByteCount(peak))", tint: .primary)
             }
         }
@@ -624,34 +631,6 @@ private struct SoakFigures: View {
     private func clock(_ time: TimeInterval) -> String {
         let seconds = Int(time)
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
-    }
-}
-
-/// A small line chart of a figure over the soak, laid across the whole
-/// duration so that it grows to the right as the soak goes on.
-private struct SoakSparkline: View {
-    let points: [(time: TimeInterval, value: Int)]
-    let duration: TimeInterval
-
-    var body: some View {
-        Canvas { context, size in
-            guard points.count > 1, let low = points.map(\.value).min(), let high = points.map(\.value).max() else { return }
-            let span = Double(high - low)
-            var path = Path()
-            for (index, point) in points.enumerated() {
-                let x = size.width * CGFloat(min(1, point.time / duration))
-                let y = span > 0 ? size.height * (1 - CGFloat(Double(point.value - low) / span)) : size.height / 2
-                if index == 0 {
-                    path.move(to: CGPoint(x: x, y: y))
-                } else {
-                    path.addLine(to: CGPoint(x: x, y: y))
-                }
-            }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 1.5)
-        }
-        .padding(.vertical, 3)
-        .frame(height: 28)
-        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 4))
     }
 }
 

@@ -525,7 +525,8 @@ final class AnimationLabModel {
         var isRunning = true
         var samples: [Sample] = []
         var rebuildCount = 0
-        var warningCount = 0
+        /// When each memory warning was sent, for the charts to mark.
+        var warnings: [TimeInterval] = []
         var decodedFrameCount = 0
         var lateFrameCount = 0
         var display = DemoDisplayMonitor.Figures()
@@ -601,7 +602,7 @@ final class AnimationLabModel {
             setNeedsUpdate()
         }
         if crossed(Soak.warningInterval, from: previous, to: elapsed), elapsed < Soak.duration {
-            soak.warningCount += 1
+            soak.warnings.append(elapsed)
             sendMemoryWarning()
         }
         self.soak = soak
