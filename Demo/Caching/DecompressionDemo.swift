@@ -30,6 +30,13 @@ import UIKit
 /// ``DemoDisplayMonitor`` counts the frames the main thread missed. Each
 /// configuration keeps its last run, next to the probe's decompression
 /// figures.
+///
+/// A decoded 12 MP image takes 46 MB, whichever thread decoded it, so the
+/// grid holds no more than a phone can: two images to a row (three on an
+/// iPad), a memory cache of four, and a cell that lets go of its image as
+/// it leaves the screen. Without the last, decompression off peaked at over
+/// 4 GB on the simulator: UIKit kept a hundred cells for reuse, each with
+/// its image.
 struct DecompressionDemo: View {
     @State private var model = DecompressionDemoModel()
     @Environment(\.scenePhase) private var scenePhase
@@ -86,7 +93,8 @@ struct DecompressionDemo: View {
             .init("Prepare", "`isUsingPrepareForDisplay = true` swaps the drawing for `UIImage.preparingForDisplay()`, the system's own, on the same queue."),
             .init("Thumbnail", "`ImageRequest.thumbnail` has Image I/O decode the image at the size of the cell, on the decoding queue: a sliver of the pixels, and a bitmap already, so there is nothing to decompress. For a grid, that is the bigger saving. Decompression is what is left to do for images shown at full size."),
             .init("What isn't decompressed", "Thumbnails, and images a processor made, which are drawn already. Requests with `.skipDecompression`. An image served from the memory cache, which was decompressed when it was stored. Everything on macOS, where it is off by default. A delegate decides per response in `shouldDecompress(response:for:pipeline:)`, and can do it its own way in `decompress(response:request:pipeline:)`."),
-            .init("Memory", "A decompressed image is its bitmap, 4 bytes a pixel: 48 MB for 12 MP, which is what the memory cache counts it at. That is the cost either way – an image drawn on the main thread ends up the same size – but it is paid before the image is on screen."),
+            .init("Memory", "A decoded image is its bitmap, 4 bytes a pixel: 46 MB for 12 MP, which is what the memory cache counts it at. It costs that whether Nuke decompresses it or not: with decompression off, Image I/O keeps the pixels it decoded for Core Animation with the image for as long as the image lives. On, the cost is paid before the image is on screen. The memory cache here holds four, `ImageCache(countLimit: 4)`; the default limit, up to 768 MB, would hold 16."),
+            .init("Cells", "A cell waiting to be reused keeps its image until it is. With decompression off, the main thread was so busy decoding that UIKit's cell prefetching kept making new cells rather than reusing old ones: a hundred of them, each with its image, over 4 GB on the simulator. So a cell here lets go of its image as it leaves the screen, in `collectionView(_:didEndDisplaying:forItemAt:)`, and the grid has two images to a row, three on an iPad: 8 or 12 on screen at most."),
             .init("Disk cache", "The disk cache keeps the downloaded data by default, and a disk hit is decoded and decompressed again. `.storeEncodedImages` stores the decompressed image instead, encoded again as a JPEG at 0.8, so a disk hit decodes that: often larger than the original for a photo, and a still for an animation or a video, whose first frame is all it keeps."),
             .init("The run", "Auto-Scroll scrolls the grid from the top at 1,000 points a second for 6 seconds. Before each run, the screen builds a pipeline with the configuration and an empty memory cache, and waits a second for the first screenful. Every cell asks for the same 12 MP JPEG fixture under a URL of its own, so each image is decoded fresh: one the memory cache already had was decompressed or drawn before, and would cost nothing. Run All runs the four in turn."),
             .init("Frames", "Counted by a display link of the screen's own, on the main thread: a frame that came a refresh or more late. It sees what decoding on the main thread costs, not what the render server drops on its own. ms/s is the time the late frames were late by, per second scrolled."),
@@ -357,12 +365,18 @@ private final class DecompressionDemoModel {
     /// the grid back at the top, asking it for every image.
     private func apply() {
         guard let grid else { return }
+        // A cell waiting for reuse holds on to the pipeline it last loaded
+        // with, and so to its memory cache, until it is reused: emptied
+        // here, the images don't count against the next run.
+        self.pipeline?.cache.removeAll(caches: .memory)
         let setting = setting
         let pipeline = DemoPipelineProbe.makePipeline("Decompression · \(setting.title)") {
             // The fixture, from memory, with no wait: the run measures the
             // images, not the network.
             $0.dataLoader = DemoFixtureLoader()
-            $0.imageCache = ImageCache()
+            // Four images, 183 MB. The default limit would keep 16 of
+            // them, 732 MB, on top of the ones on screen.
+            $0.imageCache = ImageCache(countLimit: 4)
             $0.isDecompressionEnabled = setting.isDecompressionEnabled
             $0.isUsingPrepareForDisplay = setting.isUsingPrepareForDisplay
         }
@@ -522,8 +536,9 @@ private final class DecompressionGridViewController: PhotoGridViewController {
     }
 
     override func viewWillLayoutSubviews() {
-        // Cells about as large on an iPad as on a phone.
-        itemsPerRow = view.bounds.width > 600 ? 4 : 3
+        // Up to eight cells on screen on a phone and twelve on an iPad, at
+        // 46 MB each once decoded.
+        itemsPerRow = view.bounds.width > 600 ? 3 : 2
         super.viewWillLayoutSubviews()
     }
 
@@ -540,6 +555,17 @@ private final class DecompressionGridViewController: PhotoGridViewController {
         self.isThumbnail = isThumbnail
         collectionView.setContentOffset(CGPoint(x: 0, y: -collectionView.adjustedContentInset.top), animated: false)
         collectionView.reloadData()
+    }
+
+    /// A cell waiting to be reused keeps its image until it is, and with the
+    /// main thread busy decoding, UIKit's cell prefetching kept making new
+    /// cells rather than reusing old ones: a hundred of them, 46 MB each. A
+    /// cell that leaves the screen lets go of its image, and of a request
+    /// still running.
+    override func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard let cell = cell as? PhotoCell else { return }
+        NukeUI.cancelRequest(for: cell.imageView)
+        cell.imageView.image = nil
     }
 
     override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {
