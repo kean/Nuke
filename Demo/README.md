@@ -48,6 +48,7 @@ and the details worth knowing.
 |--|--|
 | **Caching** | The memory cache, `URLCache`, and `DataCache` side by side, with the source of every image |
 | **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid |
+| **Resumable Downloads** | A photo handed to the pipeline a few kilobytes at a time: cancel it partway and resume, and see the `Range` request that goes out, the `206 Partial Content` that comes back, and the bytes that weren't downloaded twice. Two switches show when a download can't resume: a server without validators, and a new pipeline |
 
 ### Animated Images
 
@@ -112,7 +113,8 @@ run, so a run on fixtures can be compared with the last one.
 Every pipeline's delegate sends a request for a fixture, and every request
 while offline, to the fixture loader, which also answers the demo's network
 URLs with their stand-ins; any other URL fails and says so in Console, under
-the `Fixtures` category. Launch with `-demoFixtures offline`, or flip the switch
+the `Fixtures` category. It answers the way a server that supports range
+requests does, so a download cancelled offline resumes too. Launch with `-demoFixtures offline`, or flip the switch
 in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
 screens that load photos start on fixtures either way.
 
@@ -148,9 +150,9 @@ counts.
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
-`com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**
-and **Priority & Coalescing** screens record their tasks either way, and show
-what the records say on screen.
+`com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**,
+**Priority & Coalescing**, and **Resumable Downloads** screens record their
+tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
 
@@ -170,10 +172,10 @@ Demo
 ├── Essentials       ImagePipeline, LazyImage, and the image views
 ├── Requests         Request options, thumbnails, priority, and coalescing
 ├── Processing       Processors, image formats, and progressive decoding
-├── Caching          Caching and prefetching
+├── Caching          Caching, prefetching, and resumable downloads
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate
 ├── Lab              Stress rigs and instruments for working on Nuke
-├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, and a few small utilities
+├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```
