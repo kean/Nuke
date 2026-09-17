@@ -35,6 +35,8 @@ struct DemoMenu: View {
                 menu(showsLogo: true)
             }
         }
+        // For the rows that can't be a `NavigationLink` – see `DemoLink`.
+        .environment(\.demoOpen, DemoOpenAction { path.append($0) })
         // Over the whole stack, so it stays put as screens come and go.
         .demoPipelineHUD()
     }
@@ -117,11 +119,17 @@ private struct DemoLogoHeader: View {
 
 /// A menu row that pushes a screen, or the Lab: the title over a caption, and
 /// a status at the end of the row, if any.
+///
+/// Inside a console it is a button that asks the console to push the screen:
+/// a console presented as a sheet has no navigation stack of its own, so a
+/// `NavigationLink` there does nothing.
 struct DemoLink: View {
     private let route: DemoRoute
     private let title: String
     private let subtitle: String
     private let status: Text?
+
+    @Environment(\.demoOpenFromConsole) private var openFromConsole
 
     init(_ screen: DemoScreen, status: Text? = nil) {
         self.init(.screen(screen), title: screen.title, subtitle: screen.subtitle, status: status)
@@ -135,24 +143,65 @@ struct DemoLink: View {
     }
 
     var body: some View {
-        NavigationLink(value: route) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let status {
-                    // Inside the label, so it sits before the chevron: a
-                    // badge goes after it.
+        if let openFromConsole {
+            Button {
+                openFromConsole(route)
+            } label: {
+                HStack {
+                    label
                     Spacer(minLength: 8)
-                    status
-                        .font(.subheadline)
+                    // The one a `NavigationLink` in a list draws.
+                    Image(systemName: "chevron.forward")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                 }
+                .contentShape(Rectangle())
+            }
+            .foregroundStyle(.primary)
+        } else {
+            NavigationLink(value: route) {
+                label
             }
         }
     }
+
+    private var label: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let status {
+                // Inside the label, so it sits before the chevron: a badge
+                // goes after it.
+                Spacer(minLength: 8)
+                status
+                    .font(.subheadline)
+            }
+        }
+    }
+}
+
+/// Pushes a route onto the demo's navigation stack.
+struct DemoOpenAction {
+    let open: @MainActor (DemoRoute) -> Void
+
+    @MainActor
+    func callAsFunction(_ route: DemoRoute) {
+        open(route)
+    }
+}
+
+extension EnvironmentValues {
+    /// Pushes a route onto the navigation stack of the catalog, for a row
+    /// that can't be a `NavigationLink`.
+    @Entry var demoOpen: DemoOpenAction?
+
+    /// Set inside a console: closes the console, if it is a sheet, then
+    /// pushes the route. ``DemoLink`` uses it.
+    @Entry var demoOpenFromConsole: DemoOpenAction?
 }
 
 #Preview {

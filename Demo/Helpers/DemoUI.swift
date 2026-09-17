@@ -328,7 +328,15 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
     /// goes away, and a constant swallows the write.
     @State private var isShowingConsole = false
     @State private var isShowingInfo = false
+    /// The screen a row of the console asked for, pushed once the console
+    /// sheet has gone: pushed under it, the next screen would sit beneath this
+    /// console, and its own console would be dropped.
+    @State private var pendingRoute: DemoRoute?
+    /// Whether the screen has been on display before, which makes this
+    /// appearance a return from a screen pushed over it.
+    @State private var hasAppeared = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.demoOpen) private var open
 
     init(collapsedHeight: CGFloat, info: DemoInfo, @ViewBuilder console: @escaping () -> Console) {
         self.collapsedHeight = collapsedHeight
@@ -351,7 +359,15 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
         .demoInfoButton(isPresented: $isShowingInfo)
         // A turn of the loop after the screen arrives – see `isShowingConsole`.
         .task {
-            await Task.yield()
+            if hasAppeared {
+                // Back from a screen a row of the console pushed. Asked for
+                // while the pop is still animating, the sheet presents empty
+                // and stays that way.
+                guard (try? await Task.sleep(for: .milliseconds(600))) != nil else { return }
+            } else {
+                await Task.yield()
+                hasAppeared = true
+            }
             isShowingConsole = true
         }
         .inspector(isPresented: $isShowingConsole) {
@@ -363,7 +379,21 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
                 }
                 .onDisappear {
                     DemoHUD.shared.consoleSheetMinY = nil
+                    if let pendingRoute {
+                        self.pendingRoute = nil
+                        open?(pendingRoute)
+                    }
                 }
+                .environment(\.demoOpenFromConsole, DemoOpenAction { route in
+                    guard isConsoleSheet else {
+                        open?(route)
+                        return
+                    }
+                    // Back on this screen, the console comes up again with
+                    // the screen, as it did the first time.
+                    pendingRoute = route
+                    isShowingConsole = false
+                })
                 .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
                 .presentationDetents([collapsedDetent, .medium, .large], selection: $detent)
                 .presentationDragIndicator(.visible)
