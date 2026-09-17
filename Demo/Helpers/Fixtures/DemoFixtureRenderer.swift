@@ -43,6 +43,12 @@ enum DemoFixtureRenderer {
             gif(frameCount: 200, size: 300, delay: 0.05, title: "LONG GIF")
         case .apng:
             apng(frameCount: 20, size: 100, delay: 0.075)
+        case .heic:
+            encode(
+                [picture(seed: 11, width: 1008, height: 756, title: "HEIC", caption: "FIXTURE 1008×756")],
+                type: .heic,
+                frameProperties: [kCGImageDestinationLossyCompressionQuality: 0.8]
+            )
         case .webp, .animatedWebP, .video, .missing, .zoo:
             nil
         }

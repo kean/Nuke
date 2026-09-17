@@ -49,6 +49,10 @@ enum DemoImages {
 
     static var webp: URL { url(Network.webp, .webp) }
 
+    /// A photo taken with an iPhone, as its camera writes it: HEVC in a HEIF
+    /// container that leads with the `heic` brand.
+    static var heic: URL { url(Network.heic, .heic) }
+
     static var video: URL { url(Network.video, .video) }
 
     /// A URL that always fails. Used to demonstrate the failure states.
@@ -89,6 +93,9 @@ enum DemoImages {
         static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
         static let webp = URL(string: "https://kean.blog/images/misc/4.webp")!
         static let video = URL(string: "https://kean.blog/videos/cat_video.mp4")!
+        /// A file of Nuke's own tests, at a release tag, so its bytes never
+        /// change.
+        static let heic = URL(string: "https://raw.githubusercontent.com/kean/Nuke/13.2.0/Tests/Resources/img_751.heic")!
         static let failing = URL(string: "https://kean.blog/images/this-image-does-not-exist.jpeg")!
 
         /// The photo stream. The URLs are in `photos.json`, in the demo's

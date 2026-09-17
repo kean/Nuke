@@ -2,115 +2,342 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-import AVFoundation
 import NukeUI
-import NukeVideo
 import SwiftUI
 
-/// Demonstrates the image formats that Nuke supports out of the box and the
-/// video decoder from the NukeVideo module.
+/// Demonstrates the image formats that Nuke decodes out of the box, and how
+/// the pipeline tells them apart.
 ///
-/// The decoders are selected by ``ImageDecoderRegistry`` based on the image
-/// data, so a single request works for any of these formats.
+/// A request doesn't say what format to expect. Once the data is in, the
+/// pipeline asks its delegate for a decoder, and the default delegate asks
+/// ``ImageDecoderRegistry``, whose decoders each look at the data and take it
+/// or pass. Under every image is what came of that: the type the server sent,
+/// the ``AssetType`` the decoder read in the data, the decoder that took it,
+/// and, for a second opinion, what Image I/O reads in the file.
 ///
-/// See ``AnimatedImagesDemo`` for what NukeUI does with the animated ones.
+/// The screen's pipeline has a delegate that asks the registry the way the
+/// default one does and writes down the answer (``DecoderWatcher``). It has a
+/// memory cache of its own, so every visit decodes the files again, from
+/// `URLCache` after the first.
+///
+/// Video, the other decoder the app registers, has a screen of its own,
+/// ``VideoDemo``. ``AnimatedImagesDemo`` shows what NukeUI does with the
+/// animated formats.
 struct ImageFormatsDemo: View {
+    @State private var model = ImageFormatsDemoModel()
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                Group {
-                    DemoExample("JPEG", caption: "Decoded and decompressed in the background") {
-                        image(for: DemoImages.landscape)
-                    }
-
-                    DemoExample("PNG", caption: "Transparency is preserved") {
-                        image(for: DemoImages.png)
-                    }
-
-                    DemoExample("WebP", caption: "Supported natively since iOS 14") {
-                        image(for: DemoImages.webp)
-                    }
-
-                    DemoExample("Animated GIF", caption: "state.animatedImage, played by NukeUI") {
-                        LazyImage(url: DemoImages.gif) { state in
-                            if let animatedImage = state.animatedImage {
-                                AnimatedImage(animatedImage).resizable().scaledToFill()
-                            } else if let image = state.image {
-                                image.resizable().scaledToFill()
-                            } else {
-                                DemoPlaceholder()
-                            }
-                        }
-                        .frame(height: 240)
-                        .clipped()
-                    }
-
-                    DemoExample("Animated PNG", caption: "The default LazyImage content plays animations on its own") {
-                        LazyImage(url: DemoImages.apng)
-                            .frame(height: 240)
-                            .clipped()
-                    }
-
-                    DemoExample("Video", caption: "ImageDecoders.Video from the NukeVideo module") {
-                        LazyImage(url: DemoImages.video) { state in
-                            if let asset = state.imageContainer?.userInfo[.videoAssetKey] as? AVAsset {
-                                VideoPlayerRepresentable(asset: asset)
-                            } else {
-                                DemoPlaceholder()
-                            }
-                        }
-                        .frame(height: 240)
-                        .clipped()
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 16, alignment: .top)], alignment: .leading, spacing: 24) {
+                    ForEach(ImageFormat.allCases) { format in
+                        ImageFormatTile(format: format, model: model)
                     }
                 }
-                .padding(.horizontal, 16)
+                Text("Under each image: the MIME type the server sent and the size of the data; `ImageContainer.type`, the format the decoder read in the data, and the frames it kept the data for; the decoder `ImageDecoderRegistry` gave the data to; and what Image I/O reads in the file's header.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 16)
+            .padding(16)
         }
         .demoInfo(Self.info)
     }
 
     private static let info = DemoInfo(
         "Image Formats",
-        "Nuke decodes with Image I/O, which covers JPEG, PNG, GIF, WebP, HEIF, and more. The decoder is chosen from the data itself, so the same request works for every format.",
+        "Nuke decodes with Image I/O, which reads JPEG, PNG, WebP, HEIF, GIF, and more. Nothing in a request names the format: the pipeline picks a decoder from the data itself, and each image here shows what it found.",
         code: """
-        ImageDecoderRegistry.shared.register {
-            MyDecoder(context: $0)
+        // What the default delegate does
+        func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
+            ImageDecoderRegistry.shared.decoder(for: context)
         }
+
+        // Adding a format
+        ImageDecoderRegistry.shared.register(MyDecoder.init)
         """,
         points: [
-            .init("Animated images", "The container keeps the encoded data alongside the first frame, and NukeUI plays it. The Animated Images screen shows what that costs."),
-            .init("Video", "`ImageDecoders.Video` from the NukeVideo module turns an MP4 into an `AVAsset` and puts it in `ImageContainer.userInfo`."),
-            .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. The closure sees the first chunk of the data and decides whether it can decode it."),
+            .init("The registry", "`ImageDecoderRegistry` starts with `ImageDecoders.Default`, which takes any data, and asks the decoders registered after it first, newest first. Each is created with an `ImageDecodingContext` – the data, the request, and the response – and returns `nil` for data it can't decode. The app registers `ImageDecoders.Video` at launch, which passes on anything but MP4 and QuickTime files, so every image here goes to the default decoder."),
+            .init("The type", "`ImageContainer.type` is the `AssetType` the decoder read in the first bytes of the data: a signature, and for HEIF the brands in its `ftyp` box. Neither the file name nor the MIME type counts. A format Nuke doesn't name has a `nil` type, and decodes all the same."),
+            .init("HEIC", "The photo is a HEIC as an iPhone camera writes it, led by the `heic` brand. A HEIF led by the bare `mif1` brand that names no codec after it has a `nil` type. Image I/O can also write HEIC: `ImageEncoders.Default.isHEIFPreferred` makes it the format of the images the pipeline stores on disk."),
+            .init("Animated images", "For a GIF, and for a PNG, WebP, or HEIF whose header says it is animated, the container keeps the data next to the first frame, and NukeUI plays it. The APNG is served as `image/png` like any PNG, and its type is `.png`: the frames are what tell it apart. The Animated Images screen shows what playing them costs."),
+            .init("Image I/O", "The last line is what `CGImageSource` reads in the file without decoding it: its type identifier, how many images it counts, and the size of the first. Offline, the images are the fixtures that stand in for the files, with headers of their own."),
+            .init("Video", "`ImageDecoders.Video`, from the NukeVideo module, has a screen of its own under Integration."),
+            .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. Its initializer sees the data and decides whether it can decode it."),
             .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread.")
         ]
     )
+}
 
-    private func image(for url: URL) -> some View {
-        LazyImage(url: url) { state in
-            if let image = state.image {
-                image.resizable().scaledToFit()
-            } else {
-                DemoPlaceholder()
-            }
+// MARK: - Tile
+
+private enum ImageFormat: CaseIterable, Identifiable {
+    case jpeg
+    case png
+    case webp
+    case heic
+    case gif
+    case apng
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .jpeg: "JPEG"
+        case .png: "PNG"
+        case .webp: "WebP"
+        case .heic: "HEIC"
+        case .gif: "Animated GIF"
+        case .apng: "Animated PNG"
         }
-        .frame(height: 200)
+    }
+
+    var caption: String {
+        switch self {
+        case .jpeg: "Decoded and decompressed in the background"
+        case .png: "Transparency is preserved"
+        case .webp: "Supported natively since iOS 14"
+        case .heic: "A photo as an iPhone camera writes it"
+        case .gif: "state.animatedImage, played by NukeUI"
+        case .apng: "The default LazyImage content plays animations on its own"
+        }
+    }
+
+    var isAnimated: Bool {
+        self == .gif || self == .apng
+    }
+
+    /// The URL, which is a fixture's while the demo is offline.
+    var url: URL {
+        switch self {
+        case .jpeg: DemoImages.landscape
+        case .png: DemoImages.png
+        case .webp: DemoImages.webp
+        case .heic: DemoImages.heic
+        case .gif: DemoImages.gif
+        case .apng: DemoImages.apng
+        }
     }
 }
 
-/// Plays a video decoded by ``ImageDecoders/Video`` using the player view from
-/// the NukeVideo module.
-private struct VideoPlayerRepresentable: UIViewRepresentable {
-    let asset: AVAsset
+/// An image, and what the pipeline made of its data.
+private struct ImageFormatTile: View {
+    let format: ImageFormat
+    let model: ImageFormatsDemoModel
 
-    func makeUIView(context: Context) -> VideoPlayerView {
-        let view = VideoPlayerView()
-        view.asset = asset
-        view.play()
-        return view
+    var body: some View {
+        DemoExample(format.title, caption: format.caption) {
+            VStack(alignment: .leading, spacing: 10) {
+                image
+                    .frame(height: format.isAnimated ? 240 : 200)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                    .overlay {
+                        if case .failure = model.results[format] {
+                            DemoFailureView()
+                        }
+                    }
+                ImageFormatFigures(choice: model.choice(for: format), result: model.results[format])
+            }
+        }
     }
 
-    func updateUIView(_ view: VideoPlayerView, context: Context) {
-        // Do nothing
+    @ViewBuilder
+    private var image: some View {
+        let request = model.requests[format]
+        switch format {
+        case .gif:
+            LazyImage(request: request) { state in
+                if let animatedImage = state.animatedImage {
+                    AnimatedImage(animatedImage).resizable().scaledToFill()
+                } else if let image = state.image {
+                    image.resizable().scaledToFill()
+                } else {
+                    DemoPlaceholder()
+                }
+            }
+            .pipeline(model.pipeline)
+            .onCompletion { model.didComplete(format, $0) }
+        case .apng:
+            LazyImage(request: request)
+                .pipeline(model.pipeline)
+                .onCompletion { model.didComplete(format, $0) }
+        default:
+            LazyImage(request: request) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFit()
+                } else {
+                    DemoPlaceholder()
+                }
+            }
+            .pipeline(model.pipeline)
+            .onCompletion { model.didComplete(format, $0) }
+        }
+    }
+}
+
+/// Four lines: the response, the type, the decoder, and the header.
+private struct ImageFormatFigures: View {
+    let choice: DecoderChoice?
+    let result: Result<ImageResponse, ImagePipeline.Error>?
+
+    var body: some View {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 3) {
+            row("served", served)
+            let type = type
+            row("type", type.text, tint: type.tint)
+            row("decoder", decoder)
+            row("Image I/O", imageIO)
+        }
+    }
+
+    private func row(_ title: String, _ value: String, tint: Color? = nil) -> some View {
+        GridRow {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            DemoMonoLabel(value, tint: tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
+    private var served: String {
+        guard let choice else { return "–" }
+        return "\(choice.mimeType ?? "no MIME type") · \(demoByteCount(choice.byteCount))"
+    }
+
+    /// What the response says: the type, and the frames of an animation.
+    private var type: (text: String, tint: Color?) {
+        switch result {
+        case nil:
+            return ("–", nil)
+        case .success(let response):
+            let container = response.container
+            let frames = container.animation.map { "\($0.frameCount) frames" } ?? "still"
+            return ("\(container.type.demoLiteral) · \(frames)", .primary)
+        case .failure(let error):
+            return ("failed · \(Self.summary(of: error))", .red)
+        }
+    }
+
+    private var decoder: String {
+        guard let choice else { return "–" }
+        return choice.decoder ?? "none took the data"
+    }
+
+    private var imageIO: String {
+        guard let choice else { return "–" }
+        guard let header = choice.header else { return "reading…" }
+        guard let width = header.width, let height = header.height else {
+            return header.typeSummary
+        }
+        return "\(header.typeSummary) · \(width)×\(height)"
+    }
+
+    /// The error's case, or what the loader said.
+    private static func summary(of error: ImagePipeline.Error) -> String {
+        guard case .dataLoadingFailed(let underlying) = error else {
+            return "\(error)"
+        }
+        if let underlying = underlying as? URLError {
+            return "URLError \(underlying.code.rawValue)"
+        }
+        if case .statusCodeUnacceptable(let code)? = underlying as? DataLoader.Error {
+            return "status \(code)"
+        }
+        return "dataLoadingFailed"
+    }
+}
+
+// MARK: - Model
+
+/// The screen's pipeline, a request per image, and what each came to.
+@MainActor @Observable
+private final class ImageFormatsDemoModel {
+    let pipeline: ImagePipeline
+    /// Made when the screen opens: a screen opened offline loads fixtures.
+    let requests: [ImageFormat: ImageRequest]
+    private(set) var results: [ImageFormat: Result<ImageResponse, ImagePipeline.Error>] = [:]
+    private let log: DecoderChoiceLog
+
+    init() {
+        let log = DecoderChoiceLog()
+        self.log = log
+        // `URLCache`, as the shared pipeline has, and a memory cache of the
+        // screen's own, so that every visit decodes the images again and the
+        // delegate sees their data.
+        var configuration = ImagePipeline.Configuration.withURLCache
+        configuration.imageCache = ImageCache()
+        pipeline = DemoPipelineProbe.makePipeline("Image Formats", configuration: configuration, delegate: DecoderWatcher(log: log))
+        requests = Dictionary(uniqueKeysWithValues: ImageFormat.allCases.map { ($0, ImageRequest(url: $0.url)) })
+    }
+
+    func choice(for format: ImageFormat) -> DecoderChoice? {
+        requests[format]?.url.flatMap { log.choices[$0] }
+    }
+
+    func didComplete(_ format: ImageFormat, _ result: Result<ImageResponse, ImagePipeline.Error>) {
+        results[format] = result
+    }
+}
+
+/// What the pipeline had in hand when it picked a decoder, and what it
+/// picked.
+private struct DecoderChoice {
+    let id = UUID()
+    /// The decoder's type, or `nil` if no decoder took the data.
+    let decoder: String?
+    let mimeType: String?
+    let byteCount: Int
+    /// Read after the pick, off the main thread.
+    var header: DemoImageHeader?
+}
+
+/// The decoders picked, by URL: the last pick for each.
+@MainActor @Observable
+private final class DecoderChoiceLog {
+    private(set) var choices: [URL: DecoderChoice] = [:]
+
+    func record(_ choice: DecoderChoice, for url: URL, data: Data) {
+        choices[url] = choice
+        Task {
+            let header = await DemoImageHeader.read(data)
+            if choices[url]?.id == choice.id {
+                choices[url]?.header = header
+            }
+        }
+    }
+}
+
+/// Asks for a decoder the way the default delegate does, and tells the log
+/// what it got.
+///
+/// The pipeline asks from its own threads once the data is complete, and
+/// waits for the answer, so the delegate only hands the data on: Image I/O
+/// reads the header later, out of the pipeline's way.
+private final class DecoderWatcher: ImagePipeline.Delegate {
+    private let log: DecoderChoiceLog
+
+    init(log: DecoderChoiceLog) {
+        self.log = log
+    }
+
+    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
+        // The default: the configuration's factory, which asks
+        // `ImageDecoderRegistry.shared`.
+        let decoder = pipeline.configuration.makeImageDecoder(context)
+        guard context.isCompleted, let url = context.request.url else {
+            return decoder
+        }
+        let choice = DecoderChoice(
+            decoder: decoder.map { demoTypeName(of: $0) },
+            mimeType: context.urlResponse?.mimeType,
+            byteCount: context.data.count
+        )
+        let data = context.data
+        Task { @MainActor [log] in
+            log.record(choice, for: url, data: data)
+        }
+        return decoder
     }
 }

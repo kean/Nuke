@@ -47,6 +47,10 @@ enum DemoFixture: Hashable, Sendable {
     case apng
     /// A 1024×772 WebP. Bundled.
     case webp
+    /// A 1008×756 HEIC still, the size of the iPhone photo it stands in for.
+    /// Image I/O encodes it, so the encoder of the system it runs on decides
+    /// its bytes.
+    case heic
     /// A 300×225 animated WebP, 50 frames of 100 ms. Bundled.
     case animatedWebP
     /// A 320×240 H.264 video, 2 seconds. Bundled.
@@ -69,7 +73,7 @@ enum DemoFixture: Hashable, Sendable {
     }
 
     /// Every fixture but the photos.
-    static let named: [DemoFixture] = [.jpeg, .progressiveJPEG, .largeJPEG, .png, .gif, .longGIF, .apng, .webp, .animatedWebP, .video, .missing]
+    static let named: [DemoFixture] = [.jpeg, .progressiveJPEG, .largeJPEG, .png, .gif, .longGIF, .apng, .webp, .heic, .animatedWebP, .video, .missing]
 
     // MARK: URLs
 
@@ -132,6 +136,7 @@ enum DemoFixture: Hashable, Sendable {
             Network.apng: .apng,
             Network.animatedWebP: .animatedWebP,
             Network.webp: .webp,
+            Network.heic: .heic,
             Network.video: .video,
             Network.failing: .missing
         ]
@@ -155,6 +160,7 @@ enum DemoFixture: Hashable, Sendable {
         case .longGIF: "long.gif"
         case .apng: "ball.png"
         case .webp: "still.webp"
+        case .heic: "photo.heic"
         case .animatedWebP: "animation.webp"
         case .video: "video.mp4"
         case .missing: "missing.jpeg"
@@ -176,6 +182,7 @@ enum DemoFixture: Hashable, Sendable {
         case .longGIF: return "300×300 GIF · 200 frames"
         case .apng: return "100×100 APNG · 20 frames"
         case .webp: return "1024×772 WebP · bundled"
+        case .heic: return "1008×756 HEIC"
         case .animatedWebP: return "300×225 WebP · 50 frames · bundled"
         case .video: return "320×240 MP4 · 2 s · bundled"
         case .missing: return "Fails with a 404"
@@ -195,6 +202,7 @@ enum DemoFixture: Hashable, Sendable {
         case .longGIF: "stands in for the large GIF"
         case .apng: "stands in for the APNG"
         case .webp: "stands in for the WebP"
+        case .heic: "stands in for the HEIC photo"
         case .animatedWebP: "stands in for the animated WebP"
         case .video: "stands in for the video"
         case .missing: "stands in for the URL that always fails"
@@ -209,6 +217,7 @@ enum DemoFixture: Hashable, Sendable {
         case .png, .apng: "image/png"
         case .gif, .longGIF: "image/gif"
         case .webp, .animatedWebP: "image/webp"
+        case .heic: "image/heic"
         case .video: "video/mp4"
         case .zoo(let input): input.mimeType
         }

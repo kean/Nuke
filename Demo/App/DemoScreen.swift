@@ -86,7 +86,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .requestOptions: "Cache options, priority, and thumbnail vs resize"
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .imageProcessing: "Resize, blur, circle, and custom processors"
-        case .imageFormats: "JPEG, PNG, GIF, WebP, and MP4"
+        case .imageFormats: "JPEG, PNG, WebP, HEIC, GIF, and APNG, as detected"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
         case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher in UIKit and SwiftUI"

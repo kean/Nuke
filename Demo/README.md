@@ -39,7 +39,7 @@ and the details worth knowing.
 | Screen | Shows |
 |--|--|
 | **Image Processing** | The built-in processors and two ways to write your own |
-| **Image Formats** | JPEG, PNG, WebP, animated GIF, and MP4 via `ImageDecoders.Video` |
+| **Image Formats** | JPEG, PNG, WebP, HEIC, an animated GIF, and an APNG, each with what the pipeline made of its data: the MIME type it was served with, the type the decoder read in the data, the decoder `ImageDecoderRegistry` picked, and what Image I/O reads in the file's header |
 | **Progressive Decoding** | The scans of a progressive JPEG, with a throttled data loader that makes them visible |
 
 ### Caching & Performance
@@ -109,11 +109,11 @@ title changes.
 
 Offline, the demo loads no image from the network. Every URL it hands out is a
 fixture's, `demo-fixture://nuke/<name>`: a stand-in for each photo with its
-index drawn on it, a baseline and a progressive JPEG, a 12 MP JPEG, a PNG, two
-GIFs (the long one has 200 frames), and an APNG, all drawn and encoded the
-first time a load asks for them, plus a WebP, an animated WebP, and a video
-bundled in `Resources/Fixtures`. The generated ones are the same bytes on every
-run, so a run on fixtures can be compared with the last one.
+index drawn on it, a baseline and a progressive JPEG, a 12 MP JPEG, a PNG, a
+HEIC, two GIFs (the long one has 200 frames), and an APNG, all drawn and
+encoded the first time a load asks for them, plus a WebP, an animated WebP, and
+a video bundled in `Resources/Fixtures`. The generated ones are the same bytes
+on every run, so a run on fixtures can be compared with the last one.
 
 Every pipeline's delegate sends a request for a fixture, and every request
 while offline, to the fixture loader, which also answers the demo's network
