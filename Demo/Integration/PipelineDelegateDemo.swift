@@ -34,6 +34,8 @@ struct PipelineDelegateDemo: View {
                             LazyImage(request: photo.request) { state in
                                 if let image = state.image {
                                     image.resizable().scaledToFill()
+                                } else if state.error != nil {
+                                    DemoFailureView()
                                 } else {
                                     DemoPlaceholder()
                                 }
@@ -191,11 +193,19 @@ private final class PipelineDelegateDemoModel: ObservableObject {
     }
 
     func didComplete(_ photo: Photo, _ result: Result<ImageResponse, ImagePipeline.Error>) {
-        guard case .success(let response) = result else { return }
-        sources[photo.id] = switch response.cacheType {
-        case .memory?: Source(title: "Memory", color: .green)
-        case .disk?: Source(title: "Disk", color: .blue)
-        case nil: Source(title: "Network", color: .orange)
+        switch result {
+        case .success(let response):
+            sources[photo.id] = switch response.cacheType {
+            case .memory?: Source(title: "Memory", color: .green)
+            case .disk?: Source(title: "Disk", color: .blue)
+            case nil: Source(title: "Network", color: .orange)
+            }
+        case .failure(.cancelled):
+            break
+        case .failure:
+            // Over the failure placeholder, where it reads; the log row of
+            // the task has the error.
+            sources[photo.id] = Source(title: "Failed", color: .red)
         }
     }
 
@@ -342,7 +352,7 @@ private final class PipelineEventLog: ObservableObject {
             }
             insert("didReceiveEvent(.finished)", "\(name) · \(source)")
         case .finished(.failure(let error)):
-            insert("didReceiveEvent(.finished)", "\(name) · \(error)")
+            insert("didReceiveEvent(.finished)", "\(name) · failed · \(error.demoSummary)")
         }
     }
 
