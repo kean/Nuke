@@ -160,6 +160,12 @@ final class DataCacheTorture: Sendable {
     /// demo, so `-demoDeterministic 1` empties it.
     static let parentDirectory = URL.cachesDirectory.appendingPathComponent("com.github.kean.NukeDemo.CacheTorture", isDirectory: true)
 
+    /// Removes whatever an earlier launch left behind, on the first run of
+    /// this launch only: a later one may find a run still cleaning up.
+    private static let removeLeftovers: Void = {
+        try? FileManager.default.removeItem(at: parentDirectory)
+    }()
+
     private let clock = ContinuousClock()
     private let state = OSAllocatedUnfairLock(initialState: State())
 
@@ -210,9 +216,7 @@ final class DataCacheTorture: Sendable {
 
     /// Runs to the end and reports, or returns `nil` if it was cancelled.
     nonisolated func run() async -> Report? {
-        // Whatever an earlier launch left behind. No other run is alive: the
-        // model waits for one to finish before it starts the next.
-        try? FileManager.default.removeItem(at: Self.parentDirectory)
+        _ = Self.removeLeftovers
         var cache: DataCache?
         do {
             cache = try DataCache(path: directory)
@@ -507,7 +511,8 @@ final class DataCacheTorture: Sendable {
         // After a Stop too: the directory goes next.
         let isReleased = await demoWait(timeout: .seconds(3), whenCancelled: .keepWaiting) { released == nil }
         let releasedAfter = isReleased ? (clock.now - start).demoTimeInterval : nil
-        try? FileManager.default.removeItem(at: Self.parentDirectory)
+        // Its own only: a run on a screen opened again may be going already.
+        try? FileManager.default.removeItem(at: directory)
         let isRemoved = !FileManager.default.fileExists(atPath: directory.path)
         note(releasedAfter.map { "cache released after \(tortureDuration($0))" } ?? "cache still alive after 3 s")
         note(isRemoved ? "directory removed" : "directory still there")

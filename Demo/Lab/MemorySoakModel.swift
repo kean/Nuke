@@ -61,9 +61,10 @@ final class MemorySoakModel {
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var stopReason: SoakRecord.End?
     @ObservationIgnored private var startedAt: ContinuousClock.Instant?
-    /// Kept for the model's life: every run's pipeline uses it, so no two
-    /// caches are ever open on its directory.
-    @ObservationIgnored private lazy var dataCache: DataCache? = try? DataCache(name: "com.github.kean.NukeDemo.MemorySoak")
+    /// Kept for the app's life: every run's pipeline uses it, the runs of a
+    /// screen opened again included, so no two caches are ever open on its
+    /// directory.
+    private static let dataCache: DataCache? = try? DataCache(name: "com.github.kean.NukeDemo.MemorySoak")
 
     enum Status: Equatable {
         case idle
@@ -83,7 +84,7 @@ final class MemorySoakModel {
         guard task == nil else { return }
         Self.runCount += 1
         stopReason = nil
-        let run = SoakRun(number: Self.runCount, minutes: minutes, dataCache: dataCache, model: self)
+        let run = SoakRun(number: Self.runCount, minutes: minutes, dataCache: Self.dataCache, model: self)
         task = Task {
             await perform(run)
             task = nil
