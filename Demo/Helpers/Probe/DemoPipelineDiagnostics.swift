@@ -185,7 +185,9 @@ struct DemoPipelineDiagnostics: Sendable {
 
     // MARK: Queues
 
-    /// The downloads in flight, from the start of the load to `completion`.
+    /// The downloads in flight, from the start of the load to `completion`,
+    /// but for the ones of `.skipDataLoadingQueue` requests, which hold no
+    /// slot.
     var dataLoadingQueue = Queue(inFlightCount: 0)
     /// The decodes running on the decoding queue: the ones whose decoder is
     /// asynchronous, which for `ImageDecoders.Default` means a thumbnail.

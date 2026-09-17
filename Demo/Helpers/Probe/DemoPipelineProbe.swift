@@ -358,7 +358,8 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
         let urlRequest = try await base.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
         onEvent?(Event(request: request, kind: .willLoadData(urlRequest)))
-        return urlRequest
+        // A mark the server never sees, for the session observer.
+        return request.options.contains(.skipDataLoadingQueue) ? UnqueuedRequest.tag(urlRequest) : urlRequest
     }
 
     func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {

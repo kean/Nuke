@@ -143,20 +143,23 @@ extension DemoPipelineProbe {
         }
 
         /// Starts a load of a loader other than `DataLoader` and returns its id.
-        func loadStarted(isFixture: Bool) -> LoadID {
+        ///
+        /// - parameter holdsSlot: `false` for a request with
+        ///   `.skipDataLoadingQueue`, which the pipeline loads without a slot.
+        func loadStarted(isFixture: Bool, holdsSlot: Bool) -> LoadID {
             let now = ContinuousClock.now
             return state.withLock { state in
                 state.nextCallID += 1
                 let id = LoadID.call(state.nextCallID)
-                state.startLoad(id, at: now)
+                state.startLoad(id, at: now, holdsSlot: holdsSlot)
                 state.loads[id]?.isFixture = isFixture
                 return id
             }
         }
 
-        func loadStarted(_ id: LoadID) {
+        func loadStarted(_ id: LoadID, holdsSlot: Bool) {
             let now = ContinuousClock.now
-            state.withLock { $0.startLoad(id, at: now) }
+            state.withLock { $0.startLoad(id, at: now, holdsSlot: holdsSlot) }
         }
 
         func load(_ id: LoadID, didReceive byteCount: Int) {
@@ -195,7 +198,9 @@ extension DemoPipelineProbe {
             state.withLock { state in
                 // A loader that calls `completion` twice is counted once.
                 guard let load = state.loads.removeValue(forKey: id) else { return }
-                state.figures.dataLoadingQueue.inFlightCount? -= 1
+                if load.holdsSlot {
+                    state.figures.dataLoadingQueue.inFlightCount? -= 1
+                }
                 state.figures.inFlightByteCount -= load.byteCount
                 if load.isFixture {
                     state.figures.fixtureByteCount += load.byteCount
@@ -331,10 +336,12 @@ extension DemoPipelineProbe.Counters {
         var nextCallID: UInt64 = 0
         var countedStages = RecentStages()
 
-        mutating func startLoad(_ id: LoadID, at instant: ContinuousClock.Instant) {
+        mutating func startLoad(_ id: LoadID, at instant: ContinuousClock.Instant, holdsSlot: Bool) {
             guard loads[id] == nil else { return }
-            loads[id] = Load(startedAt: instant)
-            figures.dataLoadingQueue.inFlightCount? += 1
+            loads[id] = Load(startedAt: instant, holdsSlot: holdsSlot)
+            if holdsSlot {
+                figures.dataLoadingQueue.inFlightCount? += 1
+            }
         }
 
         mutating func recordDecode(_ duration: TimeInterval, at instant: ContinuousClock.Instant, result: DecodeResult) {
@@ -356,6 +363,9 @@ extension DemoPipelineProbe.Counters {
 
     private struct Load: Sendable {
         let startedAt: ContinuousClock.Instant
+        /// Whether the load holds a data loading slot: counted in the queue's
+        /// work in flight.
+        let holdsSlot: Bool
         var byteCount: Int64 = 0
         var timeToFirstByte: TimeInterval?
         var isCancelled = false

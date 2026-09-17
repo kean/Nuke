@@ -34,7 +34,7 @@ extension DemoPipelineProbe {
 
         func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
             guard CountedRequest.loadID(of: task) == nil else { return }
-            counters.loadStarted(.sessionTask(ObjectIdentifier(task)))
+            counters.loadStarted(.sessionTask(ObjectIdentifier(task)), holdsSlot: !UnqueuedRequest.isTagged(task))
         }
 
         func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
@@ -81,6 +81,7 @@ extension DemoPipelineProbe {
         let base: any DataLoading
         private let counters: Counters
         private let isFixture: Bool
+        private let holdsSlot: Bool
         private let tagsRequests: Bool
         private let report: LoadReport?
 
@@ -89,6 +90,7 @@ extension DemoPipelineProbe {
             self.base = base
             self.counters = counters
             self.isFixture = loader is DemoFixtureLoader
+            self.holdsSlot = !request.options.contains(.skipDataLoadingQueue)
             self.tagsRequests = base is DemoConditionedDataLoader && loader is DataLoader
             self.report = onLoad.map { LoadReport(request: request, handler: $0) }
         }
@@ -100,7 +102,7 @@ extension DemoPipelineProbe {
         ) -> any Cancellable {
             let counters = counters
             let report = report
-            let id = counters.loadStarted(isFixture: isFixture)
+            let id = counters.loadStarted(isFixture: isFixture, holdsSlot: holdsSlot)
             let request = tagsRequests ? CountedRequest.tag(request, with: id) : request
             // Before the call: a loader may call back before it returns.
             report?(.started(request, loader: base))
@@ -152,6 +154,27 @@ extension DemoPipelineProbe {
                 return nil
             }
             return .call(number.uint64Value)
+        }
+    }
+
+    /// Marks a request of an `ImageRequest` with `.skipDataLoadingQueue`,
+    /// which the pipeline loads without a data loading slot, so that the
+    /// ``SessionObserver`` of a `DataLoader` doesn't count its session task
+    /// against the queue. A `URLProtocol` property, like ``CountedRequest``.
+    enum UnqueuedRequest {
+        private static let key = "com.github.kean.NukeDemo.SkipsQueue"
+
+        static func tag(_ request: URLRequest) -> URLRequest {
+            guard let tagged = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+                return request
+            }
+            URLProtocol.setProperty(true, forKey: key, in: tagged)
+            return tagged as URLRequest
+        }
+
+        static func isTagged(_ task: URLSessionTask) -> Bool {
+            guard let request = task.originalRequest else { return false }
+            return URLProtocol.property(forKey: key, in: request) != nil
         }
     }
 
