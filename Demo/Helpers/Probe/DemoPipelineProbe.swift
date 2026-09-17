@@ -228,28 +228,25 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// The probes of the pipelines alive, oldest first. The figures of the
     /// pipelines that are gone move into the retired total on the way.
     static var liveProbes: [DemoPipelineProbe] {
-        let (probes, retired) = registry.withLock { registry in
+        registry.withLock { registry in
             var probes: [DemoPipelineProbe] = []
-            var retired: [Counters] = []
+            var retired = DemoPipelineDiagnostics()
             registry.entries.removeAll { entry in
-                if let probe = entry.probe {
+                // By the pipeline: a caller that holds on to a probe, like the
+                // HUD across a cache sample, keeps the probe but not the
+                // pipeline alive.
+                if entry.pipeline != nil, let probe = entry.probe {
                     probes.append(probe)
                     return false
                 }
-                retired.append(entry.counters)
+                retired.add(entry.counters.figures.retired)
                 return true
             }
-            return (probes, retired)
+            // In the same lock, so that a total never misses a pipeline on its
+            // way from one list to the other.
+            registry.retired.add(retired)
+            return probes
         }
-        if !retired.isEmpty {
-            let figures = retired.map(\.figures.retired)
-            registry.withLock { registry in
-                for figures in figures {
-                    registry.retired.add(figures)
-                }
-            }
-        }
-        return probes
     }
 
     private static let registry = OSAllocatedUnfairLock(initialState: Registry())

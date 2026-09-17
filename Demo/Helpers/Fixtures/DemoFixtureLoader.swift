@@ -199,7 +199,11 @@ private actor Load: Cancellable {
     /// the rest.
     private func chunks(of entry: DemoFixtureStore.Entry, in body: Range<Int>) -> [(Range<Int>, Duration)] {
         let count = body.count
-        guard let chunkSize = pace.chunkSize(for: count), chunkSize > 0, count > 0 else {
+        // An empty body is no data at all, as it is from `URLSession`.
+        guard count > 0 else {
+            return []
+        }
+        guard let chunkSize = pace.chunkSize(for: count), chunkSize > 0 else {
             return [(body, .zero)]
         }
         let scans = entry.record.scanOffsets

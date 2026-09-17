@@ -122,8 +122,9 @@ struct DemoPipelineDiagnostics: Sendable {
     ///
     /// The pipeline frees a data loading slot when the loader calls
     /// `completion`, and on nothing else, so a loader that stays silent after
-    /// a cancel holds its slot for good. A `DataLoader` always completes, so
-    /// for one this drops back within a moment.
+    /// a cancel holds its slot for good. Counted for any loader but
+    /// `DataLoader`, whose cancel the probe doesn't see, and which always
+    /// completes.
     var cancelledInFlightDownloadCount = 0
     /// The response bytes of the downloads that have ended, whatever their
     /// outcome, not counting the ones `URLCache` or a fixture answered.
