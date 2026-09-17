@@ -312,7 +312,7 @@ private struct PoolSection: View {
             // At their natural size, centered, and without icons: with them,
             // "Memory Warning" wraps in the iPhone sheet and the iPad column.
             HStack(spacing: 12) {
-                Button("Play All") {
+                Button(model.isPaused ? "Play All" : "Pause All") {
                     model.togglePlayback()
                 }
                 .buttonStyle(.borderedProminent)

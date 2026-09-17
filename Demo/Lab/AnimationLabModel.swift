@@ -77,6 +77,9 @@ final class AnimationLabModel {
 
     /// The cells in the order the wall lays them out.
     private(set) var cells: [Cell] = []
+    /// Whether Pause All stopped the wall. A cell built meanwhile starts
+    /// paused too.
+    private(set) var isPaused = false
     /// Why an animation isn't on the wall, or `nil` when every one is.
     private(set) var status: String?
     /// Whether the first wall is still being loaded.
@@ -251,9 +254,9 @@ final class AnimationLabModel {
     }
 
     func togglePlayback() {
-        let isPlaying = cells.contains { $0.player.isPlaying }
+        isPaused.toggle()
         for cell in cells {
-            isPlaying ? cell.player.pause() : cell.player.play()
+            isPaused ? cell.player.pause() : cell.player.play()
         }
     }
 
@@ -490,7 +493,9 @@ final class AnimationLabModel {
         options.isSynchronizationEnabled = isSynchronized
         options.isPowerThrottlingEnabled = isPowerThrottlingEnabled
         let player = AnimatedImagePlayer(source: response.animation, options: options)
-        player.play()
+        if !isPaused {
+            player.play()
+        }
         nextCellID += 1
         return Cell(id: nextCellID, image: image, player: player, poster: response.poster, transformID: transform?.identifier)
     }
@@ -562,6 +567,10 @@ final class AnimationLabModel {
     @ObservationIgnored private var didDisableIdleTimer = false
 
     func startSoak() {
+        // A paused wall decodes nothing to measure.
+        if isPaused {
+            togglePlayback()
+        }
         soakCounts = [:]
         monitor.reset()
         soak = Soak(startedAt: .now)
