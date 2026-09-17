@@ -26,8 +26,7 @@ struct ConcurrencyInspectorDemo: View {
                 await demoWaitUntilCancelled()
             }
             .task {
-                guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-                Autorun.hasRun = true
+                guard DemoLaunchOptions.claimAutorun(for: .concurrencyInspector) else { return }
                 model.workload = .burst
                 model.start()
             }
@@ -350,13 +349,6 @@ struct ConcurrencyInspectorDemo: View {
             .init("-demoAutorun 1", "Starts a burst as soon as the screen opens, once per launch, so a script can take a screenshot of the tasks in flight.")
         ]
     )
-}
-
-/// Runs on its own only once per launch, not each time the screen comes
-/// back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 // MARK: - Tasks

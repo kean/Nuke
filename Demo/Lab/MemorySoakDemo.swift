@@ -41,8 +41,7 @@ struct MemorySoakDemo: View {
             }
         }
         .task {
-            guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-            Autorun.hasRun = true
+            guard DemoLaunchOptions.claimAutorun(for: .memorySoak) else { return }
             model.run()
         }
         .onDisappear {
@@ -310,13 +309,6 @@ struct MemorySoakDemo: View {
             .init("-demoAutorun 1", "Starts a one-minute run as soon as the screen opens, once per launch, so a script can take a screenshot of the line and the verdicts.")
         ]
     )
-}
-
-/// Runs on its own only once per launch, not each time the screen comes
-/// back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 /// One cycle: its floor and peak, what it did, and what it left.

@@ -28,8 +28,7 @@ struct AnimationLabDemo: View {
                 await demoWaitUntilCancelled()
             }
             .task {
-                guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-                Autorun.hasRun = true
+                guard DemoLaunchOptions.claimAutorun(for: .animationLab) else { return }
                 while model.isLoading {
                     guard (try? await Task.sleep(for: .milliseconds(100))) != nil else { return }
                 }
@@ -110,13 +109,6 @@ struct AnimationLabDemo: View {
             .init("Soak", "Plays for an hour: the wall is rebuilt every minute, a memory warning goes out every five minutes, and the footprint, the pool, and the players are sampled every five seconds. Drift is measured from the sample at one minute. More players alive than cells on the wall is a player that was let go and didn't go. The screen stays awake while it runs, and leaving the screen stops it. `-demoAutorun 1` starts it on open.")
         ]
     )
-}
-
-/// Starts the soak on its own only once per launch, not each time the screen
-/// comes back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 // MARK: - Stage

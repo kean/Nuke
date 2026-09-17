@@ -63,8 +63,7 @@ struct ScrollStressDemo: View {
             await demoWaitUntilCancelled()
         }
         .task {
-            guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-            Autorun.hasRun = true
+            guard DemoLaunchOptions.claimAutorun(for: .scrollStress) else { return }
             // Once the first screenful has loaded.
             guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
             model.startAutoScroll(source: source)
@@ -92,13 +91,6 @@ struct ScrollStressDemo: View {
             .init("Not a benchmark", "Every cache is disabled on purpose, and a simulator's frames say little about a phone's. A real app would serve most of these from memory. A run compares this build with the last one, on the same device and the same source.")
         ]
     )
-}
-
-/// Runs on its own only once per launch, not each time the screen comes
-/// back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 // MARK: - Panel

@@ -108,6 +108,19 @@ struct DemoLaunchOptions {
 }
 
 extension DemoLaunchOptions {
+    /// Whether `screen` starts its run on its own now: with `-demoAutorun 1`,
+    /// the first time the screen asks in a launch, not each time it comes
+    /// back.
+    @MainActor
+    static func claimAutorun(for screen: DemoScreen) -> Bool {
+        guard current.autoruns else { return false }
+        return autorunScreens.insert(screen).inserted
+    }
+
+    @MainActor private static var autorunScreens: Set<DemoScreen> = []
+}
+
+extension DemoLaunchOptions {
     /// A launch argument, in the order the **Automation** screen lists them.
     ///
     /// The raw value is the argument's key in `UserDefaults`: its name without

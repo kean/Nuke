@@ -30,8 +30,7 @@ struct CancellationTortureDemo: View {
             links
         }
         .task {
-            guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-            Autorun.hasRun = true
+            guard DemoLaunchOptions.claimAutorun(for: .cancellationTorture) else { return }
             model.runAll()
         }
         .onDisappear {
@@ -251,13 +250,6 @@ struct CancellationTortureDemo: View {
             .init("-demoAutorun 1", "Runs the checks and the slot check as soon as the screen opens, once per launch, so a script can take a screenshot of the verdicts.")
         ]
     )
-}
-
-/// Runs on its own only once per launch, not each time the screen comes
-/// back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 // MARK: - Rows

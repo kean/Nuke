@@ -59,8 +59,7 @@ struct DecompressionDemo: View {
             await demoWaitUntilCancelled()
         }
         .task {
-            guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
-            Autorun.hasRun = true
+            guard DemoLaunchOptions.claimAutorun(for: .decompression) else { return }
             // The fixture is made on first use, which the first run
             // shouldn't wait on.
             _ = try? await DemoFixtureStore.shared.entry(for: .largeJPEG)
@@ -103,13 +102,6 @@ struct DecompressionDemo: View {
             .init("Figures", "Images are the tasks that finished with one while the grid scrolled. Decode and decompress are the probe's averages and slowest, from the pipeline's decoder and its `decompress` call. Peak is the app's highest footprint while the grid scrolled, the figure the system terminates an app over, read every 20 ms. The HUD shows the same figures live, and how often `shouldDecompress` said no.")
         ]
     )
-}
-
-/// Runs on its own only once per launch, not each time the screen comes
-/// back.
-@MainActor
-private enum Autorun {
-    static var hasRun = false
 }
 
 // MARK: - Configurations
