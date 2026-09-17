@@ -57,8 +57,34 @@ final class DemoDisplayMonitor {
         }
     }
 
+    /// A frame that arrived a refresh or more late.
+    struct Hitch: Sendable, Equatable {
+        /// When the late frame arrived, in the time base of
+        /// `CACurrentMediaTime()`.
+        var timestamp: CFTimeInterval
+        /// The time since the frame before it.
+        var duration: TimeInterval
+        /// The interval the link was driven at: what the frame should have
+        /// taken.
+        var refreshInterval: TimeInterval
+        /// The refreshes it missed.
+        var missedRefreshCount: Int
+
+        /// How long the main thread held the frame up: its duration less the
+        /// refresh it was due in. A 200 ms stall at 60 Hz is a 217 ms frame,
+        /// and a 200 ms stall.
+        var stall: TimeInterval {
+            duration - refreshInterval
+        }
+    }
+
     /// The figures now. Read it as often as you like: it is a copy.
     private(set) var figures = Figures()
+
+    /// Called with every late frame as it arrives, on the main thread, for a
+    /// screen that lists them rather than counts them. The figures include
+    /// the frame by then.
+    var onHitch: (@MainActor (Hitch) -> Void)?
 
     /// Whether the monitor is watching.
     var isWatching: Bool { link != nil }
@@ -128,6 +154,7 @@ final class DemoDisplayMonitor {
                 figures.droppedFrameCount += missed
                 figures.hitchCount += 1
                 figures.hitchDuration += late
+                onHitch?(Hitch(timestamp: timestamp, duration: elapsed, refreshInterval: interval, missedRefreshCount: missed))
             }
         }
 
