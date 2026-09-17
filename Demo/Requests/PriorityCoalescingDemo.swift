@@ -157,7 +157,9 @@ private struct PriorityCoalescingStage: View {
 /// order the queue will start them, and done.
 private struct QueueView: View {
     @ObservedObject var model: PriorityCoalescingDemoModel
-    /// A download slides from one lane to the next rather than fade.
+    /// A download that gets a slot slides up from the waiting lane. One that
+    /// ends fades into the done lane instead: sliding, it would cross the
+    /// waiting lane while the queue moves up.
     @Namespace private var lanes
 
     var body: some View {
@@ -176,11 +178,11 @@ private struct QueueView: View {
             }
             GridRow {
                 label("waiting")
-                lane(model.waiting)
+                lane(model.waiting, slides: true)
             }
             GridRow {
                 label("done")
-                lane(model.finished)
+                lane(model.finished, slides: false)
             }
         }
         .animation(.snappy, value: model.running.map(\.id))
@@ -194,15 +196,24 @@ private struct QueueView: View {
             .matchedGeometryEffect(id: download.id, in: lanes)
     }
 
+    @ViewBuilder
+    private func laneChip(_ download: DownloadModel, slides: Bool) -> some View {
+        if slides {
+            chip(download)
+        } else {
+            DownloadChip(download: download)
+        }
+    }
+
     private func label(_ text: String) -> some View {
         DemoMonoLabel(text)
             .gridColumnAlignment(.leading)
     }
 
-    private func lane(_ downloads: [DownloadModel]) -> some View {
+    private func lane(_ downloads: [DownloadModel], slides: Bool) -> some View {
         HStack(spacing: 4) {
             ForEach(downloads) { download in
-                chip(download)
+                laneChip(download, slides: slides)
             }
             if downloads.isEmpty {
                 // Holds the height of the row.
