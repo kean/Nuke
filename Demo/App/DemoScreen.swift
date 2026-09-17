@@ -34,6 +34,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     // Integration
     case pipelineDelegate = "pipeline-delegate"
+    case customDataLoader = "custom-data-loader"
 
     // Lab
     case pipelineHUD = "pipeline-hud"
@@ -62,6 +63,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .resumableDownloads: "Resumable Downloads"
         case .animatedImages: "Animated Images"
         case .pipelineDelegate: "Pipeline Delegate"
+        case .customDataLoader: "Custom Data Loader"
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .cancellationTorture: "Cancellation Torture"
@@ -89,6 +91,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .resumableDownloads: "A cancelled download picks up where it stopped"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .pipelineDelegate: "Request headers, cache keys, and disk writes"
+        case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
@@ -109,6 +112,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching, .prefetching, .resumableDownloads: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
         case .pipelineDelegate: .catalog(.integration)
+        case .customDataLoader: .catalog(.integration)
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .cancellationTorture: .lab(.stress)
@@ -138,6 +142,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .resumableDownloads: ResumableDownloadsDemo()
         case .animatedImages: AnimatedImagesDemo()
         case .pipelineDelegate: PipelineDelegateDemo()
+        case .customDataLoader: CustomDataLoaderDemo()
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .cancellationTorture: CancellationTortureDemo()
@@ -185,7 +190,7 @@ extension DemoScreen {
             case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
             case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and how a cancelled download resumes."
             case .animatedImages: "Frames decoded as they play, within a memory budget you can watch."
-            case .integration: "Where an app plugs into the pipeline: changing its requests and observing its events."
+            case .integration: "Where an app plugs into the pipeline: a delegate that changes its requests and observes its events, and a data loader of its own."
             }
         }
 
