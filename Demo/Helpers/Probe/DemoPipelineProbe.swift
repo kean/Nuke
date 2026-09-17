@@ -43,13 +43,14 @@ import OSLog
 /// does, forwards every call to the delegate it wraps, and logs the record of
 /// every finished task when diagnostics are on.
 ///
-/// Create pipelines with ``makePipeline(_:configuration:delegate:)``, then
-/// sample the figures on a timer: ``total`` for every pipeline,
+/// Create pipelines with ``makePipeline(_:configuration:delegate:onEvent:)``,
+/// then sample the figures on a timer: ``total`` for every pipeline,
 /// ``pipelines`` for each one alive, ``diagnostics(for:)`` for one of them, and
 /// ``sampleCaches(for:)``, less often, for what the caches hold.
 ///
 /// A screen that needs a delegate of its own passes it in: the probe forwards
-/// every call to it and counts what it returns.
+/// every call to it and counts what it returns. A screen that lists the calls
+/// passes an event handler too (see ``Event``).
 final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// The name the pipeline is listed under.
     let label: String
@@ -60,13 +61,15 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     private let imageCache: CountingImageCache?
     /// `true` for a pipeline recording diagnostics, whose decoders aren't wrapped.
     private let isRecordingDiagnostics: Bool
+    private let onEvent: EventHandler?
 
-    private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?) {
+    private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?, onEvent: EventHandler?) {
         let counters = Counters(label: label)
         self.label = label
         self.configuration = configuration
         self.counters = counters
         self.base = delegate ?? DefaultDelegate()
+        self.onEvent = onEvent
         self.imageCache = configuration.imageCache.map { CountingImageCache($0, counters: counters) }
         self.isRecordingDiagnostics = configuration.isDiagnosticsEnabled
 
@@ -85,12 +88,15 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     ///   - label: The name the pipeline is listed under.
     ///   - delegate: A delegate of the screen's own. The probe forwards every
     ///   call to it.
+    ///   - onEvent: Called with the calls the pipeline makes to the delegate,
+    ///   for a screen that lists them. See ``Event``.
     static func makePipeline(
         _ label: String,
         configuration: ImagePipeline.Configuration = .withURLCache,
-        delegate: (any ImagePipeline.Delegate)? = nil
+        delegate: (any ImagePipeline.Delegate)? = nil,
+        onEvent: EventHandler? = nil
     ) -> ImagePipeline {
-        let probe = DemoPipelineProbe(label: label, configuration: configuration, delegate: delegate)
+        let probe = DemoPipelineProbe(label: label, configuration: configuration, delegate: delegate, onEvent: onEvent)
         let pipeline = ImagePipeline(configuration: configuration, delegate: probe)
         registry.withLock {
             $0.entries.append(Registry.Entry(counters: probe.counters, probe: probe, pipeline: pipeline))
@@ -285,7 +291,9 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 
     @ImagePipelineActor
     func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        try await base.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
+        let urlRequest = try await base.willLoadData(for: request, urlRequest: urlRequest, pipeline: pipeline)
+        onEvent?(Event(request: request, kind: .willLoadData(urlRequest)))
+        return urlRequest
     }
 
     func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
@@ -305,16 +313,21 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     }
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        base.cacheKey(for: request, pipeline: pipeline)
+        let key = base.cacheKey(for: request, pipeline: pipeline)
+        onEvent?(Event(request: request, kind: .cacheKey(key)))
+        return key
     }
 
     @ImagePipelineActor
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
-        let data = await base.willCache(data: data, image: image, for: request, pipeline: pipeline)
-        if let data, !data.isEmpty {
-            counters.diskWrite(byteCount: data.count, isEncodedImage: image != nil)
+        let stored = await base.willCache(data: data, image: image, for: request, pipeline: pipeline)
+        // The pipeline stores nothing for empty data, the same as for `nil`.
+        let storedByteCount = stored.flatMap { $0.isEmpty ? nil : $0.count }
+        if let storedByteCount {
+            counters.diskWrite(byteCount: storedByteCount, isEncodedImage: image != nil)
         }
-        return data
+        onEvent?(Event(request: request, kind: .willCache(byteCount: data.count, isEncodedImage: image != nil, storedByteCount: storedByteCount)))
+        return stored
     }
 
     func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool {
@@ -340,6 +353,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     @ImagePipelineActor
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
         base.imageTaskDidStart(task, pipeline: pipeline)
+        onEvent?(Event(request: task.request, kind: .imageTaskDidStart))
     }
 
     @ImagePipelineActor
@@ -354,6 +368,26 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
             }
         }
         base.imageTask(task, didReceiveEvent: event, pipeline: pipeline)
+        if let onEvent {
+            report(event, of: task, to: onEvent)
+        }
+    }
+
+    /// Passes a task's event on to the screen: every one but the progress
+    /// before the data is complete, which arrives once per chunk.
+    @ImagePipelineActor
+    private func report(_ event: ImageTask.Event, of task: ImageTask, to onEvent: EventHandler) {
+        let kind: Event.Kind
+        switch event {
+        case .progress(let progress):
+            guard progress.total > 0, progress.completed == progress.total else { return }
+            kind = .progress(progress)
+        case .preview:
+            kind = .preview
+        case .finished(let result):
+            kind = .finished(result)
+        }
+        onEvent(Event(request: task.request, kind: kind))
     }
 
     // MARK: Logging
