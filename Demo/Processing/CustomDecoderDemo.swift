@@ -462,7 +462,6 @@ private enum CustomDecoderPass: CaseIterable, Identifiable {
 /// passes.
 @MainActor @Observable
 private final class CustomDecoderDemoModel {
-    let pipeline: ImagePipeline
     /// Whether ``NukePixDecoder`` is in the shared registry now.
     private(set) var isRegistered = false
     private(set) var files: [CustomDecoderFile: FileFigures] = [:]
@@ -475,7 +474,16 @@ private final class CustomDecoderDemoModel {
     @ObservationIgnored private var token: ImageDecoderRegistry.RegistrationToken?
     @ObservationIgnored private var isOnScreen = false
     @ObservationIgnored private var runTask: Task<Void, Never>?
-    @ObservationIgnored private let picks: DecoderPickLog
+    @ObservationIgnored private let picks = DecoderPickLog()
+    /// Made when the screen first appears, not in `init`: SwiftUI makes a
+    /// model each time it makes the view, and keeps only the first.
+    @ObservationIgnored private lazy var pipeline: ImagePipeline = {
+        // `URLCache` for the PNG, as the shared pipeline has, and a memory
+        // cache of the screen's own, which each pass empties.
+        var configuration = ImagePipeline.Configuration.withURLCache
+        configuration.imageCache = ImageCache()
+        return DemoPipelineProbe.makePipeline("Custom Decoder", configuration: configuration, delegate: DecoderPickWatcher(picks: picks))
+    }()
 
     /// What a file is, from the first pass that loaded it.
     struct FileFigures {
@@ -493,16 +501,6 @@ private final class CustomDecoderDemoModel {
         /// How long the decode took, as the probe measured it; `nil` for a
         /// decode that threw.
         let decodeDuration: TimeInterval?
-    }
-
-    init() {
-        let picks = DecoderPickLog()
-        self.picks = picks
-        // `URLCache` for the PNG, as the shared pipeline has, and a memory
-        // cache of the screen's own, which each pass empties.
-        var configuration = ImagePipeline.Configuration.withURLCache
-        configuration.imageCache = ImageCache()
-        pipeline = DemoPipelineProbe.makePipeline("Custom Decoder", configuration: configuration, delegate: DecoderPickWatcher(picks: picks))
     }
 
     var status: String {
