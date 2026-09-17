@@ -429,14 +429,11 @@ private struct CustomDecoderPane: View {
             }
             return ("decodingFailed · threw", "\(underlying)")
         case .dataLoadingFailed(let underlying):
-            if let underlying = underlying as? URLError {
-                return ("dataLoadingFailed", "URLError \(underlying.code.rawValue)")
-            }
-            return ("dataLoadingFailed", "\(underlying)")
+            return (error.demoCaseName, demoLoaderErrorSummary(underlying) ?? "\(underlying)")
         case .decoderNotRegistered:
-            return ("decoderNotRegistered", "no decoder took the data")
+            return (error.demoCaseName, "no decoder took the data")
         default:
-            return ("\(error)", " ")
+            return (error.demoCaseName, " ")
         }
     }
 }

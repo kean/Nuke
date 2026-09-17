@@ -444,7 +444,7 @@ final class InspectorRecorder: Sendable {
         let outcome: InspectorTaskRecord.Outcome = switch result {
         case .success: .image
         case .failure(.cancelled): .cancelled
-        case .failure(let error): .failed(Self.name(of: error))
+        case .failure(let error): .failed(error.demoCaseName)
         }
         state.withLock { state in
             switch outcome {
@@ -568,22 +568,6 @@ final class InspectorRecorder: Sendable {
         }
         sample.duration = CACurrentMediaTime() - start
         return sample
-    }
-
-    private static func name(of error: ImagePipeline.Error) -> String {
-        switch error {
-        case .dataMissingInCache: "dataMissingInCache"
-        case .dataLoadingFailed: "dataLoadingFailed"
-        case .dataIsEmpty: "dataIsEmpty"
-        case .decoderNotRegistered: "decoderNotRegistered"
-        case .decodingFailed: "decodingFailed"
-        case .processingFailed: "processingFailed"
-        case .imageRequestMissing: "imageRequestMissing"
-        case .pipelineInvalidated: "pipelineInvalidated"
-        case .dataDownloadExceededMaximumSize: "dataDownloadExceededMaximumSize"
-        case .cancelled: "cancelled"
-        @unknown default: "unknown"
-        }
     }
 }
 

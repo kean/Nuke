@@ -14,30 +14,14 @@ extension ImagePipeline.Error {
     /// whole `NSError` it wraps, the failing URL included, which runs to ten
     /// lines.
     var demoSummary: String {
-        guard case .dataLoadingFailed(let underlying) = self else {
-            return demoCaseName
-        }
-        if let error = underlying as? URLError {
-            return "URLError \(error.code.rawValue)"
-        }
-        if case .statusCodeUnacceptable(let code)? = underlying as? DataLoader.Error {
-            return "status \(code)"
-        }
-        return demoCaseName
+        dataLoadingError.flatMap(demoLoaderErrorSummary) ?? demoCaseName
     }
 
     /// The error in a sentence an app could show: what the loader said about
     /// a failed download, "The request timed out.", and the pipeline's own
     /// description otherwise.
     var demoMessage: String {
-        switch dataLoadingError {
-        case let error as URLError:
-            error.localizedDescription
-        case let error?:
-            String(describing: error)
-        case nil:
-            description
-        }
+        dataLoadingError.map(demoLoaderErrorMessage) ?? description
     }
 
     /// The name of the case, without its payload.
@@ -56,4 +40,22 @@ extension ImagePipeline.Error {
         @unknown default: "unknown"
         }
     }
+}
+
+/// A data loader's error in a few words, "URLError -1001" or "status 404", or
+/// `nil` for an error that has no short form.
+func demoLoaderErrorSummary(_ error: any Error) -> String? {
+    if let error = error as? URLError {
+        return "URLError \(error.code.rawValue)"
+    }
+    if case .statusCodeUnacceptable(let code)? = error as? DataLoader.Error {
+        return "status \(code)"
+    }
+    return nil
+}
+
+/// A data loader's error in a sentence an app could show: "The request timed
+/// out."
+func demoLoaderErrorMessage(_ error: any Error) -> String {
+    (error as? URLError)?.localizedDescription ?? String(describing: error)
 }

@@ -568,7 +568,7 @@ private struct CallRow: View {
                 return "\(demoDelay(call.time - cancel.time)) after the cancel: the slot is free"
             }
             guard let error else { return "the data is complete" }
-            return demoErrorDescription(error)
+            return demoLoaderErrorMessage(error)
         }
     }
 }
@@ -1243,18 +1243,7 @@ private func demoShortErrorName(_ error: (any Error)?) -> String {
     switch error {
     case nil: "nil"
     case let error as URLError where error.code == .cancelled: "cancelled"
-    case let error as URLError: "URLError \(error.code.rawValue)"
-    case let error as DataLoader.Error:
-        if case .statusCodeUnacceptable(let code) = error { "status \(code)" } else { "\(error)" }
-    case let error?: String(describing: type(of: error))
-    }
-}
-
-/// An error in a line: what an app would show.
-private func demoErrorDescription(_ error: any Error) -> String {
-    switch error {
-    case let error as URLError: error.localizedDescription
-    default: String(describing: error)
+    case let error?: demoLoaderErrorSummary(error) ?? String(describing: type(of: error))
     }
 }
 

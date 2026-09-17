@@ -320,10 +320,12 @@ extension FixtureZooModel {
                     container = response.container
                 }
             case .failure(let error):
-                let summary = Self.summary(of: error)
-                verdict = summary.isLoading ? .notLoaded : .refused
-                self.error = summary.name
-                errorDetail = summary.detail
+                verdict = switch error {
+                case .dataLoadingFailed, .dataDownloadExceededMaximumSize: .notLoaded
+                default: .refused
+                }
+                self.error = error.demoCaseName
+                errorDetail = Self.detail(of: error)
                 if case .decodingFailed(let failed, _, _) = error {
                     decoder = demoTypeName(of: failed)
                 }
@@ -381,37 +383,22 @@ extension FixtureZooModel {
 
         // MARK: Errors
 
-        /// The case of a pipeline error, and what it wraps, in a few words.
-        private static func summary(of error: ImagePipeline.Error) -> (name: String, detail: String?, isLoading: Bool) {
-            if case .dataLoadingFailed(let underlying) = error {
-                return ("dataLoadingFailed", brief(underlying), true)
+        /// What a pipeline error wraps, in a few words.
+        private static func detail(of error: ImagePipeline.Error) -> String? {
+            switch error {
+            case .dataLoadingFailed(let underlying):
+                demoLoaderErrorSummary(underlying) ?? String(describing: underlying)
+            case let .decodingFailed(decoder, _, underlying):
+                underlying is ImageDecodingError
+                    ? demoTypeName(of: decoder)
+                    : demoLoaderErrorSummary(underlying) ?? String(describing: underlying)
+            case .dataIsEmpty:
+                "the loader sent no bytes"
+            case .decoderNotRegistered:
+                "no decoder took the data"
+            default:
+                nil
             }
-            if case .decodingFailed(let decoder, _, let underlying) = error {
-                return ("decodingFailed", underlying is ImageDecodingError ? demoTypeName(of: decoder) : brief(underlying), false)
-            }
-            if case .dataIsEmpty = error {
-                return ("dataIsEmpty", "the loader sent no bytes", false)
-            }
-            if case .decoderNotRegistered = error {
-                return ("decoderNotRegistered", "no decoder took the data", false)
-            }
-            if case .dataDownloadExceededMaximumSize = error {
-                return ("dataDownloadExceededMaximumSize", nil, true)
-            }
-            return (String(describing: error), nil, false)
-        }
-
-        private static func brief(_ error: Error) -> String {
-            if let error = error as? URLError {
-                return "URLError \(error.code.rawValue)"
-            }
-            if let error = error as? DataLoader.Error, case .statusCodeUnacceptable(let code) = error {
-                return "status \(code)"
-            }
-            if let error = error as? DemoFixtureError {
-                return error.description
-            }
-            return String(describing: error)
         }
     }
 }

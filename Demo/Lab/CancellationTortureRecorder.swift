@@ -123,7 +123,7 @@ enum TortureOutcome: Hashable, Sendable {
         switch result {
         case .success: self = .image
         case .failure(.cancelled): self = .cancelled
-        case .failure(let error): self = .failed(Self.name(of: error))
+        case .failure(let error): self = .failed(error.demoCaseName)
         }
     }
 
@@ -132,23 +132,6 @@ enum TortureOutcome: Hashable, Sendable {
         case .image: "image"
         case .cancelled: "cancelled"
         case .failed(let name): name
-        }
-    }
-
-    /// The name of the case, without its payload.
-    private static func name(of error: ImagePipeline.Error) -> String {
-        switch error {
-        case .dataMissingInCache: "dataMissingInCache"
-        case .dataLoadingFailed: "dataLoadingFailed"
-        case .dataIsEmpty: "dataIsEmpty"
-        case .decoderNotRegistered: "decoderNotRegistered"
-        case .decodingFailed: "decodingFailed"
-        case .processingFailed: "processingFailed"
-        case .imageRequestMissing: "imageRequestMissing"
-        case .pipelineInvalidated: "pipelineInvalidated"
-        case .dataDownloadExceededMaximumSize: "dataDownloadExceededMaximumSize"
-        case .cancelled: "cancelled"
-        @unknown default: "unknown"
         }
     }
 }
