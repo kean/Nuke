@@ -234,18 +234,9 @@ private struct ImageFormatFigures: View {
         return "\(header.typeSummary) · \(width)×\(height)"
     }
 
-    /// The error's case, or what the loader said.
+    /// What the loader said, or what the pipeline says about anything else.
     private static func summary(of error: ImagePipeline.Error) -> String {
-        guard case .dataLoadingFailed(let underlying) = error else {
-            return "\(error)"
-        }
-        if let underlying = underlying as? URLError {
-            return "URLError \(underlying.code.rawValue)"
-        }
-        if case .statusCodeUnacceptable(let code)? = underlying as? DataLoader.Error {
-            return "status \(code)"
-        }
-        return "dataLoadingFailed"
+        error.dataLoadingError == nil ? error.description : error.demoSummary
     }
 }
 

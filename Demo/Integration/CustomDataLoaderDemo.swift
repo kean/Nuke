@@ -281,7 +281,7 @@ private struct RunFigures: View {
         case .cancelled:
             return ("cancelled", .orange)
         case .failed(let error):
-            return (demoCaseName(error), .red)
+            return (error.demoCaseName, .red)
         }
     }
 
@@ -625,7 +625,7 @@ private struct PipelineRows: View {
         case .cancelled:
             ("cancelled", .orange)
         case .failed(let error):
-            ("\(demoCaseName(error)): \(error.dataLoadingError.map(demoErrorDescription) ?? error.description)", .red)
+            ("\(error.demoCaseName): \(error.demoMessage)", .red)
         }
     }
 
@@ -1255,18 +1255,6 @@ private func demoErrorDescription(_ error: any Error) -> String {
     switch error {
     case let error as URLError: error.localizedDescription
     default: String(describing: error)
-    }
-}
-
-/// The case of a pipeline error, such as `dataLoadingFailed`.
-private func demoCaseName(_ error: ImagePipeline.Error) -> String {
-    switch error {
-    case .dataLoadingFailed: "dataLoadingFailed"
-    case .dataIsEmpty: "dataIsEmpty"
-    case .decodingFailed: "decodingFailed"
-    case .dataDownloadExceededMaximumSize: "dataDownloadExceededMaximumSize"
-    case .cancelled: "cancelled"
-    default: "failed"
     }
 }
 

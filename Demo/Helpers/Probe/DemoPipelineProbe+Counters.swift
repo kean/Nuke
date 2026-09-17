@@ -395,27 +395,8 @@ extension DemoPipelineProbe.Counters {
             case .failure(.cancelled):
                 self = .cancelled
             case .failure(let error):
-                self = .failed(error.caseName)
+                self = .failed(error.demoCaseName)
             }
-        }
-    }
-}
-
-extension ImagePipeline.Error {
-    /// The name of the case, without its payload, to group failures by.
-    fileprivate var caseName: String {
-        switch self {
-        case .dataMissingInCache: "dataMissingInCache"
-        case .dataLoadingFailed: "dataLoadingFailed"
-        case .dataIsEmpty: "dataIsEmpty"
-        case .decoderNotRegistered: "decoderNotRegistered"
-        case .decodingFailed: "decodingFailed"
-        case .processingFailed: "processingFailed"
-        case .imageRequestMissing: "imageRequestMissing"
-        case .pipelineInvalidated: "pipelineInvalidated"
-        case .dataDownloadExceededMaximumSize: "dataDownloadExceededMaximumSize"
-        case .cancelled: "cancelled"
-        @unknown default: "unknown"
         }
     }
 }

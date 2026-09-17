@@ -566,19 +566,7 @@ private final class GettingStartedModel {
 
     /// The error's case, or what the loader said, short enough for a line.
     private static func summary(of error: any Error) -> String {
-        guard let error = error as? ImagePipeline.Error else {
-            return error.localizedDescription
-        }
-        guard case .dataLoadingFailed(let underlying) = error else {
-            return Mirror(reflecting: error).children.first?.label ?? "\(error)"
-        }
-        if let underlying = underlying as? URLError {
-            return "URLError \(underlying.code.rawValue)"
-        }
-        if case .statusCodeUnacceptable(let code)? = underlying as? DataLoader.Error {
-            return "status \(code)"
-        }
-        return "dataLoadingFailed"
+        (error as? ImagePipeline.Error)?.demoSummary ?? error.localizedDescription
     }
 
     private static func time(_ value: TimeInterval) -> String {
