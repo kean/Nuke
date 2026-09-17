@@ -399,6 +399,8 @@ private final class TortureRun {
         pipeline = nil
         let pipelineReleasedAfter = await waitUntil(timeout: .seconds(3)) { $0.releasedPipeline == nil }
         note(pipelineReleasedAfter.map { "pipeline released after \(tortureDuration($0))" } ?? "pipeline still alive after 3 s")
+        // A Stop cuts the waits above short, which would read as failures.
+        guard !Task.isCancelled else { return abandon() }
 
         let snapshot = recorder.snapshot
         let figures = Self.figures(snapshot.logs.values)

@@ -794,12 +794,9 @@ private final class SoakRun {
         let pool = AnimatedImageFramePool.shared
         let poolBefore = pool.totalCost
         let imageCacheBefore = imageCache.totalCost
-        #if canImport(UIKit)
         NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: UIApplication.shared)
-        #else
-        pool.reduceMemoryUsage()
-        #endif
-        try? await Task.sleep(for: .milliseconds(200))
+        // A Stop leaves no warning with its "after" read too early.
+        guard (try? await Task.sleep(for: .milliseconds(200))) != nil else { return }
         let frames = players.compactMap { $0.player?.diagnostics.bufferedFrameCount }.max() ?? 0
         let warning = SoakWarning(
             id: (model?.record?.warnings.count ?? 0) + 1,

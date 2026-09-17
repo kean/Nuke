@@ -66,7 +66,7 @@ struct ScrollStressDemo: View {
             guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
             Autorun.hasRun = true
             // Once the first screenful has loaded.
-            try? await Task.sleep(for: .seconds(1))
+            guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
             model.startAutoScroll(source: source)
         }
         .demoInfo(Self.info)
