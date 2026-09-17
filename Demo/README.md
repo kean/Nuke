@@ -75,6 +75,7 @@ screen for that API does the explaining.
 | Screen | Group | Shows |
 |--|--|--|
 | **Pipeline HUD** | Instruments | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
+| **Concurrency Inspector** | Instruments | A burst, a trickle, or a scroll of fixture requests – photos, blurred photos, thumbnails, a 12 MP JPEG, and pairs – on a pipeline of its own, with pause and cancel: a map and a list of every task and where it is (queued, loading, receiving, waiting for or on a queue, finished), with its priority and age; the five task queues with the work running and waiting, how long work waited, and a limit and a suspend switch each; the queues of every pipeline alive; and the main thread's stalls over 16 ms, from a display link and a thread that pings the main queue, with buttons that stall it |
 | **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps each source's last run – frames dropped, hitch time, the longest frame, and the tasks started, cancelled, and finished – so runs, and fixtures and the network, can be compared |
 | **Cancellation Torture** | Stress | Image tasks started at 200 a second for five seconds and cancelled before they start, while they wait, mid-download, and after they finish – plain, processed, thumbnail, progressive, and coalesced requests, heard through events, an awaited response, and closures – then pass or fail on: no callbacks after cancel, every task finished once, no `ImageTask` left, queues back to zero, survivors got their image, a new request completes, the pipeline goes away, and the rate reached. A slot check shows what a loader that follows the documented cancel contract does to the data loading queue |
 | **Memory Soak** | Stress | A five-second cycle – 150 loads of the 12 MP JPEG, processed photos, and thumbnails, a third of them cancelled, six animations made and dropped, and a cache churned or a memory warning posted – repeated for 1, 5, 15, or 60 minutes, with the app's footprint drawn twice a second. After each cycle both caches are emptied and the footprint and the `malloc` heap read: pass or fail on the slope of each in MB a minute, on nothing left behind (tasks, players, animations, cache entries, files), on the pipelines alive, and on the memory warnings answered |
@@ -103,7 +104,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
 | `-demoDeterministic 1` | Starts the app the same way every time: offline, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
 | `-demoNetwork <preset>` | Starts the app with [network conditions](#network-conditions) on: `slow-3g`, `lossy`, or `flaky-server`. `off`, the default, leaves the network as it is; a preset that doesn't exist does too, and logs why |
-| `-demoAutorun 1` | Starts the run of a Lab screen as soon as it opens, once per launch: Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
+| `-demoAutorun 1` | Starts the run of a Lab screen as soon as it opens, once per launch: Concurrency Inspector starts a burst, Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
 
 The **Automation** screen in the Lab lists every id. An id stays the same when a
 title changes.
@@ -191,6 +192,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video
 ├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
-├── Helpers          Shared views, the Lab's verdicts and sparkline, the pipeline probe and HUD, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
+├── Helpers          Shared views, the Lab's verdicts and sparkline, the pipeline probe and HUD, the frame and main-thread watchdogs, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
 ```

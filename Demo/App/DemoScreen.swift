@@ -40,6 +40,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     // Lab
     case pipelineHUD = "pipeline-hud"
+    case concurrencyInspector = "concurrency-inspector"
     case scrollStress = "scroll-stress"
     case cancellationTorture = "cancellation-torture"
     case memorySoak = "memory-soak"
@@ -71,6 +72,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .customDataLoader: "Custom Data Loader"
         case .video: "Video"
         case .pipelineHUD: "Pipeline HUD"
+        case .concurrencyInspector: "Concurrency Inspector"
         case .scrollStress: "Scroll Stress"
         case .cancellationTorture: "Cancellation Torture"
         case .memorySoak: "Memory Soak"
@@ -103,6 +105,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
         case .video: "A poster frame and a looping player from NukeVideo"
         case .pipelineHUD: "Every figure the probe counts, over any screen"
+        case .concurrencyInspector: "Queues, every task's state, and stalls"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
         case .memorySoak: "A workload on repeat, and the footprint"
@@ -128,6 +131,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .customDataLoader: .catalog(.integration)
         case .video: .catalog(.integration)
         case .pipelineHUD: .lab(.instruments)
+        case .concurrencyInspector: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .cancellationTorture: .lab(.stress)
         case .memorySoak: .lab(.stress)
@@ -162,6 +166,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .customDataLoader: CustomDataLoaderDemo()
         case .video: VideoDemo()
         case .pipelineHUD: PipelineHUDDemo()
+        case .concurrencyInspector: ConcurrencyInspectorDemo()
         case .scrollStress: ScrollStressDemo()
         case .cancellationTorture: CancellationTortureDemo()
         case .memorySoak: MemorySoakDemo()
