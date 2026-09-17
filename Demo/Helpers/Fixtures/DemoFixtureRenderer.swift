@@ -93,17 +93,17 @@ enum DemoFixtureRenderer {
         )!
         context.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size.height), end: CGPoint(x: size.width, y: 0), options: [])
 
-        var random = SeededRandom(seed: UInt64(seed))
+        var random = DemoRandomNumberGenerator(seed: UInt64(seed) &+ 1)
         let area = size.width * size.height
         let count = min(Int(area / 900), 1200)
         let spacing = (area / CGFloat(count)).squareRoot()
         let outline = color(hue: hue + 0.5, saturation: 0.3, brightness: 1, alpha: 0.5)
         context.setLineWidth(max(1, spacing / 30))
         for _ in 0..<count {
-            let radius = (0.5 + random.next() * 2.5) * 0.15 * spacing
-            let center = CGPoint(x: random.next() * size.width, y: random.next() * size.height)
+            let radius = (0.5 + random.nextUnit() * 2.5) * 0.15 * spacing
+            let center = CGPoint(x: random.nextUnit() * size.width, y: random.nextUnit() * size.height)
             let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
-            context.setFillColor(color(hue: hue + random.next() * 0.3, saturation: 0.6, brightness: 0.4 + random.next() * 0.6, alpha: 0.35))
+            context.setFillColor(color(hue: hue + random.nextUnit() * 0.3, saturation: 0.6, brightness: 0.4 + random.nextUnit() * 0.6, alpha: 0.35))
             context.fillEllipse(in: rect)
             context.setStrokeColor(outline)
             context.strokeEllipse(in: rect.insetBy(dx: radius * 0.3, dy: radius * 0.3))
@@ -305,25 +305,5 @@ enum DemoFixtureRenderer {
 
     private static func black(alpha: Double = 1) -> CGColor {
         CGColor(colorSpace: colorSpace, components: [0, 0, 0, CGFloat(alpha)])!
-    }
-}
-
-/// SplitMix64: a few lines of arithmetic, and the same sequence for the same
-/// seed on every platform, which `SystemRandomNumberGenerator` isn't.
-private struct SeededRandom {
-    private var state: UInt64
-
-    init(seed: UInt64) {
-        state = seed &+ 1
-    }
-
-    /// A number from 0 up to 1.
-    mutating func next() -> Double {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        z ^= z >> 31
-        return Double(z >> 11) / Double(1 << 53)
     }
 }

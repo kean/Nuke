@@ -312,16 +312,16 @@ final class DataCacheTorture: Sendable {
     }
 
     private func write(_ cache: DataCache, writer: Int, until deadline: ContinuousClock.Instant) async -> Ledger {
-        var random = TortureRandom(seed: UInt64(number) << 16 | UInt64(writer))
+        var random = DemoRandomNumberGenerator(seed: UInt64(number) << 16 | UInt64(writer))
         var ledger = Ledger()
         var version: UInt32 = 0
         while clock.now < deadline, !Task.isCancelled {
-            let key = writer * Self.keysPerWriter + random.next(Self.keysPerWriter)
+            let key = writer * Self.keysPerWriter + random.next(below: Self.keysPerWriter)
             let name = Self.name(of: key)
-            switch random.next(100) {
+            switch random.next(below: 100) {
             case 0..<50:
                 version += 1
-                cache.storeData(Self.entry(key: key, version: version, size: 2_048 + random.next(30_720)), for: name)
+                cache.storeData(Self.entry(key: key, version: version, size: 2_048 + random.next(below: 30_720)), for: name)
                 ledger.expectations[key] = .stored(version)
                 count { $0.writes += 1 }
                 if check(cache.cachedData(for: name), key: key, expected: .stored(version), context: "right after its write") == .evicted {
@@ -359,9 +359,9 @@ final class DataCacheTorture: Sendable {
     }
 
     private func scan(_ cache: DataCache, scanner: Int, until deadline: ContinuousClock.Instant) async {
-        var random = TortureRandom(seed: UInt64(number) << 16 | UInt64(100 + scanner))
+        var random = DemoRandomNumberGenerator(seed: UInt64(number) << 16 | UInt64(100 + scanner))
         while clock.now < deadline, !Task.isCancelled {
-            let key = random.next(Self.keyCount)
+            let key = random.next(below: Self.keyCount)
             count { $0.scans += 1 }
             if let data = cache.cachedData(for: Self.name(of: key)) {
                 switch Self.parse(data) {
@@ -525,10 +525,10 @@ final class DataCacheTorture: Sendable {
 
     /// A header, then `size` bytes that only this key and version make.
     private static func entry(key: Int, version: UInt32, size: Int) -> Data {
-        var random = TortureRandom(seed: UInt64(key) << 32 | UInt64(version))
+        var random = DemoRandomNumberGenerator(seed: UInt64(key) << 32 | UInt64(version))
         var payload = [UInt8](repeating: 0, count: size)
         for index in payload.indices {
-            payload[index] = UInt8(truncatingIfNeeded: random.nextRaw())
+            payload[index] = UInt8(truncatingIfNeeded: random.next())
         }
         var data = Data(capacity: headerSize + size)
         for field in [tag, UInt32(key), version, UInt32(size), checksum(payload)] {
@@ -971,11 +971,11 @@ enum ImageCacheTorture {
         DispatchQueue.concurrentPerform(iterations: writerCount + 3) { index in
             switch index {
             case 0..<writerCount:
-                var random = TortureRandom(seed: UInt64(index + 1) << 20)
+                var random = DemoRandomNumberGenerator(seed: UInt64(index + 1) << 20)
                 var ledger: [Int: (version: Int, cost: Int)] = [:]
                 for version in 0..<insertsPerWriter {
-                    let slot = random.next(keysPerWriter)
-                    let cost = 1_024 + random.next(40 * 1_024)
+                    let slot = random.next(below: keysPerWriter)
+                    let cost = 1_024 + random.next(below: 40 * 1_024)
                     cache[key(writer: index, slot: slot)] = makeContainer(cost: cost, base: base, tag: version, writer: index, key: slot)
                     ledger[slot] = (version, cost)
                 }
@@ -998,12 +998,12 @@ enum ImageCacheTorture {
                     $0.samples = samples
                 }
             case writerCount + 1:
-                var random = TortureRandom(seed: 7)
+                var random = DemoRandomNumberGenerator(seed: 7)
                 var reads = 0
                 var wrongKeys = 0
                 while !isDone() {
-                    let writer = random.next(writerCount)
-                    let slot = random.next(keysPerWriter)
+                    let writer = random.next(below: writerCount)
+                    let slot = random.next(below: keysPerWriter)
                     if let container = cache[key(writer: writer, slot: slot)] {
                         if let tag = tag(of: container), tag.writer != writer || tag.key != slot {
                             wrongKeys += 1
@@ -1016,7 +1016,7 @@ enum ImageCacheTorture {
                     $0.wrongKeys = wrongKeys
                 }
             default:
-                var random = TortureRandom(seed: 11)
+                var random = DemoRandomNumberGenerator(seed: 11)
                 var trims = 0
                 var removeAlls = 0
                 var iteration = 0
@@ -1026,10 +1026,10 @@ enum ImageCacheTorture {
                         cache.removeAll()
                         removeAlls += 1
                     } else if iteration % 2 == 0 {
-                        cache.trim(toCost: 1_048_576 + random.next(3 * 1_048_576))
+                        cache.trim(toCost: 1_048_576 + random.next(below: 3 * 1_048_576))
                         trims += 1
                     } else {
-                        cache.trim(toCount: 50 + random.next(150))
+                        cache.trim(toCount: 50 + random.next(below: 150))
                         trims += 1
                     }
                     usleep(200)
@@ -1153,26 +1153,3 @@ enum ImageCacheTorture {
 }
 
 // MARK: - Helpers
-
-/// SplitMix64, so that every run makes the same operations in the same order
-/// per thread.
-private struct TortureRandom {
-    private var state: UInt64
-
-    init(seed: UInt64) {
-        state = seed
-    }
-
-    mutating func nextRaw() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
-    }
-
-    /// A number from 0 up to `bound`.
-    mutating func next(_ bound: Int) -> Int {
-        Int(nextRaw() % UInt64(bound))
-    }
-}

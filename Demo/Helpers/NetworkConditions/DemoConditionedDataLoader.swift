@@ -164,17 +164,18 @@ extension DemoConditionedDataLoader {
         }
     }
 
-    /// The generator for the next load of `url`.
-    fileprivate static func makeGenerator(for url: URL?) -> DrawGenerator {
+    /// The generator for the next load of `url`: seeded at random, or, with
+    /// `-demoDeterministic 1`, by the URL and the attempt.
+    fileprivate static func makeGenerator(for url: URL?) -> DemoRandomNumberGenerator {
         guard DemoLaunchOptions.current.isDeterministic else {
-            return DrawGenerator(seed: nil)
+            return DemoRandomNumberGenerator(seed: .random(in: .min ... .max))
         }
         let key = url?.absoluteString ?? ""
         let attempt = shared.withLock { shared in
             defer { shared.attempts[key, default: 0] += 1 }
             return shared.attempts[key, default: 0]
         }
-        return DrawGenerator(seed: fnv1a(key) ^ (attempt &* 0x9E37_79B9_7F4A_7C15))
+        return DemoRandomNumberGenerator(seed: fnv1a(key) ^ (attempt &* 0x9E37_79B9_7F4A_7C15))
     }
 
     /// FNV-1a: a hash that, unlike `Hasher`, is the same in every process.
@@ -184,28 +185,6 @@ extension DemoConditionedDataLoader {
             hash = (hash ^ UInt64(byte)) &* 0x100_0000_01B3
         }
         return hash
-    }
-}
-
-/// The system's generator, or, with a seed, SplitMix64: small, fast, and the
-/// same sequence for a seed in every process.
-private struct DrawGenerator: RandomNumberGenerator {
-    private var state: UInt64?
-    private var system = SystemRandomNumberGenerator()
-
-    init(seed: UInt64?) {
-        state = seed
-    }
-
-    mutating func next() -> UInt64 {
-        guard var z = state else {
-            return system.next()
-        }
-        z &+= 0x9E37_79B9_7F4A_7C15
-        state = z
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
     }
 }
 

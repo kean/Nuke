@@ -249,18 +249,13 @@ enum DemoZooRenderer {
         data.prefix(Int(Double(data.count) * fraction))
     }
 
-    /// Bytes from SplitMix64: the same for the same seed on every run.
+    /// Random bytes, the same for the same seed on every run.
     private static func noise(count: Int, seed: UInt64) -> Data {
-        var state = seed
+        var random = DemoRandomNumberGenerator(seed: seed)
         var bytes: [UInt8] = []
         bytes.reserveCapacity(count + 8)
         while bytes.count < count {
-            state &+= 0x9E37_79B9_7F4A_7C15
-            var z = state
-            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-            z ^= z >> 31
-            withUnsafeBytes(of: z.littleEndian) { bytes.append(contentsOf: $0) }
+            withUnsafeBytes(of: random.next().littleEndian) { bytes.append(contentsOf: $0) }
         }
         return Data(bytes.prefix(count))
     }
