@@ -26,6 +26,12 @@ and the details worth knowing.
 | **LazyImage** | The SwiftUI view: loading states, transitions, processors, priority, and completion |
 | **UIKit Views** | `loadImage(with:options:into:)` next to `LazyImageView` in a collection view, on a picker: with the extension you own the placeholder, the failure image, and the transition; `LazyImageView` owns them. Cell reuse either way |
 
+### Requests
+
+| Screen | Shows |
+|--|--|
+| **Request Options** | One image and a panel of every `ImageRequest.Options` flag, the priority, and a thumbnail next to a resize processor. Each change runs the request again and shows where the image came from, what it cost in time, bytes, and memory, and the stages the task went through, read from its `ImageTask.Metrics` |
+
 ### Processing & Formats
 
 | Screen | Shows |
@@ -98,7 +104,8 @@ counts.
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
-`com.github.kean.NukeDemo` subsystem.
+`com.github.kean.NukeDemo` subsystem. The pipeline of the **Request Options**
+screen records its tasks either way, and shows the record on screen.
 
 From the terminal, with the simulator booted:
 
@@ -116,6 +123,7 @@ Performance Guide.
 Demo
 ├── App              The app, the catalog and Lab menus, the screen registry, and the launch arguments
 ├── Essentials       ImagePipeline, LazyImage, and the image views
+├── Requests         Request options, priority, and thumbnails
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching and prefetching
 ├── AnimatedImages   Animated image playback and its diagnostics
