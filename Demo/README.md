@@ -74,6 +74,7 @@ screen for that API does the explaining.
 | **Pipeline HUD** | Instruments | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
 | **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network |
 | **Animation Memory** | Animation | A wall of animations sharing one memory budget, and what happens when they don't all fit |
+| **Fixture Zoo** | Fixtures | Thirty inputs the decoders should survive – a 1×1, a 20,000 px canvas, CMYK, 16-bit, EXIF-rotated, zero-delay and broken animations, HEICS, AVIS, cut-off files, and files that aren't images – each decoded through a pipeline with no caches and reported as decoded, refused, or crashed next to what was expected, with the size, frames, decoder, decode time, and memory cost. A crash mid-decode is caught on the next launch. A regression sheet to screenshot |
 | **Fixture Mode** | Rig | The switch that takes the whole demo offline, and every fixture with its size, the time it took to make, and a digest |
 | **Network Conditions** | Rig | The switch that puts every download through latency, a shared bandwidth cap, lost requests, 500s, and cut-off bodies, with presets, the counts of what it did, and what the pipelines' diagnostics lose while it is on |
 | **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
@@ -119,6 +120,11 @@ in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
 screens that load photos start on fixtures either way.
 
 The photo stream's URLs are in `Resources/photos.json`.
+
+**Fixture Zoo** in the Lab serves its inputs the same way, as
+`demo-fixture://nuke/zoo-<name>`: six files copied from `Tests/Resources` into
+`Resources/Zoo`, the bundled HEICS, and the rest generated, damaged, or written
+byte by byte on first use. `DemoZooInput` lists where each one comes from.
 
 ## Network conditions
 
@@ -175,7 +181,7 @@ Demo
 ├── Caching          Caching, prefetching, and resumable downloads
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate
-├── Lab              Stress rigs and instruments for working on Nuke
+├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
 ├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
-└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
+└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
 ```
