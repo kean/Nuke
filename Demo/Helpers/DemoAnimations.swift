@@ -238,22 +238,6 @@ struct DemoDiagnosticsRow: View {
 
 // MARK: - Views
 
-/// The grid a wall of animations is laid out on: as many columns as the square
-/// root of the count.
-func demoWallGrid(count: Int) -> (columns: Int, rows: Int) {
-    let columns = max(1, Int(Double(count).squareRoot().rounded(.up)))
-    let rows = max(1, Int((Double(count) / Double(columns)).rounded(.up)))
-    return (columns, rows)
-}
-
-func demoWallCellSize(count: Int, in size: CGSize, spacing: CGFloat) -> CGSize {
-    let grid = demoWallGrid(count: count)
-    return CGSize(
-        width: max(1, (size.width - spacing * CGFloat(grid.columns - 1)) / CGFloat(grid.columns)),
-        height: max(1, (size.height - spacing * CGFloat(grid.rows - 1)) / CGFloat(grid.rows))
-    )
-}
-
 /// The numbers behind one animation: the buffer map, and everything
 /// ``AnimatedImagePlayer/diagnostics`` reports about the player under it. What
 /// the container declares is ``DemoAnimationDetails``.

@@ -54,7 +54,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Animated Images** | GIF, APNG, WebP, and HEIC playback with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: beside the animation on iPad, in a sheet below it on iPhone |
+| **Animated Images** | GIF, APNG, WebP, and HEIC playback, and a GIF whose delays differ, with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: beside the animation on iPad, in a sheet below it on iPhone. The buffer budget, the size the frames are decoded at, the rate, the repeat count, and a scrubber |
 
 ### Integration
 

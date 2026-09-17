@@ -749,6 +749,64 @@ enum CellZoom: Hashable {
     }
 }
 
+// MARK: - Frame Transforms
+
+/// The transforms the Lab offers, applied to every frame on the decoder. Each
+/// one is a handful of Core Graphics calls, and the decode figures show what
+/// they add.
+extension AnimatedImageFrameTransform {
+    /// Nuke pink over every frame, blended so the image shows through.
+    static let demoTint = AnimatedImageFrameTransform(identifier: "demo.tint.pink") { frame in
+        demoDrawnFrame(frame) { context, rect in
+            context.draw(frame, in: rect)
+            context.setFillColor(CGColor(srgbRed: 1, green: 0.18, blue: 0.33, alpha: 0.45))
+            context.setBlendMode(.sourceAtop)
+            context.fill(rect)
+        }
+    }
+
+    /// The corners rounded off, an eighth of the short side.
+    static let demoRounded = AnimatedImageFrameTransform(identifier: "demo.rounded.8th") { frame in
+        demoDrawnFrame(frame) { context, rect in
+            let radius = min(rect.width, rect.height) / 8
+            context.addPath(CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil))
+            context.clip()
+            context.draw(frame, in: rect)
+        }
+    }
+
+    /// The frame redrawn into a one-channel gray bitmap, which is also a
+    /// quarter of the memory per frame.
+    static let demoGrayscale = AnimatedImageFrameTransform(identifier: "demo.grayscale") { frame in
+        let context = CGContext(
+            data: nil,
+            width: frame.width, height: frame.height,
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        )
+        guard let context else { return nil }
+        context.draw(frame, in: CGRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        return context.makeImage()
+    }
+}
+
+/// Draws over or around the frame in a bitmap of the same size, in the format
+/// the compositor likes.
+private func demoDrawnFrame(_ frame: CGImage, _ draw: (CGContext, CGRect) -> Void) -> CGImage? {
+    let space = frame.colorSpace.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpaceCreateDeviceRGB()
+    guard let context = CGContext(
+        data: nil,
+        width: frame.width, height: frame.height,
+        bitsPerComponent: 8, bytesPerRow: 0,
+        space: space,
+        bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+    ) else { return nil }
+    let rect = CGRect(x: 0, y: 0, width: frame.width, height: frame.height)
+    draw(context, rect)
+    return context.makeImage()
+}
+
 extension Duration {
     fileprivate var seconds: TimeInterval {
         Double(components.seconds) + Double(components.attoseconds) / 1e18
