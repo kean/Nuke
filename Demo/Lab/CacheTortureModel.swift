@@ -499,10 +499,9 @@ final class DataCacheTorture: Sendable {
         released = cache
         cache = nil
         let start = clock.now
-        while released != nil, clock.now - start < .seconds(3) {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
-        let releasedAfter = released == nil ? (clock.now - start).timeInterval : nil
+        // After a Stop too: the directory goes next.
+        let isReleased = await demoWait(timeout: .seconds(3), whenCancelled: .keepWaiting) { released == nil }
+        let releasedAfter = isReleased ? (clock.now - start).timeInterval : nil
         try? FileManager.default.removeItem(at: Self.parentDirectory)
         let isRemoved = !FileManager.default.fileExists(atPath: directory.path)
         note(releasedAfter.map { "cache released after \(tortureDuration($0))" } ?? "cache still alive after 3 s")

@@ -646,10 +646,9 @@ private final class SoakRun {
         released = pipeline
         pipeline = nil
         let start = clock.now
-        while released != nil, clock.now - start < .seconds(3) {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        return released == nil ? (clock.now - start).soakSeconds : nil
+        // After a Stop too, which is when it runs most.
+        let isReleased = await demoWait(timeout: .seconds(3), every: .milliseconds(10), whenCancelled: .keepWaiting) { released == nil }
+        return isReleased ? (clock.now - start).soakSeconds : nil
     }
 
     // MARK: Cycle
@@ -694,10 +693,7 @@ private final class SoakRun {
 
         // Every load finishes, or 10 s pass.
         model.setStatus(.running(cycle: cycle, phase: .draining))
-        let drainStart = clock.now
-        while !inFlight.isEmpty, clock.now - drainStart < .seconds(10) {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        await demoWait(timeout: .seconds(10)) { inFlight.isEmpty }
         guard !Task.isCancelled else { return nil }
 
         // Empty the caches, and let what goes with them go.
@@ -764,10 +760,7 @@ private final class SoakRun {
     }
 
     private func waitUntil(timeout: Duration, _ condition: (SoakRun) -> Bool) async {
-        let start = clock.now
-        while !condition(self), clock.now - start < timeout, !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        await demoWait(timeout: timeout) { condition(self) }
     }
 
     private func dataCacheCount() async -> Int {

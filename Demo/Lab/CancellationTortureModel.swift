@@ -470,10 +470,7 @@ private final class TortureRun {
     /// it didn't in time.
     private func waitUntil(timeout: Duration, _ condition: (TortureRun) -> Bool) async -> TimeInterval? {
         let start = clock.now
-        while !condition(self) {
-            guard clock.now - start < timeout, !Task.isCancelled else { return nil }
-            try? await Task.sleep(for: .milliseconds(20))
-        }
+        guard await demoWait(timeout: timeout, until: { condition(self) }) else { return nil }
         return (clock.now - start).seconds
     }
 
@@ -482,9 +479,7 @@ private final class TortureRun {
         let url = Self.url(of: .photo(0), query: URLQueryItem(name: "fresh", value: String(number)))
         let task = pipeline.imageTask(with: ImageRequest(url: url))
         let start = clock.now
-        while task.status.result == nil, clock.now - start < .seconds(5) {
-            try? await Task.sleep(for: .milliseconds(5))
-        }
+        await demoWait(timeout: .seconds(5), every: .milliseconds(5)) { task.status.result != nil }
         let time = (clock.now - start).seconds
         switch task.status.result {
         case .success?:
@@ -854,9 +849,8 @@ enum SlotCheck {
         let tasks = (0..<slotCount).compactMap { index in
             pipeline?.imageTask(with: ImageRequest(url: url(index, String(index))))
         }
-        let start = clock.now
-        while tasks.contains(where: { $0.status.progress.completed == 0 }), clock.now - start < .seconds(3) {
-            try? await Task.sleep(for: .milliseconds(10))
+        await demoWait(timeout: .seconds(3), every: .milliseconds(10)) {
+            !tasks.contains { $0.status.progress.completed == 0 }
         }
         let cancelledMidBody = tasks.count { $0.status.progress.completed > 0 && $0.status.result == nil }
         for task in tasks {
@@ -880,9 +874,7 @@ enum SlotCheck {
         }
         var completedAfter: TimeInterval?
         if dataLoaderAfter != nil {
-            while fresh?.status.result == nil, clock.now - freshStart < .seconds(5) {
-                try? await Task.sleep(for: .milliseconds(10))
-            }
+            await demoWait(timeout: .seconds(5) - (clock.now - freshStart), every: .milliseconds(10)) { fresh?.status.result != nil }
             if case .success? = fresh?.status.result {
                 completedAfter = (clock.now - freshStart).seconds
             }
@@ -893,12 +885,8 @@ enum SlotCheck {
         pipeline = nil
         let releaseStart = clock.now
         var releasedAfter: TimeInterval?
-        while clock.now - releaseStart < timeout {
-            if releasedPipeline == nil {
-                releasedAfter = (clock.now - releaseStart).seconds
-                break
-            }
-            try? await Task.sleep(for: .milliseconds(20))
+        if await demoWait(timeout: timeout, until: { releasedPipeline == nil }) {
+            releasedAfter = (clock.now - releaseStart).seconds
         }
 
         return Result(
