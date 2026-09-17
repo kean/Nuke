@@ -268,7 +268,7 @@ private final class ScrollStressModel {
 private final class ScrollStressViewController: PhotoGridViewController {
     private let source: DemoImageSource
     private let model: ScrollStressModel
-    private var autoScroll: AutoScroll?
+    private var autoScroll: DemoAutoScroll?
 
     init(source: DemoImageSource, model: ScrollStressModel) {
         self.source = source
@@ -337,96 +337,13 @@ private final class ScrollStressViewController: PhotoGridViewController {
     /// with the time it scrolled for.
     func startAutoScroll(speed: CGFloat, duration: TimeInterval, completion: @escaping (TimeInterval) -> Void) {
         guard autoScroll == nil else { return }
-        collectionView.setContentOffset(CGPoint(x: 0, y: -collectionView.adjustedContentInset.top), animated: false)
-        // A touch would fight the scroll.
-        collectionView.isScrollEnabled = false
-        autoScroll = AutoScroll(scrollView: collectionView, speed: speed, duration: duration) { [weak self] elapsed in
+        autoScroll = DemoAutoScroll(scrollView: collectionView, speed: speed, duration: duration) { [weak self] elapsed in
             self?.autoScroll = nil
-            self?.collectionView.isScrollEnabled = true
             completion(elapsed)
         }
     }
 
     func stopAutoScroll() {
         autoScroll?.stop()
-    }
-}
-
-/// Moves a scroll view on every frame by as far as the time since the last
-/// frame says, so the speed holds whatever the frame rate, and a late frame
-/// jumps the way a real scroll does.
-@MainActor
-private final class AutoScroll {
-    private weak var scrollView: UIScrollView?
-    private let speed: CGFloat
-    private let duration: TimeInterval
-    private let completion: (TimeInterval) -> Void
-    private var link: CADisplayLink?
-    private var startTimestamp: CFTimeInterval?
-    private var previousTimestamp: CFTimeInterval?
-    private var direction: CGFloat = 1
-    private(set) var elapsed: TimeInterval = 0
-
-    init(scrollView: UIScrollView, speed: CGFloat, duration: TimeInterval, completion: @escaping (TimeInterval) -> Void) {
-        self.scrollView = scrollView
-        self.speed = speed
-        self.duration = duration
-        self.completion = completion
-        // The link retains its target until it is invalidated; the proxy
-        // keeps it from retaining this.
-        let proxy = AutoScrollProxy()
-        proxy.autoScroll = self
-        let link = CADisplayLink(target: proxy, selector: #selector(AutoScrollProxy.onDisplayLink(_:)))
-        link.add(to: .main, forMode: .common)
-        self.link = link
-    }
-
-    fileprivate func step(_ link: CADisplayLink) {
-        guard let scrollView else {
-            return stop()
-        }
-        let timestamp = link.timestamp
-        guard let previous = previousTimestamp, let start = startTimestamp else {
-            startTimestamp = timestamp
-            previousTimestamp = timestamp
-            return
-        }
-        previousTimestamp = timestamp
-        elapsed = timestamp - start
-
-        let top = -scrollView.adjustedContentInset.top
-        let bottom = max(top, scrollView.contentSize.height + scrollView.adjustedContentInset.bottom - scrollView.bounds.height)
-        var y = scrollView.contentOffset.y + direction * speed * (timestamp - previous)
-        if y >= bottom {
-            y = bottom
-            direction = -1
-        } else if y <= top {
-            y = top
-            direction = 1
-        }
-        scrollView.contentOffset.y = y
-
-        if elapsed >= duration {
-            stop()
-        }
-    }
-
-    func stop() {
-        guard let link else { return }
-        link.invalidate()
-        self.link = nil
-        completion(elapsed)
-    }
-}
-
-@MainActor
-private final class AutoScrollProxy {
-    weak var autoScroll: AutoScroll?
-
-    @objc func onDisplayLink(_ link: CADisplayLink) {
-        guard let autoScroll else {
-            return link.invalidate()
-        }
-        autoScroll.step(link)
     }
 }

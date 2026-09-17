@@ -193,6 +193,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video
 ├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
-├── Helpers          Shared views, the Lab's verdicts and sparkline, the pipeline probe and HUD, the frame and main-thread watchdogs, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
+├── Helpers          Shared views, the Lab's verdicts and sparkline, the pipeline probe and HUD, the frame and main-thread watchdogs, Auto-Scroll, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
 ```
