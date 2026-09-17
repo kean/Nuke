@@ -8,7 +8,8 @@ open Nuke.xcodeproj
 ```
 
 Select the **NukeDemo** scheme and run it (iOS 17+). No dependencies, no setup:
-the images are loaded over the network from public URLs.
+the images are loaded over the network from public URLs, or offline from
+[fixtures](#fixtures) the app makes itself.
 
 ## Screens
 
@@ -69,8 +70,9 @@ screen for that API does the explaining.
 | Screen | Group | Shows |
 |--|--|--|
 | **Pipeline HUD** | Instruments | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
-| **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled |
+| **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network |
 | **Animation Memory** | Animation | A wall of animations sharing one memory budget, and what happens when they don't all fit |
+| **Fixture Mode** | Rig | The switch that takes the whole demo offline, and every fixture with its size, the time it took to make, and a digest |
 | **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
 
 ## Launch arguments
@@ -88,9 +90,30 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoScreen <id>` | Opens the app on a screen, with the menus it is reached through beneath it. `lab` is the Lab menu; an id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
 | `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
+| `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
+| `-demoDeterministic 1` | Starts the app the same way every time: offline, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
 
 The **Automation** screen in the Lab lists every id. An id stays the same when a
 title changes.
+
+## Fixtures
+
+Offline, the demo loads no image from the network. Every URL it hands out is a
+fixture's, `demo-fixture://nuke/<name>`: a stand-in for each photo with its
+index drawn on it, a baseline and a progressive JPEG, a 12 MP JPEG, a PNG, two
+GIFs (the long one has 200 frames), and an APNG, all drawn and encoded the
+first time a load asks for them, plus a WebP, an animated WebP, and a video
+bundled in `Resources/Fixtures`. The generated ones are the same bytes on every
+run, so a run on fixtures can be compared with the last one.
+
+Every pipeline's delegate sends a request for a fixture, and every request
+while offline, to the fixture loader, which also answers the demo's network
+URLs with their stand-ins; any other URL fails and says so in Console, under
+the `Fixtures` category. Launch with `-demoFixtures offline`, or flip the switch
+in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
+screens that load photos start on fixtures either way.
+
+The photo stream's URLs are in `Resources/photos.json`.
 
 ## Diagnostics
 
@@ -129,6 +152,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate
 ├── Lab              Stress rigs and instruments for working on Nuke
-├── Helpers          Shared views, the pipeline probe and HUD, demo URLs, and a few small utilities
-└── Resources        The app icon, the logo, a bundled animation, and the photo stream's URLs
+├── Helpers          Shared views, the pipeline probe and HUD, fixtures, demo URLs, and a few small utilities
+└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```

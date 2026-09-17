@@ -37,6 +37,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
     case animationMemory = "animation-memory"
+    case fixtureMode = "fixture-mode"
     case automation = "automation"
 
     var id: String { rawValue }
@@ -57,6 +58,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .animationMemory: "Animation Memory"
+        case .fixtureMode: "Fixture Mode"
         case .automation: "Automation"
         }
     }
@@ -78,6 +80,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationMemory: "A wall of animations sharing one memory budget"
+        case .fixtureMode: "Every image from generated fixtures, offline"
         case .automation: "Launch arguments and the id of every screen"
         }
     }
@@ -93,6 +96,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .animationMemory: .lab(.animation)
+        case .fixtureMode: .lab(.rig)
         case .automation: .lab(.rig)
         }
     }
@@ -116,6 +120,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationMemory: AnimationMemoryDemo()
+        case .fixtureMode: FixtureModeDemo()
         case .automation: AutomationDemo()
         }
     }
