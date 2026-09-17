@@ -37,20 +37,28 @@ import os
 /// ``DataLoading`` asks and ``ThrottledDataLoader`` does, keeps its slot for
 /// good. By the time this `completion` arrives the pipeline has let go of the
 /// task, so it reaches nothing of the app's. `completion` follows the cancel
-/// within a hop, even while the fixture is still being made.
+/// within a hop, even while the fixture is still being made. A loader made
+/// with `completesCancelledLoads: false` does as the documentation asks
+/// instead, to show what that costs.
 final class DemoFixtureLoader: DataLoading, Sendable {
     /// How the data arrives.
     let pace: Pace
     /// What a screen hears of every load: see ``PacedDataLoader``, whose
     /// stand-in offline this loader is.
     let hooks: DemoLoadHooks
+    /// Whether a cancelled load calls `completion`. `false` follows the
+    /// documentation of ``DataLoading``: a cancelled load calls nothing
+    /// more, and keeps its data loading slot, and its pipeline, for good.
+    /// **Cancellation Torture** builds one to show it; nothing else should.
+    let completesCancelledLoads: Bool
 
     private let store: DemoFixtureStore
 
-    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared, hooks: DemoLoadHooks = DemoLoadHooks()) {
+    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared, hooks: DemoLoadHooks = DemoLoadHooks(), completesCancelledLoads: Bool = true) {
         self.pace = pace
         self.store = store
         self.hooks = hooks
+        self.completesCancelledLoads = completesCancelledLoads
     }
 
     /// When a fixture's bytes arrive, fixed rather than jittered, so a run is
@@ -106,7 +114,7 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-        let load = Load(load: DemoLoad(request), pace: pace, hooks: hooks, store: store, didReceiveData: didReceiveData, completion: completion)
+        let load = Load(load: DemoLoad(request), pace: pace, hooks: hooks, store: store, completesWhenCancelled: completesCancelledLoads, didReceiveData: didReceiveData, completion: completion)
         Task {
             await load.start()
         }
@@ -121,6 +129,7 @@ private actor Load: Cancellable {
     private let pace: DemoFixtureLoader.Pace
     private let hooks: DemoLoadHooks
     private let store: DemoFixtureStore
+    private let completesWhenCancelled: Bool
     private let didReceiveData: @Sendable (Data, URLResponse) -> Void
     private let completion: @Sendable (Error?) -> Void
     private var task: Task<Void, Never>?
@@ -131,6 +140,7 @@ private actor Load: Cancellable {
         pace: DemoFixtureLoader.Pace,
         hooks: DemoLoadHooks,
         store: DemoFixtureStore,
+        completesWhenCancelled: Bool,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) {
@@ -138,6 +148,7 @@ private actor Load: Cancellable {
         self.pace = pace
         self.hooks = hooks
         self.store = store
+        self.completesWhenCancelled = completesWhenCancelled
         self.didReceiveData = didReceiveData
         self.completion = completion
         hooks.didStart?(load)
@@ -152,7 +163,7 @@ private actor Load: Cancellable {
 
     nonisolated func cancel() {
         Task {
-            await finish(URLError(.cancelled))
+            await finish(URLError(.cancelled), isCancelled: true)
         }
     }
 
@@ -210,10 +221,11 @@ private actor Load: Cancellable {
         try await Task.sleep(for: duration)
     }
 
-    private func finish(_ error: Error?) {
+    private func finish(_ error: Error?, isCancelled: Bool = false) {
         guard !isFinished else { return }
         isFinished = true
         task?.cancel()
+        guard !isCancelled || completesWhenCancelled else { return }
         completion(error)
     }
 

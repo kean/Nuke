@@ -38,6 +38,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Lab
     case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
+    case cancellationTorture = "cancellation-torture"
     case animationMemory = "animation-memory"
     case fixtureZoo = "fixture-zoo"
     case fixtureMode = "fixture-mode"
@@ -63,6 +64,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: "Pipeline Delegate"
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
+        case .cancellationTorture: "Cancellation Torture"
         case .animationMemory: "Animation Memory"
         case .fixtureZoo: "Fixture Zoo"
         case .fixtureMode: "Fixture Mode"
@@ -89,6 +91,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
+        case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
         case .animationMemory: "A wall of animations sharing one memory budget"
         case .fixtureZoo: "Thirty inputs the decoders should survive"
         case .fixtureMode: "Every image from generated fixtures, offline"
@@ -108,6 +111,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: .catalog(.integration)
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
+        case .cancellationTorture: .lab(.stress)
         case .animationMemory: .lab(.animation)
         case .fixtureZoo: .lab(.fixtures)
         case .fixtureMode: .lab(.rig)
@@ -136,6 +140,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: PipelineDelegateDemo()
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
+        case .cancellationTorture: CancellationTortureDemo()
         case .animationMemory: AnimationMemoryDemo()
         case .fixtureZoo: FixtureZooDemo()
         case .fixtureMode: FixtureModeDemo()
