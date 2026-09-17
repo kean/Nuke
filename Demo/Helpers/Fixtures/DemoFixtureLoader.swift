@@ -54,6 +54,9 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         /// least ``scanInterval``: each preview the pipeline decodes shows one
         /// more whole scan.
         var chunkSize: Int?
+        /// The number of chunks the data comes in whatever its size, in place
+        /// of ``chunkSize``, so that every load takes the same time.
+        var chunkCount: Int?
         /// The wait before each chunk.
         var interval: Duration = .zero
         /// The least wait before each scan of a progressive JPEG after the
@@ -69,6 +72,20 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         /// ``ThrottledDataLoader`` with the same settings.
         static func throttled(chunkSize: Int, interval: Duration) -> Pace {
             Pace(chunkSize: chunkSize, interval: interval)
+        }
+
+        /// `count` chunks, `interval` apart, whatever the size.
+        static func chunks(_ count: Int, interval: Duration) -> Pace {
+            Pace(chunkCount: count, interval: interval)
+        }
+
+        /// The most bytes a chunk of `byteCount` bytes of data carries, or
+        /// `nil` for all of them in one.
+        func chunkSize(for byteCount: Int) -> Int? {
+            if let chunkCount, chunkCount > 0 {
+                return max(1, (byteCount + chunkCount - 1) / chunkCount)
+            }
+            return chunkSize
         }
     }
 
@@ -148,7 +165,7 @@ private actor Load: Cancellable {
     /// The ranges of the data to send, each with the wait before it.
     private func chunks(of entry: DemoFixtureStore.Entry) -> [(Range<Int>, Duration)] {
         let count = entry.data.count
-        guard let chunkSize = pace.chunkSize, chunkSize > 0, count > 0 else {
+        guard let chunkSize = pace.chunkSize(for: count), chunkSize > 0, count > 0 else {
             return [(0..<count, .zero)]
         }
         let scans = entry.record.scanOffsets

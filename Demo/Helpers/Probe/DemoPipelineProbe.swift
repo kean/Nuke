@@ -321,12 +321,15 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// A fixture loader at the pace of the configured loader: a
     /// ``ThrottledDataLoader``'s chunks, so that Progressive Decoding shows
     /// its scans offline, each a little later than the pipeline's
-    /// `progressiveDecodingInterval` so that none is skipped; everything at
-    /// once for any other.
+    /// `progressiveDecodingInterval` so that none is skipped; the one a
+    /// ``PacedDataLoader`` keeps for this, at its pace; everything at once for
+    /// any other.
     private static func makeFixtureLoader(for configuration: ImagePipeline.Configuration) -> DemoFixtureLoader {
         switch configuration.dataLoader {
         case let loader as DemoFixtureLoader:
             return loader
+        case let loader as PacedDataLoader:
+            return loader.fixtureLoader
         case let loader as ThrottledDataLoader:
             var pace = DemoFixtureLoader.Pace.throttled(chunkSize: loader.chunkSize, interval: loader.interval)
             if configuration.isProgressiveDecodingEnabled {

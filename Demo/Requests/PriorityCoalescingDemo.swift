@@ -464,8 +464,11 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
 
     static let priorities: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
 
-    /// The six photos, one download each.
-    private static let photos = Array(DemoImages.photos.prefix(6))
+    /// The six photos, one download each: fixtures while the demo is
+    /// offline, read when a run starts.
+    private static var photos: [URL] {
+        Array(DemoImages.photos.prefix(6))
+    }
 
     /// The requests of a run, in the order they start: every photo, then
     /// every photo again as a square, so that the first six start the
@@ -517,7 +520,9 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
     init() {
         let queue = TaskQueue(maxConcurrentTaskCount: 2)
         var configuration = ImagePipeline.Configuration.withDataCache(name: "com.github.kean.NukeDemo.PriorityAndCoalescing")
-        configuration.dataLoader = PacedDataLoader()
+        // Every photo in 16 chunks, 140 ms apart: about two seconds each,
+        // whatever its size, and the same offline.
+        configuration.dataLoader = PacedDataLoader(pace: .chunks(16, interval: .milliseconds(140)))
         configuration.dataLoadingQueue = queue
         configuration.imageCache = ImageCache()
         // Every task finishes with a record of whose download it waited on,
@@ -934,63 +939,6 @@ private final class TaskRowModel: ObservableObject, Identifiable {
     fileprivate func readOwner(from metrics: ImageTask.Metrics?, rows: [TaskRowModel]) {
         guard let job = metrics?.jobs.first(where: { $0.kind == .fetchOriginalData }) else { return }
         downloadOwner = rows.first { $0.task?.taskId == job.createdByTaskID }?.number
-    }
-}
-
-// MARK: - Data Loader
-
-/// Delivers every response in the same number of chunks over the same time,
-/// whatever its size, so that a download holds its slot long enough to watch
-/// the others wait.
-///
-/// Every load ends with exactly one call to `completion`, a cancelled load
-/// included. That's where it differs from ``ThrottledDataLoader``, which calls
-/// nothing after a cancel. The pipeline frees a download's data loading slot
-/// when the loader calls `completion`, and on nothing else, so a loader that
-/// stays silent keeps the slot of every download cancelled mid-flight, and
-/// the pipeline with it. This screen cancels downloads on every run and when
-/// it closes. A `completion` that arrives after a cancel reaches nobody: the
-/// pipeline has already let the download go.
-private final class PacedDataLoader: DataLoading {
-    private let chunkCount: Int
-    private let interval: Duration
-    private let session: URLSession
-
-    init(chunkCount: Int = 16, interval: Duration = .milliseconds(140)) {
-        self.chunkCount = chunkCount
-        self.interval = interval
-        // The session a `.withDataCache` configuration gives its own loader:
-        // the pipeline's disk cache is the one that caches.
-        let configuration = URLSessionConfiguration.default
-        configuration.urlCache = nil
-        self.session = URLSession(configuration: configuration)
-    }
-
-    func loadData(
-        with request: URLRequest,
-        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
-        completion: @escaping @Sendable (Error?) -> Void
-    ) -> any Cancellable {
-        let task = Task { [session, chunkCount, interval] in
-            do {
-                let (data, response) = try await session.data(for: request)
-                if let response = response as? HTTPURLResponse, !(200..<300).contains(response.statusCode) {
-                    throw URLError(.badServerResponse)
-                }
-                let chunkSize = max(1, (data.count + chunkCount - 1) / chunkCount)
-                var offset = 0
-                while offset < data.count {
-                    try await Task.sleep(for: interval)
-                    let end = min(offset + chunkSize, data.count)
-                    didReceiveData(data.subdata(in: offset..<end), response)
-                    offset = end
-                }
-                completion(nil)
-            } catch {
-                completion(error)
-            }
-        }
-        return AnyCancellable { task.cancel() }
     }
 }
 
