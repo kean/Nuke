@@ -15,6 +15,9 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case lazyImage = "lazy-image"
     case uikitViews = "uikit-views"
 
+    // Requests
+    case requestOptions = "request-options"
+
     // Processing & Formats
     case imageProcessing = "image-processing"
     case imageFormats = "image-formats"
@@ -43,6 +46,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imagePipeline: "Image Pipeline"
         case .lazyImage: "LazyImage"
         case .uikitViews: "UIKit Views"
+        case .requestOptions: "Request Options"
         case .imageProcessing: "Image Processing"
         case .imageFormats: "Image Formats"
         case .progressiveDecoding: "Progressive Decoding"
@@ -63,6 +67,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imagePipeline: "Async/await, progress, cancellation"
         case .lazyImage: "The SwiftUI view and all of its options"
         case .uikitViews: "loadImage(with:into:) next to LazyImageView"
+        case .requestOptions: "Cache options, priority, and thumbnail vs resize"
         case .imageProcessing: "Resize, blur, circle, and custom processors"
         case .imageFormats: "JPEG, PNG, GIF, WebP, and MP4"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
@@ -80,6 +85,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     var placement: Placement {
         switch self {
         case .imagePipeline, .lazyImage, .uikitViews: .catalog(.essentials)
+        case .requestOptions: .catalog(.requests)
         case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
         case .caching, .prefetching: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
@@ -99,6 +105,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imagePipeline: ImagePipelineDemo()
         case .lazyImage: LazyImageDemo()
         case .uikitViews: UIKitViewsDemo()
+        case .requestOptions: RequestOptionsDemo()
         case .imageProcessing: ImageProcessingDemo()
         case .imageFormats: ImageFormatsDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
