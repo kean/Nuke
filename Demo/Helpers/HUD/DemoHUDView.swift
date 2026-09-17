@@ -58,12 +58,16 @@ private struct DemoHUDRoom: View {
 /// HUD. ``View/demoInfoButton(isPresented:)`` puts it beside the question mark.
 struct DemoHUDToggle: View {
     var body: some View {
-        @Bindable var hud = DemoHUD.shared
-        Toggle(isOn: $hud.isVisible) {
+        let hud = DemoHUD.shared
+        // A button rather than a toggle: a toggle styled as a button fills
+        // its whole background when on, which is too loud for a bar button.
+        Button {
+            hud.isVisible.toggle()
+        } label: {
             Label("Pipeline HUD", systemImage: "gauge.with.needle")
                 .symbolVariant(hud.isVisible ? .fill : .none)
         }
-        .toggleStyle(.button)
+        .accessibilityAddTraits(hud.isVisible ? .isSelected : [])
     }
 }
 
@@ -288,11 +292,16 @@ private struct DemoHUDPipelineMenu: View, Equatable {
 }
 
 extension View {
-    /// Light figures on a dark ground, which reads over photos and over the
-    /// grouped backgrounds of every screen alike.
+    /// Light figures on a dark, blurred ground, which reads over photos and
+    /// over the text of a list alike: a plain translucent fill lets the rows
+    /// beneath show through the figures.
     fileprivate func demoHUDBackground(in shape: some Shape) -> some View {
         self
-            .background(Color.black.opacity(0.8), in: shape)
+            .background {
+                shape
+                    .fill(Color.black.opacity(0.6))
+                    .background(.regularMaterial, in: shape)
+            }
             .overlay(shape.stroke(Color.white.opacity(0.14), lineWidth: 0.5))
             .environment(\.colorScheme, .dark)
             .foregroundStyle(.primary)
