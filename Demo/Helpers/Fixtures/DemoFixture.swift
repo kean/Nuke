@@ -54,6 +54,9 @@ enum DemoFixture: Hashable, Sendable {
     /// Fails the way a missing image on a server does: with
     /// `DataLoader.Error.statusCodeUnacceptable(404)`, and no data.
     case missing
+    /// An input of the Fixture Zoo, most of them not images a decoder should
+    /// accept. Not in ``all``: the Fixture Zoo lists them.
+    case zoo(DemoZooInput)
 
     /// The photos of the stream, one per URL in `photos.json`.
     static var photos: [DemoFixture] {
@@ -85,6 +88,8 @@ enum DemoFixture: Hashable, Sendable {
         let name = url.lastPathComponent
         if let fixture = Self.named.first(where: { $0.name == name }) {
             self = fixture
+        } else if name.hasPrefix(Self.zooPrefix), let input = DemoZooInput(rawValue: String(name.dropFirst(Self.zooPrefix.count))) {
+            self = .zoo(input)
         } else if name.hasPrefix("photo-"), name.hasSuffix(".jpeg"),
                   let index = Int(name.dropFirst("photo-".count).dropLast(".jpeg".count)),
                   DemoImages.Network.photos.indices.contains(index) {
@@ -93,6 +98,8 @@ enum DemoFixture: Hashable, Sendable {
             return nil
         }
     }
+
+    private static let zooPrefix = "zoo-"
 
     /// Whether the URL is a fixture's, one that only ``DemoFixtureLoader``
     /// answers.
@@ -151,6 +158,7 @@ enum DemoFixture: Hashable, Sendable {
         case .animatedWebP: "animation.webp"
         case .video: "video.mp4"
         case .missing: "missing.jpeg"
+        case .zoo(let input): Self.zooPrefix + input.fileName
         }
     }
 
@@ -171,6 +179,7 @@ enum DemoFixture: Hashable, Sendable {
         case .animatedWebP: return "300×225 WebP · 50 frames · bundled"
         case .video: return "320×240 MP4 · 2 s · bundled"
         case .missing: return "Fails with a 404"
+        case .zoo(let input): return input.summary
         }
     }
 
@@ -189,6 +198,7 @@ enum DemoFixture: Hashable, Sendable {
         case .animatedWebP: "stands in for the animated WebP"
         case .video: "stands in for the video"
         case .missing: "stands in for the URL that always fails"
+        case .zoo: "for the Fixture Zoo"
         }
     }
 
@@ -200,6 +210,7 @@ enum DemoFixture: Hashable, Sendable {
         case .gif, .longGIF: "image/gif"
         case .webp, .animatedWebP: "image/webp"
         case .video: "video/mp4"
+        case .zoo(let input): input.mimeType
         }
     }
 

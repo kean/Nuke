@@ -100,6 +100,7 @@ final class DemoFixtureStore: Sendable {
         case .animatedWebP: (try bundled("fixture-animated", "webp"), true)
         case .video: (try bundled("fixture-video", "mp4"), true)
         case .missing: throw DataLoader.Error.statusCodeUnacceptable(404)
+        case .zoo(let input): (try DemoZooRenderer.data(for: input), input.isBundled)
         default: (try DemoFixtureRenderer.data(for: fixture), false)
         }
         let duration = start.duration(to: .now)

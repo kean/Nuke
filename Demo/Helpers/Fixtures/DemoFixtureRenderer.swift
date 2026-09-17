@@ -43,7 +43,7 @@ enum DemoFixtureRenderer {
             gif(frameCount: 200, size: 300, delay: 0.05, title: "LONG GIF")
         case .apng:
             apng(frameCount: 20, size: 100, delay: 0.075)
-        case .webp, .animatedWebP, .video, .missing:
+        case .webp, .animatedWebP, .video, .missing, .zoo:
             nil
         }
         guard let data else {
