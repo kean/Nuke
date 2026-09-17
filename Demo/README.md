@@ -62,6 +62,7 @@ and the details worth knowing.
 |--|--|
 | **Pipeline Delegate** | A delegate that adds a header in `willLoadData`, leaves a URL token out of `cacheKey`, and keeps a private photo off the disk in `willCache`, with a live log of what the pipeline asks it |
 | **Custom Data Loader** | Three `DataLoading` implementations on a picker – a throttled download, a file from the app bundle picked by the delegate, and a server that fails – loading the same image on a new pipeline each run, with every call between the pipeline and the loader: the chunks, the pipeline's cancel, and the one `completion`. A throttled load cancelled partway never completes, and the screen shows the data loading slot and the pipeline it keeps |
+| **Video** | `ImageDecoders.Video` from NukeVideo, which the app registers at launch: one request for an MP4 gives a poster frame and an `AVAsset`, and `VideoPlayerView` plays the asset in `LazyImage`'s content, over the poster until its first frame is up. What the memory and disk caches keep of a video, and the check for a file the decoder takes no frame from, which it reports as a success |
 
 ## Lab
 
@@ -162,8 +163,8 @@ Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – 
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**,
-**Priority & Coalescing**, **Caching**, and **Resumable Downloads** screens
-record their tasks either way, and show what the records say on screen.
+**Priority & Coalescing**, **Caching**, **Resumable Downloads**, and **Video**
+screens record their tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
 
@@ -185,7 +186,7 @@ Demo
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching, prefetching, and resumable downloads
 ├── AnimatedImages   Animated image playback and its diagnostics
-├── Integration      The pipeline delegate and custom data loaders
+├── Integration      The pipeline delegate, custom data loaders, and video
 ├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
 ├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
