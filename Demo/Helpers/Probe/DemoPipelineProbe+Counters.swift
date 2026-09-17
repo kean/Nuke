@@ -258,6 +258,12 @@ extension DemoPipelineProbe {
         /// shared a job carry the same stages; each stage is counted the first
         /// time it shows up complete. A stage still running when a task ended
         /// has no duration in that task's copy, and is counted from a later one.
+        ///
+        /// The record keeps the stages that threw too – a final decode that
+        /// failed, or a partial one with nothing new to show – with neither a
+        /// size nor a format. A stage that produced an image has one of them
+        /// at least, an empty one included, which counts as decoded, as it
+        /// does with diagnostics off.
         func recordDecodes(from metrics: ImageTask.Metrics) {
             let now = ContinuousClock.now
             state.withLock { state in
@@ -268,7 +274,12 @@ extension DemoPipelineProbe {
                             continue
                         }
                         let isPreview = stage.isProgressive ?? false
-                        state.recordDecode(duration, at: now, result: .image(format: stage.format ?? "unknown", isPreview: isPreview))
+                        let result: DecodeResult = if stage.pixels != nil || stage.format != nil {
+                            .image(format: stage.format ?? "unknown", isPreview: isPreview)
+                        } else {
+                            isPreview ? .noPreview : .failed
+                        }
+                        state.recordDecode(duration, at: now, result: result)
                     }
                 }
             }
