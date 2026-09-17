@@ -409,7 +409,7 @@ private struct CustomDataLoaderList: View {
                 }
             }
             Section {
-                DemoCodeBlock(model.choice.code)
+                DemoCodeBlock(model.choice.code(failure: model.failure))
                     .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
             } header: {
                 Text("Code")
@@ -701,8 +701,8 @@ private enum LoaderChoice: String, CaseIterable, Identifiable {
     }
 
     /// The loader, the way the pipeline gets it, and what it does in
-    /// `loadData`.
-    var code: String {
+    /// `loadData`; the failing one with the failure picked.
+    func code(failure: FailingDataLoader.Failure) -> String {
         switch self {
         case .throttled:
             """
@@ -781,7 +781,7 @@ private enum LoaderChoice: String, CaseIterable, Identifiable {
         case .failing:
             """
             var configuration = ImagePipeline.Configuration()
-            configuration.dataLoader = FailingDataLoader(failure: .serverError)
+            configuration.dataLoader = FailingDataLoader(failure: .\(failure.rawValue))
 
             final class FailingDataLoader: DataLoading {
                 func loadData(
