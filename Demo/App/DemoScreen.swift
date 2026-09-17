@@ -40,7 +40,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
     case cancellationTorture = "cancellation-torture"
-    case animationMemory = "animation-memory"
+    case animationLab = "animation-lab"
     case fixtureZoo = "fixture-zoo"
     case fixtureMode = "fixture-mode"
     case networkConditions = "network-conditions"
@@ -67,7 +67,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .cancellationTorture: "Cancellation Torture"
-        case .animationMemory: "Animation Memory"
+        case .animationLab: "Animation Lab"
         case .fixtureZoo: "Fixture Zoo"
         case .fixtureMode: "Fixture Mode"
         case .networkConditions: "Network Conditions"
@@ -95,7 +95,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
-        case .animationMemory: "A wall of animations sharing one memory budget"
+        case .animationLab: "Up to 36 animations on one frame pool, pushed"
         case .fixtureZoo: "Thirty inputs the decoders should survive"
         case .fixtureMode: "Every image from generated fixtures, offline"
         case .networkConditions: "Latency, loss, 500s, and cut-off downloads everywhere"
@@ -116,7 +116,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .cancellationTorture: .lab(.stress)
-        case .animationMemory: .lab(.animation)
+        case .animationLab: .lab(.animation)
         case .fixtureZoo: .lab(.fixtures)
         case .fixtureMode: .lab(.rig)
         case .networkConditions: .lab(.rig)
@@ -146,7 +146,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .cancellationTorture: CancellationTortureDemo()
-        case .animationMemory: AnimationMemoryDemo()
+        case .animationLab: AnimationLabDemo()
         case .fixtureZoo: FixtureZooDemo()
         case .fixtureMode: FixtureModeDemo()
         case .networkConditions: NetworkConditionsDemo()

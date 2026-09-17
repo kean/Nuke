@@ -5,58 +5,68 @@
 import NukeUI
 import SwiftUI
 
-/// A wall of animations drawing from one budget: what
-/// ``AnimatedImageFramePool`` gives each of them, and what it costs when the
-/// same animation is on screen many times over.
+/// A wall of up to 36 animations drawing from one frame pool, with the knobs
+/// that push it and the figures that say what it did: a pool down to 4 MB,
+/// player budgets under a megabyte, frame transforms, copies in and out of
+/// lockstep, zoom to 800%, a memory warning, power throttling, and a soak that
+/// plays for an hour.
 ///
-/// Raise the count in the title bar and every window shrinks to a share; drag
-/// the budget and they all refill. Turn on "Repeat one animation" and the wall
-/// costs what a single cell did, however many cells there are.
-struct AnimationMemoryDemo: View {
-    @State private var image: DemoAnimation = .gif
-    @State private var settings = Settings()
-    @State private var animations: [DemoLoadedAnimation] = []
-    /// Sampled on a timer, one per animation, in the same order.
-    @State private var diagnostics: [AnimatedImagePlayer.Diagnostics] = []
-    @State private var pool = DemoPoolDiagnostics()
-    @State private var status: String?
-    /// The limit the pool had before the screen took it over, put back on the
-    /// way out: the pool is shared with every other screen.
-    @State private var poolCostLimit: Int?
-
-    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+/// It reports numbers, and leaves explaining them to **Animated Images** in the
+/// catalog, which does it for one animation. The formats are fixtures unless
+/// the source says otherwise, so that a run compares with the last one.
+struct AnimationLabDemo: View {
+    @State private var model = AnimationLabModel()
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        stage
-            .task(id: reloadKey) { await load() }
-            .onReceive(timer) { _ in sample() }
-            .onChange(of: settings.poolCostLimitMB) { applyPoolCostLimit() }
+        AnimationLabStage(model: model)
+            .task(id: scenePhase == .active) {
+                guard scenePhase == .active else { return }
+                model.startWatching()
+                defer { model.stopWatching() }
+                await demoWaitUntilCancelled()
+            }
+            .task {
+                guard DemoLaunchOptions.current.autoruns, !Autorun.hasRun else { return }
+                Autorun.hasRun = true
+                while model.isLoading {
+                    guard (try? await Task.sleep(for: .milliseconds(100))) != nil else { return }
+                }
+                model.startSoak()
+            }
             .onAppear {
-                poolCostLimit = AnimatedImageFramePool.shared.costLimit
-                applyPoolCostLimit()
+                model.displayScale = displayScale
+                model.appear()
             }
             .onDisappear {
-                if let poolCostLimit {
-                    AnimatedImageFramePool.shared.costLimit = poolCostLimit
-                }
+                model.disappear()
+            }
+            .onChange(of: displayScale) {
+                model.displayScale = displayScale
             }
             // Before `demoConsole`, which scopes them to the stage.
-            .navigationTitle("Animation Memory")
+            .navigationTitle("Animation Lab")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    CountMenu(count: $settings.animationCount, current: settings.animationCount)
+                    CountMenu(count: $model.count, current: model.count)
                         .equatable()
                 }
             }
-            .demoConsole(collapsedHeight: Self.collapsedConsoleHeight, info: Self.info) { console }
+            .demoConsole(collapsedHeight: Self.collapsedConsoleHeight, info: Self.info) {
+                AnimationLabConsole(model: model)
+            }
     }
+
+    /// Tall enough for the pool meter and a first row under it, which is what
+    /// says there is more to pull up.
+    private static let collapsedConsoleHeight: CGFloat = 208
 
     /// How many animations are on the wall, in the title bar, where it is
     /// reachable whatever the console is doing.
     ///
-    /// Equatable for the reason the **Animated Images** menus are: the screen
-    /// redraws ten times a second as the diagnostics are sampled, and a menu
-    /// rebuilt that often drops its items while it is open.
+    /// Equatable for the reason the **Animated Images** menus are: a menu
+    /// rebuilt while it is open drops its items.
     private struct CountMenu: View, Equatable {
         @Binding var count: Int
         /// The count as a plain value: the comparison runs outside the main
@@ -69,9 +79,9 @@ struct AnimationMemoryDemo: View {
 
         var body: some View {
             Menu {
-                ForEach(Settings.availableCounts, id: \.self) { choice in
+                ForEach(AnimationLabModel.counts, id: \.self) { choice in
                     Toggle(isOn: Binding(get: { count == choice }, set: { _ in count = choice })) {
-                        Text("\(choice) animations")
+                        Text(choice == 1 ? "1 animation" : "\(choice) animations")
                     }
                 }
             } label: {
@@ -86,12 +96,38 @@ struct AnimationMemoryDemo: View {
         }
     }
 
-    // MARK: Stage
+    fileprivate static let info = DemoInfo(
+        "Animation Lab",
+        "Up to 36 animations drawing their frames from one `AnimatedImageFramePool`, with the settings that push it past sensible values and the figures that show what it did. **Animated Images** in the catalog says what the buffer map and the figures mean.",
+        points: [
+            .init("Wall", "The count is in the title bar. Cells keep their players when it changes: new ones are added at the end and join the ones playing. Formats plays a GIF, an APNG, a WebP, a HEIC, and a long GIF; Delays plays the Fixture Zoo's animations with zero, mixed, and unclamped delays, and one that counts eight frames and has one. The formats are fixtures unless Source says Network. Every player repeats forever."),
+            .init("Frame pool", "The budget is `costLimit` while the screen is open, from 4 to 256 MB, and goes back on the way out. The meter is `totalCost`; players and sets are `playerCount` and `animationCount`."),
+            .init("Memory warning", "Posts `UIApplication.didReceiveMemoryWarningNotification`, the notification the pool listens for. Nuke's image caches listen to the kernel's memory pressure instead, which this doesn't raise. The warning row has the pool before and at its lowest, and how long the windows stayed at two frames: about a minute, or until the app comes back from the background. Remove Idle Animations calls `removeIdleAnimations()`, which the pool does when the app enters the background."),
+            .init("Lockstep", "`isSynchronizationEnabled` for every player built from then on. Switching it rebuilds every copy but the first of each animation: on, the copies join it; off, they start from the first frame. Each fixture frame shows its number. The in-step row counts the copies showing their first copy's frame."),
+            .init("Transforms", "Each choice builds every player again. Tint Every Other gives half the cells a transform, so the frames row counts two sets for each animation."),
+            .init("Budgets and sizes", "Player Budget is `maxBufferSize`, down to 256 KB. Frame Size Cell sets `maxPixelSize` to what the cell draws, rounded up to 32 px. Zoom draws each animation at up to eight times its natural size, cut off by the cell."),
+            .init("Power", "`isPowerThrottlingEnabled` for every player. The system row reads Low Power Mode and the thermal state once a second; players with throttling on slow down in Low Power Mode or from the serious thermal state on. The fps row compares the frames each cell showed in the last second with its file's rate. A simulator has no switch for Low Power Mode, but `xcrun simctl spawn booted notifyutil -s com.apple.system.lowpowermode 1` followed by `notifyutil -p com.apple.system.lowpowermode` turns it on while the app runs, and `-s … 0` turns it off."),
+            .init("Soak", "Plays for an hour: the wall is rebuilt every minute, a memory warning goes out every five minutes, and the footprint, the pool, and the players are sampled every five seconds. Drift is measured from the sample at one minute. More players alive than cells on the wall is a player that was let go and didn't go. The screen stays awake while it runs, and leaving the screen stops it. `-demoAutorun 1` starts it on open.")
+        ]
+    )
+}
 
-    private var stage: some View {
+/// Starts the soak on its own only once per launch, not each time the screen
+/// comes back.
+@MainActor
+private enum Autorun {
+    static var hasRun = false
+}
+
+// MARK: - Stage
+
+private struct AnimationLabStage: View {
+    @Bindable var model: AnimationLabModel
+
+    var body: some View {
         VStack(spacing: 12) {
-            Picker("Image", selection: $image) {
-                ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
+            Picker("Images", selection: $model.imageSet) {
+                ForEach(AnimationLabModel.ImageSet.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
 
@@ -101,237 +137,580 @@ struct AnimationMemoryDemo: View {
 
     private var wall: some View {
         ZStack {
-            if !animations.isEmpty {
-                // Each cell wears what it is holding, so the effect of the pool
-                // is on the wall rather than only in the diagnostics.
-                DemoAnimationWall(animations: animations) { index in
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        badge(at: index)
+            if !model.cells.isEmpty {
+                AnimationWallLayout {
+                    ForEach(model.cells) { cell in
+                        AnimationWallCell(model: model, cell: cell, zoom: model.zoom)
                     }
                 }
-                .padding(6)
-            } else if let status {
+                .padding(AnimationWallLayout.spacing)
+            } else if model.isLoading {
+                ProgressView()
+            } else if let status = model.status {
                 Text(status)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding()
-            } else {
-                ProgressView()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onGeometryChange(for: CGSize.self) { proxy in
+            let inset = AnimationWallLayout.spacing * 2
+            return CGSize(width: proxy.size.width - inset, height: proxy.size.height - inset)
+        } action: { size in
+            model.wallSize = size
+        }
+        .overlay(alignment: .bottom) {
+            // An animation that didn't load, under the ones that did.
+            if !model.cells.isEmpty, let status = model.status {
+                Text(status)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .padding(10)
+            }
+        }
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+}
 
-    /// The frames of the animation that are decoded, and what they cost.
-    @ViewBuilder
-    private func badge(at index: Int) -> some View {
-        if diagnostics.indices.contains(index) {
-            let diagnostics = diagnostics[index]
-            Text("\(demoFrameCount(diagnostics)) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8))")
-                .font(.system(size: 9, design: .monospaced))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(.thinMaterial, in: Capsule())
-                .padding(4)
+/// Tiles its cells in as many columns as the square root of their number, and
+/// keeps each cell's view as the count changes, so that a player keeps playing
+/// in the cell it started in.
+struct AnimationWallLayout: Layout {
+    static let spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let columns = Self.columns(count: subviews.count)
+        let cell = Self.cellSize(count: subviews.count, in: bounds.size)
+        for (index, subview) in subviews.enumerated() {
+            let origin = CGPoint(
+                x: bounds.minX + CGFloat(index % columns) * (cell.width + Self.spacing),
+                y: bounds.minY + CGFloat(index / columns) * (cell.height + Self.spacing)
+            )
+            subview.place(at: origin, anchor: .topLeading, proposal: ProposedViewSize(cell))
         }
     }
 
-    // MARK: Console
+    static func columns(count: Int) -> Int {
+        max(1, Int(Double(count).squareRoot().rounded(.up)))
+    }
 
-    /// Tall enough for the pool meter and a first row under it, which is what
-    /// says there is more to pull up.
-    private static let collapsedConsoleHeight: CGFloat = 208
+    static func cellSize(count: Int, in size: CGSize) -> CGSize {
+        let columns = columns(count: count)
+        let rows = max(1, Int((Double(count) / Double(columns)).rounded(.up)))
+        return CGSize(
+            width: max(1, (size.width - spacing * CGFloat(columns - 1)) / CGFloat(columns)),
+            height: max(1, (size.height - spacing * CGFloat(rows - 1)) / CGFloat(rows))
+        )
+    }
+}
 
-    /// All list, so there is only one thing to scroll.
-    private var console: some View {
+/// One animation, cut off at the cell's edges, with what its buffer holds.
+private struct AnimationWallCell: View {
+    let model: AnimationLabModel
+    let cell: AnimationLabModel.Cell
+    let zoom: CellZoom
+
+    var body: some View {
+        Color(.tertiarySystemFill)
+            .overlay {
+                // One view whatever the zoom: a view replaced by another would
+                // pause the player the new one had just started as it left.
+                AnimatedImage(player: cell.player, poster: cell.poster)
+                    .resizable()
+                    .aspectRatio(contentMode: zoom == .fit ? .fit : .fill)
+                    .frame(width: zoomedSize?.width, height: zoomedSize?.height)
+            }
+            .clipped()
+            .overlay(alignment: .bottom) {
+                AnimationCellBadge(model: model, id: cell.id)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    /// The natural size times the zoom, or `nil` for a zoom relative to the
+    /// cell.
+    private var zoomedSize: CGSize? {
+        guard case .scale(let scale) = zoom else { return nil }
+        let source = cell.player.source.size
+        let points = max(cell.player.options.scale, 1)
+        return CGSize(width: source.width / points * scale, height: source.height / points * scale)
+    }
+}
+
+/// The frames decoded and what they cost, as much of it as the cell has room
+/// for. The fixtures show the frame on screen themselves.
+private struct AnimationCellBadge: View {
+    let model: AnimationLabModel
+    let id: Int
+
+    var body: some View {
+        if let diagnostics = model.samples[id]?.diagnostics {
+            ViewThatFits(in: .horizontal) {
+                badge("\(demoFrameCount(diagnostics)) · \(demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8))")
+                badge(demoFrameCount(diagnostics))
+                Color.clear.frame(width: 0, height: 0)
+            }
+            .padding(4)
+        }
+    }
+
+    private func badge(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 9, design: .monospaced))
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(.thinMaterial, in: Capsule())
+    }
+}
+
+// MARK: - Console
+
+/// All list, so there is only one thing to scroll. Every section is a view of
+/// its own, and the figures a view of their own inside it: only what reads the
+/// samples redraws ten times a second, which keeps the menus still.
+private struct AnimationLabConsole: View {
+    let model: AnimationLabModel
+
+    var body: some View {
         List {
-            poolSection
-            diagnosticsSection
+            PoolSection(model: model)
+            WallSection(model: model)
+            FramesSection(model: model)
+            PowerSection(model: model)
+            SoakSection(model: model)
+            PlayersSection(model: model)
+            Section {
+                DemoLink(.animatedImages)
+            } header: {
+                Text("In the Catalog")
+            } footer: {
+                Text("One animation, with what its buffer map and figures mean.")
+            }
         }
     }
+}
 
-    // MARK: Sections
+private struct PoolSection: View {
+    @Bindable var model: AnimationLabModel
 
-    private var poolSection: some View {
+    var body: some View {
         Section {
-            DemoPoolMeter(pool: pool)
+            PoolFigures(model: model)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-            // At their natural size, centered: halves of the row would truncate
-            // "Free Memory" on an iPhone.
+            // At their natural size, centered, and without icons: with them,
+            // "Memory Warning" wraps in the iPhone sheet and the iPad column.
             HStack(spacing: 12) {
-                Button {
-                    let isPlaying = animations.contains { $0.player.isPlaying }
-                    for animation in animations {
-                        isPlaying ? animation.player.pause() : animation.player.play()
-                    }
-                } label: {
-                    Label("Play All", systemImage: "playpause.fill")
+                Button("Play All") {
+                    model.togglePlayback()
                 }
                 .buttonStyle(.borderedProminent)
 
-                Button {
-                    // The same call the pool makes on a memory warning.
-                    AnimatedImageFramePool.shared.reduceMemoryUsage()
-                } label: {
-                    Label("Free Memory", systemImage: "memorychip")
+                Button("Memory Warning") {
+                    model.sendMemoryWarning()
                 }
                 .buttonStyle(.bordered)
             }
             .frame(maxWidth: .infinity)
-            LabeledContent("Budget") {
-                DemoMonoLabel(String(format: "%.0f MB", settings.poolCostLimitMB))
+            Button("Remove Idle Animations") {
+                model.removeIdleAnimations()
             }
-            Slider(value: $settings.poolCostLimitMB, in: 4...256) {
+            LabeledContent("Budget") {
+                DemoMonoLabel(String(format: "%.0f MB", model.poolCostLimitMB))
+            }
+            Slider(value: $model.poolCostLimitMB, in: 4...256) {
                 Text("Pool budget")
             }
-            Toggle("Repeat one animation", isOn: $settings.repeatsOneAnimation)
         } header: {
             Text("Frame Pool")
         } footer: {
-            Text("Every animation on screen draws its frames from AnimatedImageFramePool, so a wall of them costs what the pool says rather than the sum of their budgets. Every animation is given a window of a few frames first – an even share, with what one leaves unused divided again between the rest – and what is left after that holds animations whole, smallest first.")
+            Text("The budget is the shared pool's limit while the screen is open. A warning holds every player at two frames until the pressure passes.")
+        }
+    }
+}
+
+/// What the pool is holding against what it is allowed to hold, and what the
+/// last warning did to it.
+private struct PoolFigures: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        let pool = model.pool
+        VStack(alignment: .leading, spacing: 10) {
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.07))
+                    Capsule()
+                        .fill(pool.fraction > 0.95 ? Color.orange : Color.accentColor)
+                        .frame(width: proxy.size.width * pool.fraction)
+                }
+            }
+            .frame(height: 10)
+            DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 8)) of \(demoByteCount(pool.costLimit))")
+            DemoDiagnosticsRow("players", "\(pool.playerCount) sharing · \(pool.activePlayerCount) filling")
+            DemoDiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
+                + (pool.sharing > 1 ? String(format: " · ×%.1f", pool.sharing) : ""))
+            warning
+            if let removal = model.idleRemoval {
+                DemoDiagnosticsRow("idle", "\(removal.setsBefore) → \(removal.setsAfter) sets · \(demoByteCount(removal.bytesFreed)) freed")
+            }
         }
     }
 
-    private var diagnosticsSection: some View {
-        Section("Diagnostics") {
-            ForEach(animations) { animation in
-                if diagnostics.indices.contains(animation.id) {
-                    DemoWallRow(animation: animation, diagnostics: diagnostics[animation.id])
+    @ViewBuilder
+    private var warning: some View {
+        if let pressure = model.pressure {
+            let drop = "#\(pressure.number) · \(demoByteCount(pressure.poolBefore)) → \(demoByteCount(pressure.poolLowest))"
+            if let restored = pressure.restoredAfter {
+                DemoDiagnosticsRow("warning", "\(drop) · back after \(demoSeconds(restored.timeInterval))")
+            } else if pressure.capacityBefore <= AnimationLabModel.floorFrameCount {
+                DemoDiagnosticsRow("warning", "\(drop) · windows were at the floor already")
+            } else {
+                let held = (ContinuousClock.now - pressure.sentAt).timeInterval
+                DemoDiagnosticsRow("warning", "\(drop) · 2 frames for \(demoPad(demoSeconds(held), to: 5))", tint: .orange)
+            }
+        } else {
+            DemoDiagnosticsRow("warning", "none sent")
+        }
+    }
+}
+
+private struct WallSection: View {
+    @Bindable var model: AnimationLabModel
+
+    var body: some View {
+        Section {
+            Picker("Source", selection: $model.source) {
+                ForEach(DemoImageSource.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .disabled(model.imageSet == .delays)
+            Picker("Cells", selection: $model.repeated) {
+                Text("Each in Turn").tag(DemoAnimation?.none)
+                ForEach(model.imageSet.images) { image in
+                    Text("Copies of \(image.title)").tag(DemoAnimation?.some(image))
+                }
+            }
+            Toggle("Lockstep", isOn: $model.isSynchronized)
+            LockstepFigures(model: model)
+            Picker("Transform", selection: $model.transform) {
+                ForEach(AnimationLabModel.TransformChoice.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+        } header: {
+            Text("Wall")
+        } footer: {
+            Text("The delays are fixtures either way. Switching lockstep rebuilds every copy but the first of each animation, and a transform rebuilds every player.")
+        }
+    }
+}
+
+/// How many copies show the frame their animation's first copy shows.
+private struct LockstepFigures: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        var leaders: [String: Int] = [:]
+        var copies = 0
+        var inStep = 0
+        for cell in model.cells {
+            guard let frame = model.samples[cell.id]?.diagnostics.currentFrameIndex else { continue }
+            let group = "\(cell.image.rawValue)|\(cell.transformID ?? "")"
+            if let leader = leaders[group] {
+                copies += 1
+                inStep += frame == leader ? 1 : 0
+            } else {
+                leaders[group] = frame
+            }
+        }
+        let text = copies == 0
+            ? "no copies on the wall"
+            : "\(demoPad("\(inStep)", to: "\(copies)".count)) of \(copies) copies on their first copy's frame"
+        return DemoDiagnosticsRow("in step", text, tint: copies > 0 && inStep < copies ? .orange : nil)
+    }
+}
+
+private struct FramesSection: View {
+    @Bindable var model: AnimationLabModel
+
+    var body: some View {
+        Section {
+            Picker("Player Budget", selection: $model.playerBudget) {
+                ForEach(AnimationLabModel.playerBudgets, id: \.self) { budget in
+                    Text(budget.map { demoByteCount($0) } ?? "None").tag(budget)
+                }
+            }
+            Picker("Frame Size", selection: $model.frameSize) {
+                ForEach(AnimationLabModel.FrameSize.allCases, id: \.self) { Text($0.title).tag($0) }
+            }
+            Picker("Zoom", selection: $model.zoom) {
+                ForEach(CellZoom.choices, id: \.self) { Text($0.title).tag($0) }
+            }
+            FramesFigures(model: model)
+        } header: {
+            Text("Frames")
+        } footer: {
+            Text("A budget and a frame size build every player again; Zoom does too while the frames are decoded at the cell's size.")
+        }
+    }
+}
+
+/// The sizes the frames are decoded at, and how many animations are held
+/// whole.
+private struct FramesFigures: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        let sizes = Set(model.cells.compactMap { cell in
+            cell.player.image?.cgImage.map { "\($0.width)×\($0.height)" }
+        }).sorted()
+        let samples = model.cells.compactMap { model.samples[$0.id]?.diagnostics }
+        let whole = samples.filter(\.isFullyBuffered).count
+        VStack(spacing: 4) {
+            DemoDiagnosticsRow("decoded", sizes.isEmpty ? "–" : sizes.joined(separator: ", ") + " px")
+            DemoDiagnosticsRow("windows", "\(demoPad("\(whole)", to: 2)) whole · \(demoPad("\(samples.count - whole)", to: 2)) sliding", tint: whole < samples.count ? .orange : nil)
+        }
+    }
+}
+
+private struct PowerSection: View {
+    @Bindable var model: AnimationLabModel
+
+    var body: some View {
+        Section {
+            Toggle("Power Throttling", isOn: $model.isPowerThrottlingEnabled)
+            PowerFigures(model: model)
+        } header: {
+            Text("Power")
+        } footer: {
+            Text("Throttled, a player's clock ticks at most 30 times a second. Turn on Low Power Mode and watch the frame rates follow; the info sheet has the command for a simulator.")
+        }
+    }
+}
+
+private struct PowerFigures: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        let power = model.power
+        VStack(spacing: 4) {
+            DemoDiagnosticsRow("system", "Low Power Mode \(power.isLowPowerModeEnabled ? "on" : "off") · thermal \(power.thermalTitle)", tint: power.asksForLessWork ? .orange : nil)
+            DemoDiagnosticsRow("clock", clock, tint: isThrottled ? .orange : nil)
+            DemoDiagnosticsRow("fps", frameRates)
+        }
+    }
+
+    private var isThrottled: Bool {
+        model.isPowerThrottlingEnabled && model.power.asksForLessWork
+    }
+
+    private var clock: String {
+        if !model.isPowerThrottlingEnabled {
+            return "full rate, whatever the system asks"
+        }
+        return model.power.asksForLessWork ? "throttled · at most 30 ticks a second" : "full rate · the system asks for nothing"
+    }
+
+    /// Each cell's frames in the last second as a share of its file's rate:
+    /// the average, and the lowest.
+    private var frameRates: String {
+        let shares = model.cells.compactMap { cell -> (title: String, share: Double)? in
+            let nominal = cell.player.source.nominalFrameRate
+            guard nominal > 0, let fps = model.samples[cell.id]?.framesPerSecond else { return nil }
+            return (cell.image.title, fps / nominal)
+        }
+        guard let lowest = shares.min(by: { $0.share < $1.share }) else { return "measured once a second" }
+        let average = shares.map(\.share).reduce(0, +) / Double(shares.count)
+        return "\(percent(average)) of the files' rates · lowest \(percent(lowest.share)) \(lowest.title)"
+    }
+
+    private func percent(_ value: Double) -> String {
+        demoPad("\(Int((value * 100).rounded()))%", to: 4)
+    }
+}
+
+private struct SoakSection: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        Section {
+            if model.soak?.isRunning == true {
+                Button("Stop Soak", systemImage: "stop.fill") {
+                    model.stopSoak()
+                }
+            } else {
+                Button(model.soak == nil ? "Start Soak" : "Start Again", systemImage: "play.fill") {
+                    model.startSoak()
+                }
+            }
+            if let soak = model.soak {
+                SoakFigures(soak: soak)
+            }
+        } header: {
+            Text("Soak")
+        } footer: {
+            Text("An hour of play, with the wall rebuilt every minute, a memory warning every five, and a sample every five seconds. The screen stays awake, and leaving it stops the soak.")
+        }
+    }
+}
+
+private struct SoakFigures: View {
+    let soak: AnimationLabModel.Soak
+
+    private typealias Soak = AnimationLabModel.Soak
+
+    var body: some View {
+        let last = soak.samples.last
+        VStack(alignment: .leading, spacing: 8) {
+            ProgressView(value: soak.elapsed, total: Soak.duration)
+            DemoDiagnosticsRow("time", "\(clock(soak.elapsed)) of \(clock(Soak.duration)) · \(count(soak.rebuildCount, "rebuild")) · \(count(soak.warningCount, "warning"))")
+            chart("memory", soak.samples.map { ($0.time, $0.footprint) }, peak: soak.peakFootprint)
+            chart("pool", soak.samples.map { ($0.time, $0.poolCost) }, peak: soak.peakPoolCost)
+            VStack(spacing: 4) {
+                DemoDiagnosticsRow("drift", drift)
+                if let last {
+                    DemoDiagnosticsRow(
+                        "players",
+                        "\(last.playerCount) alive · \(last.cellCount) cells · \(last.animationCount) sets",
+                        tint: last.playerCount > last.cellCount ? .orange : nil
+                    )
+                }
+                DemoDiagnosticsRow("decoded", "\(soak.decodedFrameCount.formatted()) frames · \(rate(soak.decodedFrameCount))/s")
+                DemoDiagnosticsRow("late", "\(soak.lateFrameCount.formatted()) frames · \(rate(soak.lateFrameCount))/s", tint: soak.lateFrameCount > 0 ? .orange : nil)
+                DemoDiagnosticsRow("display", "\(soak.lowestFramesPerSecond.map { "\(Int($0.rounded()))" } ?? "–") fps lowest · \(soak.display.droppedFrameCount) dropped")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// A line over the hour so far, with the latest value and the peak.
+    private func chart(_ title: String, _ points: [(time: TimeInterval, value: Int)], peak: Int) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            DemoMonoLabel(title)
+                .frame(width: 62, alignment: .leading)
+            VStack(alignment: .leading, spacing: 2) {
+                SoakSparkline(points: points, duration: Soak.duration)
+                DemoMonoLabel("\(demoByteCount(points.last?.value ?? 0)) · peak \(demoByteCount(peak))", tint: .primary)
+            }
+        }
+    }
+
+    private var drift: String {
+        guard let baseline = soak.baseline, let last = soak.samples.last else {
+            return "from the sample at \(clock(Soak.baselineTime))"
+        }
+        let delta = last.footprint - baseline.footprint
+        return "\(delta < 0 ? "−" : "+")\(demoByteCount(abs(delta))) since \(clock(baseline.time))"
+    }
+
+    private func count(_ count: Int, _ noun: String) -> String {
+        "\(count) \(noun)\(count == 1 ? "" : "s")"
+    }
+
+    private func rate(_ count: Int) -> String {
+        String(format: "%.1f", soak.elapsed > 0 ? Double(count) / soak.elapsed : 0)
+    }
+
+    private func clock(_ time: TimeInterval) -> String {
+        let seconds = Int(time)
+        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+}
+
+/// A small line chart of a figure over the soak, laid across the whole
+/// duration so that it grows to the right as the soak goes on.
+private struct SoakSparkline: View {
+    let points: [(time: TimeInterval, value: Int)]
+    let duration: TimeInterval
+
+    var body: some View {
+        Canvas { context, size in
+            guard points.count > 1, let low = points.map(\.value).min(), let high = points.map(\.value).max() else { return }
+            let span = Double(high - low)
+            var path = Path()
+            for (index, point) in points.enumerated() {
+                let x = size.width * CGFloat(min(1, point.time / duration))
+                let y = span > 0 ? size.height * (1 - CGFloat(Double(point.value - low) / span)) : size.height / 2
+                if index == 0 {
+                    path.move(to: CGPoint(x: x, y: y))
+                } else {
+                    path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+            context.stroke(path, with: .color(.accentColor), lineWidth: 1.5)
+        }
+        .padding(.vertical, 3)
+        .frame(height: 28)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 4))
+    }
+}
+
+private struct PlayersSection: View {
+    let model: AnimationLabModel
+
+    var body: some View {
+        Section("Players") {
+            ForEach(model.cells) { cell in
+                if let sample = model.samples[cell.id] {
+                    PlayerRow(title: cell.image.title, player: cell.player, sample: sample)
                 }
             }
         }
     }
-
-    // MARK: Loading
-
-    /// Everything that requires the animations to be loaded again from scratch.
-    /// Not the pool budget: changing it takes effect on the players that are
-    /// already running, which is the thing worth seeing.
-    private var reloadKey: Settings.ReloadKey {
-        settings.reloadKey(for: image)
-    }
-
-    /// The one that is picked, repeated to fill the count, or as many of the
-    /// others as there are.
-    private var wallAnimations: [DemoAnimation] {
-        guard !settings.repeatsOneAnimation else {
-            return Array(repeating: image, count: settings.animationCount)
-        }
-        let available = DemoAnimation.available
-        guard let start = available.firstIndex(of: image) else {
-            return [image]
-        }
-        return (0..<settings.animationCount).map { available[(start + $0) % available.count] }
-    }
-
-    private func load() async {
-        // The wall is replaced rather than cleared first: a console that loses
-        // its diagnostics while the players are built scrolls itself to the top.
-        status = nil
-        let load = await loadDemoAnimations(wallAnimations)
-        // Published in one go: a wall that grew a cell at a time would rebuild
-        // its views around the players already running, pausing them.
-        animations = load.animations
-        status = load.status
-        sample()
-    }
-
-    private func sample() {
-        diagnostics = animations.map { $0.player.diagnostics }
-        pool = DemoPoolDiagnostics(pool: .shared)
-    }
-
-    private func applyPoolCostLimit() {
-        AnimatedImageFramePool.shared.costLimit = Int(settings.poolCostLimitMB * 1_048_576)
-        pool = DemoPoolDiagnostics(pool: .shared)
-    }
-
-    // MARK: Model
-
-    private struct Settings {
-        /// Smaller than the pool's own default, so that a wall of animations
-        /// reaches it.
-        var poolCostLimitMB: Double = 64
-        var animationCount = 4
-        /// Plays the same animation in every cell, which shows the frame sharing.
-        var repeatsOneAnimation = false
-
-        /// The counts that tile evenly.
-        static let availableCounts = [4, 9, 16]
-
-        /// The settings the wall has to be built again for. The pool budget
-        /// isn't one: it takes effect on the players already running.
-        struct ReloadKey: Hashable {
-            var image: DemoAnimation
-            var animationCount: Int
-            var repeatsOneAnimation: Bool
-        }
-
-        func reloadKey(for image: DemoAnimation) -> ReloadKey {
-            ReloadKey(
-                image: image,
-                animationCount: animationCount,
-                repeatsOneAnimation: repeatsOneAnimation
-            )
-        }
-    }
-
-    fileprivate static let info = DemoInfo(
-        "Animation Memory",
-        "`AnimatedImagePlayer.Options.maxBufferSize` is per player; `AnimatedImageFramePool` is the ceiling on all of them together. Every player draws its window from the pool, so a wall of animations costs what the pool says rather than the sum of their budgets.",
-        code: """
-        // What every animation on screen shares
-        AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
-
-        // What it is holding right now
-        AnimatedImageFramePool.shared.totalCost
-        """,
-        points: [
-            .init("Frame pool", "Raise the animation count and watch the animations stop fitting whole – a share short of the animation buys a window of a few frames, however large – then drag the pool budget up and watch them fill again. Nothing is divided while the animations together want less than the limit."),
-            .init("Windows first, then whole", "The division is not a flat split. Every animation is given its window before anything else – smallest first, so what one leaves unused is divided again between the rest – and only what is left after that holds animations whole, from the smallest up. There is no share worth giving in between: anything short of the whole animation re-decodes every frame each loop all the same."),
-            .init("Shared frames", "The budget is divided between animations, not players. Turn on “Repeat one animation” and the wall costs what a single cell did, however many cells there are: one decoder, one set of frames, one window – and every cell plays in lockstep, because a player falls in behind whatever is already playing."),
-            .init("Memory warnings", "The pool holds every animation at two frames when the system issues one, and the button does the same thing by hand. The windows come back a minute later, or right away if the app is backgrounded and returns – send the demo to the background and come back to watch the maps refill.")
-        ]
-    )
 }
 
-/// One line of the wall's diagnostics: what this animation was given, and what
-/// it is holding.
-private struct DemoWallRow: View {
-    let animation: DemoLoadedAnimation
-    let diagnostics: AnimatedImagePlayer.Diagnostics
+/// One player: what it was given and what it is holding, over its buffer map.
+private struct PlayerRow: View {
+    let title: String
+    /// Weak, for the reason ``DemoBufferMap/player`` is.
+    weak var player: AnimatedImagePlayer?
+    let sample: AnimationLabModel.CellSample
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text(animation.title)
+                Text(title)
                     .font(.caption.weight(.semibold))
                 Spacer(minLength: 8)
                 DemoMonoLabel(figures)
                     // A row that wrapped when a figure grew would move the list.
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.6)
             }
-            DemoBufferMap(player: animation.player, diagnostics: diagnostics, height: 12)
+            DemoBufferMap(player: player, diagnostics: sample.diagnostics, height: 12)
         }
         .padding(.vertical, 2)
     }
 
     /// Padded so that they stay put as they change.
     private var figures: String {
+        let diagnostics = sample.diagnostics
         let frames = demoFrameCount(diagnostics)
         let held = demoPad(demoByteCount(diagnostics.bufferedByteCount), to: 8)
-        let text = "\(frames) · \(held) of \(demoByteCount(diagnostics.bufferByteLimit))"
+        let fps = sample.framesPerSecond.map { demoPad(String(format: "%.0f", $0), to: 3) } ?? "  –"
+        let text = "\(frames) · \(held) of \(demoByteCount(diagnostics.bufferByteLimit)) · \(fps) fps"
         return diagnostics.sharingPlayerCount > 1 ? text + " · ×\(diagnostics.sharingPlayerCount)" : text
+    }
+}
+
+extension Duration {
+    fileprivate var timeInterval: TimeInterval {
+        Double(components.seconds) + Double(components.attoseconds) / 1e18
     }
 }
 
 #Preview {
     NavigationStack {
-        AnimationMemoryDemo()
+        AnimationLabDemo()
     }
 }

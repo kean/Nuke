@@ -12,8 +12,8 @@ import SwiftUI
 ///
 /// `LazyImage` plays animated images on its own; this screen creates the
 /// ``AnimatedImagePlayer`` itself to get at ``AnimatedImagePlayer/diagnostics``.
-/// The **Animation Memory** screen in the Lab is the same thing for a wall of
-/// them.
+/// The **Animation Lab** is the same thing for a wall of them, with the knobs
+/// that push it.
 struct AnimatedImagesDemo: View {
     @State private var image: DemoAnimation = .gif
     @State private var settings = Settings()
@@ -267,7 +267,7 @@ struct AnimatedImagesDemo: View {
 
         var body: some View {
             Picker("Image", selection: $image) {
-                ForEach(DemoAnimation.available) { Text($0.title).tag($0) }
+                ForEach(DemoAnimation.catalog) { Text($0.title).tag($0) }
             }
         }
     }

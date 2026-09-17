@@ -10,12 +10,23 @@ import SwiftUI
 /// are built from.
 enum DemoAnimation: String, CaseIterable, Identifiable {
     case gif, apng, webp, heic, large
+    case mixedDelays, zeroDelays, avis, zeroDelayWebP, missingFrames
 
     var id: String { rawValue }
 
-    /// The ones there is actually an image for on this platform.
-    static var available: [DemoAnimation] {
-        allCases.filter { $0.url != nil }
+    /// One of each format, the way an app meets them.
+    static let formats: [DemoAnimation] = [.gif, .apng, .webp, .heic, .large]
+
+    /// Animations whose delays aren't what they seem, from the Fixture Zoo:
+    /// the ones that exhibit the delay map, the frames the browser rule
+    /// replaces, and a file that counts more frames than it has.
+    static let delays: [DemoAnimation] = [.mixedDelays, .zeroDelays, .avis, .zeroDelayWebP, .missingFrames]
+
+    /// What **Animated Images** offers: the formats, and one set of delays
+    /// that differ, which is what its delay map is for. Only the ones there is
+    /// an image for on this platform.
+    static var catalog: [DemoAnimation] {
+        (formats + [.mixedDelays]).filter { $0.url() != nil }
     }
 
     var title: String {
@@ -25,16 +36,75 @@ enum DemoAnimation: String, CaseIterable, Identifiable {
         case .webp: "WebP"
         case .heic: "HEIC"
         case .large: "Large"
+        case .mixedDelays: "Mixed Delays"
+        case .zeroDelays: "Zero Delays"
+        case .avis: "AVIS"
+        case .zeroDelayWebP: "WebP 0 ms"
+        case .missingFrames: "Missing Frames"
         }
     }
 
-    var url: URL? {
+    /// Where the animation comes from: the network or its fixture, or –
+    /// without a source – whichever ``DemoFixtureMode`` says. The delays are
+    /// fixtures from anywhere, and the HEIC is a file in the app bundle.
+    func url(from source: DemoImageSource? = nil) -> URL? {
         switch self {
-        case .gif: DemoImages.gif
-        case .apng: DemoImages.apng
-        case .webp: DemoImages.animatedWebP
+        case .gif: pick(source, DemoImages.gif, DemoImages.Network.gif, .gif)
+        case .apng: pick(source, DemoImages.apng, DemoImages.Network.apng, .apng)
+        case .webp: pick(source, DemoImages.animatedWebP, DemoImages.Network.animatedWebP, .animatedWebP)
         case .heic: DemoImages.animatedHEIC
-        case .large: DemoImages.largeGIF
+        case .large: pick(source, DemoImages.largeGIF, DemoImages.Network.largeGIF, .longGIF)
+        case .mixedDelays: DemoFixture.zoo(.mixedDelayGIF).url
+        case .zeroDelays: DemoFixture.zoo(.zeroDelayGIF).url
+        case .avis: DemoFixture.zoo(.avis).url
+        case .zeroDelayWebP: DemoFixture.zoo(.zeroDelayWebP).url
+        case .missingFrames: DemoFixture.zoo(.missingFramesAPNG).url
+        }
+    }
+
+    private func pick(_ source: DemoImageSource?, _ current: URL, _ network: URL, _ fixture: DemoFixture) -> URL {
+        switch source {
+        case nil: current
+        case .network: network
+        case .fixtures: fixture.url
+        }
+    }
+
+    /// Loads the animation through the shared pipeline, and returns it with
+    /// the still the decoder made of its first frame.
+    ///
+    /// `LazyImage` does this on its own; the animation screens load the
+    /// animation by hand to build the players themselves and get at
+    /// ``AnimatedImagePlayer/diagnostics``.
+    @MainActor
+    func load(from source: DemoImageSource? = nil) async throws(DemoAnimationError) -> (animation: AnimatedImageSource, poster: UIImage) {
+        guard let url = url(from: source) else {
+            throw .unavailable(self)
+        }
+        let response: ImageResponse
+        do {
+            response = try await ImagePipeline.shared.imageTask(with: url).response
+        } catch {
+            throw .failed(self, error)
+        }
+        guard let animation = response.container.animation else {
+            throw .notAnimated(self)
+        }
+        return (animation, response.image)
+    }
+}
+
+/// Why an animation didn't load, in words for the stage.
+enum DemoAnimationError: Error {
+    case unavailable(DemoAnimation)
+    case notAnimated(DemoAnimation)
+    case failed(DemoAnimation, any Error)
+
+    var message: String {
+        switch self {
+        case .unavailable(let image): "There is no \(image.title) image on this platform."
+        case .notAnimated(let image): "\(image.title) loaded, but it isn't an animated image."
+        case .failed(let image, let error): "\(image.title) failed to load: \(error.localizedDescription)"
         }
     }
 }
@@ -55,9 +125,6 @@ struct DemoAnimationLoad {
 }
 
 /// Loads the given animations and builds a player for each one, playing.
-///
-/// `LazyImage` does all of this on its own; the animation screens build the
-/// players by hand to get at ``AnimatedImagePlayer/diagnostics``.
 @MainActor
 func loadDemoAnimations(
     _ images: [DemoAnimation],
@@ -65,30 +132,22 @@ func loadDemoAnimations(
 ) async -> DemoAnimationLoad {
     var load = DemoAnimationLoad()
     for (index, image) in images.enumerated() {
-        guard let url = image.url else {
-            load.status = "There is no \(image.title) image on this platform."
-            continue
-        }
-        do {
-            let response = try await ImagePipeline.shared.imageTask(with: url).response
-            guard let source = response.container.animation else {
-                load.status = "\(image.title) loaded, but it isn't an animated image."
-                continue
-            }
+        do throws(DemoAnimationError) {
+            let (source, poster) = try await image.load()
             var options = options
             // `AnimatedImageView` does this for the players it makes; without
             // it the animation changes size when it takes over from the still.
-            options.scale = response.image.scale
+            options.scale = poster.scale
             let player = AnimatedImagePlayer(source: source, options: options)
             player.play()
             load.animations.append(DemoLoadedAnimation(
                 id: index,
                 title: image.title,
                 player: player,
-                poster: response.image
+                poster: poster
             ))
         } catch {
-            load.status = "Failed to load: \(error.localizedDescription)"
+            load.status = error.message
         }
     }
     return load
@@ -98,7 +157,9 @@ func loadDemoAnimations(
 /// frame on screen. A full row means the animation fits in memory, a moving
 /// band of filled cells means it doesn't.
 struct DemoBufferMap: View {
-    let player: AnimatedImagePlayer
+    /// Weak: a list keeps the rows it has scrolled past, and a row must not
+    /// keep alive a player the screen has let go.
+    weak var player: AnimatedImagePlayer?
     let diagnostics: AnimatedImagePlayer.Diagnostics
     var height: CGFloat = 24
     /// Called with the frame under the finger as it drags across the map, which
@@ -136,7 +197,7 @@ struct DemoBufferMap: View {
         if index == diagnostics.currentFrameIndex {
             return .accentColor
         }
-        return player.isFrameBuffered(index) ? Color.accentColor.opacity(0.3) : Color.primary.opacity(0.07)
+        return player?.isFrameBuffered(index) == true ? Color.accentColor.opacity(0.3) : Color.primary.opacity(0.07)
     }
 }
 
@@ -176,50 +237,6 @@ struct DemoDiagnosticsRow: View {
 }
 
 // MARK: - Views
-
-/// Every animation at once, laid out to fill the space it is given without
-/// scrolling. What goes over a cell is up to the caller.
-struct DemoAnimationWall<Overlay: View>: View {
-    let animations: [DemoLoadedAnimation]
-    @ViewBuilder var overlay: (Int) -> Overlay
-
-    private let spacing: CGFloat = 6
-    private let cornerRadius: CGFloat = 10
-
-    var body: some View {
-        GeometryReader { proxy in
-            let grid = demoWallGrid(count: animations.count)
-            let size = demoWallCellSize(count: animations.count, in: proxy.size, spacing: spacing)
-            VStack(spacing: spacing) {
-                ForEach(0..<grid.rows, id: \.self) { row in
-                    HStack(spacing: spacing) {
-                        ForEach(0..<grid.columns, id: \.self) { column in
-                            cell(at: row * grid.columns + column, size: size)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func cell(at index: Int, size: CGSize) -> some View {
-        if index < animations.count {
-            let animation = animations[index]
-            AnimatedImage(player: animation.player, poster: animation.poster)
-                .resizable()
-                .scaledToFill()
-                // Before the overlay and the corners: filling means the frames
-                // are larger than the cell, and the overflow is the cell's to trim.
-                .frame(width: size.width, height: size.height)
-                .clipped()
-                .overlay { overlay(index) }
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-        } else {
-            Color.clear.frame(width: size.width, height: size.height)
-        }
-    }
-}
 
 /// The grid a wall of animations is laid out on: as many columns as the square
 /// root of the count.
@@ -647,29 +664,6 @@ struct DemoPoolDiagnostics {
         playerCount = pool.playerCount
         activePlayerCount = pool.activePlayerCount
         animationCount = pool.animationCount
-    }
-}
-
-/// What the pool is holding against what it is allowed to hold.
-struct DemoPoolMeter: View {
-    let pool: DemoPoolDiagnostics
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.07))
-                    Capsule()
-                        .fill(pool.fraction > 0.95 ? Color.orange : Color.accentColor)
-                        .frame(width: proxy.size.width * pool.fraction)
-                }
-            }
-            .frame(height: 10)
-            DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 8)) of \(demoByteCount(pool.costLimit))")
-            DemoDiagnosticsRow("players", "\(pool.playerCount) sharing  ·  \(pool.activePlayerCount) filling")
-            DemoDiagnosticsRow("frames", "\(pool.animationCount) sets for \(pool.playerCount) players"
-                + (pool.sharing > 1 ? String(format: "  ·  ×%.1f", pool.sharing) : ""))
-        }
     }
 }
 
