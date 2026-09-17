@@ -21,6 +21,14 @@ import os
 /// its configured loader for the rest. A pipeline can also be configured with
 /// one, as Scroll Stress is, to set its ``Pace``.
 ///
+/// **HTTP.** It answers the way a server that supports range requests does,
+/// so a download cancelled midway resumes as it would from the photo hosts:
+/// an `HTTPURLResponse` with `Content-Length`, an `ETag` made of the
+/// fixture's digest, and `Accept-Ranges: bytes`. A request for the rest of a
+/// fixture, `Range: bytes=N-`, gets `206 Partial Content` and those bytes,
+/// unless its `If-Range` names another `ETag`. Any other `Range` is ignored,
+/// as a server may ignore one, and gets the whole fixture.
+///
 /// **Cancellation.** A cancelled load calls `completion` once, with
 /// `URLError(.cancelled)`, and nothing after it – the way `DataLoader` does,
 /// because `URLSession` reports a cancelled task as completed. The pipeline
@@ -94,7 +102,7 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-        let load = Load(url: request.url, pace: pace, store: store, didReceiveData: didReceiveData, completion: completion)
+        let load = Load(request: request, pace: pace, store: store, didReceiveData: didReceiveData, completion: completion)
         Task {
             await load.start()
         }
@@ -105,7 +113,7 @@ final class DemoFixtureLoader: DataLoading, Sendable {
 /// One load. An actor, so a cancel and the chunks are handled in turn: once
 /// `completion` has been called, from either side, nothing else is.
 private actor Load: Cancellable {
-    private let url: URL?
+    private let request: URLRequest
     private let pace: DemoFixtureLoader.Pace
     private let store: DemoFixtureStore
     private let didReceiveData: @Sendable (Data, URLResponse) -> Void
@@ -114,13 +122,13 @@ private actor Load: Cancellable {
     private var isFinished = false
 
     init(
-        url: URL?,
+        request: URLRequest,
         pace: DemoFixtureLoader.Pace,
         store: DemoFixtureStore,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) {
-        self.url = url
+        self.request = request
         self.pace = pace
         self.store = store
         self.didReceiveData = didReceiveData
@@ -141,20 +149,20 @@ private actor Load: Cancellable {
     }
 
     private func run() async {
+        let url = request.url
         do {
             guard let fixture = url.flatMap(DemoFixture.standIn(for:)) else {
-                Self.logger.error("\(DemoFixtureError.noFixture(self.url).localizedDescription, privacy: .public)")
+                Self.logger.error("\(DemoFixtureError.noFixture(url).localizedDescription, privacy: .public)")
                 throw DemoFixtureError.noFixture(url)
             }
             // Suspends while the fixture is made, which lets a cancel through.
             let entry = try await store.entry(for: fixture)
-            let data = entry.data
-            let response = URLResponse(url: url ?? fixture.url, mimeType: fixture.mimeType, expectedContentLength: data.count, textEncodingName: nil)
+            let reply = Reply(to: request, url: url ?? fixture.url, fixture: fixture, entry: entry)
             try await wait(pace.latency)
-            for (range, wait) in chunks(of: entry) {
+            for (range, wait) in chunks(of: entry, in: reply.body) {
                 try await self.wait(wait)
                 guard !isFinished else { return }
-                didReceiveData(data[range], response)
+                didReceiveData(entry.data[range], reply.response)
             }
             finish(nil)
         } catch {
@@ -162,16 +170,19 @@ private actor Load: Cancellable {
         }
     }
 
-    /// The ranges of the data to send, each with the wait before it.
-    private func chunks(of entry: DemoFixtureStore.Entry) -> [(Range<Int>, Duration)] {
-        let count = entry.data.count
+    /// The ranges of the data to send, each with the wait before it: the
+    /// bytes of `body`, which is all of them unless the request asked for
+    /// the rest.
+    private func chunks(of entry: DemoFixtureStore.Entry, in body: Range<Int>) -> [(Range<Int>, Duration)] {
+        let count = body.count
         guard let chunkSize = pace.chunkSize(for: count), chunkSize > 0, count > 0 else {
-            return [(0..<count, .zero)]
+            return [(body, .zero)]
         }
         let scans = entry.record.scanOffsets
         if scans.count > 1 {
-            // A scan per chunk, the first one with the headers before it.
-            let bounds = [0] + scans.dropFirst() + [count]
+            // A scan per chunk, the first one with the headers before it. The
+            // rest of a fixture starts with the rest of a scan.
+            let bounds = [body.lowerBound] + scans.dropFirst().filter { body.lowerBound < $0 && $0 < body.upperBound } + [body.upperBound]
             return zip(bounds, bounds.dropFirst()).enumerated().map { index, bound in
                 let (start, end) = bound
                 let steps = ((end - start) + chunkSize - 1) / chunkSize
@@ -179,8 +190,8 @@ private actor Load: Cancellable {
                 return (start..<end, index == 0 ? wait : max(wait, pace.scanInterval))
             }
         }
-        return stride(from: 0, to: count, by: chunkSize).map { start in
-            (start..<min(start + chunkSize, count), pace.interval)
+        return stride(from: body.lowerBound, to: body.upperBound, by: chunkSize).map { start in
+            (start..<min(start + chunkSize, body.upperBound), pace.interval)
         }
     }
 
@@ -197,4 +208,43 @@ private actor Load: Cancellable {
     }
 
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "Fixtures")
+}
+
+/// What a server that supports range requests answers for a fixture: the
+/// status and headers, and which of the fixture's bytes go in the body.
+private struct Reply {
+    let response: HTTPURLResponse
+    let body: Range<Int>
+
+    init(to request: URLRequest, url: URL, fixture: DemoFixture, entry: DemoFixtureStore.Entry) {
+        let count = entry.data.count
+        // A strong validator: the same bytes on every run give the same one.
+        let entityTag = "\"\(entry.record.digest)\""
+        var headers = [
+            "Content-Type": fixture.mimeType,
+            "ETag": entityTag,
+            "Accept-Ranges": "bytes"
+        ]
+        let status: Int
+        if let start = Self.rangeStart(of: request), start < count,
+           request.value(forHTTPHeaderField: "If-Range").map({ $0 == entityTag }) ?? true {
+            status = 206
+            body = start..<count
+            headers["Content-Range"] = "bytes \(start)-\(count - 1)/\(count)"
+        } else {
+            status = 200
+            body = 0..<count
+        }
+        headers["Content-Length"] = String(body.count)
+        response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
+    }
+
+    /// `N` of `Range: bytes=N-`, the one kind of range the pipeline asks for.
+    private static func rangeStart(of request: URLRequest) -> Int? {
+        guard let range = request.value(forHTTPHeaderField: "Range"),
+              range.hasPrefix("bytes="), range.hasSuffix("-") else {
+            return nil
+        }
+        return Int(range.dropFirst("bytes=".count).dropLast())
+    }
 }
