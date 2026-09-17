@@ -43,8 +43,14 @@ extension View {
     /// Adds the question mark button without the sheet, for a screen that keeps
     /// a sheet of its own on display and has to present ``DemoInfoSheet`` from
     /// inside it – iOS drops the second sheet of a screen.
+    ///
+    /// The switch of the pipeline HUD goes beside it, which puts it on every
+    /// screen.
     func demoInfoButton(isPresented: Binding<Bool>) -> some View {
         toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DemoHUDToggle()
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 DemoInfoButton(isPresented: isPresented)
             }
@@ -351,6 +357,13 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
         .inspector(isPresented: $isShowingConsole) {
             console()
                 .listStyle(.insetGrouped)
+                // Where the sheet begins, for the pipeline HUD to stay above.
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { minY in
+                    DemoHUD.shared.consoleSheetMinY = isConsoleSheet ? minY : nil
+                }
+                .onDisappear {
+                    DemoHUD.shared.consoleSheetMinY = nil
+                }
                 .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
                 .presentationDetents([collapsedDetent, .medium, .large], selection: $detent)
                 .presentationDragIndicator(.visible)

@@ -35,6 +35,8 @@ struct DemoMenu: View {
                 menu(showsLogo: true)
             }
         }
+        // Over the whole stack, so it stays put as screens come and go.
+        .demoPipelineHUD()
     }
 
     private func menu(showsLogo: Bool) -> some View {
@@ -52,6 +54,7 @@ struct DemoMenu: View {
                 lab
             }
         }
+        .demoHUDRoom()
         .demoDestinations()
     }
 

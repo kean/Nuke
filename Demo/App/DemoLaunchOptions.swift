@@ -25,6 +25,11 @@ struct DemoLaunchOptions {
     /// the catalog alone. Only the row: `-demoScreen` still opens the Lab.
     private(set) var showsLab = true
 
+    /// `-demoHUD 1` opens the app with the pipeline HUD over every screen,
+    /// folded into its pill; `-demoHUD expanded` opens it as the panel.
+    private(set) var showsHUD = false
+    private(set) var expandsHUD = false
+
     /// What each argument was set to, as written, for the **Automation** screen
     /// to report. An argument that wasn't passed isn't in it.
     private(set) var values: [Argument: String] = [:]
@@ -45,6 +50,10 @@ struct DemoLaunchOptions {
         if values[.lab] != nil {
             showsLab = defaults.bool(forKey: Argument.lab.rawValue)
         }
+        if let value = values[.hud] {
+            expandsHUD = value == "expanded"
+            showsHUD = expandsHUD || defaults.bool(forKey: Argument.hud.rawValue)
+        }
     }
 
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "Launch")
@@ -58,6 +67,7 @@ extension DemoLaunchOptions {
     enum Argument: String, CaseIterable, Identifiable {
         case screen = "demoScreen"
         case lab = "demoLab"
+        case hud = "demoHUD"
 
         var id: String { rawValue }
 
@@ -69,6 +79,7 @@ extension DemoLaunchOptions {
             switch self {
             case .screen: "<id>"
             case .lab: "0 | 1"
+            case .hud: "0 | 1 | expanded"
             }
         }
 
@@ -77,6 +88,7 @@ extension DemoLaunchOptions {
             switch self {
             case .screen: "Opens the app on a screen, with the menus it is reached through beneath it; `lab` opens the Lab menu. An id that no screen has opens the catalog, and Console says why."
             case .lab: "`0` leaves the Lab row out of the catalog, for a screenshot of the catalog alone. `1`, the default, keeps it."
+            case .hud: "`1` opens the app with the pipeline HUD over every screen, folded into its pill, and `expanded` with its panel open. `0`, the default, leaves it off until the gauge in the navigation bar switches it on."
             }
         }
     }

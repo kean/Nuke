@@ -226,16 +226,18 @@ enum DemoRoute: Hashable {
 extension View {
     /// Resolves the ``DemoRoute`` values pushed onto the navigation stack this
     /// view is in. The catalog registers it once, at the root, for the whole
-    /// stack, the Lab included.
+    /// stack, the Lab included. Every screen leaves room for the pipeline HUD.
     func demoDestinations() -> some View {
         navigationDestination(for: DemoRoute.self) { route in
             switch route {
             case .lab:
                 LabMenu()
+                    .demoHUDRoom()
             case .screen(let screen):
                 screen.destination
                     .navigationTitle(screen.title)
                     .navigationBarTitleDisplayMode(.inline)
+                    .demoHUDRoom()
             }
         }
     }

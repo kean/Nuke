@@ -56,7 +56,13 @@ extension DemoPipelineProbe {
     @MainActor
     static func sampleCaches(for pipeline: ImagePipeline? = nil) async -> DemoPipelineDiagnostics.Caches {
         let probes = if let pipeline { probe(for: pipeline).map { [$0] } ?? [] } else { liveProbes }
+        return await sampleCaches(of: probes)
+    }
 
+    /// Samples what the caches of the given probes' pipelines hold, for a
+    /// caller that tracks the probes rather than the pipelines, such as the HUD.
+    @MainActor
+    static func sampleCaches(of probes: [DemoPipelineProbe]) async -> DemoPipelineDiagnostics.Caches {
         var caches = DemoPipelineDiagnostics.Caches()
         var seen = Set<ObjectIdentifier>()
         var dataCaches: [DataCache] = []
