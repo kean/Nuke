@@ -75,18 +75,22 @@ extension DemoPipelineProbe {
     /// Behind the conditions, a `DataLoader` is observed by its session
     /// delegate as well, so its requests are tagged with the load they
     /// belong to (see ``CountedRequest``).
+    ///
+    /// Given a handler, it reports every call as a ``LoadEvent`` as well.
     final class CountingDataLoader: DataLoading {
         let base: any DataLoading
         private let counters: Counters
         private let isFixture: Bool
         private let tagsRequests: Bool
+        private let report: LoadReport?
 
-        init(_ base: any DataLoading, counters: Counters) {
+        init(_ base: any DataLoading, counters: Counters, request: ImageRequest, onLoad: LoadEventHandler?) {
             let loader = (base as? DemoConditionedDataLoader)?.base ?? base
             self.base = base
             self.counters = counters
             self.isFixture = loader is DemoFixtureLoader
             self.tagsRequests = base is DemoConditionedDataLoader && loader is DataLoader
+            self.report = onLoad.map { LoadReport(request: request, handler: $0) }
         }
 
         func loadData(
@@ -95,16 +99,31 @@ extension DemoPipelineProbe {
             completion: @escaping @Sendable (Error?) -> Void
         ) -> any Cancellable {
             let counters = counters
+            let report = report
             let id = counters.loadStarted(isFixture: isFixture)
             let request = tagsRequests ? CountedRequest.tag(request, with: id) : request
+            // Before the call: a loader may call back before it returns.
+            report?(.started(request, loader: base))
             let cancellable = base.loadData(with: request, didReceiveData: { data, response in
                 counters.load(id, didReceive: data.count)
+                report?(.received(byteCount: data.count, response: response))
                 didReceiveData(data, response)
             }, completion: { error in
                 counters.loadCompleted(id, outcome: error == nil ? .completed : .failed)
+                report?(.completed(error))
                 completion(error)
             })
-            return CountingCancellable(base: cancellable, id: id, counters: counters)
+            return CountingCancellable(base: cancellable, id: id, counters: counters, report: report)
+        }
+    }
+
+    /// Reports the calls of one load to a ``LoadEventHandler``.
+    private struct LoadReport: Sendable {
+        let request: ImageRequest
+        let handler: LoadEventHandler
+
+        func callAsFunction(_ kind: LoadEvent.Kind) {
+            handler(LoadEvent(request: request, kind: kind))
         }
     }
 
@@ -140,10 +159,12 @@ extension DemoPipelineProbe {
         let base: any Cancellable
         let id: Counters.LoadID
         let counters: Counters
+        let report: LoadReport?
 
         func cancel() {
             // Counted first: a loader may call `completion` from inside `cancel`.
             counters.loadCancelled(id)
+            report?(.cancelled)
             base.cancel()
         }
     }

@@ -52,4 +52,35 @@ extension DemoPipelineProbe {
     /// called the delegate on – often the pipeline's actor, sometimes the main
     /// thread – while the pipeline waits. Hand the event off and return.
     typealias EventHandler = @Sendable (Event) -> Void
+
+    /// A call between the pipeline and its data loader, for a screen that
+    /// lists them.
+    ///
+    /// Reported by ``CountingDataLoader``, so only for the loads it wraps:
+    /// those of every loader but a `DataLoader`, and of every loader while the
+    /// network conditions are on. The calls are the ones the pipeline made and
+    /// received, after the probe's routing: offline, the fixture loader's; with
+    /// the conditions on, those of the conditions around the loader.
+    struct LoadEvent: Sendable {
+        /// The request the pipeline is loading the data for.
+        let request: ImageRequest
+        let kind: Kind
+
+        enum Kind: Sendable {
+            /// The pipeline called `loadData(with:didReceiveData:completion:)`
+            /// on `loader` with this URL request.
+            case started(URLRequest, loader: any DataLoading)
+            /// The loader called `didReceiveData`: once per chunk.
+            case received(byteCount: Int, response: URLResponse)
+            /// The pipeline cancelled the load.
+            case cancelled
+            /// The loader called `completion`.
+            case completed((any Error)?)
+        }
+    }
+
+    /// Called with every ``LoadEvent`` of a probe, on the loader's thread and
+    /// before the pipeline hears of the call. It is called for every chunk of
+    /// data, so hand the event off and return.
+    typealias LoadEventHandler = @Sendable (LoadEvent) -> Void
 }

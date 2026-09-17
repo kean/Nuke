@@ -21,7 +21,8 @@ import OSLog
 // The things it changes are where fixtures come from, and, while the demo's
 // network conditions are on, how downloads arrive. A request for a fixture
 // URL, and every request while the demo is offline, goes to a
-// `DemoFixtureLoader` rather than the loader the pipeline was configured with;
+// `DemoFixtureLoader` rather than the loader the pipeline was configured with,
+// unless its loader never goes to the network (`DemoLocalDataLoading`);
 // while the conditions are on, whichever loader that is sits behind a
 // `DemoConditionedDataLoader` (see `dataLoader(for:pipeline:)`). Routed there,
 // rather than configured, a `DataLoader` stays unwrapped and observed for
@@ -59,7 +60,9 @@ import OSLog
 ///
 /// A screen that needs a delegate of its own passes it in: the probe forwards
 /// every call to it and counts what it returns. A screen that lists the calls
-/// passes an event handler too (see ``Event``).
+/// passes an event handler too (see ``Event``), and one that lists the calls
+/// between the pipeline and its data loader, a load event handler (see
+/// ``LoadEvent``).
 final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// The name the pipeline is listed under.
     let label: String
@@ -71,17 +74,19 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// `true` for a pipeline recording diagnostics, whose decoders aren't wrapped.
     private let isRecordingDiagnostics: Bool
     private let onEvent: EventHandler?
+    private let onLoad: LoadEventHandler?
     /// Answers the requests for fixtures, at the pace of the configured
     /// loader.
     private let fixtureLoader: DemoFixtureLoader
 
-    private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?, onEvent: EventHandler?) {
+    private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?, onEvent: EventHandler?, onLoad: LoadEventHandler?) {
         let counters = Counters(label: label)
         self.label = label
         self.configuration = configuration
         self.counters = counters
         self.base = delegate ?? DefaultDelegate()
         self.onEvent = onEvent
+        self.onLoad = onLoad
         self.imageCache = configuration.imageCache.map { CountingImageCache($0, counters: counters) }
         self.isRecordingDiagnostics = configuration.isDiagnosticsEnabled
         self.fixtureLoader = Self.makeFixtureLoader(for: configuration)
@@ -103,13 +108,16 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     ///   call to it.
     ///   - onEvent: Called with the calls the pipeline makes to the delegate,
     ///   for a screen that lists them. See ``Event``.
+    ///   - onLoad: Called with the calls between the pipeline and its data
+    ///   loader, for a screen that lists them. See ``LoadEvent``.
     static func makePipeline(
         _ label: String,
         configuration: ImagePipeline.Configuration = .withURLCache,
         delegate: (any ImagePipeline.Delegate)? = nil,
-        onEvent: EventHandler? = nil
+        onEvent: EventHandler? = nil,
+        onLoad: LoadEventHandler? = nil
     ) -> ImagePipeline {
-        let probe = DemoPipelineProbe(label: label, configuration: configuration, delegate: delegate, onEvent: onEvent)
+        let probe = DemoPipelineProbe(label: label, configuration: configuration, delegate: delegate, onEvent: onEvent, onLoad: onLoad)
         let pipeline = ImagePipeline(configuration: configuration, delegate: probe)
         registry.withLock {
             $0.entries.append(Registry.Entry(counters: probe.counters, probe: probe, pipeline: pipeline))
@@ -291,31 +299,34 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         base.previewPolicy(for: context, pipeline: pipeline)
     }
 
-    /// The loader the delegate returns, unless the request is for a fixture
-    /// or the demo is offline: then a ``DemoFixtureLoader``, so that nothing
-    /// but a fixture loader sees a fixture URL, and nothing goes to the
-    /// network offline. While ``DemoNetworkConditions`` are on, the loader is
-    /// behind a ``DemoConditionedDataLoader``, a `DataLoader` included.
+    /// The loader the delegate returns, unless the request is for a fixture,
+    /// or the demo is offline and the loader would go to the network: then a
+    /// ``DemoFixtureLoader``, so that nothing but a fixture loader sees a
+    /// fixture URL, and nothing goes to the network offline. While
+    /// ``DemoNetworkConditions`` are on, the loader is behind a
+    /// ``DemoConditionedDataLoader``, a `DataLoader` included.
     ///
     /// The pipeline asks once per download, after coalescing and once a data
     /// loading slot is free, so the mode and the conditions are read for
     /// every download, and a switch applies to the next one. A delegate that
-    /// returns a fixture loader of its own keeps it, with its pace.
+    /// returns a fixture loader of its own keeps it, with its pace, and one
+    /// that returns a ``DemoLocalDataLoading`` loader keeps it offline.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         counters.downloadRequested()
         var dataLoader = base.dataLoader(for: request, pipeline: pipeline)
-        if !(dataLoader is DemoFixtureLoader), DemoFixture.isFixture(request.url) || DemoFixtureMode.isOffline {
+        let isOfflineRequest = DemoFixtureMode.isOffline && !(dataLoader is any DemoLocalDataLoading)
+        if !(dataLoader is DemoFixtureLoader), DemoFixture.isFixture(request.url) || isOfflineRequest {
             dataLoader = fixtureLoader
         }
         if let conditions = DemoNetworkConditions.current {
-            return CountingDataLoader(DemoConditionedDataLoader(dataLoader, profile: conditions), counters: counters)
+            return CountingDataLoader(DemoConditionedDataLoader(dataLoader, profile: conditions), counters: counters, request: request, onLoad: onLoad)
         }
         // Wrapped, a `DataLoader` would lose the `URLSession` metrics the
         // pipeline records. Its session delegate counts it instead.
         guard !(dataLoader is DataLoader) else {
             return dataLoader
         }
-        return CountingDataLoader(dataLoader, counters: counters)
+        return CountingDataLoader(dataLoader, counters: counters, request: request, onLoad: onLoad)
     }
 
     /// A fixture loader at the pace of the configured loader: a
@@ -471,6 +482,17 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 /// The delegate a probe forwards to when the screen has none: every method is
 /// the protocol's default.
 private final class DefaultDelegate: ImagePipeline.Delegate {}
+
+/// A data loader that never goes to the network: it answers from memory,
+/// from files, or not at all.
+///
+/// While the demo is offline, the probe sends the requests of every other
+/// loader to a ``DemoFixtureLoader``, and leaves this one's to it, so a
+/// screen about such a loader shows the same thing offline. A request for a
+/// fixture URL still goes to a fixture loader.
+protocol DemoLocalDataLoading: DataLoading {}
+
+extension DemoFixtureLoader: DemoLocalDataLoading {}
 
 extension DemoPipelineDiagnostics.Queue {
     fileprivate mutating func set(_ queue: TaskQueue) {
