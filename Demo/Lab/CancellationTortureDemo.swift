@@ -208,10 +208,11 @@ struct CancellationTortureDemo: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+            DemoLink(.customDataLoader)
         } header: {
             Text("The Documented Cancel Contract")
         } footer: {
-            Text("`DataLoading` says a loader calls nothing after a cancel. The pipeline gives a download's slot back only when the loader calls `completion`, so with a loader that does as it says, every download cancelled midway keeps its slot, and its pipeline, for good. A Nuke issue, not the demo's: it is on the list of framework asks. The check uses public API only – whether the delegate's `dataLoader(for:)` is called for the new request.")
+            Text("`DataLoading` says a loader calls nothing after a cancel. The pipeline gives a download's slot back only when the loader calls `completion`, so with a loader that does as it says, every download cancelled midway keeps its slot, and its pipeline, for good. A Nuke issue, not the demo's: it is on the list of framework asks. The check uses public API only – whether the delegate's `dataLoader(for:)` is called for the new request. Custom Data Loader shows one such load, call by call.")
         }
     }
 

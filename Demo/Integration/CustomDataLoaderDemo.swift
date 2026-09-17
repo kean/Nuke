@@ -372,6 +372,8 @@ private struct CallTimeline: View {
 /// code.
 private struct CustomDataLoaderList: View {
     @ObservedObject var model: CustomDataLoaderDemoModel
+    /// Whether the Lab is on display, which its link follows.
+    private let showsLab = DemoLaunchOptions.current.showsLab
 
     var body: some View {
         List {
@@ -402,10 +404,13 @@ private struct CustomDataLoaderList: View {
                 }
                 Section {
                     PipelineRows(run: run, figures: model.figures)
+                    if showsLab {
+                        DemoLink(.cancellationTorture)
+                    }
                 } header: {
                     Text("Pipeline")
                 } footer: {
-                    Text("From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`.")
+                    Text(pipelineFooter)
                 }
             }
             Section {
@@ -426,6 +431,13 @@ private struct CustomDataLoaderList: View {
             return "ThrottledDataLoader calls nothing after a cancel, as the documentation of `DataLoading` asks. The pipeline frees a load's data loading slot only when `completion` is called, so today a load cancelled partway keeps its slot, and its pipeline, for as long as the app runs."
         }
         return "This loader calls `completion` after a cancel too, with `URLError(.cancelled)`, as `DataLoader` does. That frees the load's data loading slot, and reaches nothing of the app's: the pipeline let go of the task when it cancelled the load."
+    }
+
+    private var pipelineFooter: LocalizedStringKey {
+        guard showsLab else {
+            return "From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`."
+        }
+        return "From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`. Cancellation Torture's slot check cancels every download of a pipeline midway, with a loader that completes and one that doesn't, then asks for one more image."
     }
 
     /// What changes the calls of the run: the demo's switches in the Lab.
