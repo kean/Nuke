@@ -41,6 +41,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
     case cancellationTorture = "cancellation-torture"
+    case memorySoak = "memory-soak"
     case cacheTorture = "cache-torture"
     case animationLab = "animation-lab"
     case fixtureZoo = "fixture-zoo"
@@ -70,6 +71,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .cancellationTorture: "Cancellation Torture"
+        case .memorySoak: "Memory Soak"
         case .cacheTorture: "Cache Torture"
         case .animationLab: "Animation Lab"
         case .fixtureZoo: "Fixture Zoo"
@@ -100,6 +102,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
+        case .memorySoak: "A workload on repeat, and the footprint"
         case .cacheTorture: "Both caches hammered, then checked"
         case .animationLab: "Up to 36 animations on one frame pool, pushed"
         case .fixtureZoo: "Thirty inputs the decoders should survive"
@@ -123,6 +126,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .cancellationTorture: .lab(.stress)
+        case .memorySoak: .lab(.stress)
         case .cacheTorture: .lab(.stress)
         case .animationLab: .lab(.animation)
         case .fixtureZoo: .lab(.fixtures)
@@ -155,6 +159,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .cancellationTorture: CancellationTortureDemo()
+        case .memorySoak: MemorySoakDemo()
         case .cacheTorture: CacheTortureDemo()
         case .animationLab: AnimationLabDemo()
         case .fixtureZoo: FixtureZooDemo()
