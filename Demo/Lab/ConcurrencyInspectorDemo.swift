@@ -516,7 +516,7 @@ private struct InspectorTaskTable: View {
         }
         .frame(height: CGFloat(shownLineCount) * Self.lineHeight)
         .accessibilityElement()
-        .accessibilityLabel(hiddenCount > 0 ? "\(rows.count + hiddenCount) tasks" : "\(rows.count) tasks")
+        .accessibilityLabel("\(rows.count + hiddenCount) tasks")
     }
 
     private static func line(_ row: InspectorRow) -> String {

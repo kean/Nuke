@@ -39,8 +39,6 @@ final class DemoMainThreadPinger: Sendable {
     struct Figures: Sendable, Equatable {
         /// The blocks that ran.
         var pingCount = 0
-        /// How long the last one waited.
-        var lastLatency: TimeInterval = 0
         /// The longest wait.
         var maxLatency: TimeInterval = 0
         /// The waits, added up.
@@ -140,7 +138,6 @@ final class DemoMainThreadPinger: Sendable {
             let isCurrent = state.withLock { state in
                 guard state.generation == generation else { return false }
                 state.figures.pingCount += 1
-                state.figures.lastLatency = latency
                 state.figures.maxLatency = max(state.figures.maxLatency, latency)
                 state.figures.totalLatency += latency
                 if latency > threshold {

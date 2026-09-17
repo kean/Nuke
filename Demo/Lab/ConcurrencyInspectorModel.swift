@@ -76,7 +76,7 @@ final class ConcurrencyInspectorModel {
     @ObservationIgnored private var generator: Task<Void, Never>?
     @ObservationIgnored private var samplingTask: Task<Void, Never>?
     @ObservationIgnored private let monitor = DemoDisplayMonitor()
-    @ObservationIgnored private let pinger = DemoMainThreadPinger()
+    @ObservationIgnored private let pinger = DemoMainThreadPinger(threshold: ConcurrencyInspectorModel.stallThreshold)
     @ObservationIgnored private var stallCount = 0
     @ObservationIgnored private var runCount = 0
     /// The run's clock, which stands still while paused.
@@ -342,7 +342,6 @@ final class ConcurrencyInspectorModel {
     func leave() {
         cancelAll()
         generator?.cancel()
-        isPaused = false
         if let rig {
             resumeQueues(of: rig.pipeline)
         }

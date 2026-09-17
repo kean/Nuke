@@ -698,7 +698,6 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
     private var pipeline: ImagePipeline
     private var pipelineNumber = 1
     private var task: ImageTask?
-    private var observer: Task<Void, Never>?
     /// The image of the download, read when it starts.
     private var url = DemoImages.landscape
     /// Counts the downloads, for the `imageID` of each.
@@ -799,7 +798,7 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
 
         let task = pipeline.imageTask(with: request)
         self.task = task
-        observer = Task { [weak self] in
+        Task { [weak self] in
             for await event in task.events {
                 guard let self else { return }
                 self.handle(event, of: task, attemptID: id)

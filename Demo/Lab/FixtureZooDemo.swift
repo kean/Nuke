@@ -323,7 +323,7 @@ private struct FixtureZooImage: View {
                 .resizable()
                 .scaledToFit()
         } else {
-            Image(demoPlatformImage: image)
+            Image(uiImage: image)
                 .resizable()
                 .interpolation(pixels < 64 ? .none : .medium)
                 .scaledToFit()
@@ -518,17 +518,6 @@ private struct FixtureZooDetail: View {
 }
 
 // MARK: - Helpers
-
-extension Image {
-    /// An image of the platform's own type.
-    fileprivate init(demoPlatformImage image: PlatformImage) {
-        #if canImport(UIKit)
-        self.init(uiImage: image)
-        #else
-        self.init(nsImage: image)
-        #endif
-    }
-}
 
 /// Milliseconds with a decimal under a second, seconds above it.
 private func demoTime(_ value: TimeInterval) -> String {

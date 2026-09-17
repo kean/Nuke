@@ -6,10 +6,7 @@ import Foundation
 import Nuke
 import NukeUI
 import Observation
-
-#if canImport(UIKit)
 import UIKit
-#endif
 
 /// Runs the same few seconds of work over and over for up to an hour, and
 /// watches whether the app's memory footprint comes back to where it was
@@ -102,11 +99,9 @@ final class MemorySoakModel {
 
     private func perform(_ run: SoakRun) async {
         status = .preparing
-        #if canImport(UIKit)
         let wasIdleTimerDisabled = UIApplication.shared.isIdleTimerDisabled
         UIApplication.shared.isIdleTimerDisabled = true
         defer { UIApplication.shared.isIdleTimerDisabled = wasIdleTimerDisabled }
-        #endif
 
         await run.prepare()
         footprint = DemoFootprint()
@@ -864,13 +859,9 @@ private final class SoakRun {
             // Spread over 30 ms, the same way on every run: most land before
             // the fixture's 20 ms are up, some while it decodes.
             let delay = (number * 7) % 30
-            if delay == 0 {
-                task.cancel()
-            } else {
-                Task { [weak self] in
-                    try? await Task.sleep(for: .milliseconds(delay))
-                    self?.inFlight[number]?.cancel()
-                }
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(delay))
+                self?.inFlight[number]?.cancel()
             }
         }
     }
@@ -889,7 +880,7 @@ private final class SoakRun {
 }
 
 /// The requests of a cycle, in turn.
-enum SoakLoad: CaseIterable {
+enum SoakLoad {
     case largeJPEG
     case largeThumbnail
     case resized
@@ -903,21 +894,6 @@ enum SoakLoad: CaseIterable {
 
     /// The order they come in, twelve to a round.
     private static let order: [SoakLoad] = [.largeJPEG, .largeThumbnail, .resized, .circle, .blurred, .thumbnail, .photo, .resized, .png, .gif, .thumbnail, .jpeg]
-
-    var title: String {
-        switch self {
-        case .largeJPEG: "the 12 MP JPEG, decoded in full"
-        case .largeThumbnail: "the 12 MP JPEG as a 1024 px thumbnail"
-        case .resized: "a photo resized to 150 px"
-        case .circle: "a photo resized and cropped to a circle"
-        case .blurred: "a photo resized and blurred"
-        case .thumbnail: "a photo as a 160 px thumbnail"
-        case .photo: "a photo as it is"
-        case .png: "the PNG"
-        case .gif: "the GIF, with its data"
-        case .jpeg: "the 1440×960 JPEG resized to 400 px"
-        }
-    }
 
     static func request(_ number: Int, photoCount: Int) -> ImageRequest {
         let photo = DemoFixture.photo(number % photoCount).url

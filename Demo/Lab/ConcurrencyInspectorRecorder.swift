@@ -294,7 +294,6 @@ struct InspectorSample: Sendable, Equatable {
     /// The tasks the run created, the ones the record no longer keeps
     /// included.
     var taskCount = 0
-    var requestCount = 0
     /// The tasks in each state, by `InspectorState.rawValue`. The finished
     /// ones include the tasks the record no longer keeps.
     var counts = [Int](repeating: 0, count: InspectorState.allCases.count)
@@ -593,7 +592,6 @@ extension InspectorRecorder.State {
         var sample = InspectorSample()
         sample.time = now
         sample.taskCount = taskOffset + tasks.count
-        sample.requestCount = jobOffset + jobs.count
         sample.counts[InspectorState.image.rawValue] = imageCount
         sample.counts[InspectorState.cancelled.rawValue] = cancelledCount
         sample.counts[InspectorState.failed.rawValue] = failedCount

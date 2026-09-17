@@ -1190,7 +1190,6 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
 private struct AnsweringLoader {
     /// Its type, such as `ThrottledDataLoader`.
     let name: String
-    let isFixtureLoader: Bool
     /// Whether it is behind the Lab's network conditions.
     let isConditioned: Bool
 
@@ -1198,7 +1197,6 @@ private struct AnsweringLoader {
         let conditioned = loader as? DemoConditionedDataLoader
         let base = conditioned?.base ?? loader
         name = String(describing: type(of: base))
-        isFixtureLoader = base is DemoFixtureLoader
         isConditioned = conditioned != nil
     }
 

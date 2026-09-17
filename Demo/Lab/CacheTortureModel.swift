@@ -7,12 +7,7 @@ import Foundation
 import Nuke
 import Observation
 import os
-
-#if canImport(UIKit)
 import UIKit
-#else
-import AppKit
-#endif
 
 /// Hammers the two caches Nuke ships from many threads at once, then checks
 /// what they promise, and reports pass or fail with the figures.
@@ -453,7 +448,6 @@ final class DataCacheTorture: Sendable {
             }
             return .matched
         }
-        count { $0.hits += 1 }
         guard let header = Self.parse(data) else {
             violation("key \(key) \(context): \(data.count) B that aren't a whole entry")
             return .violation
@@ -645,7 +639,6 @@ extension DataCacheTorture {
         struct Counts: Sendable {
             var writes = 0
             var reads = 0
-            var hits = 0
             var removes = 0
             var containsCalls = 0
             var scans = 0
@@ -1149,17 +1142,11 @@ enum ImageCacheTorture {
         )
     }
 
-    private static func pixel() -> PlatformImage {
+    private static func pixel() -> UIImage {
         let context = CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         guard let image = context?.makeImage() else {
-            return PlatformImage()
+            return UIImage()
         }
-        #if canImport(UIKit)
         return UIImage(cgImage: image)
-        #else
-        return NSImage(cgImage: image, size: CGSize(width: 1, height: 1))
-        #endif
     }
 }
-
-// MARK: - Helpers

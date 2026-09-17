@@ -6,9 +6,7 @@ import CoreGraphics
 import Foundation
 import Nuke
 import Observation
-#if canImport(UIKit)
 import UIKit
-#endif
 
 /// Runs the inputs of the Fixture Zoo through a pipeline, one at a time, and
 /// keeps what became of each.
@@ -86,20 +84,20 @@ final class FixtureZooModel {
         DemoZooInput.allCases.filter { crashLog.crashes[$0] != nil }
     }
 
-    /// Runs every input that hasn't crashed, in the given mode.
-    func runAll(mode: Mode = .safe) {
+    /// Runs every input that hasn't crashed.
+    func runAll() {
         let inputs = DemoZooInput.allCases.filter { crashLog.crashes[$0] == nil }
-        run(inputs, mode: mode, skippedCount: DemoZooInput.allCases.count - inputs.count)
+        run(inputs, mode: .safe, skippedCount: DemoZooInput.allCases.count - inputs.count)
     }
 
     /// Runs the inputs that have no outcome and didn't crash: every one of
     /// them the first time, and the ones a cancel left out after that.
     func runUnfinished() {
         guard !isRunning else { return }
-        let crashed = DemoZooInput.allCases.filter { crashLog.crashes[$0] != nil }
-        let inputs = DemoZooInput.allCases.filter { outcomes[$0] == nil && !crashed.contains($0) }
+        let skipped = self.skipped
+        let inputs = DemoZooInput.allCases.filter { outcomes[$0] == nil && !skipped.contains($0) }
         guard !inputs.isEmpty else { return }
-        run(inputs, mode: .safe, skippedCount: crashed.count)
+        run(inputs, mode: .safe, skippedCount: skipped.count)
     }
 
     /// Runs one input, even one that crashed.
@@ -418,11 +416,7 @@ extension FixtureZooModel.Outcome.Figures {
         } else {
             bitmapSize = nil
         }
-        #if canImport(UIKit)
         orientation = image.imageOrientation == .up ? nil : Self.name(of: image.imageOrientation)
-        #else
-        orientation = nil
-        #endif
         type = container.type.map { Self.name(of: $0) }
         frameCount = container.animation?.frameCount ?? 1
         delays = container.animation?.delays ?? []
@@ -452,7 +446,6 @@ extension FixtureZooModel.Outcome.Figures {
         }
     }
 
-    #if canImport(UIKit)
     private static func name(of orientation: UIImage.Orientation) -> String {
         switch orientation {
         case .up: "up"
@@ -466,7 +459,6 @@ extension FixtureZooModel.Outcome.Figures {
         @unknown default: "orientation \(orientation.rawValue)"
         }
     }
-    #endif
 }
 
 // MARK: - Crash Log

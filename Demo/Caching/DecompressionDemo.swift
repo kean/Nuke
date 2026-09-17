@@ -629,7 +629,7 @@ private final class DecompressionGridViewController: PhotoGridViewController {
     override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {
         var request = ImageRequest(url: url)
         if isThumbnail {
-            request.thumbnail = ImageRequest.ThumbnailOptions(size: size, unit: .points, contentMode: .aspectFill)
+            request.thumbnail = ImageRequest.ThumbnailOptions(size: size)
         }
         return request
     }

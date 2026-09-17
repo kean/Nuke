@@ -142,7 +142,6 @@ final class CancellationTortureModel {
 /// What a run found: the verdicts, and the figures behind them.
 struct TortureReport: Sendable {
     let number: Int
-    let label: String
     let rate: Int
     let seconds: Int
     /// The network conditions that were on, if any.
@@ -156,7 +155,6 @@ struct TortureReport: Sendable {
     let cancelsWhileStarting: Int
     /// From the last task created to the last one finished.
     let drainDuration: TimeInterval
-    let unsettledCount: Int
     let aliveTaskCount: Int
     /// How long the tasks took to go once every one had finished.
     let tasksGoneAfter: TimeInterval?
@@ -409,7 +407,6 @@ private final class TortureRun {
         }
         var report = TortureReport(
             number: number,
-            label: label,
             rate: rate,
             seconds: seconds,
             conditions: conditions,
@@ -419,7 +416,6 @@ private final class TortureRun {
             cancelCount: cancelCount,
             cancelsWhileStarting: cancelsWhileStarting,
             drainDuration: drainDuration,
-            unsettledCount: unsettled,
             aliveTaskCount: aliveTaskCount,
             tasksGoneAfter: tasksGoneAfter,
             queues: queues,

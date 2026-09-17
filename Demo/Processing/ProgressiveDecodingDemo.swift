@@ -107,7 +107,6 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
     @Published private(set) var previewNumber: Int?
     /// The bytes the current load didn't download again, if it resumed.
     @Published private(set) var resumedByteCount: Int?
-    @Published private(set) var isLoading = false
     @Published private(set) var isFinal = false
     @Published private(set) var error: ImagePipeline.Error?
 
@@ -164,7 +163,6 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
         isFinal = false
         error = nil
         progress = ImageTask.Progress(completed: 0, total: 0)
-        isLoading = true
 
         loadID += 1
         var request = ImageRequest(url: isProgressive ? DemoImages.progressiveJPEG : DemoImages.baselineJPEG)
@@ -184,7 +182,6 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
                     self.image = response.image
                     self.previewNumber = response.container.userInfo[.scanNumberKey] as? Int
                 case .finished(let result):
-                    self.isLoading = false
                     switch result {
                     case .success(let response):
                         self.image = response.image
@@ -200,7 +197,6 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
     }
 
     func cancel() {
-        isLoading = false
         observer?.cancel()
         observer = nil
         task?.cancel()
