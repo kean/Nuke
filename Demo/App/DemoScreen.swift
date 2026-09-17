@@ -23,6 +23,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Processing & Formats
     case imageProcessing = "image-processing"
     case imageFormats = "image-formats"
+    case customDecoder = "custom-decoder"
     case progressiveDecoding = "progressive-decoding"
 
     // Caching & Performance
@@ -63,6 +64,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: "Priority & Coalescing"
         case .imageProcessing: "Image Processing"
         case .imageFormats: "Image Formats"
+        case .customDecoder: "Custom Decoder"
         case .progressiveDecoding: "Progressive Decoding"
         case .caching: "Caching"
         case .prefetching: "Prefetching"
@@ -96,6 +98,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .imageProcessing: "Processors, cache keys, and thumbnail vs resize"
         case .imageFormats: "JPEG, PNG, WebP, HEIC, GIF, and APNG, as detected"
+        case .customDecoder: "A toy format, picked by its first bytes"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
         case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
@@ -125,6 +128,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .requestOptions: .catalog(.requests)
         case .priorityAndCoalescing: .catalog(.requests)
         case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
+        case .customDecoder: .catalog(.processingAndFormats)
         case .caching, .prefetching, .resumableDownloads: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
         case .pipelineDelegate: .catalog(.integration)
@@ -157,6 +161,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .imageProcessing: ImageProcessingDemo()
         case .imageFormats: ImageFormatsDemo()
+        case .customDecoder: CustomDecoderDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
         case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()

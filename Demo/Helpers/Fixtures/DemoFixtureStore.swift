@@ -101,6 +101,8 @@ final class DemoFixtureStore: Sendable {
         case .video: (try bundled("fixture-video", "mp4"), true)
         case .missing: throw DataLoader.Error.statusCodeUnacceptable(404)
         case .zoo(let input): (try DemoZooRenderer.data(for: input), input.isBundled)
+        case .nukePix: (NukePixWriter.badge(), false)
+        case .truncatedNukePix: (NukePixWriter.truncatedBadge(), false)
         default: (try DemoFixtureRenderer.data(for: fixture), false)
         }
         let duration = start.duration(to: .now)

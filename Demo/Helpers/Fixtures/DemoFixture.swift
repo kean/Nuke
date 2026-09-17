@@ -61,6 +61,12 @@ enum DemoFixture: Hashable, Sendable {
     /// An input of the Fixture Zoo, most of them not images a decoder should
     /// accept. Not in ``all``: the Fixture Zoo lists them.
     case zoo(DemoZooInput)
+    /// A 56×26 NukePix file, the toy format of the Custom Decoder screen,
+    /// which only its decoder reads. Not in ``all``.
+    case nukePix
+    /// The NukePix file cut off at 60%: the signature, and too few pixels.
+    /// Not in ``all``.
+    case truncatedNukePix
 
     /// The photos of the stream, one per URL in `photos.json`.
     static var photos: [DemoFixture] {
@@ -74,6 +80,9 @@ enum DemoFixture: Hashable, Sendable {
 
     /// Every fixture but the photos.
     static let named: [DemoFixture] = [.jpeg, .progressiveJPEG, .largeJPEG, .png, .gif, .longGIF, .apng, .webp, .heic, .animatedWebP, .video, .missing]
+
+    /// The files of the Custom Decoder screen, which no other screen lists.
+    static let nukePixFiles: [DemoFixture] = [.nukePix, .truncatedNukePix]
 
     // MARK: URLs
 
@@ -90,7 +99,7 @@ enum DemoFixture: Hashable, Sendable {
     init?(url: URL?) {
         guard let url, Self.isFixture(url) else { return nil }
         let name = url.lastPathComponent
-        if let fixture = Self.named.first(where: { $0.name == name }) {
+        if let fixture = (Self.named + Self.nukePixFiles).first(where: { $0.name == name }) {
             self = fixture
         } else if name.hasPrefix(Self.zooPrefix), let input = DemoZooInput(rawValue: String(name.dropFirst(Self.zooPrefix.count))) {
             self = .zoo(input)
@@ -165,6 +174,8 @@ enum DemoFixture: Hashable, Sendable {
         case .video: "video.mp4"
         case .missing: "missing.jpeg"
         case .zoo(let input): Self.zooPrefix + input.fileName
+        case .nukePix: "badge.nukepix"
+        case .truncatedNukePix: "truncated.nukepix"
         }
     }
 
@@ -187,6 +198,8 @@ enum DemoFixture: Hashable, Sendable {
         case .video: return "320×240 MP4 · 2 s · bundled"
         case .missing: return "Fails with a 404"
         case .zoo(let input): return input.summary
+        case .nukePix: return "56×26 NukePix"
+        case .truncatedNukePix: return "56×26 NukePix · cut off at 60%"
         }
     }
 
@@ -207,6 +220,7 @@ enum DemoFixture: Hashable, Sendable {
         case .video: "stands in for the video"
         case .missing: "stands in for the URL that always fails"
         case .zoo: "for the Fixture Zoo"
+        case .nukePix, .truncatedNukePix: "for Custom Decoder"
         }
     }
 
@@ -220,6 +234,7 @@ enum DemoFixture: Hashable, Sendable {
         case .heic: "image/heic"
         case .video: "video/mp4"
         case .zoo(let input): input.mimeType
+        case .nukePix, .truncatedNukePix: "image/x-nukepix"
         }
     }
 

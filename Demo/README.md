@@ -41,6 +41,7 @@ and the details worth knowing.
 |--|--|
 | **Image Processing** | The built-in processors and two ways to write your own, each tile with the bitmap it was decoded from, the image it became with its memory cost and time, read from its `ImageTask.Metrics`, and the disk cache key it is stored under. A thumbnail sits beside the resize: the same size, without the full-size decode |
 | **Image Formats** | JPEG, PNG, WebP, HEIC, an animated GIF, and an APNG, each with what the pipeline made of its data: the MIME type it was served with, the type the decoder read in the data, the decoder `ImageDecoderRegistry` picked, and what Image I/O reads in the file's header |
+| **Custom Decoder** | `NukePixDecoder`, a decoder for a toy format made up for the demo, registered in `ImageDecoderRegistry.shared` while the screen is open, with its code in the info sheet. Three files, loaded without the decoder and with it: a NukePix file, which only the new decoder reads; the same file cut short, which the decoder takes by its first bytes and fails; and a PNG, which it passes on to `ImageDecoders.Default`. Each shows its first bytes, what Image I/O makes of it, the decoder the registry picked, and the result |
 | **Progressive Decoding** | The scans of a progressive JPEG, with a throttled data loader that makes them visible, and the number of previews decoded so far. A restart resumes the download and says from where |
 
 ### Caching & Performance
@@ -131,6 +132,10 @@ screens that load photos start on fixtures either way.
 
 The photo stream's URLs are in `Resources/photos.json`.
 
+**Custom Decoder** loads two NukePix files, its toy format, the same way,
+online and offline: `demo-fixture://nuke/badge.nukepix`, and the same file cut
+short.
+
 **Fixture Zoo** in the Lab serves its inputs the same way, as
 `demo-fixture://nuke/zoo-<name>`: six files copied from `Tests/Resources` into
 `Resources/Zoo`, the bundled HEICS, and the rest generated, damaged, or written
@@ -188,7 +193,7 @@ Demo
 ├── App              The app, the catalog and Lab menus, the screen registry, and the launch arguments
 ├── Essentials       Getting Started, ImagePipeline, LazyImage and FetchImage, and the image views
 ├── Requests         Request options, thumbnails, priority, and coalescing
-├── Processing       Processors, image formats, and progressive decoding
+├── Processing       Processors, image formats, a custom decoder, and progressive decoding
 ├── Caching          Caching, prefetching, and resumable downloads
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video

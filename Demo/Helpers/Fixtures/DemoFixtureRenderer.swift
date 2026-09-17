@@ -49,7 +49,7 @@ enum DemoFixtureRenderer {
                 type: .heic,
                 frameProperties: [kCGImageDestinationLossyCompressionQuality: 0.8]
             )
-        case .webp, .animatedWebP, .video, .missing, .zoo:
+        case .webp, .animatedWebP, .video, .missing, .zoo, .nukePix, .truncatedNukePix:
             nil
         }
         guard let data else {
