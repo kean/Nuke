@@ -31,6 +31,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineDelegate = "pipeline-delegate"
 
     // Lab
+    case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
     case animationMemory = "animation-memory"
     case automation = "automation"
@@ -49,6 +50,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: "Prefetching"
         case .animatedImages: "Animated Images"
         case .pipelineDelegate: "Pipeline Delegate"
+        case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .animationMemory: "Animation Memory"
         case .automation: "Automation"
@@ -68,6 +70,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: "ImagePrefetcher in UIKit and SwiftUI"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .pipelineDelegate: "Intercept requests and observe pipeline events"
+        case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationMemory: "A wall of animations sharing one memory budget"
         case .automation: "Launch arguments and the id of every screen"
@@ -81,6 +84,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching, .prefetching: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
         case .pipelineDelegate: .catalog(.integration)
+        case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .animationMemory: .lab(.animation)
         case .automation: .lab(.rig)
@@ -102,6 +106,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: PrefetchingDemo()
         case .animatedImages: AnimatedImagesDemo()
         case .pipelineDelegate: PipelineDelegateDemo()
+        case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationMemory: AnimationMemoryDemo()
         case .automation: AutomationDemo()

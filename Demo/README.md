@@ -62,6 +62,7 @@ screen for that API does the explaining.
 
 | Screen | Group | Shows |
 |--|--|--|
+| **Pipeline HUD** | Instruments | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
 | **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled |
 | **Animation Memory** | Animation | A wall of animations sharing one memory budget, and what happens when they don't all fit |
 | **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
@@ -80,11 +81,19 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 |--|--|
 | `-demoScreen <id>` | Opens the app on a screen, with the menus it is reached through beneath it. `lab` is the Lab menu; an id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
+| `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
 
 The **Automation** screen in the Lab lists every id. An id stays the same when a
 title changes.
 
 ## Diagnostics
+
+Every pipeline the demo builds counts what it does, and the pipeline HUD shows
+the figures over any screen: tap the gauge in the navigation bar, or launch with
+`-demoHUD 1`. The pill at the bottom opens into a panel with the tasks, cache
+hits, queues, decode times, bytes, caches, memory footprint, and dropped frames
+of the pipeline that is busy. **Pipeline HUD** in the Lab says what each figure
+counts.
 
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
@@ -112,6 +121,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate
 ├── Lab              Stress rigs and instruments for working on Nuke
-├── Helpers          Shared views, demo URLs, and a few small utilities
+├── Helpers          Shared views, the pipeline probe and HUD, demo URLs, and a few small utilities
 └── Resources        The app icon, the logo, and a bundled animation
 ```
