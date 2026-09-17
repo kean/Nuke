@@ -1173,12 +1173,7 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
         }
     }
 
-    /// Takes the probe's reports to the model: the handler that receives
-    /// them is made before the model exists.
-    @MainActor
-    final class Relay {
-        weak var model: CustomDataLoaderDemoModel?
-    }
+    typealias Relay = DemoRelay<CustomDataLoaderDemoModel>
 
     private struct WeakPipeline {
         weak var pipeline: ImagePipeline?

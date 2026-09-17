@@ -352,7 +352,7 @@ private final class PrefetchingDemoModel: ObservableObject {
 
         // The probe reports every download the pipeline starts, with the
         // request that started it, on the pipeline's threads.
-        let relay = DownloadRelay()
+        let relay = DemoRelay<PrefetchingDemoModel>()
         self.pipeline = DemoPipelineProbe.makePipeline("Prefetching", configuration: configuration, onEvent: { event in
             guard case .willLoadData = event.kind,
                   event.request.userInfo[.labelKey] as? String == Self.label,
@@ -494,13 +494,6 @@ private final class PrefetchingDemoModel: ObservableObject {
             .map { $0.count == 1 ? "\($0.lowerBound)" : "\($0.lowerBound)–\($0.upperBound)" }
             .joined(separator: ", ")
     }
-}
-
-/// Hands the probe's events to the model, which doesn't exist yet when the
-/// pipeline is made. `@MainActor`, which makes it `Sendable`.
-@MainActor
-private final class DownloadRelay {
-    weak var model: PrefetchingDemoModel?
 }
 
 extension ImageRequest.UserInfoKey {

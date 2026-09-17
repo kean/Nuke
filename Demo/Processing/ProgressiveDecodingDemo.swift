@@ -136,7 +136,7 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
 
         // A download that resumes goes out with a `Range` header, which the
         // probe reports as the delegate hands the request on.
-        let relay = ResumeRelay()
+        let relay = DemoRelay<ProgressiveDecodingDemoModel>()
         pipeline = DemoPipelineProbe.makePipeline("Progressive Decoding", configuration: configuration, onEvent: { event in
             guard case .willLoadData(let urlRequest) = event.kind,
                   let loadID = event.request.userInfo[.loadIDKey] as? Int,
@@ -213,13 +213,6 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
         guard range.hasPrefix("bytes="), range.hasSuffix("-") else { return nil }
         return Int(range.dropFirst("bytes=".count).dropLast())
     }
-}
-
-/// Hands the probe's events to the model, which doesn't exist yet when the
-/// pipeline is made. `@MainActor`, which makes it `Sendable`.
-@MainActor
-private final class ResumeRelay {
-    weak var model: ProgressiveDecodingDemoModel?
 }
 
 extension ImageRequest.UserInfoKey {

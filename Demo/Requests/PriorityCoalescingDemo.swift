@@ -746,12 +746,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         }
     }
 
-    /// Takes the probe's reports to the model: the handler that receives them
-    /// is made before the model exists.
-    @MainActor
-    private final class Relay {
-        weak var model: PriorityCoalescingDemoModel?
-    }
+    private typealias Relay = DemoRelay<PriorityCoalescingDemoModel>
 }
 
 /// A request of the plan.

@@ -1304,12 +1304,7 @@ private final class CachingDemoModel: ObservableObject {
         return "\(cgImage.width)×\(cgImage.height) px"
     }
 
-    /// Takes the probe's reports to the model: the handler that receives them
-    /// is made before the model exists.
-    @MainActor
-    private final class Relay {
-        weak var model: CachingDemoModel?
-    }
+    private typealias Relay = DemoRelay<CachingDemoModel>
 }
 
 // MARK: - Helpers

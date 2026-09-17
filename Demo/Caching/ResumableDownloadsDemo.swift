@@ -925,12 +925,7 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
         return "Not resumed: the pipeline had nothing kept for this image."
     }
 
-    /// Takes what the pipeline and the loader report to the model: the
-    /// handlers that receive them are made before the model exists.
-    @MainActor
-    final class Relay {
-        weak var model: ResumableDownloadsDemoModel?
-    }
+    typealias Relay = DemoRelay<ResumableDownloadsDemoModel>
 }
 
 /// The key of the attempt a request belongs to, in its `userInfo`.
