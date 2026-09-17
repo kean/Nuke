@@ -40,15 +40,22 @@ class PhotoGridViewController: UICollectionViewController {
         collectionView.register(PhotoCell.self, forCellWithReuseIdentifier: PhotoCell.reuseID)
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
+    // Before the layout pass rather than after it: the collection view lays
+    // out, and dequeues, its first cells in that pass, and a cell asks for an
+    // image of the size it has then. Sized afterwards, the first screenful
+    // would ask for the flow layout's default 50 pt and never ask again.
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
 
-        guard let layout = collectionViewLayout as? UICollectionViewFlowLayout else { return }
+        guard let layout = collectionViewLayout as? UICollectionViewFlowLayout, view.bounds.width > 0 else { return }
         let spacing: CGFloat = 2
         let side = ((view.bounds.width - CGFloat(itemsPerRow - 1) * spacing) / CGFloat(itemsPerRow)).rounded(.down)
+        let itemSize = CGSize(width: side, height: side)
+        // It runs before every layout pass: the layout changes only with the width.
+        guard layout.itemSize != itemSize else { return }
         layout.minimumLineSpacing = spacing
         layout.minimumInteritemSpacing = spacing
-        layout.itemSize = CGSize(width: side, height: side)
+        layout.itemSize = itemSize
     }
 
     /// Override to change the request, e.g. to add processors.
