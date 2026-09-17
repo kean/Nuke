@@ -355,13 +355,14 @@ private final class RequestOptionsDemoModel: ObservableObject {
         }
     }
 
-    /// Where the image of a run came from, by `ImageResponse.cacheType`.
+    /// Where the image of a run came from, by `ImageResponse.cacheType`,
+    /// and for a download, by its URL: offline, a fixture answers it.
     struct Source {
         let title: String
         let color: Color
 
-        init(_ cacheType: ImageResponse.CacheType?) {
-            switch cacheType {
+        init(_ response: ImageResponse) {
+            switch response.cacheType {
             case .memory?:
                 title = "Memory"
                 color = .green
@@ -369,7 +370,7 @@ private final class RequestOptionsDemoModel: ObservableObject {
                 title = "Disk"
                 color = .blue
             case nil:
-                title = "Network"
+                title = DemoFixture.isFixture(response.request.url) ? "Fixture" : "Network"
                 color = .orange
             }
         }
@@ -574,7 +575,7 @@ private final class RequestOptionsDemoModel: ObservableObject {
         var outcome: Outcome
         switch result {
         case .success(let response):
-            let source = Source(response.cacheType)
+            let source = Source(response)
             let cgImage = response.image.cgImage
             let cost = metrics?.image?.memoryCost ?? cgImage.map { $0.bytesPerRow * $0.height }
             outcome = Outcome(image: response.image, source: source, summary: [

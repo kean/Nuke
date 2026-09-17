@@ -198,7 +198,7 @@ private final class PipelineDelegateDemoModel: ObservableObject {
             sources[photo.id] = switch response.cacheType {
             case .memory?: Source(title: "Memory", color: .green)
             case .disk?: Source(title: "Disk", color: .blue)
-            case nil: Source(title: "Network", color: .orange)
+            case nil: Source(title: DemoFixture.isFixture(response.request.url) ? "Fixture" : "Network", color: .orange)
             }
         case .failure(.cancelled):
             break
@@ -348,7 +348,7 @@ private final class PipelineEventLog: ObservableObject {
             let source = switch response.cacheType {
             case .memory?: "memory"
             case .disk?: "disk"
-            case nil: "network"
+            case nil: DemoFixture.isFixture(response.request.url) ? "fixture" : "network"
             }
             insert("didReceiveEvent(.finished)", "\(name) · \(source)")
         case .finished(.failure(let error)):
