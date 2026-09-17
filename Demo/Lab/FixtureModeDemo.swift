@@ -39,14 +39,25 @@ struct FixtureModeDemo: View {
         @Bindable var mode = DemoFixtureMode.shared
         return Section {
             Toggle("Offline", isOn: $mode.isOffline)
-            if DemoLaunchOptions.current.isDeterministic {
+            if let argument = Self.offlineArgument {
                 LabeledContent("Launched with") {
-                    DemoMonoLabel("-demoDeterministic 1")
+                    DemoMonoLabel(argument)
                 }
             }
         } footer: {
             Text("Offline, every download of every pipeline is one of the fixtures below, and nothing goes to the network. Screens opened from now on load fixture URLs; a screen already open keeps its own. Lab screens start on fixtures either way.")
         }
+    }
+
+    /// The launch argument that started the app offline, if one did:
+    /// `-demoDeterministic 1` implies offline unless `-demoFixtures network`
+    /// overrides it, so the row names only the one that decided.
+    private static var offlineArgument: String? {
+        let options = DemoLaunchOptions.current
+        guard options.isOffline else {
+            return nil
+        }
+        return options.values[.fixtures] == "offline" ? "-demoFixtures offline" : "-demoDeterministic 1"
     }
 
     private var fixtures: some View {
