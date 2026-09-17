@@ -92,8 +92,7 @@ struct MemorySoakDemo: View {
             guard let record = model.record else {
                 return "not run yet"
             }
-            let cycles = record.cycles.count == 1 ? "1 cycle" : "\(record.cycles.count) cycles"
-            return "run \(record.number) · \(record.end?.title ?? "") · \(cycles) in \(soakTime(record.elapsed))"
+            return "run \(record.number) · \(record.end?.title ?? "") · \(demoCount(record.cycles.count, "cycle")) in \(soakTime(record.elapsed))"
         case .preparing:
             return "making the fixtures"
         case let .running(cycle, phase):

@@ -253,7 +253,7 @@ private struct VideoFigures: View {
                 Text("`userInfo[.videoAssetKey]`: an `AVURLAsset` that reads the container's data, so the player doesn't download the file again.")
             }
             Section {
-                row("Memory", model.memory.count == 0 ? "empty" : "\(model.memory.count) \(model.memory.count == 1 ? "container" : "containers") · \(demoByteCount(model.memory.cost))")
+                row("Memory", model.memory.count == 0 ? "empty" : "\(demoCount(model.memory.count, "container")) · \(demoByteCount(model.memory.cost))")
                 row("Disk", disk)
             } header: {
                 Text("Caches")

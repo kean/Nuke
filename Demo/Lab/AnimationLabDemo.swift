@@ -81,7 +81,7 @@ struct AnimationLabDemo: View {
             Menu {
                 ForEach(AnimationLabModel.counts, id: \.self) { choice in
                     Toggle(isOn: Binding(get: { count == choice }, set: { _ in count = choice })) {
-                        Text(choice == 1 ? "1 animation" : "\(choice) animations")
+                        Text(demoCount(choice, "animation"))
                     }
                 }
             } label: {

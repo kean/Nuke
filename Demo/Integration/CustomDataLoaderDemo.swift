@@ -612,8 +612,7 @@ private struct PipelineRows: View {
 
     private var progress: String {
         guard let progress = run.progress else { return "no events yet" }
-        let events = "\(run.progressEventCount) \(run.progressEventCount == 1 ? "event" : "events")"
-        return "\(events) · \(demoByteCount(progress.completed)) of \(demoByteCount(progress.total))"
+        return "\(demoCount(run.progressEventCount, "event")) · \(demoByteCount(progress.completed)) of \(demoByteCount(progress.total))"
     }
 
     private var result: (text: String, tint: Color?) {

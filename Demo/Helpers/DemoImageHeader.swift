@@ -63,7 +63,7 @@ struct DemoImageHeader: Sendable {
 
     /// "public.heic · 1 image", or "not an image type · 0 images".
     var typeSummary: String {
-        "\(type ?? "not an image type") · \(imageCount) \(imageCount == 1 ? "image" : "images")"
+        "\(type ?? "not an image type") · \(demoCount(imageCount, "image"))"
     }
 
     /// "1008×756 · 8 bpc · RGB · orientation 6", or `nil` if the header

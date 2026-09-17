@@ -140,11 +140,11 @@ private struct PriorityCoalescingStage: View {
             Menu {
                 Picker("Slots", selection: $model.slotCount) {
                     ForEach(1...6, id: \.self) { count in
-                        Text(count == 1 ? "1 slot" : "\(count) slots").tag(count)
+                        Text(demoCount(count, "slot")).tag(count)
                     }
                 }
             } label: {
-                Text(model.slotCount == 1 ? "1 slot" : "\(model.slotCount) slots")
+                Text(demoCount(model.slotCount, "slot"))
                     .monospacedDigit()
             }
         }
@@ -380,7 +380,7 @@ private struct RequestRow: View {
     private var priorityMenu: some View {
         Menu {
             Picker("Priority", selection: Binding(get: { row.priority }, set: { model.setPriority($0, for: row) })) {
-                ForEach(PriorityCoalescingDemoModel.priorities, id: \.self) { priority in
+                ForEach(ImageRequest.Priority.demoAllCases, id: \.self) { priority in
                     Text(priority.demoName).tag(priority)
                 }
             }
@@ -461,8 +461,6 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         var inFlightCount: Int?
         var slotCount = 0
     }
-
-    static let priorities: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
 
     /// The six photos, one download each: fixtures while the demo is
     /// offline, read when a run starts.
@@ -567,7 +565,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         self.downloads = downloads
         running = []
         finished = []
-        lines = Array(repeating: [], count: Self.priorities.count)
+        lines = Array(repeating: [], count: ImageRequest.Priority.demoAllCases.count)
         baseline = DemoPipelineProbe.diagnostics(for: pipeline) ?? DemoPipelineDiagnostics()
 
         for row in rows {

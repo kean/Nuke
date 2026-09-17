@@ -105,7 +105,7 @@ private struct PrefetchSettingsView: View {
 
             Menu {
                 Picker("Priority", selection: $model.priority) {
-                    ForEach(PrefetchingDemoModel.priorities, id: \.self) { Text($0.demoName).tag($0) }
+                    ForEach(ImageRequest.Priority.demoAllCases, id: \.self) { Text($0.demoName).tag($0) }
                 }
                 if let open {
                     Section {
@@ -304,7 +304,6 @@ private final class PrefetchingDemoModel: ObservableObject {
     }
 
     static let destinations: [ImagePrefetcher.Destination] = [.memoryCache, .diskCache]
-    static let priorities: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
 
     @Published var kind: Kind = .uikit {
         didSet { restart() }

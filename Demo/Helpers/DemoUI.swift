@@ -304,6 +304,9 @@ extension Duration {
 }
 
 extension ImageRequest.Priority {
+    /// Every priority, lowest first.
+    static let demoAllCases: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
+
     /// The name of the case, as it is written in code: `.high`.
     var demoName: String {
         switch self {

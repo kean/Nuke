@@ -97,15 +97,7 @@ struct CancellationTortureDemo: View {
             guard let report = model.report else {
                 return "not run yet"
             }
-            let counts = [
-                (DemoVerdict.State.passed, "passed"),
-                (.failed, "failed"),
-                (.skipped, "skipped")
-            ].compactMap { state, title in
-                let count = report.verdicts.count { $0.state == state }
-                return count > 0 ? "\(count) \(title)" : nil
-            }
-            return (["run \(report.number)"] + counts).joined(separator: " · ")
+            return "run \(report.number) · " + report.verdicts.demoSummary
         case .preparing:
             return "making the fixtures"
         case let .starting(started, total):
@@ -201,7 +193,7 @@ struct CancellationTortureDemo: View {
                 }
                 let leaked = report.leakedPipelineCount
                 if report.skippedFor == nil, leaked > 0 {
-                    DemoMonoLabel(leaked == 1 ? "1 silent-loader pipeline alive for good" : "\(leaked) silent-loader pipelines alive for good", tint: .orange)
+                    DemoMonoLabel("\(demoCount(leaked, "silent-loader pipeline")) alive for good", tint: .orange)
                 }
             } else {
                 Text("Check Slots cancels every download of a pipeline midway, then asks for one more image.")

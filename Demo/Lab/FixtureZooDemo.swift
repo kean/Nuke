@@ -105,7 +105,7 @@ struct FixtureZooDemo: View {
     /// Why some inputs never reached a decoder, or will not.
     private var warning: String? {
         let notLoaded = model.outcomes.values.count(where: { $0.verdict == .notLoaded })
-        let count = notLoaded == 1 ? "1 input" : "\(notLoaded) inputs"
+        let count = demoCount(notLoaded, "input")
         if let conditions = DemoNetworkConditions.shared.badge {
             return "Network conditions are on (\(conditions)): an input they lose never reaches a decoder, and is not checked." + (notLoaded > 0 ? " \(count) so far." : "")
         }

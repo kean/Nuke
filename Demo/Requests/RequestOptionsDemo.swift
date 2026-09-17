@@ -274,7 +274,7 @@ private struct RequestOptionsPanel: View {
 
             Section {
                 Picker("Priority", selection: $model.priority) {
-                    ForEach(RequestOptionsDemoModel.priorities, id: \.self) { priority in
+                    ForEach(ImageRequest.Priority.demoAllCases, id: \.self) { priority in
                         Text(priority.demoName).tag(priority)
                     }
                 }
@@ -440,8 +440,6 @@ private final class RequestOptionsDemoModel: ObservableObject {
 
     /// Both processed sizes ask for this, in points.
     static let targetSize = CGSize(width: 300, height: 200)
-
-    static let priorities: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
 
     /// The most stages a run of this screen goes through: a resize downloaded
     /// from scratch looks up the resized image and the original in both

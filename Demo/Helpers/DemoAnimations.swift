@@ -303,7 +303,7 @@ struct DemoDiagnosticsPanel: View {
                 if diagnostics.sharingPlayerCount > 1 {
                     DemoDiagnosticsRow("shared", "\(diagnostics.sharingPlayerCount) players on these frames", tint: .accentColor)
                 }
-                DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 7)) of \(demoByteCount(pool.costLimit)) · \(pool.animationCount) animation\(pool.animationCount == 1 ? "" : "s")")
+                DemoDiagnosticsRow("pool", "\(demoPad(demoByteCount(pool.totalCost), to: 7)) of \(demoByteCount(pool.costLimit)) · \(demoCount(pool.animationCount, "animation"))")
             }
         }
     }
