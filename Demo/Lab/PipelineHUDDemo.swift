@@ -171,7 +171,7 @@ struct PipelineHUDDemo: View {
         ("watched", "How long the display has been watched since the reset."),
         ("tasks", "Image tasks running, and the ones that ended with an image, cancelled, or with an error. Data tasks and NukeUI's memory cache hits create none."),
         ("coalescing", "Images that came from a download against the downloads that brought them. Above 1×, tasks shared downloads."),
-        ("source", "Where the images came from: a download, `URLCache` included; `DataCache`; or the memory cache, with or without a task. Hit is the share that didn't download."),
+        ("source", "Where the images came from: a download, `URLCache` included; `DataCache`; or the memory cache, with or without a task. Hit is the share that didn't download. The download count reads `fixture` when fixtures answered every download, and `fetched` when they answered some: the probe counts fixtures by download, so a mix can't be split by image."),
         ("created", "Image tasks created, and the most running at once."),
         ("duration", "From creating a task to its image, for the tasks that succeeded."),
         ("failures", "Failed tasks by `ImagePipeline.Error` case."),

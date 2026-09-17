@@ -86,7 +86,7 @@ enum DemoHUDFigures {
             ),
             DemoHUDLine(
                 "source",
-                .init("\(pad(figures.networkResponseCount, 4)) network · \(pad(figures.diskResponseCount, 4)) disk · \(pad(figures.servedFromMemoryCount, 4)) memory · "),
+                .init("\(pad(figures.networkResponseCount, 4)) \(downloadSource(figures)) · \(pad(figures.diskResponseCount, 4)) disk · \(pad(figures.servedFromMemoryCount, 4)) memory · "),
                 .init("\(demoPad(hitRate(figures), to: 4)) hit", tint: figures.hitRate > 0 ? .green : nil)
             )
         ]
@@ -204,6 +204,19 @@ enum DemoHUDFigures {
     static func hitRate(_ figures: DemoPipelineDiagnostics) -> String {
         let count = figures.networkResponseCount + figures.diskResponseCount + figures.servedFromMemoryCount
         return count > 0 ? "\(Int((figures.hitRate * 100).rounded()))%" : "–"
+    }
+
+    /// What answered the downloads the images came from, in seven letters so
+    /// that the line keeps its width: `network`; `fixture` when fixtures
+    /// answered every download; `fetched` when they answered some. A task
+    /// can't tell a fixture from the network, so the probe counts fixtures
+    /// by download, and a mix can't be split by image. Before the first
+    /// download, the demo's mode decides.
+    static func downloadSource(_ figures: DemoPipelineDiagnostics) -> String {
+        guard figures.fixtureLoadCount > 0 else {
+            return figures.completedDownloadCount == 0 && DemoFixtureMode.isOffline ? "fixture" : "network"
+        }
+        return figures.fixtureLoadCount < figures.completedDownloadCount ? "fetched" : "fixture"
     }
 
     /// `load 6/6 · `: the work running against the limit, orange while the
