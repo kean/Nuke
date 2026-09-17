@@ -245,22 +245,27 @@ private struct ImageFormatFigures: View {
 /// The screen's pipeline, a request per image, and what each came to.
 @MainActor @Observable
 private final class ImageFormatsDemoModel {
-    let pipeline: ImagePipeline
+    /// Made the first time the screen asks rather than in `init`, which
+    /// SwiftUI runs each time it makes the view, keeping only the first
+    /// model.
+    @ObservationIgnored private(set) lazy var pipeline = makePipeline()
     /// Made when the screen opens: a screen opened offline loads fixtures.
     let requests: [ImageFormat: ImageRequest]
     private(set) var results: [ImageFormat: Result<ImageResponse, ImagePipeline.Error>] = [:]
     private let log: DecoderChoiceLog
 
     init() {
-        let log = DecoderChoiceLog()
-        self.log = log
+        log = DecoderChoiceLog()
+        requests = Dictionary(uniqueKeysWithValues: ImageFormat.allCases.map { ($0, ImageRequest(url: $0.url)) })
+    }
+
+    private func makePipeline() -> ImagePipeline {
         // `URLCache`, as the shared pipeline has, and a memory cache of the
         // screen's own, so that every visit decodes the images again and the
         // delegate sees their data.
         var configuration = ImagePipeline.Configuration.withURLCache
         configuration.imageCache = ImageCache()
-        pipeline = DemoPipelineProbe.makePipeline("Image Formats", configuration: configuration, delegate: DecoderWatcher(log: log))
-        requests = Dictionary(uniqueKeysWithValues: ImageFormat.allCases.map { ($0, ImageRequest(url: $0.url)) })
+        return DemoPipelineProbe.makePipeline("Image Formats", configuration: configuration, delegate: DecoderWatcher(log: log))
     }
 
     func choice(for format: ImageFormat) -> DecoderChoice? {

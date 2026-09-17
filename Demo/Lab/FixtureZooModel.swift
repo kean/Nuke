@@ -45,7 +45,9 @@ final class FixtureZooModel {
 
     let crashLog = FixtureZooCrashLog.shared
 
-    private let pipeline: ImagePipeline
+    /// Made the first time a run asks rather than in `init`, which SwiftUI
+    /// runs each time it makes the view, keeping only the first model.
+    @ObservationIgnored private lazy var pipeline = makePipeline()
     private var task: Task<Void, Never>?
 
     /// How to decode the inputs that could take the app down.
@@ -62,14 +64,17 @@ final class FixtureZooModel {
     }
 
     init() {
+        for (input, crash) in crashLog.crashes {
+            outcomes[input] = Outcome(crash: crash)
+        }
+    }
+
+    private func makePipeline() -> ImagePipeline {
         var configuration = ImagePipeline.Configuration(dataLoader: DemoFixtureLoader())
         configuration.imageCache = nil
         configuration.dataCache = nil
         configuration.isDiagnosticsEnabled = true
-        pipeline = DemoPipelineProbe.makePipeline("Fixture Zoo", configuration: configuration)
-        for (input, crash) in crashLog.crashes {
-            outcomes[input] = Outcome(crash: crash)
-        }
+        return DemoPipelineProbe.makePipeline("Fixture Zoo", configuration: configuration)
     }
 
     var isRunning: Bool {

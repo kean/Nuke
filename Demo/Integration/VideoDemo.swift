@@ -411,7 +411,10 @@ private struct VideoFigures: View {
 /// The screen's pipeline, the load, and what the player is doing.
 @MainActor @Observable
 private final class VideoDemoModel {
-    let pipeline: ImagePipeline
+    /// Made the first time the screen asks rather than in `init`, which
+    /// SwiftUI runs each time it makes the view, keeping only the first
+    /// model: each pipeline would open the disk cache again.
+    @ObservationIgnored private(set) lazy var pipeline = makePipeline()
     /// Made when the screen opens: a screen opened offline loads the fixture.
     let request: ImageRequest
     /// Changes to load again: the player pane is a new view each time.
@@ -456,8 +459,7 @@ private final class VideoDemoModel {
         let type: AssetType?
     }
 
-    private let imageCache: ImageCache
-    private let dataCache: DataCache?
+    private let imageCache = ImageCache()
     @ObservationIgnored private var task: ImageTask?
     @ObservationIgnored private var lastAsset: AVAsset?
     @ObservationIgnored private var assetCount = 0
@@ -468,17 +470,21 @@ private final class VideoDemoModel {
     @ObservationIgnored private var loopCount = 0
 
     init() {
+        request = ImageRequest(url: DemoImages.video)
+    }
+
+    private func makePipeline() -> ImagePipeline {
         // A memory cache of the screen's own, so the first load of a visit
         // comes from the disk or the network, and a disk cache that keeps
         // the file between visits.
-        let imageCache = ImageCache()
         var configuration = ImagePipeline.Configuration.withDataCache(name: "com.github.kean.NukeDemo.Video")
         configuration.imageCache = imageCache
-        self.imageCache = imageCache
         configuration.isDiagnosticsEnabled = true
-        dataCache = configuration.dataCache as? DataCache
-        pipeline = DemoPipelineProbe.makePipeline("Video", configuration: configuration)
-        request = ImageRequest(url: DemoImages.video)
+        return DemoPipelineProbe.makePipeline("Video", configuration: configuration)
+    }
+
+    private var dataCache: DataCache? {
+        pipeline.configuration.dataCache as? DataCache
     }
 
     /// Why the screen doesn't show a video, or `nil`.

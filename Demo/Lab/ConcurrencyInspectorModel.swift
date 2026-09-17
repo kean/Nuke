@@ -66,9 +66,11 @@ final class ConcurrencyInspectorModel {
     static let stallThreshold: TimeInterval = 0.016
     static let limitChoices = [1, 2, 3, 4, 6, 8, 12]
 
-    @ObservationIgnored private var pipeline: ImagePipeline
-    @ObservationIgnored private var recorder: InspectorRecorder
-    @ObservationIgnored private var processor: InspectedProcessor
+    /// The current pipeline, the record its delegate writes, and the
+    /// processor its requests use. Made the first time the screen asks
+    /// rather than in `init`, which SwiftUI runs each time it makes the view,
+    /// keeping only the first model.
+    @ObservationIgnored private var rig: Rig?
     /// The tasks not yet finished, by index.
     @ObservationIgnored private var handles: [Int: ImageTask] = [:]
     @ObservationIgnored private var generator: Task<Void, Never>?
@@ -168,12 +170,9 @@ final class ConcurrencyInspectorModel {
 
     init() {
         let defaults = ImagePipeline.Configuration()
-        let limits = Dictionary(uniqueKeysWithValues: InspectorQueue.allCases.map {
+        limits = Dictionary(uniqueKeysWithValues: InspectorQueue.allCases.map {
             ($0, $0.queue(in: defaults).maxConcurrentTaskCount)
         })
-        self.limits = limits
-        (pipeline, recorder, processor) = Self.makePipeline(limits: limits, suspended: [], isPaused: false)
-        pipelineLabel = DemoPipelineProbe.probe(for: pipeline)?.label ?? ""
         monitor.onHitch = { [weak self] hitch in
             self?.didHitch(hitch)
         }
@@ -184,6 +183,30 @@ final class ConcurrencyInspectorModel {
     }
 
     // MARK: Pipeline
+
+    private struct Rig {
+        let pipeline: ImagePipeline
+        let recorder: InspectorRecorder
+        let processor: InspectedProcessor
+    }
+
+    private var pipeline: ImagePipeline { currentRig.pipeline }
+    private var recorder: InspectorRecorder { currentRig.recorder }
+    private var processor: InspectedProcessor { currentRig.processor }
+
+    private var currentRig: Rig {
+        rig ?? makeRig()
+    }
+
+    /// Makes a pipeline with the screen's settings the current one.
+    @discardableResult
+    private func makeRig() -> Rig {
+        let (pipeline, recorder, processor) = Self.makePipeline(limits: limits, suspended: suspended, isPaused: isPaused)
+        let rig = Rig(pipeline: pipeline, recorder: recorder, processor: processor)
+        self.rig = rig
+        pipelineLabel = DemoPipelineProbe.probe(for: pipeline)?.label ?? ""
+        return rig
+    }
 
     private static func makePipeline(limits: [InspectorQueue: Int], suspended: Set<InspectorQueue>, isPaused: Bool) -> (ImagePipeline, InspectorRecorder, InspectedProcessor) {
         pipelineCount += 1
@@ -217,8 +240,7 @@ final class ConcurrencyInspectorModel {
     private func preparePipeline() {
         guard recorder.hasTasks else { return }
         resumeQueues(of: pipeline)
-        (pipeline, recorder, processor) = Self.makePipeline(limits: limits, suspended: suspended, isPaused: isPaused)
-        pipelineLabel = DemoPipelineProbe.probe(for: pipeline)?.label ?? ""
+        makeRig()
         sample = recorder.sample()
     }
 
@@ -321,7 +343,9 @@ final class ConcurrencyInspectorModel {
         cancelAll()
         generator?.cancel()
         isPaused = false
-        resumeQueues(of: pipeline)
+        if let rig {
+            resumeQueues(of: rig.pipeline)
+        }
     }
 
     private func perform(_ workload: InspectorWorkload, run number: Int) async {
