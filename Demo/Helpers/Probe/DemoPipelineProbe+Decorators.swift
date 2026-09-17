@@ -19,6 +19,12 @@ extension DemoPipelineProbe {
     /// events to its delegate instead. Only the events that don't ask the
     /// delegate for a decision are implemented here, so the loader keeps
     /// handling redirects, challenges, and caching on its own.
+    ///
+    /// A download behind ``DemoConditionedDataLoader`` is counted by the
+    /// ``CountingDataLoader`` around the conditions, where the pipeline sees
+    /// it, and its session task says so (see ``CountedRequest``). The
+    /// observer doesn't count it again, and tells the counters what only the
+    /// session knows: whether `URLCache` answered, and over which connection.
     final class SessionObserver: NSObject, URLSessionDataDelegate, Sendable {
         private let counters: Counters
 
@@ -27,6 +33,7 @@ extension DemoPipelineProbe {
         }
 
         func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+            guard CountedRequest.loadID(of: task) == nil else { return }
             counters.loadStarted(.sessionTask(ObjectIdentifier(task)))
         }
 
@@ -37,7 +44,7 @@ extension DemoPipelineProbe {
         func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
             guard let transaction = metrics.transactionMetrics.last else { return }
             counters.load(
-                .sessionTask(ObjectIdentifier(task)),
+                CountedRequest.loadID(of: task) ?? .sessionTask(ObjectIdentifier(task)),
                 isServedFromHTTPCache: transaction.resourceFetchType == .localCache,
                 isReusedConnection: transaction.isReusedConnection
             )
@@ -56,22 +63,30 @@ extension DemoPipelineProbe {
         }
     }
 
-    /// Wraps a loader other than `DataLoader`.
+    /// Wraps a loader other than `DataLoader`, or any loader behind
+    /// ``DemoConditionedDataLoader``.
     ///
     /// It calls `didReceiveData` and `completion` exactly when, and as often
     /// as, the loader does, and passes a cancel straight on. A load stays in
     /// flight until its `completion`, even after a cancel, because that is
     /// when the pipeline frees the data loading slot. The loads of a
     /// ``DemoFixtureLoader`` are counted as fixtures rather than downloads.
+    ///
+    /// Behind the conditions, a `DataLoader` is observed by its session
+    /// delegate as well, so its requests are tagged with the load they
+    /// belong to (see ``CountedRequest``).
     final class CountingDataLoader: DataLoading {
         let base: any DataLoading
         private let counters: Counters
         private let isFixture: Bool
+        private let tagsRequests: Bool
 
         init(_ base: any DataLoading, counters: Counters) {
+            let loader = (base as? DemoConditionedDataLoader)?.base ?? base
             self.base = base
             self.counters = counters
-            self.isFixture = base is DemoFixtureLoader
+            self.isFixture = loader is DemoFixtureLoader
+            self.tagsRequests = base is DemoConditionedDataLoader && loader is DataLoader
         }
 
         func loadData(
@@ -81,6 +96,7 @@ extension DemoPipelineProbe {
         ) -> any Cancellable {
             let counters = counters
             let id = counters.loadStarted(isFixture: isFixture)
+            let request = tagsRequests ? CountedRequest.tag(request, with: id) : request
             let cancellable = base.loadData(with: request, didReceiveData: { data, response in
                 counters.load(id, didReceive: data.count)
                 didReceiveData(data, response)
@@ -89,6 +105,34 @@ extension DemoPipelineProbe {
                 completion(error)
             })
             return CountingCancellable(base: cancellable, id: id, counters: counters)
+        }
+    }
+
+    /// Marks a request with the ``CountingDataLoader`` load it belongs to, so
+    /// that the ``SessionObserver`` of a `DataLoader` behind the network
+    /// conditions leaves its session task to that load.
+    ///
+    /// A `URLProtocol` property: it travels with the request into the session
+    /// task, and never reaches the server.
+    enum CountedRequest {
+        private static let key = "com.github.kean.NukeDemo.CountedLoad"
+
+        static func tag(_ request: URLRequest, with id: Counters.LoadID) -> URLRequest {
+            guard case .call(let number) = id,
+                  let tagged = (request as NSURLRequest).mutableCopy() as? NSMutableURLRequest else {
+                return request
+            }
+            URLProtocol.setProperty(NSNumber(value: number), forKey: key, in: tagged)
+            return tagged as URLRequest
+        }
+
+        /// The load that counts `task`, or `nil` if the observer counts it.
+        static func loadID(of task: URLSessionTask) -> Counters.LoadID? {
+            guard let request = task.originalRequest,
+                  let number = URLProtocol.property(forKey: key, in: request) as? NSNumber else {
+                return nil
+            }
+            return .call(number.uint64Value)
         }
     }
 

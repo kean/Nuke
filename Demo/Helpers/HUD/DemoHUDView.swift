@@ -222,6 +222,12 @@ private struct DemoHUDPanel<Drag: Gesture>: View {
                 Text("offline")
                     .foregroundStyle(.orange)
             }
+            if let conditions = DemoNetworkConditions.shared.badge {
+                // So should downloads slowed or failed on purpose.
+                Text(conditions.lowercased())
+                    .lineLimit(1)
+                    .foregroundStyle(.orange)
+            }
             Spacer(minLength: 8)
             Button {
                 hud.reset()
