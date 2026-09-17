@@ -830,7 +830,7 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
                     guard attempt.isActive else { return }
                     attempt.state = .cancelled
                 case .failure(let error):
-                    attempt.state = .failed(task.metrics?.error?.code ?? error.description)
+                    attempt.state = .failed(error.demoSummary)
                 }
                 attempt.endedAt = attempt.endedAt ?? .now
             }

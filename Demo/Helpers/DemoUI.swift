@@ -316,6 +316,19 @@ extension ImageRequest.Priority {
     }
 }
 
+extension ImageResponse {
+    /// Where the image came from: "memory cache", "disk cache", "fixture
+    /// loader", or, for a download, "network or URLCache", which the pipeline
+    /// can't tell apart.
+    var demoSource: String {
+        switch cacheType {
+        case .memory: "memory cache"
+        case .disk: "disk cache"
+        case nil: DemoFixture.isFixture(request.url) ? "fixture loader" : "network or URLCache"
+        }
+    }
+}
+
 /// Embeds a `UIViewController` in SwiftUI. The demo uses it to show the
 /// UIKit screens in the same navigation stack as the SwiftUI ones.
 struct ViewControllerView<ViewController: UIViewController>: UIViewControllerRepresentable {

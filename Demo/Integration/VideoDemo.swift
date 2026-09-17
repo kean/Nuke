@@ -291,7 +291,7 @@ private struct VideoFigures: View {
         case nil:
             row("Source", model.isLoading ? "loading…" : "–")
         case .failure(let error):
-            row("Source", "failed · \(VideoDemoModel.summary(of: error))", tint: .red)
+            row("Source", "failed · \(error.demoDetail)", tint: .red)
         case .success(let response):
             let load = model.load
             row("Source", source(response, bytes: load?.metrics?.bytes?.downloaded))
@@ -491,7 +491,7 @@ private final class VideoDemoModel {
     var problem: String? {
         switch load?.result {
         case .failure(let error):
-            return "The load failed: \(Self.summary(of: error))."
+            return "The load failed: \(error.demoDetail)."
         case .success(let response) where response.image.size == .zero:
             return "The pipeline reported success, but the decoder took no frame from the data: it isn't a video AVFoundation can read. ImageDecoders.Video returns an empty image rather than throw, so the screen counts it as a failure."
         case .success(let response) where response.container.userInfo[.videoAssetKey] == nil:
@@ -631,10 +631,4 @@ private final class VideoDemoModel {
                 }.value
             }
         }
-    }
-
-    /// What the loader said, or what the pipeline says about anything else.
-    static func summary(of error: ImagePipeline.Error) -> String {
-        error.dataLoadingError == nil ? error.description : error.demoSummary
-    }
-}
+    }}

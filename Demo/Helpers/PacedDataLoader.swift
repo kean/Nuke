@@ -120,7 +120,7 @@ private actor PacedLoad: Cancellable {
             guard !isFinished else { return }
             response = hooks.willPassResponse?(load, response) ?? response
             if let response = response as? HTTPURLResponse, !(200..<300).contains(response.statusCode) {
-                throw URLError(.badServerResponse)
+                throw DataLoader.Error.statusCodeUnacceptable(response.statusCode)
             }
             try await wait(pace.latency)
             let chunkSize = pace.chunkSize(for: data.count) ?? data.count

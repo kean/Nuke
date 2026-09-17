@@ -92,7 +92,7 @@ struct LazyImageDemo: View {
                         .onCompletion { result in
                             switch result {
                             case .success(let response):
-                                lastResult = response.cacheType == nil ? "Loaded from the network" : "Loaded from the cache"
+                                lastResult = "Loaded from the \(response.demoSource)"
                             case .failure(let error):
                                 lastResult = "Failed: \(error.demoSummary)"
                             }
@@ -232,11 +232,7 @@ private struct FetchImageExample: View {
         case nil:
             return "reset · nothing loaded"
         case .success(let response)?:
-            switch response.cacheType {
-            case .memory?: return "memory cache"
-            case .disk?: return "disk cache"
-            case nil: return DemoFixture.isFixture(response.request.url) ? "fixture loader" : "network or URLCache"
-            }
+            return response.demoSource
         case .failure(let error)?:
             return "failed · \(error.demoSummary)"
         }

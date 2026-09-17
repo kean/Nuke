@@ -639,7 +639,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
             row.phase = .cancelled
             updatePriority(of: row.download)
         case .failure(let error):
-            row.phase = .failed(metrics?.error?.code ?? error.description)
+            row.phase = .failed(error.demoSummary)
             finish(row.download, metrics: metrics, isFailure: true)
         }
         publishQueue()

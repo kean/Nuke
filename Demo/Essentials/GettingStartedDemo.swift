@@ -540,7 +540,7 @@ private final class GettingStartedModel {
     }
 
     private static func status(of response: ImageResponse, bytes: Int64?, since startDate: Date?, hasTask: Bool) -> Status {
-        var parts = [source(of: response)]
+        var parts = [response.demoSource]
         if let bytes, bytes > 0, response.cacheType == nil {
             parts.append(demoByteCount(bytes))
         }
@@ -550,14 +550,6 @@ private final class GettingStartedModel {
             parts.append("no task")
         }
         return Status(phase: .finished, text: parts.joined(separator: " · "))
-    }
-
-    private static func source(of response: ImageResponse) -> String {
-        switch response.cacheType {
-        case .memory: "memory cache"
-        case .disk: "disk cache"
-        case nil: DemoFixture.isFixture(response.request.url) ? "fixture loader" : "network or URLCache"
-        }
     }
 
     private static func failure(_ error: any Error) -> Status {

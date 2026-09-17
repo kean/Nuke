@@ -24,6 +24,12 @@ extension ImagePipeline.Error {
         dataLoadingError.map(demoLoaderErrorMessage) ?? description
     }
 
+    /// The loader's error in a few words for a failed download, and the
+    /// pipeline's description of anything else.
+    var demoDetail: String {
+        dataLoadingError == nil ? description : demoSummary
+    }
+
     /// The name of the case, without its payload.
     var demoCaseName: String {
         switch self {

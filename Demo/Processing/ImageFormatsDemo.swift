@@ -216,7 +216,7 @@ private struct ImageFormatFigures: View {
             let frames = container.animation.map { "\($0.frameCount) frames" } ?? "still"
             return ("\(container.type.demoLiteral) · \(frames)", .primary)
         case .failure(let error):
-            return ("failed · \(Self.summary(of: error))", .red)
+            return ("failed · \(error.demoDetail)", .red)
         }
     }
 
@@ -232,13 +232,7 @@ private struct ImageFormatFigures: View {
             return header.typeSummary
         }
         return "\(header.typeSummary) · \(width)×\(height)"
-    }
-
-    /// What the loader said, or what the pipeline says about anything else.
-    private static func summary(of error: ImagePipeline.Error) -> String {
-        error.dataLoadingError == nil ? error.description : error.demoSummary
-    }
-}
+    }}
 
 // MARK: - Model
 

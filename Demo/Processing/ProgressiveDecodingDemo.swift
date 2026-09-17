@@ -62,7 +62,7 @@ struct ProgressiveDecodingDemo: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let error = model.error {
-                    Text(error.description)
+                    Text(error.demoMessage)
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)

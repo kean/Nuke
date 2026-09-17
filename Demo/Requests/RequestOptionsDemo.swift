@@ -589,7 +589,7 @@ private final class RequestOptionsDemoModel: ObservableObject {
             outcome = Outcome(isFailure: true, summary: [
                 .init(label: "from", value: "failed", tint: .red),
                 .init(label: "took", value: took),
-                .init(label: "error", value: metrics?.error?.code ?? error.description, tint: .red),
+                .init(label: "error", value: error.demoSummary, tint: .red),
                 .init(label: "image", value: "–"),
                 .init(label: "bytes", value: "–")
             ])
