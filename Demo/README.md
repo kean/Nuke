@@ -51,6 +51,7 @@ and the details worth knowing.
 | **Caching** | Three requests – an original, a resize, and a thumbnail – loaded into the memory cache and `URLCache` or `DataCache`: the files each `DataCachePolicy` leaves on disk and their keys, what `.disableDiskCacheWrites` doesn't stop, and the `pipeline.cache` calls that read and write the same entries |
 | **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid, with its destination and priority on menus, and a count of the images each cell found in memory or on disk when it asked. The order the prefetcher starts its downloads in shows that at `.low` it works back from the far end of a batch |
 | **Resumable Downloads** | A photo handed to the pipeline a few kilobytes at a time: cancel it partway and resume, and see the `Range` request that goes out, the `206 Partial Content` that comes back, and the bytes that weren't downloaded twice. Two switches show when a download can't resume: a server without validators, and a new pipeline |
+| **Decompression** | A grid of 12 MP images, each under a URL of its own, with decompression off, on, on with `isUsingPrepareForDisplay`, and replaced by thumbnails. Auto-Scroll scrolls it at a fixed speed on a new pipeline for each, and each keeps its last run: the frames the main thread dropped, hitch time, the longest frame, the images shown, and the probe's decode and decompression times |
 
 ### Animated Images
 
@@ -105,7 +106,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
 | `-demoDeterministic 1` | Starts the app the same way every time: offline, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
 | `-demoNetwork <preset>` | Starts the app with [network conditions](#network-conditions) on: `slow-3g`, `lossy`, or `flaky-server`. `off`, the default, leaves the network as it is; a preset that doesn't exist does too, and logs why |
-| `-demoAutorun 1` | Starts the run of a Lab screen as soon as it opens, once per launch: Concurrency Inspector starts a burst, Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
+| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
 
 The **Automation** screen in the Lab lists every id. An id stays the same when a
 title changes.
@@ -194,7 +195,7 @@ Demo
 ├── Essentials       Getting Started, ImagePipeline, LazyImage and FetchImage, and the image views
 ├── Requests         Request options, thumbnails, priority, and coalescing
 ├── Processing       Processors, image formats, a custom decoder, and progressive decoding
-├── Caching          Caching, prefetching, and resumable downloads
+├── Caching          Caching, prefetching, resumable downloads, and decompression
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video
 ├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke

@@ -63,7 +63,7 @@ struct ImageFormatsDemo: View {
             .init("Image I/O", "The last line is what `CGImageSource` reads in the file without decoding it: its type identifier, how many images it counts, and the size of the first. Offline, the images are the fixtures that stand in for the files, with headers of their own."),
             .init("Video", "`ImageDecoders.Video`, from the NukeVideo module, has a screen of its own under Integration."),
             .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. Its initializer sees the data and decides whether it can decode it. The Custom Decoder screen registers one for a toy format."),
-            .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread.")
+            .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread. The Decompression screen counts the frames it saves.")
         ]
     )
 }

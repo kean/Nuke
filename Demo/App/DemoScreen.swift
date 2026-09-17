@@ -30,6 +30,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case caching = "caching"
     case prefetching = "prefetching"
     case resumableDownloads = "resumable-downloads"
+    case decompression = "decompression"
 
     // Animated Images
     case animatedImages = "animated-images"
@@ -69,6 +70,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching: "Caching"
         case .prefetching: "Prefetching"
         case .resumableDownloads: "Resumable Downloads"
+        case .decompression: "Decompression"
         case .animatedImages: "Animated Images"
         case .pipelineDelegate: "Pipeline Delegate"
         case .customDataLoader: "Custom Data Loader"
@@ -103,6 +105,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
         case .resumableDownloads: "A cancelled download picks up where it stopped"
+        case .decompression: "Decoded off the main thread, counted in frames"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
@@ -130,6 +133,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
         case .customDecoder: .catalog(.processingAndFormats)
         case .caching, .prefetching, .resumableDownloads: .catalog(.cachingAndPerformance)
+        case .decompression: .catalog(.cachingAndPerformance)
         case .animatedImages: .catalog(.animatedImages)
         case .pipelineDelegate: .catalog(.integration)
         case .customDataLoader: .catalog(.integration)
@@ -166,6 +170,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()
         case .resumableDownloads: ResumableDownloadsDemo()
+        case .decompression: DecompressionDemo()
         case .animatedImages: AnimatedImagesDemo()
         case .pipelineDelegate: PipelineDelegateDemo()
         case .customDataLoader: CustomDataLoaderDemo()
@@ -218,7 +223,7 @@ extension DemoScreen {
             case .essentials: "The APIs you need for most apps: ImagePipeline, LazyImage, and the image views for UIKit."
             case .requests: "What a request can ask of the pipeline, and what the pipeline does when many ask at once."
             case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
-            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and how a cancelled download resumes."
+            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, how a cancelled download resumes, and what decoding off the main thread saves."
             case .animatedImages: "Frames decoded as they play, within a memory budget you can watch."
             case .integration: "Where an app plugs into the pipeline: a delegate that changes its requests and observes its events, a data loader of its own, and a decoder for video."
             }
