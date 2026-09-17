@@ -69,7 +69,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .caching: "Memory, HTTP, and aggressive disk cache"
         case .prefetching: "ImagePrefetcher in UIKit and SwiftUI"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
-        case .pipelineDelegate: "Intercept requests and observe pipeline events"
+        case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationMemory: "A wall of animations sharing one memory budget"

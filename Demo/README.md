@@ -51,7 +51,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Pipeline Delegate** | `willLoadData(for:urlRequest:pipeline:)` and a live log of the pipeline events |
+| **Pipeline Delegate** | A delegate that adds a header in `willLoadData`, leaves a URL token out of `cacheKey`, and keeps a private photo off the disk in `willCache`, with a live log of what the pipeline asks it |
 
 ## Lab
 
