@@ -17,7 +17,7 @@ struct LabMenu: View {
             ForEach(groups, id: \.self) { group in
                 Section {
                     ForEach(group.screens) { screen in
-                        DemoLink(screen)
+                        DemoLink(screen, status: Self.status(of: screen))
                     }
                 } header: {
                     Text(group.title)
@@ -34,6 +34,32 @@ struct LabMenu: View {
 
     private var groups: [DemoScreen.LabGroup] {
         DemoScreen.LabGroup.allCases.filter { !$0.screens.isEmpty }
+    }
+
+    /// What a switch in the Rig is set to while it changes what every screen
+    /// shows, or `nil` while it doesn't.
+    @MainActor
+    private static func status(of screen: DemoScreen) -> Text? {
+        let status: String? = switch screen {
+        case .fixtureMode: DemoFixtureMode.shared.isOffline ? "Offline" : nil
+        case .networkConditions: DemoNetworkConditions.shared.badge
+        default: nil
+        }
+        return status.map { Text($0).foregroundStyle(.orange) }
+    }
+
+    /// The switches of the Rig that are on, for the row into the Lab: why the
+    /// images of a catalog screen are fixtures, or fail, or crawl.
+    @MainActor
+    static var rigStatus: Text? {
+        let switches = [
+            DemoFixtureMode.shared.isOffline ? "Offline" : nil,
+            DemoNetworkConditions.shared.badge
+        ].compactMap { $0 }
+        guard !switches.isEmpty else {
+            return nil
+        }
+        return Text(switches.joined(separator: " · ")).foregroundStyle(.orange)
     }
 }
 

@@ -39,6 +39,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case scrollStress = "scroll-stress"
     case animationMemory = "animation-memory"
     case fixtureMode = "fixture-mode"
+    case networkConditions = "network-conditions"
     case automation = "automation"
 
     var id: String { rawValue }
@@ -61,6 +62,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .scrollStress: "Scroll Stress"
         case .animationMemory: "Animation Memory"
         case .fixtureMode: "Fixture Mode"
+        case .networkConditions: "Network Conditions"
         case .automation: "Automation"
         }
     }
@@ -84,6 +86,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationMemory: "A wall of animations sharing one memory budget"
         case .fixtureMode: "Every image from generated fixtures, offline"
+        case .networkConditions: "Latency, loss, 500s, and cut-off downloads everywhere"
         case .automation: "Launch arguments and the id of every screen"
         }
     }
@@ -101,6 +104,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .scrollStress: .lab(.stress)
         case .animationMemory: .lab(.animation)
         case .fixtureMode: .lab(.rig)
+        case .networkConditions: .lab(.rig)
         case .automation: .lab(.rig)
         }
     }
@@ -126,6 +130,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .scrollStress: ScrollStressDemo()
         case .animationMemory: AnimationMemoryDemo()
         case .fixtureMode: FixtureModeDemo()
+        case .networkConditions: NetworkConditionsDemo()
         case .automation: AutomationDemo()
         }
     }

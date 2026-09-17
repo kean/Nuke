@@ -86,7 +86,7 @@ struct DemoMenu: View {
     /// Nuke. `-demoLab 0` leaves it out.
     private var lab: some View {
         Section {
-            DemoLink(.lab, title: "Lab", subtitle: "Instruments and stress rigs for working on Nuke")
+            DemoLink(.lab, title: "Lab", subtitle: "Instruments and stress rigs for working on Nuke", status: LabMenu.rigStatus)
         } footer: {
             pageFooter
         }
@@ -115,29 +115,41 @@ private struct DemoLogoHeader: View {
     }
 }
 
-/// A menu row that pushes a screen, or the Lab: the title over a caption.
+/// A menu row that pushes a screen, or the Lab: the title over a caption, and
+/// a status at the end of the row, if any.
 struct DemoLink: View {
     private let route: DemoRoute
     private let title: String
     private let subtitle: String
+    private let status: Text?
 
-    init(_ screen: DemoScreen) {
-        self.init(.screen(screen), title: screen.title, subtitle: screen.subtitle)
+    init(_ screen: DemoScreen, status: Text? = nil) {
+        self.init(.screen(screen), title: screen.title, subtitle: screen.subtitle, status: status)
     }
 
-    init(_ route: DemoRoute, title: String, subtitle: String) {
+    init(_ route: DemoRoute, title: String, subtitle: String, status: Text? = nil) {
         self.route = route
         self.title = title
         self.subtitle = subtitle
+        self.status = status
     }
 
     var body: some View {
         NavigationLink(value: route) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let status {
+                    // Inside the label, so it sits before the chevron: a
+                    // badge goes after it.
+                    Spacer(minLength: 8)
+                    status
+                        .font(.subheadline)
+                }
             }
         }
     }

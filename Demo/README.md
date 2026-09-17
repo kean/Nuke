@@ -74,6 +74,7 @@ screen for that API does the explaining.
 | **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network |
 | **Animation Memory** | Animation | A wall of animations sharing one memory budget, and what happens when they don't all fit |
 | **Fixture Mode** | Rig | The switch that takes the whole demo offline, and every fixture with its size, the time it took to make, and a digest |
+| **Network Conditions** | Rig | The switch that puts every download through latency, a shared bandwidth cap, lost requests, 500s, and cut-off bodies, with presets, the counts of what it did, and what the pipelines' diagnostics lose while it is on |
 | **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
 
 ## Launch arguments
@@ -93,6 +94,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
 | `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
 | `-demoDeterministic 1` | Starts the app the same way every time: offline, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
+| `-demoNetwork <preset>` | Starts the app with [network conditions](#network-conditions) on: `slow-3g`, `lossy`, or `flaky-server`. `off`, the default, leaves the network as it is; a preset that doesn't exist does too, and logs why |
 
 The **Automation** screen in the Lab lists every id. An id stays the same when a
 title changes.
@@ -115,6 +117,24 @@ in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
 screens that load photos start on fixtures either way.
 
 The photo stream's URLs are in `Resources/photos.json`.
+
+## Network conditions
+
+**Network Conditions** in the Lab makes every catalog screen a test of its
+failure states. While it is on, every pipeline's delegate puts the loader it
+would have used – the configured one, or the fixture loader offline – behind a
+rig that waits a latency, give or take a jitter, before each download, holds
+all downloads to one shared bandwidth, and fails a share of them: lost
+(`URLError.timedOut`), a server error (`DataLoader.Error.statusCodeUnacceptable(500)`,
+as `DataLoader` reports a 500), or cut off partway through the body
+(`URLError.networkConnectionLost`). The switch is read for every download, so
+it applies to the next one with no pipeline rebuilt; off, nothing is wrapped.
+A request that `URLCache` can answer goes through untouched.
+
+Launch with `-demoNetwork slow-3g`, `lossy`, or `flaky-server`, and add
+`-demoDeterministic 1` to fail the same downloads on every run. While the
+conditions are on, `ImageTask.Metrics` has no `URLSession` metrics for the
+downloads they touch; the HUD's figures are complete.
 
 ## Diagnostics
 
@@ -154,6 +174,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate
 ├── Lab              Stress rigs and instruments for working on Nuke
-├── Helpers          Shared views, the pipeline probe and HUD, fixtures, demo URLs, and a few small utilities
+├── Helpers          Shared views, the pipeline probe and HUD, fixtures, network conditions, demo URLs, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```
