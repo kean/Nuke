@@ -119,6 +119,10 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     ) -> ImagePipeline {
         let probe = DemoPipelineProbe(label: label, configuration: configuration, delegate: delegate, onEvent: onEvent, onLoad: onLoad)
         let pipeline = ImagePipeline(configuration: configuration, delegate: probe)
+        // Moves the pipelines that are gone out of the registry, which
+        // sampling does too, so a screen that makes one pipeline after
+        // another doesn't pile them up while nothing samples.
+        _ = liveProbes
         registry.withLock {
             $0.entries.append(Registry.Entry(counters: probe.counters, probe: probe, pipeline: pipeline))
         }
