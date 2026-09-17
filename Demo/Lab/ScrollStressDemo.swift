@@ -257,10 +257,9 @@ private final class ScrollStressModel {
 
 // MARK: - Grid
 
-private final class ScrollStressViewController: PhotoGridViewController {
+private final class ScrollStressViewController: DemoAutoScrollGridViewController {
     private let source: DemoImageSource
     private let model: ScrollStressModel
-    private var autoScroll: DemoAutoScroll?
 
     init(source: DemoImageSource, model: ScrollStressModel) {
         self.source = source
@@ -302,40 +301,7 @@ private final class ScrollStressViewController: PhotoGridViewController {
         photos = (0..<20).flatMap { _ in DemoImages.photos(from: source) }
     }
 
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        stopAutoScroll()
-    }
-
     override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {
         ImageRequest(url: url, processors: [.resize(size: size)])
-    }
-
-    override func makeLoadingOptions() -> ImageLoadingOptions {
-        // No transitions: they get in the way of seeing the throughput.
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        return options
-    }
-
-    // MARK: Auto-Scroll
-
-    var autoScrollElapsed: TimeInterval {
-        autoScroll?.elapsed ?? 0
-    }
-
-    /// Scrolls from the top at `speed` points per second, turning at either
-    /// end, for `duration` seconds or until stopped, then calls `completion`
-    /// with the time it scrolled for.
-    func startAutoScroll(speed: CGFloat, duration: TimeInterval, completion: @escaping (TimeInterval) -> Void) {
-        guard autoScroll == nil else { return }
-        autoScroll = DemoAutoScroll(scrollView: collectionView, speed: speed, duration: duration) { [weak self] elapsed in
-            self?.autoScroll = nil
-            completion(elapsed)
-        }
-    }
-
-    func stopAutoScroll() {
-        autoScroll?.stop()
     }
 }

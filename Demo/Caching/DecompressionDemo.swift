@@ -542,10 +542,9 @@ private final class FootprintPeak: Sendable {
 // MARK: - Grid
 
 /// Every cell shows the 12 MP JPEG fixture, under a URL of its own.
-private final class DecompressionGridViewController: PhotoGridViewController {
+private final class DecompressionGridViewController: DemoAutoScrollGridViewController {
     private let model: DecompressionDemoModel
     private var isThumbnail = false
-    private var autoScroll: DemoAutoScroll?
     /// The cells that let go of their image when they left the screen.
     private var clearedCells: Set<ObjectIdentifier> = []
 
@@ -575,11 +574,6 @@ private final class DecompressionGridViewController: PhotoGridViewController {
         // 46 MB each once decoded.
         itemsPerRow = view.bounds.width > 600 ? 3 : 2
         super.viewWillLayoutSubviews()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        stopAutoScroll()
     }
 
     /// Starts over on a new pipeline: back at the top, with every visible
@@ -624,30 +618,5 @@ private final class DecompressionGridViewController: PhotoGridViewController {
             request.thumbnail = ImageRequest.ThumbnailOptions(size: size)
         }
         return request
-    }
-
-    override func makeLoadingOptions() -> ImageLoadingOptions {
-        // No transitions: an image is shown the moment it arrives.
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        return options
-    }
-
-    // MARK: Auto-Scroll
-
-    var autoScrollElapsed: TimeInterval {
-        autoScroll?.elapsed ?? 0
-    }
-
-    func startAutoScroll(speed: CGFloat, duration: TimeInterval, completion: @escaping (TimeInterval) -> Void) {
-        guard autoScroll == nil else { return }
-        autoScroll = DemoAutoScroll(scrollView: collectionView, speed: speed, duration: duration) { [weak self] elapsed in
-            self?.autoScroll = nil
-            completion(elapsed)
-        }
-    }
-
-    func stopAutoScroll() {
-        autoScroll?.stop()
     }
 }

@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import NukeUI
 import UIKit
 
 /// Scrolls a scroll view from the top at a fixed speed for a fixed time,
@@ -107,5 +108,42 @@ final class DemoAutoScroll {
             }
             autoScroll.step(link)
         }
+    }
+}
+
+/// A photo grid that scrolls itself with ``DemoAutoScroll``, and shows an
+/// image the moment it arrives: a transition would get in the way of seeing
+/// the throughput.
+class DemoAutoScrollGridViewController: PhotoGridViewController {
+    private var autoScroll: DemoAutoScroll?
+
+    var autoScrollElapsed: TimeInterval {
+        autoScroll?.elapsed ?? 0
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        stopAutoScroll()
+    }
+
+    override func makeLoadingOptions() -> ImageLoadingOptions {
+        var options = ImageLoadingOptions()
+        options.pipeline = pipeline
+        return options
+    }
+
+    /// Scrolls from the top at `speed` points per second, turning at either
+    /// end, for `duration` seconds or until stopped, then calls `completion`
+    /// with the time it scrolled for.
+    func startAutoScroll(speed: CGFloat, duration: TimeInterval, completion: @escaping (TimeInterval) -> Void) {
+        guard autoScroll == nil else { return }
+        autoScroll = DemoAutoScroll(scrollView: collectionView, speed: speed, duration: duration) { [weak self] elapsed in
+            self?.autoScroll = nil
+            completion(elapsed)
+        }
+    }
+
+    func stopAutoScroll() {
+        autoScroll?.stop()
     }
 }
