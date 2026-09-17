@@ -41,6 +41,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineHUD = "pipeline-hud"
     case scrollStress = "scroll-stress"
     case cancellationTorture = "cancellation-torture"
+    case cacheTorture = "cache-torture"
     case animationLab = "animation-lab"
     case fixtureZoo = "fixture-zoo"
     case fixtureMode = "fixture-mode"
@@ -69,6 +70,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Pipeline HUD"
         case .scrollStress: "Scroll Stress"
         case .cancellationTorture: "Cancellation Torture"
+        case .cacheTorture: "Cache Torture"
         case .animationLab: "Animation Lab"
         case .fixtureZoo: "Fixture Zoo"
         case .fixtureMode: "Fixture Mode"
@@ -98,6 +100,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
+        case .cacheTorture: "Both caches hammered, then checked"
         case .animationLab: "Up to 36 animations on one frame pool, pushed"
         case .fixtureZoo: "Thirty inputs the decoders should survive"
         case .fixtureMode: "Every image from generated fixtures, offline"
@@ -120,6 +123,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: .lab(.instruments)
         case .scrollStress: .lab(.stress)
         case .cancellationTorture: .lab(.stress)
+        case .cacheTorture: .lab(.stress)
         case .animationLab: .lab(.animation)
         case .fixtureZoo: .lab(.fixtures)
         case .fixtureMode: .lab(.rig)
@@ -151,6 +155,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: PipelineHUDDemo()
         case .scrollStress: ScrollStressDemo()
         case .cancellationTorture: CancellationTortureDemo()
+        case .cacheTorture: CacheTortureDemo()
         case .animationLab: AnimationLabDemo()
         case .fixtureZoo: FixtureZooDemo()
         case .fixtureMode: FixtureModeDemo()
