@@ -24,7 +24,7 @@ struct LabMenu: View {
                 } footer: {
                     // Under the last group, whichever that is.
                     if group == groups.last {
-                        Text("Instruments and torture rigs for whoever works on Nuke. Caches are disabled on purpose, and the screens report numbers rather than explain them – the catalog does that.")
+                        Text("Instruments and torture rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the catalog does that.")
                     }
                 }
             }

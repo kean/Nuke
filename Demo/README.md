@@ -9,7 +9,7 @@ open Nuke.xcodeproj
 
 Select the **NukeDemo** scheme and run it (iOS 17+). No dependencies, no setup:
 the images are loaded over the network from public URLs, or offline from
-[fixtures](#fixtures) the app makes itself.
+[fixtures](#fixtures).
 
 ## Screens
 
@@ -57,7 +57,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Animated Images** | GIF, APNG, WebP, and HEIC playback, and a GIF whose delays differ, with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: beside the animation on iPad, in a sheet below it on iPhone. The buffer budget, the size the frames are decoded at, the rate, the repeat count, and a scrubber |
+| **Animated Images** | GIF, APNG, WebP, and HEIC playback, and a GIF whose delays differ, with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: a column on iPad, which lies over the animation in portrait, and a sheet below it on iPhone. The buffer budget, the size the frames are decoded at, the rate, the repeat count, and a scrubber |
 
 ### Integration
 
@@ -70,9 +70,9 @@ and the details worth knowing.
 ## Lab
 
 Instruments and torture rigs for whoever works on Nuke, behind the last row of
-the catalog. Caches are disabled on purpose and budgets pushed past sensible
-values, and the screens report numbers rather than explain an API – the catalog
-screen for that API does the explaining.
+the catalog. Caches are turned off where they would hide the work, budgets are
+pushed past sensible values, and the screens report numbers rather than explain
+an API – the catalog screen for that API does the explaining.
 
 | Screen | Group | Shows |
 |--|--|--|
@@ -104,7 +104,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
 | `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
 | `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
-| `-demoDeterministic 1` | Starts the app the same way every time: offline, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
+| `-demoDeterministic 1` | Starts the app the same way every time: offline unless `-demoFixtures network` says otherwise, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
 | `-demoNetwork <preset>` | Starts the app with [network conditions](#network-conditions) on: `slow-3g`, `lossy`, or `flaky-server`. `off`, the default, leaves the network as it is; a preset that doesn't exist does too, and logs why |
 | `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
 
@@ -119,7 +119,8 @@ index drawn on it, a baseline and a progressive JPEG, a 12 MP JPEG, a PNG, a
 HEIC, two GIFs (the long one has 200 frames), and an APNG, all drawn and
 encoded the first time a load asks for them, plus a WebP, an animated WebP, and
 a video bundled in `Resources/Fixtures`. The generated ones are the same bytes
-on every run, so a run on fixtures can be compared with the last one.
+on every run, so a run on fixtures can be compared with the last one. The one
+exception is the animated HEIC, a file in the app bundle online and offline.
 
 Every pipeline's delegate sends a request for a fixture, and every request
 while offline, to the fixture loader, which also answers the demo's network
@@ -174,8 +175,8 @@ the scheme, unticked, under Run › Arguments › Environment Variables – and 
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**,
 **Priority & Coalescing**, **Image Processing**, **Caching**, **Resumable
-Downloads**, and **Video** screens record their tasks either way, and show what
-the records say on screen.
+Downloads**, and **Video** screens, and of the **Fixture Zoo** in the Lab, record
+their tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
 
