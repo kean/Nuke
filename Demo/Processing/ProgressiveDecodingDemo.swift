@@ -45,8 +45,8 @@ struct ProgressiveDecodingDemo: View {
                         .font(.footnote.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Spacer()
-                    if let scanNumber = model.scanNumber {
-                        DemoBadge("Scan \(scanNumber)")
+                    if let previewNumber = model.previewNumber {
+                        DemoBadge("Preview \(previewNumber)")
                     }
                     if model.isFinal {
                         DemoBadge("Final", color: .green)
@@ -54,6 +54,12 @@ struct ProgressiveDecodingDemo: View {
                     if model.error != nil {
                         DemoBadge("Failed", color: .red)
                     }
+                }
+                if let resumedByteCount = model.resumedByteCount {
+                    Text("Resumed from \(demoByteCount(resumedByteCount)): the first preview has every scan the earlier load kept, and the count starts over.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let error = model.error {
                     Text(error.description)
@@ -86,6 +92,8 @@ struct ProgressiveDecodingDemo: View {
             .init("Throttled on purpose", "The demo delivers the data in small chunks with a delay between them. On a real connection the scans go by too fast to see."),
             .init("Baseline", "A baseline JPEG has nothing to show until the download completes. Switch the picker to watch the difference."),
             .init("Previews", "Every preview is a full image. `ImageResponse.isPreview` is what tells them apart from the final one."),
+            .init("The count", "The badge is `ImageContainer.UserInfoKey.scanNumberKey`: the number of previews this load has decoded, not the index of a scan in the file. Image I/O doesn't say where a scan ends, the decoder makes a preview of every chunk it can decode, and the pipeline skips a chunk while it is still decoding the last one."),
+            .init("Restart", "Restart cancels the load and starts a new one. The server supports range requests, so the new load resumes where the old one stopped: its first preview already has every scan the old one kept, and its count starts from 1."),
             .init("Cost", "Each scan is decoded, so progressive decoding trades CPU for a picture that appears sooner. The pipeline skips a scan if it is still decoding the previous one.")
         ]
     )
@@ -95,7 +103,10 @@ struct ProgressiveDecodingDemo: View {
 private final class ProgressiveDecodingDemoModel: ObservableObject {
     @Published private(set) var image: UIImage?
     @Published private(set) var progress = ImageTask.Progress(completed: 0, total: 0)
-    @Published private(set) var scanNumber: Int?
+    /// The previews this load has decoded, as the decoder numbers them.
+    @Published private(set) var previewNumber: Int?
+    /// The bytes the current load didn't download again, if it resumed.
+    @Published private(set) var resumedByteCount: Int?
     @Published private(set) var isLoading = false
     @Published private(set) var isFinal = false
     @Published private(set) var error: ImagePipeline.Error?
@@ -110,12 +121,32 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
 
     /// A pipeline with progressive decoding enabled. The caches are disabled
     /// so that every run starts from scratch.
-    private let pipeline = DemoPipelineProbe.makePipeline("Progressive Decoding") {
-        $0.dataLoader = ThrottledDataLoader()
-        $0.imageCache = nil
-        $0.isProgressiveDecodingEnabled = true
-        $0.isStoringPreviewsInMemoryCache = false
-        $0.isTaskCoalescingEnabled = false
+    private let pipeline: ImagePipeline
+
+    /// Identifies a load in the probe's events, which a cancelled load can
+    /// still be sending.
+    private var loadID = 0
+
+    init() {
+        var configuration = ImagePipeline.Configuration()
+        configuration.dataLoader = ThrottledDataLoader()
+        configuration.imageCache = nil
+        configuration.isProgressiveDecodingEnabled = true
+        configuration.isStoringPreviewsInMemoryCache = false
+        configuration.isTaskCoalescingEnabled = false
+
+        // A download that resumes goes out with a `Range` header, which the
+        // probe reports as the delegate hands the request on.
+        let relay = ResumeRelay()
+        pipeline = DemoPipelineProbe.makePipeline("Progressive Decoding", configuration: configuration, onEvent: { event in
+            guard case .willLoadData(let urlRequest) = event.kind,
+                  let loadID = event.request.userInfo[.loadIDKey] as? Int,
+                  let byteCount = urlRequest.value(forHTTPHeaderField: "Range").flatMap(Self.firstByte(ofRange:)) else {
+                return
+            }
+            Task { @MainActor in relay.model?.didResume(from: byteCount, loadID: loadID) }
+        })
+        relay.model = self
     }
 
     func loadIfNeeded() {
@@ -128,14 +159,17 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
         cancel()
 
         image = nil
-        scanNumber = nil
+        previewNumber = nil
+        resumedByteCount = nil
         isFinal = false
         error = nil
         progress = ImageTask.Progress(completed: 0, total: 0)
         isLoading = true
 
-        let url = isProgressive ? DemoImages.progressiveJPEG : DemoImages.baselineJPEG
-        let task = pipeline.imageTask(with: url)
+        loadID += 1
+        var request = ImageRequest(url: isProgressive ? DemoImages.progressiveJPEG : DemoImages.baselineJPEG)
+        request.userInfo[.loadIDKey] = loadID
+        let task = pipeline.imageTask(with: request)
         self.task = task
 
         observer = Task { [weak self] in
@@ -145,9 +179,10 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
                 case .progress(let progress):
                     self.progress = progress
                 case .preview(let response):
-                    // A partially decoded image: one scan of a progressive JPEG.
+                    // A partially decoded image: the scans of a progressive
+                    // JPEG that have arrived so far.
                     self.image = response.image
-                    self.scanNumber = response.container.userInfo[.scanNumberKey] as? Int
+                    self.previewNumber = response.container.userInfo[.scanNumberKey] as? Int
                 case .finished(let result):
                     self.isLoading = false
                     switch result {
@@ -171,4 +206,26 @@ private final class ProgressiveDecodingDemoModel: ObservableObject {
         task?.cancel()
         task = nil
     }
+
+    fileprivate func didResume(from byteCount: Int, loadID: Int) {
+        guard loadID == self.loadID else { return }
+        resumedByteCount = byteCount
+    }
+
+    /// `N` of `bytes=N-`, the only range the pipeline asks for.
+    nonisolated private static func firstByte(ofRange range: String) -> Int? {
+        guard range.hasPrefix("bytes="), range.hasSuffix("-") else { return nil }
+        return Int(range.dropFirst("bytes=".count).dropLast())
+    }
+}
+
+/// Hands the probe's events to the model, which doesn't exist yet when the
+/// pipeline is made. `@MainActor`, which makes it `Sendable`.
+@MainActor
+private final class ResumeRelay {
+    weak var model: ProgressiveDecodingDemoModel?
+}
+
+extension ImageRequest.UserInfoKey {
+    fileprivate static let loadIDKey: ImageRequest.UserInfoKey = "com.github.kean.NukeDemo.ProgressiveDecoding.load"
 }
