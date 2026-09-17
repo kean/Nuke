@@ -278,8 +278,9 @@ private struct RequestOptionsPanel: View {
                         Text(priority.demoName).tag(priority)
                     }
                 }
+                DemoLink(.priorityAndCoalescing)
             } footer: {
-                Text("Priority orders the work waiting in the pipeline's queues. A single request doesn't wait, so here it changes only the priority in the task's record. Priority & Coalescing shows it at work.")
+                Text("Priority orders the work waiting in the pipeline's queues. A single request doesn't wait, so here it changes only the priority in the task's record. Priority & Coalescing shows it at work, with twenty requests and a queue of two.")
             }
         }
         .listStyle(.insetGrouped)
