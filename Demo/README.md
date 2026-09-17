@@ -23,6 +23,7 @@ and the details worth knowing.
 
 | Screen | Shows |
 |--|--|
+| **Getting Started** | The snippets the README and the documentation open with, each running under its code: `ImagePipeline.shared.imageTask(with:)` with its progress, `LazyImage(url:)`, and `loadImage(with:into:)` with a `UIImageView`. They load one photo in turn, so the second and third find it in the memory cache. It is the catalog's first row |
 | **Image Pipeline** | `ImagePipeline.imageTask(with:)`, the event stream, progress, cancellation, and where the response came from |
 | **LazyImage** | The SwiftUI view: loading states, transitions, processors, priority, and completion |
 | **UIKit Views** | `loadImage(with:options:into:)` next to `LazyImageView` in a collection view, on a picker: with the extension you own the placeholder, the failure image, and the transition; `LazyImageView` owns them. Cell reuse either way |
@@ -183,7 +184,7 @@ Performance Guide.
 ```
 Demo
 ├── App              The app, the catalog and Lab menus, the screen registry, and the launch arguments
-├── Essentials       ImagePipeline, LazyImage, and the image views
+├── Essentials       Getting Started, ImagePipeline, LazyImage, and the image views
 ├── Requests         Request options, thumbnails, priority, and coalescing
 ├── Processing       Processors, image formats, and progressive decoding
 ├── Caching          Caching, prefetching, and resumable downloads

@@ -11,6 +11,7 @@ import SwiftUI
 /// outside the app, with `-demoScreen <id>`: a title can change, an id can't.
 enum DemoScreen: String, CaseIterable, Identifiable {
     // Essentials
+    case gettingStarted = "getting-started"
     case imagePipeline = "image-pipeline"
     case lazyImage = "lazy-image"
     case uikitViews = "uikit-views"
@@ -53,6 +54,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .gettingStarted: "Getting Started"
         case .imagePipeline: "Image Pipeline"
         case .lazyImage: "LazyImage"
         case .uikitViews: "UIKit Views"
@@ -84,6 +86,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     /// The line under the title in the menu.
     var subtitle: String {
         switch self {
+        case .gettingStarted: "One image, three ways, as in the README"
         case .imagePipeline: "Async/await, progress, cancellation"
         case .lazyImage: "The SwiftUI view and all of its options"
         case .uikitViews: "loadImage(with:into:) next to LazyImageView"
@@ -114,6 +117,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     var placement: Placement {
         switch self {
+        case .gettingStarted: .catalog(.essentials)
         case .imagePipeline, .lazyImage, .uikitViews: .catalog(.essentials)
         case .requestOptions: .catalog(.requests)
         case .priorityAndCoalescing: .catalog(.requests)
@@ -141,6 +145,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     @MainActor @ViewBuilder
     var destination: some View {
         switch self {
+        case .gettingStarted: GettingStartedDemo()
         case .imagePipeline: ImagePipelineDemo()
         case .lazyImage: LazyImageDemo()
         case .uikitViews: UIKitViewsDemo()
