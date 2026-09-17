@@ -126,14 +126,15 @@ struct DemoPipelineDiagnostics: Sendable {
     /// for one this drops back within a moment.
     var cancelledInFlightDownloadCount = 0
     /// The response bytes of the downloads that have ended, whatever their
-    /// outcome, not counting the ones `URLCache` answered.
+    /// outcome, not counting the ones `URLCache` or a fixture answered.
     var downloadedByteCount: Int64 = 0
     /// The response bytes received so far by the downloads still in flight.
     var inFlightByteCount: Int64 = 0
     /// From the start of a download to its first chunk of data: for a
     /// `DataLoader`, from the moment its session creates the task; for any
     /// other loader, from the call to `loadData`. Counted when the download
-    /// ends, for the ones that received data and weren't answered by `URLCache`.
+    /// ends, for the ones that received data and weren't answered by `URLCache`
+    /// or a fixture.
     var timeToFirstByte = Timing()
     /// The downloads that went over a connection an earlier request had
     /// opened. Known only for a `DataLoader`.
@@ -143,6 +144,13 @@ struct DemoPipelineDiagnostics: Sendable {
     var httpCacheLoadCount = 0
     /// The bytes of those downloads.
     var httpCacheByteCount: Int64 = 0
+    /// The downloads a `DemoFixtureLoader` completed: a fixture, served from
+    /// memory at a set pace, in place of a request. They count as downloads
+    /// everywhere else, ``completedDownloadCount`` included, as their images
+    /// count as ``networkResponseCount``: the pipeline can't tell them apart.
+    var fixtureLoadCount = 0
+    /// The bytes fixtures delivered, whatever the outcome of their loads.
+    var fixtureByteCount: Int64 = 0
 
     // MARK: Decoding
 
@@ -329,6 +337,8 @@ extension DemoPipelineDiagnostics {
         reusedConnectionCount += other.reusedConnectionCount
         httpCacheLoadCount += other.httpCacheLoadCount
         httpCacheByteCount += other.httpCacheByteCount
+        fixtureLoadCount += other.fixtureLoadCount
+        fixtureByteCount += other.fixtureByteCount
 
         decoding.add(other.decoding)
         previewDecoding.add(other.previewDecoding)

@@ -61,14 +61,17 @@ extension DemoPipelineProbe {
     /// It calls `didReceiveData` and `completion` exactly when, and as often
     /// as, the loader does, and passes a cancel straight on. A load stays in
     /// flight until its `completion`, even after a cancel, because that is
-    /// when the pipeline frees the data loading slot.
+    /// when the pipeline frees the data loading slot. The loads of a
+    /// ``DemoFixtureLoader`` are counted as fixtures rather than downloads.
     final class CountingDataLoader: DataLoading {
         let base: any DataLoading
         private let counters: Counters
+        private let isFixture: Bool
 
         init(_ base: any DataLoading, counters: Counters) {
             self.base = base
             self.counters = counters
+            self.isFixture = base is DemoFixtureLoader
         }
 
         func loadData(
@@ -77,7 +80,7 @@ extension DemoPipelineProbe {
             completion: @escaping @Sendable (Error?) -> Void
         ) -> any Cancellable {
             let counters = counters
-            let id = counters.loadStarted()
+            let id = counters.loadStarted(isFixture: isFixture)
             let cancellable = base.loadData(with: request, didReceiveData: { data, response in
                 counters.load(id, didReceive: data.count)
                 didReceiveData(data, response)

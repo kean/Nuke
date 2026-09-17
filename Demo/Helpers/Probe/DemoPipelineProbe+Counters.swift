@@ -143,12 +143,13 @@ extension DemoPipelineProbe {
         }
 
         /// Starts a load of a loader other than `DataLoader` and returns its id.
-        func loadStarted() -> LoadID {
+        func loadStarted(isFixture: Bool) -> LoadID {
             let now = ContinuousClock.now
             return state.withLock { state in
                 state.nextCallID += 1
                 let id = LoadID.call(state.nextCallID)
                 state.startLoad(id, at: now)
+                state.loads[id]?.isFixture = isFixture
                 return id
             }
         }
@@ -196,7 +197,12 @@ extension DemoPipelineProbe {
                 guard let load = state.loads.removeValue(forKey: id) else { return }
                 state.figures.dataLoadingQueue.inFlightCount? -= 1
                 state.figures.inFlightByteCount -= load.byteCount
-                if load.isServedFromHTTPCache {
+                if load.isFixture {
+                    state.figures.fixtureByteCount += load.byteCount
+                    if outcome == .completed, !load.isCancelled {
+                        state.figures.fixtureLoadCount += 1
+                    }
+                } else if load.isServedFromHTTPCache {
                     state.figures.httpCacheLoadCount += 1
                     state.figures.httpCacheByteCount += load.byteCount
                 } else {
@@ -344,6 +350,9 @@ extension DemoPipelineProbe.Counters {
         var isCancelled = false
         var isServedFromHTTPCache = false
         var isReusedConnection = false
+        /// A load of a ``DemoFixtureLoader``: no network, so none of the
+        /// network's figures.
+        var isFixture = false
     }
 
     /// The decode stages already counted from task records: the last thousand,

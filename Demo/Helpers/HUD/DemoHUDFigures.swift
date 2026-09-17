@@ -109,12 +109,13 @@ enum DemoHUDFigures {
         ]
     }
 
-    /// `network`, `saved`.
+    /// `network`, `saved`. Offline, the network line stays at zero and the
+    /// bytes are the fixtures'.
     static func network(_ figures: DemoPipelineDiagnostics) -> [DemoHUDLine] {
         let timeToFirstByte = figures.timeToFirstByte.count > 0 ? demoDelay(figures.timeToFirstByte.average) : "–"
         return [
             DemoHUDLine("network", "\(bytes(figures.downloadedByteCount)) down · \(bytes(figures.inFlightByteCount)) in flight · \(demoPad(timeToFirstByte, to: 5)) ttfb"),
-            DemoHUDLine("saved", "\(bytes(figures.savedByteCount)) not re-downloaded")
+            DemoHUDLine("saved", "\(bytes(figures.savedByteCount)) not re-downloaded · \(bytes(figures.fixtureByteCount)) fixtures")
         ]
     }
 

@@ -163,6 +163,9 @@ private final class PipelineDelegateDemoModel: ObservableObject {
     @Published private(set) var sources: [Photo.ID: Source] = [:]
     @Published private(set) var reloadToken = UUID()
 
+    /// The tokens handed out so far.
+    private var tokenCount: UInt16 = 0
+
     init() {
         let log = PipelineEventLog()
         self.log = log
@@ -184,7 +187,7 @@ private final class PipelineDelegateDemoModel: ObservableObject {
                 Task { @MainActor in log.append(event) }
             }
         )
-        photos = Self.makePhotos()
+        photos = Self.makePhotos(token: makeToken())
     }
 
     func didComplete(_ photo: Photo, _ result: Result<ImageResponse, ImagePipeline.Error>) {
@@ -199,7 +202,7 @@ private final class PipelineDelegateDemoModel: ObservableObject {
     func reload() {
         log.removeAll()
         sources.removeAll()
-        photos = Self.makePhotos()
+        photos = Self.makePhotos(token: makeToken())
         reloadToken = UUID()
     }
 
@@ -208,11 +211,18 @@ private final class PipelineDelegateDemoModel: ObservableObject {
         reload()
     }
 
+    /// A new token for every load: random, or counted under
+    /// `-demoDeterministic 1`, so that the log reads the same every launch.
+    private func makeToken() -> String {
+        tokenCount &+= 1
+        let value = DemoLaunchOptions.current.isDeterministic ? tokenCount : UInt16.random(in: .min ... .max)
+        return String(format: "%04X", value)
+    }
+
     /// The photos as a server that signs its URLs hands them out: with a new
     /// token every time. The last one is from a private album.
-    private static func makePhotos() -> [Photo] {
-        let token = String(format: "%04X", UInt16.random(in: .min ... .max))
-        return DemoImages.photos.prefix(4).enumerated().map { index, url in
+    private static func makePhotos(token: String) -> [Photo] {
+        DemoImages.photos.prefix(4).enumerated().map { index, url in
             var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             components?.queryItems = [URLQueryItem(name: "token", value: token)]
             var request = ImageRequest(url: components?.url)

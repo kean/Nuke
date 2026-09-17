@@ -148,7 +148,8 @@ struct PipelineHUDDemo: View {
                 ),
                 DemoHUDLine("ttfb", "\(F.timing(ttfb.last, ttfb)) · \(F.timing(ttfb.average, ttfb)) avg · \(F.timing(ttfb.max, ttfb)) max"),
                 DemoHUDLine("reused", "\(F.count(figures.reusedConnectionCount, 5, "download", "downloads")) on an open connection"),
-                DemoHUDLine("urlcache", "\(F.pad(figures.httpCacheLoadCount, 5)) answered · \(F.bytes(figures.httpCacheByteCount))")
+                DemoHUDLine("urlcache", "\(F.pad(figures.httpCacheLoadCount, 5)) answered · \(F.bytes(figures.httpCacheByteCount))"),
+                DemoHUDLine("fixtures", "\(F.pad(figures.fixtureLoadCount, 5)) served · \(F.bytes(figures.fixtureByteCount))")
             ],
             F.storage(caches) + [
                 DemoHUDLine("images", imageCount),
@@ -181,13 +182,14 @@ struct PipelineHUDDemo: View {
         ("previews", "Partial decodes that produced a progressive preview."),
         ("jpeg, png, …", "Final decodes by the format of the image."),
         ("encode", "Encodes of a processed image for the disk cache, and the encoding queue."),
-        ("network", "Bytes of the downloads that ended and of the ones in flight, and the average time to the first byte."),
-        ("saved", "Bytes read from `DataCache` or answered by `URLCache`. A memory cache hit saves a download too, of a size nobody knows."),
+        ("network", "Bytes of the downloads that ended and of the ones in flight, and the average time to the first byte. Fixtures are left out, except from the bytes in flight."),
+        ("saved", "Bytes read from `DataCache` or answered by `URLCache`, then the bytes fixtures delivered. A memory cache hit saves a download too, of a size nobody knows."),
         ("downloads", "`dataLoader(for:)` calls, one per download after coalescing, and the downloads that completed."),
         ("unfinished", "Downloads cancelled and failed. Stuck ones were cancelled and their loader never called `completion`, which holds a data loading slot for good."),
-        ("ttfb", "From the start of a download to its first chunk, for the downloads `URLCache` didn't answer."),
+        ("ttfb", "From the start of a download to its first chunk, for the downloads neither `URLCache` nor a fixture answered."),
         ("reused", "Downloads that went over a connection an earlier one opened. Known only for a `DataLoader`."),
         ("urlcache", "Downloads `URLCache` answered without a request, and their bytes."),
+        ("fixtures", "Downloads a fixture loader completed in place of a request, and the bytes fixtures delivered. Offline, that is every download."),
         ("memory", "Decoded images in the image caches and frames in `AnimatedImageFramePool`, against their limits; read every 3 seconds. Caches that pipelines share count once, and the limits of the others add up."),
         ("disk", "What `DataCache` and the `URLCache` of the pipelines' `DataLoader`s hold, read off the disk every 3 seconds. A write to `DataCache` counts after about a second in staging."),
         ("images", "The images in the image caches."),

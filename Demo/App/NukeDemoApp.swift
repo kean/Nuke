@@ -23,6 +23,31 @@ struct NukeDemoApp: App {
         // launched with `NUKE_DIAGNOSTICS_ENABLED` set, logs a timeline of
         // every task to Console.
         ImagePipeline.shared = DemoPipelineProbe.makePipeline("Shared", configuration: .withURLCache)
+
+        if DemoLaunchOptions.current.isDeterministic {
+            Self.prepareDeterministicLaunch()
+        }
+    }
+
+    /// Takes away what makes one launch look different from the last, for
+    /// `-demoDeterministic 1`: the offline switch is already on (see
+    /// ``DemoFixtureMode``), and this empties the disk caches a previous run
+    /// filled and drops the fade, whose frame a screenshot would catch at
+    /// random.
+    ///
+    /// Every `DataCache` the demo creates is named
+    /// `com.github.kean.NukeDemo.<screen>`, and none exists yet.
+    private static func prepareDeterministicLaunch() {
+        ImageLoadingOptions.shared.transition = nil
+        DataLoader.sharedUrlCache.removeAllCachedResponses()
+        let fileManager = FileManager.default
+        guard let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first,
+              let names = try? fileManager.contentsOfDirectory(atPath: caches.path) else {
+            return
+        }
+        for name in names where name.hasPrefix("com.github.kean.NukeDemo.") {
+            try? fileManager.removeItem(at: caches.appendingPathComponent(name))
+        }
     }
 
     var body: some Scene {

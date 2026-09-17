@@ -30,6 +30,18 @@ struct DemoLaunchOptions {
     private(set) var showsHUD = false
     private(set) var expandsHUD = false
 
+    /// `-demoFixtures offline` starts the app with every image served by
+    /// fixtures – see ``DemoFixtureMode``. `-demoDeterministic 1` implies it,
+    /// unless `-demoFixtures network` says otherwise.
+    private(set) var isOffline = false
+
+    /// `-demoDeterministic 1` starts the app the same way every time, for a
+    /// screenshot script: offline, with the disk caches emptied, no fade on
+    /// UIKit image views, and counted tokens where a screen would draw random
+    /// ones. What still varies: timings, the frames of animations, and the
+    /// figures of the HUD.
+    private(set) var isDeterministic = false
+
     /// What each argument was set to, as written, for the **Automation** screen
     /// to report. An argument that wasn't passed isn't in it.
     private(set) var values: [Argument: String] = [:]
@@ -54,6 +66,19 @@ struct DemoLaunchOptions {
             expandsHUD = value == "expanded"
             showsHUD = expandsHUD || defaults.bool(forKey: Argument.hud.rawValue)
         }
+        if values[.deterministic] != nil {
+            isDeterministic = defaults.bool(forKey: Argument.deterministic.rawValue)
+        }
+        isOffline = isDeterministic
+        if let value = values[.fixtures] {
+            switch value {
+            case "offline": isOffline = true
+            case "network": isOffline = false
+            default:
+                let fallback = isOffline ? "offline" : "online"
+                Self.logger.error("-demoFixtures \(value, privacy: .public): not a mode, so the app starts \(fallback, privacy: .public). The modes are offline and network.")
+            }
+        }
     }
 
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "Launch")
@@ -68,6 +93,8 @@ extension DemoLaunchOptions {
         case screen = "demoScreen"
         case lab = "demoLab"
         case hud = "demoHUD"
+        case fixtures = "demoFixtures"
+        case deterministic = "demoDeterministic"
 
         var id: String { rawValue }
 
@@ -80,6 +107,8 @@ extension DemoLaunchOptions {
             case .screen: "<id>"
             case .lab: "0 | 1"
             case .hud: "0 | 1 | expanded"
+            case .fixtures: "offline | network"
+            case .deterministic: "0 | 1"
             }
         }
 
@@ -89,6 +118,8 @@ extension DemoLaunchOptions {
             case .screen: "Opens the app on a screen, with the menus it is reached through beneath it; `lab` opens the Lab menu. An id that no screen has opens the catalog, and Console says why."
             case .lab: "`0` leaves the Lab row out of the catalog, for a screenshot of the catalog alone. `1`, the default, keeps it."
             case .hud: "`1` opens the app with the pipeline HUD over every screen, folded into its pill, and `expanded` with its panel open. `0`, the default, leaves it off until the gauge in the navigation bar switches it on."
+            case .fixtures: "`offline` serves every image from fixtures – generated or bundled stand-ins for the demo's URLs – and sends nothing to the network. `network`, the default, loads the catalog over the network; Lab screens start on fixtures either way. Fixture Mode in the Lab switches it while the app runs."
+            case .deterministic: "`1` starts the app the same way every time: offline unless `-demoFixtures network` says otherwise, with the disk caches emptied, no fade on UIKit image views, and counted tokens instead of random ones. Timings, animation frames, and the HUD's figures still vary."
             }
         }
     }

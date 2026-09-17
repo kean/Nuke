@@ -18,6 +18,12 @@ import OSLog
 // argument, result, and callback, and `willLoadData`, which holds a data
 // loading slot while it runs, gains no suspension.
 //
+// The one thing it changes is where fixtures come from. A request for a
+// fixture URL, and every request while the demo is offline, goes to a
+// `DemoFixtureLoader` rather than the loader the pipeline was configured with
+// (see `dataLoader(for:pipeline:)`). Routed there, rather than configured, a
+// `DataLoader` stays unwrapped and observed for everything else.
+//
 // What the probe can't see:
 // - Work waiting in a queue. `TaskQueue` keeps its counts to itself, so a
 //   queue reports the work the decorators see running, and its public limit.
@@ -62,6 +68,9 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     /// `true` for a pipeline recording diagnostics, whose decoders aren't wrapped.
     private let isRecordingDiagnostics: Bool
     private let onEvent: EventHandler?
+    /// Answers the requests for fixtures, at the pace of the configured
+    /// loader.
+    private let fixtureLoader: DemoFixtureLoader
 
     private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?, onEvent: EventHandler?) {
         let counters = Counters(label: label)
@@ -72,6 +81,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         self.onEvent = onEvent
         self.imageCache = configuration.imageCache.map { CountingImageCache($0, counters: counters) }
         self.isRecordingDiagnostics = configuration.isDiagnosticsEnabled
+        self.fixtureLoader = Self.makeFixtureLoader(for: configuration)
 
         // The loader reads its delegate without a lock, so it is set before
         // the pipeline exists and can start a download.
@@ -278,15 +288,47 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         base.previewPolicy(for: context, pipeline: pipeline)
     }
 
+    /// The loader the delegate returns, unless the request is for a fixture
+    /// or the demo is offline: then a ``DemoFixtureLoader``, so that nothing
+    /// but a fixture loader sees a fixture URL, and nothing goes to the
+    /// network offline.
+    ///
+    /// The pipeline asks once per download, after coalescing and once a data
+    /// loading slot is free, so the mode is read for every download, and a
+    /// switch applies to the next one. A delegate that returns a fixture
+    /// loader of its own keeps it, with its pace.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         counters.downloadRequested()
         let dataLoader = base.dataLoader(for: request, pipeline: pipeline)
+        if !(dataLoader is DemoFixtureLoader), DemoFixture.isFixture(request.url) || DemoFixtureMode.isOffline {
+            return CountingDataLoader(fixtureLoader, counters: counters)
+        }
         // Wrapped, a `DataLoader` would lose the `URLSession` metrics the
         // pipeline records. Its session delegate counts it instead.
         guard !(dataLoader is DataLoader) else {
             return dataLoader
         }
         return CountingDataLoader(dataLoader, counters: counters)
+    }
+
+    /// A fixture loader at the pace of the configured loader: a
+    /// ``ThrottledDataLoader``'s chunks, so that Progressive Decoding shows
+    /// its scans offline, each a little later than the pipeline's
+    /// `progressiveDecodingInterval` so that none is skipped; everything at
+    /// once for any other.
+    private static func makeFixtureLoader(for configuration: ImagePipeline.Configuration) -> DemoFixtureLoader {
+        switch configuration.dataLoader {
+        case let loader as DemoFixtureLoader:
+            return loader
+        case let loader as ThrottledDataLoader:
+            var pace = DemoFixtureLoader.Pace.throttled(chunkSize: loader.chunkSize, interval: loader.interval)
+            if configuration.isProgressiveDecodingEnabled {
+                pace.scanInterval = .seconds(configuration.progressiveDecodingInterval) + .milliseconds(100)
+            }
+            return DemoFixtureLoader(pace: pace)
+        default:
+            return DemoFixtureLoader()
+        }
     }
 
     @ImagePipelineActor
