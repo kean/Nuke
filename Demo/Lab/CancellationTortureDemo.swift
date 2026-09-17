@@ -98,7 +98,7 @@ struct CancellationTortureDemo: View {
                 return "not run yet"
             }
             let counts = [
-                (TortureVerdict.State.passed, "passed"),
+                (DemoVerdict.State.passed, "passed"),
                 (.failed, "failed"),
                 (.skipped, "skipped")
             ].compactMap { state, title in
@@ -124,7 +124,7 @@ struct CancellationTortureDemo: View {
     private func verdicts(_ report: TortureReport) -> some View {
         Section {
             ForEach(report.verdicts) { verdict in
-                VerdictRow(state: verdict.state, title: verdict.title, figures: verdict.figures, detail: showsDetails ? verdict.detail : nil)
+                DemoVerdictRow(verdict, showsDetail: showsDetails)
             }
             if report.violationCount > 0 {
                 ForEach(Array(report.violations.enumerated()), id: \.offset) { _, violation in
@@ -269,72 +269,19 @@ private enum Autorun {
 
 // MARK: - Rows
 
-/// A mark, what was checked, and the figures.
-private struct VerdictRow: View {
-    let state: TortureVerdict.State
-    let title: String
-    let figures: String
-    var note: String?
-    let detail: String?
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: symbol)
-                .foregroundStyle(tint)
-                .imageScale(.medium)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                    if let note {
-                        Spacer(minLength: 8)
-                        Text(note)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(tint)
-                    }
-                }
-                DemoMonoLabel(figures)
-                if let detail {
-                    Text(LocalizedStringKey(detail))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var symbol: String {
-        switch state {
-        case .passed: "checkmark.circle.fill"
-        case .failed: "xmark.circle.fill"
-        case .expectedFailure: "xmark.circle"
-        case .skipped: "minus.circle"
-        }
-    }
-
-    private var tint: Color {
-        switch state {
-        case .passed: .green
-        case .failed: .red
-        case .expectedFailure: .orange
-        case .skipped: .secondary
-        }
-    }
-}
-
 /// One loader of the slot check.
 private struct SlotRow: View {
     let result: SlotCheck.Result
 
     var body: some View {
-        VerdictRow(state: state, title: title, figures: figures, note: note, detail: detail)
+        DemoVerdictRow(state: state, title: title, figures: figures, note: note, detail: detail)
     }
 
     private var gotSlot: Bool {
         result.dataLoaderAfter != nil
     }
 
-    private var state: TortureVerdict.State {
+    private var state: DemoVerdict.State {
         if result.completesCancelledLoads {
             return gotSlot && result.completedAfter != nil && result.releasedAfter != nil ? .passed : .failed
         }

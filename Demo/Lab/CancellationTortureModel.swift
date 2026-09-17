@@ -170,7 +170,7 @@ struct TortureReport: Sendable {
     let violations: [String]
     let violationCount: Int
     let log: [LogLine]
-    var verdicts: [TortureVerdict] = []
+    var verdicts: [DemoVerdict] = []
 
     struct Queues: Sendable {
         var loading: Int?
@@ -231,24 +231,6 @@ struct TortureReport: Sendable {
             }
         }
     }
-}
-
-/// One thing a run checks, and how it came out.
-struct TortureVerdict: Identifiable, Sendable {
-    enum State: Sendable {
-        case passed
-        case failed
-        /// A failure that comes from Nuke as it is, not from the demo.
-        case expectedFailure
-        case skipped
-    }
-
-    let title: String
-    let state: State
-    let figures: String
-    let detail: String
-
-    var id: String { title }
 }
 
 /// The last slot check: one result per loader, or why it didn't run.
@@ -699,8 +681,8 @@ extension TortureRun {
         }
     }
 
-    private static func verdicts(for report: TortureReport, logs: some Collection<TortureTaskLog>) -> [TortureVerdict] {
-        var verdicts: [TortureVerdict] = []
+    private static func verdicts(for report: TortureReport, logs: some Collection<TortureTaskLog>) -> [DemoVerdict] {
+        var verdicts: [DemoVerdict] = []
         let cancelled = logs.filter(\.isCancelled)
         let hasFailuresOnPurpose = DemoNetworkConditions.current?.hasFailures ?? false
 
@@ -711,7 +693,7 @@ extension TortureRun {
         let inFlight = cancelled.filter { $0.eventsAfterCancel > 0 }
         let inFlightEvents = inFlight.reduce(0) { $0 + $1.eventsAfterCancel }
         let latestInFlight = inFlight.map(\.latestEventAfterCancel).max() ?? .zero
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "No callbacks after cancel",
             state: closuresAfterCancel + afterFinish == 0 ? .passed : .failed,
             figures: "\(closuresAfterCancel + afterFinish) late · \(callbacks.formatted()) callbacks · \(cancelled.count.formatted()) cancels",
@@ -730,7 +712,7 @@ extension TortureRun {
         let lateLags = lateFinishes.compactMap { log in log.finishedAt.flatMap { finished in log.cancelledAt.map { finished - $0 } } }
         let ignored = lateLags.count { $0 > .seconds(1) }
         let broken = never + twice + mismatched + missingCompletion + ignored
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "Every task finished once",
             state: broken == 0 ? .passed : .failed,
             figures: "\(logs.count { $0.finishCount == 1 }.formatted()) finished · \(twice) twice · \(never) never · \(mismatched) disagreed",
@@ -742,7 +724,7 @@ extension TortureRun {
         ))
 
         // No surviving ImageTask
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "No ImageTask left",
             state: report.aliveTaskCount == 0 ? .passed : .failed,
             figures: "\(report.aliveTaskCount) of \(report.taskCount.formatted()) alive",
@@ -753,7 +735,7 @@ extension TortureRun {
         // Queues back to zero
         let queues = report.queues
         func count(_ value: Int?) -> String { value.map(String.init) ?? "–" }
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "Queues back to zero",
             state: queues.isIdle ? .passed : .failed,
             figures: "load \(count(queues.loading))/\(queues.loadingLimit) · stuck \(queues.stuck) · decode \(count(queues.decoding)) · decompress \(count(queues.decompressing)) · process \(queues.processing) · tasks \(queues.activeTasks)",
@@ -767,7 +749,7 @@ extension TortureRun {
         let survivorFailures = Dictionary(grouping: survivors.compactMap { log -> String? in
             if case .failed(let name)? = log.result { name } else { nil }
         }, by: { $0 })
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "Survivors got their image",
             state: survivorImages == survivors.count ? .passed : hasFailuresOnPurpose ? .skipped : .failed,
             figures: "\(survivorImages) of \(survivors.count) · \(survivors.count - survivorImages) failed",
@@ -777,15 +759,15 @@ extension TortureRun {
         ))
 
         // A new request
-        let fresh: (TortureVerdict.State, String, String) = switch report.fresh {
+        let fresh: (DemoVerdict.State, String, String) = switch report.fresh {
         case .completed(let time): (.passed, "completed in \(tortureDuration(time))", "A photo nothing in the run asked for, on the same pipeline, once the queues were idle.")
         case let .failed(error, time): (hasFailuresOnPurpose ? .skipped : .failed, "failed in \(tortureDuration(time))", "It failed with `\(error)`.")
         case .timedOut(let time): (.failed, "not done in \(tortureDuration(time))", "It never finished: something still holds what it needs.")
         }
-        verdicts.append(TortureVerdict(title: "A new request completes", state: fresh.0, figures: fresh.1, detail: fresh.2))
+        verdicts.append(DemoVerdict(title: "A new request completes", state: fresh.0, figures: fresh.1, detail: fresh.2))
 
         // The pipeline goes away
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "Pipeline released",
             state: report.pipelineReleasedAfter == nil ? .failed : .passed,
             figures: report.pipelineReleasedAfter.map { "gone after \(tortureDuration($0))" } ?? "alive after 3 s",
@@ -795,7 +777,7 @@ extension TortureRun {
         // The rate
         let actualRate = report.startSpan > 0 ? Double(report.taskCount - 1) / report.startSpan : 0
         let pairs = report.taskCount - report.requestCount
-        verdicts.append(TortureVerdict(
+        verdicts.append(DemoVerdict(
             title: "Started at \(report.rate)/s",
             state: abs(actualRate - Double(report.rate)) <= Double(report.rate) * 0.05 ? .passed : .failed,
             figures: "\(report.taskCount.formatted()) tasks in \(String(format: "%.2fs", report.startSpan)) · \(String(format: "%.1f", actualRate))/s",
