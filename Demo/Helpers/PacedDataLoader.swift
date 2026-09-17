@@ -115,6 +115,9 @@ private actor PacedLoad: Cancellable {
             // Suspends while the response downloads, which lets a cancel
             // through: it cancels the download too.
             var (data, response) = try await session.data(for: load.request)
+            // A cancel that raced the download's end has called `completion`:
+            // the hooks hear of nothing after it.
+            guard !isFinished else { return }
             response = hooks.willPassResponse?(load, response) ?? response
             if let response = response as? HTTPURLResponse, !(200..<300).contains(response.statusCode) {
                 throw URLError(.badServerResponse)

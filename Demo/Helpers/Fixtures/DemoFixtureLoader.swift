@@ -177,6 +177,9 @@ private actor Load: Cancellable {
             }
             // Suspends while the fixture is made, which lets a cancel through.
             let entry = try await store.entry(for: fixture)
+            // A cancel that got in has called `completion`: the hooks hear of
+            // nothing after it.
+            guard !isFinished else { return }
             let reply = Reply(to: request, url: url ?? fixture.url, fixture: fixture, entry: entry)
             let response = hooks.willPassResponse?(load, reply.response) ?? reply.response
             try await wait(pace.latency)
