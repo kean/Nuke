@@ -87,9 +87,9 @@ enum DemoImages {
         static let apng = URL(string: "https://upload.wikimedia.org/wikipedia/commons/1/14/Animated_PNG_example_bouncing_beach_ball.png")!
         static let animatedWebP = URL(string: "https://www.gstatic.com/webp/animated/1.webp")!
         static let largeGIF = URL(string: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")!
-        static let webp = URL(string: "https://kean.github.io/images/misc/4.webp")!
-        static let video = URL(string: "https://kean.github.io/videos/cat_video.mp4")!
-        static let failing = URL(string: "https://kean.github.io/images/this-image-does-not-exist.jpeg")!
+        static let webp = URL(string: "https://kean.blog/images/misc/4.webp")!
+        static let video = URL(string: "https://kean.blog/videos/cat_video.mp4")!
+        static let failing = URL(string: "https://kean.blog/images/this-image-does-not-exist.jpeg")!
 
         /// The photo stream. The URLs are in `photos.json`, in the demo's
         /// resources, so the stream can be edited without touching the code.
