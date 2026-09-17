@@ -401,11 +401,16 @@ final class DataCacheTorture: Sendable {
     private func sample(_ cache: DataCache, until deadline: ContinuousClock.Instant) async {
         let metadataURL = directory.appendingPathComponent(".data-cache-info", isDirectory: false)
         while clock.now < deadline, !Task.isCancelled {
+            // Stamped before the directory is listed. A sweep that ends
+            // while it is listed, or before its date is read below, would
+            // otherwise make a size from before the sweep the first
+            // reading after it.
+            let readAt = clock.now
             let size = cache.totalSize
             let date = Self.lastSweepDate(at: metadataURL)
             state.withLock { state in
                 guard let start = state.start else { return }
-                let time = (clock.now - start).demoTimeInterval
+                let time = (readAt - start).demoTimeInterval
                 state.samples.append(.init(time: time, value: Double(size)))
                 if let date, date != state.lastSweepDate {
                     state.lastSweepDate = date
