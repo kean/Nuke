@@ -159,9 +159,15 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
+#if os(visionOS)
+        .onChange(of: context) {
+            viewModel.load($1?.request)
+        }
+#else
         .onChange(of: context) {
             viewModel.load($0?.request)
         }
+#endif
     }
 
     @ViewBuilder
