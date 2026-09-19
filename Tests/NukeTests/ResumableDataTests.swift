@@ -352,87 +352,13 @@ struct ResumableDataTests {
     }
 }
 
+/// Uses its own ``ResumableDataStorage`` instead of the shared one, which every
+/// pipeline in the test process registers with, so that its lifecycle can be
+/// observed, and so that removing all responses doesn't take the data from
+/// under the suites running in parallel.
 @ImagePipelineActor
 @Suite(.timeLimit(.minutes(5)))
 struct ResumableDataStorageTests {
-    @Test func registerAndUnregister() {
-        let storage = ResumableDataStorage.shared
-
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-        }
-
-        storage.register(pipeline.id)
-        storage.unregister(pipeline.id)
-    }
-
-    @Test func storeAndRemoveResumableData() throws {
-        let storage = ResumableDataStorage.shared
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-        }
-        storage.register(pipeline.id)
-
-        let response = HTTPURLResponse(
-            url: Test.url,
-            statusCode: 200,
-            httpVersion: "HTTP/1.1",
-            headerFields: [
-                "Accept-Ranges": "bytes",
-                "Content-Length": "2000",
-                "ETag": "abc123"
-            ]
-        )!
-        let resumableData = ResumableData(response: response, data: Data(count: 1000))!
-
-        let request = ImageRequest(url: Test.url)
-        storage.storeResumableData(resumableData, for: request, pipeline: pipeline)
-
-        let retrieved = try #require(storage.removeResumableData(for: request, pipeline: pipeline))
-        #expect(retrieved.data.count == 1000)
-        #expect(retrieved.validator == "abc123")
-
-        // Should be nil after removal
-        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
-
-        storage.unregister(pipeline.id)
-    }
-
-    @Test func removeAllResponses() {
-        let storage = ResumableDataStorage.shared
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-        }
-        storage.register(pipeline.id)
-
-        let response = HTTPURLResponse(
-            url: Test.url,
-            statusCode: 200,
-            httpVersion: "HTTP/1.1",
-            headerFields: [
-                "Accept-Ranges": "bytes",
-                "Content-Length": "2000",
-                "ETag": "xyz"
-            ]
-        )!
-        let resumableData = ResumableData(response: response, data: Data(count: 1000))!
-
-        storage.storeResumableData(resumableData, for: ImageRequest(url: Test.url), pipeline: pipeline)
-        storage.removeAllResponses()
-
-        let retrieved = storage.removeResumableData(for: ImageRequest(url: Test.url), pipeline: pipeline)
-        #expect(retrieved == nil)
-
-        storage.unregister(pipeline.id)
-    }
-}
-
-/// Uses its own ``ResumableDataStorage`` instead of the shared one, which every
-/// pipeline in the test process registers with, so that its lifecycle can be
-/// observed.
-@ImagePipelineActor
-@Suite(.timeLimit(.minutes(5)))
-struct ResumableDataStorageLifecycleTests {
     private let storage = ResumableDataStorage()
     private let pipeline = ImagePipeline { $0.dataLoader = MockDataLoader() }
     private let request = ImageRequest(url: Test.url)
@@ -553,6 +479,18 @@ struct ResumableDataStorageLifecycleTests {
         #expect(storage.removeResumableData(for: requests[0], pipeline: pipeline) == nil)
         #expect(storage.removeResumableData(for: requests[1], pipeline: pipeline) != nil)
         #expect(storage.removeResumableData(for: requests[100], pipeline: pipeline) != nil)
+    }
+
+    @Test func removingAllResponsesDropsTheData() {
+        // Given
+        storage.register(pipeline.id)
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // When
+        storage.removeAllResponses()
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
     }
 
     @Test func removingAllResponsesKeepsTheStorageUsable() {
