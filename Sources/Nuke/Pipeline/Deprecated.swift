@@ -8,7 +8,10 @@ import Foundation
 //
 // Removed APIs are kept as unavailable stubs that name their replacement: the
 // message goes straight into the compiler error, and `renamed:` also becomes an
-// Xcode fix-it. They are deleted two major versions after the removal.
+// Xcode fix-it. They are deleted two major versions after the removal. Their
+// bodies are never reached.
+
+// swiftlint:disable fatal_error_message unused_setter_value
 
 /// - warning: Renamed to ``ImagePipeline/Delegate``.
 @available(*, unavailable, renamed: "ImagePipeline.Delegate")
@@ -76,6 +79,8 @@ extension ImagePipeline {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
     nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError() }
 }
+
+// swiftlint:enable fatal_error_message unused_setter_value
 
 // MARK: - Soft-deprecated in Nuke 12.9
 

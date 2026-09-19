@@ -112,7 +112,7 @@ final class DisplayLinkClock: AnimatedImageClock {
     /// `nonisolated(unsafe)` so that `deinit` can reach it from whatever
     /// thread released the clock, which is the one thing outside the main
     /// actor that touches it. The tests watch it go.
-    private(set) nonisolated(unsafe) var link: CADisplayLink!
+    nonisolated(unsafe) private(set) var link: CADisplayLink!
     private var lastTimestamp: CFTimeInterval = 0
 
     /// - parameter makeLink: What produces the link, because AppKit asks the

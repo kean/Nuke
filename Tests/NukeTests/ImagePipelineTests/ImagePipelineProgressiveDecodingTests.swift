@@ -276,7 +276,7 @@ struct ImagePipelineProgressiveDecodingTests {
         let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })]))
         let previewEvents = task.previews
         let progressEvents = task.progress
-        Task {
+        _ = Task {
             for try await _ in previewEvents {
                 dataLoader.resume()
             }

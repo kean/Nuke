@@ -16,11 +16,12 @@ extension FetchImage {
 //
 // Removed APIs are kept as unavailable stubs that name their replacement: the
 // message goes straight into the compiler error. They are deleted two major
-// versions after the removal.
+// versions after the removal. Their bodies are never reached.
 
 extension FetchImage {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `load(_:)` with an async closure, for example `load { try await pipeline.image(for: url) }`.")
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
+        // swiftlint:disable:next fatal_error_message
         fatalError()
     }
 }

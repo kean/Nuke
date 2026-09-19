@@ -396,5 +396,5 @@ public final class AnimatedImageFramePool {
     /// Whether a division is already on its way. Behind a lock rather than on
     /// the main actor, because a `deinit` is on whatever thread released the
     /// player.
-    private nonisolated let isRebalanceScheduled = OSAllocatedUnfairLock(initialState: false)
+    nonisolated private let isRebalanceScheduled = OSAllocatedUnfairLock(initialState: false)
 }

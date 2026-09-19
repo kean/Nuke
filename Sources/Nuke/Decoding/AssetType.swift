@@ -102,6 +102,7 @@ extension AssetType {
         self = type
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     private static func make(_ data: Data) -> AssetType? {
         func _match(_ numbers: [UInt8?], offset: Int = 0) -> Bool {
             guard data.count >= numbers.count + offset else {
@@ -222,6 +223,7 @@ extension AssetType {
             return nil
         }
         let start = data.index(data.startIndex, offsetBy: offset)
+        // swiftlint:disable:next optional_data_string_conversion
         return String(decoding: data[start..<data.index(start, offsetBy: count)], as: UTF8.self)
     }
 

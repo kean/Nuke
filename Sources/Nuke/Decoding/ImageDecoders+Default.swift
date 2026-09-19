@@ -97,6 +97,7 @@ extension ImageDecoders {
             return container
         }
 
+        // swiftlint:disable:next cyclomatic_complexity
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
             lock.lock()
             defer { lock.unlock() }
