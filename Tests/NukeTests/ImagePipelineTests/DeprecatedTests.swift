@@ -82,6 +82,61 @@ struct DeprecationTests {
         #expect(progressValues.value[1] == (20, 20))
     }
 
+    @Test func loadImageProgressReportsPreviews() async {
+        // Given
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // When
+        let previews = Ref<[(response: ImageResponse, completed: Int64)]>([])
+        let result: Result<ImageResponse, ImagePipeline.Error> = await withCheckedContinuation { continuation in
+            pipeline.loadImage(
+                with: Test.request,
+                progress: { response, completed, _ in
+                    #expect(Thread.isMainThread)
+                    guard let response else { return }
+                    previews.value.append((response, completed))
+                    dataLoader.resume() // Serve the next chunk
+                },
+                completion: { continuation.resume(returning: $0) }
+            )
+        }
+
+        // Then the previews arrive through the progress closure, along with
+        // the progress at the time they are delivered
+        #expect(result.value?.container.isPreview == false)
+        #expect(previews.value.count == 2)
+        #expect(previews.value.allSatisfy { $0.response.container.isPreview })
+        #expect(previews.value.allSatisfy { $0.completed > 0 })
+    }
+
+    /// Unlike a cancellation requested by the caller, the one caused by the
+    /// invalidation of the pipeline is reported: nobody else would tell the
+    /// caller that the request is over.
+    @Test func loadImageReportsTheCancellationCausedByInvalidation() async {
+        // Given
+        dataLoader.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let pipeline = self.pipeline
+
+        // When
+        let result: Result<ImageResponse, ImagePipeline.Error> = await withCheckedContinuation { continuation in
+            pipeline.loadImage(with: Test.request) { continuation.resume(returning: $0) }
+            Task {
+                await didStartLoading.wait()
+                pipeline.invalidate()
+            }
+        }
+
+        // Then
+        #expect(result.error == .cancelled)
+    }
+
     @Test func loadImageCancellation() async {
         dataLoader.isSuspended = true
         let task = await withCheckedContinuation { (continuation: CheckedContinuation<ImageTask, Never>) in
@@ -243,5 +298,62 @@ struct DeprecatedImageTaskStateTests {
 
         #expect(task.isCancelled)
         #expect(task.state == .completed)
+    }
+}
+
+@Suite(.timeLimit(.minutes(5)))
+struct DeprecatedImageTaskProgressTests {
+    private let pipeline: ImagePipeline
+    private let dataLoader: MockDataLoader
+
+    init() {
+        let dataLoader = MockDataLoader()
+        self.dataLoader = dataLoader
+        self.pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
+    @available(*, deprecated)
+    @Test func currentProgressMatchesTheStatus() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let task = pipeline.imageTask(with: Test.request)
+        #expect(task.currentProgress == ImageTask.Progress(completed: 0, total: 0))
+
+        // When
+        dataLoader.isSuspended = false
+        _ = try await task.response
+
+        // Then
+        #expect(task.currentProgress == task.status.progress)
+        #expect(task.currentProgress.fraction == 1)
+    }
+}
+
+/// The deprecated names forward to the new ones, including the side effects.
+@Suite(.timeLimit(.minutes(5))) @ImagePipelineActor
+struct DeprecatedTaskQueueTests {
+    @available(*, deprecated)
+    @Test func initializerSetsTheLimit() {
+        let queue = TaskQueue(maxConcurrentOperationCount: 3)
+        #expect(queue.maxConcurrentTaskCount == 3)
+        #expect(queue.maxConcurrentOperationCount == 3)
+    }
+
+    @available(*, deprecated)
+    @Test func raisingTheLimitStartsPendingWork() async {
+        // Given
+        let queue = TaskQueue(maxConcurrentOperationCount: 0)
+        let didRun = TestExpectation()
+        queue.add { didRun.fulfill() }
+
+        // When
+        queue.maxConcurrentOperationCount = 1
+
+        // Then
+        #expect(queue.maxConcurrentTaskCount == 1)
+        await didRun.wait()
     }
 }

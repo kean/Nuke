@@ -4,12 +4,17 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// The pipeline retains every ``ImageTask`` in an internal list until the task
 /// finishes. These tests cover the requests that finish _synchronously_ – while
 /// the pipeline is still starting them – to make sure they don't stay in the
 /// list forever, pinning the responses they hold.
+///
+/// The tests of the objects released after an asynchronous completion poll
+/// with `waitUntil`: there is no callback for an object being released, and
+/// the last references are dropped by the tasks the pipeline runs on its actor.
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineTaskLifetimeTests {
     private let dataLoader: MockDataLoader
@@ -174,6 +179,74 @@ struct ImagePipelineTaskLifetimeTests {
         #expect(weakTask == nil)
     }
 
+    @Test func taskIsDeallocatedAfterAsynchronousCompletion() async throws {
+        // When
+        weak var weakTask: ImageTask?
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            _ = try await task.response
+        }
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+        await waitUntil { weakTask == nil }
+    }
+
+    // MARK: - Pipeline Deallocation
+
+    /// "The user does not need to hold a strong reference to the pipeline."
+    @Test func outstandingTaskKeepsThePipelineAliveUntilItFinishes() async throws {
+        // Given a task of a pipeline that nobody else retains
+        weak var weakPipeline: ImagePipeline?
+        dataLoader.isSuspended = true
+        let task: ImageTask
+        do {
+            let pipeline = ImagePipeline {
+                $0.dataLoader = dataLoader
+                $0.imageCache = nil
+            }
+            weakPipeline = pipeline
+            task = pipeline.imageTask(with: Test.request)
+        }
+        #expect(weakPipeline != nil)
+
+        // When
+        dataLoader.isSuspended = false
+        let response = try await task.response
+
+        // Then the task finishes, and the pipeline is released after it
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
+        await waitUntil { weakPipeline == nil }
+    }
+
+    @Test func cancelledTaskReleasesThePipeline() async throws {
+        // Given a task that is loading data
+        let dataLoader = CancellationReportingDataLoader()
+        weak var weakPipeline: ImagePipeline?
+        weak var weakTask: ImageTask?
+        do {
+            let pipeline = ImagePipeline {
+                $0.dataLoader = dataLoader
+                $0.imageCache = nil
+            }
+            weakPipeline = pipeline
+            let task = pipeline.imageTask(with: Test.request)
+            weakTask = task
+            await dataLoader.didStart.wait()
+
+            // When
+            task.cancel()
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task.response
+            }
+        }
+
+        // Then nothing is left behind
+        await waitUntil { weakTask == nil && weakPipeline == nil }
+        #expect(dataLoader.isCancelled)
+    }
+
     // MARK: - Events
 
     @Test func startedEventIsDeliveredBeforeFinishedOnMemoryCacheHit() async throws {
@@ -202,5 +275,32 @@ struct ImagePipelineTaskLifetimeTests {
     /// Waits for the work the pipeline scheduled while starting a task.
     private func drainPipeline() async {
         await Task { @ImagePipelineActor in }.value
+    }
+}
+
+/// Holds the request until it's cancelled, and reports the cancellation the
+/// way `DataLoading` requires: by calling the completion.
+private final class CancellationReportingDataLoader: DataLoading, Sendable {
+    let didStart = TestExpectation()
+    private let cancellable = CompletionOnCancel()
+
+    var isCancelled: Bool { cancellable.isCancelled }
+
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        cancellable.completion.withLock { $0 = completion }
+        didStart.fulfill()
+        return cancellable
+    }
+}
+
+private final class CompletionOnCancel: Cancellable {
+    let completion = OSAllocatedUnfairLock<(@Sendable (Error?) -> Void)?>(initialState: nil)
+    private let _isCancelled = OSAllocatedUnfairLock(initialState: false)
+
+    var isCancelled: Bool { _isCancelled.withLock { $0 } }
+
+    func cancel() {
+        _isCancelled.withLock { $0 = true }
+        completion.withLock { $0.take() }?(URLError(.cancelled))
     }
 }
