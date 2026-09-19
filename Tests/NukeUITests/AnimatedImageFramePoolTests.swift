@@ -358,6 +358,107 @@ struct AnimatedImageFramePoolTests {
         #expect(player.diagnostics.bufferByteLimit > 0)
     }
 
+    @Test func stopsCountingAPlayerTheMomentItIsReleased() throws {
+        // Before the division its release asks for: a `deinit` can't divide
+        // the budget, but the count is of the players still around.
+        let pool = makePool(frames: 100)
+        let kept = try makePlayer(frameCount: 4, pool: pool)
+        var released: AnimatedImagePlayer? = try makePlayer(frameCount: 4, pool: pool)
+        #expect(pool.playerCount == 2)
+        #expect(pool.activePlayerCount == 2)
+
+        released = nil
+
+        #expect(released == nil)
+        #expect(pool.playerCount == 1)
+        #expect(pool.activePlayerCount == 1)
+        #expect(pool.animationCount == 2) // Its frames are still kept
+        #expect(kept.isPlaying)
+    }
+
+    // MARK: Limits
+
+    @Test func theDefaultLimitIsAQuarterOfTheBudgetForDecodedImages() {
+        // One figure split two ways: the image cache takes three quarters,
+        // the frames of the animations the rest, capped at 128 MB.
+        let limit = AnimatedImageFramePool.defaultCostLimit
+
+        #expect(limit == min(ImageCache.defaultMemoryBudget / 4, 128 * 1_048_576))
+        #expect(limit > 0)
+        #expect(limit + ImageCache.defaultCostLimit <= ImageCache.defaultMemoryBudget)
+        #expect(AnimatedImageFramePool().costLimit == limit)
+    }
+
+    @Test func settingTheLimitItAlreadyHasDividesNothing() throws {
+        let pool = makePool(frames: 8)
+        let player = try makePlayer(frameCount: 4, pool: pool)
+        let divisions = pool.rebalanceCount
+
+        pool.costLimit = 8 * Self.bytesPerFrame
+        #expect(pool.rebalanceCount == divisions)
+
+        pool.costLimit = 9 * Self.bytesPerFrame
+        #expect(pool.rebalanceCount == divisions + 1)
+        #expect(player.diagnostics.bufferCapacity == 4)
+    }
+
+    @Test(arguments: [0, -1, Int.min])
+    func aLimitOfNothingLeavesEveryAnimationItsTwoFrames(costLimit: Int) async throws {
+        let pool = AnimatedImageFramePool(costLimit: costLimit)
+
+        let player = try makePlayer(frameCount: 8, pool: pool)
+        await player.waitUntilFull()
+
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+        #expect(player.diagnostics.bufferedFrameCount == AnimatedImagePlayer.idleFrameCount)
+    }
+
+    @Test func goesOverTheLimitRatherThanDropTheFramesPlaybackNeeds() async throws {
+        // The one thing outside the limit: a player holds two frames however
+        // little room there is. A pool over its limit never takes the frame
+        // on screen or the one after it to get back under.
+        let pool = makePool(frames: 1)
+        let player = try makePlayer(frameCount: 4, pool: pool)
+
+        await player.waitUntilFull()
+
+        #expect(player.isFrameBuffered(0))
+        #expect(player.isFrameBuffered(1))
+        #expect(pool.totalCost == 2 * Self.bytesPerFrame)
+        #expect(pool.totalCost > pool.costLimit)
+    }
+
+    @Test func givesBackTheAnimationNobodyHasPlayedForLongestFirst() async throws {
+        // Ten frames of pool, eight of them kept for two animations a list has
+        // scrolled past. A third needs four, and the room comes out of the one
+        // that went idle first; the other is still there for a second look.
+        let pool = makePool(frames: 10)
+        // Held here the way the image cache holds them: the frames of an
+        // animation nothing refers to go with it.
+        let sources = try [makeSource(frameCount: 4), makeSource(frameCount: 4)]
+        var older: AnimatedImagePlayer? = try makePlayer(source: sources[0], pool: pool)
+        var newer: AnimatedImagePlayer? = try makePlayer(source: sources[1], pool: pool)
+        await older?.waitUntilFull()
+        await newer?.waitUntilFull()
+        let olderFrames = try #require(older?.store)
+        let newerFrames = try #require(newer?.store)
+        older = nil
+        await settle()
+        newer = nil
+        await settle()
+        #expect(pool.playerCount == 0)
+        #expect(pool.totalCost == 8 * Self.bytesPerFrame)
+
+        let playing = try makePlayer(frameCount: 4, pool: pool)
+        await playing.waitUntilFull()
+
+        #expect(olderFrames.byteCount == 0)
+        #expect(newerFrames.byteCount == 4 * Self.bytesPerFrame)
+        #expect(playing.diagnostics.bufferedFrameCount == 4)
+        #expect(pool.animationCount == 2)
+        #expect(pool.totalCost <= pool.costLimit)
+    }
+
     // MARK: Helpers
 
     /// A `deinit` isn't on the main actor, so the pool divides the budget
