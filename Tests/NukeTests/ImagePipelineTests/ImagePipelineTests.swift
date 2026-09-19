@@ -55,7 +55,7 @@ struct ImagePipelineTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         // When/Then
@@ -76,7 +76,7 @@ struct ImagePipelineTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: Test.request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         let operation = try #require(expectation.operations.first)
@@ -110,7 +110,7 @@ struct ImagePipelineTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         // When/Then
@@ -130,7 +130,7 @@ struct ImagePipelineTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         // When/Then

@@ -524,7 +524,7 @@ private struct DocumentedImageView: View {
             image.onCompletion = onCompletion
             image.load(url)
         }
-        .onChange(of: url) { image.load($0) }
+        .onChange(of: url) { image.load($1) }
         .onDisappear { image.reset() }
     }
 }

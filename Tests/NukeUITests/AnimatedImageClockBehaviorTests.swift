@@ -225,7 +225,6 @@ struct DisplayLinkClockBehaviorTests {
     // MARK: State
 
     @Test func startsPausedAtASixtyHertzGuess() {
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
 
         #expect(clock.isPaused)
@@ -235,7 +234,6 @@ struct DisplayLinkClockBehaviorTests {
     }
 
     @Test func pausingPausesTheLink() {
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
 
         clock.isPaused = false
@@ -249,7 +247,6 @@ struct DisplayLinkClockBehaviorTests {
     // MARK: Frame Rate
 
     @Test func asksTheLinkForTheRateAndAnythingUpToTheDisplays() {
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
 
         clock.preferredFrameRate = 20
@@ -263,7 +260,6 @@ struct DisplayLinkClockBehaviorTests {
     }
 
     @Test func asksForTheWholeRangeAtTheTopOfIt() {
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
 
         clock.preferredFrameRate = 120
@@ -277,7 +273,6 @@ struct DisplayLinkClockBehaviorTests {
     @Test func goesBackToTheDefaultRangeWhenThePreferenceIsDropped() {
         // What a player does when the system stops throttling an animation
         // faster than the display: from 30 Hz back to "no preference".
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
         clock.preferredFrameRate = 30
         #expect(clock.link.preferredFrameRateRange.preferred == 30)
@@ -289,7 +284,6 @@ struct DisplayLinkClockBehaviorTests {
 
     @Test(arguments: [0.5, 240, -1])
     func usesTheDefaultRangeForARateNoDisplayOffers(_ rate: Double) {
-        guard #available(macOS 14.0, *) else { return }
         let clock = makeClock()
         clock.preferredFrameRate = 20
 
@@ -303,7 +297,6 @@ struct DisplayLinkClockBehaviorTests {
     @Test func aRunningClockIsNotKeptAliveByItsLink() {
         // The run loop holds a running link, and the link holds its target: a
         // clock that was the target would never go away.
-        guard #available(macOS 14.0, *) else { return }
         weak var weakClock: DisplayLinkClock?
         do {
             let clock = makeClock()
@@ -320,7 +313,6 @@ struct DisplayLinkClockBehaviorTests {
         // clock that invalidates it, which is what takes it out of the run
         // loop holding it. UIKit hands the link out autoreleased, so it goes
         // on the next turn of the main queue rather than on the spot.
-        guard #available(macOS 14.0, *) else { return }
         weak var weakLink: CADisplayLink?
         do {
             let clock = makeClock()
@@ -340,7 +332,6 @@ struct DisplayLinkClockBehaviorTests {
         // The view owns the player, the player the clock, and the clock the
         // link: a link that held on to the view it was asked of would keep
         // every `AnimatedImageView` that ever played alive.
-        guard #available(macOS 14.0, *) else { return }
         weak var weakView: NSView?
         var clock: (any AnimatedImageClock)?
         do {
@@ -362,7 +353,6 @@ struct DisplayLinkClockBehaviorTests {
         // The AppKit counterpart of `DisplayLinkClockTests`: a paused link has
         // no next tick to notice its clock has gone, so the clock hands it to
         // the main queue on its way out.
-        guard #available(macOS 14.0, *) else { return }
         let link = DisplayLinkWeakBox()
 
         await Task.detached {
@@ -443,7 +433,6 @@ struct DisplayLinkClockBehaviorTests {
 
 /// A clock with a link of its own: made out of nothing on UIKit, and asked of a
 /// view on AppKit, the way ``AnimatedImageView`` gets one.
-@available(macOS 14.0, *)
 @MainActor
 private func makeClock() -> DisplayLinkClock {
 #if os(macOS)
@@ -456,7 +445,6 @@ private func makeClock() -> DisplayLinkClock {
 
 /// `true` for the range a link has until it is asked for anything: the display
 /// decides.
-@available(macOS 14.0, *)
 private func isDefault(_ range: CAFrameRateRange) -> Bool {
     let other = CAFrameRateRange.default
     return range.minimum == other.minimum && range.maximum == other.maximum && range.preferred == other.preferred
@@ -464,7 +452,6 @@ private func isDefault(_ range: CAFrameRateRange) -> Bool {
 
 /// Holds a weak reference to a link across the threads its clock is released
 /// on.
-@available(macOS 14.0, *)
 private final class DisplayLinkWeakBox: @unchecked Sendable {
     weak var value: CADisplayLink?
 }
