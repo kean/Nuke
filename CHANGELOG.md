@@ -61,9 +61,11 @@
 - Add `ImageDiagnosticsStringEnum`: the `Codable` conformance the diagnostics enums share, which decodes a name it doesn't know as `unknown` – https://github.com/kean/Nuke/pull/960
 - The default `ImagePipeline/Configuration-swift.struct/rateLimiter` rate goes from 80 to 100 requests per second – https://github.com/kean/Nuke/pull/960
 - `ImageTask` and `ImageDecoders/Video` are now `Sendable` instead of `@unchecked Sendable` – https://github.com/kean/Nuke/pull/965
+- Add `TaskQueue/reservedTaskCount`: the number of slots that the work with a priority lower than `.normal` can't take – https://github.com/kean/Nuke/pull/981
 
 **Performance**
 
+- `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` runs the requests below `.normal` priority in at most 3 of its 6 slots. When prefetching has more work than that, an image opened in the meantime shows up 12% sooner on LTE, and 32% sooner if it's large – https://github.com/kean/Nuke/pull/981
 - `ImageCache` lookups are 6% faster – https://github.com/kean/Nuke/pull/975
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
 - `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967

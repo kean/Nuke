@@ -80,7 +80,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+            operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
                 guard let self else { return }
                 await self.performDataLoad(urlRequest: urlRequest)
             }
@@ -303,7 +303,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 self?.dataLoadTask?.cancel()
             }
         } else {
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+            operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
                 await self?.performAsyncDataLoad(fetch)
             }
         }
