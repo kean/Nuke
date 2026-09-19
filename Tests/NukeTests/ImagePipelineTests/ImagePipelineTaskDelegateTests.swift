@@ -54,6 +54,68 @@ struct ImagePipelineTaskDelegateTests {
         #expect(events.count == delegate.events.count - 2)
     }
 
+    /// Documented: unlike the other task events, `imageTaskCreated` is called
+    /// immediately, in the context that created the task.
+    @Test @MainActor func taskCreationIsReportedSynchronouslyOnTheCallingThread() async throws {
+        // GIVEN
+        dataLoader.isSuspended = true
+        var created: [(task: ImageTask, isMainThread: Bool)] = []
+        delegate.onTaskCreated = { created.append(($0, Thread.isMainThread)) }
+
+        // WHEN
+        let task = pipeline.imageTask(with: Test.request)
+
+        // THEN it was reported before `imageTask(with:)` returned
+        #expect(created.count == 1)
+        #expect(created.first?.task === task)
+        #expect(created.first?.isMainThread == true)
+        task.cancel()
+    }
+
+    /// A memory cache hit finishes the task synchronously when it starts, but
+    /// the delegate still sees it start before it completes.
+    @Test func memoryCacheHitReportsTheFullLifecycle() async throws {
+        // GIVEN
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = MockImageCache()
+        }
+        pipeline.cache[Test.request] = Test.container
+
+        // WHEN
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
+        let response = try await pipeline.imageTask(with: Test.request).response
+        await completed.wait()
+
+        // THEN
+        #expect(response.cacheType == .memory)
+        #expect(delegate.events == [
+            ImageTaskEvent.created,
+            .started,
+            .completed(result: .success(response))
+        ])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func dataTasksAreNotReportedToTheDelegate() async throws {
+        // WHEN
+        _ = try await pipeline.data(for: Test.request)
+
+        // THEN
+        #expect(delegate.events.isEmpty)
+        #expect(delegate.startedTaskCount == 0)
+
+        // WHEN an image task is started after it
+        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
+        _ = try await pipeline.image(for: Test.request)
+        await completed.wait()
+
+        // THEN only the image task is reported
+        #expect(delegate.startedTaskCount == 1)
+        #expect(delegate.completedTaskCount == 1)
+        #expect(delegate.events.filter { $0 == .created }.count == 1)
+    }
+
     @Test func progressUpdateEvents() async throws {
         let request = ImageRequest(url: Test.url)
         dataLoader.results[Test.url] = .success(
