@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// Signpost logging is off by default, which leaves the instrumentation in the
@@ -109,5 +110,72 @@ struct SignpostLoggingTests {
         #expect(!Formatter.bytes(0).isEmpty)
         #expect(!Formatter.bytes(1024).isEmpty)
         #expect(Formatter.bytes(Int64(2048)) == Formatter.bytes(2048))
+    }
+
+    /// Zero is a number, not "Zero KB": the records print it next to other
+    /// byte counts.
+    @Test func byteFormatterPrintsZeroAsANumber() {
+        #expect(Formatter.bytes(0).hasPrefix("0"), "\(Formatter.bytes(0))")
+    }
+
+    /// The pipeline builds a message for every data load, so it is built
+    /// only when there is a log to write it to.
+    @Test func messageIsBuiltOnlyWhenLoggingIsEnabled() {
+        // Given
+        var count = 0
+        func message() -> String {
+            count += 1
+            return "message"
+        }
+        let object = NSObject()
+
+        // When logging is disabled
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = false
+        signpost(object, "Test", .event, message())
+
+        // Then
+        #expect(count == 0)
+
+        // When logging is enabled
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
+        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
+        signpost(object, "Test", .begin, message())
+        signpost(object, "Test", .end, message())
+
+        // Then
+        #expect(count == 2)
+    }
+
+    /// Measuring the work doesn't change it: it runs once, the value comes
+    /// back, and so does the error.
+    @Test(arguments: [false, true])
+    func signpostedWorkReturnsItsResult(isEnabled: Bool) async {
+        // Given
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = isEnabled
+        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
+        let runs = OSAllocatedUnfairLock(initialState: 0)
+
+        // Then
+        #expect(signpost("Test") { runs.withLock { $0 += 1 }; return 42 } == 42)
+        #expect(throws: MockError(description: "sync")) {
+            try signpost("Test") { () throws -> Int in
+                runs.withLock { $0 += 1 }
+                throw MockError(description: "sync")
+            }
+        }
+        let value = await signpost("Test") { @Sendable () async -> Int in
+            await Task.yield()
+            runs.withLock { $0 += 1 }
+            return 7
+        }
+        #expect(value == 7)
+        await #expect(throws: MockError(description: "async")) {
+            try await signpost("Test") { @Sendable () async throws -> Int in
+                await Task.yield()
+                runs.withLock { $0 += 1 }
+                throw MockError(description: "async")
+            }
+        }
+        #expect(runs.withLock { $0 } == 4)
     }
 }
