@@ -10,7 +10,7 @@ import NukeVideo
 #if !os(watchOS)
 
 /// Describes a small H.264 video that the tests encode on the fly. They are
-/// generated rather than checked in because the package target ships no test
+/// generated rather than checked in because the test target ships no
 /// resources, and because generating them lets each test pick the container,
 /// the dimensions, the layout, and the colors of the frames it asserts on.
 struct VideoFixture: Sendable {

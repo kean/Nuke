@@ -105,9 +105,11 @@ struct VideoPlayerViewConfigurationTests {
         view.frame = CGRect(x: 0, y: 0, width: 50, height: 60)
         layoutNow(view)
 
-        // Then the frame changes without looking up an action for it
+        // Then the frame changes without looking up an action for it. UIKit
+        // also looks up "onLayout" when it lays out the layer, which has
+        // nothing to do with the frame.
         #expect(view.playerLayer.frame.size == CGSize(width: 50, height: 60))
-        #expect(actions.enabledKeys.isEmpty)
+        #expect(actions.enabledKeys.filter { $0 != "onLayout" }.isEmpty)
         withExtendedLifetime(actions) {}
     }
 
