@@ -311,7 +311,7 @@ struct ImagePipelineAsyncAwaitTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         // WHEN/THEN

@@ -56,8 +56,6 @@ import AppKit
 @Suite(.timeLimit(.minutes(1))) @MainActor
 struct AppKitClockTests {
     @Test func aViewGetsADisplayLinkOfItsOwn() {
-        guard #available(macOS 14.0, *) else { return }
-
         #expect(makeAnimatedImageClock(for: NSView()) is DisplayLinkClock)
     }
 
