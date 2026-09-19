@@ -110,7 +110,7 @@ private struct PrefetchSettingsView: View {
                 if let open {
                     Section {
                         Button {
-                            open(.screen(.priorityAndCoalescing))
+                            open(.priorityAndCoalescing)
                         } label: {
                             Label(DemoScreen.priorityAndCoalescing.title, systemImage: "arrow.forward")
                         }

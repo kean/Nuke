@@ -16,10 +16,11 @@ import SwiftUI
 struct DemoLaunchOptions {
     /// `-demoScreen <id>`: the screen the app opens on. `nil` opens the
     /// catalog, and so does an id that no screen has.
-    private(set) var route: DemoRoute?
+    private(set) var screen: DemoScreen?
 
-    /// `-demoLab 0` leaves the Lab row out of the catalog, for a screenshot of
-    /// the catalog alone. Only the row: `-demoScreen` still opens the Lab.
+    /// `-demoLab 0` leaves the Lab section out of the catalog, for a
+    /// screenshot of the rest alone. Only the section: `-demoScreen` still
+    /// opens a Lab screen.
     private(set) var showsLab = true
 
     /// `-demoHUD 1` opens the app with the pipeline HUD over every screen,
@@ -37,8 +38,8 @@ struct DemoLaunchOptions {
 
     init(defaults: UserDefaults) {
         if let id = defaults.string(forKey: "demoScreen") {
-            route = DemoRoute(id: id)
-            if route == nil {
+            screen = DemoScreen(rawValue: id)
+            if screen == nil {
                 Self.logger.error("-demoScreen \(id, privacy: .public): no screen has this id, so the app opens on the catalog. Demo/README.md lists the ids.")
             }
         }

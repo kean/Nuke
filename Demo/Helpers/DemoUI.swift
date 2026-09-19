@@ -406,7 +406,7 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
     /// The screen a row of the console asked for, pushed once the console
     /// sheet has gone: pushed under it, the next screen would sit beneath this
     /// console, and its own console would be dropped.
-    @State private var pendingRoute: DemoRoute?
+    @State private var pendingScreen: DemoScreen?
     /// Whether the screen has been on display before, which makes this
     /// appearance a return from a screen pushed over it.
     @State private var hasAppeared = false
@@ -454,19 +454,19 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
                 }
                 .onDisappear {
                     DemoHUD.shared.consoleSheetMinY = nil
-                    if let pendingRoute {
-                        self.pendingRoute = nil
-                        open?(pendingRoute)
+                    if let pendingScreen {
+                        self.pendingScreen = nil
+                        open?(pendingScreen)
                     }
                 }
-                .environment(\.demoOpenFromConsole, DemoOpenAction { route in
+                .environment(\.demoOpenFromConsole, DemoOpenAction { screen in
                     guard isConsoleSheet else {
-                        open?(route)
+                        open?(screen)
                         return
                     }
                     // Back on this screen, the console comes up again with
                     // the screen, as it did the first time.
-                    pendingRoute = route
+                    pendingScreen = screen
                     isShowingConsole = false
                 })
                 .inspectorColumnWidth(min: 320, ideal: 380, max: 480)

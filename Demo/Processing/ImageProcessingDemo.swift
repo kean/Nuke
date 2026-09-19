@@ -16,9 +16,7 @@ import UIKit
 ///
 /// The screen has a pipeline of its own, "Image Processing": a memory cache
 /// of its own, so every visit does the work the tiles describe, and
-/// diagnostics, which is where the figures under the tiles come from. The
-/// shared pipeline records nothing, and an iPad's Getting Started has the
-/// same photo in its memory cache from launch.
+/// diagnostics, which is where the figures under the tiles come from.
 struct ImageProcessingDemo: View {
     @StateObject private var model = ImageProcessingDemoModel()
 

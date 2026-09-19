@@ -60,7 +60,7 @@ struct CustomDecoderDemo: View {
                 .padding(.bottom, 6)
             ForEach([DemoScreen.imageFormats, .video]) { screen in
                 Divider()
-                NavigationLink(value: DemoRoute.screen(screen)) {
+                NavigationLink(value: screen) {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(screen.title)

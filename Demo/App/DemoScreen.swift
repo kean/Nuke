@@ -4,43 +4,37 @@
 
 import SwiftUI
 
-/// Every screen in the demo, in the order the menus list them.
+/// Every screen in the demo, in the order the catalog lists them.
 ///
-/// The catalog and the Lab menu are both built from this one list, so adding a
-/// screen is adding a case. ``id`` is the name a screen is opened by from
-/// outside the app, with `-demoScreen <id>`: a title can change, an id can't.
+/// The catalog is built from this one list, so adding a screen is adding a
+/// case. ``id`` is the name a screen is opened by from outside the app, with
+/// `-demoScreen <id>`: a title can change, an id can't.
+///
+/// Every row pushes one of these rather than a view, so the navigation stack
+/// can be put together without a tap.
 enum DemoScreen: String, CaseIterable, Identifiable {
     // Essentials
-    case gettingStarted = "getting-started"
-    case imagePipeline = "image-pipeline"
     case lazyImage = "lazy-image"
     case uikitViews = "uikit-views"
-
-    // Requests
-    case requestOptions = "request-options"
-    case priorityAndCoalescing = "priority-and-coalescing"
 
     // Processing & Formats
     case imageProcessing = "image-processing"
     case imageFormats = "image-formats"
-    case customDecoder = "custom-decoder"
+    case animatedImages = "animated-images"
     case progressiveDecoding = "progressive-decoding"
+    case customDecoder = "custom-decoder"
 
     // Caching & Performance
     case caching = "caching"
     case prefetching = "prefetching"
-    case resumableDownloads = "resumable-downloads"
     case decompression = "decompression"
 
-    // Animated Images
-    case animatedImages = "animated-images"
-
     // Integration
-    case pipelineDelegate = "pipeline-delegate"
     case customDataLoader = "custom-data-loader"
     case video = "video"
 
     // Lab
+    case priorityAndCoalescing = "priority-and-coalescing"
     case pipelineHUD = "pipeline-hud"
     case concurrencyInspector = "concurrency-inspector"
     case scrollStress = "scroll-stress"
@@ -50,24 +44,19 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .gettingStarted: "Getting Started"
-        case .imagePipeline: "Image Pipeline"
         case .lazyImage: "LazyImage"
         case .uikitViews: "UIKit Views"
-        case .requestOptions: "Request Options"
-        case .priorityAndCoalescing: "Priority & Coalescing"
         case .imageProcessing: "Image Processing"
         case .imageFormats: "Image Formats"
-        case .customDecoder: "Custom Decoder"
+        case .animatedImages: "Animated Images"
         case .progressiveDecoding: "Progressive Decoding"
+        case .customDecoder: "Custom Decoder"
         case .caching: "Caching"
         case .prefetching: "Prefetching"
-        case .resumableDownloads: "Resumable Downloads"
         case .decompression: "Decompression"
-        case .animatedImages: "Animated Images"
-        case .pipelineDelegate: "Pipeline Delegate"
         case .customDataLoader: "Custom Data Loader"
         case .video: "Video"
+        case .priorityAndCoalescing: "Priority & Coalescing"
         case .pipelineHUD: "Pipeline HUD"
         case .concurrencyInspector: "Concurrency Inspector"
         case .scrollStress: "Scroll Stress"
@@ -75,27 +64,22 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         }
     }
 
-    /// The line under the title in the menu.
+    /// The line under the title in the catalog.
     var subtitle: String {
         switch self {
-        case .gettingStarted: "One image, three ways, as in the README"
-        case .imagePipeline: "Async/await, progress, cancellation, and data(for:)"
         case .lazyImage: "The SwiftUI view, its options, and FetchImage"
         case .uikitViews: "loadImage(with:into:) next to LazyImageView"
-        case .requestOptions: "Cache options, priority, and thumbnail vs resize"
-        case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .imageProcessing: "Processors, cache keys, and thumbnail vs resize"
         case .imageFormats: "JPEG, PNG, WebP, HEIC, GIF, and APNG, as detected"
-        case .customDecoder: "A toy format, picked by its first bytes"
+        case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
+        case .customDecoder: "A toy format, picked by its first bytes"
         case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
-        case .resumableDownloads: "A cancelled download picks up where it stopped"
         case .decompression: "Decoded off the main thread, counted in frames"
-        case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
-        case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
         case .video: "A poster frame and a looping player from NukeVideo"
+        case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .pipelineHUD: "Each pipeline's figures, over any screen"
         case .concurrencyInspector: "A burst's tasks and the five queues"
         case .scrollStress: "Fast scrolling with every cache disabled"
@@ -103,21 +87,13 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         }
     }
 
-    var placement: Placement {
+    var section: CatalogSection {
         switch self {
-        case .gettingStarted: .catalog(.essentials)
-        case .imagePipeline, .lazyImage, .uikitViews: .catalog(.essentials)
-        case .requestOptions: .catalog(.requests)
-        case .priorityAndCoalescing: .catalog(.requests)
-        case .imageProcessing, .imageFormats, .progressiveDecoding: .catalog(.processingAndFormats)
-        case .customDecoder: .catalog(.processingAndFormats)
-        case .caching, .prefetching, .resumableDownloads: .catalog(.cachingAndPerformance)
-        case .decompression: .catalog(.cachingAndPerformance)
-        case .animatedImages: .catalog(.animatedImages)
-        case .pipelineDelegate: .catalog(.integration)
-        case .customDataLoader: .catalog(.integration)
-        case .video: .catalog(.integration)
-        case .pipelineHUD, .concurrencyInspector, .scrollStress, .animationLab: .lab
+        case .lazyImage, .uikitViews: .essentials
+        case .imageProcessing, .imageFormats, .animatedImages, .progressiveDecoding, .customDecoder: .processingAndFormats
+        case .caching, .prefetching, .decompression: .cachingAndPerformance
+        case .customDataLoader, .video: .integration
+        case .priorityAndCoalescing, .pipelineHUD, .concurrencyInspector, .scrollStress, .animationLab: .lab
         }
     }
 
@@ -126,24 +102,19 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     @MainActor @ViewBuilder
     var destination: some View {
         switch self {
-        case .gettingStarted: GettingStartedDemo()
-        case .imagePipeline: ImagePipelineDemo()
         case .lazyImage: LazyImageDemo()
         case .uikitViews: UIKitViewsDemo()
-        case .requestOptions: RequestOptionsDemo()
-        case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .imageProcessing: ImageProcessingDemo()
         case .imageFormats: ImageFormatsDemo()
-        case .customDecoder: CustomDecoderDemo()
+        case .animatedImages: AnimatedImagesDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
+        case .customDecoder: CustomDecoderDemo()
         case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()
-        case .resumableDownloads: ResumableDownloadsDemo()
         case .decompression: DecompressionDemo()
-        case .animatedImages: AnimatedImagesDemo()
-        case .pipelineDelegate: PipelineDelegateDemo()
         case .customDataLoader: CustomDataLoaderDemo()
         case .video: VideoDemo()
+        case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .pipelineHUD: PipelineHUDDemo()
         case .concurrencyInspector: ConcurrencyInspectorDemo()
         case .scrollStress: ScrollStressDemo()
@@ -153,116 +124,56 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 }
 
 extension DemoScreen {
-    /// Where a screen is listed: a section of the catalog, or the Lab.
-    enum Placement: Hashable {
-        case catalog(CatalogSection)
-        case lab
-    }
-
-    /// The screens of the Lab menu.
-    static var lab: [DemoScreen] {
-        allCases.filter { $0.placement == .lab }
-    }
-
     /// The sections of the catalog, in the order an app tends to need them
-    /// rather than the order of the documentation.
+    /// rather than the order of the documentation, and the Lab last.
     enum CatalogSection: CaseIterable {
         case essentials
-        case requests
         case processingAndFormats
         case cachingAndPerformance
-        case animatedImages
         case integration
+        /// Instruments and stress rigs for working on Nuke, where the rest of
+        /// the catalog is for adopting it. A Lab screen may cripple the
+        /// pipeline to make a point – disable its caches, push its budgets
+        /// past sensible values – and it reports numbers rather than
+        /// explaining an API.
+        case lab
 
         var title: String {
             switch self {
             case .essentials: "Essentials"
-            case .requests: "Requests"
             case .processingAndFormats: "Processing & Formats"
             case .cachingAndPerformance: "Caching & Performance"
-            case .animatedImages: "Animated Images"
             case .integration: "Integration"
+            case .lab: "Lab"
             }
         }
 
         var footer: String {
             switch self {
-            case .essentials: "The APIs you need for most apps: ImagePipeline, LazyImage, and the image views for UIKit."
-            case .requests: "What a request can ask of the pipeline, and what the pipeline does when many ask at once."
+            case .essentials: "The views you need for most apps: LazyImage for SwiftUI, and the image views for UIKit."
             case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
-            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, how a cancelled download resumes, and what decoding off the main thread saves."
-            case .animatedImages: "Frames decoded as they play, within a memory budget you can watch."
-            case .integration: "Where an app plugs into the pipeline: a delegate that changes its requests and observes its events, a data loader of its own, and a decoder for video."
+            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and what decoding off the main thread saves."
+            case .integration: "Where an app plugs into the pipeline: a data loader of its own, and a decoder for video."
+            case .lab: "Instruments and stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that."
             }
         }
 
-        /// Empty for a section that has no screens yet, which the catalog leaves out.
         var screens: [DemoScreen] {
-            DemoScreen.allCases.filter { $0.placement == .catalog(self) }
-        }
-    }
-}
-
-/// A stop on the demo's navigation stack: the Lab menu, or a screen.
-///
-/// Every row in the menus pushes one of these rather than a view, so a stack
-/// can be put together without a tap – see ``stack``.
-enum DemoRoute: Hashable {
-    case lab
-    case screen(DemoScreen)
-
-    /// The name the route is opened by from outside the app: the screen's
-    /// ``DemoScreen/id``, or `lab` for the Lab menu, which no screen can take.
-    var id: String {
-        switch self {
-        case .lab: "lab"
-        case .screen(let screen): screen.id
-        }
-    }
-
-    init?(id: String) {
-        if id == DemoRoute.lab.id {
-            self = .lab
-        } else if let screen = DemoScreen(rawValue: id) {
-            self = .screen(screen)
-        } else {
-            return nil
-        }
-    }
-
-    /// The navigation stack that shows the route, with the menus it is reached
-    /// through beneath it, so that Back goes where it would after a tap: a
-    /// catalog screen is `[.screen(screen)]`, a Lab screen
-    /// `[.lab, .screen(screen)]`.
-    var stack: [DemoRoute] {
-        switch self {
-        case .lab:
-            [.lab]
-        case .screen(let screen):
-            switch screen.placement {
-            case .catalog: [self]
-            case .lab: [.lab, self]
-            }
+            DemoScreen.allCases.filter { $0.section == self }
         }
     }
 }
 
 extension View {
-    /// Resolves the ``DemoRoute`` values pushed onto the navigation stack this
-    /// view is in. The catalog registers it once, at the root, for the whole
-    /// stack, the Lab included. Every screen leaves room for the pipeline HUD.
+    /// Resolves the ``DemoScreen`` values pushed onto the navigation stack
+    /// this view is in. The catalog registers it once, at the root, for the
+    /// whole stack. Every screen leaves room for the pipeline HUD.
     func demoDestinations() -> some View {
-        navigationDestination(for: DemoRoute.self) { route in
-            switch route {
-            case .lab:
-                LabMenu()
-                    .demoHUDRoom()
-            case .screen(let screen):
-                screen.destination
-                    .navigationTitle(screen.title)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .demoHUDRoom()
-            }
+        navigationDestination(for: DemoScreen.self) { screen in
+            screen.destination
+                .navigationTitle(screen.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .demoHUDRoom()
         }
     }
 }

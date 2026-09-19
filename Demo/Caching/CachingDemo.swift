@@ -341,13 +341,11 @@ private struct DirectAccessSection: View {
                     }
                 }
             }
-
-            DemoLink(.pipelineDelegate)
         } header: {
             Text("pipeline.cache")
                 .textCase(nil)
         } footer: {
-            Text("Tap a call to make it with the request above. The two stores write a picture that names the call, so a read shows where its image came from. A direct store doesn't go through the delegate's `willCache`, so the probe counts no disk write for it, and On Disk lists it as direct. A delegate can change both keys with `cacheKey(for:pipeline:)`, as Pipeline Delegate does.")
+            Text("Tap a call to make it with the request above. The two stores write a picture that names the call, so a read shows where its image came from. A direct store doesn't go through the delegate's `willCache`, so the probe counts no disk write for it, and On Disk lists it as direct. A delegate can change both keys with `cacheKey(for:pipeline:)`.")
         }
     }
 }
