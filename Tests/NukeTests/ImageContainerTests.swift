@@ -104,4 +104,110 @@ struct ImageContainerTests {
         #expect(container.type == nil)
         #expect(container.userInfo.isEmpty)
     }
+
+    @Test func initializerStoresEveryArgument() throws {
+        // GIVEN
+        let image = Test.image
+        let data = Test.animatedGIF(frameCount: 2)
+        let animation = try #require(AnimatedImageSource(data: data))
+
+        // WHEN
+        let container = ImageContainer(image: image, type: .gif, isPreview: true, data: data, animation: animation, userInfo: [.scanNumberKey: 3])
+
+        // THEN
+        #expect(container.image === image)
+        #expect(container.type == .gif)
+        #expect(container.isPreview == true)
+        #expect(container.data == data)
+        #expect(container.animation === animation)
+        #expect(container.userInfo[.scanNumberKey] as? Int == 3)
+    }
+
+    // MARK: - Copy-on-Write (Image)
+
+    @Test func copyOnWriteImage() {
+        // GIVEN
+        let original = Test.image
+        let a = ImageContainer(image: original)
+
+        // WHEN
+        var b = a
+        b.image = Test.rgbImage(width: 2, height: 2)
+
+        // THEN
+        #expect(a.image === original)
+        #expect(b.image !== original)
+    }
+
+    /// The storage copy made on the first mutation has to carry every other
+    /// field over: a field it forgets reverts to its default on the copy.
+    @Test func copyKeepsEveryOtherField() throws {
+        // GIVEN
+        let data = Test.animatedGIF(frameCount: 2)
+        let animation = try #require(AnimatedImageSource(data: data))
+        let a = ImageContainer(image: Test.image, type: .gif, isPreview: true, data: data, animation: animation, userInfo: ["key": "value"])
+
+        // WHEN
+        var b = a
+        b.image = Test.rgbImage(width: 2, height: 2)
+
+        // THEN
+        #expect(b.type == .gif)
+        #expect(b.isPreview == true)
+        #expect(b.data == data)
+        #expect(b.animation === animation)
+        #expect(b.userInfo["key"] as? String == "value")
+    }
+
+    // MARK: - Map
+
+    /// Processing an image drops the data and the animation, which describe
+    /// the image that went into the processor, and keeps the rest.
+    @Test func mapDropsDataAndAnimation() throws {
+        // GIVEN
+        let data = Test.animatedGIF(frameCount: 2)
+        let animation = try #require(AnimatedImageSource(data: data))
+        let original = ImageContainer(image: Test.image, type: .gif, isPreview: true, data: data, animation: animation, userInfo: ["key": "value"])
+        let output = Test.rgbImage(width: 2, height: 2)
+
+        // WHEN
+        let mapped = original.map { _ in output }
+
+        // THEN
+        #expect(mapped.image === output)
+        #expect(mapped.data == nil)
+        #expect(mapped.animation == nil)
+        #expect(mapped.type == .gif)
+        #expect(mapped.isPreview == true)
+        #expect(mapped.userInfo["key"] as? String == "value")
+
+        // THEN the source container is intact
+        #expect(original.data == data)
+        #expect(original.animation === animation)
+        #expect(original.image !== output)
+    }
+
+    @Test func mapRethrowsAndLeavesContainerIntact() {
+        // GIVEN
+        let data = Data([0x01])
+        let original = ImageContainer(image: Test.image, data: data)
+
+        // WHEN/THEN
+        #expect(throws: MockError(description: "map")) {
+            _ = try original.map { _ in throw MockError(description: "map") }
+        }
+        #expect(original.data == data)
+    }
+
+    // MARK: - UserInfoKey
+
+    @Test func userInfoKeyInitializersAreEquivalent() {
+        // A literal argument would be coerced with `init(stringLiteral:)`
+        let rawValue = "com.example/key"
+        let lhs = ImageContainer.UserInfoKey(rawValue)
+        let rhs: ImageContainer.UserInfoKey = "com.example/key"
+        #expect(lhs == rhs)
+        #expect(lhs.hashValue == rhs.hashValue)
+        #expect(lhs.rawValue == rawValue)
+    }
 }
