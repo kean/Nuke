@@ -38,13 +38,13 @@ struct VideoPipelineTests {
         let pipeline = makePipeline(decoders: .default)
 
         // When
-        let result = await Result { () async throws(ImagePipeline.Error) -> ImageResponse in
+        let error = await #expect(throws: ImagePipeline.Error.self) {
             try await pipeline.imageTask(with: ImageRequest(id: "video", data: { data })).response
         }
 
         // Then
-        guard case .failure(.decodingFailed(let decoder, let context, _)) = result else {
-            Issue.record("Expected decoding to fail, got \(result)")
+        guard case .decodingFailed(let decoder, let context, _)? = error else {
+            Issue.record("Expected decoding to fail, got \(String(describing: error))")
             return
         }
         #expect(decoder is ImageDecoders.Default)
