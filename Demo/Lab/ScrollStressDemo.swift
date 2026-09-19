@@ -130,7 +130,7 @@ private final class ScrollStressViewController: DemoAutoScrollGridViewController
             $0.imageCache = nil
             $0.isTaskCoalescingEnabled = false
         }
-        photos = (0..<20).flatMap { _ in DemoImages.photos(from: .fixtures) }
+        photos = (0..<20).flatMap { _ in DemoFixture.photos.map(\.url) }
     }
 
     override func makeRequest(for url: URL, size: CGSize) -> ImageRequest {

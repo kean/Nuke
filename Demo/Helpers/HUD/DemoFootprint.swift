@@ -21,24 +21,15 @@ struct DemoFootprint: Sendable, Equatable {
     /// the first sample, or if the kernel didn't answer.
     var current: Int?
     /// The highest ``current`` sampled since the last reset. A spike between
-    /// two samples is missed; ``lifetimePeak`` isn't.
+    /// two samples is missed.
     var peak = 0
-    /// `ledger_phys_footprint_peak`: the kernel's own peak since the app
-    /// launched, which misses nothing and can't be reset.
-    var lifetimePeak: Int?
-    /// `os_proc_available_memory()`: how much more the app can take before
-    /// the system terminates it. `nil` where there is no such limit, which
-    /// includes the simulator.
-    var available: Int?
 
     /// Reads the figures now and folds them into the peak. A call into the
     /// kernel: cheap enough for ten times a second.
     mutating func sample() {
-        guard let figures = Self.read() else { return }
-        current = figures.footprint
-        lifetimePeak = figures.lifetimePeak
-        peak = max(peak, figures.footprint)
-        available = Self.readAvailable()
+        guard let footprint = Self.read() else { return }
+        current = footprint
+        peak = max(peak, footprint)
     }
 
     /// Starts the peak over from the last sample.
@@ -46,8 +37,8 @@ struct DemoFootprint: Sendable, Equatable {
         peak = current ?? 0
     }
 
-    /// `phys_footprint` and `ledger_phys_footprint_peak` of this process.
-    static func read() -> (footprint: Int, lifetimePeak: Int)? {
+    /// `phys_footprint` of this process.
+    static func read() -> Int? {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &info) {
@@ -56,15 +47,6 @@ struct DemoFootprint: Sendable, Equatable {
             }
         }
         guard result == KERN_SUCCESS else { return nil }
-        return (Int(info.phys_footprint), Int(info.ledger_phys_footprint_peak))
-    }
-
-    private static func readAvailable() -> Int? {
-        #if os(macOS)
-        return nil
-        #else
-        let available = os_proc_available_memory()
-        return available > 0 ? available : nil
-        #endif
+        return Int(info.phys_footprint)
     }
 }

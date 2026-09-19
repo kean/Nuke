@@ -59,23 +59,17 @@ enum DemoFixture: Hashable, Sendable {
     /// `DataLoader.Error.statusCodeUnacceptable(404)`, and no data.
     case missing
     /// A 96×96 GIF of four frames of 0, 10, 20, and 500 ms, for the delay
-    /// map of **Animated Images**. Not in ``all``.
+    /// map of **Animated Images**.
     case mixedDelayGIF
     /// A 56×26 NukePix file, the toy format of the Custom Decoder screen,
-    /// which only its decoder reads. Not in ``all``.
+    /// which only its decoder reads.
     case nukePix
     /// The NukePix file cut off at 60%: the signature, and too few pixels.
-    /// Not in ``all``.
     case truncatedNukePix
 
     /// The photos of the stream, one per URL in `photos.json`.
     static var photos: [DemoFixture] {
         DemoImages.Network.photos.indices.map { .photo($0) }
-    }
-
-    /// Every fixture, the photos included.
-    static var all: [DemoFixture] {
-        named + photos
     }
 
     /// Every fixture but the photos.

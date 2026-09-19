@@ -289,7 +289,7 @@ final class AnimationLabModel {
         var messages: [String] = []
         for image in DemoAnimation.formats {
             do throws(DemoAnimationError) {
-                let (source, poster) = try await image.load(from: .fixtures)
+                let (source, poster) = try await image.load(fromFixture: true)
                 animations.append(LoadedAnimation(image: image, source: source, poster: poster))
             } catch {
                 messages.append(error.message)

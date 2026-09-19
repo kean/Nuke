@@ -323,11 +323,7 @@ private struct CustomDecoderFileFigures: View {
 
     private var imageIO: String {
         guard let figures else { return "–" }
-        guard let header = figures.header else { return "reading…" }
-        guard let width = header.width, let height = header.height else {
-            return header.typeSummary
-        }
-        return "\(header.typeSummary) · \(width)×\(height)"
+        return figures.header?.summary ?? "reading…"
     }
 
     /// "4E 55 4B 45 01 38 1A 36  NUKE·8·6": the bytes, then the ones that

@@ -36,11 +36,7 @@ extension DemoPipelineProbe {
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
             guard let transaction = metrics.transactionMetrics.last else { return }
-            counters.load(
-                .sessionTask(ObjectIdentifier(task)),
-                isServedFromHTTPCache: transaction.resourceFetchType == .localCache,
-                isReusedConnection: transaction.isReusedConnection
-            )
+            counters.load(.sessionTask(ObjectIdentifier(task)), isServedFromHTTPCache: transaction.resourceFetchType == .localCache)
         }
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
@@ -174,10 +170,10 @@ extension DemoPipelineProbe {
             let startedAt = ContinuousClock.now
             do {
                 let container = try base.decode(data)
-                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, result: .image(format: container.type.demoFormatName, isPreview: false))
+                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: true)
                 return container
             } catch {
-                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, result: .failed)
+                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: false)
                 throw error
             }
         }
@@ -187,8 +183,7 @@ extension DemoPipelineProbe {
             counters.decodeStarted(isAsynchronous: isAsynchronous)
             let startedAt = ContinuousClock.now
             let preview = base.decodePartiallyDownloadedData(data)
-            let result: Counters.DecodeResult = preview.map { .image(format: $0.type.demoFormatName, isPreview: true) } ?? .noPreview
-            counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, result: result)
+            counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: false)
             return preview
         }
 
@@ -245,7 +240,9 @@ extension DemoPipelineProbe {
         subscript(key: ImageCacheKey) -> ImageContainer? {
             get {
                 let container = base[key]
-                counters.memoryCacheLookup(isHit: container.map { !$0.isPreview } ?? false, isOnMainThread: Thread.isMainThread)
+                if let container, !container.isPreview, Thread.isMainThread {
+                    counters.memoryHitWithoutTask()
+                }
                 return container
             }
             set {
@@ -265,7 +262,7 @@ extension DemoPipelineProbe {
 
         func cachedData(for key: String) -> Data? {
             let data = base.cachedData(for: key)
-            counters.diskCacheLookup(byteCount: data?.count)
+            counters.diskCacheLookup(isHit: data != nil)
             return data
         }
 

@@ -82,17 +82,6 @@ final class DemoFixtureStore: Sendable {
         made.withLock { $0.removeAll() }
     }
 
-    /// Makes every fixture that isn't made yet, and waits for them.
-    func makeAll() async {
-        await withTaskGroup(of: Void.self) { group in
-            for fixture in DemoFixture.all where fixture != .missing {
-                group.addTask {
-                    _ = try? await self.entry(for: fixture)
-                }
-            }
-        }
-    }
-
     private static func make(_ fixture: DemoFixture) throws -> Entry {
         let start = ContinuousClock.now
         let (data, isBundled) = switch fixture {

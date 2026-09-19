@@ -96,10 +96,10 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: "Request headers, cache keys, and disk writes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
         case .video: "A poster frame and a looping player from NukeVideo"
-        case .pipelineHUD: "Every figure the probe counts, over any screen"
-        case .concurrencyInspector: "Queues, every task's state, and stalls"
+        case .pipelineHUD: "Each pipeline's figures, over any screen"
+        case .concurrencyInspector: "A burst's tasks and the five queues"
         case .scrollStress: "Fast scrolling with every cache disabled"
-        case .animationLab: "Up to 36 animations on one frame pool, pushed"
+        case .animationLab: "Up to 36 animations playing from one frame pool"
         }
     }
 

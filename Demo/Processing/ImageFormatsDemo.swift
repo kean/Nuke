@@ -226,12 +226,9 @@ private struct ImageFormatFigures: View {
 
     private var imageIO: String {
         guard let choice else { return "–" }
-        guard let header = choice.header else { return "reading…" }
-        guard let width = header.width, let height = header.height else {
-            return header.typeSummary
-        }
-        return "\(header.typeSummary) · \(width)×\(height)"
-    }}
+        return choice.header?.summary ?? "reading…"
+    }
+}
 
 // MARK: - Model
 

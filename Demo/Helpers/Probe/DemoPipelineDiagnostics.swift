@@ -19,8 +19,6 @@ import Foundation
 struct DemoPipelineDiagnostics: Sendable {
     /// The label the pipeline was created with, or "All pipelines" for a total.
     var label = ""
-    /// The number of pipelines the figures add up.
-    var pipelineCount = 0
 
     // MARK: Tasks
 
@@ -33,9 +31,6 @@ struct DemoPipelineDiagnostics: Sendable {
     var createdTaskCount = 0
     /// The tasks created and not yet finished.
     var activeTaskCount = 0
-    /// The most tasks active at once. In a total, the highest of the pipelines'
-    /// peaks, which is a floor under the peak they reached together.
-    var peakActiveTaskCount = 0
     /// The tasks that finished with an image.
     var succeededTaskCount = 0
     /// The tasks that finished cancelled, including the ones cancelled before
@@ -43,9 +38,6 @@ struct DemoPipelineDiagnostics: Sendable {
     var cancelledTaskCount = 0
     /// The tasks that failed with any error other than a cancellation.
     var failedTaskCount = 0
-    /// ``failedTaskCount`` by `ImagePipeline.Error` case, such as
-    /// `"dataLoadingFailed"`.
-    var failureCounts: [String: Int] = [:]
     /// From `imageTaskCreated` to the `.finished` event, for the tasks that
     /// succeeded. It includes the hop to the pipeline's actor that delivers
     /// the event.
@@ -74,16 +66,6 @@ struct DemoPipelineDiagnostics: Sendable {
     /// can't tell apart; see ``httpCacheLoadCount``.
     var networkResponseCount = 0
 
-    // MARK: Memory Cache
-
-    /// Every read of the memory cache: the pipeline's lookups, NukeUI's, and a
-    /// prefetcher checking whether it has anything to do. A request NukeUI
-    /// misses is looked up twice, once by the view and once by its task.
-    var memoryCacheLookupCount = 0
-    /// The reads that found a final image. A preview found in the cache
-    /// counts as a miss, because the caller goes on to load the image.
-    var memoryCacheHitCount = 0
-
     // MARK: Disk Cache
 
     /// Every read of the disk cache (`DataCaching.cachedData(for:)`). A
@@ -91,14 +73,10 @@ struct DemoPipelineDiagnostics: Sendable {
     var diskCacheLookupCount = 0
     /// The reads that found data.
     var diskCacheHitCount = 0
-    /// The bytes those reads returned: data that didn't have to be downloaded.
-    var diskCacheHitByteCount: Int64 = 0
     /// The writes to the disk cache, counted when `willCache` lets one through.
     /// A direct `pipeline.cache.storeCachedData` doesn't go through `willCache`
     /// and isn't counted.
     var diskWriteCount = 0
-    /// The bytes those writes stored.
-    var diskWriteByteCount: Int64 = 0
     /// The writes that stored an encoded image rather than the original data,
     /// as `DataCachePolicy` decides.
     var encodedImageWriteCount = 0
@@ -114,9 +92,6 @@ struct DemoPipelineDiagnostics: Sendable {
     /// The downloads cancelled: for a `DataLoader`, when its session reports
     /// the cancellation; for any other loader, when the pipeline cancels it.
     var cancelledDownloadCount = 0
-    /// The downloads that failed, including a response `DataLoader` rejected
-    /// for its status code.
-    var failedDownloadCount = 0
     /// The downloads in flight that were cancelled and whose loader hasn't
     /// called `completion` since.
     ///
@@ -131,41 +106,21 @@ struct DemoPipelineDiagnostics: Sendable {
     var downloadedByteCount: Int64 = 0
     /// The response bytes received so far by the downloads still in flight.
     var inFlightByteCount: Int64 = 0
-    /// From the start of a download to its first chunk of data: for a
-    /// `DataLoader`, from the moment its session creates the task; for any
-    /// other loader, from the call to `loadData`. Counted when the download
-    /// ends, for the ones that received data and weren't answered by `URLCache`
-    /// or a fixture.
-    var timeToFirstByte = Timing()
-    /// The downloads that went over a connection an earlier request had
-    /// opened. Known only for a `DataLoader`.
-    var reusedConnectionCount = 0
     /// The downloads `URLCache` answered without a request. Known only for a
     /// `DataLoader`, whose session reports it.
     var httpCacheLoadCount = 0
-    /// The bytes of those downloads.
-    var httpCacheByteCount: Int64 = 0
     /// The downloads a `DemoFixtureLoader` completed: a fixture, served from
     /// memory at a set pace, in place of a request. They count as downloads
     /// everywhere else, ``completedDownloadCount`` included, as their images
     /// count as ``networkResponseCount``: the pipeline can't tell them apart.
     var fixtureLoadCount = 0
-    /// The bytes fixtures delivered, whatever the outcome of their loads.
-    var fixtureByteCount: Int64 = 0
 
     // MARK: Decoding
 
     /// The final decodes (`ImageDecoding.decode(_:)`) that produced an image.
     /// With diagnostics off, only the decoders that ship with Nuke are timed:
-    /// a decoder of the app's own isn't counted in any of the decoding figures.
+    /// a decoder of the app's own isn't counted.
     var decoding = Timing()
-    /// The partial decodes that produced a preview. The attempts that had
-    /// nothing new to show aren't counted.
-    var previewDecoding = Timing()
-    /// The final decodes that threw.
-    var failedDecodeCount = 0
-    /// ``decoding`` by the format of the image, such as `"jpeg"`.
-    var decodingByFormat: [String: Timing] = [:]
 
     // MARK: Decompression
 
@@ -173,10 +128,6 @@ struct DemoPipelineDiagnostics: Sendable {
     /// display. The pipeline asks only for final images that aren't thumbnails
     /// or processed, for requests without `.skipDecompression`.
     var decompression = Timing()
-    /// The times `shouldDecompress` said no. The pipeline's own reasons to skip
-    /// – a thumbnail, a processed image, `.skipDecompression` – are decided
-    /// before it asks and aren't counted.
-    var declinedDecompressionCount = 0
 
     // MARK: Encoding
 
@@ -194,9 +145,6 @@ struct DemoPipelineDiagnostics: Sendable {
     /// asynchronous, which for `ImageDecoders.Default` means a thumbnail.
     /// `nil` for a pipeline recording diagnostics, whose decoders aren't wrapped.
     var decodingQueue = Queue(inFlightCount: 0)
-    /// Processors come with the request, not from the delegate, so nothing
-    /// counts them: `inFlightCount` is always `nil`.
-    var processingQueue = Queue(inFlightCount: nil)
     /// The calls to `decompress` running.
     var decompressingQueue = Queue(inFlightCount: 0)
     /// The encodes running.
@@ -216,23 +164,6 @@ struct DemoPipelineDiagnostics: Sendable {
         return total > 0 ? Double(hits) / Double(total) : 0
     }
 
-    /// The images each completed download produced: more than 1 when tasks
-    /// that asked for the same data – with different processors, say – shared
-    /// a download.
-    ///
-    /// Tasks served from a cache are left out, so a disk hit doesn't pass for
-    /// coalescing. So are the tasks cancelled while they waited, which makes
-    /// it a floor when many are.
-    var coalescingRatio: Double {
-        completedDownloadCount > 0 ? Double(networkResponseCount) / Double(completedDownloadCount) : 0
-    }
-
-    /// The bytes served without a request: read from the disk cache or
-    /// answered by `URLCache`. A memory cache hit saves a download too, but
-    /// the size of the data it saved isn't known.
-    var savedByteCount: Int64 {
-        diskCacheHitByteCount + httpCacheByteCount
-    }
 }
 
 extension DemoPipelineDiagnostics {
@@ -303,15 +234,11 @@ extension DemoPipelineDiagnostics {
     /// Adds the figures of another pipeline, leaving out the label and the
     /// queues, which a total puts together on its own.
     mutating func add(_ other: DemoPipelineDiagnostics) {
-        pipelineCount += other.pipelineCount
-
         createdTaskCount += other.createdTaskCount
         activeTaskCount += other.activeTaskCount
-        peakActiveTaskCount = max(peakActiveTaskCount, other.peakActiveTaskCount)
         succeededTaskCount += other.succeededTaskCount
         cancelledTaskCount += other.cancelledTaskCount
         failedTaskCount += other.failedTaskCount
-        failureCounts.merge(other.failureCounts, uniquingKeysWith: +)
         taskDuration.add(other.taskDuration)
 
         memoryResponseCount += other.memoryResponseCount
@@ -319,37 +246,23 @@ extension DemoPipelineDiagnostics {
         diskResponseCount += other.diskResponseCount
         networkResponseCount += other.networkResponseCount
 
-        memoryCacheLookupCount += other.memoryCacheLookupCount
-        memoryCacheHitCount += other.memoryCacheHitCount
-
         diskCacheLookupCount += other.diskCacheLookupCount
         diskCacheHitCount += other.diskCacheHitCount
-        diskCacheHitByteCount += other.diskCacheHitByteCount
         diskWriteCount += other.diskWriteCount
-        diskWriteByteCount += other.diskWriteByteCount
         encodedImageWriteCount += other.encodedImageWriteCount
 
         downloadCount += other.downloadCount
         completedDownloadCount += other.completedDownloadCount
         cancelledDownloadCount += other.cancelledDownloadCount
-        failedDownloadCount += other.failedDownloadCount
         cancelledInFlightDownloadCount += other.cancelledInFlightDownloadCount
         downloadedByteCount += other.downloadedByteCount
         inFlightByteCount += other.inFlightByteCount
-        timeToFirstByte.add(other.timeToFirstByte)
-        reusedConnectionCount += other.reusedConnectionCount
         httpCacheLoadCount += other.httpCacheLoadCount
-        httpCacheByteCount += other.httpCacheByteCount
         fixtureLoadCount += other.fixtureLoadCount
-        fixtureByteCount += other.fixtureByteCount
 
         decoding.add(other.decoding)
-        previewDecoding.add(other.previewDecoding)
-        failedDecodeCount += other.failedDecodeCount
-        decodingByFormat.merge(other.decodingByFormat) { var timing = $0; timing.add($1); return timing }
 
         decompression.add(other.decompression)
-        declinedDecompressionCount += other.declinedDecompressionCount
 
         encoding.add(other.encoding)
     }
@@ -363,7 +276,6 @@ extension DemoPipelineDiagnostics {
         figures.inFlightByteCount = 0
         figures.dataLoadingQueue = Queue(inFlightCount: 0)
         figures.decodingQueue = Queue(inFlightCount: 0)
-        figures.processingQueue = Queue(inFlightCount: nil)
         figures.decompressingQueue = Queue(inFlightCount: 0)
         figures.encodingQueue = Queue(inFlightCount: 0)
         return figures

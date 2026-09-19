@@ -35,22 +35,18 @@ enum DemoAnimation: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Where the animation comes from: the network or its fixture, or –
-    /// without a source – the network. Mixed Delays is a fixture from
-    /// anywhere, and the HEIC is a file in the app bundle.
-    func url(from source: DemoImageSource? = nil) -> URL? {
+    /// Where the animation comes from: the network, or its fixture. Mixed
+    /// Delays is a fixture either way, and the HEIC is a file in the app
+    /// bundle.
+    func url(fromFixture: Bool = false) -> URL? {
         switch self {
-        case .gif: pick(source, DemoImages.gif, .gif)
-        case .apng: pick(source, DemoImages.apng, .apng)
-        case .webp: pick(source, DemoImages.animatedWebP, .animatedWebP)
+        case .gif: fromFixture ? DemoFixture.gif.url : DemoImages.gif
+        case .apng: fromFixture ? DemoFixture.apng.url : DemoImages.apng
+        case .webp: fromFixture ? DemoFixture.animatedWebP.url : DemoImages.animatedWebP
         case .heic: DemoImages.animatedHEIC
-        case .large: pick(source, DemoImages.largeGIF, .longGIF)
+        case .large: fromFixture ? DemoFixture.longGIF.url : DemoImages.largeGIF
         case .mixedDelays: DemoFixture.mixedDelayGIF.url
         }
-    }
-
-    private func pick(_ source: DemoImageSource?, _ network: URL, _ fixture: DemoFixture) -> URL {
-        source == .fixtures ? fixture.url : network
     }
 
     /// Loads the animation through the shared pipeline, and returns it with
@@ -60,8 +56,8 @@ enum DemoAnimation: String, CaseIterable, Identifiable {
     /// animation by hand to build the players themselves and get at
     /// ``AnimatedImagePlayer/diagnostics``.
     @MainActor
-    func load(from source: DemoImageSource? = nil) async throws(DemoAnimationError) -> (animation: AnimatedImageSource, poster: UIImage) {
-        guard let url = url(from: source) else {
+    func load(fromFixture: Bool = false) async throws(DemoAnimationError) -> (animation: AnimatedImageSource, poster: UIImage) {
+        guard let url = url(fromFixture: fromFixture) else {
             throw .unavailable(self)
         }
         let response: ImageResponse
@@ -614,16 +610,10 @@ struct DemoPoolDiagnostics {
     var costLimit = 0
     var totalCost = 0
     var playerCount = 0
-    var activePlayerCount = 0
     var animationCount = 0
 
     var fraction: Double {
         costLimit > 0 ? min(1, Double(totalCost) / Double(costLimit)) : 0
-    }
-
-    /// How many players there are for every set of decoded frames.
-    var sharing: Double {
-        animationCount > 0 ? Double(playerCount) / Double(animationCount) : 0
     }
 
     init() {}
@@ -633,7 +623,6 @@ struct DemoPoolDiagnostics {
         costLimit = pool.costLimit
         totalCost = pool.totalCost
         playerCount = pool.playerCount
-        activePlayerCount = pool.activePlayerCount
         animationCount = pool.animationCount
     }
 }

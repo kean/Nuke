@@ -23,7 +23,6 @@ extension DemoPipelineProbe {
         init(label: String) {
             var figures = DemoPipelineDiagnostics()
             figures.label = label
-            figures.pipelineCount = 1
             state = OSAllocatedUnfairLock(initialState: State(figures: figures))
         }
 
@@ -39,9 +38,7 @@ extension DemoPipelineProbe {
                 let old = state.figures
                 var new = DemoPipelineDiagnostics()
                 new.label = old.label
-                new.pipelineCount = old.pipelineCount
                 new.activeTaskCount = old.activeTaskCount
-                new.peakActiveTaskCount = old.activeTaskCount
                 new.cancelledInFlightDownloadCount = old.cancelledInFlightDownloadCount
                 new.inFlightByteCount = old.inFlightByteCount
                 new.dataLoadingQueue = old.dataLoadingQueue
@@ -61,7 +58,6 @@ extension DemoPipelineProbe {
                 state.taskCreatedAt[id] = now
                 state.figures.createdTaskCount += 1
                 state.figures.activeTaskCount += 1
-                state.figures.peakActiveTaskCount = max(state.figures.peakActiveTaskCount, state.figures.activeTaskCount)
             }
         }
 
@@ -84,39 +80,32 @@ extension DemoPipelineProbe {
                     }
                 case .cancelled:
                     state.figures.cancelledTaskCount += 1
-                case .failed(let reason):
+                case .failed:
                     state.figures.failedTaskCount += 1
-                    state.figures.failureCounts[reason, default: 0] += 1
                 }
             }
         }
 
         // MARK: Caches
 
-        func memoryCacheLookup(isHit: Bool, isOnMainThread: Bool) {
+        /// A memory cache hit on the main thread, where NukeUI looks before it
+        /// starts a task.
+        func memoryHitWithoutTask() {
+            state.withLock { $0.figures.memoryHitWithoutTaskCount += 1 }
+        }
+
+        func diskCacheLookup(isHit: Bool) {
             state.withLock { state in
-                state.figures.memoryCacheLookupCount += 1
-                guard isHit else { return }
-                state.figures.memoryCacheHitCount += 1
-                if isOnMainThread {
-                    state.figures.memoryHitWithoutTaskCount += 1
+                state.figures.diskCacheLookupCount += 1
+                if isHit {
+                    state.figures.diskCacheHitCount += 1
                 }
             }
         }
 
-        func diskCacheLookup(byteCount: Int?) {
-            state.withLock { state in
-                state.figures.diskCacheLookupCount += 1
-                guard let byteCount else { return }
-                state.figures.diskCacheHitCount += 1
-                state.figures.diskCacheHitByteCount += Int64(byteCount)
-            }
-        }
-
-        func diskWrite(byteCount: Int, isEncodedImage: Bool) {
+        func diskWrite(isEncodedImage: Bool) {
             state.withLock { state in
                 state.figures.diskWriteCount += 1
-                state.figures.diskWriteByteCount += Int64(byteCount)
                 if isEncodedImage {
                     state.figures.encodedImageWriteCount += 1
                 }
@@ -163,24 +152,16 @@ extension DemoPipelineProbe {
         }
 
         func load(_ id: LoadID, didReceive byteCount: Int) {
-            let now = ContinuousClock.now
             state.withLock { state in
-                guard var load = state.loads[id] else { return }
-                if load.timeToFirstByte == nil {
-                    load.timeToFirstByte = (now - load.startedAt).demoTimeInterval
-                }
-                load.byteCount += Int64(byteCount)
-                state.loads[id] = load
+                guard state.loads[id] != nil else { return }
+                state.loads[id]?.byteCount += Int64(byteCount)
                 state.figures.inFlightByteCount += Int64(byteCount)
             }
         }
 
         /// What the session measured, which arrives before the completion.
-        func load(_ id: LoadID, isServedFromHTTPCache: Bool, isReusedConnection: Bool) {
-            state.withLock { state in
-                state.loads[id]?.isServedFromHTTPCache = isServedFromHTTPCache
-                state.loads[id]?.isReusedConnection = isReusedConnection
-            }
+        func load(_ id: LoadID, isServedFromHTTPCache: Bool) {
+            state.withLock { $0.loads[id]?.isServedFromHTTPCache = isServedFromHTTPCache }
         }
 
         /// The pipeline cancelled a load of a loader other than `DataLoader`.
@@ -194,7 +175,6 @@ extension DemoPipelineProbe {
         }
 
         func loadCompleted(_ id: LoadID, outcome: LoadOutcome) {
-            let now = ContinuousClock.now
             state.withLock { state in
                 // A loader that calls `completion` twice is counted once.
                 guard let load = state.loads.removeValue(forKey: id) else { return }
@@ -203,21 +183,13 @@ extension DemoPipelineProbe {
                 }
                 state.figures.inFlightByteCount -= load.byteCount
                 if load.isFixture {
-                    state.figures.fixtureByteCount += load.byteCount
                     if outcome == .completed, !load.isCancelled {
                         state.figures.fixtureLoadCount += 1
                     }
                 } else if load.isServedFromHTTPCache {
                     state.figures.httpCacheLoadCount += 1
-                    state.figures.httpCacheByteCount += load.byteCount
                 } else {
                     state.figures.downloadedByteCount += load.byteCount
-                    if let timeToFirstByte = load.timeToFirstByte {
-                        state.figures.timeToFirstByte.record(timeToFirstByte, at: now)
-                    }
-                    if load.isReusedConnection {
-                        state.figures.reusedConnectionCount += 1
-                    }
                 }
                 if load.isCancelled {
                     // Counted as cancelled when it was.
@@ -227,32 +199,29 @@ extension DemoPipelineProbe {
                 switch outcome {
                 case .completed: state.figures.completedDownloadCount += 1
                 case .cancelled: state.figures.cancelledDownloadCount += 1
-                case .failed: state.figures.failedDownloadCount += 1
+                case .failed: break
                 }
             }
         }
 
         // MARK: Decoding
 
-        enum DecodeResult: Sendable {
-            case image(format: String, isPreview: Bool)
-            /// A partial decode with nothing new to show.
-            case noPreview
-            case failed
-        }
-
         func decodeStarted(isAsynchronous: Bool) {
             guard isAsynchronous else { return }
             state.withLock { $0.figures.decodingQueue.inFlightCount? += 1 }
         }
 
-        func decodeFinished(isAsynchronous: Bool, startedAt: ContinuousClock.Instant, result: DecodeResult) {
+        /// - parameter isFinalImage: whether the decode produced a final
+        ///   image, the only kind ``DemoPipelineDiagnostics/decoding`` times.
+        func decodeFinished(isAsynchronous: Bool, startedAt: ContinuousClock.Instant, isFinalImage: Bool) {
             let now = ContinuousClock.now
             state.withLock { state in
                 if isAsynchronous {
                     state.figures.decodingQueue.inFlightCount? -= 1
                 }
-                state.recordDecode((now - startedAt).demoTimeInterval, at: now, result: result)
+                if isFinalImage {
+                    state.figures.decoding.record((now - startedAt).demoTimeInterval, at: now)
+                }
             }
         }
 
@@ -264,27 +233,19 @@ extension DemoPipelineProbe {
         /// time it shows up complete. A stage still running when a task ended
         /// has no duration in that task's copy, and is counted from a later one.
         ///
-        /// The record keeps the stages that threw too – a final decode that
-        /// failed, or a partial one with nothing new to show – with neither a
-        /// size nor a format. A stage that produced an image has one of them
-        /// at least, an empty one included, which counts as decoded, as it
-        /// does with diagnostics off.
+        /// The record keeps the stages that threw too, with neither a size nor
+        /// a format. A stage that produced an image has one of them at least.
         func recordDecodes(from metrics: ImageTask.Metrics) {
             let now = ContinuousClock.now
             state.withLock { state in
                 for job in metrics.jobs {
                     for (index, stage) in job.stages.enumerated() where stage.kind == .decode {
                         guard let duration = stage.workDuration,
-                              state.countedStages.insert(.init(jobID: job.id, index: index)) else {
+                              state.countedStages.insert(.init(jobID: job.id, index: index)),
+                              stage.isProgressive != true, stage.pixels != nil || stage.format != nil else {
                             continue
                         }
-                        let isPreview = stage.isProgressive ?? false
-                        let result: DecodeResult = if stage.pixels != nil || stage.format != nil {
-                            .image(format: stage.format ?? "unknown", isPreview: isPreview)
-                        } else {
-                            isPreview ? .noPreview : .failed
-                        }
-                        state.recordDecode(duration, at: now, result: result)
+                        state.figures.decoding.record(duration, at: now)
                     }
                 }
             }
@@ -302,10 +263,6 @@ extension DemoPipelineProbe {
                 state.figures.decompressingQueue.inFlightCount? -= 1
                 state.figures.decompression.record((now - startedAt).demoTimeInterval, at: now)
             }
-        }
-
-        func decompressionDeclined() {
-            state.withLock { $0.figures.declinedDecompressionCount += 1 }
         }
 
         // MARK: Encoding
@@ -343,22 +300,6 @@ extension DemoPipelineProbe.Counters {
                 figures.dataLoadingQueue.inFlightCount? += 1
             }
         }
-
-        mutating func recordDecode(_ duration: TimeInterval, at instant: ContinuousClock.Instant, result: DecodeResult) {
-            switch result {
-            case let .image(format, isPreview):
-                if isPreview {
-                    figures.previewDecoding.record(duration, at: instant)
-                } else {
-                    figures.decoding.record(duration, at: instant)
-                    figures.decodingByFormat[format, default: .init()].record(duration, at: instant)
-                }
-            case .noPreview:
-                break
-            case .failed:
-                figures.failedDecodeCount += 1
-            }
-        }
     }
 
     private struct Load: Sendable {
@@ -367,10 +308,8 @@ extension DemoPipelineProbe.Counters {
         /// work in flight.
         let holdsSlot: Bool
         var byteCount: Int64 = 0
-        var timeToFirstByte: TimeInterval?
         var isCancelled = false
         var isServedFromHTTPCache = false
-        var isReusedConnection = false
         /// A load of a ``DemoFixtureLoader``: no network, so none of the
         /// network's figures.
         var isFixture = false
@@ -407,7 +346,7 @@ extension DemoPipelineProbe.Counters {
     private enum TaskOutcome: Sendable {
         case image(ImageResponse.CacheType?)
         case cancelled
-        case failed(String)
+        case failed
 
         init(_ result: Result<ImageResponse, ImagePipeline.Error>) {
             switch result {
@@ -415,8 +354,8 @@ extension DemoPipelineProbe.Counters {
                 self = .image(response.cacheType)
             case .failure(.cancelled):
                 self = .cancelled
-            case .failure(let error):
-                self = .failed(error.demoCaseName)
+            case .failure:
+                self = .failed
             }
         }
     }

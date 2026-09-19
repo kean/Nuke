@@ -58,16 +58,6 @@ enum DemoImages {
     /// A photo stream used by the grid, prefetching, and stress-test screens.
     static var photos: [URL] { Network.photos }
 
-    /// The photo stream from the given source.
-    static func photos(from source: DemoImageSource) -> [URL] {
-        switch source {
-        case .fixtures: fixturePhotos
-        case .network: Network.photos
-        }
-    }
-
-    private static let fixturePhotos = DemoFixture.photos.map(\.url)
-
     /// The URLs on the network.
     enum Network {
         static let landscape = URL(string: "https://user-images.githubusercontent.com/1567433/59150453-178bbb80-8a24-11e9-94ca-fd8dff6e2a9a.jpeg")!
@@ -97,24 +87,5 @@ enum DemoImages {
                 fatalError("photos.json isn't an array of URLs: \(error)")
             }
         }()
-    }
-}
-
-/// Where a screen's photos come from.
-///
-/// Catalog screens load ``DemoImages/photos`` from the network. A Lab screen
-/// that loads photos offers this choice instead, and starts on fixtures, so that a run measures the pipeline rather
-/// than the network and compares with the last one.
-enum DemoImageSource: String, CaseIterable, Identifiable {
-    case fixtures
-    case network
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .fixtures: "Fixtures"
-        case .network: "Network"
-        }
     }
 }

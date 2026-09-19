@@ -75,10 +75,10 @@ an API – the catalog screen for that API does the explaining.
 
 | Screen | Shows |
 |--|--|
-| **Pipeline HUD** | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
-| **Concurrency Inspector** | A burst, a trickle, or a scroll of fixture requests – photos, blurred photos, thumbnails, a 12 MP JPEG, and pairs – on a pipeline of its own, with pause and cancel: a map and a list of every task and where it is (queued, loading, receiving, waiting for or on a queue, finished), with its priority and age; the five task queues with the work running and waiting, how long work waited, and a limit and a suspend switch each; the queues of every pipeline alive; and the main thread's stalls over 16 ms, from a display link and a thread that pings the main queue, with buttons that stall it |
-| **Scroll Stress** | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps each source's last run – frames dropped, hitch time, the longest frame, and the tasks started, cancelled, and finished – so runs, and fixtures and the network, can be compared |
-| **Animation Lab** | Up to 36 animations drawing from one `AnimatedImageFramePool`, from fixtures or the network, with the pool's budget down to 4 MB, player budgets down to 256 KB, frames decoded at the size of the cell, zoom to 800%, frame transforms, and copies in and out of lockstep. A memory warning, and the minute until the windows grow back; power throttling against Low Power Mode, with each cell's frame rate; and a soak that plays for an hour, rebuilding the wall every minute, and charts the footprint and the pool |
+| **Pipeline HUD** | The HUD's lines – tasks, where the images came from and the hit rate, queues, network bytes, the image cache and frame pool, disk, footprint, and frames – for each pipeline alive and all of them added up, with the switch, Expanded, and a reset |
+| **Concurrency Inspector** | A burst of 240 fixture requests – photos, blurred photos, and thumbnails of a 12 MP JPEG – on a pipeline of its own, with cancel: a map of every task by where it is (waiting, loading, decoding, processing, decompressing, finished), and the five task queues with the work running against the limit and a suspend switch each |
+| **Scroll Stress** | The pipeline under fast scrolling on fixtures with every cache disabled, ten images to a row, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps the last run – frames dropped, the longest frame, and the tasks started – so two builds can be compared |
+| **Animation Lab** | Up to 36 animations playing at once from fixtures, drawing their frames from the shared `AnimatedImageFramePool`: the pool's budget from 4 to 256 MB, a memory warning with the pool before it and at its lowest, lockstep on and off, and each cell's frames and bytes buffered |
 
 ## Launch arguments
 
@@ -95,7 +95,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoScreen <id>` | Opens the app on a screen, with the menus it is reached through beneath it. `lab` is the Lab menu; an id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
 | `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
-| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, Scroll Stress scrolls, and Animation Lab starts its soak |
+| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, and Scroll Stress scrolls |
 
 A screen's id is the raw value of its case in `App/DemoScreen.swift`. An id
 stays the same when a title changes.
@@ -124,10 +124,10 @@ The photo stream's URLs are in `Resources/photos.json`.
 
 Every pipeline the demo builds counts what it does, and the pipeline HUD shows
 the figures over any screen: tap the gauge in the navigation bar, or launch with
-`-demoHUD 1`. The pill at the bottom opens into a panel with the tasks, cache
-hits, queues, decode times, bytes, caches, memory footprint, and dropped frames
-of the pipeline that is busy. **Pipeline HUD** in the Lab says what each figure
-counts.
+`-demoHUD 1`. The pill at the bottom opens into a panel with the tasks, where
+the images came from, the queues, bytes, caches, memory footprint, and dropped
+frames of the pipeline that did something last. **Pipeline HUD** in the Lab
+shows the same lines for every pipeline at once.
 
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
@@ -158,6 +158,6 @@ Demo
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video
 ├── Lab              Instruments and stress rigs for working on Nuke
-├── Helpers          Shared views, the pipeline probe and HUD, the frame and main-thread watchdogs, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
+├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```

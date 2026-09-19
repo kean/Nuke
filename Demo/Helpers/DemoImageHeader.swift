@@ -8,7 +8,7 @@ import ImageIO
 import Nuke
 
 /// What Image I/O reads in a file without decoding it: what it takes the
-/// file for, how many images it counts, and the first one's properties.
+/// file for, how many images it counts, and the first one's size.
 ///
 /// It is a second opinion next to the pipeline's. ``AssetType`` names a file
 /// from its first bytes, and a decoder takes it or doesn't; Image I/O parses
@@ -25,11 +25,6 @@ struct DemoImageHeader: Sendable {
     let imageCount: Int
     let width: Int?
     let height: Int?
-    let depth: Int?
-    let colorModel: String?
-    let profile: String?
-    /// The EXIF orientation, 1–8, if the file has one.
-    let orientation: Int?
 
     init(data: Data) {
         guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
@@ -37,10 +32,6 @@ struct DemoImageHeader: Sendable {
             imageCount = 0
             width = nil
             height = nil
-            depth = nil
-            colorModel = nil
-            profile = nil
-            orientation = nil
             return
         }
         let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] ?? [:]
@@ -48,10 +39,6 @@ struct DemoImageHeader: Sendable {
         imageCount = CGImageSourceGetCount(source)
         width = properties[kCGImagePropertyPixelWidth] as? Int
         height = properties[kCGImagePropertyPixelHeight] as? Int
-        depth = properties[kCGImagePropertyDepth] as? Int
-        colorModel = properties[kCGImagePropertyColorModel] as? String
-        profile = properties[kCGImagePropertyProfileName] as? String
-        orientation = properties[kCGImagePropertyOrientation] as? Int
     }
 
     /// Reads the header of the data off the main actor.
@@ -61,17 +48,11 @@ struct DemoImageHeader: Sendable {
         }.value
     }
 
-    /// "public.heic · 1 image", or "not an image type · 0 images".
-    var typeSummary: String {
-        "\(type ?? "not an image type") · \(demoCount(imageCount, "image"))"
-    }
-
-    /// "1008×756 · 8 bpc · RGB · orientation 6", or `nil` if the header
-    /// gives no size.
-    var pixelSummary: String? {
-        guard let width, let height else { return nil }
-        let parts = ["\(width)×\(height)", depth.map { "\($0) bpc" }, colorModel, orientation.map { "orientation \($0)" }]
-        return parts.compactMap { $0 }.joined(separator: " · ")
+    /// "public.heic · 1 image · 1008×756", or "not an image type · 0 images".
+    var summary: String {
+        let summary = "\(type ?? "not an image type") · \(demoCount(imageCount, "image"))"
+        guard let width, let height else { return summary }
+        return "\(summary) · \(width)×\(height)"
     }
 }
 

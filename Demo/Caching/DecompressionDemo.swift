@@ -520,7 +520,7 @@ private final class FootprintPeak: Sendable {
         self.peak = peak
         task = Task.detached(priority: .userInitiated) {
             while !Task.isCancelled {
-                if let footprint = DemoFootprint.read()?.footprint {
+                if let footprint = DemoFootprint.read() {
                     peak.withLock { $0 = max($0 ?? 0, footprint) }
                 }
                 try? await Task.sleep(for: .milliseconds(20))
