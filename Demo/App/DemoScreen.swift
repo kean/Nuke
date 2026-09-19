@@ -16,13 +16,13 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     // Essentials
     case lazyImage = "lazy-image"
     case uikitViews = "uikit-views"
-
-    // Processing & Formats
     case imageProcessing = "image-processing"
+
+    // Formats
     case imageFormats = "image-formats"
     case animatedImages = "animated-images"
     case progressiveDecoding = "progressive-decoding"
-    case customDecoder = "custom-decoder"
+    case video = "video"
 
     // Caching & Performance
     case caching = "caching"
@@ -30,13 +30,13 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case decompression = "decompression"
 
     // Integration
+    case customDecoder = "custom-decoder"
     case customDataLoader = "custom-data-loader"
-    case video = "video"
 
     // Lab
-    case priorityAndCoalescing = "priority-and-coalescing"
     case pipelineHUD = "pipeline-hud"
     case concurrencyInspector = "concurrency-inspector"
+    case priorityAndCoalescing = "priority-and-coalescing"
     case scrollStress = "scroll-stress"
     case animationLab = "animation-lab"
 
@@ -50,15 +50,15 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageFormats: "Image Formats"
         case .animatedImages: "Animated Images"
         case .progressiveDecoding: "Progressive Decoding"
-        case .customDecoder: "Custom Decoder"
+        case .video: "Video"
         case .caching: "Caching"
         case .prefetching: "Prefetching"
         case .decompression: "Decompression"
+        case .customDecoder: "Custom Decoder"
         case .customDataLoader: "Custom Data Loader"
-        case .video: "Video"
-        case .priorityAndCoalescing: "Priority & Coalescing"
         case .pipelineHUD: "Pipeline HUD"
         case .concurrencyInspector: "Concurrency Inspector"
+        case .priorityAndCoalescing: "Priority & Coalescing"
         case .scrollStress: "Scroll Stress"
         case .animationLab: "Animation Lab"
         }
@@ -73,15 +73,15 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageFormats: "JPEG, PNG, WebP, HEIC, GIF, and APNG, as detected"
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
-        case .customDecoder: "A toy format, picked by its first bytes"
+        case .video: "A poster frame and a looping player from NukeVideo"
         case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
         case .decompression: "Decoded off the main thread, counted in frames"
+        case .customDecoder: "A toy format, picked by its first bytes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
-        case .video: "A poster frame and a looping player from NukeVideo"
-        case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .pipelineHUD: "Each pipeline's figures, over any screen"
         case .concurrencyInspector: "A burst's tasks and the five queues"
+        case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
         }
@@ -89,11 +89,11 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     var section: CatalogSection {
         switch self {
-        case .lazyImage, .uikitViews: .essentials
-        case .imageProcessing, .imageFormats, .animatedImages, .progressiveDecoding, .customDecoder: .processingAndFormats
+        case .lazyImage, .uikitViews, .imageProcessing: .essentials
+        case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
         case .caching, .prefetching, .decompression: .cachingAndPerformance
-        case .customDataLoader, .video: .integration
-        case .priorityAndCoalescing, .pipelineHUD, .concurrencyInspector, .scrollStress, .animationLab: .lab
+        case .customDecoder, .customDataLoader: .integration
+        case .pipelineHUD, .concurrencyInspector, .priorityAndCoalescing, .scrollStress, .animationLab: .lab
         }
     }
 
@@ -108,15 +108,15 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageFormats: ImageFormatsDemo()
         case .animatedImages: AnimatedImagesDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
-        case .customDecoder: CustomDecoderDemo()
+        case .video: VideoDemo()
         case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()
         case .decompression: DecompressionDemo()
+        case .customDecoder: CustomDecoderDemo()
         case .customDataLoader: CustomDataLoaderDemo()
-        case .video: VideoDemo()
-        case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .pipelineHUD: PipelineHUDDemo()
         case .concurrencyInspector: ConcurrencyInspectorDemo()
+        case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationLab: AnimationLabDemo()
         }
@@ -128,7 +128,7 @@ extension DemoScreen {
     /// rather than the order of the documentation, and the Lab last.
     enum CatalogSection: CaseIterable {
         case essentials
-        case processingAndFormats
+        case formats
         case cachingAndPerformance
         case integration
         /// Instruments and stress rigs for working on Nuke, where the rest of
@@ -141,7 +141,7 @@ extension DemoScreen {
         var title: String {
             switch self {
             case .essentials: "Essentials"
-            case .processingAndFormats: "Processing & Formats"
+            case .formats: "Formats"
             case .cachingAndPerformance: "Caching & Performance"
             case .integration: "Integration"
             case .lab: "Lab"
@@ -150,10 +150,10 @@ extension DemoScreen {
 
         var footer: String {
             switch self {
-            case .essentials: "The views you need for most apps: LazyImage for SwiftUI, and the image views for UIKit."
-            case .processingAndFormats: "Decoders turn data into images, and processors turn those into the ones you display."
+            case .essentials: "What most apps need: LazyImage for SwiftUI, the image views for UIKit, and the processors that fit an image to either."
+            case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
             case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and what decoding off the main thread saves."
-            case .integration: "Where an app plugs into the pipeline: a data loader of its own, and a decoder for video."
+            case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
             case .lab: "Instruments and stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that."
             }
         }

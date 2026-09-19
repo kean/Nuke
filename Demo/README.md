@@ -24,16 +24,16 @@ details worth knowing.
 |--|--|
 | **LazyImage** | The SwiftUI view: loading states and failures, transitions, processors, priority, and completion. Then `FetchImage`, the observable object `LazyImage` is built on, in a view of its own with a progress bar, the result in words, and Load and Reset |
 | **UIKit Views** | `loadImage(with:options:into:)` next to `LazyImageView` in a collection view, on a picker: with the extension you own the placeholder, the failure image, and the transition; `LazyImageView` owns them. Cell reuse either way |
+| **Image Processing** | The built-in processors and two ways to write your own, each tile with the bitmap it was decoded from, the image it became with its memory cost and time, read from its `ImageTask.Metrics`, and the disk cache key it is stored under. A thumbnail sits beside the resize: the same size, without the full-size decode |
 
-### Processing & Formats
+### Formats
 
 | Screen | Shows |
 |--|--|
-| **Image Processing** | The built-in processors and two ways to write your own, each tile with the bitmap it was decoded from, the image it became with its memory cost and time, read from its `ImageTask.Metrics`, and the disk cache key it is stored under. A thumbnail sits beside the resize: the same size, without the full-size decode |
 | **Image Formats** | JPEG, PNG, WebP, HEIC, an animated GIF, and an APNG, each with what the pipeline made of its data: the MIME type it was served with, the type the decoder read in the data, the decoder `ImageDecoderRegistry` picked, and what Image I/O reads in the file's header |
 | **Animated Images** | GIF, APNG, WebP, and HEIC playback, and a GIF whose delays differ, with live diagnostics – the frame buffer, decode times, and dropped frames – in an inspector: a column on iPad, which lies over the animation in portrait, and a sheet below it on iPhone. The buffer budget, the size the frames are decoded at, the rate, the repeat count, and a scrubber |
 | **Progressive Decoding** | The scans of a progressive JPEG and the one pass of a baseline JPEG – side by side where the screen has room, on a picker where it doesn't – with a throttled data loader that makes them visible, and the number of previews decoded so far. A restart resumes the downloads and says from where |
-| **Custom Decoder** | `NukePixDecoder`, a decoder for a toy format made up for the demo, registered in `ImageDecoderRegistry.shared` while the screen is open, with its code in the info sheet. Three files, loaded without the decoder and with it: a NukePix file, which only the new decoder reads; the same file cut short, which the decoder takes by its first bytes and fails; and a PNG, which it passes on to `ImageDecoders.Default`. Each shows its first bytes, what Image I/O makes of it, the decoder the registry picked, and the result |
+| **Video** | `ImageDecoders.Video` from NukeVideo, which the app registers at launch: one request for an MP4 gives a poster frame and an `AVAsset`, and `VideoPlayerView` plays the asset in `LazyImage`'s content, over the poster until its first frame is up. What the memory and disk caches keep of a video, and the check for a file the decoder takes no frame from, which it reports as a success |
 
 ### Caching & Performance
 
@@ -47,8 +47,8 @@ details worth knowing.
 
 | Screen | Shows |
 |--|--|
+| **Custom Decoder** | `NukePixDecoder`, a decoder for a toy format made up for the demo, registered in `ImageDecoderRegistry.shared` while the screen is open, with its code in the info sheet. Three files, loaded without the decoder and with it: a NukePix file, which only the new decoder reads; the same file cut short, which the decoder takes by its first bytes and fails; and a PNG, which it passes on to `ImageDecoders.Default`. Each shows its first bytes, what Image I/O makes of it, the decoder the registry picked, and the result |
 | **Custom Data Loader** | Three `DataLoading` implementations on a picker – a throttled download, a file from the app bundle picked by the delegate, and a server that fails – loading the same image on a new pipeline each run, with every call between the pipeline and the loader: the chunks, the pipeline's cancel, and the one `completion`. A throttled load cancelled partway never completes, and the screen shows the data loading slot and the pipeline it keeps |
-| **Video** | `ImageDecoders.Video` from NukeVideo, which the app registers at launch: one request for an MP4 gives a poster frame and an `AVAsset`, and `VideoPlayerView` plays the asset in `LazyImage`'s content, over the poster until its first frame is up. What the memory and disk caches keep of a video, and the check for a file the decoder takes no frame from, which it reports as a success |
 
 ## Lab
 
@@ -59,9 +59,9 @@ an API – the catalog screen for that API does the explaining.
 
 | Screen | Shows |
 |--|--|
-| **Priority & Coalescing** | Twenty requests for six photos against a data loading queue of two slots: a counter of tasks and downloads, the downloads running and waiting in the order they will start, and a priority on every request that moves its download in the line. Hold suspends the queue, and one request shows what `.skipDataLoadingQueue` does when its URL is already loading |
 | **Pipeline HUD** | The HUD's lines – tasks, where the images came from and the hit rate, queues, network bytes, the image cache and frame pool, disk, footprint, and frames – for each pipeline alive and all of them added up, with the switch, Expanded, and a reset |
 | **Concurrency Inspector** | A burst of 240 fixture requests – photos, blurred photos, and thumbnails of a 12 MP JPEG – on a pipeline of its own, with cancel: a map of every task by where it is (waiting, loading, decoding, processing, decompressing, finished), and the five task queues with the work running against the limit and a suspend switch each |
+| **Priority & Coalescing** | Twenty requests for six photos against a data loading queue of two slots: a counter of tasks and downloads, the downloads running and waiting in the order they will start, and a priority on every request that moves its download in the line. Hold suspends the queue, and one request shows what `.skipDataLoadingQueue` does when its URL is already loading |
 | **Scroll Stress** | The pipeline under fast scrolling on fixtures with every cache disabled, ten images to a row, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps the last run – frames dropped, the longest frame, and the tasks started – so two builds can be compared |
 | **Animation Lab** | Up to 36 animations playing at once from fixtures, drawing their frames from the shared `AnimatedImageFramePool`: the pool's budget from 4 to 256 MB, a memory warning with the pool before it and at its lowest, lockstep on and off, and each cell's frames and bytes buffered |
 
@@ -136,11 +136,11 @@ Performance Guide.
 ```
 Demo
 ├── App              The app, the catalog, the screen registry, and the launch arguments
-├── Essentials       LazyImage and FetchImage, and the image views
-├── Processing       Processors, image formats, animated images, progressive decoding, and a custom decoder
+├── Essentials       LazyImage and FetchImage, the image views, and processors
+├── Formats          Image formats, animated images, progressive decoding, and video
 ├── Caching          Caching, prefetching, and decompression
-├── Integration      Custom data loaders and video
-├── Lab              Priority and coalescing, and instruments and stress rigs for working on Nuke
+├── Integration      A custom decoder and custom data loaders
+├── Lab              Instruments and stress rigs for working on Nuke, and priority and coalescing
 ├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```
