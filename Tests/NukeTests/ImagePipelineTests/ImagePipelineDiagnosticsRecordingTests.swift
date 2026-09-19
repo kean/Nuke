@@ -911,13 +911,13 @@ struct ImagePipelineDiagnosticsRecordingTests {
         await started.wait()
         let records = await Task { @ImagePipelineActor in
             let record = task._diagnostics
-            var jobs: [_WeakJobRecord] = []
+            var jobs: [WeakRef<ImagePipeline.Diagnostics.JobRecord>] = []
             var job = record?.rootJob
             while let current = job {
-                jobs.append(_WeakJobRecord(current))
+                jobs.append(WeakRef(current))
                 job = current.parent
             }
-            return (_WeakTaskRecord(record), jobs)
+            return (WeakRef(record), jobs)
         }.value
         #expect(records.0.value != nil)
         #expect(records.1.count == 4)
@@ -942,21 +942,5 @@ private final class _ThrowingDelegate: ImagePipeline.Delegate, Sendable {
     @ImagePipelineActor
     func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
         throw URLError(.userAuthenticationRequired)
-    }
-}
-
-private final class _WeakTaskRecord: @unchecked Sendable {
-    weak var value: ImagePipeline.Diagnostics.TaskRecord?
-
-    init(_ value: ImagePipeline.Diagnostics.TaskRecord?) {
-        self.value = value
-    }
-}
-
-private final class _WeakJobRecord: @unchecked Sendable {
-    weak var value: ImagePipeline.Diagnostics.JobRecord?
-
-    init(_ value: ImagePipeline.Diagnostics.JobRecord) {
-        self.value = value
     }
 }

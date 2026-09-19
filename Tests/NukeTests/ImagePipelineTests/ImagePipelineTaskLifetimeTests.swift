@@ -272,10 +272,6 @@ struct ImagePipelineTaskLifetimeTests {
 
     // MARK: - Helpers
 
-    /// Waits for the work the pipeline scheduled while starting a task.
-    private func drainPipeline() async {
-        await Task { @ImagePipelineActor in }.value
-    }
 }
 
 /// Holds the request until it's cancelled, and reports the cancellation the

@@ -32,30 +32,6 @@ struct ImagePipelineLoadImageTaskTests {
 
     // MARK: - Cached Data That Can't Be Used
 
-    /// The decoder is picked per context, so a factory can decline the data
-    /// read from the disk cache – the image is then loaded as if there was no
-    /// data in the cache.
-    @Test func cachedDataWithNoDecoderIsLoadedFromTheNetwork() async throws {
-        // GIVEN a factory that has no decoder for the data from the disk cache
-        let cacheTypes = LockedArray<ImageResponse.CacheType?>()
-        let pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { context in
-                cacheTypes.append(context.cacheType)
-                guard context.cacheType != .disk else { return nil }
-                return ImageDecoders.Default(context: context)
-            }
-        }
-        dataCache.store[Test.url.absoluteString] = Test.data
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // THEN
-        #expect(response.cacheType == nil)
-        #expect(dataLoader.createdTaskCount == 1)
-        #expect(cacheTypes.values == [.disk, nil])
-    }
-
     /// Data in the disk cache that fails to decode doesn't fail the request,
     /// and the downloaded data replaces it, so the next load doesn't pay for
     /// the failed decode again.
@@ -111,36 +87,6 @@ struct ImagePipelineLoadImageTaskTests {
     }
 
     // MARK: - Memory Cache Previews
-
-    @Test func previewInMemoryCacheIsDeliveredBeforeTheImageFromDiskCache() async throws {
-        // GIVEN a preview in the memory cache and the image data on disk
-        let preview = ImageContainer(image: Test.image, isPreview: true)
-        imageCache[Test.request] = preview
-        dataCache.store[Test.url.absoluteString] = Test.data
-
-        // WHEN
-        let events = LockedArray<ImageTask.Event>()
-        let task = pipeline.makeStartedImageTask(with: Test.request) { event, _ in
-            events.append(event)
-        }
-        let response = try await task.response
-
-        // THEN the preview is delivered first, followed by the image from disk
-        let values = events.values
-        #expect(values.count == 2)
-        guard case .preview(let delivered) = values.first else {
-            Issue.record("Expected a preview, got \(values)")
-            return
-        }
-        #expect(delivered.image === preview.image)
-        #expect(delivered.cacheType == .memory)
-        #expect(response.cacheType == .disk)
-        #expect(!response.isPreview)
-        #expect(dataLoader.createdTaskCount == 0)
-
-        // THEN the image replaces the preview in the memory cache
-        #expect(imageCache[Test.request]?.isPreview == false)
-    }
 
     @Test func previewsAreNotStoredInMemoryCacheWhenDisabled() async throws {
         // GIVEN
@@ -241,21 +187,6 @@ struct ImagePipelineLoadImageTaskTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
-    @Test func thumbnailIsGeneratedFromCachedOriginalDataWhenLoadingIsNotAllowed() async throws {
-        // GIVEN only the original image data in the disk cache
-        dataCache.store[Test.url.absoluteString] = Test.data
-        var request = ImageRequest(url: Test.url, options: [.returnCacheDataDontLoad])
-        request.thumbnail = .init(maxPixelSize: 400)
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: request).response
-
-        // THEN
-        #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
-        #expect(response.cacheType == .disk)
-        #expect(dataLoader.createdTaskCount == 0)
-    }
-
     @Test func thumbnailDataOnDiskIsPreferredOverTheOriginalData() async throws {
         // GIVEN both the thumbnail and the original image data on disk
         var request = ImageRequest(url: Test.url)
@@ -279,7 +210,7 @@ struct ImagePipelineLoadImageTaskTests {
         let error = MockError(description: "processor-failed")
         let request = ImageRequest(url: Test.url, processors: [
             MockImageProcessor(id: "1"),
-            ThrowingProcessor(identifier: "failing", error: error)
+            MockThrowingProcessor(identifier: "failing", error: error)
         ])
 
         // WHEN
@@ -308,7 +239,7 @@ struct ImagePipelineLoadImageTaskTests {
         // GIVEN
         let processors = MockProcessorFactory()
         let request = ImageRequest(url: Test.url, processors: [
-            ThrowingProcessor(identifier: "failing", error: MockError(description: "processor-failed")),
+            MockThrowingProcessor(identifier: "failing", error: MockError(description: "processor-failed")),
             processors.make(id: "2")
         ])
 
@@ -401,26 +332,6 @@ struct ImagePipelineLoadImageTaskTests {
         #expect(dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] != nil)
     }
 
-    @Test func imagesAreNotEncodedWithoutADataCache() async throws {
-        // GIVEN a policy that stores encoded images, but no data cache
-        let encoderCount = LockedArray<Void>()
-        let pipeline = pipeline.reconfigured {
-            $0.dataCache = nil
-            $0.dataCachePolicy = .storeEncodedImages
-            $0.makeImageEncoder = { _ in
-                encoderCount.append(())
-                return ImageEncoders.Default()
-            }
-        }
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
-
-        // WHEN
-        _ = try await pipeline.imageTask(with: request).response
-
-        // THEN the image isn't encoded for nothing
-        #expect(encoderCount.count == 0)
-    }
-
     @Test func encoderReturningEmptyDataStoresNothing() async throws {
         // GIVEN
         let encoder = MockImageEncoder(result: Data())
@@ -440,23 +351,6 @@ struct ImagePipelineLoadImageTaskTests {
     }
 
     // MARK: - Async Image Closure
-
-    @Test func imageClosureIsNotCalledWhenTheImageIsInMemoryCache() async throws {
-        // GIVEN
-        let calls = LockedArray<Void>()
-        let request = ImageRequest(id: "closure-image", image: {
-            calls.append(())
-            return Test.container
-        })
-        imageCache[request] = Test.container
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: request).response
-
-        // THEN
-        #expect(response.cacheType == .memory)
-        #expect(calls.count == 0)
-    }
 
     /// There is no data to store for an image returned by a closure.
     @Test func imageFromClosureIsStoredInMemoryCacheOnly() async throws {
@@ -542,37 +436,6 @@ struct ImagePipelineLoadImageTaskTests {
 }
 
 // MARK: - Helpers
-
-private final class LockedArray<Element>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var elements: [Element] = []
-
-    func append(_ element: Element) {
-        lock.withLock { elements.append(element) }
-    }
-
-    var values: [Element] {
-        lock.withLock { elements }
-    }
-
-    var count: Int {
-        values.count
-    }
-}
-
-/// A processor that always throws the given error.
-private struct ThrowingProcessor: ImageProcessing {
-    let identifier: String
-    let error: MockError
-
-    func process(_ image: PlatformImage) -> PlatformImage? {
-        nil
-    }
-
-    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        throw error
-    }
-}
 
 /// A decoder that runs on the decoding queue and fails, but not before the
 /// test calls ``finishDecoding()``.

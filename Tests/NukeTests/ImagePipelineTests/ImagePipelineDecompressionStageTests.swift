@@ -48,52 +48,6 @@ struct ImagePipelineDecompressionStageTests {
         #expect(delegate.decompressedRequests.first?.url == Test.url)
     }
 
-    /// Without a custom delegate, the default `shouldDecompress` follows the
-    /// configuration, and the default `decompress` replaces the image.
-    @Test(arguments: [true, false])
-    func defaultDelegateDecompressesOnlyWhenEnabledInTheConfiguration(isEnabled: Bool) async throws {
-        // GIVEN
-        let dataLoader = dataLoader
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isDecompressionEnabled = isEnabled
-            $0.makeImageDecoder = { DecompressionFlaggingDecoder(context: $0) }
-        }
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // THEN a disabled decompression leaves the image waiting for it
-        #expect(ImageDecompression.isDecompressionNeeded(for: response.image) == (isEnabled ? nil : true))
-    }
-
-    @Test func decompressionIsSkippedWhenTheDelegateDeclines() async throws {
-        // GIVEN
-        delegate.isDecompressionAllowed = false
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // THEN
-        #expect(delegate.consultedResponses.count == 1)
-        #expect(delegate.decompressedResponses.isEmpty)
-        #expect(response.container.userInfo[.isDecompressedKey] == nil)
-    }
-
-    @Test func skipDecompressionOptionTakesPrecedenceOverTheDelegate() async throws {
-        // GIVEN
-        let request = ImageRequest(url: Test.url, options: [.skipDecompression])
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: request).response
-
-        // THEN the delegate isn't asked
-        #expect(delegate.consultedResponses.isEmpty)
-        #expect(delegate.decompressedResponses.isEmpty)
-        #expect(ImageDecompression.isDecompressionNeeded(for: response.image) == true)
-    }
-
     // MARK: - Processing
 
     /// Neither the original image the processors are applied to, nor the new
@@ -137,7 +91,9 @@ struct ImagePipelineDecompressionStageTests {
         let task = pipeline.imageTask(with: Test.request)
         await expectation.wait()
 
-        // THEN the image is neither delivered nor cached before it is decompressed
+        // THEN the delegate is asked before the decompression is scheduled,
+        // and the image is neither delivered nor cached before it is decompressed
+        #expect(delegate.consultedResponses.count == 1)
         #expect(delegate.decompressedResponses.isEmpty)
         #expect(imageCache[Test.request] == nil)
 
@@ -334,16 +290,13 @@ private final class DecompressionRecordingDelegate: ImagePipeline.Delegate, @unc
     private var _decompressedResponses: [ImageResponse] = []
     private var _decompressedRequests: [ImageRequest] = []
 
-    /// `nil` defers to the pipeline configuration, like the default implementation.
-    var isDecompressionAllowed: Bool?
-
     var consultedResponses: [ImageResponse] { lock.withLock { _consultedResponses } }
     var decompressedResponses: [ImageResponse] { lock.withLock { _decompressedResponses } }
     var decompressedRequests: [ImageRequest] { lock.withLock { _decompressedRequests } }
 
     func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool {
         lock.withLock { _consultedResponses.append(response) }
-        return isDecompressionAllowed ?? pipeline.configuration.isDecompressionEnabled
+        return pipeline.configuration.isDecompressionEnabled
     }
 
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse {
@@ -386,22 +339,5 @@ private final class DecompressionFlaggingDecoder: ImageDecoding, @unchecked Send
             ImageDecompression.setDecompressionNeeded(true, for: preview.image)
         }
         return preview
-    }
-}
-
-private final class LockedArray<Element>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var elements: [Element] = []
-
-    func append(_ element: Element) {
-        lock.withLock { elements.append(element) }
-    }
-
-    var values: [Element] {
-        lock.withLock { elements }
-    }
-
-    var count: Int {
-        values.count
     }
 }

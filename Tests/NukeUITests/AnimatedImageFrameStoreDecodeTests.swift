@@ -64,7 +64,7 @@ struct AnimatedImageFrameStoreDecodeTests {
         // A truncated animation: the container promises a frame the data
         // doesn't hold. The store stops expecting it rather than asking again.
         let source = try makeSource(frameCount: 4)
-        let decoder = RefusingFrameDecoder(source: source, refusing: [2])
+        let decoder = CountingRefusingFrameDecoder(source: source, refusing: [2])
         let (player, _) = makeIdlePlayer(source: source, decoder: decoder)
         player.play()
 
@@ -77,36 +77,12 @@ struct AnimatedImageFrameStoreDecodeTests {
         #expect(await decoder.requests == [0: 1, 1: 1, 2: 1, 3: 1])
     }
 
-    @Test func holdsThePreviousFrameInPlaceOfOneTheDecoderRefuses() async throws {
-        let source = try makeSource(frameCount: 4)
-        let decoder = RefusingFrameDecoder(source: source, refusing: [2])
-        let (player, clock) = makeIdlePlayer(source: source, decoder: decoder)
-        player.play()
-        await waitForDecodes(of: player)
-        clock.tick(0.1)
-        #expect(player.currentFrameIndex == 1)
-        let before = try #require(player.image)
-
-        clock.tick(0.1)
-
-        // The playhead moves on – waiting for a frame nobody is producing
-        // would stop the animation for good – and the frame before it stays
-        // on screen for the refused one's delay.
-        #expect(player.currentFrameIndex == 2)
-        #expect(player.image === before)
-
-        clock.tick(0.1)
-
-        #expect(player.currentFrameIndex == 3)
-        #expect(player.image !== before)
-    }
-
     @Test func doesNotAskForARefusedFrameAgainOnTheNextLoop() async throws {
         // A window that slides decodes every frame again on every loop. A
         // refused one is remembered instead: otherwise a truncated animation
         // would retry the frames it doesn't have on every pass.
         let source = try makeSource(frameCount: 4)
-        let decoder = RefusingFrameDecoder(source: source, refusing: [2])
+        let decoder = CountingRefusingFrameDecoder(source: source, refusing: [2])
         let (player, clock) = makeIdlePlayer(source: source, options: .twoFrameBuffer, decoder: decoder)
         player.play()
 
@@ -193,7 +169,7 @@ struct AnimatedImageFrameStoreDecodeTests {
 
 /// A decoder that refuses some of the frames, the way one reading a truncated
 /// animation does, and counts what it was asked for.
-private actor RefusingFrameDecoder: AnimatedImageFrameDecoding {
+private actor CountingRefusingFrameDecoder: AnimatedImageFrameDecoding {
     private let decoder: AnimatedImageFrameDecoder
     private let refused: Set<Int>
 

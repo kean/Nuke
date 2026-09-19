@@ -287,7 +287,7 @@ struct LazyImageViewLifecycleTests {
         // thread is busy, so its completion can't run yet
         var responses: [ImageResponse] = []
         view.onSuccess = { responses.append($0) }
-        try loadWhileMainThreadIsBlocked(untilTaskCompletes: observer) {
+        try runWhileMainThreadIsBlocked(untilTaskCompletes: observer) {
             view.request = request(id: "a")
         }
 
@@ -602,10 +602,6 @@ struct LazyImageViewLifecycleTests {
 
     // MARK: - Helpers
 
-    private func request(id: String) -> ImageRequest {
-        ImageRequest(url: Test.url, processors: [MockImageProcessor(id: id)])
-    }
-
     private func makeView() -> LazyImageView {
         let view = LazyImageView()
         view.pipeline = pipeline
@@ -624,19 +620,6 @@ struct LazyImageViewLifecycleTests {
         await expectation.wait()
         view.onCompletion = onCompletion
     }
-}
-
-/// Sets a request and keeps the main thread busy until the pipeline has
-/// finished it, so that its response is dispatched but hasn't been handled.
-@MainActor
-private func loadWhileMainThreadIsBlocked(untilTaskCompletes observer: ImagePipelineObserver, _ action: () -> Void) throws {
-    let semaphore = DispatchSemaphore(value: 0)
-    let token = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didCompleteTask, object: observer, queue: nil) { _ in
-        semaphore.signal()
-    }
-    defer { NotificationCenter.default.removeObserver(token) }
-    action()
-    try #require(semaphore.wait(timeout: .now() + 60) == .success)
 }
 
 #endif

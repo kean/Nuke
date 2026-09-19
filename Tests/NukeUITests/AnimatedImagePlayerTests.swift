@@ -708,20 +708,6 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Observation
 
-    @Test func publishesWhenPlaybackStartsAndStops() {
-        let (player, _) = AnimatedImageTest.makePlayer()
-        var changes = 0
-        let observer = player.objectWillChange.sink { changes += 1 }
-
-        player.play()
-        #expect(changes == 1)
-
-        player.pause()
-        #expect(changes == 2)
-
-        observer.cancel()
-    }
-
     @Test func publishesASeek() async {
         let (player, _) = AnimatedImageTest.makePlayer(frameCount: 5)
         await player.waitUntilFull()

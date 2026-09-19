@@ -110,11 +110,8 @@ struct SignpostLoggingTests {
         #expect(!Formatter.bytes(0).isEmpty)
         #expect(!Formatter.bytes(1024).isEmpty)
         #expect(Formatter.bytes(Int64(2048)) == Formatter.bytes(2048))
-    }
-
-    /// Zero is a number, not "Zero KB": the records print it next to other
-    /// byte counts.
-    @Test func byteFormatterPrintsZeroAsANumber() {
+        // Zero is a number, not "Zero KB": the records print it next to other
+        // byte counts
         #expect(Formatter.bytes(0).hasPrefix("0"), "\(Formatter.bytes(0))")
     }
 

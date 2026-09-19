@@ -8,14 +8,6 @@ import Testing
 @testable import Nuke
 @testable import NukeUI
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
-#if canImport(AppKit)
-import AppKit
-#endif
-
 /// What ``AnimatedImageFrameTransform`` is handed, how often it runs, and what
 /// its identifier does and doesn't share.
 @Suite(.timeLimit(.minutes(5))) @MainActor
@@ -32,7 +24,7 @@ struct AnimatedImageFrameTransformTests {
         // makes of nothing.
         let log = TransformLog()
         let transformer = AnimatedImageFrameTransformer(
-            decoder: RefusingDecoder(refused: [1]),
+            decoder: RefusingFrameDecoder(refused: [1]),
             transform: log.recording(identifier: "recording")
         )
 
@@ -180,7 +172,7 @@ struct AnimatedImageFrameTransformTests {
         #expect(pool.animationCount == 1)
         #expect(blue.diagnostics.decodedFrameCount == 0)
         let frame = try #require(blue.store.frame(at: 0))
-        #expect(framePixel(of: frame) == SolidColor.red.pixel)
+        #expect(AnimatedImageTest.firstPixel(of: frame) == SolidColor.red.pixel)
     }
 
     // MARK: Helpers
@@ -214,17 +206,6 @@ struct AnimatedImageFrameTransformTests {
     }
 }
 
-/// Reads back a bitmap the way ``AnimatedImageTest/firstPixel(of:)`` reads
-/// back what a player displays.
-@MainActor
-private func framePixel(of cgImage: CGImage) -> [UInt8]? {
-#if canImport(UIKit)
-    AnimatedImageTest.firstPixel(of: UIImage(cgImage: cgImage))
-#else
-    AnimatedImageTest.firstPixel(of: NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height)))
-#endif
-}
-
 /// What a transform was handed, from whatever thread it ran on.
 private final class TransformLog: @unchecked Sendable {
     private let lock = NSLock()
@@ -247,14 +228,5 @@ private final class TransformLog: @unchecked Sendable {
             lock.withLock { handed.append(CGSize(width: image.width, height: image.height)) }
             return image
         }
-    }
-}
-
-/// Produces a solid frame for every index but the ones it is told to refuse.
-private struct RefusingDecoder: AnimatedImageFrameDecoding {
-    let refused: Set<Int>
-
-    func decode(at index: Int) async -> CGImage? {
-        refused.contains(index) ? nil : SolidColor.red.makeImage(size: CGSize(width: 8, height: 8))
     }
 }

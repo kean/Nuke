@@ -196,18 +196,6 @@ struct ImagePipelineCacheOptionsLoadingTests {
         #expect(lock.withLock { calls.value } == 1)
     }
 
-    @Test func closureDataIsNotStoredWhenTheDiskCacheIsDisabled() async throws {
-        // GIVEN
-        let request = ImageRequest(id: "photo-1", data: { Test.data }, options: [.disableDiskCache])
-
-        // WHEN
-        _ = try await pipeline.image(for: request)
-
-        // THEN
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.readCount == 0)
-    }
-
     // MARK: Image ID
 
     /// Documented: the image ID can strip the transient query parameters

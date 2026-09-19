@@ -22,18 +22,18 @@ struct ImageProcessorsCornerMaskingTests {
 
     @Test func circleCropsLandscapeImageToTheCenteredSquare() throws {
         // Given a 90x30 image with red, green, and blue vertical stripes
-        let input = maskingStripedImage(width: 90, height: 30, isVertical: true)
+        let input = stripedImage(width: 90, height: 30, isVertical: true)
 
         // When
         let output = try #require(ImageProcessors.Circle().process(input))
 
         // Then only the middle stripe is left, masked by a circle
         #expect(output.sizeInPixels == CGSize(width: 30, height: 30))
-        let stripes = try #require(MaskingBitmap(image: input))
-        let pixels = try #require(MaskingBitmap(image: output))
+        let stripes = try #require(RGBABitmap(image: input))
+        let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.alpha(atX: 15, y: 15) == 255)
-        #expect(pixels.isClose(atX: 15, y: 15, to: stripes, atX: 45, y: 15))
-        #expect(!pixels.isClose(atX: 15, y: 15, to: stripes, atX: 15, y: 15))
+        #expect(pixels.color(atX: 15, y: 15).isClose(to: stripes.color(atX: 45, y: 15)))
+        #expect(!pixels.color(atX: 15, y: 15).isClose(to: stripes.color(atX: 15, y: 15)))
         for (x, y) in [(0, 0), (29, 0), (0, 29), (29, 29)] {
             #expect(pixels.alpha(atX: x, y: y) == 0, "(\(x), \(y))")
         }
@@ -41,16 +41,16 @@ struct ImageProcessorsCornerMaskingTests {
 
     @Test func circleCropsPortraitImageToTheCenteredSquare() throws {
         // Given a 30x90 image with red, green, and blue horizontal stripes
-        let input = maskingStripedImage(width: 30, height: 90, isVertical: false)
+        let input = stripedImage(width: 30, height: 90, isVertical: false)
 
         // When
         let output = try #require(ImageProcessors.Circle().process(input))
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 30, height: 30))
-        let stripes = try #require(MaskingBitmap(image: input))
-        let pixels = try #require(MaskingBitmap(image: output))
-        #expect(pixels.isClose(atX: 15, y: 15, to: stripes, atX: 15, y: 45))
+        let stripes = try #require(RGBABitmap(image: input))
+        let pixels = try #require(RGBABitmap(image: output))
+        #expect(pixels.color(atX: 15, y: 15).isClose(to: stripes.color(atX: 15, y: 45)))
     }
 
     @Test func circleKeepsThePixelsInsideTheCircle() throws {
@@ -63,7 +63,7 @@ struct ImageProcessorsCornerMaskingTests {
         // Then the points of the inscribed circle close to its edge are kept
         // and the ones just outside of it are cut off
         #expect(output.sizeInPixels == CGSize(width: 40, height: 40))
-        let pixels = try #require(MaskingBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         for (x, y) in [(20, 1), (1, 20), (38, 20), (20, 38)] {
             #expect(pixels.alpha(atX: x, y: y) == 255, "(\(x), \(y))")
         }
@@ -92,7 +92,7 @@ struct ImageProcessorsCornerMaskingTests {
         let output = try #require(ImageProcessors.Circle(border: border).process(input))
 
         // Then the edge is red, and the rest of the image isn't
-        let pixels = try #require(MaskingBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.red(atX: 30, y: 1) > 200)
         #expect(pixels.red(atX: 1, y: 30) > 200)
         #expect(pixels.red(atX: 30, y: 30) < 50)
@@ -111,26 +111,13 @@ struct ImageProcessorsCornerMaskingTests {
         // Then the size is preserved, the corners are cut off, and the edges
         // between them are kept
         #expect(output.sizeInPixels == CGSize(width: 60, height: 30))
-        let pixels = try #require(MaskingBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         for (x, y) in [(0, 0), (59, 0), (0, 29), (59, 29)] {
             #expect(pixels.alpha(atX: x, y: y) == 0, "(\(x), \(y))")
         }
         for (x, y) in [(30, 0), (30, 29), (0, 15), (59, 15)] {
             #expect(pixels.alpha(atX: x, y: y) == 255, "(\(x), \(y))")
         }
-    }
-
-    @Test func roundedCornersWithZeroRadiusKeepTheCorners() throws {
-        // Given
-        let input = Test.rgbImage(width: 20, height: 20)
-
-        // When
-        let output = try #require(ImageProcessors.RoundedCorners(radius: 0, unit: .pixels).process(input))
-
-        // Then
-        let pixels = try #require(MaskingBitmap(image: output))
-        #expect(pixels.alpha(atX: 0, y: 0) == 255)
-        #expect(pixels.alpha(atX: 19, y: 19) == 255)
     }
 
     /// A radius that doesn't fit is a common consequence of rounding a
@@ -147,22 +134,23 @@ struct ImageProcessorsCornerMaskingTests {
 
         // Then it is rounded as much as it can be
         #expect(output.sizeInPixels == CGSize(width: 40, height: 40))
-        let pixels = try #require(MaskingBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.alpha(atX: 0, y: 0) == 0)
         #expect(pixels.alpha(atX: 4, y: 4) == 0)
         #expect(pixels.alpha(atX: 20, y: 20) == 255)
     }
 
-    @Test func roundedCornersWithNegativeRadius() throws {
+    @Test(arguments: [CGFloat(0), -8])
+    func roundedCornersWithZeroOrNegativeRadiusKeepTheCorners(radius: CGFloat) throws {
         // Given
         let input = Test.rgbImage(width: 20, height: 20)
 
         // When
-        let output = try #require(ImageProcessors.RoundedCorners(radius: -8, unit: .pixels).process(input))
+        let output = try #require(ImageProcessors.RoundedCorners(radius: radius, unit: .pixels).process(input))
 
         // Then it doesn't crash and the image is kept whole, corners included
         #expect(output.sizeInPixels == CGSize(width: 20, height: 20))
-        let pixels = try #require(MaskingBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         for (x, y) in [(0, 0), (19, 0), (0, 19), (19, 19), (10, 10)] {
             #expect(pixels.alpha(atX: x, y: y) == 255, "(\(x), \(y))")
         }
@@ -186,7 +174,7 @@ struct ImageProcessorsCornerMaskingTests {
             #expect(output.cgImage?.isOpaque == false)
             #expect(AssetType(data) == .png)
             let decoded = try ImageDecoders.Default().decode(data)
-            let pixels = try #require(MaskingBitmap(image: decoded.image))
+            let pixels = try #require(RGBABitmap(image: decoded.image))
             #expect(pixels.alpha(atX: 0, y: 0) == 0)
         }
     }
@@ -212,8 +200,9 @@ struct ImageProcessorsCornerMaskingTests {
 
 // MARK: - Helpers
 
-/// Returns an image made of solid red, green, and blue stripes of equal size.
-private func maskingStripedImage(width: Int, height: Int, isVertical: Bool) -> PlatformImage {
+/// Returns an image made of solid red, green, and blue stripes of equal size,
+/// in that order.
+func stripedImage(width: Int, height: Int, isVertical: Bool) -> PlatformImage {
     let context = CGContext(
         data: nil,
         width: width,
@@ -239,48 +228,4 @@ private func maskingStripedImage(width: Int, height: Int, isVertical: Bool) -> P
         }
     }
     return PlatformImage(cgImage: context.makeImage()!)
-}
-
-/// Reads the image into a known RGBA bitmap, top row first.
-private struct MaskingBitmap {
-    private let bytes: [UInt8]
-    private let width: Int
-
-    init?(image: PlatformImage) {
-        guard let cgImage = image.cgImage else { return nil }
-        let (width, height) = (cgImage.width, cgImage.height)
-        var bytes = [UInt8](repeating: 0, count: width * height * 4)
-        let isDrawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
-            guard let context = CGContext(
-                data: buffer.baseAddress,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ) else { return false }
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-            return true
-        }
-        guard isDrawn else { return nil }
-        self.bytes = bytes
-        self.width = width
-    }
-
-    private func component(_ index: Int, atX x: Int, y: Int) -> UInt8 {
-        bytes[(y * width + x) * 4 + index]
-    }
-
-    func red(atX x: Int, y: Int) -> UInt8 { component(0, atX: x, y: y) }
-
-    func alpha(atX x: Int, y: Int) -> UInt8 { component(3, atX: x, y: y) }
-
-    /// Compares the color channels of a pixel of this bitmap with a pixel of
-    /// another one.
-    func isClose(atX x: Int, y: Int, to other: MaskingBitmap, atX otherX: Int, y otherY: Int) -> Bool {
-        (0..<3).allSatisfy {
-            abs(Int(component($0, atX: x, y: y)) - Int(other.component($0, atX: otherX, y: otherY))) <= 8
-        }
-    }
 }

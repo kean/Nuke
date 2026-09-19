@@ -14,22 +14,29 @@ func withSuspendedDataLoading<T>(
     expectedCount: Int,
     _ body: @Sendable () -> T
 ) async -> T {
+    let result = await startSuspended(for: pipeline, count: expectedCount, body)
+    (pipeline.configuration.dataLoader as! MockDataLoader).isSuspended = false
+    return result
+}
+
+/// Starts the tasks and waits until the pipeline registers all of them,
+/// leaving the downloads of its `MockDataLoader` suspended.
+func startSuspended<T>(for pipeline: ImagePipeline, count: Int, _ body: () -> T) async -> T {
     let dataLoader = pipeline.configuration.dataLoader as! MockDataLoader
     dataLoader.isSuspended = true
     let expectation = TestExpectation()
-    var count = 0
+    var startedCount = 0
     let lock = NSLock()
     pipeline.onTaskStarted = { _ in
         lock.lock()
-        count += 1
-        let done = count == expectedCount
+        startedCount += 1
+        let done = startedCount == count
         lock.unlock()
         if done { expectation.fulfill() }
     }
     let result = body()
     await expectation.wait()
     pipeline.onTaskStarted = nil
-    dataLoader.isSuspended = false
     return result
 }
 

@@ -305,6 +305,8 @@ struct ImageProcessorsCoreImageFilterTests {
         let filter = try #require(CIFilter(name: "CISepiaTone"))
 
         #expect(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [:], identifier: "sepia").identifier == "sepia")
+        // `CoreImageFilter` isn't `Hashable`: the identifier is all there is
+        #expect(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [:], identifier: "sepia").hashableIdentifier == AnyHashable("sepia"))
         #expect(ImageProcessors.CoreImageFilter(filter, identifier: "custom-sepia").identifier == "custom-sepia")
         #expect(ImageProcessors.CoreImageFilter(name: "CISepiaTone").identifier.contains("CISepiaTone"))
     }
@@ -328,14 +330,14 @@ struct ImageProcessorsCoreImageFilterTests {
 
         // THEN it is black
         #expect(output.sizeInPixels == CGSize(width: 10, height: 10))
-        let pixel = try coreImagePixel(of: output, x: 5, y: 5)
+        let pixel = try pixelComponents(of: output, x: 5, y: 5)
         #expect(pixel.prefix(3).allSatisfy { $0 <= 2 }, "\(pixel)")
     }
 
     @Test func parametersArePassedToTheFilter() throws {
         // GIVEN
         let input = Test.rgbImage(width: 10, height: 10, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
-        let original = try coreImagePixel(of: input, x: 5, y: 5)
+        let original = try pixelComponents(of: input, x: 5, y: 5)
 
         // WHEN
         let none = try #require(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [kCIInputIntensityKey: 0.0], identifier: "sepia-0").process(input))
@@ -343,8 +345,8 @@ struct ImageProcessorsCoreImageFilterTests {
 
         // THEN a sepia of zero intensity leaves the colors alone, and a full
         // one doesn't
-        #expect(maxDifference(try coreImagePixel(of: none, x: 5, y: 5), original) <= 4)
-        #expect(maxDifference(try coreImagePixel(of: full, x: 5, y: 5), original) > 16)
+        #expect(maxDifference(try pixelComponents(of: none, x: 5, y: 5), original) <= 4)
+        #expect(maxDifference(try pixelComponents(of: full, x: 5, y: 5), original) > 16)
     }
 
     /// The processor applies a copy of the filter the client passes, and that
@@ -359,7 +361,7 @@ struct ImageProcessorsCoreImageFilterTests {
         let output = try #require(ImageProcessors.CoreImageFilter(filter, identifier: "sepia-0").process(input))
 
         // THEN
-        #expect(maxDifference(try coreImagePixel(of: output, x: 5, y: 5), try coreImagePixel(of: input, x: 5, y: 5)) <= 4)
+        #expect(maxDifference(try pixelComponents(of: output, x: 5, y: 5), try pixelComponents(of: input, x: 5, y: 5)) <= 4)
         #expect(filter.value(forKey: kCIInputIntensityKey) as? Double == 0)
     }
 
@@ -372,7 +374,7 @@ struct ImageProcessorsCoreImageFilterTests {
         let output = try ImageProcessors.CoreImageFilter.apply(filter: filter, to: input)
 
         // THEN
-        let pixel = try coreImagePixel(of: output, x: 5, y: 5)
+        let pixel = try pixelComponents(of: output, x: 5, y: 5)
         #expect(pixel.prefix(3).allSatisfy { $0 <= 2 }, "\(pixel)")
         #expect(filter.value(forKey: kCIInputImageKey) == nil)
     }
@@ -391,28 +393,6 @@ struct ImageProcessorsCoreImageFilterTests {
         #expect(output.size == input.size)
     }
 #endif
-}
-
-/// Returns the RGBA components of the pixel, read in the device RGB space.
-private func coreImagePixel(of image: PlatformImage, x: Int, y: Int) throws -> [UInt8] {
-    let cgImage = try #require(image.cgImage)
-    var bytes = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * 4)
-    let isDrawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
-        guard let context = CGContext(
-            data: buffer.baseAddress,
-            width: cgImage.width,
-            height: cgImage.height,
-            bitsPerComponent: 8,
-            bytesPerRow: cgImage.width * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return false }
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-        return true
-    }
-    #expect(isDrawn)
-    let offset = (y * cgImage.width + x) * 4
-    return Array(bytes[offset..<offset + 4])
 }
 
 private func maxDifference(_ lhs: [UInt8], _ rhs: [UInt8]) -> Int {

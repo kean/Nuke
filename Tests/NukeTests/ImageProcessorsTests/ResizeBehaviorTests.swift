@@ -138,7 +138,7 @@ struct ImageProcessorsResizeBehaviorTests {
     /// expected to survive a square crop.
     @Test func cropKeepsTheCenterOfLandscapeImage() throws {
         // Given a 600x200 image with red, green, and blue vertical stripes
-        let input = stripedImage(stripeCount: 3, stripeLength: 200, thickness: 200, isVertical: true)
+        let input = stripedImage(width: 600, height: 200, isVertical: true)
         let processor = ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, crop: true)
 
         // When
@@ -146,9 +146,9 @@ struct ImageProcessorsResizeBehaviorTests {
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
-        let stripes = try #require(ResizeBitmap(image: input))
+        let stripes = try #require(RGBABitmap(image: input))
         let middle = stripes.color(atX: 300, y: 100)
-        let pixels = try #require(ResizeBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         for (x, y) in [(10, 10), (50, 50), (90, 90), (10, 90), (90, 10)] {
             #expect(pixels.color(atX: x, y: y).isClose(to: middle), "(\(x), \(y))")
         }
@@ -158,7 +158,7 @@ struct ImageProcessorsResizeBehaviorTests {
 
     @Test func cropKeepsTheCenterOfPortraitImage() throws {
         // Given a 200x600 image with red, green, and blue horizontal stripes
-        let input = stripedImage(stripeCount: 3, stripeLength: 200, thickness: 200, isVertical: false)
+        let input = stripedImage(width: 200, height: 600, isVertical: false)
         let processor = ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, crop: true)
 
         // When
@@ -166,9 +166,9 @@ struct ImageProcessorsResizeBehaviorTests {
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
-        let stripes = try #require(ResizeBitmap(image: input))
+        let stripes = try #require(RGBABitmap(image: input))
         let middle = stripes.color(atX: 100, y: 300)
-        let pixels = try #require(ResizeBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         for (x, y) in [(10, 10), (50, 50), (90, 90), (10, 90), (90, 10)] {
             #expect(pixels.color(atX: x, y: y).isClose(to: middle), "(\(x), \(y))")
         }
@@ -204,7 +204,7 @@ struct ImageProcessorsResizeBehaviorTests {
         // Then
         #expect(output.sizeInPixels == CGSize(width: 40, height: 40))
         #expect(output.cgImage?.isOpaque == false)
-        let pixels = try #require(ResizeBitmap(image: output))
+        let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.alpha(atX: 1, y: 1) == 0)
         #expect(pixels.alpha(atX: 20, y: 20) == 255)
     }
@@ -270,34 +270,6 @@ struct ImageProcessorsResizeBehaviorTests {
 
 // MARK: - Helpers
 
-/// Returns an image made of solid red, green, and blue stripes, in that order.
-private func stripedImage(stripeCount: Int, stripeLength: Int, thickness: Int, isVertical: Bool) -> PlatformImage {
-    let width = isVertical ? stripeLength * stripeCount : thickness
-    let height = isVertical ? thickness : stripeLength * stripeCount
-    let context = CGContext(
-        data: nil,
-        width: width,
-        height: height,
-        bitsPerComponent: 8,
-        bytesPerRow: 0,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
-    )!
-    let colors = [
-        CGColor(red: 1, green: 0, blue: 0, alpha: 1),
-        CGColor(red: 0, green: 1, blue: 0, alpha: 1),
-        CGColor(red: 0, green: 0, blue: 1, alpha: 1)
-    ]
-    for index in 0..<stripeCount {
-        context.setFillColor(colors[index % colors.count])
-        let offset = index * stripeLength
-        context.fill(isVertical ?
-            CGRect(x: offset, y: 0, width: stripeLength, height: thickness) :
-            CGRect(x: 0, y: offset, width: thickness, height: stripeLength))
-    }
-    return PlatformImage(cgImage: context.makeImage()!)
-}
-
 private func transparentImageWithOpaqueSquare(size: Int, square: Int) -> PlatformImage {
     let context = CGContext(
         data: nil,
@@ -329,55 +301,4 @@ private func makeImage(width: Int, height: Int, bitsPerComponent: Int, colorSpac
     context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
     context.fill(CGRect(x: 0, y: 0, width: width, height: height))
     return context.makeImage().map { PlatformImage(cgImage: $0) }
-}
-
-/// Reads the image into a known RGBA bitmap, top row first.
-private struct ResizeBitmap {
-    private let bytes: [UInt8]
-    private let width: Int
-
-    init?(image: PlatformImage) {
-        guard let cgImage = image.cgImage else { return nil }
-        let (width, height) = (cgImage.width, cgImage.height)
-        var bytes = [UInt8](repeating: 0, count: width * height * 4)
-        let isDrawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
-            guard let context = CGContext(
-                data: buffer.baseAddress,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ) else { return false }
-            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-            return true
-        }
-        guard isDrawn else { return nil }
-        self.bytes = bytes
-        self.width = width
-    }
-
-    func color(atX x: Int, y: Int) -> Pixel {
-        let offset = (y * width + x) * 4
-        return Pixel(red: bytes[offset], green: bytes[offset + 1], blue: bytes[offset + 2])
-    }
-
-    func alpha(atX x: Int, y: Int) -> UInt8 {
-        bytes[(y * width + x) * 4 + 3]
-    }
-}
-
-private struct Pixel: CustomStringConvertible {
-    let red: UInt8
-    let green: UInt8
-    let blue: UInt8
-
-    func isClose(to other: Pixel) -> Bool {
-        abs(Int(red) - Int(other.red)) <= 8 &&
-        abs(Int(green) - Int(other.green)) <= 8 &&
-        abs(Int(blue) - Int(other.blue)) <= 8
-    }
-
-    var description: String { "(\(red), \(green), \(blue))" }
 }

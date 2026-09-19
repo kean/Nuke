@@ -230,27 +230,6 @@ struct ImagePipelineConfigurationSharingTests {
         #expect(enabled.recorder != nil)
         #expect(disabled.recorder == nil)
     }
-
-    /// Progressive decoding needs the partial response bodies, so the pipeline
-    /// asks its `DataLoader` for them.
-    ///
-    /// - note: A pipeline without progressive decoding also resets the flag,
-    /// even on a loader configured by hand or shared with a progressive
-    /// pipeline. That is reported as a suspected bug, so it isn't pinned here.
-    @Test func progressiveDecodingEnablesIncrementalDelivery() {
-        // Given
-        let dataLoader = DataLoader()
-        #expect(dataLoader.prefersIncrementalDelivery == false)
-
-        // When
-        _ = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.isProgressiveDecodingEnabled = true
-        }
-
-        // Then
-        #expect(dataLoader.prefersIncrementalDelivery == true)
-    }
 }
 
 @Suite(.timeLimit(.minutes(5)))

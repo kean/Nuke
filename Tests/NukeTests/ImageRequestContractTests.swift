@@ -339,19 +339,6 @@ struct ImageRequestImageIDOverrideTests {
         #expect(request.originalImageID == url.absoluteString)
     }
 
-    @Test func settingNilRestoresTheDefault() {
-        // Given
-        var request = ImageRequest(url: Test.url)
-        request.imageID = "custom"
-
-        // When
-        request.imageID = nil
-
-        // Then
-        #expect(request.imageID == Test.url.absoluteString)
-        #expect(MemoryCacheKey(request) == MemoryCacheKey(ImageRequest(url: Test.url)))
-    }
-
     @Test func emptyOverrideIsHonored() {
         // When
         var request = ImageRequest(url: Test.url)

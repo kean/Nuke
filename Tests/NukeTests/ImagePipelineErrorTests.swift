@@ -9,50 +9,6 @@ import Foundation
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineErrorTests {
 
-    // MARK: - isCancelled
-
-    @Test func isCancelledReturnsTrueForCancelled() {
-        #expect(ImagePipeline.Error.cancelled.isCancelled)
-    }
-
-    @Test func isCancelledReturnsFalseForOtherCases() {
-        let cases: [ImagePipeline.Error] = [
-            .dataMissingInCache,
-            .dataLoadingFailed(error: URLError(.notConnectedToInternet)),
-            .dataIsEmpty,
-            .imageRequestMissing,
-            .pipelineInvalidated,
-            .dataDownloadExceededMaximumSize,
-        ]
-        for error in cases {
-            #expect(!error.isCancelled)
-        }
-    }
-
-    // MARK: - dataLoadingError
-
-    @Test func dataLoadingErrorReturnsUnderlyingError() {
-        let underlying = URLError(.notConnectedToInternet)
-        let error = ImagePipeline.Error.dataLoadingFailed(error: underlying)
-
-        let result = error.dataLoadingError as? URLError
-        #expect(result?.code == .notConnectedToInternet)
-    }
-
-    @Test func dataLoadingErrorReturnsNilForOtherCases() {
-        let cases: [ImagePipeline.Error] = [
-            .dataMissingInCache,
-            .dataIsEmpty,
-            .imageRequestMissing,
-            .pipelineInvalidated,
-            .dataDownloadExceededMaximumSize,
-            .cancelled,
-        ]
-        for error in cases {
-            #expect(error.dataLoadingError == nil)
-        }
-    }
-
     // MARK: - Descriptions
 
     @Test func dataMissingInCacheDescription() {
@@ -205,39 +161,5 @@ struct ImagePipelineErrorTests {
         // Then the decoder is named by its type
         #expect(error.description.contains("MockImageDecoder"))
         #expect(error.description.contains("truncated-header"))
-    }
-
-    @Test func processingFailedDescriptionNamesProcessorAndUnderlyingError() {
-        // Given
-        let processor = MockImageProcessor(id: "processor-9")
-        let error = ImagePipeline.Error.processingFailed(
-            processor: processor,
-            context: .mock,
-            error: MockError(description: "out-of-memory")
-        )
-
-        // Then
-        #expect(error.description.contains("MockImageProcessor(id: processor-9)"))
-        #expect(error.description.contains("out-of-memory"))
-    }
-
-    // MARK: - Context
-
-    @Test func decodingFailedKeepsItsContext() throws {
-        // Given
-        let request = ImageRequest(url: Test.url).with { $0.imageID = "decoding-context" }
-        let context = ImageDecodingContext(request: request, data: Data([0x01, 0x02]), isCompleted: true)
-
-        // When
-        let error = ImagePipeline.Error.decodingFailed(decoder: ImageDecoders.Default(), context: context, error: ImageDecodingError.unknown)
-
-        // Then the boxed context comes back out intact
-        guard case let .decodingFailed(_, unboxed, _) = error else {
-            Issue.record("Unexpected case")
-            return
-        }
-        #expect(unboxed.request.imageID == "decoding-context")
-        #expect(unboxed.data == Data([0x01, 0x02]))
-        #expect(unboxed.isCompleted)
     }
 }

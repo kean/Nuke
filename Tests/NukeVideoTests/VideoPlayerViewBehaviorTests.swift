@@ -651,23 +651,6 @@ private func layoutNow(_ view: VideoPlayerView) {
 #endif
 }
 
-/// Waits for a condition that AVFoundation only reaches asynchronously.
-@MainActor
-private func waitUntil(
-    timeout: Duration = .seconds(30),
-    _ condition: () -> Bool,
-    sourceLocation: SourceLocation = #_sourceLocation
-) async throws {
-    let deadline = ContinuousClock.now + timeout
-    while !condition() {
-        guard ContinuousClock.now < deadline else {
-            Issue.record("Timed out waiting for the player", sourceLocation: sourceLocation)
-            return
-        }
-        try await Task.sleep(for: .milliseconds(10))
-    }
-}
-
 /// Counts the times an item reaches its end.
 @MainActor
 private final class EndOfItemCounter {

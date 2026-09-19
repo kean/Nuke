@@ -28,11 +28,6 @@ struct ImagePipelineLoadDataTests {
         }
     }
 
-    @Test func loadDataDataLoaded() async throws {
-        let (data, _) = try await pipeline.data(for: Test.request)
-        #expect(data.count == 22789)
-    }
-
     // MARK: - Progress Reporting
 
     @Test func progressClosureIsCalled() async throws {

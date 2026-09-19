@@ -136,7 +136,7 @@ struct ImagePipelineResumableDownloadTests {
         _ = try? await pipeline.data(for: Test.request)
 
         // WHEN
-        let progress = _ProgressRecorder()
+        let progress = LockedArray<ImageTask.Progress>()
         let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true) { event, _ in
             if case .progress(let value) = event { progress.append(value) }
         }
@@ -346,17 +346,6 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
             return nil
         }
         return offset
-    }
-}
-
-private final class _ProgressRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _values: [ImageTask.Progress] = []
-
-    var values: [ImageTask.Progress] { lock.withLock { _values } }
-
-    func append(_ value: ImageTask.Progress) {
-        lock.withLock { _values.append(value) }
     }
 }
 

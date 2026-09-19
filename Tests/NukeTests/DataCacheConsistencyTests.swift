@@ -8,29 +8,6 @@ import Foundation
 
 private let blob = Data("123".utf8)
 
-/// A directory in the temporary folder that no other test uses.
-private func makeUniqueDirectoryURL() -> URL {
-    FileManager.default.temporaryDirectory
-        .appendingPathComponent("DataCacheConsistencyTests-\(UUID().uuidString)", isDirectory: true)
-}
-
-/// A seeded generator, so that a failure can be reproduced.
-private struct SplitMix64: RandomNumberGenerator {
-    private var state: UInt64
-
-    init(seed: UInt64) {
-        state = seed
-    }
-
-    mutating func next() -> UInt64 {
-        state &+= 0x9E3779B97F4A7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
-        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
-        return z ^ (z >> 31)
-    }
-}
-
 /// Holds up the I/O queue the first time it generates the filename for the
 /// given key, which happens in the middle of a flush, until the test opens it.
 private final class Gate: @unchecked Sendable {
@@ -57,19 +34,6 @@ private final class Gate: @unchecked Sendable {
 
     func open() {
         semaphore.signal()
-    }
-}
-
-/// Polls the condition until it holds, for the work that the tests have no
-/// other way to observe, such as a cache the test no longer holds a reference to.
-private func waitUntil(timeout: Duration = .seconds(30), _ condition: () -> Bool) async {
-    let deadline = ContinuousClock.now + timeout
-    while !condition() {
-        guard ContinuousClock.now < deadline else {
-            Issue.record("Timed out waiting for the condition")
-            return
-        }
-        try? await Task.sleep(for: .milliseconds(10))
     }
 }
 

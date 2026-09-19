@@ -62,6 +62,22 @@ final class MockFailingProcessor: ImageProcessing {
     }
 }
 
+// MARK: - MockThrowingProcessor
+
+/// A processor whose container method throws the given error.
+struct MockThrowingProcessor: ImageProcessing {
+    var identifier = "MockThrowingProcessor"
+    var error = MockError(description: "processor-failed")
+
+    func process(_ image: PlatformImage) -> PlatformImage? {
+        nil
+    }
+
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+        throw error
+    }
+}
+
 struct MockError: Error, Equatable {
     let description: String
 }

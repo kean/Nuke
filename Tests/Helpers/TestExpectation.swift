@@ -258,6 +258,27 @@ func waitUntil(timeout: Duration = .seconds(10), isolation: isolated (any Actor)
     }
 }
 
+/// Waits for the work already scheduled on the pipeline actor, such as the
+/// delegate callbacks of the tasks that just finished.
+func drainPipeline() async {
+    await Task { @ImagePipelineActor in }.value
+}
+
+/// Waits for the work already scheduled on the pipeline actor, such as the
+/// calls made to a prefetcher, then for the main queue to run what that work
+/// dispatched to it, such as the prefetcher's `didComplete`.
+func waitForDelivery() async {
+    await drainPipeline()
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        DispatchQueue.main.async { continuation.resume() }
+    }
+}
+
+/// Gives any pending continuations on the caller's actor a chance to run.
+func drainPendingWork(isolation: isolated (any Actor)? = #isolation) async {
+    for _ in 0..<10 { await Task.yield() }
+}
+
 /// A one-shot gate: `wait()` suspends until someone calls `open()`. Use it to
 /// hold code at a known suspension point while the test does something else.
 final class AsyncGate: @unchecked Sendable {
@@ -297,6 +318,26 @@ final class Ref<T>: @unchecked Sendable {
 final class WeakRef<T: AnyObject>: @unchecked Sendable {
     weak var value: T?
     init(_ value: T? = nil) { self.value = value }
+}
+
+/// An array that callbacks on any thread can append to.
+final class LockedArray<Element>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var elements: [Element] = []
+
+    init() {}
+
+    func append(_ element: Element) {
+        lock.withLock { elements.append(element) }
+    }
+
+    var values: [Element] {
+        lock.withLock { elements }
+    }
+
+    var count: Int {
+        values.count
+    }
 }
 
 extension TaskQueue {

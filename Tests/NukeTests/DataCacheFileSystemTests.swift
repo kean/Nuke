@@ -9,12 +9,6 @@ import Foundation
 private let blob = Data("123".utf8)
 private let otherBlob = Data("456".utf8)
 
-/// A directory in the temporary folder that no other test uses.
-private func makeUniqueDirectoryURL() -> URL {
-    FileManager.default.temporaryDirectory
-        .appendingPathComponent("DataCacheFileSystemTests-\(UUID().uuidString)", isDirectory: true)
-}
-
 /// The hidden file ``DataCache`` writes an entry to before renaming it over
 /// the destination.
 private func temporaryFileURL(for url: URL) -> URL {

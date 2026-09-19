@@ -264,23 +264,6 @@ struct ImagePipelineFetchOriginalImageTests {
 
 // MARK: - Helpers
 
-private final class LockedArray<Element>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var elements: [Element] = []
-
-    func append(_ element: Element) {
-        lock.withLock { elements.append(element) }
-    }
-
-    var values: [Element] {
-        lock.withLock { elements }
-    }
-
-    var count: Int {
-        values.count
-    }
-}
-
 /// A synchronous decoder that makes a preview of every chunk of data, unless
 /// the previews are disabled or it's told to fail on the given chunks.
 private final class ScriptedDecoder: ImageDecoding, @unchecked Sendable {

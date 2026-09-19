@@ -53,43 +53,7 @@ struct ImageProcessingProtocolTests {
         #expect(!([circle] == [impostor] as [any ImageProcessing]))
     }
 
-#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
-    @Test func coreImageFilterHashableIdentifierIsItsIdentifier() {
-        // `CoreImageFilter` isn't `Hashable`: the identifier is all there is
-        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [:], identifier: "sepia")
-
-        #expect(processor.hashableIdentifier == AnyHashable("sepia"))
-    }
-#endif
-
-    // MARK: - Comparing Processor Lists
-
-    @Test func processorListsAreComparedByHashableIdentifiers() {
-        let resize = ImageProcessors.Resize(size: CGSize(width: 10, height: 10), unit: .pixels)
-        let corners = ImageProcessors.RoundedCorners(radius: 2, unit: .pixels)
-
-        #expect([] as [any ImageProcessing] == [])
-        #expect([resize] == [ImageProcessors.Resize(size: CGSize(width: 10, height: 10), unit: .pixels)] as [any ImageProcessing])
-        #expect([resize, corners] == [resize, corners] as [any ImageProcessing])
-        // The order matters
-        #expect(!([resize, corners] == [corners, resize] as [any ImageProcessing]))
-        // So does the count, including a list that is a prefix of the other
-        #expect(!([resize] == [resize, corners] as [any ImageProcessing]))
-        #expect(!([] == [resize] as [any ImageProcessing]))
-    }
-
     // MARK: - Default Container Processing
-
-    @Test func defaultContainerProcessingAppliesTheBasicMethod() throws {
-        // Given
-        let processor = MockImageProcessor(id: "1")
-
-        // When
-        let output = try processor.process(Test.container, context: .mock)
-
-        // Then
-        #expect(output.image.nk_test_processorIDs == ["1"])
-    }
 
     /// The data and the animation describe the image that went in: a renderer
     /// handed both would play the original over the processed still.
@@ -110,6 +74,7 @@ struct ImageProcessingProtocolTests {
         let output = try MockImageProcessor(id: "1").process(container, context: .mock)
 
         // Then
+        #expect(output.image.nk_test_processorIDs == ["1"])
         #expect(output.data == nil)
         #expect(output.animation == nil)
         #expect(output.type == .gif)

@@ -89,22 +89,6 @@ struct ImagePipelineDelegateDecompressionTests {
         #expect(delegate.decompressCount == 1)
     }
 
-    @Test func customDecompressionReplacesTheImage() async throws {
-        // GIVEN a delegate that renders the image in its own way
-        let delegate = DecompressionDelegate()
-        let rendered = Test.rgbImage(width: 4, height: 4)
-        delegate.output = rendered
-        let pipeline = makePipeline(delegate: delegate)
-
-        // WHEN
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // THEN the rendered image is delivered and cached
-        #expect(response.image === rendered)
-        #expect(delegate.decompressCount == 1)
-        #expect(imageCache[ImageCacheKey(request: Test.request)]?.image === rendered)
-    }
-
     @Test func delegateIsNotAskedWhenTheRequestSkipsDecompression() async throws {
         // GIVEN
         let delegate = DecompressionDelegate()
@@ -135,31 +119,6 @@ struct ImagePipelineDelegateDecompressionTests {
         #expect(response.image === cached)
         #expect(delegate.shouldDecompressRequests.isEmpty)
     }
-
-    @Test func decompressionRunsOnTheDecompressingQueue() async throws {
-        // GIVEN a suspended decompressing queue
-        let delegate = DecompressionDelegate()
-        let pipeline = makePipeline(delegate: delegate)
-        let queue = pipeline.configuration.imageDecompressingQueue
-        queue.isSuspended = true
-
-        // WHEN
-        var task: ImageTask!
-        _ = await queue.waitForOperations(count: 1) {
-            task = pipeline.imageTask(with: Test.request)
-        }
-
-        // THEN the image is decoded, but not yet decompressed
-        #expect(delegate.shouldDecompressRequests.count == 1)
-        #expect(delegate.decompressCount == 0)
-
-        // WHEN
-        queue.isSuspended = false
-        _ = try await task.response
-
-        // THEN
-        #expect(delegate.decompressCount == 1)
-    }
 }
 
 // MARK: - Helpers
@@ -184,8 +143,6 @@ private final class PassthroughDelegate: ImagePipeline.Delegate, @unchecked Send
 
 private final class DecompressionDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     var shouldDecompress = true
-    /// The image to replace the decompressed one with, if any.
-    var output: PlatformImage?
 
     private let lock = NSLock()
     private var _shouldDecompressRequests: [ImageRequest] = []
@@ -201,10 +158,6 @@ private final class DecompressionDelegate: ImagePipeline.Delegate, @unchecked Se
 
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse {
         lock.withLock { _decompressCount += 1 }
-        var response = response
-        if let output {
-            response.container.image = output
-        }
         return response
     }
 }

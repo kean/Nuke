@@ -187,7 +187,7 @@ struct TimerClockTests {
     }
 
     @Test func aRunningClockReleasedOffTheMainThreadGoesAway() async {
-        let box = TimerClockWeakBox()
+        let box = WeakRef<TimerClock>()
 
         // A player can be released from anywhere, and its clock with it. A
         // timer can only be invalidated on the thread it was scheduled on, so
@@ -353,7 +353,7 @@ struct DisplayLinkClockBehaviorTests {
         // The AppKit counterpart of `DisplayLinkClockTests`: a paused link has
         // no next tick to notice its clock has gone, so the clock hands it to
         // the main queue on its way out.
-        let link = DisplayLinkWeakBox()
+        let link = WeakRef<CADisplayLink>()
 
         await Task.detached {
             var clock: DisplayLinkClock? = await MainActor.run {
@@ -450,12 +450,6 @@ private func isDefault(_ range: CAFrameRateRange) -> Bool {
     return range.minimum == other.minimum && range.maximum == other.maximum && range.preferred == other.preferred
 }
 
-/// Holds a weak reference to a link across the threads its clock is released
-/// on.
-private final class DisplayLinkWeakBox: @unchecked Sendable {
-    weak var value: CADisplayLink?
-}
-
 #endif
 
 // MARK: - Helpers
@@ -484,9 +478,4 @@ private func elapseAFewTicks() async {
     witness.isPaused = false
     _ = await ticks(5, of: witness)
     witness.isPaused = true
-}
-
-/// Holds a weak reference to a clock across the threads it is released on.
-private final class TimerClockWeakBox: @unchecked Sendable {
-    weak var value: TimerClock?
 }

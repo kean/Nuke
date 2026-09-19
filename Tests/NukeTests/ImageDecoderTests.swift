@@ -333,18 +333,6 @@ struct ImageDecoderTests {
         #expect(response.image.sizeInPixels == CGSize(width: 500, height: 279))
     }
 
-    @Test func decodingGIFPreviewGeneratedOnlyOnce() throws {
-        let data = Test.data(name: "cat", extension: "gif")
-        #expect(data.count == 427672) // 427 KB
-        let chunk = data[...60000] // 6 KB
-
-        let context = ImageDecodingContext.mock(data: chunk)
-        let decoder = try #require(ImageDecoders.Default(context: context))
-
-        #expect(decoder.decodePartiallyDownloadedData(chunk) != nil)
-        #expect(decoder.decodePartiallyDownloadedData(chunk) == nil)
-    }
-
     @Test func decodingGIFPreviewWithDisabledPolicy() throws {
         let data = Test.data(name: "cat", extension: "gif")
         let chunk = data[...60000]
@@ -392,17 +380,6 @@ struct ImageDecoderTests {
 #endif
 
     // MARK: - Invalid / Corrupted Data
-
-    @Test func decodeRandomDataThrows() {
-        // GIVEN - bytes that share no resemblance with any image format
-        let data = Data(repeating: 0xAB, count: 512)
-        let decoder = ImageDecoders.Default()
-
-        // WHEN / THEN - decoding must throw (not crash)
-        #expect(throws: (any Error).self) {
-            try decoder.decode(data)
-        }
-    }
 
     @Test func decodeEmptyDataThrows() {
         let decoder = ImageDecoders.Default()

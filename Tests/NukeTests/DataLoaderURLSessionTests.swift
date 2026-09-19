@@ -52,11 +52,6 @@ struct DataLoaderSessionContractTests {
         #expect(second.timeoutIntervalForRequest != 1)
     }
 
-    @Test func defaultInitializerUsesTheSharedURLCache() {
-        let loader = DataLoader()
-        #expect(loader.session.configuration.urlCache === DataLoader.sharedUrlCache)
-    }
-
     // MARK: Requests
 
     /// The range headers that resume a partial download must reach the

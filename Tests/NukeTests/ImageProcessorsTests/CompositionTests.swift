@@ -162,28 +162,15 @@ struct ImageProcessorsCompositionTests {
 
     @Test func remainingProcessorsSkippedAfterFailure() {
         // GIVEN - a composition where the first step fails
-        let processor = ImageProcessors.Composition([
-            MockFailingProcessor(),
-            MockImageProcessor(id: "shouldNotRun")
-        ])
-
-        // WHEN/THEN - composition short-circuits at the first failure
-        #expect(processor.process(Test.image) == nil)
-    }
-
-    @Test func remainingProcessorsAreNotAppliedAfterFailure() {
-        // GIVEN
         let factory = MockProcessorFactory()
         let processor = ImageProcessors.Composition([
             MockFailingProcessor(),
             factory.make(id: "shouldNotRun")
         ])
 
-        // WHEN
-        _ = processor.process(Test.image)
+        // WHEN/THEN - composition short-circuits at the first failure
+        #expect(processor.process(Test.image) == nil)
         _ = try? processor.process(Test.container, context: .mock)
-
-        // THEN
         #expect(factory.numberOfProcessorsApplied == 0)
     }
 
@@ -191,12 +178,12 @@ struct ImageProcessorsCompositionTests {
         // GIVEN a composition with a processor that throws a specific error
         let processor = ImageProcessors.Composition([
             MockImageProcessor(id: "1"),
-            ThrowingProcessor(),
+            MockThrowingProcessor(),
             MockImageProcessor(id: "2")
         ])
 
         // THEN the error isn't replaced with a generic one
-        #expect(throws: CompositionTestError.self) {
+        #expect(throws: MockError.self) {
             try processor.process(Test.container, context: .mock)
         }
     }
@@ -263,18 +250,6 @@ struct ImageProcessorsCompositionTests {
 
         // THEN
         #expect(processor.description == "Composition(processors: [Circle(border: nil), RoundedCorners(radius: 4.0 pixels, border: nil)])")
-    }
-}
-
-private struct CompositionTestError: Error {}
-
-private struct ThrowingProcessor: ImageProcessing {
-    var identifier: String { "throwing" }
-
-    func process(_ image: PlatformImage) -> PlatformImage? { image }
-
-    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        throw CompositionTestError()
     }
 }
 

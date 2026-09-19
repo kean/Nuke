@@ -22,12 +22,14 @@ struct VideoPlayerViewTests {
     /// resumes when the view is added back to it, on every platform.
     @Test func resumesLoopingVideoWhenAddedBackToWindow() async throws {
         let view = VideoPlayerView()
-        view.asset = AVURLAsset(url: try await makeVideoFixture())
+        // Long enough that playback can't reach the end while the test runs.
+        let url = try await VideoFixture(width: 16, height: 16, frameCount: 300).makeFile()
+        view.asset = AVURLAsset(url: url)
         host.add(view)
         view.play()
 
         let player = try #require(view.playerLayer.player)
-        try await poll { player.rate != 0 }
+        try await waitUntil { player.rate != 0 }
 
         // The view leaves the window and playback is interrupted, the way it is
         // when the app goes to the background.
@@ -79,54 +81,6 @@ final class WindowHost {
         window.addSubview(view)
 #endif
     }
-}
-
-/// Waits for a condition that AVFoundation only reaches asynchronously.
-@MainActor
-private func poll(
-    _ condition: () -> Bool,
-    sourceLocation: SourceLocation = #_sourceLocation
-) async throws {
-    for _ in 0..<500 {
-        if condition() { return }
-        try await Task.sleep(for: .milliseconds(10))
-    }
-    Issue.record("Timed out waiting for the player", sourceLocation: sourceLocation)
-}
-
-/// Writes a short video to a temporary file. It is generated rather than checked
-/// in because the package target ships no test resources.
-private func makeVideoFixture() async throws -> URL {
-    let url = FileManager.default.temporaryDirectory
-        .appendingPathComponent("\(UUID().uuidString).mp4")
-    let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
-    let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
-        AVVideoCodecKey: AVVideoCodecType.h264,
-        AVVideoWidthKey: 16,
-        AVVideoHeightKey: 16
-    ])
-    writer.add(input)
-    let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
-        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-    ])
-    writer.startWriting()
-    writer.startSession(atSourceTime: .zero)
-
-    // Long enough that playback can't reach the end while the test runs.
-    let frameRate: Int32 = 30
-    let pool = try #require(adaptor.pixelBufferPool)
-    for frame in 0..<(frameRate * 10) {
-        while !input.isReadyForMoreMediaData {
-            try await Task.sleep(for: .milliseconds(1))
-        }
-        var buffer: CVPixelBuffer?
-        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &buffer)
-        adaptor.append(try #require(buffer), withPresentationTime: CMTime(value: CMTimeValue(frame), timescale: frameRate))
-    }
-    input.markAsFinished()
-    await writer.finishWriting()
-
-    return url
 }
 
 #endif

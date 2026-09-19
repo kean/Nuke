@@ -36,15 +36,6 @@ struct AssetTypeSniffingBoundaryTests {
         #expect(matches == [[0x42, 0x4D]: .bmp, [0xFF, 0x0A]: .jxl])
     }
 
-    @Test func threeBytesAreEnoughOnlyForJPEG() {
-        #expect(AssetType(Data([0xFF, 0xD8, 0xFF])) == .jpeg)
-        // One byte short of every other signature
-        #expect(AssetType(Data([0x00, 0x00, 0x01])) == nil) // ICO
-        #expect(AssetType(Data([0x49, 0x49, 0x2A])) == nil) // TIFF
-        #expect(AssetType(Data([0xFF, 0x4F, 0xFF])) == nil) // JPEG 2000 codestream
-        #expect(AssetType(Data("GIF".utf8)) == nil)
-    }
-
     // MARK: Slices
 
     /// The pipeline accumulates the downloaded data, and a caller can hand in

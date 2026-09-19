@@ -9,14 +9,6 @@ import Testing
 @testable import Nuke
 @testable import NukeUI
 
-#if canImport(UIKit)
-import UIKit
-#endif
-
-#if canImport(AppKit)
-import AppKit
-#endif
-
 /// The playback contract of ``AnimatedImagePlayer`` at its edges: the order the
 /// callbacks arrive in, the repeat counts and rates that aren't the usual ones,
 /// frames the decoder refuses, and what a player leaves behind.
@@ -134,7 +126,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // Not on the next tick: a scrubber drawing the frame it asked for.
         #expect(frames.count == 1)
         let frame = try #require(player.store.frame(at: 2))
-        #expect(AnimatedImageTest.firstPixel(of: frames.first) == readPixel(of: frame))
+        #expect(AnimatedImageTest.firstPixel(of: frames.first) == AnimatedImageTest.firstPixel(of: frame))
         #expect(player.image === frames.first)
     }
 
@@ -571,42 +563,6 @@ struct AnimatedImagePlayerPlaybackTests {
 
     /// The pixel the frame at the given index reads back as.
     private static func framePixel(at index: Int) -> [UInt8]? {
-        readPixel(of: RefusingFrameDecoder.makeFrame(at: index))
-    }
-}
-
-/// Reads back a bitmap the way ``AnimatedImageTest/firstPixel(of:)`` reads
-/// back what a player displays.
-@MainActor
-private func readPixel(of cgImage: CGImage) -> [UInt8]? {
-#if canImport(UIKit)
-    AnimatedImageTest.firstPixel(of: UIImage(cgImage: cgImage))
-#else
-    AnimatedImageTest.firstPixel(of: NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height)))
-#endif
-}
-
-/// Draws every frame in a gray of its own, and refuses the ones it is told to.
-private struct RefusingFrameDecoder: AnimatedImageFrameDecoding {
-    let refused: Set<Int>
-
-    func decode(at index: Int) async -> CGImage? {
-        refused.contains(index) ? nil : RefusingFrameDecoder.makeFrame(at: index)
-    }
-
-    static func makeFrame(at index: Int) -> CGImage {
-        let context = CGContext(
-            data: nil,
-            width: 8,
-            height: 8,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        let level = CGFloat(index + 1) / 8
-        context.setFillColor(red: level, green: level, blue: level, alpha: 1)
-        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
-        return context.makeImage()!
+        AnimatedImageTest.firstPixel(of: RefusingFrameDecoder.makeFrame(at: index))
     }
 }

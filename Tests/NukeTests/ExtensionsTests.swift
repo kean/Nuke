@@ -66,16 +66,6 @@ struct ExtensionsTests {
         #expect(input.sha1 == digest)
     }
 
-    // MARK: - ImageRequest.Priority
-
-    @Test func requestPriorityMapsToTheSameTaskPriority() {
-        #expect(ImageRequest.Priority.veryLow.taskPriority == .veryLow)
-        #expect(ImageRequest.Priority.low.taskPriority == .low)
-        #expect(ImageRequest.Priority.normal.taskPriority == .normal)
-        #expect(ImageRequest.Priority.high.taskPriority == .high)
-        #expect(ImageRequest.Priority.veryHigh.taskPriority == .veryHigh)
-    }
-
     // MARK: - AnonymousCancellable
 
     @Test func anonymousCancellableCallsTheClosureOnCancel() {

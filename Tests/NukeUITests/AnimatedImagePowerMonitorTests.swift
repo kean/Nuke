@@ -139,14 +139,7 @@ struct AnimatedImagePowerMonitorTests {
     }
 
     /// A player of an animation whose every frame lasts the given delay.
-    private func makePlayer(
-        delay: TimeInterval,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        power: AnimatedImagePowerMonitor
-    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let source = Test.animatedGIFSource(delays: Array(repeating: delay, count: 4))
-        let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: power)
-        return (player, clock)
+    private func makePlayer(delay: TimeInterval, power: AnimatedImagePowerMonitor) -> (player: AnimatedImagePlayer, clock: ManualClock) {
+        AnimatedImageTest.makePlayer(delays: Array(repeating: delay, count: 4), pool: pool, power: power)
     }
 }

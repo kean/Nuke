@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// `ImagePipeline/data(for:)`: the data tasks (`TaskLoadData`) and the fetch of
@@ -133,22 +134,6 @@ struct ImagePipelineDataTaskTests {
         #expect(dataCache.writeCount == 0)
     }
 
-    /// Both a request with no URL and a `URLRequest` that lost its URL fail
-    /// the same way, without reaching the data loader.
-    @Test(arguments: [
-        ImageRequest(url: nil),
-        ImageRequest(urlRequest: { var request = URLRequest(url: Test.url); request.url = nil; return request }())
-    ])
-    func requestWithoutURLFailsWithBadURL(request: ImageRequest) async throws {
-        do {
-            _ = try await pipeline.data(for: request)
-            Issue.record("Expected the request to fail")
-        } catch {
-            #expect((error.dataLoadingError as? URLError)?.code == .badURL)
-        }
-        #expect(dataLoader.createdTaskCount == 0)
-    }
-
     /// A request for an image container has no data to return.
     @Test func imageClosureRequestFailsToLoadData() async throws {
         // GIVEN
@@ -263,9 +248,9 @@ struct ImagePipelineDataTaskTests {
     /// data will be stored in it".
     @Test func closureDataIsStoredInTheDataCacheUnderTheID() async throws {
         // GIVEN
-        let calls = _Counter()
+        let calls = OSAllocatedUnfairLock(initialState: 0)
         let request = ImageRequest(id: "photo-1", data: {
-            calls.increment()
+            calls.withLock { $0 += 1 }
             return Test.data
         })
 
@@ -276,7 +261,7 @@ struct ImagePipelineDataTaskTests {
         // THEN the second request is served by the disk cache
         #expect(dataCache.store["photo-1"] == Test.data)
         #expect(data == Test.data)
-        #expect(calls.value == 1)
+        #expect(calls.withLock { $0 } == 1)
     }
 
     /// The docs: "Use disableDiskCache to prevent this".
@@ -294,11 +279,11 @@ struct ImagePipelineDataTaskTests {
 
     @Test func closureRequestsWithTheSameIDAreCoalesced() async throws {
         // GIVEN a closure that waits until both requests join
-        let calls = _Counter()
+        let calls = OSAllocatedUnfairLock(initialState: 0)
         let proceed = AsyncGate()
         @Sendable func makeRequest() -> ImageRequest {
             ImageRequest(id: "photo-1", data: {
-                calls.increment()
+                calls.withLock { $0 += 1 }
                 await proceed.wait()
                 return Test.data
             })
@@ -306,9 +291,9 @@ struct ImagePipelineDataTaskTests {
 
         // WHEN
         let started = TestExpectation()
-        let startCount = _Counter()
+        let startCount = OSAllocatedUnfairLock(initialState: 0)
         pipeline.onTaskStarted = { _ in
-            if startCount.increment() == 2 { started.fulfill() }
+            if startCount.withLock({ $0 += 1; return $0 }) == 2 { started.fulfill() }
         }
         let task1 = pipeline.makeStartedImageTask(with: makeRequest(), isDataTask: true)
         let task2 = pipeline.makeStartedImageTask(with: makeRequest(), isDataTask: true)
@@ -318,7 +303,7 @@ struct ImagePipelineDataTaskTests {
         // THEN the closure runs once and both get the data
         #expect(try await task1.response.container.data == Test.data)
         #expect(try await task2.response.container.data == Test.data)
-        #expect(calls.value == 1)
+        #expect(calls.withLock { $0 } == 1)
     }
 
     /// The closure runs in a `Task` that is cancelled along with the request,
@@ -379,9 +364,9 @@ struct ImagePipelineDataTaskTests {
         // GIVEN two data tasks waiting for the same download
         dataLoader.isSuspended = true
         let started = TestExpectation()
-        let startCount = _Counter()
+        let startCount = OSAllocatedUnfairLock(initialState: 0)
         pipeline.onTaskStarted = { _ in
-            if startCount.increment() == 2 { started.fulfill() }
+            if startCount.withLock({ $0 += 1; return $0 }) == 2 { started.fulfill() }
         }
         let task1 = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
         let task2 = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
@@ -416,19 +401,24 @@ struct ImagePipelineDataTaskTests {
         }
 
         // WHEN
-        let events = _EventRecorder()
+        let progress = LockedArray<ImageTask.Progress>()
+        let previews = LockedArray<ImageResponse>()
         let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true) { event, _ in
-            events.append(event)
+            switch event {
+            case .progress(let value): progress.append(value)
+            case .preview(let preview): previews.append(preview)
+            case .finished: break
+            }
         }
         let response = try await task.response
 
         // THEN
         let total = Int64(data.count)
-        #expect(events.progress == [
+        #expect(progress.values == [
             ImageTask.Progress(completed: total / 2, total: total),
             ImageTask.Progress(completed: total, total: total)
         ])
-        #expect(events.previewCount == 0)
+        #expect(previews.count == 0)
         #expect(response.container.data == data)
         #expect(response.urlResponse != nil)
         #expect(task.status.progress == ImageTask.Progress(completed: total, total: total))
@@ -494,28 +484,6 @@ struct ImagePipelineDataTaskTests {
 
         // THEN only what was sent before the completion is returned
         #expect(data == chunk)
-    }
-
-    @Test func delegateChoosesTheDataLoaderForEachRequest() async throws {
-        // GIVEN a delegate that routes one host to a different loader
-        let otherLoader = MockDataLoader()
-        let delegate = _DataLoadingDelegate()
-        delegate.loaderForRequest = { request in
-            request.url?.host == "other.example.com" ? otherLoader : nil
-        }
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-        let otherURL = try #require(URL(string: "https://other.example.com/image.jpeg"))
-
-        // WHEN
-        _ = try await pipeline.data(for: Test.request)
-        _ = try await pipeline.data(for: ImageRequest(url: otherURL))
-
-        // THEN
-        #expect(dataLoader.createdTaskCount == 1)
-        #expect(otherLoader.createdTaskCount == 1)
     }
 
     @Test func delegateCanTurnOffTheDataCacheForARequest() async throws {
@@ -628,57 +596,9 @@ private final class _StallingDataLoader: DataLoading, @unchecked Sendable {
 }
 
 private final class _DataLoadingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    /// Returns the loader for the request, or `nil` for the default one.
-    var loaderForRequest: (ImageRequest) -> (any DataLoading)? = { _ in nil }
     var isDataCacheDisabled: (ImageRequest) -> Bool = { _ in false }
-
-    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
-        loaderForRequest(request) ?? pipeline.configuration.dataLoader
-    }
 
     func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
         isDataCacheDisabled(request) ? nil : pipeline.configuration.dataCache
-    }
-}
-
-private final class _Counter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _value = 0
-
-    var value: Int { lock.withLock { _value } }
-
-    @discardableResult
-    func increment() -> Int {
-        lock.withLock {
-            _value += 1
-            return _value
-        }
-    }
-}
-
-private final class _EventRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var events: [ImageTask.Event] = []
-
-    func append(_ event: ImageTask.Event) {
-        lock.withLock { events.append(event) }
-    }
-
-    var progress: [ImageTask.Progress] {
-        lock.withLock {
-            events.compactMap {
-                if case .progress(let value) = $0 { return value }
-                return nil
-            }
-        }
-    }
-
-    var previewCount: Int {
-        lock.withLock {
-            events.filter {
-                if case .preview = $0 { return true }
-                return false
-            }.count
-        }
     }
 }

@@ -8,21 +8,16 @@ import Foundation
 
 private let mb = 1024 * 1024
 
-/// A directory in the temporary folder that no other test uses.
-private func makeUniqueDirectoryURL() -> URL {
-    FileManager.default.temporaryDirectory
-        .appendingPathComponent("DataCacheSweepPolicyTests-\(UUID().uuidString)", isDirectory: true)
-}
-
-private func metadataURL(at path: URL) -> URL {
+/// The file where ``DataCache`` keeps the date of its last sweep.
+func metadataURL(at path: URL) -> URL {
     path.appendingPathComponent(".data-cache-info", isDirectory: false)
 }
 
-private struct SweepMetadata: Codable {
+struct SweepMetadata: Codable {
     var lastSweepDate: Date?
 }
 
-private func lastSweepDate(at path: URL) -> Date? {
+func lastSweepDate(at path: URL) -> Date? {
     guard let data = try? Data(contentsOf: metadataURL(at: path)) else {
         return nil
     }

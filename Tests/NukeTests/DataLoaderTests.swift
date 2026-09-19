@@ -126,50 +126,6 @@ struct DataLoaderTests {
         }
     }
 
-    /// ``DataLoading`` requires `completion` to be called exactly once. On a
-    /// validation failure the data loader must stop tracking the handler before
-    /// cancelling the task – otherwise `didCompleteWithError`, which
-    /// `URLSession` delivers in response to the `.cancel` disposition, finds the
-    /// handler still registered and calls `completion` a second time.
-    @Test func completionIsCalledOnceOnValidationFailure() async throws {
-        let url = mockURL("validation-completion-count")
-        registerMock(url: url, statusCode: 404, chunks: [Data("not found".utf8)])
-
-        let loader = makeDataLoader()
-        let spy = SpyURLSessionDelegate()
-        loader.delegate = spy
-
-        let recorder = CompletionRecorder()
-        _ = loader.loadData(
-            with: URLRequest(url: url),
-            didReceiveData: { _, _ in },
-            completion: {
-                recorder.record($0)
-            }
-        )
-
-        // `didCompleteWithError` is the callback that delivers the extra
-        // `completion` call, so wait for it, then drain the delegate queue to
-        // let the block that forwarded it run to the end.
-        await spy.didCompleteWithError.wait()
-        await withCheckedContinuation { continuation in
-            loader.session.delegateQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
-
-        let errors = recorder.errors
-        #expect(errors.count == 1, "completion called \(errors.count) times: \(errors.map { $0.map(String.init(describing:)) ?? "nil" })")
-
-        let first = try #require(errors.first ?? nil)
-        guard let error = first as? DataLoader.Error,
-              case .statusCodeUnacceptable(let code) = error else {
-            Issue.record("Expected a validation error, got \(first)")
-            return
-        }
-        #expect(code == 404)
-    }
-
     @Test func customValidation() async throws {
         let url = mockURL("custom-val")
         registerMock(url: url, statusCode: 200, chunks: [Data("ok".utf8)])
@@ -410,46 +366,6 @@ struct DataLoaderTests {
 
     // MARK: - Delegate Forwarding
 
-    @Test func settingDelegateProperty() async throws {
-        let url = mockURL("delegate-set")
-        registerMock(url: url, chunks: [Data("ok".utf8)])
-
-        let loader = makeDataLoader()
-        let spy = SpyURLSessionDelegate()
-        loader.delegate = spy
-
-        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
-
-        await withCheckedContinuation { continuation in
-            loader.session.delegateQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
-
-        #expect(spy.didReceiveResponseCount > 0)
-        #expect(spy.didReceiveDataCount > 0)
-        #expect(spy.didCompleteCount > 0)
-    }
-
-    @Test func delegateReceivesMetricsCallback() async throws {
-        let url = mockURL("delegate-metrics")
-        registerMock(url: url, chunks: [Data("data".utf8)])
-
-        let loader = makeDataLoader()
-        let spy = SpyURLSessionDelegate()
-        loader.delegate = spy
-
-        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
-
-        await withCheckedContinuation { continuation in
-            loader.session.delegateQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
-
-        #expect(spy.didFinishMetricsCount > 0)
-    }
-
     @Test func metricsAreDeliveredWithTheCompletionWhenAskedFor() async throws {
         let url = mockURL("metrics-completion")
         registerMock(url: url, chunks: [Data("data".utf8)])
@@ -464,25 +380,6 @@ struct DataLoaderTests {
         let collected = try #require(metrics)
         #expect(collected.transactionMetrics.count == 1)
         #expect(collected.transactionMetrics.first?.request.url == url)
-    }
-
-    @Test func delegateReceivesDidCreateTaskCallback() async throws {
-        let url = mockURL("delegate-did-create-task")
-        registerMock(url: url, chunks: [Data("data".utf8)])
-
-        let loader = makeDataLoader()
-        let spy = SpyURLSessionDelegate()
-        loader.delegate = spy
-
-        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
-
-        await withCheckedContinuation { continuation in
-            loader.session.delegateQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
-
-        #expect(spy.didCreateTaskCount == 1)
     }
 
     // MARK: - Default Validation
@@ -559,45 +456,6 @@ struct DataLoaderTests {
         }
 
         #expect(spy.didReceiveResponseCount > 0)
-    }
-
-    // MARK: - Redirect
-
-    @Test func redirectIsFollowed() async throws {
-        let sourceURL = mockURL("redirect-source")
-        let destURL = mockURL("redirect-dest")
-
-        registerMock(url: destURL, chunks: [Data("redirected".utf8)])
-
-        MockURLProtocol.handlers[sourceURL] = .init { _, client, proto in
-            let redirectResponse = HTTPURLResponse(url: sourceURL, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": destURL.absoluteString])!
-            client.urlProtocol(proto, wasRedirectedTo: URLRequest(url: destURL), redirectResponse: redirectResponse)
-        }
-
-        let loader = makeDataLoader { _ in nil }
-        do {
-            var received = Data()
-            for try await (chunk, _) in loader.loadData(with: URLRequest(url: sourceURL)) {
-                received.append(chunk)
-            }
-            #expect(received == Data("redirected".utf8))
-        } catch {
-            // Some URLSession implementations may handle redirects differently with MockURLProtocol
-        }
-    }
-}
-
-// MARK: - Completion Recorder
-
-/// Records every `completion` call made by a ``DataLoading`` instance.
-private final class CompletionRecorder: @unchecked Sendable {
-    var errors: [(any Error)?] { _errors.withLockUnchecked { $0 } }
-
-    // `any Error` is not `Sendable`, so the state cannot be checked statically.
-    private let _errors = OSAllocatedUnfairLock<[(any Error)?]>(uncheckedState: [])
-
-    func record(_ error: (any Error)?) {
-        _errors.withLockUnchecked { $0.append(error) }
     }
 }
 

@@ -83,12 +83,11 @@ private final class DataLoaderDelegate: ImagePipeline.Delegate, @unchecked Senda
     /// Returns the loader for the request, or `nil` for the default one.
     var dataLoader: ((ImageRequest) -> (any DataLoading)?)?
 
-    private let lock = NSLock()
-    private var _requests: [ImageRequest] = []
-    var requests: [ImageRequest] { lock.withLock { _requests } }
+    private let _requests = LockedArray<ImageRequest>()
+    var requests: [ImageRequest] { _requests.values }
 
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
-        lock.withLock { _requests.append(request) }
+        _requests.append(request)
         return dataLoader?(request) ?? pipeline.configuration.dataLoader
     }
 }

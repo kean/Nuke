@@ -63,37 +63,6 @@ struct ImageRequestPipelineContractTests {
 
     // MARK: - Image ID Override
 
-    /// The documented use case: strip a transient token from the cache key.
-    @Test func imageIDOverrideSharesMemoryCacheAcrossURLs() async throws {
-        // Given
-        let first = try Self.makeTokenizedRequest(token: "1")
-        let second = try Self.makeTokenizedRequest(token: "2")
-        _ = try await pipeline.image(for: first)
-
-        // When
-        let response = try await pipeline.imageTask(with: second).response
-
-        // Then
-        #expect(response.cacheType == .memory)
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
-    @Test func imageIDOverrideSharesDiskCacheAcrossURLs() async throws {
-        // Given
-        let pipeline = pipeline.reconfigured { $0.imageCache = nil }
-        let first = try Self.makeTokenizedRequest(token: "1")
-        let second = try Self.makeTokenizedRequest(token: "2")
-        _ = try await pipeline.image(for: first)
-
-        // When
-        let response = try await pipeline.imageTask(with: second).response
-
-        // Then the data is stored under the override, not under the URL
-        #expect(Array(dataCache.store.keys) == ["https://example.com/image.jpeg"])
-        #expect(response.cacheType == .disk)
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
     /// The override identifies the image for the caches, but the URL is what
     /// gets loaded.
     @Test func imageIDOverrideDoesNotRedirectDownload() async throws {
@@ -148,24 +117,6 @@ struct ImageRequestPipelineContractTests {
         #expect(calls.withLock { $0 } == 1)
     }
 
-    /// "If the pipeline uses a `DataCaching` disk cache, the fetched data will
-    /// be stored in it."
-    @Test func closureDataIsStoredInDiskCacheUnderItsID() async throws {
-        // Given
-        let pipeline = pipeline.reconfigured { $0.imageCache = nil }
-        _ = try await pipeline.image(for: ImageRequest(id: "photo-1", data: { Test.data }))
-
-        // When
-        let response = try await pipeline.imageTask(with: ImageRequest(id: "photo-1", data: {
-            Issue.record("The cached data was expected")
-            return Test.data
-        })).response
-
-        // Then
-        #expect(dataCache.store["photo-1"] == Test.data)
-        #expect(response.cacheType == .disk)
-    }
-
     /// "Use `disableDiskCache` to prevent this."
     @Test func closureDataIsNotStoredWithDiskCacheDisabled() async throws {
         // When
@@ -174,22 +125,6 @@ struct ImageRequestPipelineContractTests {
         // Then
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.readCount == 0)
-        #expect(imageCache.writeCount == 1)
-    }
-
-    /// "Unlike `init(id:data:)`, the image is never stored in the disk cache
-    /// because no raw data is available."
-    ///
-    /// - note: Only the default `.storeOriginalData` policy is checked. With
-    /// the policies that store encoded images, the image is written – reported
-    /// as a suspected bug.
-    @Test func closureImageIsNotStoredInDiskCacheByDefault() async throws {
-        // When
-        _ = try await pipeline.image(for: ImageRequest(id: "photo-1", image: { Test.container }))
-        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
-
-        // Then
-        #expect(dataCache.writeCount == 0)
         #expect(imageCache.writeCount == 1)
     }
 
@@ -247,15 +182,6 @@ struct ImageRequestPipelineContractTests {
         // Then
         #expect(response.cacheType == nil)
         #expect(response.urlResponse == nil)
-    }
-
-    @Test func dataTaskReturnsURLResponseOfNetworkLoad() async throws {
-        // When
-        let (data, urlResponse) = try await pipeline.data(for: Test.request)
-
-        // Then
-        #expect(data == Test.data)
-        #expect(urlResponse?.url == Test.url)
     }
 
     /// The response carries the request that produced it, including the

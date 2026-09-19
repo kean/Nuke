@@ -13,14 +13,14 @@ import Foundation
 struct ImagePipelineCacheAPIContractTests {
     private let memoryCache: MockImageCache
     private let diskCache: MockDataCache
-    private let delegate: CacheAPIDelegate
+    private let delegate: CachingDelegate
     private let pipeline: ImagePipeline
     private var cache: ImagePipeline.Cache { pipeline.cache }
 
     init() {
         let memoryCache = MockImageCache()
         let diskCache = MockDataCache()
-        let delegate = CacheAPIDelegate()
+        let delegate = CachingDelegate()
         self.memoryCache = memoryCache
         self.diskCache = diskCache
         self.delegate = delegate
@@ -226,7 +226,7 @@ struct ImagePipelineCacheAPIContractTests {
 
     @Test func cachedImageDecodesWithTheDelegateDecoder() throws {
         // GIVEN a pipeline that doesn't parse animated images
-        let recorder = Recorder<ImageDecodingContext>()
+        let recorder = LockedArray<ImageDecodingContext>()
         delegate.decoder = { context in
             recorder.append(context)
             return ImageDecoders.Default()
@@ -346,36 +346,9 @@ struct ImagePipelineCacheAPIContractTests {
 
 // MARK: - Helpers
 
-private final class CacheAPIDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    var imageCache: ((ImageRequest) -> (any ImageCaching)?)?
-    var dataCache: ((ImageRequest) -> (any DataCaching)?)?
-    var encoder: ((ImageEncodingContext) -> any ImageEncoding)?
-    var decoder: ((ImageDecodingContext) -> (any ImageDecoding)?)?
-
-    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
-        if let imageCache { return imageCache(request) }
-        return pipeline.configuration.imageCache
-    }
-
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
-        if let dataCache { return dataCache(request) }
-        return pipeline.configuration.dataCache
-    }
-
-    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
-        if let encoder { return encoder(context) }
-        return pipeline.configuration.makeImageEncoder(context)
-    }
-
-    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
-        if let decoder { return decoder(context) }
-        return pipeline.configuration.makeImageDecoder(context)
-    }
-}
-
 private final class ContextRecordingEncoder: ImageEncoding, @unchecked Sendable {
     let result: Data?
-    private let recorder = Recorder<ImageEncodingContext>()
+    private let recorder = LockedArray<ImageEncodingContext>()
     var contexts: [ImageEncodingContext] { recorder.values }
 
     init(result: Data?) {
@@ -389,16 +362,5 @@ private final class ContextRecordingEncoder: ImageEncoding, @unchecked Sendable 
     func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
         recorder.append(context)
         return result
-    }
-}
-
-private final class Recorder<T>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _values: [T] = []
-
-    var values: [T] { lock.withLock { _values } }
-
-    func append(_ value: T) {
-        lock.withLock { _values.append(value) }
     }
 }

@@ -616,10 +616,6 @@ struct ImageViewExtensionsReuseTests {
 
     // MARK: - Helpers
 
-    private func request(id: String) -> ImageRequest {
-        ImageRequest(url: Test.url, processors: [MockImageProcessor(id: id)])
-    }
-
     private func makeLayerBacked(_ view: _ImageView) -> CALayer? {
 #if os(macOS)
         view.wantsLayer = true
@@ -636,37 +632,16 @@ struct ImageViewExtensionsReuseTests {
 
 // MARK: - Private
 
-/// Starts a request and keeps the main thread busy until the pipeline has
-/// finished it, so that its completion is dispatched but hasn't run yet.
-@MainActor
-private func runWhileMainThreadIsBlocked(untilTaskCompletes observer: ImagePipelineObserver, _ action: () -> Void) throws {
-    let semaphore = DispatchSemaphore(value: 0)
-    let token = NotificationCenter.default.addObserver(forName: ImagePipelineObserver.didCompleteTask, object: observer, queue: nil) { _ in
-        semaphore.signal()
+private final class RecordingImageView: _PlatformBaseView, ImageDisplaying {
+    var containers: [ImageContainer?] = []
+
+    func nuke_display(_ container: ImageContainer?) {
+        containers.append(container)
     }
-    defer { NotificationCenter.default.removeObserver(token) }
-    action()
-    try #require(semaphore.wait(timeout: .now() + 60) == .success)
 }
 
 #if os(macOS)
-private final class RecordingImageView: NSView, ImageDisplaying {
-    var containers: [ImageContainer?] = []
-
-    func nuke_display(_ container: ImageContainer?) {
-        containers.append(container)
-    }
-}
-
 private final class LayerlessDisplayer: NSObject, ImageDisplaying {
-    var containers: [ImageContainer?] = []
-
-    func nuke_display(_ container: ImageContainer?) {
-        containers.append(container)
-    }
-}
-#else
-private final class RecordingImageView: UIView, ImageDisplaying {
     var containers: [ImageContainer?] = []
 
     func nuke_display(_ container: ImageContainer?) {

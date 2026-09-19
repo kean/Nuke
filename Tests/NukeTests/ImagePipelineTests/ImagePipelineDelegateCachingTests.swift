@@ -249,7 +249,7 @@ struct ImagePipelineDelegateCachingTests {
     @Test func cachedDataWithNoDecoderFallsBackToLoading() async throws {
         // GIVEN data in the disk cache the delegate has no decoder for
         dataCache.store[Test.url.absoluteString] = Test.data
-        let contexts = ContextRecorder()
+        let contexts = LockedArray<ImageDecodingContext>()
         delegate.decoder = { context in
             contexts.append(context)
             return context.cacheType == .disk ? nil : ImageDecoders.Default()
@@ -267,7 +267,7 @@ struct ImagePipelineDelegateCachingTests {
 
     @Test func encoderForProcessedImagesReceivesTheURLResponse() async throws {
         // GIVEN
-        let encoders = EncodingContextRecorder()
+        let encoders = LockedArray<ImageEncodingContext>()
         delegate.encoder = { context in
             encoders.append(context)
             return MockImageEncoder(result: Test.data)
@@ -290,7 +290,10 @@ struct ImagePipelineDelegateCachingTests {
 
 // MARK: - Helpers
 
-private final class CachingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
+/// Overrides the caching hooks of ``ImagePipeline/Delegate-swift.protocol``
+/// with closures, falling back to the pipeline configuration for the ones
+/// that are not set, and records the `willCache` calls.
+final class CachingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
     struct WillCacheCall {
         let data: Data
         let image: ImageContainer?
@@ -305,9 +308,8 @@ private final class CachingDelegate: ImagePipeline.Delegate, @unchecked Sendable
     /// Replaces the data passed to `willCache`.
     var willCacheTransform: ((Data) -> Data?)?
 
-    private let lock = NSLock()
-    private var _willCacheCalls: [WillCacheCall] = []
-    var willCacheCalls: [WillCacheCall] { lock.withLock { _willCacheCalls } }
+    private let _willCacheCalls = LockedArray<WillCacheCall>()
+    var willCacheCalls: [WillCacheCall] { _willCacheCalls.values }
 
     func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
         if let imageCache { return imageCache(request) }
@@ -334,27 +336,7 @@ private final class CachingDelegate: ImagePipeline.Delegate, @unchecked Sendable
     }
 
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
-        lock.withLock { _willCacheCalls.append(WillCacheCall(data: data, image: image, request: request)) }
+        _willCacheCalls.append(WillCacheCall(data: data, image: image, request: request))
         return willCacheTransform.map { $0(data) } ?? data
-    }
-}
-
-private final class ContextRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _values: [ImageDecodingContext] = []
-    var values: [ImageDecodingContext] { lock.withLock { _values } }
-
-    func append(_ context: ImageDecodingContext) {
-        lock.withLock { _values.append(context) }
-    }
-}
-
-private final class EncodingContextRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _values: [ImageEncodingContext] = []
-    var values: [ImageEncodingContext] { lock.withLock { _values } }
-
-    func append(_ context: ImageEncodingContext) {
-        lock.withLock { _values.append(context) }
     }
 }

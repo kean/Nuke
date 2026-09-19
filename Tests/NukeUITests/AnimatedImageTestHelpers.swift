@@ -156,6 +156,10 @@ enum AnimatedImageTest {
     /// frames apart.
     static func firstPixel(of image: PlatformImage?) -> [UInt8]? {
         guard let cgImage = image?.cgImage else { return nil }
+        return firstPixel(of: cgImage)
+    }
+
+    static func firstPixel(of cgImage: CGImage) -> [UInt8]? {
         var pixel = [UInt8](repeating: 0, count: 4)
         let context = pixel.withUnsafeMutableBytes { buffer in
             CGContext(
@@ -173,5 +177,30 @@ enum AnimatedImageTest {
         // generated frame is a solid color, so any pixel identifies the frame.
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1, height: 1))
         return pixel
+    }
+}
+
+/// Draws every frame in a gray of its own, and refuses the ones it is told to.
+struct RefusingFrameDecoder: AnimatedImageFrameDecoding {
+    let refused: Set<Int>
+
+    func decode(at index: Int) async -> CGImage? {
+        refused.contains(index) ? nil : RefusingFrameDecoder.makeFrame(at: index)
+    }
+
+    static func makeFrame(at index: Int) -> CGImage {
+        let context = CGContext(
+            data: nil,
+            width: 8,
+            height: 8,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        let level = CGFloat(index + 1) / 8
+        context.setFillColor(red: level, green: level, blue: level, alpha: 1)
+        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        return context.makeImage()!
     }
 }

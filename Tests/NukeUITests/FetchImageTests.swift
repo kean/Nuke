@@ -538,11 +538,6 @@ struct FetchImageTests {
         await cancelled.wait()
     }
 
-    /// Gives any pending main-actor continuations a chance to run.
-    private func drainPendingWork() async {
-        for _ in 0..<10 { await Task.yield() }
-    }
-
     // MARK: - Processors
 
     @Test func processorsAppliedFromImage() async {

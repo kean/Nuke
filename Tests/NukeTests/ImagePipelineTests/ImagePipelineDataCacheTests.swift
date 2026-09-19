@@ -161,20 +161,6 @@ struct ImagePipelineDataCachingTests {
 
     // MARK: ImageRequest.CachePolicy
 
-    @Test func reloadIgnoringCachedData() async throws {
-        // Given
-        dataCache.store[Test.url.absoluteString] = Test.data
-
-        var request = Test.request
-        request.options = [.reloadIgnoringCachedData]
-
-        // When
-        _ = try await pipeline.image(for: request)
-
-        // Then
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
     @Test func loadFromCacheOnlyDataCache() async throws {
         // Given
         dataCache.store[Test.url.absoluteString] = Test.data

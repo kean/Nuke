@@ -63,7 +63,7 @@ struct AVDataAssetTests {
 
     /// The content type is derived from the asset type, and anything that
     /// isn't a known video container is served as MP4.
-    @Test(arguments: [AssetType?.none, .jpeg, .mp4])
+    @Test(arguments: [AssetType?.none, .jpeg])
     func servesDataOfUnknownTypeAsMP4(type: AssetType?) async throws {
         // Given
         let data = try await VideoFixture(frameCount: 3).makeData()

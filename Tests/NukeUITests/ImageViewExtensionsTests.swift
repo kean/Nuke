@@ -75,28 +75,12 @@ struct ImageViewExtensionsTests {
         #expect(imageView.image == nil)
     }
 
-    @Test func loadImageWithNilRequestAndPlaceholder() {
-        let failureImage = Test.image
-        var options = options
-        options.failureImage = failureImage
-        let request: ImageRequest? = nil
-        NukeUI.loadImage(with: request, options: options, into: imageView)
-        #expect(imageView.image === failureImage)
-    }
-
     // MARK: - Managing Tasks
 
     @Test func taskReturned() {
         let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         #expect(task != nil)
         #expect(task?.request.urlRequest == Test.request.urlRequest)
-    }
-
-    @Test func taskIsNilWhenImageInMemoryCache() {
-        let request = Test.request
-        imageCache[request] = ImageContainer(image: PlatformImage())
-        let task = NukeUI.loadImage(with: request, options: options, into: imageView)
-        #expect(task == nil)
     }
 
     // MARK: - Prepare For Reuse

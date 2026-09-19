@@ -207,16 +207,6 @@ struct AnimatedImageFrameDecoderTests {
         // apart, so the margin here is generous on purpose.
         #expect(drawing * 2 < decoding)
     }
-
-    // MARK: Failure
-
-    @Test func returnsNilForAFrameThatIsNotThere() async throws {
-        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 4)))
-
-        let frame = await AnimatedImageFrameDecoder(source: source).decode(at: 99)
-
-        #expect(frame == nil)
-    }
 }
 
 /// Every orientation a container can declare, in the order EXIF numbers them.

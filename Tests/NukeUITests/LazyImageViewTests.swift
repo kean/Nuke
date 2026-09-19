@@ -176,20 +176,6 @@ struct LazyImageViewTests {
         #expect(view.imageTask === task)
     }
 
-    @Test func onSuccessCalled() async throws {
-        let expectation = TestExpectation()
-        var capturedResponse: ImageResponse?
-        view.onSuccess = { response in
-            capturedResponse = response
-            expectation.fulfill()
-        }
-
-        view.url = Test.url
-        await expectation.wait()
-
-        _ = try #require(capturedResponse)
-    }
-
     @Test func onCompletionCalledOnSuccess() async throws {
         let expectation = TestExpectation()
         var capturedResult: Result<ImageResponse, ImagePipeline.Error>?
@@ -203,22 +189,6 @@ struct LazyImageViewTests {
 
         let result = try #require(capturedResult)
         #expect(result.isSuccess)
-    }
-
-    @Test func onFailureCalled() async throws {
-        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
-
-        let expectation = TestExpectation()
-        var capturedError: ImagePipeline.Error?
-        view.onFailure = { error in
-            capturedError = error
-            expectation.fulfill()
-        }
-
-        view.url = Test.url
-        await expectation.wait()
-
-        _ = try #require(capturedError)
     }
 
     @Test func onCompletionCalledOnFailure() async throws {
@@ -300,21 +270,6 @@ struct LazyImageViewTests {
         await expectation.wait()
 
         #expect(placeholder.isHidden == true)
-    }
-
-    @Test func showPlaceholderOnFailureKeepsPlaceholderVisible() async {
-        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
-
-        let placeholder = _PlatformBaseView()
-        view.placeholderView = placeholder
-        view.showPlaceholderOnFailure = true
-
-        let expectation = TestExpectation()
-        view.onCompletion = { _ in expectation.fulfill() }
-        view.url = Test.url
-        await expectation.wait()
-
-        #expect(placeholder.isHidden == false)
     }
 
     @Test func placeholderImageWrapsInImageView() {
@@ -727,31 +682,6 @@ struct LazyImageViewTests {
     }
 
     // MARK: - Progressive Rendering
-
-    @Test func progressivePreviewsAreDisplayedByDefault() async {
-        let progressiveLoader = MockProgressiveDataLoader()
-        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
-
-        var imageWasSetDuringPreview = false
-        var previewCount = 0
-        let previewExpectation = TestExpectation()
-        view.onPreview = { _ in
-            previewCount += 1
-            if view.imageView.image != nil { imageWasSetDuringPreview = true }
-            if previewCount == 1 { previewExpectation.fulfill() }
-            progressiveLoader.resume()
-        }
-
-        let completionExpectation = TestExpectation()
-        view.onCompletion = { _ in completionExpectation.fulfill() }
-        view.url = Test.url
-
-        await previewExpectation.wait()
-        await completionExpectation.wait()
-
-        #expect(previewCount > 0)
-        #expect(imageWasSetDuringPreview)
-    }
 
     @Test func progressivePreviewsIgnoredWhenRenderingDisabled() async {
         let progressiveLoader = MockProgressiveDataLoader()

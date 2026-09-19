@@ -4,7 +4,6 @@
 
 import Testing
 import Foundation
-import os
 @testable import Nuke
 
 /// Tasks joining and leaving the work they share.
@@ -44,7 +43,7 @@ struct ImagePipelineCoalescingLifecycleTests {
     @Test func cancellingTheImageTaskKeepsTheSharedDownloadForTheDataRequest() async throws {
         // Given
         let pipeline = self.pipeline
-        let (imageTask, dataTask) = await startSuspended(count: 2) {
+        let (imageTask, dataTask) = await startSuspended(for: pipeline, count: 2) {
             (pipeline.imageTask(with: Test.request), Task { try await pipeline.data(for: Test.request) })
         }
 
@@ -71,7 +70,7 @@ struct ImagePipelineCoalescingLifecycleTests {
         let processors = MockProcessorFactory()
         let first = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let second = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
-        let (task1, task2) = await startSuspended(count: 2) {
+        let (task1, task2) = await startSuspended(for: pipeline, count: 2) {
             (pipeline.imageTask(with: first), pipeline.imageTask(with: second))
         }
 
@@ -96,7 +95,7 @@ struct ImagePipelineCoalescingLifecycleTests {
     @Test func requestAfterEveryTaskWasCancelledStartsNewWork() async throws {
         // Given two tasks sharing a download that are both cancelled
         let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
-        let (task1, task2) = await startSuspended(count: 2) {
+        let (task1, task2) = await startSuspended(for: pipeline, count: 2) {
             (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
         }
         await didStartLoading.wait()
@@ -144,28 +143,5 @@ struct ImagePipelineCoalescingLifecycleTests {
         let response2 = try await second.response
         #expect(response1.image === response2.image)
         #expect(second.status.progress == first.status.progress)
-    }
-
-    // MARK: - Helpers
-
-    /// Starts the tasks and waits until the pipeline registers all of them,
-    /// leaving the downloads suspended.
-    private func startSuspended<T>(count: Int, _ body: () -> T) async -> T {
-        dataLoader.isSuspended = true
-        let didStart = TestExpectation()
-        let startedCount = OSAllocatedUnfairLock(initialState: 0)
-        pipeline.onTaskStarted = { _ in
-            let started = startedCount.withLock {
-                $0 += 1
-                return $0
-            }
-            if started == count {
-                didStart.fulfill()
-            }
-        }
-        let result = body()
-        await didStart.wait()
-        pipeline.onTaskStarted = nil
-        return result
     }
 }

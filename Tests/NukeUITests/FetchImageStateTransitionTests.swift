@@ -492,11 +492,6 @@ struct FetchImageStateTransitionTests {
         image.onCompletion = nil
         _ = try #require(image.result?.value)
     }
-
-    /// Gives any pending main-actor continuations a chance to run.
-    private func drainPendingWork() async {
-        for _ in 0..<10 { await Task.yield() }
-    }
 }
 
 #if !os(watchOS)

@@ -4,7 +4,6 @@
 
 import Testing
 import Foundation
-import os
 @testable import Nuke
 
 /// `invalidate()` hops to the pipeline actor, so the tests wait for it to
@@ -36,7 +35,7 @@ struct ImagePipelineInvalidationTests {
         // Given three image tasks and a data request, each with its own download
         let urls = (0..<3).map { URL(string: "http://test.com/\($0).jpeg")! }
         let pipeline = self.pipeline
-        let (tasks, dataTask) = await startSuspended(count: urls.count + 1) {
+        let (tasks, dataTask) = await startSuspended(for: pipeline, count: urls.count + 1) {
             (urls.map { pipeline.imageTask(with: $0) },
              Task { try await pipeline.data(for: ImageRequest(url: URL(string: "http://test.com/data.jpeg"))) })
         }
@@ -113,30 +112,9 @@ struct ImagePipelineInvalidationTests {
 
     // MARK: - Helpers
 
-    /// Starts the tasks and waits until the pipeline registers all of them,
-    /// leaving the downloads suspended.
-    private func startSuspended<T>(count: Int, _ body: () -> T) async -> T {
-        dataLoader.isSuspended = true
-        let didStart = TestExpectation()
-        let startedCount = OSAllocatedUnfairLock(initialState: 0)
-        pipeline.onTaskStarted = { _ in
-            let started = startedCount.withLock {
-                $0 += 1
-                return $0
-            }
-            if started == count {
-                didStart.fulfill()
-            }
-        }
-        let result = body()
-        await didStart.wait()
-        pipeline.onTaskStarted = nil
-        return result
-    }
-
     /// Invalidates the pipeline and waits until the invalidation takes effect.
     private func invalidate() async {
-        let task = await startSuspended(count: 1) {
+        let task = await startSuspended(for: pipeline, count: 1) {
             pipeline.imageTask(with: ImageRequest(url: URL(string: "http://test.com/outstanding.jpeg")))
         }
         pipeline.invalidate()

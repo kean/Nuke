@@ -767,14 +767,6 @@ struct ImageTaskMetricsFormatTests {
         #expect(AssetType(rawValue: "com.example.custom").diagnosticsName == "com.example.custom")
     }
 
-    @Test func priorityNamesRoundTrip() throws {
-        for priority in [ImageRequest.Priority.veryLow, .low, .normal, .high, .veryHigh] {
-            let data = try JSONEncoder().encode(priority)
-            #expect(String(data: data, encoding: .utf8) == "\"\(priority.name)\"")
-            #expect(try JSONDecoder().decode(ImageRequest.Priority.self, from: data) == priority)
-        }
-    }
-
     // MARK: - Codable
 
     /// A record written by a newer schema – new fields, new names – still

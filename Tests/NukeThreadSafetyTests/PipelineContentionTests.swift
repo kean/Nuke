@@ -101,7 +101,7 @@ struct ImagePipelineContentionTests {
                 #expect(tasks[index].isCancelled)
             }
         }
-        await pipeline.drain()
+        await drainPipeline()
         #expect(delegate.finishedCount(for: tasks) == Array(repeating: 1, count: tasks.count))
         #expect(cancellations.count == 0)
         #expect(dataLoader.createdTaskCount == 1)
@@ -520,14 +520,6 @@ private final class NotificationCounter: @unchecked Sendable {
     }
 }
 
-private extension ImagePipeline {
-    /// Waits for the work the pipeline already scheduled on its actor, such as
-    /// the delegate callbacks of the tasks that just finished.
-    func drain() async {
-        await Task { @ImagePipelineActor in }.value
-    }
-}
-
 private extension ImageTask {
     /// The response, or the error the task failed with.
     var outcome: Result<ImageResponse, ImagePipeline.Error> {
@@ -538,17 +530,5 @@ private extension ImageTask {
                 return .failure(error)
             }
         }
-    }
-}
-
-private extension Result where Failure == ImagePipeline.Error {
-    var isSuccess: Bool {
-        if case .success = self { return true }
-        return false
-    }
-
-    var error: ImagePipeline.Error? {
-        if case .failure(let error) = self { return error }
-        return nil
     }
 }

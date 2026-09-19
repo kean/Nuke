@@ -55,19 +55,6 @@ final class DataCacheTests {
 
     // MARK: Init
 
-    @Test func initWithName() throws {
-        // Given
-        let name = UUID().uuidString
-
-        // When
-        let cache = try DataCache(name: name, filenameGenerator: { $0 })
-        defer { try? FileManager.default.removeItem(at: cache.path) }
-
-        // Then
-        #expect(cache.path.lastPathComponent == name)
-        #expect(FileManager.default.fileExists(atPath: cache.path.path))
-    }
-
     @Test func initWithPath() throws {
         // Given
         let name = UUID().uuidString
@@ -1041,14 +1028,6 @@ final class DataCacheTests {
 
         // THEN the stale date doesn't hold the sweep back
         await expectation.wait(timeout: .seconds(5))
-    }
-
-    private func lastSweepDate(at path: URL) -> Date? {
-        struct CacheMetadata: Codable { var lastSweepDate: Date? }
-        guard let data = try? Data(contentsOf: path.appendingPathComponent(".data-cache-info")) else {
-            return nil
-        }
-        return try? JSONDecoder().decode(CacheMetadata.self, from: data).lastSweepDate
     }
 
     // MARK: Sweep Edge Cases

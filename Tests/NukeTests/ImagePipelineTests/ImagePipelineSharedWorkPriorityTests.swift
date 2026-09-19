@@ -129,10 +129,6 @@ struct ImagePipelineSchedulingOrderTests {
         }
     }
 
-    @Test func rateLimiterCanBeDisabled() {
-        #expect(pipeline.rateLimiter == nil)
-    }
-
     @Test func pendingDownloadsStartInTheOrderOfTheirPriority() async throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
@@ -217,10 +213,6 @@ private final class RecordingDataLoader: DataLoading, Sendable {
             didReceiveData(Test.data, URLResponse(url: url, mimeType: "jpeg", expectedContentLength: Test.data.count, textEncodingName: nil))
             completion(nil)
         }
-        return NoopCancellable()
+        return AnonymousCancellable {}
     }
-}
-
-private final class NoopCancellable: Cancellable {
-    func cancel() {}
 }

@@ -1,6 +1,6 @@
 # Defect details
 
-Companion to [README.md](README.md). Same numbering.
+Companion to [README.md](README.md). Same numbering; D101 was merged into D99.
 
 ## Confirmed (73)
 
@@ -10,7 +10,7 @@ _Severity: high · user impact: medium · public API: yes · found by: concurren
 
 **Where:** `Sources/Nuke/Tasks/TaskFetchOriginalData.swift:153`
 
-**Repro:** [NukeThreadSafetyTests/concurrency-stress--data-loader-callbacks-reordered.swift](NukeThreadSafetyTests/concurrency-stress--data-loader-callbacks-reordered.swift), [NukeTests/data-loading-tasks--completion-overtakes-last-chunk.swift](NukeTests/data-loading-tasks--completion-overtakes-last-chunk.swift)
+**Repro:** [NukeTests/data-loading-tasks--completion-overtakes-last-chunk.swift](NukeTests/data-loading-tasks--completion-overtakes-last-chunk.swift)
 
 **What:** Each `didReceiveData` and `completion` callback moves to the pipeline actor in its own unstructured `Task { @ImagePipelineActor in ... }` (lines 153-155, 162-166, 170-174). Each Task inherits the priority of the calling thread, and the actor runs higher-priority jobs first. The DataLoading docs allow calling both callbacks from any thread. If `completion` comes from a higher-QoS thread than the chunks, `finishDataLoad` runs first and clears `dataLoadContinuation`. `dataTaskDidReceive` then drops every late chunk (`guard dataLoadContinuation != nil`). The request either fails with `.dataIsEmpty`, or succeeds with truncated data that is also written to the disk cache. The repro loader delivers two chunks from `.background` threads and then completes from a `.userInteractive` thread; each call finishes before the next one starts, so the loader follows the contract.
 
@@ -51,9 +51,9 @@ _Severity: high · user impact: medium · public API: yes · found by: data-load
 
 **Where:** `Sources/Nuke/Tasks/TaskFetchOriginalData.swift:148`
 
-**Repro:** [NukeTests/data-loader--cancel-contract-deadlocks-data-loading-queue.swift](NukeTests/data-loader--cancel-contract-deadlocks-data-loading-queue.swift), [NukeTests/data-loading-tasks--cancelled-download-leaks-queue-slot.swift](NukeTests/data-loading-tasks--cancelled-download-leaks-queue-slot.swift)
+**Repro:** [NukeTests/data-loader--cancel-contract-deadlocks-data-loading-queue.swift](NukeTests/data-loader--cancel-contract-deadlocks-data-loading-queue.swift)
 
-**What:** loading-data.md ("The DataLoading Protocol Contract") says cancel() must ensure "neither didReceiveData nor completion are called after cancellation". TaskFetchOriginalData.loadData(with:dataLoader:) waits in withUnsafeThrowingContinuation, and only the loader's completion resumes it. Cancelling the image task cancels the TaskQueue operation's Swift Task and calls dataLoadCancellable.cancel(), but neither resumes the continuation. performDataLoad therefore never returns, and TaskQueue.execute never gives the slot back (runningCount only goes down when work() returns). The task and its TaskFetchOriginalData also leak. After 6 downloads cancelled mid-flight (the default dataLoadingQueue limit), the pipeline never downloads anything again. DataLoader only avoids this because URLSession does call completion with URLError.cancelled after cancel(), which contradicts the article; DataLoading.swift's own doc comment says completion "must be called once". The in-repo MockDataLoader follows the article's contract (a cancelled operation never calls completion). The repro includes a control, with a loader that calls completion on cancel, which passes.
+**What:** loading-data.md ("The DataLoading Protocol Contract") says cancel() must ensure "neither didReceiveData nor completion are called after cancellation". TaskFetchOriginalData.loadData(with:dataLoader:) waits in withUnsafeThrowingContinuation, and only the loader's completion resumes it. Cancelling the image task cancels the TaskQueue operation's Swift Task and calls dataLoadCancellable.cancel(), but neither resumes the continuation. performDataLoad therefore never returns, and TaskQueue.execute never gives the slot back (runningCount only goes down when work() returns). The task and its TaskFetchOriginalData also leak. After 6 downloads cancelled mid-flight (the default dataLoadingQueue limit), the pipeline never downloads anything again. DataLoader only avoids this because URLSession does call completion with URLError.cancelled after cancel(), which contradicts the article; DataLoading.swift's own doc comment says completion "must be called once". The in-repo MockDataLoader follows the article's contract (a cancelled operation never calls completion). The version of the repro that was re-run also had a control, a loader that calls completion on cancel, which passed; the saved file doesn't include it.
 
 **Expected:** With dataLoadingQueue maxConcurrentTaskCount = 1 and a loader that follows the documented contract: after the first download is cancelled, a second download completes.
 
@@ -174,7 +174,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: animate
 
 **Where:** `Sources/NukeUI/AnimatedImages/AnimatedImagePlayer.swift:137`
 
-**Repro:** [NukeUITests/animated-frames-view--joining-player-shows-no-frame.swift](NukeUITests/animated-frames-view--joining-player-shows-no-frame.swift), [NukeUITests/animated-playback--joining-player-never-shows-decoded-first-frame.swift](NukeUITests/animated-playback--joining-player-never-shows-decoded-first-frame.swift)
+**Repro:** [NukeUITests/animated-frames-view--joining-player-shows-no-frame.swift](NukeUITests/animated-frames-view--joining-player-shows-no-frame.swift) (a joining player, and an AnimatedImageView held still that stays blank), [NukeUITests/animated-playback--joining-player-never-shows-decoded-first-frame.swift](NukeUITests/animated-playback--joining-player-never-shows-decoded-first-frame.swift) (a joining player, and the frame it joined on skipped once it plays, which needs part (2) of the suggested fix)
 
 **What:** display(frameAt:) is only reached from seek, tick and frameDidDecode. The store calls frameDidDecode only for frames decoded while the player was waiting for them. A player that joins a store which already holds the frame at currentFrameIndex is never offered that frame. This happens when another view of the same animation played it, or when a reused cell gets a new player for a cached animation. store.add finds nothing pending and schedules nothing, so the frame is never shown. A playing view stays blank (or shows the poster) until the first tick moves to the NEXT frame, so the frame it joined on is skipped. A view with isPlaybackEnabled = false and no poster stays blank forever. That includes SwiftUI with Auto-Play Animated Images turned off.
 
@@ -610,7 +610,7 @@ _Severity: medium · user impact: low · public API: yes · known: defects.md #1
 
 **Where:** `Sources/Nuke/Internal/ImageRequestKeys.swift:106`
 
-**Repro:** [NukeTests/data-loading-tasks--skip-data-loading-queue-joins-queued-fetch.swift](NukeTests/data-loading-tasks--skip-data-loading-queue-joins-queued-fetch.swift), [NukeTests/request-model--skip-data-loading-queue-coalesced.swift](NukeTests/request-model--skip-data-loading-queue-coalesced.swift), [NukeTests/task-engine--skip-queue-coalesced-into-queued-load.swift](NukeTests/task-engine--skip-queue-coalesced-into-queued-load.swift)
+**Repro:** [NukeTests/data-loading-tasks--skip-data-loading-queue-joins-queued-fetch.swift](NukeTests/data-loading-tasks--skip-data-loading-queue-joins-queued-fetch.swift)
 
 **What:** The docs for `Options.skipDataLoadingQueue` say it performs data loading immediately, ignoring the queue, and that "if there is an outstanding task for loading the same resource but without this option, a new task will be created". `TaskFetchOriginalDataKey` and `TaskFetchOriginalImageKey` don't include the options. So the new TaskLoadImage subscribes to the existing TaskFetchOriginalImage and TaskFetchOriginalData, whose operation is waiting in the dataLoadingQueue. The option is read from the first request and ignored for the one that joins.
 
@@ -722,7 +722,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: image-d
 
 **Where:** `Sources/Nuke/Tasks/TaskLoadImage.swift:206`
 
-**Repro:** [NukeTests/image-decode-process-tasks--disable-disk-cache-writes-ignored-for-encoded-images.swift](NukeTests/image-decode-process-tasks--disable-disk-cache-writes-ignored-for-encoded-images.swift), [NukeTests/pipeline-caching--disable-disk-writes-ignored-for-encoded-images.swift](NukeTests/pipeline-caching--disable-disk-writes-ignored-for-encoded-images.swift), [NukeTests/request-model--disable-disk-cache-writes-ignored-for-encoded-images.swift](NukeTests/request-model--disable-disk-cache-writes-ignored-for-encoded-images.swift)
+**Repro:** [NukeTests/image-decode-process-tasks--disable-disk-cache-writes-ignored-for-encoded-images.swift](NukeTests/image-decode-process-tasks--disable-disk-cache-writes-ignored-for-encoded-images.swift)
 
 **What:** shouldStoreResponseInDataCache checks dataCachePolicy but never request.options. storeImageInDataCache then writes with dataCache.storeData directly, which bypasses the option check in ImagePipeline.Cache.storeCachedData. The check was removed in 19423094 when options became part of the task key, and nothing checked request.options in its place. TaskFetchOriginalData does honor the option for original data.
 
@@ -775,7 +775,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: image-d
 
 **Where:** `Sources/Nuke/Tasks/TaskLoadImage.swift:52`
 
-**Repro:** [NukeTests/image-decode-process-tasks--return-cache-data-dont-load-ignores-cached-original.swift](NukeTests/image-decode-process-tasks--return-cache-data-dont-load-ignores-cached-original.swift), [NukeTests/pipeline-caching--return-cache-data-dont-load-ignores-cached-original.swift](NukeTests/pipeline-caching--return-cache-data-dont-load-ignores-cached-original.swift)
+**Repro:** [NukeTests/pipeline-caching--return-cache-data-dont-load-ignores-cached-original.swift](NukeTests/pipeline-caching--return-cache-data-dont-load-ignores-cached-original.swift)
 
 **What:** fetchImage() checks .returnCacheDataDontLoad before it subscribes to the TaskLoadImage for the request without the last processor. As a result, the cached intermediate and original images are never looked up. With the default .storeOriginalData policy, processed images are never on disk, so after a relaunch a processed request with this option can never succeed. Thumbnail requests already fall back to the original data correctly. The check moved here from the data-loading task in 4f2ce69f.
 
@@ -783,7 +783,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: image-d
 
 **Actual:** The request throws .dataMissingInCache both when the original data is on disk and when the original image is in the memory cache.
 
-**Reproduction check:** Both tests failed on all 3 iterations with `Caught error: Failed to load data from cache and download is disabled.`, the description of ImagePipeline.Error.dataMissingInCache. One test has the original data on disk (default .storeOriginalData policy), the other has the original image in the memory cache.
+**Reproduction check:** Both tests failed on all 3 iterations with `Caught error: Failed to load data from cache and download is disabled.`, the description of ImagePipeline.Error.dataMissingInCache. One test has the original data on disk (default .storeOriginalData policy), the other has the original image in the memory cache. (These ran on the image-decode-process-tasks repro, since dropped as a duplicate. The kept pipeline-caching repro has the same two cases plus a cached intermediate image, case (c) of the suggested regression tests.)
 
 **Refutation attempt (failed):**
 
@@ -807,7 +807,7 @@ I could not refute this. The bug is real, it can be reached through the public A
 
 4. The repro does not misuse the API. It uses the public ImageRequest(url:processors:options:) and imageTask(with:).response. The mocks only stand in for the caches and the loader, and the real-DataCache variant fails the same way. Nothing here is platform or URLSession behavior.
 
-5. I checked that the fix is safe. TaskLoadImageKey includes `options`, so the child TaskLoadImage made for a .returnCacheDataDontLoad request is never shared with normal requests. AsyncTask.Publisher.subscribe(_:onValue:) forwards the child's errors, so a miss at the bottom of the chain still comes back as .dataMissingInCache. With the check moved (see suggestedFix), the repro and control tests pass, and so does the full NukeTests target: 1110 tests in 79 suites.
+5. I checked that the fix is safe. TaskLoadImageKey includes `options`, so the child TaskLoadImage made for a .returnCacheDataDontLoad request is never shared with normal requests. AsyncTask.Publisher.subscribe(_:onValue:) forwards the child's errors, so a miss at the bottom of the chain still comes back as .dataMissingInCache. With the check moved (see the suggested fix below), the repro and control tests pass, and so does the full NukeTests target: 1110 tests in 79 suites.
 
 The data(for:) path has a related gap. TaskLoadData.loadData() fails with .dataMissingInCache before falling back to the original data when a request has processors. That is out of scope here.
 
@@ -843,7 +843,7 @@ _Severity: medium · user impact: medium · public API: yes · known: defects.md
 
 **Where:** `Sources/Nuke/Encoding/ImageEncoding.swift:28`
 
-**Repro:** [NukeTests/image-decode-process-tasks--processed-gif-never-stored-in-disk-cache.swift](NukeTests/image-decode-process-tasks--processed-gif-never-stored-in-disk-cache.swift), [NukeTests/processing-graphics-encoding--animated-container-encoded-as-still.swift](NukeTests/processing-graphics-encoding--animated-container-encoded-as-still.swift)
+**Repro:** [NukeTests/image-decode-process-tasks--processed-gif-never-stored-in-disk-cache.swift](NukeTests/image-decode-process-tasks--processed-gif-never-stored-in-disk-cache.swift) (processed GIF through the pipeline), [NukeTests/processing-graphics-encoding--animated-container-encoded-as-still.swift](NukeTests/processing-graphics-encoding--animated-container-encoded-as-still.swift) (a GIF thumbnail with no data through the encoder, plus the related APNG/WebP gap described under the fix, which the suggested fix doesn't cover)
 
 **What:** Since #958, processing (ImageContainer.map) keeps type == .gif but drops data. The default ImageEncoding.encode(_:context:), which ImageEncoders.Default doesn't override, returns container.data for .gif containers, and that is nil here. So TaskLoadImage.storeImageInDataCache stores nothing. Under .automatic the original isn't stored either, because the request has processors. A processed GIF is therefore downloaded again on every cold start.
 
@@ -915,7 +915,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: image-d
 
 **Where:** `Sources/Nuke/Tasks/TaskLoadImage.swift:208`
 
-**Repro:** [NukeTests/image-decode-process-tasks--processed-image-from-disk-original-not-stored.swift](NukeTests/image-decode-process-tasks--processed-image-from-disk-original-not-stored.swift), [NukeTests/pipeline-caching--processed-image-from-disk-original-not-stored.swift](NukeTests/pipeline-caching--processed-image-from-disk-original-not-stored.swift), [NukeTests/request-model--review-processed-image-from-cached-original-not-stored.swift](NukeTests/request-model--review-processed-image-from-cached-original-not-stored.swift)
+**Repro:** [NukeTests/request-model--review-processed-image-from-cached-original-not-stored.swift](NukeTests/request-model--review-processed-image-from-cached-original-not-stored.swift)
 
 **What:** process() copies the input response, cacheType included, into the processed response. shouldStoreResponseInDataCache skips any response with cacheType == .disk, a check meant for an image read from the request's own disk entry. So a processed image derived from the disk-cached original is recomputed on every cold start. The same image derived from a memory-cached original (cacheType .memory) is stored; a committed test covers that case.
 
@@ -923,7 +923,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: image-d
 
 **Actual:** The processed key is never written.
 
-**Reproduction check:** `dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] != nil` failed on all 3 iterations for both .automatic and .storeAll. The processor IDs and `createdTaskCount == 0` expectations passed.
+**Reproduction check:** `dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] != nil` failed on all 3 iterations for both .automatic and .storeAll. The processor IDs and `createdTaskCount == 0` expectations passed. (These ran on the image-decode-process-tasks repro, since dropped as a duplicate. The kept request-model repro runs the same processor case plus the thumbnail-from-original-data path, which the suggested fix handles separately.)
 
 **Refutation attempt (failed):**
 
@@ -1042,7 +1042,7 @@ I compiled copies of the real `Cache.swift` and `LinkedList.swift` with a driver
 - Images the prefetcher loads into a full cache whose entries have all been read are thrown away the same way.
 
 **Fix**
-I checked this in the scratch copy: it removes every self-eviction, and a trace of the existing CLOCK tests shows they still pass. Details are in suggestedFix.
+I checked this in the scratch copy: it removes every self-eviction, and a trace of the existing CLOCK tests shows they still pass. Details are in the suggested fix below.
 
 **Suggested fix:**
 
@@ -1430,7 +1430,7 @@ _Severity: medium · user impact: medium · public API: yes · found by: prefetc
 
 **Where:** `Sources/Nuke/Prefetching/ImagePrefetcher.swift:157`
 
-**Repro:** [NukeTests/prefetch-internals--low-priority-prefetches-run-in-reverse.swift](NukeTests/prefetch-internals--low-priority-prefetches-run-in-reverse.swift), [NukeTests/prefetch-internals--review-low-priority-pipeline-work-runs-in-reverse.swift](NukeTests/prefetch-internals--review-low-priority-pipeline-work-runs-in-reverse.swift)
+**Repro:** [NukeTests/prefetch-internals--low-priority-prefetches-run-in-reverse.swift](NukeTests/prefetch-internals--low-priority-prefetches-run-in-reverse.swift) (ImagePrefetcher's own queue), [NukeTests/prefetch-internals--review-low-priority-pipeline-work-runs-in-reverse.swift](NukeTests/prefetch-internals--review-low-priority-pipeline-work-runs-in-reverse.swift) (the pipeline's queues, through `AsyncTask.operation`, for any `.low` request)
 
 **What:** `_startPrefetching(with:)` enqueues the operation with `queue.add { ... }`, and `TaskQueue.add` always enqueues at `.normal`. The prefetcher then lowers it with `operation.priority = request.priority.taskPriority`. When a priority is lowered, `TaskQueue.operationPriorityChanged` (TaskQueue.swift:150-152) prepends the operation to the lower bucket, on the grounds that it was once higher priority. So every prefetch that can't start right away jumps ahead of the ones queued before it, and the queue runs LIFO instead of the FIFO that TaskQueue documents for work of the same priority. At `.normal` and `.high` the order is kept, which shows the reversal comes from adding at .normal and then lowering, not from a design choice. Impact: UICollectionView gives the prefetch index paths nearest to the viewport first, so the default prefetcher loads the farthest images first.
 
@@ -2014,7 +2014,7 @@ _Severity: low · user impact: low · public API: yes · found by: concurrency-s
 
 **Where:** `Sources/Nuke/Prefetching/ImagePrefetcher.swift:39`
 
-**Repro:** [NukeThreadSafetyTests/concurrency-stress--prefetcher-priority-stale-hop.swift](NukeThreadSafetyTests/concurrency-stress--prefetcher-priority-stale-hop.swift), [NukeTests/prefetch-internals--priority-updates-applied-out-of-order.swift](NukeTests/prefetch-internals--priority-updates-applied-out-of-order.swift)
+**Repro:** [NukeTests/prefetch-internals--priority-updates-applied-out-of-order.swift](NukeTests/prefetch-internals--priority-updates-applied-out-of-order.swift)
 
 **What:** The setter schedules `Task { @ImagePipelineActor in self.didUpdatePriority(to: newValue) }`, which captures the new value. The actor runs its queued jobs by priority, and each hop inherits the priority of the thread that set the property. So when the property is set from a background thread and then from a user-initiated one, the second hop runs first and the first hop lands last with the stale value. This is the same defect as the one fixed for ImageTask.priority in PR #918 (that hop now reads `self.priority`); the prefetcher still has the old pattern. The doc comment says changing the priority also changes the priority of all outstanding tasks.
 
@@ -2058,7 +2058,7 @@ _Severity: low · user impact: low · public API: yes · known: defects.md #45 �
 
 **Where:** `Sources/Nuke/Caching/Cache.swift:38`
 
-**Repro:** [NukeThreadSafetyTests/concurrency-stress--image-cache-config-lost-update.swift](NukeThreadSafetyTests/concurrency-stress--image-cache-config-lost-update.swift), [NukeTests/memory-cache--limit-update-lost-under-concurrency.swift](NukeTests/memory-cache--limit-update-lost-under-concurrency.swift)
+**Repro:** [NukeTests/memory-cache--limit-update-lost-under-concurrency.swift](NukeTests/memory-cache--limit-update-lost-under-concurrency.swift)
 
 **What:** Each ImageCache limit setter (costLimit, countLimit, ttl, entryCostLimit) is written as `impl.conf.x = newValue`. Swift runs that as a read-modify-write of the whole Configuration through the separate get and set of Cache.conf. Each of the two takes the lock, but the lock is released in between. So if one thread sets countLimit while another sets costLimit, the countLimit write can put back the old costLimit. The ImageCaching protocol says "The implementation must be thread safe", and there is no other way to change the limits. In the repro, one thread only ever writes costLimit and another only writes countLimit. In one run, 10,810 of 200,000 read-backs returned a value other than the one just written.
 
@@ -2103,7 +2103,7 @@ _Severity: low · user impact: low · public API: yes · found by: concurrency-s
 
 **Where:** `Sources/Nuke/Diagnostics/DiagnosticsRecorder.swift:343`
 
-**Repro:** [NukeThreadSafetyTests/concurrency-stress--diagnostics-created-by-joined-task.swift](NukeThreadSafetyTests/concurrency-stress--diagnostics-created-by-joined-task.swift), [NukeTests/diagnostics--created-by-joining-task.swift](NukeTests/diagnostics--created-by-joining-task.swift)
+**Repro:** [NukeTests/diagnostics--created-by-joining-task.swift](NukeTests/diagnostics--created-by-joining-task.swift)
 
 **What:** `JobRecord.makeSnapshot` sets `copy.createdByTaskID = joins.first?.taskID ?? 0`. `joins` only holds recorded tasks, because `ImageTask.diagnosticsDidSubscribe` returns early for a task with no record. So when the task that started the job was skipped by `pipeline.diagnostics.isEnabled == false`, `joins.first` is the first recorded task that joined later. That task's copy of the job then contradicts itself: `joinedAt != nil` means "its chain didn't create the job", yet `createdByTaskID` names it, while `createdByTaskID` is documented as "The task whose request created the job".
 
@@ -2439,7 +2439,7 @@ _Severity: low · user impact: low · public API: yes · found by: diagnostics_
 
 **Actual:** The header has `transfer:  0 bytes`, and the timeline has `├─ download 0.2 ms █████████ 44% never started · network · 0 bytes`.
 
-**Reproduction check:** Failed 3/3. `download.source == .network`, `download.bytes == 0`, and `metrics.bytes != nil`. The header has `transfer:  0 bytes`, and the timeline has `├─ download 0.4 ms ██████████ 51% never started · network · 0 bytes`, with `dataLoader.createdTaskCount == 0`. The breakdown also reads `network 0.4 ms (51%)` for this download that never ran, which is bug 1 again.
+**Reproduction check:** Failed 3/3. `download.source == .network`, `download.bytes == 0`, and `metrics.bytes != nil`. The header has `transfer:  0 bytes`, and the timeline has `├─ download 0.4 ms ██████████ 51% never started · network · 0 bytes`, with `dataLoader.createdTaskCount == 0`. The breakdown also reads `network 0.4 ms (51%)` for this download that never ran, which is D13 again.
 
 **Refutation attempt (failed):**
 
@@ -2460,7 +2460,7 @@ Why the impact is low:
 - `transfer: 0 bytes` on a failure is partly the existing convention. As a control, a download that started and failed (`notConnectedToInternet`) also prints `transfer: 0 bytes` and `network · 0 bytes`, and the existing test `failureCarriesTheErrorCode` expects `.network` for that case.
 - What is wrong is narrower: a stage that never started claims a network source and a byte count. A logger that reads `metrics.bytes != nil` as "a request went out" will miscount delegate refusals.
 
-The same report also counts the unstarted download as `network 0.5 ms (43%)` in the `time:` line. That is a separate problem (see bugs/diagnostics--never-started-stage-counted-as-work.swift) and not part of this finding.
+The same report also counts the unstarted download as `network 0.5 ms (43%)` in the `time:` line. That is a separate problem (D13) and not part of this finding.
 
 **Suggested fix:**
 
@@ -2513,7 +2513,7 @@ This is not a test artifact: the 200 dummy closures in the original repro just u
 
 Impact is low. Diagnostics are opt-in and not yet released (Nuke 14 WIP), and no loading behaviour changes. But a task cancelled during a fast scroll gets a record with an empty fetch job and 100% `other`, which gives no hint that the rate limiter held it, and that is the question such a record would be read for.
 
-Side note: the comparison case shows a separate bug that is already filed as diagnostics--never-started-stage-counted-as-work. A download cancelled while waiting in dataLoadingQueue is charged to `network` ("network 31.3 ms (97%) · download never started") instead of `queue`, because `timeShares` only splits out the queue part when `startedAt` is set.
+Side note: the comparison case shows a separate bug that is already filed as D13 (diagnostics--never-started-stage-counted-as-work). A download cancelled while waiting in dataLoadingQueue is charged to `network` ("network 31.3 ms (97%) · download never started") instead of `queue`, because `timeShares` only splits out the queue part when `startedAt` is set.
 
 **Suggested fix:**
 
@@ -2562,7 +2562,7 @@ I could not refute it. I reproduced it using only the public API. I built a sepa
 
 Mechanism, confirmed by reading the code: loadData(urlRequest:) begins the download stage with `queued: true` (TaskFetchOriginalData.swift:72). The dataLoadingQueue operation runs performDataLoad, which awaits pipeline.willLoadData (:118-125). Only then does it call startStage(downloadStage) (:130). So [queuedAt, startedAt) always contains the whole willLoadData stage. timeShares (ImageTask+Metrics.swift:280-284) gives that interval to `.queue` (rank 1). `.willLoadData` maps to `.other` (rank 7), so that mapping never wins for any time. The same holds with .skipDataLoadingQueue, because that path is also begun with queued: true.
 
-There is a worse variant with the same root cause. I added a delegate that sleeps 50 ms and then throws. The download stage never gets a startedAt, so timeShares falls into the else branch and charges the whole queuedAt→end span to category(of: .download). Output: `time: network 56.5 ms`, for a request that never reached the network.
+There is a worse variant with the same root cause. I added a delegate that sleeps 50 ms and then throws. The download stage never gets a startedAt, so timeShares falls into the else branch and charges the whole queuedAt→end span to category(of: .download). Output: `time: network 56.5 ms`, for a request that never reached the network. (That charge is D13; the refused download's stamp is D45.)
 
 Is it intentional? Partly. The test ImagePipelineDiagnosticsTests.willLoadDataIsRecordedForCustomDelegates pins `queueWait >= 0.02` ("its wait includes the delegate"). Commit 80094139 describes the delegate as running "inside" the dataLoadingQueue row, and orders the rows to match. So queueWait and the timeline row are known and accepted behaviour.
 
@@ -2746,7 +2746,7 @@ _Severity: low · user impact: low · public API: yes · found by: image-decode-
 
 **Where:** `Sources/Nuke/Tasks/TaskLoadImage.swift:86`
 
-**Repro:** [NukeTests/image-decode-process-tasks--response-request-loses-processors.swift](NukeTests/image-decode-process-tasks--response-request-loses-processors.swift), [NukeUITests/nukeui-views--response-request-drops-processors.swift](NukeUITests/nukeui-views--response-request-drops-processors.swift), [NukeTests/request-model--response-request-drops-processors.swift](NukeTests/request-model--response-request-drops-processors.swift)
+**Repro:** [NukeTests/image-decode-process-tasks--response-request-loses-processors.swift](NukeTests/image-decode-process-tasks--response-request-loses-processors.swift)
 
 **What:** process() starts from the dependency's response, which was created for request.withProcessors(dropLast), and replaces only the container. The final response therefore carries the innermost request, which has no processors. A memory-cache hit for the same request returns the full request, so the result is inconsistent.
 
@@ -3179,7 +3179,7 @@ I could not refute this. The bug is real and the repro fails as described. I ran
 - It matters most for apps that turn off built-in rendering to draw scans themselves via `onPreview` (for example, a progressive blur). They get the raw scan in `imageView` as well as their own rendering.
 - It is reachable through public API: `LazyImageView.isProgressiveImageRenderingEnabled` plus the pipeline configuration.
 
-**Side note (separate issue)**
+**Side note (separate issue, D23)**
 The early cached-preview `display` in ImageViewExtensions.swift (around line 311) never takes effect. It is immediately overwritten by the placeholder or by `nuke_display(nil)`.
 
 **Suggested fix:**
@@ -3307,7 +3307,7 @@ _Severity: low · user impact: low · public API: yes · known: defects.md #17 �
 
 **Where:** `Sources/Nuke/Internal/ImageRequestKeys.swift:56`
 
-**Repro:** [NukeTests/pipeline-caching--coalesced-request-image-id-not-cached.swift](NukeTests/pipeline-caching--coalesced-request-image-id-not-cached.swift), [NukeTests/request-model--coalesced-image-id-override-not-cached.swift](NukeTests/request-model--coalesced-image-id-override-not-cached.swift), [NukeTests/task-engine--image-id-ignored-by-coalescing.swift](NukeTests/task-engine--image-id-ignored-by-coalescing.swift)
+**Repro:** [NukeTests/pipeline-caching--coalesced-request-image-id-not-cached.swift](NukeTests/pipeline-caching--coalesced-request-image-id-not-cached.swift)
 
 **What:** `TaskLoadImageKey` is built from `TaskFetchOriginalImageKey`, which uses `originalImageID` (the URL), plus the options and processors. The custom `imageID` is not part of the key; 3776cae7 dropped `MemoryCacheKey` from it. So concurrent requests for the same URL with different `imageID`s share one `TaskLoadImage`, which writes to memory and disk only under `self.request`, the first subscriber's request. The same happens for anything a delegate derives from `userInfo` in `cacheKey(for:)` or `imageCache(for:)`.
 
@@ -3414,7 +3414,7 @@ _Severity: low · user impact: low · public API: yes · found by: pipeline-cach
 
 **Where:** `Sources/Nuke/Tasks/TaskLoadImage.swift:190`
 
-**Repro:** [NukeTests/pipeline-caching--image-closure-request-stored-on-disk.swift](NukeTests/pipeline-caching--image-closure-request-stored-on-disk.swift), [NukeTests/request-model--closure-image-stored-in-disk-cache.swift](NukeTests/request-model--closure-image-stored-in-disk-cache.swift)
+**Repro:** [NukeTests/pipeline-caching--image-closure-request-stored-on-disk.swift](NukeTests/pipeline-caching--image-closure-request-stored-on-disk.swift)
 
 **What:** The doc for `init(id:image:...)` (ImageRequest.swift:249) says "the image is never stored in the disk cache because no raw data is available". But `shouldStoreResponseInDataCache` does not treat the `.image` resource differently. The image is encoded and stored always under `.storeEncodedImages`, and for requests with processors under `.automatic` and `.storeAll`. Either the doc or the behavior should change.
 
@@ -3443,7 +3443,7 @@ Why the behavior is intended, and only the doc is wrong:
 
 Still, the public doc makes a flat promise: "the image is never stored in the disk cache". That is false under the three opt-in policies. A user who relies on it (for example, keeping Photos-derived images off disk, or expecting the closure to run again on the next launch) would be misled.
 
-It matters more because of a separate bug found while checking this, and not claimed by the reporter: TaskLoadImage.shouldStoreResponseInDataCache / storeImageInDataCache ignore `.disableDiskCacheWrites`. Verified: with that option, `.storeEncodedImages` still stored "closure", and a URL request with a processor under `.automatic` still stored "http://test.com/example.jpegp1". So the per-request opt-out that init(id:data:) documents does not work on this path, for any resource. The check seems to have been dropped by mistake in 19423094 (2021). TaskLoadImageKey includes the request options, so checking the option per request is safe.
+It matters more because of a separate bug found while checking this, and not claimed by the reporter (filed as D14): TaskLoadImage.shouldStoreResponseInDataCache / storeImageInDataCache ignore `.disableDiskCacheWrites`. Verified: with that option, `.storeEncodedImages` still stored "closure", and a URL request with a processor under `.automatic` still stored "http://test.com/example.jpegp1". So the per-request opt-out that init(id:data:) documents does not work on this path, for any resource. The check seems to have been dropped by mistake in 19423094 (2021). TaskLoadImageKey includes the request options, so checking the option per request is safe.
 
 Impact is low. The default policy matches the doc, the other policies must be chosen on purpose, and caching the processed result is usually what users want.
 
@@ -3451,7 +3451,7 @@ Impact is low. The default policy matches the doc, the other policies must be ch
 
 Fix the doc only; keep the behavior, which follows DataCachePolicy. In Sources/Nuke/ImageRequest.swift:252-253, replace the note with something like: "- note: Unlike init(id:data:...), no original data is stored in the disk cache because none is available. Depending on ImagePipeline/DataCachePolicy, the pipeline may still encode and store the image: processed images with .automatic and .storeAll, and all images with .storeEncodedImages." Add a test covering this policy matrix to ImagePipelineDataCacheTests.
 
-Separate issue, worth its own fix: in Sources/Nuke/Tasks/TaskLoadImage.swift shouldStoreResponseInDataCache, add `!request.options.contains(.disableDiskCacheWrites)` to the guard. Options are part of TaskLoadImageKey, so a per-request check is correct. Then `.disableDiskCacheWrites` / `.disableDiskCache` will also block encoded and processed disk writes, as the Options docs say.
+Separate issue, worth its own fix (D14): in Sources/Nuke/Tasks/TaskLoadImage.swift shouldStoreResponseInDataCache, add `!request.options.contains(.disableDiskCacheWrites)` to the guard. Options are part of TaskLoadImageKey, so a per-request check is correct. Then `.disableDiskCacheWrites` / `.disableDiskCache` will also block encoded and processed disk writes, as the Options docs say.
 
 - Also reported by **request-model** (confirmed): init(id:image:) images are stored in the disk cache despite the doc saying "never"
 
@@ -3640,7 +3640,7 @@ The report is accurate, and it comes from the public API. I checked it against t
 
 **Who hits it.** You need an extreme aspect ratio. Undershooting the requested width happens when width × (image height / image width) > 9999 in the chosen unit, for example ratios above about 31:1 for `.resize(width: 320)`. Downscaling an image that should be left alone happens when the original is taller than 9999 × scale px (29997 px on a 3x iPhone, 9999 px on macOS or with `.pixels`). Realistic cases are webtoon strips, stitched long screenshots and wide panoramas used with `resize(height:)`, and they are most likely on macOS. The result is quietly smaller and blurrier than requested, with no crash or error. Impact is low.
 
-**Suggested fix.** See `suggestedFix`. The key constraint is that simply putting `.greatestFiniteMagnitude` back no longer works.
+**Suggested fix.** See below. The key constraint is that simply putting `.greatestFiniteMagnitude` back no longer works.
 
 **Suggested fix:**
 
@@ -4173,7 +4173,7 @@ The CHANGELOG fixed the same defect in `ImageDecoders.Default` for GIFs (#892). 
 **Actual:** The decoder returns a first-frame preview, and the pipeline delivers one `.preview` event in both configurations (3 failed expectations).
 
 
-## Rejected (17)
+## Rejected (16)
 
 ### D86. A new player falls in behind a player that has finished, so a play-once animation never plays in a second view
 
@@ -4204,7 +4204,7 @@ That outcome is what the documented synchronization model asks for, not a depart
 - The repro's "expected" (frame 0, full playback) comes from the loose wording "whatever is already playing" in the NukeUI doc and in the internal leadingIndex() comment. The rest of the contract and the browser model point the other way. The cited sharing test only covers a player that has not started; it says nothing about finished players.
 
 Two narrower problems are real but are not this report:
-- The joining player never displays the frame it starts on, so an AnimatedImageView keeps its poster (frame 0) instead of showing the last frame. That is the writer's separate joining-player bug, and it is what makes the result look wrong.
+- The joining player never displays the frame it starts on, so an AnimatedImageView keeps its poster (frame 0) instead of showing the last frame. That is the writer's separate joining-player bug (D4), and it is what makes the result look wrong.
 - Loop counts are not synchronized. With a loop count of 2 or more, the joiner plays more loops after the leader has finished.
 
 Impact is low. It needs a play-once animation, which means a GIF without a NETSCAPE block or an app-set .finite repeatCount. It needs the same AnimatedImageSource at the same size key. And it needs the finished copy still in a window and visible, because a copy that moves off screen sets keepsFullBuffer to false and stops leading. The visible result, a static copy of a finished play-once animation, is also what a browser shows.
@@ -4475,7 +4475,7 @@ The public docs ("An LRU memory cache", "Removes least recently used items") des
 
 The "less than" wording is not a regression. It dates from 2016 (ef60dc73), and the `> limit` loop condition predates CLOCK (48b4bc5d, 2022). "Trim to count N" leaving N items is the natural meaning, and trimToCountRespectsLRUOrder asserts totalCount == 2 after trim(toCount: 2). That is only a wording nit.
 
-Related quirk found while verifying (not the reported claim, same root cause, also low impact): set() appends the new entry unreferenced and trims afterwards. With countLimit 3 and a, b, c all read, set(d) evicts d itself, so the image just stored is gone (verified: [a, b, c] remain). This happens once per fully referenced state, because the sweep clears every bit. The pipeline still hands the image to the task that loaded it; only a later lookup for the same key misses.
+Related quirk found while verifying (not the reported claim, same root cause; confirmed separately as D18, rated medium there): set() appends the new entry unreferenced and trims afterwards. With countLimit 3 and a, b, c all read, set(d) evicts d itself, so the image just stored is gone (verified: [a, b, c] remain). This happens once per fully referenced state, because the sweep clears every bit. The pipeline still hands the image to the task that loaded it; only a later lookup for the same key misses.
 
 Overall this is a docs-precision issue, not a behavioral bug.
 
@@ -4607,9 +4607,9 @@ What remains is a reasonable enhancement: reuse a still-running task on reappear
 
 ### D99. Default disk cache keys concatenate their parts without separators and collide
 
-_Severity: low · user impact: low · public API: yes · found by: pipeline-caching_
+_Severity: low · user impact: low · public API: yes · found by: pipeline-caching, processing-graphics-encoding_
 
-**Where:** `Sources/Nuke/Pipeline/ImagePipeline+Cache.swift:236`
+**Where:** `Sources/Nuke/Pipeline/ImagePipeline+Cache.swift:236` and `Sources/Nuke/Processing/ImageProcessors+Composition.swift:48`
 
 **Repro:** [NukeTests/pipeline-caching--disk-key-concatenation-collision.swift](NukeTests/pipeline-caching--disk-key-concatenation-collision.swift)
 
@@ -4638,6 +4638,8 @@ The claim is technically true: `makeDataCacheKey` (Sources/Nuke/Pipeline/ImagePi
 One detail the agent missed: the TaskLoadImage start path looks up the processed key on disk unconditionally. So the URL-plus-"1" case collides even with the default `.storeOriginalData` policy: data for URL "…/example.jpeg1" would be served to "…/example.jpeg" with processor "1". That makes the ambiguity a bit wider than claimed, but it still needs identifiers crafted to overlap. The repro uses @testable helpers (MockDataCache, Test.url), but the same path is reachable through the public API.
 
 Verdict: a latent weakness, not a defect a user following the docs would hit. Low impact.
+
+- Also reported by **processing-graphics-encoding** (rejected; this was D101, merged here): Composition identifiers are joined with no separator, so different processor lists share a disk cache key. Its end-to-end check, with .storeEncodedImages and no memory cache, served a request that doesn't resize the 13x10 image another processor list had stored, instead of 640x480 (3/3 on macOS; log: /private/tmp/claude-501/-Users-kean-Developer-Nuke/57bfcb06-d830-4948-a24c-27cb27eb2ad7/scratchpad/logs/repro-processing-graphics-encoding-12.log). It was rejected for the reasons above. Its review also found the report's claim that the README uses short `Anonymous` ids to be wrong. Its repro duplicated the one above and was dropped.
 
 
 ### D100. A NaN request scale breaks key equality: memory cache never hits and the pipeline leaks
@@ -4676,36 +4678,6 @@ I still don't count this as a defect a user would reasonably hit, for four reaso
 Nothing in the docs or CHANGELOG promises how a NaN scale behaves. Git history (2b55252b "Fix an issue with scale and coalesing", 66f90711, 3776cae7) shows scale was added to the keys on purpose, with no thought given to non-finite values.
 
 This is a cheap hardening candidate for invalid input, not a bug a user of the API would reasonably hit, so I rate it refuted with low impact.
-
-
-### D101. Composition identifiers are joined with no separator, so different processor lists share a disk cache key
-
-_Severity: low · user impact: low · public API: yes · found by: processing-graphics-encoding_
-
-**Where:** `Sources/Nuke/Processing/ImageProcessors+Composition.swift:48`
-
-**Repro:** [NukeTests/processing-graphics-encoding--review-composition-identifier-collision.swift](NukeTests/processing-graphics-encoding--review-composition-identifier-collision.swift)
-
-**What:** Composition.identifier is processors.map(\.identifier).joined(). makeDataCacheKey (ImagePipeline+Cache.swift:235) joins imageID, the thumbnail id and that identifier, also with no separators. [Anonymous(id: "blur"), Anonymous(id: "red")] and [Anonymous(id: "blurred")] both give "blurred", even though each processor's identifier is unique, which is all the protocol asks for. The memory cache keeps them apart because it compares hashableIdentifiers element by element. The disk cache doesn't, so one request is served the other's processed image once the memory cache no longer has it. The repro shows it end to end with .storeEncodedImages: a request that doesn't resize at all is served another request's 13x10 image from disk. Reverse-DNS ids, which the docs recommend, make a collision unlikely. Short Anonymous ids don't.
-
-**Expected:** Different processor lists produce different data cache keys, as they already produce different memory cache keys.
-
-**Actual:** Both requests get the key "http://test.com/example.jpegblurred". The second request returns cacheType .disk and the other list's 13x10 image instead of 640x480.
-
-**Reproduction check:** In 3/3 iterations on macOS, both requests got makeDataCacheKey → "http://test.com/example.jpegblurred", while the memory cache keys were different (that expectation passed). End to end with .storeEncodedImages and no memory cache, the second request returned cacheType .disk and a 13x10 image instead of loading and getting 640x480. Log: /private/tmp/claude-501/-Users-kean-Developer-Nuke/57bfcb06-d830-4948-a24c-27cb27eb2ad7/scratchpad/logs/repro-processing-graphics-encoding-12.log
-
-**Why it was rejected:**
-
-The mechanics are accurate. `ImageProcessors.Composition.identifier` is `processors.map(\.identifier).joined()` (Sources/Nuke/Processing/ImageProcessors+Composition.swift:48). `makeDataCacheKey` (Sources/Nuke/Pipeline/ImagePipeline+Cache.swift:235) builds `imageID + thumbnail id + composition id` with no separator. So the key derivation can map two different inputs to the same key.
-
-It is still not a defect a user would realistically hit:
-1. **The collision needs a contrived identifier.** One processor's identifier must exactly equal the concatenation of two other processors' identifiers, and both must be applied to the same image URL. The repro's end-to-end test builds this on purpose (`"blur" + Resize(...).identifier`). The first test needs an app that uses ids "blur", "red" and "blurred" on the same URL.
-2. **The docs point away from it.** `ImageProcessing.identifier` says "Consider using the reverse DNS notation". Every built-in processor uses a `com.github.kean/nuke/...` prefix, so each identifier in the joined string starts with a domain. A single identifier equal to `com.a/xcom.b/y` is not something anyone writes.
-3. **The report's README claim is wrong.** It says the README uses short `Anonymous` ids. Grepping README.md and Documentation/*.docc finds no `Anonymous(id:` or `process(id:` examples with short ids.
-4. **The same limitation is already accepted elsewhere in the key.** The key also concatenates `imageID` directly with the processor id, so URL `…/a.jpg` plus processor `x` equals URL `…/a.jpgx`. The unseparated disk key format dates back to the original `ImagePipeline.Cache` API (c006aeeb) and appears deliberate and long-standing.
-5. **A fix has a real cost.** Changing the format would change the disk cache key of every processed image for every user on upgrade, invalidating their caches.
-
-This is a theoretical weakness in how the key is built, not a bug a reasonable user of the public API would run into. Impact is low: if it ever happens, the wrong processed image is served from disk.
 
 
 ### D102. ImageRequest.scale doesn't read back the CGFloat it was set to (stored as Float)

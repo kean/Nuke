@@ -72,31 +72,6 @@ struct ImagePipelineTaskDelegateTests {
         task.cancel()
     }
 
-    /// A memory cache hit finishes the task synchronously when it starts, but
-    /// the delegate still sees it start before it completes.
-    @Test func memoryCacheHitReportsTheFullLifecycle() async throws {
-        // GIVEN
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = MockImageCache()
-        }
-        pipeline.cache[Test.request] = Test.container
-
-        // WHEN
-        let completed = TestExpectation(notification: ImagePipelineObserver.didCompleteTask, object: delegate)
-        let response = try await pipeline.imageTask(with: Test.request).response
-        await completed.wait()
-
-        // THEN
-        #expect(response.cacheType == .memory)
-        #expect(delegate.events == [
-            ImageTaskEvent.created,
-            .started,
-            .completed(result: .success(response))
-        ])
-        #expect(dataLoader.createdTaskCount == 0)
-    }
-
     @Test func dataTasksAreNotReportedToTheDelegate() async throws {
         // WHEN
         _ = try await pipeline.data(for: Test.request)

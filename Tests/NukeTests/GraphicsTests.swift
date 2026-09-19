@@ -415,7 +415,7 @@ enum GraphicsSourceFormat: CaseIterable, Sendable {
 
 /// Reads the image into a known RGBA (premultiplied last) bitmap so that the
 /// individual pixels can be inspected regardless of the source color space.
-private struct RGBABitmap {
+struct RGBABitmap {
     private let bytes: [UInt8]
     private let bytesPerRow: Int
 
@@ -450,4 +450,34 @@ private struct RGBABitmap {
     func alpha(atX x: Int, y: Int) -> UInt8 {
         bytes[y * bytesPerRow + x * 4 + 3]
     }
+}
+
+extension RGBABitmap {
+    /// Returns the color components of the pixel, without the alpha.
+    func color(atX x: Int, y: Int) -> PixelColor {
+        let offset = y * bytesPerRow + x * 4
+        return PixelColor(red: bytes[offset], green: bytes[offset + 1], blue: bytes[offset + 2])
+    }
+}
+
+/// The color components of a pixel, compared with a tolerance for resampling.
+struct PixelColor: CustomStringConvertible {
+    let red: UInt8
+    let green: UInt8
+    let blue: UInt8
+
+    func isClose(to other: PixelColor) -> Bool {
+        abs(Int(red) - Int(other.red)) <= 8 &&
+        abs(Int(green) - Int(other.green)) <= 8 &&
+        abs(Int(blue) - Int(other.blue)) <= 8
+    }
+
+    var description: String { "(\(red), \(green), \(blue))" }
+}
+
+/// Returns the RGBA components of the pixel, read in the device RGB space.
+func pixelComponents(of image: PlatformImage, x: Int, y: Int) throws -> [UInt8] {
+    let bitmap = try #require(RGBABitmap(image: image))
+    let color = bitmap.color(atX: x, y: y)
+    return [color.red, color.green, color.blue, bitmap.alpha(atX: x, y: y)]
 }

@@ -74,17 +74,17 @@ struct ImageDecoderRegistryResolutionTests {
     @Test func resolutionAsksTheNewestFirstAndStopsAtTheFirstMatch() {
         // Given
         let registry = ImageDecoderRegistry()
-        let log = ResolutionBox<[String]>([])
+        let log = LockedArray<String>()
         registry.register { _ in
-            log.value?.append("oldest")
+            log.append("oldest")
             return MockImageDecoder(name: "oldest")
         }
         registry.register { _ in
-            log.value?.append("middle")
+            log.append("middle")
             return MockImageDecoder(name: "middle")
         }
         registry.register { _ in
-            log.value?.append("newest")
+            log.append("newest")
             return nil
         }
 
@@ -93,7 +93,7 @@ struct ImageDecoderRegistryResolutionTests {
 
         // Then the older closures are never asked, not even to be ignored
         #expect(decoder?.name == "middle")
-        #expect(log.value == ["newest", "middle"])
+        #expect(log.values == ["newest", "middle"])
     }
 
     @Test func sameClosureRegisteredTwiceGetsTwoTokens() {

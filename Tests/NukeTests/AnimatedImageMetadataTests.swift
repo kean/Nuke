@@ -182,7 +182,7 @@ struct AnimatedImageMetadataTests {
         // playing it must not hold a decoder, so making the source mustn't
         // make one.
         let flipbook = try #require(Flipbook(data: Flipbook.encode()))
-        let requests = FrameDecoderLimitLog()
+        let requests = LockedArray<CGFloat?>()
         let made = AnimatedImageSource(
             data: Data(),
             delays: flipbook.delays,
@@ -193,12 +193,12 @@ struct AnimatedImageMetadataTests {
             }
         )
         let source = try #require(made)
-        #expect(requests.all.isEmpty)
+        #expect(requests.values.isEmpty)
 
         _ = source.makeFrameDecoder(maxPixelSize: 4)
         _ = source.makeFrameDecoder()
 
-        #expect(requests.all == [4, nil])
+        #expect(requests.values == [4, nil])
     }
 
     @Test func negativeLoopCountMeansForever() throws {
@@ -294,16 +294,4 @@ private func makeMultiSizeIcon(sizes: [Int]) -> Data? {
         return nil
     }
     return data as Data
-}
-
-/// The limits a frame decoder factory was called with.
-private final class FrameDecoderLimitLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [CGFloat?] = []
-
-    var all: [CGFloat?] { lock.withLock { storage } }
-
-    func append(_ value: CGFloat?) {
-        lock.withLock { storage.append(value) }
-    }
 }

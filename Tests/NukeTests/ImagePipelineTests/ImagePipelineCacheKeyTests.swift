@@ -134,6 +134,9 @@ struct ImagePipelineCacheKeyTests {
         #expect(cache[request] == nil)
     }
 
+    /// The hash of a memory cache key covers only the number of processors, so
+    /// requests that differ in the order of their processors alone can share
+    /// a hash and have to rely on equality to stay apart.
     @Test func processorOrderIsPartOfBothKeys() {
         // GIVEN
         let lhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "a"), MockImageProcessor(id: "b")])

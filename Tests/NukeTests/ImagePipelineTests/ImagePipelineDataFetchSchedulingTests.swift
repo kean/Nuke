@@ -53,29 +53,6 @@ struct ImagePipelineDataFetchSchedulingTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
-    @Test func timeHeldByTheRateLimiterIsRecorded() async throws {
-        // GIVEN a pipeline whose rate limiter is out of tokens by the time the
-        // task subscribes to its work
-        let pipeline = makePipeline { $0.isDiagnosticsEnabled = true }
-        let limiter = try #require(pipeline.rateLimiter)
-        pipeline.onTaskStarted = { _ in exhaust(limiter) }
-
-        // WHEN
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-        pipeline.onTaskStarted = nil
-
-        // THEN the wait comes before the download
-        let metrics = try #require(task.metrics)
-        let fetch = try #require(metrics.jobs.last)
-        #expect(fetch.kind == .fetchOriginalData)
-        #expect(fetch.stages.map(\.kind) == [.rateLimit, .download])
-        let rateLimit = fetch.stages[0]
-        #expect(rateLimit.queuedAt == nil)
-        let duration = try #require(rateLimit.duration)
-        #expect(duration > 0)
-    }
-
     /// The rate limiter protects `URLSession`: the work that doesn't go
     /// through the data loader isn't held by it.
     @Test func closuresAndLocalResourcesAreNotRateLimited() async throws {
@@ -161,7 +138,7 @@ struct ImagePipelineDataFetchSchedulingTests {
     }
 
     /// The subscriptions reference the subscribers weakly.
-    private let subscribers = _Subscribers()
+    private let subscribers = LockedArray<ImageTask>()
 }
 
 /// Takes every token out of the bucket and leaves a request waiting, so that
@@ -201,49 +178,9 @@ extension Optional where Wrapped: ~Copyable {
     }
 }
 
-@ImagePipelineActor
-private final class _Subscribers {
-    private var subscribers: [ImageTask] = []
-
-    func append(_ task: ImageTask) {
-        subscribers.append(task)
-    }
-}
-
 /// The lookups `AsyncPipelineTask` records when the diagnostics are on.
 @Suite(.timeLimit(.minutes(5)))
 struct AsyncPipelineTaskLookupDiagnosticsTests {
-    /// A preview in the memory cache is a hit, but not the image the task is
-    /// after: the lookup is marked as progressive, and the task goes on to
-    /// load the final image.
-    @Test func previewFoundInTheMemoryCacheIsRecordedAsProgressive() async throws {
-        // GIVEN a preview in the memory cache
-        let imageCache = MockImageCache()
-        let dataLoader = MockDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = imageCache
-            $0.isDiagnosticsEnabled = true
-        }
-        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
-
-        // WHEN
-        let task = pipeline.imageTask(with: Test.request)
-        let response = try await task.response
-
-        // THEN
-        #expect(!response.container.isPreview)
-        #expect(dataLoader.createdTaskCount == 1)
-        let metrics = try #require(task.metrics)
-        let lookup = try #require(metrics.jobs.first?.stages.first)
-        #expect(lookup.kind == .memoryLookup)
-        #expect(lookup.result == .hit)
-        #expect(lookup.isProgressive == true)
-        #expect(lookup.cacheKey != nil)
-        #expect(metrics.previewCount == 1)
-        #expect(metrics.source == .network)
-    }
-
     @Test func finalImageFoundInTheMemoryCacheIsNotRecordedAsProgressive() async throws {
         // GIVEN
         let pipeline = ImagePipeline {

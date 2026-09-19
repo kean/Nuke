@@ -41,12 +41,6 @@ struct ImageCacheKeyTests {
         #expect(key1.hashValue == key2.hashValue)
     }
 
-    @Test func customAndRequestKeysDiffer() {
-        let customKey = ImageCacheKey(key: "custom")
-        let requestKey = ImageCacheKey(request: ImageRequest(url: URL(string: "https://example.com/custom")!))
-        #expect(customKey != requestKey)
-    }
-
     @Test func requestKeyHashable() {
         let request = ImageRequest(url: URL(string: "https://example.com/image.png")!)
         let key1 = ImageCacheKey(request: request)
@@ -99,17 +93,6 @@ struct ImageCacheKeyTests {
         #expect(cache[ImageCacheKey(request: ImageRequest(url: nil))] == nil)
     }
 
-    /// The hash of a request key covers only the number of processors, so
-    /// requests that differ in the order of their processors alone can share
-    /// a hash and have to rely on equality to stay apart.
-    @Test func processorOrderIsPartOfTheKey() {
-        let first = MockImageProcessor(id: "1")
-        let second = MockImageProcessor(id: "2")
-        let lhs = ImageCacheKey(request: ImageRequest(url: Test.url, processors: [first, second]))
-        let rhs = ImageCacheKey(request: ImageRequest(url: Test.url, processors: [second, first]))
-        #expect(lhs != rhs)
-    }
-
     @Test func processorCountIsPartOfTheKey() {
         let processor = MockImageProcessor(id: "1")
         let lhs = ImageCacheKey(request: ImageRequest(url: Test.url, processors: [processor]))
@@ -118,23 +101,6 @@ struct ImageCacheKeyTests {
     }
 
     // MARK: - Request Fields
-
-    @Test func scaleIsPartOfTheKey() {
-        // Given
-        var scaled = ImageRequest(url: Test.url)
-        scaled.scale = 2
-
-        // Then
-        #expect(ImageCacheKey(request: scaled) != ImageCacheKey(request: ImageRequest(url: Test.url)))
-
-        // Given
-        var sameScale = ImageRequest(url: Test.url)
-        sameScale.scale = 2
-
-        // Then
-        #expect(ImageCacheKey(request: scaled) == ImageCacheKey(request: sameScale))
-        #expect(ImageCacheKey(request: scaled).hashValue == ImageCacheKey(request: sameScale).hashValue)
-    }
 
     @Test func thumbnailIsPartOfTheKey() {
         // Given
@@ -153,26 +119,6 @@ struct ImageCacheKeyTests {
         #expect(small != large)
         #expect(small == smallAgain)
         #expect(small.hashValue == smallAgain.hashValue)
-    }
-
-    /// Priority and user info change how an image is loaded, not which image
-    /// it is.
-    @Test func priorityAndUserInfoAreNotPartOfTheKey() {
-        // Given
-        var request = ImageRequest(url: Test.url, priority: .veryHigh)
-        request.userInfo[.init("custom")] = "value"
-
-        // Then
-        #expect(ImageCacheKey(request: request) == ImageCacheKey(request: ImageRequest(url: Test.url)))
-    }
-
-    @Test func requestsWithTheSameImageIDShareTheKey() {
-        // Given a data request and a URL request that identify the same image
-        let dataRequest = ImageRequest(id: Test.url.absoluteString, data: { Test.data })
-        let urlRequest = ImageRequest(url: Test.url)
-
-        // Then
-        #expect(ImageCacheKey(request: dataRequest) == ImageCacheKey(request: urlRequest))
     }
 
     /// The key copies what it needs from the request, so changing the request

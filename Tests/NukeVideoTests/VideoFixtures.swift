@@ -112,6 +112,23 @@ func makeContext(_ data: Data, isCompleted: Bool = true) -> ImageDecodingContext
     ImageDecodingContext(request: ImageRequest(url: URL(string: "https://example.com/video.mp4")), data: data, isCompleted: isCompleted)
 }
 
+/// Waits for a condition that AVFoundation only reaches asynchronously.
+@MainActor
+func waitUntil(
+    timeout: Duration = .seconds(30),
+    _ condition: () -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) async throws {
+    let deadline = ContinuousClock.now + timeout
+    while !condition() {
+        guard ContinuousClock.now < deadline else {
+            Issue.record("Timed out waiting for the player", sourceLocation: sourceLocation)
+            return
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+}
+
 /// The first 16 bytes of an ISO base media file: a box length, the `ftyp`
 /// box type, the four-character major brand, and a minor version.
 func makeFileTypeBox(brand: String) -> Data {
