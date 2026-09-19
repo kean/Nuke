@@ -35,6 +35,22 @@ struct NukeExtensionsExportsTests {
 
         #expect(task != nil)
     }
+
+    /// NukeExtensions is a shim for all of NukeUI, not only for the image view
+    /// extensions that moved there, so an app that still imports it keeps
+    /// seeing the rest of NukeUI as well.
+    @Test func nukeUIComponents() {
+        let pipeline = ImagePipeline { $0.dataLoader = MockDataLoader() }
+
+        let view = LazyImageView()
+        view.pipeline = pipeline
+        let image = FetchImage()
+        image.pipeline = pipeline
+
+        #expect(view.request == nil)
+        #expect(image.imageContainer == nil)
+        #expect(!image.isLoading)
+    }
 }
 
 #endif
