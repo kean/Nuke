@@ -24,6 +24,7 @@ extension String {
             }
             count = hexCount
         }
+        // swiftlint:disable:next optional_data_string_conversion
         return String(decoding: bytes, as: UTF8.self)
     }
 }

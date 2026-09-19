@@ -37,8 +37,4 @@ type_body_length:
     warning: 600
     error: 1000
 
-identifier_name:
-    min_length:
-        warning: 1
-
 reporter: "xcode"
