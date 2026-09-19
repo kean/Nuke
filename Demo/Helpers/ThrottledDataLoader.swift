@@ -14,8 +14,8 @@ import Foundation
 /// `completion` exactly once, and stop both when the returned token is
 /// cancelled.
 final class ThrottledDataLoader: DataLoading {
-    private let chunkSize: Int
-    private let interval: Duration
+    let chunkSize: Int
+    let interval: Duration
     private let session: URLSession
 
     init(chunkSize: Int = 16_384, interval: Duration = .milliseconds(80)) {

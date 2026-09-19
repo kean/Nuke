@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Nuke
 import SwiftUI
 
 /// The explanation of a demo screen: a summary, a snippet of the API it is
@@ -43,8 +44,14 @@ extension View {
     /// Adds the question mark button without the sheet, for a screen that keeps
     /// a sheet of its own on display and has to present ``DemoInfoSheet`` from
     /// inside it – iOS drops the second sheet of a screen.
+    ///
+    /// The switch of the pipeline HUD goes beside it, which puts it on every
+    /// screen.
     func demoInfoButton(isPresented: Binding<Bool>) -> some View {
         toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                DemoHUDToggle()
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 DemoInfoButton(isPresented: isPresented)
             }
@@ -195,21 +202,52 @@ struct DemoMonoLabel: View {
 
 /// A small rounded label, e.g. the cache type of a response.
 struct DemoBadge: View {
+    enum Style {
+        /// The text in the badge's color, on a light blur: for a badge on a
+        /// plain background.
+        case plain
+        /// White text on a dark capsule, with the color as a dot before it:
+        /// for a badge over a photo, where colored text on a blur of the
+        /// photo can all but vanish.
+        case overImage
+    }
+
     private let text: String
     private let color: Color
+    private let style: Style
 
-    init(_ text: String, color: Color = .accentColor) {
+    init(_ text: String, color: Color = .accentColor, style: Style = .plain) {
         self.text = text
         self.color = color
+        self.style = style
     }
 
     var body: some View {
-        Text(text)
+        switch style {
+        case .plain:
+            Text(text)
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.thinMaterial, in: Capsule())
+                .foregroundStyle(color)
+        case .overImage:
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 7, height: 7)
+                Text(text)
+                    .foregroundStyle(.white)
+            }
             .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6)
+            .padding(.leading, 5)
+            .padding(.trailing, 7)
             .padding(.vertical, 3)
-            .background(.thinMaterial, in: Capsule())
-            .foregroundStyle(color)
+            .background(.black.opacity(0.6), in: Capsule())
+            // The dot in the colors made for a dark background, whatever the
+            // app's appearance: the capsule is dark in both.
+            .environment(\.colorScheme, .dark)
+        }
     }
 }
 
@@ -249,6 +287,49 @@ func demoByteCount(_ count: Int64) -> String {
 
 func demoByteCount(_ count: Int) -> String {
     demoByteCount(Int64(count))
+}
+
+/// "1 file", "2 files": a count and a noun that takes an "s".
+func demoCount(_ count: Int, _ noun: String) -> String {
+    "\(count) \(noun)\(count == 1 ? "" : "s")"
+}
+
+extension Duration {
+    /// The duration in seconds, which is what the demo's figures and
+    /// formatters take: a clock reading is a `Duration`, a figure a
+    /// `TimeInterval`.
+    var demoTimeInterval: TimeInterval {
+        Double(components.seconds) + Double(components.attoseconds) / 1e18
+    }
+}
+
+extension ImageRequest.Priority {
+    /// Every priority, lowest first.
+    static let demoAllCases: [ImageRequest.Priority] = [.veryLow, .low, .normal, .high, .veryHigh]
+
+    /// The name of the case, as it is written in code: `.high`.
+    var demoName: String {
+        switch self {
+        case .veryLow: ".veryLow"
+        case .low: ".low"
+        case .normal: ".normal"
+        case .high: ".high"
+        case .veryHigh: ".veryHigh"
+        }
+    }
+}
+
+extension ImageResponse {
+    /// Where the image came from: "memory cache", "disk cache", "fixture
+    /// loader", or, for a download, "network or URLCache", which the pipeline
+    /// can't tell apart.
+    var demoSource: String {
+        switch cacheType {
+        case .memory: "memory cache"
+        case .disk: "disk cache"
+        case nil: DemoFixture.isFixture(request.url) ? "fixture loader" : "network or URLCache"
+        }
+    }
 }
 
 /// Embeds a `UIViewController` in SwiftUI. The demo uses it to show the
@@ -322,7 +403,15 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
     /// goes away, and a constant swallows the write.
     @State private var isShowingConsole = false
     @State private var isShowingInfo = false
+    /// The screen a row of the console asked for, pushed once the console
+    /// sheet has gone: pushed under it, the next screen would sit beneath this
+    /// console, and its own console would be dropped.
+    @State private var pendingScreen: DemoScreen?
+    /// Whether the screen has been on display before, which makes this
+    /// appearance a return from a screen pushed over it.
+    @State private var hasAppeared = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.demoOpen) private var open
 
     init(collapsedHeight: CGFloat, info: DemoInfo, @ViewBuilder console: @escaping () -> Console) {
         self.collapsedHeight = collapsedHeight
@@ -345,12 +434,41 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
         .demoInfoButton(isPresented: $isShowingInfo)
         // A turn of the loop after the screen arrives – see `isShowingConsole`.
         .task {
-            await Task.yield()
+            if hasAppeared {
+                // Back from a screen a row of the console pushed. Asked for
+                // while the pop is still animating, the sheet presents empty
+                // and stays that way.
+                guard (try? await Task.sleep(for: .milliseconds(600))) != nil else { return }
+            } else {
+                await Task.yield()
+                hasAppeared = true
+            }
             isShowingConsole = true
         }
         .inspector(isPresented: $isShowingConsole) {
             console()
                 .listStyle(.insetGrouped)
+                // Where the sheet begins, for the pipeline HUD to stay above.
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { minY in
+                    DemoHUD.shared.consoleSheetMinY = isConsoleSheet ? minY : nil
+                }
+                .onDisappear {
+                    DemoHUD.shared.consoleSheetMinY = nil
+                    if let pendingScreen {
+                        self.pendingScreen = nil
+                        open?(pendingScreen)
+                    }
+                }
+                .environment(\.demoOpenFromConsole, DemoOpenAction { screen in
+                    guard isConsoleSheet else {
+                        open?(screen)
+                        return
+                    }
+                    // Back on this screen, the console comes up again with
+                    // the screen, as it did the first time.
+                    pendingScreen = screen
+                    isShowingConsole = false
+                })
                 .inspectorColumnWidth(min: 320, ideal: 380, max: 480)
                 .presentationDetents([collapsedDetent, .medium, .large], selection: $detent)
                 .presentationDragIndicator(.visible)
