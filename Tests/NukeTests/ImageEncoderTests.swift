@@ -3,7 +3,13 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Foundation
+import CoreGraphics
 @testable import Nuke
+
+#if !os(macOS)
+import UIKit
+#endif
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImageEncoderTests {
@@ -123,4 +129,152 @@ struct ImageEncoderTests {
         let image = Test.image(named: "swift", extension: "png")
         #expect(!image.cgImage!.isOpaque)
     }
+
+    // MARK: - Defaults
+
+    @Test func defaultEncoderDefaults() {
+        let encoder = ImageEncoders.Default()
+        #expect(encoder.compressionQuality == 0.8)
+        #expect(!encoder.isHEIFPreferred)
+
+        let factory: ImageEncoders.Default = .default()
+        #expect(factory.compressionQuality == 0.8)
+        #expect(!factory.isHEIFPreferred)
+    }
+
+    @Test func defaultEncoderReturnsNilForImageWithoutCGImage() {
+        #expect(ImageEncoders.Default().encode(PlatformImage()) == nil)
+    }
+
+    // MARK: - Format Choice
+
+    /// HEIF is only preferred over JPEG: an image with an alpha channel is
+    /// still encoded as a PNG.
+    @Test func heifPreferenceDoesNotApplyToTransparentImages() throws {
+        // Given
+        var encoder = ImageEncoders.Default()
+        encoder.isHEIFPreferred = true
+
+        // When
+        let data = try #require(encoder.encode(Test.image(named: "swift", extension: "png")))
+
+        // Then
+        #expect(AssetType(data) == .png)
+    }
+
+    @Test func opaqueGrayscaleImageIsEncodedAsJPEG() throws {
+        // When
+        let data = try #require(ImageEncoders.Default().encode(Test.image(named: "grayscale", extension: "jpeg")))
+
+        // Then
+        #expect(AssetType(data) == .jpeg)
+    }
+
+    // MARK: - Round Trip
+
+    @Test func transparentImageRoundTripIsLossless() throws {
+        // Given an image with an alpha channel
+        let image = Test.image(named: "swift", extension: "png")
+
+        // When
+        let data = try #require(ImageEncoders.Default().encode(image))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then the PNG preserves every pixel, the transparent ones included
+        #expect(decoded.type == .png)
+        #expect(decoded.image.cgImage?.isOpaque == false)
+        #expect(isEqualImages(decoded.image, image))
+    }
+
+    @Test func heifRoundTripPreservesSize() throws {
+        // Given
+        var encoder = ImageEncoders.Default()
+        encoder.isHEIFPreferred = true
+
+        // When
+        let data = try #require(encoder.encode(Test.image))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(decoded.type == .heic)
+        #expect(decoded.image.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func jpegRoundTripPreservesSizeAndColors() throws {
+        // Given a solid color image
+        let image = Test.rgbImage(width: 64, height: 48, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
+
+        // When
+        let data = try #require(ImageEncoders.Default(compressionQuality: 1).encode(image))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(decoded.type == .jpeg)
+        #expect(decoded.image.sizeInPixels == CGSize(width: 64, height: 48))
+        #expect(decoded.image.cgImage?.isOpaque == true)
+        let expected = try encoderTestsPixel(of: image, x: 32, y: 24)
+        let actual = try encoderTestsPixel(of: decoded.image, x: 32, y: 24)
+        #expect(zip(expected, actual).allSatisfy { abs(Int($0) - Int($1)) <= 4 }, "\(actual) vs \(expected)")
+    }
+
+#if os(iOS) || os(tvOS) || os(visionOS)
+    // MARK: - Orientation
+
+    /// The encoder writes the orientation instead of the pixels turned by it:
+    /// an image read back from the disk cache has to face the same way.
+    ///
+    /// - seealso: https://github.com/kean/Nuke/pull/643
+    @Test(arguments: [AssetType.jpeg, .png, .heic])
+    func encodingPreservesOrientation(type: AssetType) throws {
+        // Given an image with a `.right` orientation: 480x640 pixels displayed
+        // as 640x480
+        let image = Test.image(named: "right-orientation.jpeg")
+        #expect(image.imageOrientation == .right)
+
+        // When
+        let data = try #require(ImageEncoders.ImageIO(type: type).encode(image))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(decoded.image.imageOrientation == .right)
+        #expect(decoded.image.size == image.size)
+        #expect(decoded.image.sizeInPixels == image.sizeInPixels)
+    }
+
+    @Test func processedImageRoundTripPreservesOrientation() throws {
+        // Given a resized image with a `.right` orientation
+        let image = Test.image(named: "right-orientation.jpeg")
+        let processed = try #require(ImageProcessors.Resize(size: CGSize(width: 320, height: 240), unit: .pixels, contentMode: .aspectFit).process(image))
+
+        // When it goes through the disk cache
+        let data = try #require(ImageEncoders.Default().encode(processed))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(decoded.image.imageOrientation == .right)
+        #expect(decoded.image.size == CGSize(width: 320, height: 240))
+    }
+#endif
+}
+
+/// Returns the RGBA components of the pixel, read in the device RGB space.
+private func encoderTestsPixel(of image: PlatformImage, x: Int, y: Int) throws -> [UInt8] {
+    let cgImage = try #require(image.cgImage)
+    var bytes = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * 4)
+    let isDrawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
+        guard let context = CGContext(
+            data: buffer.baseAddress,
+            width: cgImage.width,
+            height: cgImage.height,
+            bitsPerComponent: 8,
+            bytesPerRow: cgImage.width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return false }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        return true
+    }
+    #expect(isDrawn)
+    let offset = (y * cgImage.width + x) * 4
+    return Array(bytes[offset..<offset + 4])
 }

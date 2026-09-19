@@ -194,4 +194,39 @@ struct ImageThumbnailTests {
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         #expect(options.makeThumbnail(with: Data()) == nil)
     }
+
+    // MARK: Without Transform
+
+    /// Without the transform, the orientation is read from the image
+    /// properties instead of being baked into the pixels. An image that
+    /// declares none comes out the same either way.
+    @Test func thumbnailWithoutTransformOfUprightImage() throws {
+        // GIVEN
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.createThumbnailWithTransform = false
+
+        // WHEN
+        let output = try #require(options.makeThumbnail(with: Test.data))
+
+        // THEN
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 300))
+#if canImport(UIKit)
+        #expect(output.imageOrientation == .up)
+#endif
+    }
+
+#if canImport(UIKit)
+    @Test func thumbnailWithoutTransformPreservesScale() throws {
+        // GIVEN
+        var options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        options.createThumbnailWithTransform = false
+
+        // WHEN
+        let output = try #require(makeThumbnail(data: Test.data, options: options, scale: 2))
+
+        // THEN
+        #expect(output.scale == 2)
+        #expect(output.size == CGSize(width: 200, height: 150))
+    }
+#endif
 }

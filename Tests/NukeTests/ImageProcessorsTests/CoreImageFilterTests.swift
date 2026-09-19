@@ -300,6 +300,123 @@ struct ImageProcessorsCoreImageFilterTests {
         // THEN their identifiers are equal
         #expect(a.identifier == b.identifier)
     }
+
+    @Test func identifierIsTheOneGivenByTheClient() throws {
+        let filter = try #require(CIFilter(name: "CISepiaTone"))
+
+        #expect(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [:], identifier: "sepia").identifier == "sepia")
+        #expect(ImageProcessors.CoreImageFilter(filter, identifier: "custom-sepia").identifier == "custom-sepia")
+        #expect(ImageProcessors.CoreImageFilter(name: "CISepiaTone").identifier.contains("CISepiaTone"))
+    }
+
+    // MARK: - Output
+
+    @Test func invalidFilterNameFailsTheBasicMethod() {
+        // GIVEN
+        let processor = ImageProcessors.CoreImageFilter(name: "CIDoesNotExist")
+
+        // THEN the error is swallowed by the method that can't throw
+        #expect(processor.process(Test.image(named: "fixture-tiny.jpeg")) == nil)
+    }
+
+    @Test func filterIsAppliedToThePixels() throws {
+        // GIVEN a white image
+        let input = Test.rgbImage(width: 10, height: 10, color: CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+
+        // WHEN
+        let output = try #require(ImageProcessors.CoreImageFilter(name: "CIColorInvert").process(input))
+
+        // THEN it is black
+        #expect(output.sizeInPixels == CGSize(width: 10, height: 10))
+        let pixel = try coreImagePixel(of: output, x: 5, y: 5)
+        #expect(pixel.prefix(3).allSatisfy { $0 <= 2 }, "\(pixel)")
+    }
+
+    @Test func parametersArePassedToTheFilter() throws {
+        // GIVEN
+        let input = Test.rgbImage(width: 10, height: 10, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
+        let original = try coreImagePixel(of: input, x: 5, y: 5)
+
+        // WHEN
+        let none = try #require(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [kCIInputIntensityKey: 0.0], identifier: "sepia-0").process(input))
+        let full = try #require(ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: [kCIInputIntensityKey: 1.0], identifier: "sepia-1").process(input))
+
+        // THEN a sepia of zero intensity leaves the colors alone, and a full
+        // one doesn't
+        #expect(maxDifference(try coreImagePixel(of: none, x: 5, y: 5), original) <= 4)
+        #expect(maxDifference(try coreImagePixel(of: full, x: 5, y: 5), original) > 16)
+    }
+
+    /// The processor applies a copy of the filter the client passes, and that
+    /// copy has to carry the parameters the client set on the original.
+    @Test func customFilterParametersSurviveTheCopy() throws {
+        // GIVEN a filter configured by the client
+        let input = Test.rgbImage(width: 10, height: 10, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
+        let filter = try #require(CIFilter(name: "CISepiaTone"))
+        filter.setValue(0.0, forKey: kCIInputIntensityKey)
+
+        // WHEN
+        let output = try #require(ImageProcessors.CoreImageFilter(filter, identifier: "sepia-0").process(input))
+
+        // THEN
+        #expect(maxDifference(try coreImagePixel(of: output, x: 5, y: 5), try coreImagePixel(of: input, x: 5, y: 5)) <= 4)
+        #expect(filter.value(forKey: kCIInputIntensityKey) as? Double == 0)
+    }
+
+    @Test func staticApplyUsesTheGivenFilter() throws {
+        // GIVEN
+        let input = Test.rgbImage(width: 10, height: 10, color: CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        let filter = try #require(CIFilter(name: "CIColorInvert"))
+
+        // WHEN
+        let output = try ImageProcessors.CoreImageFilter.apply(filter: filter, to: input)
+
+        // THEN
+        let pixel = try coreImagePixel(of: output, x: 5, y: 5)
+        #expect(pixel.prefix(3).allSatisfy { $0 <= 2 }, "\(pixel)")
+        #expect(filter.value(forKey: kCIInputImageKey) == nil)
+    }
+
+#if os(iOS) || os(tvOS) || os(visionOS)
+    @Test func filterPreservesScaleAndOrientation() throws {
+        // GIVEN a @3x image rotated by the orientation
+        let input = UIImage(cgImage: try #require(Test.image.cgImage), scale: 3, orientation: .right)
+
+        // WHEN
+        let output = try #require(ImageProcessors.CoreImageFilter(name: "CISepiaTone").process(input))
+
+        // THEN
+        #expect(output.scale == 3)
+        #expect(output.imageOrientation == .right)
+        #expect(output.size == input.size)
+    }
+#endif
+}
+
+/// Returns the RGBA components of the pixel, read in the device RGB space.
+private func coreImagePixel(of image: PlatformImage, x: Int, y: Int) throws -> [UInt8] {
+    let cgImage = try #require(image.cgImage)
+    var bytes = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * 4)
+    let isDrawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
+        guard let context = CGContext(
+            data: buffer.baseAddress,
+            width: cgImage.width,
+            height: cgImage.height,
+            bitsPerComponent: 8,
+            bytesPerRow: cgImage.width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return false }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        return true
+    }
+    #expect(isDrawn)
+    let offset = (y * cgImage.width + x) * 4
+    return Array(bytes[offset..<offset + 4])
+}
+
+private func maxDifference(_ lhs: [UInt8], _ rhs: [UInt8]) -> Int {
+    zip(lhs.prefix(3), rhs.prefix(3)).map { abs(Int($0) - Int($1)) }.max() ?? 0
 }
 
 #endif

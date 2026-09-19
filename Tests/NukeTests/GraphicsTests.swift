@@ -5,6 +5,7 @@
 import Testing
 import Foundation
 import CoreGraphics
+import ImageIO
 @testable import Nuke
 
 #if !os(macOS)
@@ -265,6 +266,148 @@ struct GraphicsTests {
         #expect(input.processed.byResizing(to: CGSize(width: 10, height: 10), contentMode: .aspectFill, upscale: true) == nil)
         #expect(input.processed.byResizingAndCropping(to: CGSize(width: 10, height: 10), upscale: true) == nil)
         #expect(input.decompressed(isUsingPrepareForDisplay: false) == nil)
+    }
+
+    // MARK: - Pixel Dimensions
+
+    @Test(arguments: [
+        (CGFloat(1), 1),
+        (1.9, 1),
+        (640, 640),
+        (1_073_741_824, 1_073_741_824)
+    ])
+    func pixelDimensionOfValidValue(value: CGFloat, expected: Int) {
+        #expect(value.pixelDimension == expected)
+    }
+
+    /// Anything under a pixel is too small to draw in, and the upper bound
+    /// keeps the conversion in range on 32-bit platforms.
+    @Test(arguments: [CGFloat(0.999), 0, -1, 1_073_741_825, .nan, .infinity, -.infinity])
+    func pixelDimensionOfInvalidValue(value: CGFloat) {
+        #expect(value.pixelDimension == nil)
+    }
+
+    // MARK: - Orientation
+
+    @Test(arguments: [
+        (CGImagePropertyOrientation.up, false),
+        (.upMirrored, false),
+        (.down, false),
+        (.downMirrored, false),
+        (.left, true),
+        (.leftMirrored, true),
+        (.right, true),
+        (.rightMirrored, true)
+    ])
+    func sizeIsRotatedForTheOrientationsThatTurnTheImageOnItsSide(orientation: CGImagePropertyOrientation, isRotated: Bool) {
+        let size = CGSize(width: 40, height: 30)
+        #expect(size.rotatedForOrientation(orientation) == (isRotated ? CGSize(width: 30, height: 40) : size))
+    }
+
+#if canImport(UIKit)
+    @Test(arguments: [
+        UIImage.Orientation.up, .upMirrored, .down, .downMirrored,
+        .left, .leftMirrored, .right, .rightMirrored
+    ])
+    func orientationSurvivesTheRoundTripThroughImageIO(orientation: UIImage.Orientation) {
+        #expect(UIImage.Orientation(CGImagePropertyOrientation(orientation)) == orientation)
+    }
+
+    @Test func orientationsMapToTheirImageIOCounterparts() {
+        #expect(CGImagePropertyOrientation(UIImage.Orientation.up) == .up)
+        #expect(CGImagePropertyOrientation(UIImage.Orientation.right) == .right)
+        #expect(CGImagePropertyOrientation(UIImage.Orientation.leftMirrored) == .leftMirrored)
+        #expect(UIImage.Orientation(CGImagePropertyOrientation.down) == .down)
+    }
+#endif
+
+    @Test func drawingWithOrientationReturnsNilForInvalidSize() throws {
+        // Given
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 30).cgImage)
+
+        // Then
+        #expect(cgImage.drawn(inCanvasWithSize: .zero, orientation: .up) == nil)
+        #expect(cgImage.drawn(inCanvasWithSize: CGSize(width: CGFloat.nan, height: 30), orientation: .right) == nil)
+    }
+
+    // MARK: - Pixel Formats
+
+    /// The canvas always has 8 bits per component, and Core Graphics has no
+    /// such context for some of the source color spaces, so the drawing has to
+    /// fall back to RGB instead of failing.
+    ///
+    /// - seealso: https://github.com/kean/Nuke/issues/35
+    /// - seealso: https://github.com/kean/Nuke/issues/57
+    @Test(arguments: GraphicsSourceFormat.allCases)
+    func drawingImagesInOtherPixelFormats(format: GraphicsSourceFormat) throws {
+        // Given
+        let input = try #require(format.makeImage(width: 40, height: 30))
+
+        // When
+        let output = try #require(input.draw(inCanvasWithSize: CGSize(width: 20, height: 15)))
+
+        // Then
+        let cgImage = try #require(output.cgImage)
+        #expect(cgImage.width == 20)
+        #expect(cgImage.height == 15)
+        #expect(cgImage.colorSpace?.model == format.expectedModel)
+        #expect(cgImage.bitsPerComponent == 8)
+        #expect(cgImage.isOpaque)
+    }
+}
+
+/// Source pixel formats other than 8-bit RGB and grayscale.
+enum GraphicsSourceFormat: CaseIterable, Sendable {
+    case cmyk
+    case indexed
+    case grayscale16
+
+    /// The color space model of the canvas the image ends up drawn in.
+    var expectedModel: CGColorSpaceModel {
+        switch self {
+        case .cmyk, .indexed: .rgb
+        case .grayscale16: .monochrome
+        }
+    }
+
+    func makeImage(width: Int, height: Int) -> PlatformImage? {
+        let cgImage: CGImage?
+        switch self {
+        case .cmyk:
+            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceCMYK(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            context?.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+            context?.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            cgImage = context?.makeImage()
+        case .grayscale16:
+            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 16, bytesPerRow: 0, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            context?.setFillColor(CGColor(gray: 0.5, alpha: 1))
+            context?.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            cgImage = context?.makeImage()
+        case .indexed:
+            // A two-color palette, the kind a palette PNG decodes to.
+            let palette: [UInt8] = [255, 0, 0, 0, 0, 255]
+            guard let space = CGColorSpace(indexedBaseSpace: CGColorSpaceCreateDeviceRGB(), last: 1, colorTable: palette) else {
+                return nil
+            }
+            let pixels = Data((0..<(width * height)).map { UInt8($0 % 2) })
+            guard let provider = CGDataProvider(data: pixels as CFData) else {
+                return nil
+            }
+            cgImage = CGImage(
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bitsPerPixel: 8,
+                bytesPerRow: width,
+                space: space,
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+            )
+        }
+        return cgImage.map { PlatformImage(cgImage: $0) }
     }
 }
 
