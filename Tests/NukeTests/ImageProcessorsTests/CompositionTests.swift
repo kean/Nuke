@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Foundation
 @testable import Nuke
 
 #if !os(macOS)
@@ -161,12 +162,104 @@ struct ImageProcessorsCompositionTests {
 
     @Test func remainingProcessorsSkippedAfterFailure() {
         // GIVEN - a composition where the first step fails
+        let factory = MockProcessorFactory()
         let processor = ImageProcessors.Composition([
             MockFailingProcessor(),
-            MockImageProcessor(id: "shouldNotRun")
+            factory.make(id: "shouldNotRun")
         ])
 
         // WHEN/THEN - composition short-circuits at the first failure
         #expect(processor.process(Test.image) == nil)
+        _ = try? processor.process(Test.container, context: .mock)
+        #expect(factory.numberOfProcessorsApplied == 0)
+    }
+
+    @Test func errorThrownByAProcessorIsPropagated() {
+        // GIVEN a composition with a processor that throws a specific error
+        let processor = ImageProcessors.Composition([
+            MockImageProcessor(id: "1"),
+            MockThrowingProcessor(),
+            MockImageProcessor(id: "2")
+        ])
+
+        // THEN the error isn't replaced with a generic one
+        #expect(throws: MockError.self) {
+            try processor.process(Test.container, context: .mock)
+        }
+    }
+
+    /// Composition doesn't drop the data itself – whether it survives is up to
+    /// each processor it runs.
+    @Test func dataIsKeptWhenEveryProcessorKeepsIt() throws {
+        // GIVEN
+        let data = Test.animatedGIF()
+        let container = ImageContainer(image: Test.image, type: .gif, data: data)
+        let processor = ImageProcessors.Composition([DataPreservingProcessor(), DataPreservingProcessor()])
+
+        // WHEN
+        let output = try processor.process(container, context: .mock)
+
+        // THEN
+        #expect(output.data == data)
+    }
+
+    @Test func dataIsDroppedWhenAnyProcessorProducesANewImage() throws {
+        // GIVEN
+        let container = ImageContainer(image: Test.image, type: .gif, data: Test.animatedGIF())
+        let processor = ImageProcessors.Composition([DataPreservingProcessor(), MockImageProcessor(id: "1")])
+
+        // WHEN
+        let output = try processor.process(container, context: .mock)
+
+        // THEN
+        #expect(output.data == nil)
+        #expect(output.image.nk_test_processorIDs == ["1"])
+    }
+
+    @Test func compositionOfBuiltInProcessors() throws {
+        // GIVEN an avatar: crop to a square, then mask with a circle
+        let processor = ImageProcessors.Composition([
+            ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, crop: true),
+            ImageProcessors.Circle()
+        ])
+
+        // WHEN
+        let image = try #require(processor.process(Test.image))
+        let container = try processor.process(Test.container, context: .mock)
+
+        // THEN both methods produce the same image
+        #expect(image.sizeInPixels == CGSize(width: 100, height: 100))
+        #expect(image.cgImage?.isOpaque == false)
+        #expect(isEqualImages(image, container.image))
+    }
+
+    @Test func compositionIdentifierConcatenatesTheIdentifiersInOrder() {
+        // GIVEN
+        let processor = ImageProcessors.Composition([MockImageProcessor(id: "a"), MockImageProcessor(id: "b")])
+
+        // THEN
+        #expect(processor.identifier == "ab")
+    }
+
+    @Test func descriptionListsEveryProcessor() {
+        // GIVEN
+        let processor = ImageProcessors.Composition([
+            ImageProcessors.Circle(),
+            ImageProcessors.RoundedCorners(radius: 4, unit: .pixels)
+        ])
+
+        // THEN
+        #expect(processor.description == "Composition(processors: [Circle(border: nil), RoundedCorners(radius: 4.0 pixels, border: nil)])")
+    }
+}
+
+/// A processor that returns its input as is, the data included.
+private struct DataPreservingProcessor: ImageProcessing {
+    var identifier: String { "data-preserving" }
+
+    func process(_ image: PlatformImage) -> PlatformImage? { image }
+
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+        container
     }
 }

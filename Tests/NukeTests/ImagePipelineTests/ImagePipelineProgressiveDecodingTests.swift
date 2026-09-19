@@ -277,7 +277,7 @@ struct ImagePipelineProgressiveDecodingTests {
         let previewEvents = task.previews
         let progressEvents = task.progress
         Task {
-            for try await _ in previewEvents {
+            for await _ in previewEvents {
                 dataLoader.resume()
             }
         }

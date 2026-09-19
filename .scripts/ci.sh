@@ -37,14 +37,17 @@ JOBS=(
 
     "test-nukeui-ios|ios-ui|test|NukeUI|iOS"
     "test-nukeextensions-ios|ios-ui|test|NukeExtensions|iOS"
+    "test-nukevideo-ios|ios-ui|test|NukeVideo|iOS"
 
     "test-nuke-tvos|tvos|test|Nuke|tvOS"
     "test-nukeui-tvos|tvos|test|NukeUI|tvOS"
     "test-nukeextensions-tvos|tvos|test|NukeExtensions|tvOS"
+    "test-nukevideo-tvos|tvos|test|NukeVideo|tvOS"
 
     "test-nuke-macos|macos|test|Nuke|macOS"
     "test-nukeui-macos|macos|test|NukeUI|macOS"
     "test-nukeextensions-macos|macos|test|NukeExtensions|macOS"
+    "test-nukevideo-macos|macos|test|NukeVideo|macOS"
 
     "build-nuke-watchos|platforms|build|Nuke|watchOS"
     "build-nukeui-watchos|platforms|build|NukeUI|watchOS"
@@ -54,11 +57,8 @@ JOBS=(
     "build-nukeui-visionos|platforms|build|NukeUI|visionOS"
     "build-nukeextensions-visionos|platforms|build|NukeExtensions|visionOS"
     "build-nukevideo-visionos|platforms|build|NukeVideo|visionOS"
-    "build-nukevideo-ios|platforms|build|NukeVideo|iOS"
-    "build-nukevideo-macos|platforms|build|NukeVideo|macOS"
-    "build-nukevideo-tvos|platforms|build|NukeVideo|tvOS"
     "build-demo-ios|platforms|build|NukeDemo|iOS Simulator"
-    "spm-test|platforms|spm|Package|SPM"
+    "spm-build|platforms|spm|Package|SPM"
     "snippets-ios|platforms|snippets|DocumentationSnippets|iOS"
 
     "lint|lint|lint|SwiftLint|—"
@@ -423,7 +423,7 @@ run_job() {
     local label
     case "$action" in
         lint) label="SwiftLint" ;;
-        spm)  label="swift test" ;;
+        spm)  label="swift build" ;;
         *)    label="$scheme · $platform" ;;
     esac
 
@@ -464,7 +464,7 @@ run_job() {
             fi
             ;;
         spm)
-            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift test || exit_code=$?
+            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift build || exit_code=$?
             ;;
         build)
             run_streamed "$id" xcodebuild \

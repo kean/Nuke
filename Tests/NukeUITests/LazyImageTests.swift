@@ -112,7 +112,7 @@ struct LazyImageTests {
         let host = ViewHost(Test.url) { url in
             LazyImage(url: url) { state in
                 let _ = states.value.append((state.isLoading, state.image != nil))
-                Color.clear
+                SwiftUI.Color.clear
             }
             .pipeline(pipeline)
             .onCompletion { _ in completed.fulfill() }
@@ -133,7 +133,7 @@ struct LazyImageTests {
         let host = ViewHost(Test.url) { url in
             LazyImage(url: url) { state in
                 let _ = { if state.error != nil { sawError.value = true } }()
-                Color.clear
+                SwiftUI.Color.clear
             }
             .pipeline(pipeline)
             .onCompletion { _ in completed.fulfill() }
@@ -152,7 +152,7 @@ struct LazyImageTests {
         let host = ViewHost(nil as URL?) { url in
             LazyImage(url: url, transaction: Transaction(animation: .default)) { state in
                 let _ = { if state.error != nil { sawError.value = true } }()
-                Color.clear
+                SwiftUI.Color.clear
             }
             .pipeline(pipeline)
             .onCompletion {

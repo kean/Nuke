@@ -55,6 +55,10 @@ final class ViewHost<Value, Content: View> {
         self.window.orderFront(nil)
 #else
         self.controller = UIHostingController(rootView: root)
+        // Offer the content the whole frame. The window sits at the screen's
+        // origin, so it would otherwise be inset by the status bar on iOS and
+        // by the overscan margins on tvOS.
+        self.controller.safeAreaRegions = []
         self.controller.view.frame = frame
         self.window = UIWindow(frame: frame)
         self.window.rootViewController = controller

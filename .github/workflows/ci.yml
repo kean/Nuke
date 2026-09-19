@@ -37,13 +37,13 @@ jobs:
           - group: ios-core
             name: Tests (Nuke, iOS)
           - group: ios-ui
-            name: Tests (NukeUI + NukeExtensions, iOS)
+            name: Tests (NukeUI + NukeExtensions + NukeVideo, iOS)
           - group: tvos
             name: Tests (tvOS)
           - group: macos
             name: Tests (macOS)
           - group: platforms
-            name: Build (watchOS, visionOS, NukeVideo, Snippets) + Tests (SPM)
+            name: Build (watchOS, visionOS, Snippets, SPM)
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.group }}

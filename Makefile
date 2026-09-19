@@ -26,7 +26,7 @@ build:
 lint:
 	@$(CI) lint
 
-## Run the SPM package tests (NukeVideo)
+## Build the package with SwiftPM
 spm:
 	@$(CI) spm
 

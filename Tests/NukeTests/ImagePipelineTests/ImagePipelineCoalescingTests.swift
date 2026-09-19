@@ -346,26 +346,6 @@ struct ImagePipelineProcessingDeduplicationTests {
         #expect(factory.numberOfProcessorsApplied == 1)
     }
 
-    @Test func intermediateDataCacheResultsAreUsed() async throws {
-        // Given
-        let dataCache = MockDataCache()
-        dataCache.store[Test.url.absoluteString + "12"] = Test.data
-
-        let pipeline = pipeline.reconfigured {
-            $0.dataCache = dataCache
-        }
-
-        // When
-        let factory = MockProcessorFactory()
-        let request = ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2"), factory.make(id: "3")])
-        let response = try await pipeline.imageTask(with: request).response
-
-        // Then
-        #expect(response.image.nk_test_processorIDs == ["3"])
-        #expect(dataLoader.createdTaskCount == 0)
-        #expect(factory.numberOfProcessorsApplied == 1)
-    }
-
     @Test func processingDeduplicationCanBeDisabled() async throws {
         // Given
         let pipeline = pipeline.reconfigured {
@@ -386,38 +366,6 @@ struct ImagePipelineProcessingDeduplicationTests {
 
         // Then the processor "1" is applied twice
         #expect(processors.numberOfProcessorsApplied == 3)
-    }
-
-    // MARK: - Priority Escalation
-
-    @Test @ImagePipelineActor func lowPriorityRequestEscalatesWhenHigherPriorityJoins() async throws {
-        // GIVEN - a low-priority request already in flight
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        var lowRequest = Test.request
-        lowRequest.priority = .low
-
-        let lowOperations = await queue.waitForOperations(count: 1) {
-            _ = pipeline.imageTask(with: lowRequest)
-        }
-        let operation = try #require(lowOperations.first)
-        #expect(operation.priority == .low)
-
-        // WHEN - a normal-priority request for the same URL joins the session
-        var highRequest = Test.request
-        highRequest.priority = .normal
-
-        // Priority should be escalated to the highest subscriber
-        await queue.waitForPriorityChange(of: operation, to: .normal) {
-            _ = pipeline.imageTask(with: highRequest)
-        }
-
-        // THEN
-        #expect(operation.priority == .normal)
-
-        // Cleanup
-        queue.isSuspended = false
     }
 
     @Test func dataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() async throws {

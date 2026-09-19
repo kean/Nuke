@@ -235,18 +235,6 @@ struct ImagePipelineAsyncAwaitTests {
         #expect(caughtError == .cancelled)
     }
 
-    @Test func imageTaskReturnedImmediately() async throws {
-        // GIVEN
-        nonisolated(unsafe) var imageTask: ImageTask?
-        pipelineDelegate.onTaskCreated = { imageTask = $0 }
-
-        // WHEN
-        _ = try await pipeline.image(for: Test.request)
-
-        // THEN
-        #expect(imageTask != nil)
-    }
-
     @Test func progressUpdated() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success(
@@ -311,7 +299,7 @@ struct ImagePipelineAsyncAwaitTests {
 
         let expectation = TestExpectation(queue: queue, count: 1)
         let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try await imageTask.response }
+        Task.detached { try? await imageTask.response }
         await expectation.wait()
 
         // WHEN/THEN

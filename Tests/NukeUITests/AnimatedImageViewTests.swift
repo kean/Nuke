@@ -47,6 +47,29 @@ struct AnimatedImageViewTests {
 #endif
     }
 
+    /// A container the way the pipeline builds one for an animated image: the
+    /// still, the data, and the animation parsed out of it.
+    private func makeContainer(poster: PlatformImage, data: Data, animation: AnimatedImageSource) -> ImageContainer {
+        var container = ImageContainer(image: poster, data: data)
+        container.animation = animation
+        return container
+    }
+
+    /// The pixels per point the view derives its sizes with: a view outside a
+    /// window on AppKit assumes a Retina display.
+    private var backingScale: CGFloat {
+#if os(macOS)
+        2
+#else
+        view.contentScaleFactor
+#endif
+    }
+
+    /// Rounds a size in pixels up to the step the view decodes at.
+    private func roundedUp(_ pixels: CGFloat) -> CGFloat {
+        (pixels / 32).rounded(.up) * 32
+    }
+
     /// Gives the view a size and runs a layout pass over it.
     private func layOut(_ size: CGSize) {
         view.frame = CGRect(origin: .zero, size: size)
@@ -192,6 +215,81 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+
+    @Test func doesNotFlashThePosterWhenTheSameAnimationArrivesAgain() async throws {
+        // A cell reloaded from the memory cache hands the view the animation
+        // it is already playing, along with the still decoded beside it. The
+        // still is the first frame, and the animation is somewhere else.
+        layOut(CGSize(width: 100, height: 100))
+        let data = Test.animatedGIF()
+        let source = try #require(AnimatedImageSource(data: data))
+        view.nuke_display(makeContainer(poster: Test.image, data: data, animation: source))
+        let player = try #require(view.player)
+        await player.waitUntilFull()
+        let frame = try #require(player.image)
+        #expect(view.image === frame)
+
+        view.nuke_display(makeContainer(poster: Test.image, data: data, animation: source))
+
+        #expect(view.player === player)
+        #expect(view.image === frame)
+    }
+
+    @Test func clearsEverythingWhenItIsHandedNothing() async throws {
+        layOut(CGSize(width: 100, height: 100))
+        display(Test.animatedGIF())
+        let player = try #require(view.player)
+        await player.waitUntilFull()
+
+        view.nuke_display(nil)
+
+        #expect(view.player == nil)
+        #expect(view.animatedImage == nil)
+        #expect(view.image == nil)
+    }
+
+    @Test func settingAnImageForgetsAnAnimationWaitingForASize() {
+        view.animatedImage = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
+        #expect(view.animatedImage != nil)
+        let still = Test.image
+
+        view.image = still
+        layOut(CGSize(width: 20, height: 20))
+
+        // The first layout would otherwise build a player for the animation
+        // and paint it over the still.
+        #expect(view.player == nil)
+        #expect(view.animatedImage == nil)
+        #expect(view.image === still)
+    }
+
+    @Test func prepareForReuseForgetsAnAnimationWaitingForASize() {
+        display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
+        #expect(view.animatedImage != nil)
+
+        view.prepareForReuse()
+        layOut(CGSize(width: 20, height: 20))
+
+        #expect(view.player == nil)
+        #expect(view.animatedImage == nil)
+        #expect(view.image == nil)
+    }
+
+    @Test func newOptionsApplyFromTheNextAnimation() throws {
+        layOut(CGSize(width: 100, height: 100))
+        view.animatedImage = Test.animatedGIFSource()
+        let first = try #require(view.player)
+
+        view.playerOptions.playbackRate = 2
+
+        #expect(view.player === first)
+        #expect(first.options.playbackRate == 1)
+
+        view.animatedImage = Test.animatedGIFSource()
+
+        #expect(view.player !== first)
+        #expect(view.player?.options.playbackRate == 2)
+    }
 
     @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
@@ -384,6 +482,107 @@ struct AnimatedImageViewTests {
         #expect(try #require(view.player).options.maxPixelSize == nil)
     }
 
+    @Test func decodesForTheScaleItsContentModeDrawsTheFramesAt() throws {
+        // A 400×400 animation in a 20×10 view. Fitting it inside takes the
+        // smaller of the two scales, covering the view the larger, and the
+        // modes that draw the frames unscaled have no size to derive. Every
+        // size is rounded up to a step of 32 pixels.
+        let source = Test.animatedGIFSource(frameCount: 2, size: CGSize(width: 400, height: 400))
+        let fit = roundedUp(10 * backingScale)
+        let cover = roundedUp(20 * backingScale)
+#if os(macOS)
+        let modes: [(NSImageScaling, CGFloat?)] = [
+            (.scaleProportionallyDown, fit),
+            (.scaleProportionallyUpOrDown, fit),
+            (.scaleAxesIndependently, cover),
+            (.scaleNone, nil)
+        ]
+#else
+        let modes: [(UIView.ContentMode, CGFloat?)] = [
+            (.scaleAspectFit, fit),
+            (.scaleAspectFill, cover),
+            (.scaleToFill, cover),
+            (.redraw, cover),
+            (.center, nil),
+            (.topLeft, nil),
+            (.bottom, nil)
+        ]
+#endif
+        for (mode, expected) in modes {
+            let view = AnimatedImageView(frame: CGRect(x: 0, y: 0, width: 20, height: 10))
+#if os(macOS)
+            view.imageScaling = mode
+#else
+            view.contentMode = mode
+#endif
+            view.animatedImage = source
+
+            let player = try #require(view.player)
+            #expect(player.options.maxPixelSize == expected, "\(mode.rawValue)")
+        }
+    }
+
+    @Test func viewsAFractionOfAPointApartDecodeOneSetOfFrames() throws {
+        // A grid whose cell is the width divided by three: without the step,
+        // each cell would decode the animation at a size of its own.
+        let source = Test.animatedGIFSource(frameCount: 2, size: CGSize(width: 400, height: 400))
+        layOut(CGSize(width: 20, height: 20))
+        view.animatedImage = source
+        let other = AnimatedImageView(frame: CGRect(x: 0, y: 0, width: 20.4, height: 20.4))
+
+        other.animatedImage = source
+
+        let size = try #require(view.player?.options.maxPixelSize)
+        #expect(size.truncatingRemainder(dividingBy: 32) == 0)
+        #expect(other.player?.options.maxPixelSize == size)
+        #expect(other.player?.store === view.player?.store)
+    }
+
+    @Test func picksASizeOnceTheContentModeStartsScalingTheFrames() throws {
+        // Drawn unscaled, there is no size to decode for, so the frames are
+        // decoded whole; the view keeps waiting for one in case the content
+        // mode changes, and carries on from the frame it was showing when it
+        // does.
+#if os(macOS)
+        view.imageScaling = .scaleNone
+#else
+        view.contentMode = .center
+#endif
+        layOut(CGSize(width: 20, height: 20))
+        display(Test.animatedGIF(frameCount: 4, size: CGSize(width: 400, height: 400)))
+        let unscaled = try #require(view.player)
+        #expect(unscaled.options.maxPixelSize == nil)
+        unscaled.seek(toFrame: 2)
+
+#if os(macOS)
+        view.imageScaling = .scaleProportionallyUpOrDown
+#else
+        view.contentMode = .scaleAspectFit
+#endif
+        layOut(CGSize(width: 20, height: 20))
+
+        let scaled = try #require(view.player)
+        #expect(scaled !== unscaled)
+        #expect(try #require(scaled.options.maxPixelSize) < 400)
+        #expect(scaled.currentFrameIndex == 2)
+    }
+
+    @Test func aPlayerItIsGivenWinsOverAnAnimationWaitingForASize() throws {
+        view.animatedImage = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
+        // Larger than the view, so that a layout still waiting would derive a
+        // size for it and build a downsampled player in place of this one.
+        let source = Test.animatedGIFSource(size: CGSize(width: 400, height: 400))
+        let player = AnimatedImagePlayer(source: source)
+
+        view.player = player
+        layOut(CGSize(width: 20, height: 20))
+
+        // The layout that was going to build a player for the animation
+        // waiting on it finds one it was handed instead.
+        #expect(view.player === player)
+        #expect(view.animatedImage === source)
+    }
+
     @Test func aSizeOfYourOwnWins() async throws {
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 64
@@ -543,6 +742,60 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+    @Test func anAnimationHeldStillShowsItsFirstFrameWithoutFillingTheBuffer() async throws {
+        // A table full of animations waiting for the user to ask for them:
+        // each one is a still, not a window of decoded frames.
+        let host = TestWindow(view: view)
+        view.isPlaybackEnabled = false
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        let player = try #require(view.player)
+
+        await player.waitUntilFull()
+
+        #expect(view.image != nil)
+        #expect(view.image === player.image)
+        #expect(player.currentFrameIndex == 0)
+        #expect(player.diagnostics.bufferedFrameCount <= AnimatedImagePlayer.idleFrameCount)
+        host.close()
+    }
+
+    @Test func picksUpWhereItLeftOffWhenItComesBackToTheWindow() async throws {
+        // A cell that scrolls off screen and back: the same player, on the
+        // frame it stopped on, with its window of frames back.
+        let host = TestWindow(view: view)
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        let player = try #require(view.player)
+        player.seek(toFrame: 5)
+        let superview = try #require(view.superview)
+        view.removeFromSuperview()
+        #expect(view.isPlaying == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+
+        superview.addSubview(view)
+
+        #expect(view.player === player)
+        #expect(view.isPlaying)
+        #expect(player.currentFrameIndex == 5)
+        #expect(player.diagnostics.bufferCapacity == 8)
+        host.close()
+    }
+
+    @Test func startsPlayingOutsideAWindowWhenToldTo() async throws {
+        layOut(CGSize(width: 100, height: 100))
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        let player = try #require(view.player)
+        #expect(view.isPlaying == false)
+
+        view.isPlaybackPausedWhenOffscreen = false
+        #expect(view.isPlaying)
+        #expect(player.diagnostics.bufferCapacity == 8)
+
+        view.isPlaybackPausedWhenOffscreen = true
+
+        #expect(view.isPlaying == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+    }
+
     // MARK: External Players
 
     @Test func adoptsAPlayerItIsGiven() throws {
@@ -596,6 +849,54 @@ struct AnimatedImageViewTests {
         player.seek(toFrame: 1)
 
         #expect(frames > before)
+    }
+
+    @Test func stopsShowingTheFramesOfAPlayerItHasLetGoOf() async throws {
+        let first = AnimatedImagePlayer(source: Test.animatedGIFSource())
+        await first.waitUntilFull()
+        view.player = first
+        let second = AnimatedImagePlayer(source: Test.animatedGIFSource(frameCount: 6))
+        await second.waitUntilFull()
+        view.player = second
+        let shown = try #require(view.image)
+        #expect(shown === second.image)
+
+        first.seek(toFrame: 1)
+
+        // The first player moved on to a frame of its own, and it didn't
+        // reach the view that is showing the second one.
+        #expect(first.image != nil)
+        #expect(view.image === shown)
+        #expect(view.image !== first.image)
+    }
+
+    // MARK: Archiving
+
+    @Test func aViewLoadedFromAnArchiveIsSetUpLikeOneMadeInCode() throws {
+        // What a storyboard or a nib does: a plain image view with the
+        // platform's defaults, decoded as this class.
+        let plain = _PlatformImageView()
+#if os(macOS)
+        #expect(plain.animates)
+#else
+        #expect(plain.accessibilityIgnoresInvertColors == false)
+#endif
+        let data = try NSKeyedArchiver.archivedData(withRootObject: plain, requiringSecureCoding: false)
+        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
+        unarchiver.requiresSecureCoding = false
+        unarchiver.setClass(AnimatedImageView.self, forClassName: NSStringFromClass(_PlatformImageView.self))
+
+        let view = try #require(unarchiver.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? AnimatedImageView)
+
+#if os(macOS)
+        #expect(view.animates == false)
+#else
+        #expect(view.accessibilityIgnoresInvertColors)
+#endif
+        let host = TestWindow(view: view)
+        view.animatedImage = Test.animatedGIFSource()
+        #expect(view.isPlaying)
+        host.close()
     }
 
 #if !os(macOS)

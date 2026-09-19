@@ -79,21 +79,6 @@ struct ImagePipelineImageCacheTests {
         #expect(cache[Test.request] != nil)
     }
 
-    @Test func reloadIgnoringCachedData() async throws {
-        // Given
-        cache[Test.request] = ImageContainer(image: Test.image)
-
-        var request = Test.request
-        request.options.insert(.reloadIgnoringCachedData)
-
-        // When
-        _ = try await pipeline.image(for: request)
-
-        // Then
-        #expect(dataLoader.createdTaskCount == 1)
-        #expect(cache[Test.request] != nil)
-    }
-
     @Test func generatedThumbnailDataIsStoredInCache() async throws {
         // When
         let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit) }

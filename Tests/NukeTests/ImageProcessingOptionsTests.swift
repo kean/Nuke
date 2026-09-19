@@ -152,4 +152,50 @@ struct ImageProcessingOptionsTests {
         #expect(ImageProcessingOptions.ContentMode.aspectFit == .aspectFit)
         #expect(ImageProcessingOptions.ContentMode.aspectFill != .aspectFit)
     }
+
+    // MARK: - Border Width
+
+    @Test func borderWidthInPixelsIsUsedAsIs() {
+        let border = ImageProcessingOptions.Border(color: .red, width: 3, unit: .pixels)
+        #expect(border.width == 3)
+    }
+
+    // Off the main thread, `Screen.scale` can fall back to the last known
+    // scale, which other tests update concurrently: the tests that read it
+    // more than once run on the main actor, like their neighbors, so that
+    // every read sees the same value.
+    @Test @MainActor func borderWidthInPointsIsConvertedToPixels() {
+        let border = ImageProcessingOptions.Border(color: .red, width: 3, unit: .points)
+        #expect(border.width == 3 * Screen.scale)
+        #expect(border.description == "Border(color: #FF0000, width: \(3 * Screen.scale) pixels)")
+    }
+
+    @Test @MainActor func borderDefaultWidthIsOnePoint() {
+        let border = ImageProcessingOptions.Border(color: .red)
+        #expect(border.width == Screen.scale)
+    }
+
+    @Test @MainActor func bordersWithTheSameWidthInDifferentUnitsAreEqual() {
+        let points = ImageProcessingOptions.Border(color: .red, width: 2, unit: .points)
+        let pixels = ImageProcessingOptions.Border(color: .red, width: 2 * Screen.scale, unit: .pixels)
+        #expect(points == pixels)
+        #expect(points.hashValue == pixels.hashValue)
+        #expect(points.description == pixels.description)
+    }
+
+    // MARK: - Color.hex Rounding
+
+    @Test func hexRoundsTheComponentsToTheNearestByte() throws {
+        // 0.5 * 255 = 127.5 and 0.25 * 255 = 63.75
+        let hex = try #require(Color(red: 0.5, green: 0.25, blue: 1, alpha: 1).hex)
+        #expect(hex == "#8040FF")
+    }
+
+    /// A color that is only almost opaque has to be told apart from the opaque
+    /// one: they are different border colors with different identifiers.
+    @Test func hexIncludesAlphaOnlyWhenTheColorIsTranslucent() throws {
+        #expect(Color(red: 1, green: 0, blue: 0, alpha: 1).hex == "#FF0000")
+        #expect(Color(red: 1, green: 0, blue: 0, alpha: 0.999).hex == "#FF0000FF")
+        #expect(Color(red: 1, green: 0, blue: 0, alpha: 0.5).hex == "#FF000080")
+    }
 }

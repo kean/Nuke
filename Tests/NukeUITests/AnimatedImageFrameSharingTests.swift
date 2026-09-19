@@ -155,6 +155,25 @@ struct AnimatedImageFrameSharingTests {
         #expect(pool.animationCount == 2)
     }
 
+    @Test func aViewJoinsFramesUpToTwiceTheSizeItAskedForAndNoFurther() throws {
+        // The boundary of what a smaller view pays for in bytes: twice the
+        // longest side it asked for answers it, a pixel short of half doesn't.
+        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let fullSize = makePlayer(source: source)
+        var half = AnimatedImagePlayer.Options()
+        half.maxPixelSize = 32
+        var lessThanHalf = AnimatedImagePlayer.Options()
+        lessThanHalf.maxPixelSize = 31
+
+        let atHalf = makePlayer(source: source, options: half)
+        let belowHalf = makePlayer(source: source, options: lessThanHalf)
+
+        #expect(atHalf.store === fullSize.store)
+        #expect(belowHalf.store !== fullSize.store)
+        #expect(belowHalf.store.bytesPerFrame < fullSize.store.bytesPerFrame)
+        #expect(pool.animationCount == 2)
+    }
+
     @Test func aViewTakesTheSmallestFramesThatCoverIt() throws {
         // Two sets already exist, and the cheapest one that answers is the one
         // it joins: a view never pays for more pixels than it has to.
@@ -415,6 +434,26 @@ struct AnimatedImageFrameSharingTests {
 
         #expect(first.diagnostics.bufferCapacity == 20)
         #expect(second.diagnostics.bufferCapacity == 20)
+    }
+
+    @Test func playheadsOnEveryFrameClaimTheAnimationOnce() async throws {
+        // However many players there are and wherever they are, a store never
+        // asks for more than the whole animation – here, a dozen of them
+        // spread over eight frames, some of them on the same one.
+        let pool = makePool(frames: 100)
+        let source = try makeSource(frameCount: 8)
+        let players = (0..<12).map { _ in makePlayer(source: source, pool: pool) }
+
+        for (index, player) in players.enumerated() {
+            player.seek(toFrame: index % 8)
+        }
+
+        let store = players[0].store
+        #expect(store.demand == 8 * Self.bytesPerFrame)
+        #expect(store.allotment == 8 * Self.bytesPerFrame)
+        #expect(players.allSatisfy { $0.diagnostics.bufferCapacity == 8 })
+        await players[0].waitUntilFull()
+        #expect(pool.totalCost == 8 * Self.bytesPerFrame)
     }
 
     @Test func aPlayerStartsWhereTheOthersAlreadyAre() async throws {

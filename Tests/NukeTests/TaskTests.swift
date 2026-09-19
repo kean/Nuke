@@ -409,6 +409,89 @@ struct TaskTests {
         #expect(operation.priority == .high)
     }
 
+    @Test func subscribingWithHigherPriorityRaisesTaskPriority() {
+        // Given
+        let operation = TaskQueue.Operation()
+        let dependencyOperation = TaskQueue.Operation()
+        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = dependencyOperation })
+        let task = SimpleTask<Int, MyError>(starter: {
+            $0.operation = operation
+            $0.dependency = dependency.subscribe { _ in }
+        })
+        _ = task.subscribe(priority: .low) { _ in }
+        #expect(task.priority == .low)
+
+        // When another subscriber joins with a higher priority
+        _ = task.subscribe(priority: .veryHigh) { _ in }
+
+        // Then the task, its operation, and its dependency all follow it
+        #expect(task.priority == .veryHigh)
+        #expect(operation.priority == .veryHigh)
+        #expect(dependency.priority == .veryHigh)
+        #expect(dependencyOperation.priority == .veryHigh)
+    }
+
+    /// The first subscription is stored separately from the rest, so when it's
+    /// removed, the priority has to come from the rest alone.
+    @Test func whenFirstSubscriptionIsRemovedPriorityComesFromTheRest() async {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let first = task.subscribe(priority: .veryHigh) { _ in }
+        _ = task.subscribe(priority: .low) { _ in }
+        _ = task.subscribe(priority: .high) { _ in }
+        #expect(operation.priority == .veryHigh)
+
+        // When
+        first?.unsubscribe()
+        await Task.yield()
+
+        // Then it's the highest of the rest – not `.normal`, which is also
+        // what a task without any subscriptions falls back to
+        #expect(task.priority == .high)
+        #expect(operation.priority == .high)
+        #expect(!operation.isCancelled)
+    }
+
+    @Test func subscriptionsAddedAfterTheFirstIsRemovedKeepTheTaskAlive() async {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let first = task.subscribe { _ in }
+
+        // When the first subscriber leaves after another one joins, and then
+        // a third one joins
+        let second = task.subscribe { _ in }
+        first?.unsubscribe()
+        var received = [AsyncTask<Int, MyError>.Event]()
+        let third = task.subscribe { received.append($0) }
+        second?.unsubscribe()
+        await Task.yield()
+
+        // Then the task keeps running for the remaining subscriber
+        let isSubscribed = !third.isNil
+        #expect(isSubscribed)
+        #expect(!task.isDisposed)
+        #expect(!operation.isCancelled)
+        task.send(value: 1, isCompleted: true)
+        #expect(received == [.value(1, isCompleted: true)])
+    }
+
+    @Test func settingPriorityAfterTheTaskCompletedIsIgnored() {
+        // Given
+        let operation = TaskQueue.Operation()
+        let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
+        let subscription = task.subscribe { _ in }
+        task.send(value: 1, isCompleted: true)
+
+        // When
+        subscription?.setPriority(.veryHigh)
+
+        // Then
+        #expect(task.priority == .normal)
+        #expect(operation.priority == .normal)
+    }
+
     @Test func priorityOfDependencyUpdated() async {
         // Given
         let operation = TaskQueue.Operation()
@@ -544,6 +627,176 @@ struct TaskTests {
 
         // Then
         #expect(!operation.isCancelled)
+    }
+
+    /// The pipeline drops the subscription of a finished image task instead
+    /// of unsubscribing, but an unsubscribe that arrives after the completion
+    /// must not be mistaken for a cancellation either.
+    @Test func unsubscribingFromCompletedTaskDoesNotCancelIt() async {
+        // Given
+        let operation = TaskQueue.Operation()
+        let dependencyOperation = TaskQueue.Operation()
+        let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = dependencyOperation })
+        let task = SimpleTask<Int, MyError>(starter: {
+            $0.operation = operation
+            $0.dependency = dependency.subscribe { _ in }
+        })
+        var disposeCount = 0
+        var isCancelledCalled = false
+        task.onDisposed = { disposeCount += 1 }
+        task.onCancelled = { isCancelledCalled = true }
+        let subscription = task.subscribe { _ in }
+        task.send(value: 1, isCompleted: true)
+
+        // When
+        subscription?.unsubscribe()
+        await Task.yield()
+
+        // Then
+        #expect(disposeCount == 1)
+        #expect(!isCancelledCalled)
+        #expect(!operation.isCancelled)
+        #expect(!dependencyOperation.isCancelled)
+    }
+
+    @Test func eventsSentAfterCompletionAreDropped() {
+        // Given
+        let task = AsyncTask<Int, MyError>()
+        var received = [AsyncTask<Int, MyError>.Event]()
+        _ = task.subscribe { received.append($0) }
+        task.send(value: 1, isCompleted: true)
+
+        // When
+        task.send(progress: TaskProgress(completed: 1, total: 1))
+        task.send(value: 2)
+        task.send(value: 3, isCompleted: true)
+        task.send(error: .init(raw: "late"))
+
+        // Then
+        #expect(received == [.value(1, isCompleted: true)])
+    }
+
+    @Test func eventsSentAfterFailureAreDropped() {
+        // Given
+        let task = AsyncTask<Int, MyError>()
+        var received = [AsyncTask<Int, MyError>.Event]()
+        _ = task.subscribe { received.append($0) }
+        task.send(error: .init(raw: "1"))
+
+        // When
+        task.send(value: 1, isCompleted: true)
+        task.send(error: .init(raw: "2"))
+
+        // Then
+        #expect(received == [.error(.init(raw: "1"))])
+    }
+
+    /// The tasks hold the dependent tasks weakly, and a dependent task that is
+    /// released without unsubscribing – which is what a finished task does –
+    /// must not receive the events of its dependency.
+    @Test func deallocatedDependentTaskIsSkipped() {
+        // Given a dependency with a dependent task and another subscriber
+        let dependency = AsyncTask<Int, MyError>()
+        var values: [Int] = []
+        weak var weakDependent: SimpleTask<Int, MyError>?
+        do {
+            let dependent = SimpleTask<Int, MyError>()
+            weakDependent = dependent
+            _ = dependency.publisher.subscribe(dependent) { value, _ in values.append(value) }
+        }
+        var received = [AsyncTask<Int, MyError>.Event]()
+        _ = dependency.subscribe { received.append($0) }
+        #expect(weakDependent == nil)
+
+        // When
+        dependency.send(progress: TaskProgress(completed: 1, total: 2))
+        dependency.send(value: 1, isCompleted: true)
+
+        // Then the remaining subscriber gets the events and nothing crashes
+        #expect(values.isEmpty)
+        #expect(received == [
+            .progress(TaskProgress(completed: 1, total: 2)),
+            .value(1, isCompleted: true)
+        ])
+    }
+
+    // MARK: - TaskPool
+
+    @Test func poolReturnsTheOutstandingTaskForTheSameKey() throws {
+        // Given
+        let pool = TaskPool<String, Int, MyError>(true)
+        var created: [AsyncTask<Int, MyError>] = []
+        func publisher(for key: String) -> AsyncTask<Int, MyError>.Publisher {
+            pool.publisherForKey(key) {
+                let task = AsyncTask<Int, MyError>()
+                created.append(task)
+                return task
+            }
+        }
+
+        // When
+        var received: [Int] = []
+        _ = publisher(for: "a").subscribe(subscriber: Observer.shared) { if case .value(let value, _) = $0 { received.append(value) } }
+        _ = publisher(for: "a").subscribe(subscriber: Observer.shared) { if case .value(let value, _) = $0 { received.append(value) } }
+        _ = publisher(for: "b").subscribe(subscriber: Observer.shared) { _ in }
+
+        // Then both subscribers of "a" share one task
+        try #require(created.count == 2)
+        created[0].send(value: 1, isCompleted: true)
+        #expect(received == [1, 1])
+    }
+
+    @Test func poolCreatesNewTaskOnceTheOutstandingOneIsDisposed() async throws {
+        // Given
+        let pool = TaskPool<String, Int, MyError>(true)
+        var created: [AsyncTask<Int, MyError>] = []
+        func publisher() -> AsyncTask<Int, MyError>.Publisher {
+            pool.publisherForKey("a") {
+                let task = AsyncTask<Int, MyError>()
+                created.append(task)
+                return task
+            }
+        }
+
+        // When the first task completes
+        _ = publisher().subscribe(subscriber: Observer.shared) { _ in }
+        created[0].send(value: 1, isCompleted: true)
+
+        // And the one that replaces it is cancelled
+        let subscription = publisher().subscribe(subscriber: Observer.shared) { _ in }
+        #expect(created.count == 2)
+        subscription?.unsubscribe()
+        await Task.yield()
+        _ = publisher().subscribe(subscriber: Observer.shared) { _ in }
+
+        // Then each of them is replaced instead of being reused
+        try #require(created.count == 3)
+        #expect(created[0].isDisposed)
+        #expect(created[1].isDisposed)
+        #expect(!created[2].isDisposed)
+    }
+
+    @Test func poolWithCoalescingDisabledNeitherSharesTasksNorComputesKeys() {
+        // Given
+        let pool = TaskPool<String, Int, MyError>(false)
+        var keyCount = 0
+        func makeKey() -> String {
+            keyCount += 1
+            return "a"
+        }
+
+        // When
+        var createdCount = 0
+        for _ in 0..<2 {
+            _ = pool.publisherForKey(makeKey()) {
+                createdCount += 1
+                return AsyncTask<Int, MyError>()
+            }
+        }
+
+        // Then
+        #expect(createdCount == 2)
+        #expect(keyCount == 0)
     }
 }
 

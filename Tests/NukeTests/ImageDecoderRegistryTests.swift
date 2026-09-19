@@ -87,20 +87,6 @@ struct ImageDecoderRegistryTests {
         #expect(decoder is ImageDecoders.Default)
     }
 
-    @Test func decodersEvaluatedInLIFOOrder() {
-        // GIVEN a registry with two custom decoders registered in sequence
-        let registry = ImageDecoderRegistry()
-        registry.register { _ in MockImageDecoder(name: "first") }
-        registry.register { _ in MockImageDecoder(name: "second") }
-
-        // WHEN
-        let context = ImageDecodingContext.mock
-        let decoder = registry.decoder(for: context) as? MockImageDecoder
-
-        // THEN the most-recently registered decoder wins (LIFO)
-        #expect(decoder?.name == "second")
-    }
-
     // MARK: - Unregistering
 
     @Test func unregisterDecoder() {

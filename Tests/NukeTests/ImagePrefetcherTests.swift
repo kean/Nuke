@@ -639,15 +639,6 @@ struct ImagePrefetcherTests {
     }
 }
 
-/// Waits until the calls made so far reach the prefetcher, then for the main
-/// queue to run the `didComplete` they scheduled, if any.
-private func waitForDelivery() async {
-    await Task { @ImagePipelineActor in }.value
-    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-        DispatchQueue.main.async { continuation.resume() }
-    }
-}
-
 private extension TaskQueue {
     /// Waits until no operation is pending or running. An operation runs until
     /// its work returns, and the prefetcher's work ends by removing its task –

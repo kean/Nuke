@@ -54,11 +54,13 @@ struct ImagePipelineLocalResourcesTests {
             _ = try await pipeline.image(for: ImageRequest(url: url))
             Issue.record("Expected the request to fail")
         } catch {
-            // Then
-            guard case .dataLoadingFailed = error else {
+            // Then the underlying file system error is preserved
+            guard case .dataLoadingFailed(let underlying) = error else {
                 Issue.record("Expected dataLoadingFailed, got \(error)")
                 return
             }
+            #expect((underlying as NSError).domain == NSCocoaErrorDomain)
+            #expect((underlying as NSError).code == NSFileReadNoSuchFileError)
         }
         #expect(dataLoader.createdTaskCount == 0)
     }
@@ -184,6 +186,57 @@ struct ImagePipelineLocalResourcesTests {
 
         // Then
         #expect(dataCache.writeCount == 1)
+    }
+
+    // MARK: - Loading Data
+
+    /// A data task returns the contents of the file as is: it never decodes
+    /// them, and there is no `URLResponse` for a file read inline.
+    @Test func dataForFileURLReturnsTheContentsOfTheFile() async throws {
+        // Given a file that isn't an image
+        let bytes = Data("not an image".utf8)
+        let url = try makeTemporaryFile(with: bytes)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // When
+        let (data, response) = try await pipeline.data(for: ImageRequest(url: url))
+
+        // Then
+        #expect(data == bytes)
+        #expect(response == nil)
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(dataCache.writeCount == 0)
+    }
+
+    @Test(arguments: [
+        (URL(string: "data:text/plain;base64,\(Data("hello, world".utf8).base64EncodedString())")!, "hello, world"),
+        (URL(string: "data:text/plain,hello%2C%20world")!, "hello, world")
+    ])
+    func dataForDataURLReturnsTheDecodedPayload(url: URL, payload: String) async throws {
+        // When
+        let (data, response) = try await pipeline.data(for: ImageRequest(url: url))
+
+        // Then
+        #expect(data == Data(payload.utf8))
+        #expect(response == nil)
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(dataCache.writeCount == 0)
+    }
+
+    /// The local resources are read without going through the data loading
+    /// queue, so they load even when the queue is suspended.
+    @Test func localResourceDoesNotWaitForTheDataLoadingQueue() async throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+        defer { queue.isSuspended = false }
+        let url = try #require(URL(string: "data:image/jpeg;base64,\(Test.data.base64EncodedString())"))
+
+        // When
+        let (data, _) = try await pipeline.data(for: ImageRequest(url: url))
+
+        // Then
+        #expect(data == Test.data)
     }
 
     // MARK: - Helpers

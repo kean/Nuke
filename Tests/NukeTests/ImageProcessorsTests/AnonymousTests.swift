@@ -58,4 +58,19 @@ struct ImageProcessorsAnonymousTests {
         // Then
         #expect(image.nk_test_processorIDs == ["1"])
     }
+
+    @Test func anonymousProcessorReceivesTheInputAndReturnsTheClosureOutput() throws {
+        // Given
+        let input = Test.image
+        let replacement = Test.rgbImage(width: 10, height: 10)
+        let processor = ImageProcessors.Anonymous(id: "replace") { image in
+            image === input ? replacement : nil
+        }
+
+        // When
+        let output = try #require(processor.process(input))
+
+        // Then
+        #expect(output === replacement)
+    }
 }

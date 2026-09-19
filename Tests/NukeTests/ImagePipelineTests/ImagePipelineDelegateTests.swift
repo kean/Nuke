@@ -228,10 +228,6 @@ struct ImagePipelineDelegateTests {
         #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 0)
     }
 
-    private func drainPipeline() async {
-        await Task { @ImagePipelineActor in }.value
-    }
-
     @Test func willLoadDataIsNotCalledForCustomDataFetch() async throws {
         // GIVEN a request using a custom data fetch closure
         let request = ImageRequest(id: "test", data: {

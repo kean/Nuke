@@ -29,7 +29,6 @@ struct MiscPerformanceTests {
     /// Measures the same workload using `withDiscardingTaskGroup`, which avoids
     /// accumulating child-task results and may reduce allocations at scale.
     @Test
-    @available(iOS 17, *)
     func discardingTaskGroupOnActor() async {
         let count = 50_000
         await measure {

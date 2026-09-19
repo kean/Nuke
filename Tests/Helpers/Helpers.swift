@@ -190,6 +190,30 @@ func _createChunks(for data: Data, size: Int) -> [Data] {
     return chunks
 }
 
+/// A directory in the temporary folder that no other test uses.
+func makeUniqueDirectoryURL() -> URL {
+    FileManager.default.temporaryDirectory
+        .appendingPathComponent("NukeTests-\(UUID().uuidString)", isDirectory: true)
+}
+
+/// A seeded generator, so a randomized sequence of operations is the same on
+/// every run and a failure reproduces.
+struct SplitMix64: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        self.state = seed
+    }
+
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
 // MARK: - Result extension
 
 extension Result {

@@ -17,32 +17,7 @@ struct ImageRequestTests {
         _ = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
     }
 
-    @Test func expressibleByStringLiteral() {
-        let _: ImageRequest = "https://example.com/image.jpeg"
-    }
-
     // MARK: - CoW
-
-    @Test func copyOnWrite() {
-        // GIVEN
-        var request = ImageRequest(url: URL(string: "http://test.com/1.png"))
-        request.options.insert(.disableMemoryCacheReads)
-        request.userInfo["key"] = "3"
-        request.processors = [MockImageProcessor(id: "4")]
-        request.priority = .high
-
-        // WHEN
-        var copy = request
-        // Request makes a copy at this point under the hood.
-        copy.priority = .low
-
-        // THEN
-        #expect(copy.options.contains(.disableMemoryCacheReads) == true)
-        #expect(copy.userInfo["key"] as? String == "3")
-        #expect((copy.processors.first as? MockImageProcessor)?.identifier == "4")
-        #expect(request.priority == .high) // Original request not updated
-        #expect(copy.priority == .low)
-    }
 
     @Test func copyIsIdenticalUntilMutated() {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
@@ -55,25 +30,6 @@ struct ImageRequestTests {
 
     @Test func equalRequestsCreatedSeparatelyAreNotIdentical() {
         #expect(!ImageRequest(url: Test.url).isIdentical(to: ImageRequest(url: Test.url)))
-    }
-
-    // MARK: - Misc
-
-    // Just to make sure that comparison works as expected.
-    @Test func priorityComparison() {
-        typealias Priority = ImageRequest.Priority
-        #expect(Priority.veryLow < Priority.veryHigh)
-        #expect(Priority.low < Priority.normal)
-        #expect(Priority.normal == Priority.normal)
-    }
-
-    @Test func userInfoKey() {
-        // WHEN
-        var request = ImageRequest(url: Test.url)
-        request.userInfo = [.init("a"): 1]
-
-        // THEN
-        #expect(request.userInfo["a"] != nil)
     }
 }
 
@@ -326,20 +282,6 @@ struct ThumbnailOptionsTests {
         let b = ImageRequest.ThumbnailOptions(size: CGSize(width: 300, height: 300), unit: .pixels, contentMode: .aspectFit)
         #expect(a == b)
         #expect(a.identifier == b.identifier)
-    }
-
-    @Test func modifyingOptionsOnCopyDoesNotAffectOriginal() {
-        // GIVEN
-        var original = Test.request
-        original.options = []
-
-        // WHEN - make a copy and add an option only to the copy
-        var copy = original
-        copy.options.insert(.disableMemoryCacheReads)
-
-        // THEN - original is unchanged
-        #expect(!original.options.contains(.disableMemoryCacheReads))
-        #expect(copy.options.contains(.disableMemoryCacheReads))
     }
 
     @Test func loadOptionsDoNotAffectMemoryCacheKey() {

@@ -203,6 +203,99 @@ struct ImageProcessorsGaussianBlurTests {
         #expect(outputs[0] != outputs[1])
         #expect(outputs[1] != outputs[2])
     }
+
+    // MARK: - Edges
+
+    /// A blur averages neighboring pixels, so a solid color has nothing to
+    /// blur. With the edge extension, that holds all the way to the edges –
+    /// including for the kernels larger than the image itself. Without it, the
+    /// edges would be darkened by the transparent black outside the image.
+    ///
+    /// - seealso: https://github.com/kean/Nuke/issues/308
+    @Test(arguments: [1, 8, 50, 500])
+    func blurringASolidColorLeavesItUnchanged(radius: Int) throws {
+        // Given a 40x40 solid color image
+        let image = Test.rgbImage(width: 40, height: 40, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
+
+        // When
+        let output = try #require(ImageProcessors.GaussianBlur(radius: radius).process(image))
+
+        // Then every pixel, including the ones at the edges, keeps its color
+        let expected = try pixels(of: image)
+        let actual = try pixels(of: output)
+        #expect(actual.count == expected.count)
+        let maxDifference = zip(actual, expected).map { abs(Int($0) - Int($1)) }.max() ?? 0
+        #expect(maxDifference <= 1)
+    }
+
+    /// The blur runs on premultiplied pixels, which is what keeps the edges of
+    /// a shape from turning dark as they fade out: the color of a translucent
+    /// pixel, once its alpha is divided out, is still the color of the shape.
+    @Test func blurDoesNotDarkenTheEdgesOfTransparentShapes() throws {
+        // GIVEN an opaque square in the middle of a transparent canvas
+        let image = imageWithOpaqueSquare(size: 64, square: 16)
+        let input = try pixels(of: image)
+        let center = (32 * 64 + 32) * 4
+        #expect(input[center + 3] == 255)
+
+        // WHEN
+        let output = try pixels(of: #require(ImageProcessors.GaussianBlur(radius: 4).process(image)))
+
+        // THEN
+        var translucentPixelCount = 0
+        for offset in stride(from: 0, to: output.count, by: 4) {
+            let alpha = Int(output[offset + 3])
+            guard alpha > 64 && alpha < 224 else { continue }
+            translucentPixelCount += 1
+            for channel in 0..<3 {
+                let unpremultiplied = Int(output[offset + channel]) * 255 / alpha
+                #expect(abs(unpremultiplied - Int(input[center + channel])) <= 12, "pixel \(offset / 4), channel \(channel)")
+            }
+        }
+        #expect(translucentPixelCount > 0)
+    }
+
+    @Test func blurringCMYKImage() throws {
+        // Given an image in a color space vImage can't process directly
+        let context = try #require(CGContext(
+            data: nil,
+            width: 40,
+            height: 30,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceCMYK(),
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
+        ))
+        context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 20, height: 30))
+        let image = PlatformImage(cgImage: try #require(context.makeImage()))
+
+        // When
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 4).process(image))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 40, height: 30))
+        #expect(output.cgImage?.isOpaque == true)
+    }
+
+    @Test func blurringAnImageWithoutCGImageFails() {
+        #expect(ImageProcessors.GaussianBlur(radius: 4).process(PlatformImage()) == nil)
+    }
+
+#if os(iOS) || os(tvOS) || os(visionOS)
+    @Test func blurPreservesScaleAndOrientation() throws {
+        // Given a @3x image rotated by the orientation
+        let input = UIImage(cgImage: try #require(Test.image.cgImage), scale: 3, orientation: .right)
+
+        // When
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 4).process(input))
+
+        // Then
+        #expect(output.scale == 3)
+        #expect(output.imageOrientation == .right)
+        #expect(output.size == input.size)
+    }
+#endif
 }
 
 /// Renders the image into a known ARGB context and returns the raw bytes.
