@@ -9,9 +9,7 @@ import Foundation
 /// `SystemRandomNumberGenerator` isn't.
 ///
 /// The fixtures are drawn with it, so they come out the same bytes on every
-/// run; the network conditions draw with it under `-demoDeterministic 1`,
-/// so the same downloads fail every time; and Cache Torture makes the same
-/// operations in the same order.
+/// run.
 struct DemoRandomNumberGenerator: RandomNumberGenerator {
     private var state: UInt64
 
@@ -35,12 +33,4 @@ struct DemoRandomNumberGenerator: RandomNumberGenerator {
         Double(next() >> 11) / Double(1 << 53)
     }
 
-    /// A number from 0 up to `bound`, as the remainder of the next number.
-    ///
-    /// Slightly biased, which a torture doesn't mind, and not what
-    /// `Int.random(in:using:)` draws, which would change the operations a run
-    /// makes.
-    mutating func next(below bound: Int) -> Int {
-        Int(next() % UInt64(bound))
-    }
 }

@@ -356,7 +356,7 @@ private final class RequestOptionsDemoModel: ObservableObject {
     }
 
     /// Where the image of a run came from, by `ImageResponse.cacheType`,
-    /// and for a download, by its URL: offline, a fixture answers it.
+    /// and for a download, by its URL.
     struct Source {
         let title: String
         let color: Color

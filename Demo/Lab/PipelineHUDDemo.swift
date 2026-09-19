@@ -189,7 +189,7 @@ struct PipelineHUDDemo: View {
         ("ttfb", "From the start of a download to its first chunk, for the downloads neither `URLCache` nor a fixture answered."),
         ("reused", "Downloads that went over a connection an earlier one opened. Known only for a `DataLoader`."),
         ("urlcache", "Downloads `URLCache` answered without a request, and their bytes."),
-        ("fixtures", "Downloads a fixture loader completed in place of a request, and the bytes fixtures delivered. Offline, that is every download."),
+        ("fixtures", "Downloads a fixture loader completed in place of a request, and the bytes fixtures delivered."),
         ("memory", "Decoded images in the image caches and frames in `AnimatedImageFramePool`, against their limits; read every 3 seconds. Caches that pipelines share count once, and the limits of the others add up."),
         ("disk", "What `DataCache` and the `URLCache` of the pipelines' `DataLoader`s hold, read off the disk every 3 seconds. A write to `DataCache` counts after about a second in staging."),
         ("images", "The images in the image caches."),

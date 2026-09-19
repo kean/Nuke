@@ -18,15 +18,11 @@ import OSLog
 // argument, result, and callback, and `willLoadData`, which holds a data
 // loading slot while it runs, gains no suspension.
 //
-// The things it changes are where fixtures come from, and, while the demo's
-// network conditions are on, how downloads arrive. A request for a fixture
-// URL, and every request while the demo is offline, goes to a
-// `DemoFixtureLoader` rather than the loader the pipeline was configured with,
-// unless its loader never goes to the network (`DemoLocalDataLoading`);
-// while the conditions are on, whichever loader that is sits behind a
-// `DemoConditionedDataLoader` (see `dataLoader(for:pipeline:)`). Routed there,
-// rather than configured, a `DataLoader` stays unwrapped and observed for
-// everything else.
+// The one thing it changes is where fixtures come from. A request for a
+// fixture URL goes to a `DemoFixtureLoader` rather than the loader the
+// pipeline was configured with (see `dataLoader(for:pipeline:)`). Routed
+// there, rather than configured, a `DataLoader` stays unwrapped and observed
+// for everything else.
 //
 // What the probe can't see:
 // - Work waiting in a queue. `TaskQueue` keeps its counts to itself, so a
@@ -302,27 +298,18 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         base.previewPolicy(for: context, pipeline: pipeline)
     }
 
-    /// The loader the delegate returns, unless the request is for a fixture,
-    /// or the demo is offline and the loader would go to the network: then a
-    /// ``DemoFixtureLoader``, so that nothing but a fixture loader sees a
-    /// fixture URL, and nothing goes to the network offline. While
-    /// ``DemoNetworkConditions`` are on, the loader is behind a
-    /// ``DemoConditionedDataLoader``, a `DataLoader` included.
+    /// The loader the delegate returns, unless the request is for a fixture:
+    /// then a ``DemoFixtureLoader``, so that nothing but a fixture loader sees
+    /// a fixture URL. A delegate that returns a fixture loader of its own
+    /// keeps it, with its pace.
     ///
     /// The pipeline asks once per download, after coalescing and once a data
-    /// loading slot is free, so the mode and the conditions are read for
-    /// every download, and a switch applies to the next one. A delegate that
-    /// returns a fixture loader of its own keeps it, with its pace, and one
-    /// that returns a ``DemoLocalDataLoading`` loader keeps it offline.
+    /// loading slot is free.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         counters.downloadRequested()
         var dataLoader = base.dataLoader(for: request, pipeline: pipeline)
-        let isOfflineRequest = DemoFixtureMode.isOffline && !(dataLoader is any DemoLocalDataLoading)
-        if !(dataLoader is DemoFixtureLoader), DemoFixture.isFixture(request.url) || isOfflineRequest {
+        if !(dataLoader is DemoFixtureLoader), DemoFixture.isFixture(request.url) {
             dataLoader = fixtureLoader
-        }
-        if let conditions = DemoNetworkConditions.current {
-            return CountingDataLoader(DemoConditionedDataLoader(dataLoader, profile: conditions), counters: counters, request: request, onLoad: onLoad)
         }
         // Wrapped, a `DataLoader` would lose the `URLSession` metrics the
         // pipeline records. Its session delegate counts it instead.
@@ -332,26 +319,14 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         return CountingDataLoader(dataLoader, counters: counters, request: request, onLoad: onLoad)
     }
 
-    /// A fixture loader at the pace of the configured loader: a
-    /// ``ThrottledDataLoader``'s chunks, so that Progressive Decoding shows
-    /// its scans offline, each a little later than the pipeline's
-    /// `progressiveDecodingInterval` so that none is skipped; the one a
+    /// A fixture loader at the pace of the configured loader: the one a
     /// ``PacedDataLoader`` keeps for this, at its pace; everything at once for
     /// any other.
     private static func makeFixtureLoader(for configuration: ImagePipeline.Configuration) -> DemoFixtureLoader {
         switch configuration.dataLoader {
-        case let loader as DemoFixtureLoader:
-            return loader
-        case let loader as PacedDataLoader:
-            return loader.fixtureLoader
-        case let loader as ThrottledDataLoader:
-            var pace = DemoFixtureLoader.Pace.throttled(chunkSize: loader.chunkSize, interval: loader.interval)
-            if configuration.isProgressiveDecodingEnabled {
-                pace.scanInterval = .seconds(configuration.progressiveDecodingInterval) + .milliseconds(100)
-            }
-            return DemoFixtureLoader(pace: pace)
-        default:
-            return DemoFixtureLoader()
+        case let loader as DemoFixtureLoader: loader
+        case let loader as PacedDataLoader: loader.fixtureLoader
+        default: DemoFixtureLoader()
         }
     }
 
@@ -490,17 +465,6 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 /// few hooks calls through it for the rest: Nuke's decompression is internal,
 /// so this is the way to reach it.
 final class DemoDefaultDelegate: ImagePipeline.Delegate {}
-
-/// A data loader that never goes to the network: it answers from memory,
-/// from files, or not at all.
-///
-/// While the demo is offline, the probe sends the requests of every other
-/// loader to a ``DemoFixtureLoader``, and leaves this one's to it, so a
-/// screen about such a loader shows the same thing offline. A request for a
-/// fixture URL still goes to a fixture loader.
-protocol DemoLocalDataLoading: DataLoading {}
-
-extension DemoFixtureLoader: DemoLocalDataLoading {}
 
 /// A decoder of the demo's own that decodes in `decode(_:)`, as the ones
 /// Nuke ships do – a decorator around one of them, say – which the probe can

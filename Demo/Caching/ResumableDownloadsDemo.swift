@@ -23,8 +23,7 @@ import SwiftUI
 ///
 /// The loader hands the image to the pipeline a few kilobytes at a time, so
 /// that there is time to cancel, and ends every load with a `completion`,
-/// a cancelled one included. Offline, the fixture loader that stands in for
-/// it answers like a server that supports range requests.
+/// a cancelled one included.
 struct ResumableDownloadsDemo: View {
     @StateObject private var model = ResumableDownloadsDemoModel()
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -79,7 +78,7 @@ struct ResumableDownloadsDemo: View {
             .init("A second cancel", "The pipeline decides whether to keep a download by comparing the bytes it has with the response's `Content-Length`. For a resumed download, that is the length of the rest, not of the image. Cancel a resumed download after it has more bytes than the rest is long, and nothing is kept: the next attempt starts from the first byte. Cancel it earlier, and it resumes again."),
             .init("What an app sees", "The delegate's `willLoadData` receives the request with the `Range` and `If-Range` headers already in it, which is where this screen reads them. The task's progress counts the kept bytes from the start of a resumed attempt, and the task's `ImageTask.Metrics` records them in `bytes.resumed`; `bytes.downloaded` counts them too."),
             .init("The loader", "This screen's loader downloads each response at full speed and hands it to the pipeline 8 KB at a time, 100 ms apart, so a cancel leaves the pipeline holding part of the image, the way a slow network would. The requests and the responses are real: the resumed request asks the server for the rest, and the server sends only that. The loader ends every load with a call to `completion`, a cancelled one included, which frees the load's data loading slot."),
-            .init("The image", "The landscape photo, a 310 KB baseline JPEG and the largest still image the demo loads. Its host, user-images.githubusercontent.com, answers range requests and sends an `ETag` and a `Last-Modified`. Offline, the fixture loader serves a 1440 × 960 fixture in its place and answers the same way, with an `ETag` made of the fixture's digest."),
+            .init("The image", "The landscape photo, a 310 KB baseline JPEG and the largest still image the demo loads. Its host, user-images.githubusercontent.com, answers range requests and sends an `ETag` and a `Last-Modified`."),
             .init("Caches", "The pipeline has a memory cache and a `DataCache` of its own, emptied when the screen opens and by Start Over, so a new download doesn't come from them. Until its last byte arrives, a download is in neither cache: only the store of partial downloads holds it.")
         ]
     )
@@ -279,12 +278,7 @@ private struct ResumableDownloadsList: View {
         .listSectionSpacing(.compact)
     }
 
-    private var conditionsFooter: LocalizedStringKey {
-        let server = model.isOffline
-            ? "Offline, the fixture loader answers in place of the server."
-            : "The server is user-images.githubusercontent.com."
-        return "Validators are the server's `ETag` and `Last-Modified`. Without them, the loader takes both out of every response, and the pipeline keeps nothing to resume. New Pipeline Each Attempt requests the image again on a pipeline that has kept nothing. Both apply from the next attempt. \(server)"
-    }
+    private let conditionsFooter: LocalizedStringKey = "Validators are the server's `ETag` and `Last-Modified`. Without them, the loader takes both out of every response, and the pipeline keeps nothing to resume. New Pipeline Each Attempt requests the image again on a pipeline that has kept nothing. Both apply from the next attempt. The server is user-images.githubusercontent.com."
 }
 
 private struct AttemptHeader: View {
@@ -466,8 +460,7 @@ private struct HeaderLine: View {
 /// An attempt is one image task. The pipeline reports its request through
 /// the probe's `willLoadData` event, the loader reports the response through
 /// its hooks, and ``Wire`` ties the load to the attempt. The bytes are the
-/// task's progress: what the pipeline received, which a loader behind
-/// another one, such as the network conditions of the Lab, doesn't know.
+/// task's progress: what the pipeline received.
 @MainActor
 private final class ResumableDownloadsDemoModel: ObservableObject {
     struct Attempt: Identifiable {
@@ -600,10 +593,7 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
         init(_ request: URLRequest) {
             let url = request.url
             path = url?.lastPathComponent ?? "–"
-            host = url.map { url in
-                let host = url.host() ?? "–"
-                return DemoFixture.isFixture(url) ? "\(host) (the fixture loader)" : host
-            } ?? "–"
+            host = url?.host() ?? "–"
             range = request.value(forHTTPHeaderField: "Range")
             ifRange = request.value(forHTTPHeaderField: "If-Range")
             rangeStart = range.flatMap { range in
@@ -690,8 +680,6 @@ private final class ResumableDownloadsDemoModel: ObservableObject {
     }
     /// Whether every attempt after the first runs on a pipeline of its own.
     @Published var usesNewPipeline = false
-
-    let isOffline = DemoFixtureMode.isOffline
 
     private let configuration: ImagePipeline.Configuration
     private let wire: Wire

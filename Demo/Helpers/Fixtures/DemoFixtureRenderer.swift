@@ -43,13 +43,15 @@ enum DemoFixtureRenderer {
             gif(frameCount: 200, size: 300, delay: 0.05, title: "LONG GIF")
         case .apng:
             apng(frameCount: 20, size: 100, delay: 0.075)
+        case .mixedDelayGIF:
+            mixedDelayGIF
         case .heic:
             encode(
                 [picture(seed: 11, width: 1008, height: 756, title: "HEIC", caption: "FIXTURE 1008×756")],
                 type: .heic,
                 frameProperties: [kCGImageDestinationLossyCompressionQuality: 0.8]
             )
-        case .webp, .animatedWebP, .video, .missing, .zoo, .nukePix, .truncatedNukePix:
+        case .webp, .animatedWebP, .video, .missing, .nukePix, .truncatedNukePix:
             nil
         }
         guard let data else {
@@ -183,6 +185,22 @@ enum DemoFixtureRenderer {
             properties: [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]],
             frameProperties: [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delay]]
         )
+    }
+
+    /// Four frames of 0, 10, 20, and 500 ms. Image I/O reads the first two as
+    /// 100 ms, the way browsers do, so the delay map has something to show.
+    private static var mixedDelayGIF: Data? {
+        let delays: [Double] = [0, 0.01, 0.02, 0.5]
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.gif.identifier as CFString, delays.count, nil) else {
+            return nil
+        }
+        CGImageDestinationSetProperties(destination, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        for (index, delay) in delays.enumerated() {
+            let image = frame(index, of: delays.count, width: 96, height: 96, title: "MIXED")
+            CGImageDestinationAddImage(destination, image, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delay]] as CFDictionary)
+        }
+        return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 
     private static func apng(frameCount: Int, size: Int, delay: Double) -> Data? {

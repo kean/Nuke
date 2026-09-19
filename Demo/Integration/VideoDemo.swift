@@ -87,8 +87,7 @@ struct VideoDemo: View {
             .init("VideoPlayerView", "Muted, on a loop (`isLooping`), and filling its bounds (`videoGravity`). `play()` makes a player for the asset and starts it once the item is ready. The view resumes when it comes back on screen, or the app to the foreground. Without the loop, `onVideoFinished` is called at the end."),
             .init("Caching", "The memory cache keeps the whole container – the poster, the data, and the asset – and counts both the poster's bitmap and the data against its limit, so Reload plays the same asset at once. The disk cache keeps the file as downloaded: after Clear Memory, the decoder runs on it again and makes a new poster and a new asset."),
             .init("Keep the data", "Store the original data for video: `.storeOriginalData`, as here, or `.automatic`. Under `.storeEncodedImages`, the pipeline stores a JPEG of the poster under the video's key instead, and a load from disk comes back a still, with no asset."),
-            .init("When it isn't a video", "For data it can take no frame from, such as a file cut short, the decoder doesn't throw: it returns an empty image and an asset that won't play, and the task succeeds. Check the poster's size, or the asset's `isPlayable`, as this screen does, before showing a player."),
-            .init("Offline", "Offline, the video is a 2 s, 320×240 fixture bundled with the app, whose frames count up from 1.")
+            .init("When it isn't a video", "For data it can take no frame from, such as a file cut short, the decoder doesn't throw: it returns an empty image and an asset that won't play, and the task succeeds. Check the poster's size, or the asset's `isPlayable`, as this screen does, before showing a player.")
         ]
     )
 }
@@ -415,7 +414,6 @@ private final class VideoDemoModel {
     /// SwiftUI runs each time it makes the view, keeping only the first
     /// model: each pipeline would open the disk cache again.
     @ObservationIgnored private(set) lazy var pipeline = makePipeline()
-    /// Made when the screen opens: a screen opened offline loads the fixture.
     let request: ImageRequest
     /// Changes to load again: the player pane is a new view each time.
     private(set) var loadID = 0

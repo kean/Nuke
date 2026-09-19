@@ -12,7 +12,7 @@ import os
 ///
 /// A fixture is made once however many loads ask for it at the same time, off
 /// the main thread, and its record – size, how long it took, a digest – is
-/// kept for the **Fixture Mode** screen. Everything together is a few
+/// logged. Everything together is a few
 /// megabytes, so nothing goes to disk: a fixture that has to be made again is
 /// cheaper than a cache to invalidate when the drawing changes.
 ///
@@ -100,7 +100,6 @@ final class DemoFixtureStore: Sendable {
         case .animatedWebP: (try bundled("fixture-animated", "webp"), true)
         case .video: (try bundled("fixture-video", "mp4"), true)
         case .missing: throw DataLoader.Error.statusCodeUnacceptable(404)
-        case .zoo(let input): (try DemoZooRenderer.data(for: input), input.isBundled)
         case .nukePix: (NukePixWriter.badge(), false)
         case .truncatedNukePix: (NukePixWriter.truncatedBadge(), false)
         default: (try DemoFixtureRenderer.data(for: fixture), false)

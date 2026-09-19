@@ -24,8 +24,7 @@ import SwiftUI
 ///
 /// The decoder is registered in the shared registry, the one every pipeline
 /// asks by default, but only while the screen is on display: Image Formats
-/// and the Fixture Zoo ask the same registry and report the decoder each file
-/// went to. The screen's pipeline has a delegate that asks the registry the
+/// asks the same registry and reports the decoder each file went to. The screen's pipeline has a delegate that asks the registry the
 /// way the default one does and writes down the answer, and a memory cache of
 /// its own, which each pass empties first: a memory cache hit asks no
 /// decoder.
@@ -41,7 +40,7 @@ struct CustomDecoderDemo: View {
                         CustomDecoderTile(file: file, model: model)
                     }
                 }
-                Text("Each run loads the three files twice, one after the other: first with `NukePixDecoder` out of the registry, then in it. The screen's memory cache is emptied before each pass, because an image served from memory asks no decoder. The NukePix files come from the fixture loader, online and offline.")
+                Text("Each run loads the three files twice, one after the other: first with `NukePixDecoder` out of the registry, then in it. The screen's memory cache is emptied before each pass, because an image served from memory asks no decoder. The NukePix files come from the fixture loader.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 seeAlso
@@ -167,7 +166,7 @@ struct CustomDecoderDemo: View {
         """,
         points: [
             .init("The format", "NukePix: the four bytes `NUKE`, a version, the width and height, a palette of RGBA colors, and then runs of pixels, each a length and a color. The badge is 56×26: 1,456 pixels in 874 bytes. The first bytes of each file are on the screen, next to what Image I/O makes of them: nothing."),
-            .init("Registering", "`register(_:)` returns a token, and `unregister(_:)` takes the decoder out again. An app registers its decoders once, at launch. This screen registers `NukePixDecoder` when it appears and unregisters it when it goes, so Image Formats and the Fixture Zoo, which ask the same registry, report the decoders they did before. A pipeline that shouldn't ask the shared registry at all can set `ImagePipeline.Configuration.makeImageDecoder` to a registry of its own."),
+            .init("Registering", "`register(_:)` returns a token, and `unregister(_:)` takes the decoder out again. An app registers its decoders once, at launch. This screen registers `NukePixDecoder` when it appears and unregisters it when it goes, so Image Formats, which asks the same registry, reports the decoders it did before. A pipeline that shouldn't ask the shared registry at all can set `ImagePipeline.Configuration.makeImageDecoder` to a registry of its own."),
             .init("The pick", "The pipeline asks its delegate for a decoder once the data is in, and the default delegate asks the registry. The registry creates each decoder with an `ImageDecodingContext` – the data, the request, and the response – newest first, and the first that doesn't return `nil` decodes the data. The signature decides, not the MIME type or the file name. For the formats Nuke knows, `AssetType(data)` reads the signature."),
             .init("Falling through", "`ImageDecoders.Default` is the registry's own first decoder, so it is asked last, and it takes any data: a pipeline always gets a decoder. The PNG shows that path with `NukePixDecoder` in place. Without it, the NukePix file goes the same way, and Image I/O can't read it: `decodingFailed`, with `ImageDecodingError.unknown`."),
             .init("Taken is final", "The file that was cut short still starts with the signature, so `NukePixDecoder` takes it, and its error is the result: the pipeline doesn't try the next decoder when `decode(_:)` throws. The error reaches the app as the `error` of `ImagePipeline.Error.decodingFailed`, next to the decoder and the context."),
@@ -265,8 +264,6 @@ private enum CustomDecoderFile: CaseIterable, Identifiable {
         }
     }
 
-    /// The URL, read when a run starts: the PNG is a fixture's while the demo
-    /// is offline.
     var url: URL {
         switch self {
         case .badge: DemoFixture.nukePix.url
@@ -551,7 +548,6 @@ private final class CustomDecoderDemoModel {
 
     private func run() async {
         runCount += 1
-        // The PNG is another file once the demo goes offline.
         files = [:]
         outcomes = [:]
         isRunning = true

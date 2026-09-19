@@ -60,7 +60,7 @@ struct ImageFormatsDemo: View {
             .init("The type", "`ImageContainer.type` is the `AssetType` the decoder read in the first bytes of the data: a signature, and for HEIF the brands in its `ftyp` box. Neither the file name nor the MIME type counts. A format Nuke doesn't name has a `nil` type, and decodes all the same."),
             .init("HEIC", "The photo is a HEIC as an iPhone camera writes it, led by the `heic` brand. A HEIF led by the bare `mif1` brand that names no codec after it has a `nil` type. Image I/O can also write HEIC: `ImageEncoders.Default.isHEIFPreferred` makes it the format of the images the pipeline stores on disk."),
             .init("Animated images", "For a GIF, and for a PNG, WebP, or HEIF whose header says it is animated, the container keeps the data next to the first frame, and NukeUI plays it. The APNG is served as `image/png` like any PNG, and its type is `.png`: the frames are what tell it apart. The Animated Images screen shows what playing them costs."),
-            .init("Image I/O", "The last line is what `CGImageSource` reads in the file without decoding it: its type identifier, how many images it counts, and the size of the first. Offline, the images are the fixtures that stand in for the files, with headers of their own."),
+            .init("Image I/O", "The last line is what `CGImageSource` reads in the file without decoding it: its type identifier, how many images it counts, and the size of the first."),
             .init("Video", "`ImageDecoders.Video`, from the NukeVideo module, has a screen of its own under Integration."),
             .init("Custom decoders", "Register one with `ImageDecoderRegistry` to add a format. Its initializer sees the data and decides whether it can decode it. The Custom Decoder screen registers one for a toy format."),
             .init("Decompression", "Nuke decompresses the image on a background queue so that the first draw does not stall the main thread. The Decompression screen counts the frames it saves.")
@@ -106,7 +106,6 @@ private enum ImageFormat: CaseIterable, Identifiable {
         self == .gif || self == .apng
     }
 
-    /// The URL, which is a fixture's while the demo is offline.
     var url: URL {
         switch self {
         case .jpeg: DemoImages.landscape
@@ -243,7 +242,6 @@ private final class ImageFormatsDemoModel {
     /// SwiftUI runs each time it makes the view, keeping only the first
     /// model.
     @ObservationIgnored private(set) lazy var pipeline = makePipeline()
-    /// Made when the screen opens: a screen opened offline loads fixtures.
     let requests: [ImageFormat: ImageRequest]
     private(set) var results: [ImageFormat: Result<ImageResponse, ImagePipeline.Error>] = [:]
     private let log: DecoderChoiceLog

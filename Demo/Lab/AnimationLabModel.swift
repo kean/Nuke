@@ -676,7 +676,7 @@ extension AnimationLabModel {
         var images: [DemoAnimation] {
             switch self {
             case .formats: DemoAnimation.formats
-            case .delays: DemoAnimation.delays
+            case .delays: [.mixedDelays]
             }
         }
     }

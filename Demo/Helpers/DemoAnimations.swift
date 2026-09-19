@@ -10,17 +10,12 @@ import SwiftUI
 /// are built from.
 enum DemoAnimation: String, CaseIterable, Identifiable {
     case gif, apng, webp, heic, large
-    case mixedDelays, zeroDelays, avis, zeroDelayWebP, missingFrames
+    case mixedDelays
 
     var id: String { rawValue }
 
     /// One of each format, the way an app meets them.
     static let formats: [DemoAnimation] = [.gif, .apng, .webp, .heic, .large]
-
-    /// Animations whose delays aren't what they seem, from the Fixture Zoo:
-    /// the ones that exhibit the delay map, the frames the browser rule
-    /// replaces, and a file that counts more frames than it has.
-    static let delays: [DemoAnimation] = [.mixedDelays, .zeroDelays, .avis, .zeroDelayWebP, .missingFrames]
 
     /// What **Animated Images** offers: the formats, and one set of delays
     /// that differ, which is what its delay map is for. Only the ones there is
@@ -37,37 +32,25 @@ enum DemoAnimation: String, CaseIterable, Identifiable {
         case .heic: "HEIC"
         case .large: "Large"
         case .mixedDelays: "Mixed Delays"
-        case .zeroDelays: "Zero Delays"
-        case .avis: "AVIS"
-        case .zeroDelayWebP: "WebP 0 ms"
-        case .missingFrames: "Missing Frames"
         }
     }
 
     /// Where the animation comes from: the network or its fixture, or –
-    /// without a source – whichever ``DemoFixtureMode`` says. The delays are
-    /// fixtures from anywhere, and the HEIC is a file in the app bundle.
+    /// without a source – the network. Mixed Delays is a fixture from
+    /// anywhere, and the HEIC is a file in the app bundle.
     func url(from source: DemoImageSource? = nil) -> URL? {
         switch self {
-        case .gif: pick(source, DemoImages.gif, DemoImages.Network.gif, .gif)
-        case .apng: pick(source, DemoImages.apng, DemoImages.Network.apng, .apng)
-        case .webp: pick(source, DemoImages.animatedWebP, DemoImages.Network.animatedWebP, .animatedWebP)
+        case .gif: pick(source, DemoImages.gif, .gif)
+        case .apng: pick(source, DemoImages.apng, .apng)
+        case .webp: pick(source, DemoImages.animatedWebP, .animatedWebP)
         case .heic: DemoImages.animatedHEIC
-        case .large: pick(source, DemoImages.largeGIF, DemoImages.Network.largeGIF, .longGIF)
-        case .mixedDelays: DemoFixture.zoo(.mixedDelayGIF).url
-        case .zeroDelays: DemoFixture.zoo(.zeroDelayGIF).url
-        case .avis: DemoFixture.zoo(.avis).url
-        case .zeroDelayWebP: DemoFixture.zoo(.zeroDelayWebP).url
-        case .missingFrames: DemoFixture.zoo(.missingFramesAPNG).url
+        case .large: pick(source, DemoImages.largeGIF, .longGIF)
+        case .mixedDelays: DemoFixture.mixedDelayGIF.url
         }
     }
 
-    private func pick(_ source: DemoImageSource?, _ current: URL, _ network: URL, _ fixture: DemoFixture) -> URL {
-        switch source {
-        case nil: current
-        case .network: network
-        case .fixtures: fixture.url
-        }
+    private func pick(_ source: DemoImageSource?, _ network: URL, _ fixture: DemoFixture) -> URL {
+        source == .fixtures ? fixture.url : network
     }
 
     /// Loads the animation through the shared pipeline, and returns it with

@@ -87,7 +87,7 @@ struct ScrollStressDemo: View {
             .init("Auto-Scroll", "Scrolls the grid from the top at 3,000 points a second for 10 seconds, turning at either end. A display link moves it by as far as the time since the last frame says, so a late frame jumps, as a real scroll does. Each source keeps its last run: the frames dropped, the hitch time per second, the longest frame, and the tasks the pipeline started, cancelled, and finished with an image while it ran."),
             .init("Frames", "Counted by a display link of the screen's own, apart from the HUD's: a frame that came a refresh or more late. It sees what a busy main thread costs, not what the render server drops on its own. The live figures count from the moment the screen opened, or a run started."),
             .init("HUD", "Comes on with the screen and follows its pipeline. It goes back off when you leave, if it was off before."),
-            .init("Fixtures", "The default: the stand-ins for the photo stream, from memory, each 50 ms after it's asked for, so a run compares with the last one. Network loads the photos themselves, over a `DataLoader` without `URLCache` – unless the demo is offline, when fixtures answer those too."),
+            .init("Fixtures", "The default: the stand-ins for the photo stream, from memory, each 50 ms after it's asked for, so a run compares with the last one. Network loads the photos themselves, over a `DataLoader` without `URLCache`."),
             .init("Not a benchmark", "Every cache is disabled on purpose, and a simulator's frames say little about a phone's. A real app would serve most of these from memory. A run compares this build with the last one, on the same device and the same source.")
         ]
     )

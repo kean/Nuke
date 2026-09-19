@@ -8,8 +8,7 @@ open Nuke.xcodeproj
 ```
 
 Select the **NukeDemo** scheme and run it (iOS 17+). No dependencies, no setup:
-the images are loaded over the network from public URLs, or offline from
-[fixtures](#fixtures).
+the images are loaded over the network from public URLs.
 
 ## Screens
 
@@ -69,24 +68,17 @@ and the details worth knowing.
 
 ## Lab
 
-Instruments and torture rigs for whoever works on Nuke, behind the last row of
+Instruments and stress rigs for whoever works on Nuke, behind the last row of
 the catalog. Caches are turned off where they would hide the work, budgets are
 pushed past sensible values, and the screens report numbers rather than explain
 an API – the catalog screen for that API does the explaining.
 
-| Screen | Group | Shows |
-|--|--|--|
-| **Pipeline HUD** | Instruments | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
-| **Concurrency Inspector** | Instruments | A burst, a trickle, or a scroll of fixture requests – photos, blurred photos, thumbnails, a 12 MP JPEG, and pairs – on a pipeline of its own, with pause and cancel: a map and a list of every task and where it is (queued, loading, receiving, waiting for or on a queue, finished), with its priority and age; the five task queues with the work running and waiting, how long work waited, and a limit and a suspend switch each; the queues of every pipeline alive; and the main thread's stalls over 16 ms, from a display link and a thread that pings the main queue, with buttons that stall it |
-| **Scroll Stress** | Stress | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps each source's last run – frames dropped, hitch time, the longest frame, and the tasks started, cancelled, and finished – so runs, and fixtures and the network, can be compared |
-| **Cancellation Torture** | Stress | Image tasks started at 200 a second for five seconds and cancelled before they start, while they wait, mid-download, and after they finish – plain, processed, thumbnail, progressive, and coalesced requests, heard through events, an awaited response, and closures – then pass or fail on: no callbacks after cancel, every task finished once, no `ImageTask` left, queues back to zero, survivors got their image, a new request completes, the pipeline goes away, and the rate reached. A slot check shows what a loader that follows the documented cancel contract does to the data loading queue |
-| **Memory Soak** | Stress | A five-second cycle – 150 loads of the 12 MP JPEG, processed photos, and thumbnails, a third of them cancelled, six animations made and dropped, and a cache churned or a memory warning posted – repeated for 1, 5, 15, or 60 minutes, with the app's footprint drawn twice a second. After each cycle both caches are emptied and the footprint and the `malloc` heap read: pass or fail on the slope of each in MB a minute, on nothing left behind (tasks, players, animations, cache entries, files), on the pipelines alive, and on the memory warnings answered |
-| **Cache Torture** | Stress | A 2 MB `DataCache` that sweeps every second, written, read, and removed from by a dozen tasks, then an `ImageCache` filled by eight threads at once, and pass or fail on: `sweep()` and the scheduled sweeps keeping `sizeLimit`, how far and how long it goes over, `flush()` latency, every read returning the last write, `removeAll()`, `ttl`, `entryCostLimit`, `costLimit` and `countLimit` under concurrent inserts, the trims, and the counts matching what the cache holds |
-| **Animation Lab** | Animation | Up to 36 animations drawing from one `AnimatedImageFramePool` – the formats, from fixtures or the network, or the Fixture Zoo's animations with odd delays – with the pool's budget down to 4 MB, player budgets down to 256 KB, frames decoded at the size of the cell, zoom to 800%, frame transforms, and copies in and out of lockstep. A memory warning, and the minute until the windows grow back; power throttling against Low Power Mode, with each cell's frame rate; and a soak that plays for an hour, rebuilding the wall every minute, and charts the footprint and the pool |
-| **Fixture Zoo** | Fixtures | Thirty inputs the decoders should survive – a 1×1, a 20,000 px canvas, CMYK, 16-bit, EXIF-rotated, zero-delay and broken animations, HEICS, AVIS, cut-off files, and files that aren't images – each decoded through a pipeline with no caches and reported as decoded, refused, or crashed next to what was expected, with the size, frames, decoder, decode time, and memory cost. A crash mid-decode is caught on the next launch. A regression sheet to screenshot |
-| **Fixture Mode** | Rig | The switch that takes the whole demo offline, and every fixture with its size, the time it took to make, and a digest |
-| **Network Conditions** | Rig | The switch that puts every download through latency, a shared bandwidth cap, lost requests, 500s, and cut-off bodies, with presets, the counts of what it did, and what the pipelines' diagnostics lose while it is on |
-| **Automation** | Rig | Every launch argument and screen id, each with a `simctl launch` line to copy |
+| Screen | Shows |
+|--|--|
+| **Pipeline HUD** | Every figure behind the HUD – tasks, coalescing, cache hits, queues, decode times, bytes, caches, footprint, and frames – for each pipeline and all of them, with the switch and a reset |
+| **Concurrency Inspector** | A burst, a trickle, or a scroll of fixture requests – photos, blurred photos, thumbnails, a 12 MP JPEG, and pairs – on a pipeline of its own, with pause and cancel: a map and a list of every task and where it is (queued, loading, receiving, waiting for or on a queue, finished), with its priority and age; the five task queues with the work running and waiting, how long work waited, and a limit and a suspend switch each; the queues of every pipeline alive; and the main thread's stalls over 16 ms, from a display link and a thread that pings the main queue, with buttons that stall it |
+| **Scroll Stress** | The pipeline under fast scrolling with every cache disabled, on fixtures or over the network, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps each source's last run – frames dropped, hitch time, the longest frame, and the tasks started, cancelled, and finished – so runs, and fixtures and the network, can be compared |
+| **Animation Lab** | Up to 36 animations drawing from one `AnimatedImageFramePool`, from fixtures or the network, with the pool's budget down to 4 MB, player budgets down to 256 KB, frames decoded at the size of the cell, zoom to 800%, frame transforms, and copies in and out of lockstep. A memory warning, and the minute until the windows grow back; power throttling against Low Power Mode, with each cell's frame rate; and a soak that plays for an hour, rebuilding the wall every minute, and charts the footprint and the pool |
 
 ## Launch arguments
 
@@ -103,63 +95,30 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab
 | `-demoScreen <id>` | Opens the app on a screen, with the menus it is reached through beneath it. `lab` is the Lab menu; an id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab row out of the catalog, for a screenshot of the catalog alone |
 | `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
-| `-demoFixtures offline` | Serves every image from [fixtures](#fixtures), with no network request; `network`, the default, loads the catalog over the network |
-| `-demoDeterministic 1` | Starts the app the same way every time: offline unless `-demoFixtures network` says otherwise, with the disk caches emptied, no fade on UIKit image views, and no random tokens |
-| `-demoNetwork <preset>` | Starts the app with [network conditions](#network-conditions) on: `slow-3g`, `lossy`, or `flaky-server`. `off`, the default, leaves the network as it is; a preset that doesn't exist does too, and logs why |
-| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, Scroll Stress scrolls, Cancellation Torture runs its checks and the slot check, Memory Soak runs for a minute, Cache Torture runs its checks, and Animation Lab starts its soak |
+| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, Scroll Stress scrolls, and Animation Lab starts its soak |
 
-The **Automation** screen in the Lab lists every id. An id stays the same when a
-title changes.
+A screen's id is the raw value of its case in `App/DemoScreen.swift`. An id
+stays the same when a title changes.
 
 ## Fixtures
 
-Offline, the demo loads no image from the network. Every URL it hands out is a
-fixture's, `demo-fixture://nuke/<name>`: a stand-in for each photo with its
-index drawn on it, a baseline and a progressive JPEG, a 12 MP JPEG, a PNG, a
-HEIC, two GIFs (the long one has 200 frames), and an APNG, all drawn and
-encoded the first time a load asks for them, plus a WebP, an animated WebP, and
-a video bundled in `Resources/Fixtures`. The generated ones are the same bytes
-on every run, so a run on fixtures can be compared with the last one. The one
-exception is the animated HEIC, a file in the app bundle online and offline.
+The Lab screens load fixtures rather than the network by default, so that one
+run measures what the last one did rather than the network in between. Each
+fixture has a URL of its own, `demo-fixture://nuke/<name>`: a stand-in for each
+photo with its index drawn on it, a baseline and a progressive JPEG, a 12 MP
+JPEG, a PNG, a HEIC, three GIFs (the long one has 200 frames), and an APNG, all
+drawn and encoded the first time a load asks for them, plus a WebP, an animated
+WebP, and a video bundled in `Resources/Fixtures`. The generated ones are the
+same bytes on every run.
 
-Every pipeline's delegate sends a request for a fixture, and every request
-while offline, to the fixture loader, which also answers the demo's network
-URLs with their stand-ins; any other URL fails and says so in Console, under
-the `Fixtures` category. It answers the way a server that supports range
-requests does, so a download cancelled offline resumes too. A loader that never
-goes to the network, such as the bundle and failing loaders of **Custom Data
-Loader**, keeps its requests offline. Launch with `-demoFixtures offline`, or flip the switch
-in **Fixture Mode** in the Lab, which applies to the screens opened next. Lab
-screens that load photos start on fixtures either way.
+Every pipeline's delegate sends a request for a fixture to the fixture loader;
+any other URL goes to the loader the pipeline was configured with. The fixture
+loader answers the way a server that supports range requests does, so a
+download cancelled midway resumes too. In the catalog, **Custom Decoder** loads
+its NukePix files this way, **Decompression** its 12 MP JPEG, and **Animated
+Images** its GIF with mixed delays.
 
 The photo stream's URLs are in `Resources/photos.json`.
-
-**Custom Decoder** loads two NukePix files, its toy format, the same way,
-online and offline: `demo-fixture://nuke/badge.nukepix`, and the same file cut
-short.
-
-**Fixture Zoo** in the Lab serves its inputs the same way, as
-`demo-fixture://nuke/zoo-<name>`: six files copied from `Tests/Resources` into
-`Resources/Zoo`, the bundled HEICS, and the rest generated, damaged, or written
-byte by byte on first use. `DemoZooInput` lists where each one comes from.
-
-## Network conditions
-
-**Network Conditions** in the Lab makes every catalog screen a test of its
-failure states. While it is on, every pipeline's delegate puts the loader it
-would have used – the configured one, or the fixture loader offline – behind a
-rig that waits a latency, give or take a jitter, before each download, holds
-all downloads to one shared bandwidth, and fails a share of them: lost
-(`URLError.timedOut`), a server error (`DataLoader.Error.statusCodeUnacceptable(500)`,
-as `DataLoader` reports a 500), or cut off partway through the body
-(`URLError.networkConnectionLost`). The switch is read for every download, so
-it applies to the next one with no pipeline rebuilt; off, nothing is wrapped.
-A request that `URLCache` can answer goes through untouched.
-
-Launch with `-demoNetwork slow-3g`, `lossy`, or `flaky-server`, and add
-`-demoDeterministic 1` to fail the same downloads on every run. While the
-conditions are on, `ImageTask.Metrics` has no `URLSession` metrics for the
-downloads they touch; the HUD's figures are complete.
 
 ## Diagnostics
 
@@ -175,8 +134,7 @@ the scheme, unticked, under Run › Arguments › Environment Variables – and 
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem. The pipelines of the **Request Options**,
 **Priority & Coalescing**, **Image Processing**, **Caching**, **Resumable
-Downloads**, and **Video** screens, and of the **Fixture Zoo** in the Lab, record
-their tasks either way, and show what the records say on screen.
+Downloads**, and **Video** screens record their tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
 
@@ -199,7 +157,7 @@ Demo
 ├── Caching          Caching, prefetching, resumable downloads, and decompression
 ├── AnimatedImages   Animated image playback and its diagnostics
 ├── Integration      The pipeline delegate, custom data loaders, and video
-├── Lab              Instruments, stress rigs, the Fixture Zoo, and the rig's switches, for working on Nuke
-├── Helpers          Shared views, the Lab's verdicts and sparkline, the pipeline probe and HUD, the frame and main-thread watchdogs, Auto-Scroll, fixtures, network conditions, demo URLs, the demo's data loaders, and a few small utilities
-└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, the Fixture Zoo's copied inputs, and the photo stream's URLs
+├── Lab              Instruments and stress rigs for working on Nuke
+├── Helpers          Shared views, the pipeline probe and HUD, the frame and main-thread watchdogs, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
+└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
 ```

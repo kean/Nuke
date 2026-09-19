@@ -462,8 +462,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         var slotCount = 0
     }
 
-    /// The six photos, one download each: fixtures while the demo is
-    /// offline, read when a run starts.
+    /// The six photos, one download each.
     private static var photos: [URL] {
         Array(DemoImages.photos.prefix(6))
     }
@@ -519,7 +518,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         let queue = TaskQueue(maxConcurrentTaskCount: 2)
         var configuration = ImagePipeline.Configuration.withDataCache(name: "com.github.kean.NukeDemo.PriorityAndCoalescing")
         // Every photo in 16 chunks, 140 ms apart: about two seconds each,
-        // whatever its size, and the same offline.
+        // whatever its size.
         configuration.dataLoader = PacedDataLoader(pace: .chunks(16, interval: .milliseconds(140)))
         configuration.dataLoadingQueue = queue
         configuration.imageCache = ImageCache()

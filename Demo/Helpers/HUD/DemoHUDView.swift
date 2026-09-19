@@ -216,18 +216,6 @@ private struct DemoHUDPanel<Drag: Gesture>: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .accessibilityLabel("Since the reset")
-            if DemoFixtureMode.shared.isOffline {
-                // Every image is a fixture, which a screenshot of the
-                // figures should say.
-                Text("offline")
-                    .foregroundStyle(.orange)
-            }
-            if let conditions = DemoNetworkConditions.shared.badge {
-                // So should downloads slowed or failed on purpose.
-                Text(conditions.lowercased())
-                    .lineLimit(1)
-                    .foregroundStyle(.orange)
-            }
             Spacer(minLength: 8)
             Button {
                 hud.reset()

@@ -121,11 +121,6 @@ struct ConcurrencyInspectorDemo: View {
             DemoMonoLabel(status, tint: model.isPaused ? .orange : .primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-            if let conditions = DemoNetworkConditions.shared.badge {
-                Label("Network conditions are on (\(conditions)): the fixtures are slowed, and some fail.", systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
-            }
         } header: {
             Text("Workload")
         } footer: {

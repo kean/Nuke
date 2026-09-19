@@ -44,14 +44,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case pipelineHUD = "pipeline-hud"
     case concurrencyInspector = "concurrency-inspector"
     case scrollStress = "scroll-stress"
-    case cancellationTorture = "cancellation-torture"
-    case memorySoak = "memory-soak"
-    case cacheTorture = "cache-torture"
     case animationLab = "animation-lab"
-    case fixtureZoo = "fixture-zoo"
-    case fixtureMode = "fixture-mode"
-    case networkConditions = "network-conditions"
-    case automation = "automation"
 
     var id: String { rawValue }
 
@@ -78,14 +71,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Pipeline HUD"
         case .concurrencyInspector: "Concurrency Inspector"
         case .scrollStress: "Scroll Stress"
-        case .cancellationTorture: "Cancellation Torture"
-        case .memorySoak: "Memory Soak"
-        case .cacheTorture: "Cache Torture"
         case .animationLab: "Animation Lab"
-        case .fixtureZoo: "Fixture Zoo"
-        case .fixtureMode: "Fixture Mode"
-        case .networkConditions: "Network Conditions"
-        case .automation: "Automation"
         }
     }
 
@@ -113,14 +99,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: "Every figure the probe counts, over any screen"
         case .concurrencyInspector: "Queues, every task's state, and stalls"
         case .scrollStress: "Fast scrolling with every cache disabled"
-        case .cancellationTorture: "Tasks cancelled at 200 a second, then checked"
-        case .memorySoak: "A workload on repeat, and the footprint"
-        case .cacheTorture: "Both caches hammered, then checked"
         case .animationLab: "Up to 36 animations on one frame pool, pushed"
-        case .fixtureZoo: "Thirty inputs the decoders should survive"
-        case .fixtureMode: "Every image from generated fixtures, offline"
-        case .networkConditions: "Latency, loss, 500s, and cut-off downloads everywhere"
-        case .automation: "Launch arguments and the id of every screen"
         }
     }
 
@@ -138,17 +117,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineDelegate: .catalog(.integration)
         case .customDataLoader: .catalog(.integration)
         case .video: .catalog(.integration)
-        case .pipelineHUD: .lab(.instruments)
-        case .concurrencyInspector: .lab(.instruments)
-        case .scrollStress: .lab(.stress)
-        case .cancellationTorture: .lab(.stress)
-        case .memorySoak: .lab(.stress)
-        case .cacheTorture: .lab(.stress)
-        case .animationLab: .lab(.animation)
-        case .fixtureZoo: .lab(.fixtures)
-        case .fixtureMode: .lab(.rig)
-        case .networkConditions: .lab(.rig)
-        case .automation: .lab(.rig)
+        case .pipelineHUD, .concurrencyInspector, .scrollStress, .animationLab: .lab
         }
     }
 
@@ -178,23 +147,21 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .pipelineHUD: PipelineHUDDemo()
         case .concurrencyInspector: ConcurrencyInspectorDemo()
         case .scrollStress: ScrollStressDemo()
-        case .cancellationTorture: CancellationTortureDemo()
-        case .memorySoak: MemorySoakDemo()
-        case .cacheTorture: CacheTortureDemo()
         case .animationLab: AnimationLabDemo()
-        case .fixtureZoo: FixtureZooDemo()
-        case .fixtureMode: FixtureModeDemo()
-        case .networkConditions: NetworkConditionsDemo()
-        case .automation: AutomationDemo()
         }
     }
 }
 
 extension DemoScreen {
-    /// Where a screen is listed: a section of the catalog, or a group in the Lab.
+    /// Where a screen is listed: a section of the catalog, or the Lab.
     enum Placement: Hashable {
         case catalog(CatalogSection)
-        case lab(LabGroup)
+        case lab
+    }
+
+    /// The screens of the Lab menu.
+    static var lab: [DemoScreen] {
+        allCases.filter { $0.placement == .lab }
     }
 
     /// The sections of the catalog, in the order an app tends to need them
@@ -232,30 +199,6 @@ extension DemoScreen {
         /// Empty for a section that has no screens yet, which the catalog leaves out.
         var screens: [DemoScreen] {
             DemoScreen.allCases.filter { $0.placement == .catalog(self) }
-        }
-    }
-
-    /// The groups of the Lab menu.
-    enum LabGroup: CaseIterable {
-        case instruments
-        case stress
-        case animation
-        case fixtures
-        case rig
-
-        var title: String {
-            switch self {
-            case .instruments: "Instruments"
-            case .stress: "Stress"
-            case .animation: "Animation"
-            case .fixtures: "Fixtures"
-            case .rig: "Rig"
-            }
-        }
-
-        /// Empty for a group that has no screens yet, which the Lab leaves out.
-        var screens: [DemoScreen] {
-            DemoScreen.allCases.filter { $0.placement == .lab(self) }
         }
     }
 }

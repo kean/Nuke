@@ -25,19 +25,19 @@ import os
 /// time this `completion` arrives the pipeline has let go of the download, so
 /// it reaches nothing of the app's.
 ///
-/// **Offline.** `DemoPipelineProbe` answers the requests of a pipeline
-/// configured with this loader with ``fixtureLoader``: the fixtures, at the
-/// same ``pace``, reported to the same ``hooks``.
+/// **Fixtures.** `DemoPipelineProbe` answers this loader's requests for a
+/// fixture URL with ``fixtureLoader``: at the same ``pace``, reported to the
+/// same ``hooks``.
 final class PacedDataLoader: DataLoading, Sendable {
-    /// The fixture loader's pace, so that the loader standing in for this one
-    /// offline keeps it. Only a fixture has scans to wait for.
+    /// The fixture loader's pace, so that the fixture loader answering for
+    /// this one keeps it. Only a fixture has scans to wait for.
     typealias Pace = DemoFixtureLoader.Pace
 
     /// When the chunks arrive.
     let pace: Pace
     /// What a screen hears of every load.
     let hooks: DemoLoadHooks
-    /// Answers this loader's requests while the demo is offline.
+    /// Answers this loader's requests for a fixture URL.
     let fixtureLoader: DemoFixtureLoader
 
     private let session: URLSession
@@ -173,13 +173,11 @@ struct DemoLoad: Sendable {
 }
 
 /// What a screen hears from inside the loads of a ``PacedDataLoader``, and of
-/// the fixture loader that stands in for it offline: for a screen that shows
-/// what went to the server and what came back.
+/// the fixture loader that answers for it: for a screen that shows what went
+/// to the server and what came back.
 ///
 /// Each hook is called on the load's own thread, once per load, while the
-/// load waits for it, so hand off and return. A loader may sit behind
-/// another, such as the network conditions of the Lab, so what it hands on
-/// isn't what the pipeline receives: count the bytes from the task.
+/// load waits for it, so hand off and return.
 struct DemoLoadHooks: Sendable {
     /// The pipeline passed a request to the loader: after `willLoadData`,
     /// before anything went out.

@@ -89,11 +89,10 @@ struct CustomDataLoaderDemo: View {
             .init("Cancel", "When the last task that needs the data is cancelled, the pipeline calls `cancel()` on what `loadData` returned. The documentation asks a loader to call neither closure after that, and ThrottledDataLoader doesn't. But the pipeline frees the load's data loading slot only when `completion` is called, so today such a loader keeps the slot of every load cancelled partway, and the pipeline the load belongs to, for as long as the app runs. The slots figure and the earlier runs row show both."),
             .init("Completing after a cancel", "BundleDataLoader and FailingDataLoader call `completion` with `URLError(.cancelled)` after a cancel, as `DataLoader` does: `URLSession` reports a cancelled task as completed. The slot is free at once, and the call reaches nothing of the app's, because the pipeline let go of the task when it cancelled the load."),
             .init("Throttled", "`ThrottledDataLoader` downloads the image with a `URLSession` of its own, then hands it on 8 KB at a time, 150 ms apart, so that a fast connection looks slow. Progressive Decoding uses it too."),
-            .init("Bundle", "`BundleDataLoader` answers the URLs it has a file for from the app bundle, 4 KB at a time, 200 ms apart; an app would hand the file on in one chunk. The pipeline's delegate sends it those requests and leaves the rest to the configured loader. Its file for this URL is the demo's own 1024×772 WebP, the one that stands in for the photo offline, so the picture says which loader answered."),
+            .init("Bundle", "`BundleDataLoader` answers the URLs it has a file for from the app bundle, 4 KB at a time, 200 ms apart; an app would hand the file on in one chunk. The pipeline's delegate sends it those requests and leaves the rest to the configured loader. Its file for this URL is the demo's own 1024×772 WebP fixture, so the picture says which loader answered."),
             .init("Failing", "`FailingDataLoader` fails every request with the error `DataLoader` or `URLSession` would report: a 500 before any data, or a connection lost a third of the way into the body."),
             .init("Installing a loader", "`configuration.dataLoader` loads every request of the pipeline. The delegate's `dataLoader(for:pipeline:)` picks a loader per request; the pipeline asks it once per download, after coalescing, when a data loading slot is free."),
-            .init("A pipeline per run", "Every run loads the image on a new pipeline, so that a slot an earlier run keeps doesn't hold this one up. The pipelines share a memory cache and a `DataCache`, and the request has `.reloadIgnoringCachedData`: the caches are written, not read, and every run goes to the loader. The calls come from the demo's pipeline probe, which passes each one on as it is."),
-            .init("Offline and network conditions", "Offline, the fixture loader answers ThrottledDataLoader's requests at the same pace, and it completes after a cancel, so no slot is kept. The other two loaders never go to the network and keep their requests. With Network Conditions on, every load goes through the Lab's rig, which completes a cancelled load itself, whatever the loader does.")
+            .init("A pipeline per run", "Every run loads the image on a new pipeline, so that a slot an earlier run keeps doesn't hold this one up. The pipelines share a memory cache and a `DataCache`, and the request has `.reloadIgnoringCachedData`: the caches are written, not read, and every run goes to the loader. The calls come from the demo's pipeline probe, which passes each one on as it is.")
         ]
     )
 }
@@ -223,7 +222,7 @@ private struct RunFigures: View {
         // Live while a cancelled load hasn't completed: the wait grows.
         TimelineView(.animation(minimumInterval: 0.1, paused: !(run?.isAwaitingCompletion ?? false))) { _ in
             Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
-                row("loader", run?.loader?.shortTitle ?? "–")
+                row("loader", run?.loader?.title ?? "–")
                 row("response", response)
                 row("chunks", chunks)
                 let completion = completion
@@ -372,19 +371,10 @@ private struct CallTimeline: View {
 /// code.
 private struct CustomDataLoaderList: View {
     @ObservedObject var model: CustomDataLoaderDemoModel
-    /// Whether the Lab is on display, which its link follows.
-    private let showsLab = DemoLaunchOptions.current.showsLab
 
     var body: some View {
         List {
             if let run = model.run {
-                if let note = note(for: run) {
-                    Section {
-                        Text(note)
-                            .font(.footnote)
-                            .foregroundStyle(.orange)
-                    }
-                }
                 Section {
                     if run.calls.isEmpty {
                         Text("Waiting for the pipeline to call the loader")
@@ -404,9 +394,6 @@ private struct CustomDataLoaderList: View {
                 }
                 Section {
                     PipelineRows(run: run, figures: model.figures)
-                    if showsLab {
-                        DemoLink(.cancellationTorture)
-                    }
                 } header: {
                     Text("Pipeline")
                 } footer: {
@@ -433,26 +420,7 @@ private struct CustomDataLoaderList: View {
         return "This loader calls `completion` after a cancel too, with `URLError(.cancelled)`, as `DataLoader` does. That frees the load's data loading slot, and reaches nothing of the app's: the pipeline let go of the task when it cancelled the load."
     }
 
-    private var pipelineFooter: LocalizedStringKey {
-        guard showsLab else {
-            return "From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`."
-        }
-        return "From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`. Cancellation Torture's slot check cancels every download of a pipeline midway, with a loader that completes and one that doesn't, then asks for one more image."
-    }
-
-    /// What changes the calls of the run: the demo's switches in the Lab.
-    private func note(for run: CustomDataLoaderDemoModel.Run) -> LocalizedStringKey? {
-        if let conditions = run.conditions {
-            let slots = run.choice == .throttled
-                ? " It also completes a cancelled load itself, so ThrottledDataLoader's slot is freed here. Switch them off to see it kept."
-                : ""
-            return "Network conditions are on (\(conditions)): the loader is behind the Lab's rig, whose delays and failures come first.\(slots)"
-        }
-        if run.isOffline, run.choice == .throttled {
-            return "Offline, the fixture loader answers in place of ThrottledDataLoader, at the same pace, with the photo's stand-in. It completes after a cancel, so no slot is kept here. Go online in Fixture Mode to see ThrottledDataLoader keep it."
-        }
-        return nil
-    }
+    private let pipelineFooter: LocalizedStringKey = "From the task's events and the demo's pipeline probe. A load is in flight, and holds its data loading slot, until the loader calls `completion`."
 }
 
 /// A call between the pipeline and the loader, or the chunks between the
@@ -838,11 +806,6 @@ extension FailingDataLoader.Failure {
     }
 }
 
-// Neither goes to the network, so the demo's probe leaves their requests to
-// them while the demo is offline.
-extension BundleDataLoader: DemoLocalDataLoading {}
-extension FailingDataLoader: DemoLocalDataLoading {}
-
 /// Sends the requests the bundle has a file for to the bundle loader, and
 /// every other one to the loader the pipeline was configured with.
 private final class BundleFirstDelegate: ImagePipeline.Delegate {
@@ -882,11 +845,6 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
         let number: Int
         let choice: LoaderChoice
         let startedAt: ContinuousClock.Instant
-        /// The demo's switches when the run started, which is when the probe
-        /// read them for its load.
-        let isOffline: Bool
-        /// The title of the network conditions, if they were on.
-        let conditions: String?
         /// The loader that answered, after the probe's routing.
         var loader: AnsweringLoader?
         var calls: [Call] = []
@@ -999,8 +957,8 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
     @Published private(set) var run: Run?
     @Published private(set) var figures = Figures()
 
-    /// The image every run requests: the WebP, whose stand-in the app
-    /// bundle has.
+    /// The image every run requests: the WebP, which the app bundle has a
+    /// fixture for.
     private let url = DemoImages.Network.webp
 
     // The loaders are made once: each one is stateless between loads.
@@ -1045,9 +1003,7 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
         let run = Run(
             number: lastRunNumber,
             choice: choice,
-            startedAt: .now,
-            isOffline: DemoFixtureMode.isOffline,
-            conditions: DemoNetworkConditions.shared.isOn ? DemoNetworkConditions.shared.title : nil
+            startedAt: .now
         )
         let pipeline = makePipeline(for: run)
         self.pipeline = pipeline
@@ -1183,23 +1139,10 @@ private final class CustomDataLoaderDemoModel: ObservableObject {
 /// The loader the pipeline called, as the probe routed the request.
 private struct AnsweringLoader {
     /// Its type, such as `ThrottledDataLoader`.
-    let name: String
-    /// Whether it is behind the Lab's network conditions.
-    let isConditioned: Bool
+    let title: String
 
     init(_ loader: any DataLoading) {
-        let conditioned = loader as? DemoConditionedDataLoader
-        let base = conditioned?.base ?? loader
-        name = String(describing: type(of: base))
-        isConditioned = conditioned != nil
-    }
-
-    var title: String {
-        isConditioned ? "\(name), behind the network conditions" : name
-    }
-
-    var shortTitle: String {
-        isConditioned ? "\(name) +rig" : name
+        title = String(describing: type(of: loader))
     }
 }
 

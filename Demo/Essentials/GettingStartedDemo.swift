@@ -193,8 +193,7 @@ struct GettingStartedDemo: View {
             .init("Natural size", "Without a closure, `LazyImage(url:)` shows the image at its natural size, as `AsyncImage` does: this 1440×960 photo would be 1440 points wide. The closure makes it resizable. It gets the state, with the image, the error, and the progress, so it can show a placeholder or a failure as well."),
             .init("NukeUI.loadImage", "The UIKit guide puts the module's name in front of `loadImage`. Inside a type that has a `loadImage` method of its own, Swift would find that method first."),
             .init("Cancellation", "`LazyImage` cancels its request when it disappears, and `loadImage(with:into:)` when its image view goes away or starts another load. Cancelling the Swift task that awaits `imageTask.image` cancels the image task."),
-            .init("Where it came from", "The line under each image is `ImageResponse.cacheType`. It is `nil` for an image the data loader returned, whether it was downloaded or read from `URLCache`."),
-            .init("Offline", "Offline, the photo is a 1440×960 fixture the app draws, and the first load comes from the fixture loader.")
+            .init("Where it came from", "The line under each image is `ImageResponse.cacheType`. It is `nil` for an image the data loader returned, whether it was downloaded or read from `URLCache`.")
         ]
     )
 
@@ -416,7 +415,6 @@ private final class GettingStartedModel {
         var isFailure: Bool { phase == .failed }
     }
 
-    /// Read when the screen opens, so it is a fixture's while offline.
     let url = DemoImages.landscape
     let pipelineImageView = GettingStartedModel.makeImageView()
     let imageView = GettingStartedModel.makeImageView()

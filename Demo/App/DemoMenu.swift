@@ -99,7 +99,7 @@ struct DemoMenu: View {
     /// Nuke. `-demoLab 0` leaves it out.
     private var lab: some View {
         Section {
-            DemoLink(.lab, title: "Lab", subtitle: "Instruments and stress rigs for working on Nuke", status: LabMenu.rigStatus)
+            DemoLink(.lab, title: "Lab", subtitle: "Instruments and stress rigs for working on Nuke")
         } footer: {
             pageFooter
         }

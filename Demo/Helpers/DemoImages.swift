@@ -9,65 +9,56 @@ import Foundation
 /// Everything is loaded over the network so that the demo exercises the same
 /// code paths an app does: `URLSession`, disk cache, decoding, and processing.
 /// The one exception is ``animatedHEIC``, which ships with the demo.
-///
-/// While ``DemoFixtureMode`` is offline, every URL here is the URL of the
-/// ``DemoFixture`` that stands in for it, read when the screen asks: a screen
-/// opened offline loads fixtures, and caches them apart from the photos.
-/// ``Network`` has the network URLs whatever the mode.
 enum DemoImages {
     /// A large landscape photo. Used by the screens that show a single image.
-    static var landscape: URL { url(Network.landscape, .jpeg) }
+    static let landscape = Network.landscape
 
     /// The same photo encoded as a progressive JPEG.
-    static var progressiveJPEG: URL { url(Network.progressiveJPEG, .progressiveJPEG) }
+    static let progressiveJPEG = Network.progressiveJPEG
 
     /// The same photo encoded as a baseline JPEG.
-    static var baselineJPEG: URL { url(Network.baselineJPEG, .jpeg) }
+    static let baselineJPEG = Network.baselineJPEG
 
-    static var png: URL { url(Network.png, .png) }
+    static let png = Network.png
 
-    static var gif: URL { url(Network.gif, .gif) }
+    static let gif = Network.gif
 
     /// An APNG.
-    static var apng: URL { url(Network.apng, .apng) }
+    static let apng = Network.apng
 
     /// An animated WebP.
-    static var animatedWebP: URL { url(Network.animatedWebP, .animatedWebP) }
+    static let animatedWebP = Network.animatedWebP
 
     /// A long, large GIF. Its frames don't all fit in the default buffer, so it
     /// is the one that shows the sliding window doing its job.
-    static var largeGIF: URL { url(Network.largeGIF, .longGIF) }
+    static let largeGIF = Network.largeGIF
 
     /// An animated HEIC – a HEIF image sequence – shipped with the demo, since
     /// there is no well-known URL for one. The format is worth having on screen
     /// because it is the one an app is most likely to get wrong: the file leads
     /// with the `msf1` brand, and Image I/O reports it as `public.heics`.
     ///
-    /// A file URL, which the pipeline reads without a data loader, so it is
-    /// the same offline.
+    /// A file URL, which the pipeline reads without a data loader.
     static let animatedHEIC = Bundle.main.url(forResource: "animated", withExtension: "heics")
 
-    static var webp: URL { url(Network.webp, .webp) }
+    static let webp = Network.webp
 
     /// A photo taken with an iPhone, as its camera writes it: HEVC in a HEIF
     /// container that leads with the `heic` brand.
-    static var heic: URL { url(Network.heic, .heic) }
+    static let heic = Network.heic
 
-    static var video: URL { url(Network.video, .video) }
+    static let video = Network.video
 
     /// A URL that always fails. Used to demonstrate the failure states.
-    static var failing: URL { url(Network.failing, .missing) }
+    static let failing = Network.failing
 
     /// A few photos used as avatars. The processors crop them to a square.
     static var avatars: [URL] { Array(photos.prefix(6)) }
 
     /// A photo stream used by the grid, prefetching, and stress-test screens.
-    static var photos: [URL] {
-        photos(from: DemoFixtureMode.isOffline ? .fixtures : .network)
-    }
+    static var photos: [URL] { Network.photos }
 
-    /// The photo stream from the given source, whatever the mode. Offline, the
-    /// network URLs are answered by fixtures all the same.
+    /// The photo stream from the given source.
     static func photos(from source: DemoImageSource) -> [URL] {
         switch source {
         case .fixtures: fixturePhotos
@@ -76,10 +67,6 @@ enum DemoImages {
     }
 
     private static let fixturePhotos = DemoFixture.photos.map(\.url)
-
-    private static func url(_ url: URL, _ fixture: DemoFixture) -> URL {
-        DemoFixtureMode.isOffline ? fixture.url : url
-    }
 
     /// The URLs on the network.
     enum Network {
@@ -115,9 +102,8 @@ enum DemoImages {
 
 /// Where a screen's photos come from.
 ///
-/// Catalog screens load ``DemoImages/photos``, which follows
-/// ``DemoFixtureMode``. A Lab screen that loads photos offers this choice
-/// instead, and starts on fixtures, so that a run measures the pipeline rather
+/// Catalog screens load ``DemoImages/photos`` from the network. A Lab screen
+/// that loads photos offers this choice instead, and starts on fixtures, so that a run measures the pipeline rather
 /// than the network and compares with the last one.
 enum DemoImageSource: String, CaseIterable, Identifiable {
     case fixtures

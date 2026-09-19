@@ -135,7 +135,6 @@ private final class ImageProcessingDemoModel: ObservableObject {
     }
 
     let pipeline: ImagePipeline
-    /// Made when the screen opens, so the photo follows the offline switch.
     let examples: [Example]
 
     @Published private(set) var figures: [Example.ID: Figures] = [:]

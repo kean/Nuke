@@ -16,8 +16,8 @@ import Foundation
 ///
 /// The generated ones are the same bytes on every run on a given system, which
 /// is what makes a run on fixtures comparable to the last one. Each one says
-/// what it is on its face – "FIXTURE 360×240" – so a screenshot shows which
-/// mode it was taken in.
+/// what it is on its face – "FIXTURE 360×240" – so a screenshot shows where
+/// its images came from.
 ///
 /// The bundled ones, in `Resources/Fixtures`, were drawn the same way and
 /// encoded on a Mac: the animated WebP with
@@ -58,9 +58,9 @@ enum DemoFixture: Hashable, Sendable {
     /// Fails the way a missing image on a server does: with
     /// `DataLoader.Error.statusCodeUnacceptable(404)`, and no data.
     case missing
-    /// An input of the Fixture Zoo, most of them not images a decoder should
-    /// accept. Not in ``all``: the Fixture Zoo lists them.
-    case zoo(DemoZooInput)
+    /// A 96×96 GIF of four frames of 0, 10, 20, and 500 ms, for the delay
+    /// map of **Animated Images**. Not in ``all``.
+    case mixedDelayGIF
     /// A 56×26 NukePix file, the toy format of the Custom Decoder screen,
     /// which only its decoder reads. Not in ``all``.
     case nukePix
@@ -73,7 +73,7 @@ enum DemoFixture: Hashable, Sendable {
         DemoImages.Network.photos.indices.map { .photo($0) }
     }
 
-    /// Every fixture, the photos included, in the order the Lab lists them.
+    /// Every fixture, the photos included.
     static var all: [DemoFixture] {
         named + photos
     }
@@ -99,10 +99,8 @@ enum DemoFixture: Hashable, Sendable {
     init?(url: URL?) {
         guard let url, Self.isFixture(url) else { return nil }
         let name = url.lastPathComponent
-        if let fixture = (Self.named + Self.nukePixFiles).first(where: { $0.name == name }) {
+        if let fixture = (Self.named + Self.nukePixFiles + [.mixedDelayGIF]).first(where: { $0.name == name }) {
             self = fixture
-        } else if name.hasPrefix(Self.zooPrefix), let input = DemoZooInput(rawValue: String(name.dropFirst(Self.zooPrefix.count))) {
-            self = .zoo(input)
         } else if name.hasPrefix("photo-"), name.hasSuffix(".jpeg"),
                   let index = Int(name.dropFirst("photo-".count).dropLast(".jpeg".count)),
                   DemoImages.Network.photos.indices.contains(index) {
@@ -112,48 +110,11 @@ enum DemoFixture: Hashable, Sendable {
         }
     }
 
-    private static let zooPrefix = "zoo-"
-
     /// Whether the URL is a fixture's, one that only ``DemoFixtureLoader``
     /// answers.
     static func isFixture(_ url: URL?) -> Bool {
         url?.scheme?.lowercased() == scheme
     }
-
-    /// The fixture that stands in for one of the demo's network URLs while
-    /// the demo is offline, or `nil` for a URL the demo doesn't know. The
-    /// query is ignored, so a signed URL finds its photo.
-    static func standIn(for url: URL) -> DemoFixture? {
-        if let fixture = DemoFixture(url: url) {
-            return fixture
-        }
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.query = nil
-        components?.fragment = nil
-        return components?.url.flatMap { standIns[$0] }
-    }
-
-    private static let standIns: [URL: DemoFixture] = {
-        typealias Network = DemoImages.Network
-        var standIns: [URL: DemoFixture] = [
-            Network.landscape: .jpeg,
-            Network.baselineJPEG: .jpeg,
-            Network.progressiveJPEG: .progressiveJPEG,
-            Network.png: .png,
-            Network.gif: .gif,
-            Network.largeGIF: .longGIF,
-            Network.apng: .apng,
-            Network.animatedWebP: .animatedWebP,
-            Network.webp: .webp,
-            Network.heic: .heic,
-            Network.video: .video,
-            Network.failing: .missing
-        ]
-        for (index, url) in Network.photos.enumerated() {
-            standIns[url] = .photo(index)
-        }
-        return standIns
-    }()
 
     // MARK: Description
 
@@ -173,7 +134,7 @@ enum DemoFixture: Hashable, Sendable {
         case .animatedWebP: "animation.webp"
         case .video: "video.mp4"
         case .missing: "missing.jpeg"
-        case .zoo(let input): Self.zooPrefix + input.fileName
+        case .mixedDelayGIF: "mixed-delay.gif"
         case .nukePix: "badge.nukepix"
         case .truncatedNukePix: "truncated.nukepix"
         }
@@ -197,30 +158,9 @@ enum DemoFixture: Hashable, Sendable {
         case .animatedWebP: return "300×225 WebP · 50 frames · bundled"
         case .video: return "320×240 MP4 · 2 s · bundled"
         case .missing: return "Fails with a 404"
-        case .zoo(let input): return input.summary
+        case .mixedDelayGIF: return "96×96 GIF · 4 frames of 0–500 ms"
         case .nukePix: return "56×26 NukePix"
         case .truncatedNukePix: return "56×26 NukePix · cut off at 60%"
-        }
-    }
-
-    /// What it replaces while the demo is offline.
-    var standsInFor: String {
-        switch self {
-        case .photo: "stands in for a photo of the stream"
-        case .jpeg: "stands in for the landscape photo and its baseline copy"
-        case .progressiveJPEG: "stands in for the progressive copy"
-        case .largeJPEG: "for the Lab"
-        case .png: "stands in for the PNG"
-        case .gif: "stands in for the GIF"
-        case .longGIF: "stands in for the large GIF"
-        case .apng: "stands in for the APNG"
-        case .webp: "stands in for the WebP"
-        case .heic: "stands in for the HEIC photo"
-        case .animatedWebP: "stands in for the animated WebP"
-        case .video: "stands in for the video"
-        case .missing: "stands in for the URL that always fails"
-        case .zoo: "for the Fixture Zoo"
-        case .nukePix, .truncatedNukePix: "for Custom Decoder"
         }
     }
 
@@ -229,11 +169,10 @@ enum DemoFixture: Hashable, Sendable {
         switch self {
         case .photo, .jpeg, .progressiveJPEG, .largeJPEG, .missing: "image/jpeg"
         case .png, .apng: "image/png"
-        case .gif, .longGIF: "image/gif"
+        case .gif, .longGIF, .mixedDelayGIF: "image/gif"
         case .webp, .animatedWebP: "image/webp"
         case .heic: "image/heic"
         case .video: "video/mp4"
-        case .zoo(let input): input.mimeType
         case .nukePix, .truncatedNukePix: "image/x-nukepix"
         }
     }
@@ -247,7 +186,7 @@ enum DemoFixture: Hashable, Sendable {
 
 /// Why ``DemoFixtureLoader`` couldn't answer a request.
 enum DemoFixtureError: Error, LocalizedError, CustomStringConvertible {
-    /// No fixture stands in for the URL.
+    /// No fixture has the URL.
     case noFixture(URL?)
     /// A bundled fixture isn't in the app bundle.
     case missingResource(String)
@@ -257,7 +196,7 @@ enum DemoFixtureError: Error, LocalizedError, CustomStringConvertible {
     var errorDescription: String? {
         switch self {
         case .noFixture(let url):
-            "No fixture stands in for \(url?.absoluteString ?? "a request without a URL"). Offline, the demo answers only the URLs in DemoImages; add a stand-in to DemoFixture to load another one."
+            "No fixture has the URL \(url?.absoluteString ?? "a request without a URL")."
         case .missingResource(let name):
             "The bundled fixture \(name) isn't in the app bundle."
         case .encodingFailed(let fixture):

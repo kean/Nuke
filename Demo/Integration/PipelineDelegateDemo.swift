@@ -166,7 +166,6 @@ private final class PipelineDelegateDemoModel: ObservableObject {
     @Published private(set) var reloadToken = UUID()
 
     /// The tokens handed out so far.
-    private var tokenCount: UInt16 = 0
 
     init() {
         let log = PipelineEventLog()
@@ -221,12 +220,9 @@ private final class PipelineDelegateDemoModel: ObservableObject {
         reload()
     }
 
-    /// A new token for every load: random, or counted under
-    /// `-demoDeterministic 1`, so that the log reads the same every launch.
+    /// A new, random token for every load.
     private func makeToken() -> String {
-        tokenCount &+= 1
-        let value = DemoLaunchOptions.current.isDeterministic ? tokenCount : UInt16.random(in: .min ... .max)
-        return String(format: "%04X", value)
+        String(format: "%04X", UInt16.random(in: .min ... .max))
     }
 
     /// The photos as a server that signs its URLs hands them out: with a new

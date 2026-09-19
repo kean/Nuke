@@ -109,8 +109,7 @@ enum DemoHUDFigures {
         ]
     }
 
-    /// `network`, `saved`. Offline, the network line stays at zero and the
-    /// bytes are the fixtures'.
+    /// `network`, `saved`. The network line leaves fixtures out.
     static func network(_ figures: DemoPipelineDiagnostics) -> [DemoHUDLine] {
         let timeToFirstByte = figures.timeToFirstByte.count > 0 ? demoDelay(figures.timeToFirstByte.average) : "–"
         return [
@@ -210,11 +209,10 @@ enum DemoHUDFigures {
     /// that the line keeps its width: `network`; `fixture` when fixtures
     /// answered every download; `fetched` when they answered some. A task
     /// can't tell a fixture from the network, so the probe counts fixtures
-    /// by download, and a mix can't be split by image. Before the first
-    /// download, the demo's mode decides.
+    /// by download, and a mix can't be split by image.
     static func downloadSource(_ figures: DemoPipelineDiagnostics) -> String {
         guard figures.fixtureLoadCount > 0 else {
-            return figures.completedDownloadCount == 0 && DemoFixtureMode.isOffline ? "fixture" : "network"
+            return "network"
         }
         return figures.fixtureLoadCount < figures.completedDownloadCount ? "fetched" : "fixture"
     }

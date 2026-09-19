@@ -76,10 +76,10 @@ struct CachingDemo: View {
             .init("Encoded images", "The pipeline encodes an image once it is decoded, processed, and decompressed, one at a time on its encoding queue, then hands the data to the delegate's `willCache` and stores it. The default encoder writes a JPEG at 0.8 quality, or a PNG for an image with transparency, so an encoded image isn't always smaller than the file it came from: the PNG's thumbnail can take more room than the PNG. Under `.storeEncodedImages`, the unprocessed request reads back what the pipeline encoded rather than the server's bytes, and for the photo that is a larger file."),
             .init("disableDiskCacheWrites", "The option keeps the downloaded data off the disk, but not an encoded image: the pipeline writes those without checking it. Turn it on and pick each policy. Anything On Disk in orange is a write the option didn't stop, and `.storeOriginalData` is the only policy that leaves the disk empty. The direct `storeCachedImage` and `storeCachedData` do check it."),
             .init("A new pipeline", "The policy is a property of `ImagePipeline.Configuration`, which a pipeline takes when it is created, so each pick builds a new pipeline. Each policy has a disk cache directory of its own, emptied when its pipeline is built, so every pick starts clean. The switch is a request option and needs no new pipeline, but it builds one too, so that the counts under the images start over with it."),
-            .init("URLCache", "The default configuration. `URLSession` keeps one response per URL, as the server sent it, and honors its cache-control headers. The pipeline never writes to it, so the resize and the thumbnail are made again from the response after a memory miss, and `ImagePipeline.Cache` can't read or empty it. Offline, the demo's fixtures don't go through `URLSession`, so `URLCache` stays empty."),
+            .init("URLCache", "The default configuration. `URLSession` keeps one response per URL, as the server sent it, and honors its cache-control headers. The pipeline never writes to it, so the resize and the thumbnail are made again from the response after a memory miss, and `ImagePipeline.Cache` can't read or empty it."),
             .init("Memory cache", "`ImageCache` holds the decoded image each request ended with, keyed by the request's image ID, scale, thumbnail, and processors, so the three requests take three entries. It is an LRU cache with a cost limit, and it empties itself when memory runs low. A hit on the disk still costs a decode."),
             .init("Direct access", "`pipeline.cache` reads and writes the entries the pipeline does, under the keys `makeImageCacheKey(for:)` and `makeDataCacheKey(for:)` return, and a `DataCache` names each file after the SHA-1 of its key. A read from the disk is a file read, and for an image a decode too, so the screen makes every call off the main thread. A direct store doesn't go through the delegate's `willCache`: the HUD counts the encode of `storeCachedImage`, but no disk write."),
-            .init("The images", "A 310 KB JPEG photo, a 173 KB WebP of a tree, and an 18 KB PNG with transparency, from user-images.githubusercontent.com and kean.blog. The resize and the thumbnail both fit the image in 160 × 160 pt. Offline, fixtures in the same formats stand in for them.")
+            .init("The images", "A 310 KB JPEG photo, a 173 KB WebP of a tree, and an 18 KB PNG with transparency, from user-images.githubusercontent.com and kean.blog. The resize and the thumbnail both fit the image in 160 × 160 pt.")
         ]
     )
 }
@@ -455,8 +455,7 @@ private final class CachingDemoModel: ObservableObject {
             }
         }
 
-        /// The directory of the policy's disk cache, under the prefix that
-        /// `-demoDeterministic 1` empties.
+        /// The directory of the policy's disk cache.
         var cacheName: String {
             "com.github.kean.NukeDemo.Caching.\(self)"
         }
@@ -494,8 +493,7 @@ private final class CachingDemoModel: ObservableObject {
             }
         }
 
-        /// A different image for each, read when a load starts, so that it
-        /// follows the demo's offline switch.
+        /// A different image for each.
         var url: URL {
             switch self {
             case .original: DemoImages.landscape
@@ -928,11 +926,6 @@ private final class CachingDemoModel: ObservableObject {
             if DemoFixture.isFixture(response.request.url) {
                 return (.fixture, bytes)
             }
-            if kind == .urlCache, metrics?.urlSessionMetrics == nil, DemoNetworkConditions.current != nil {
-                // Behind the conditions, the record has no session metrics
-                // to tell a `URLCache` answer by.
-                return (.network, "\(bytes), or URLCache")
-            }
             return (.network, "\(bytes) down")
         case .disk?:
             // The first disk lookup of the request's own job is for its own
@@ -1093,12 +1086,6 @@ private final class CachingDemoModel: ObservableObject {
             var footer = "One response per URL, as the server sent it. The resize and the thumbnail aren't kept: they are made again from the response after a memory miss. A revalidated response went back to the server, which said it hadn't changed."
             if listing.entries.values.contains(where: { $0.redirect != nil }) {
                 footer += " A redirect is kept as a response of its own, under the URL that was requested; the size is of the response it leads to."
-            }
-            if DemoFixtureMode.isOffline {
-                footer += " Offline, the fixtures don't go through `URLSession`, so nothing is kept here."
-            }
-            if DemoNetworkConditions.current != nil {
-                footer += " While the network conditions are on, a task's record doesn't say whether `URLCache` answered, so the tiles can't tell; the count under them can."
             }
             if let usage = caches.urlCacheDiskUsage {
                 footer += " `URLCache` uses \(demoByteCount(usage)) on disk, for every pipeline that shares it."

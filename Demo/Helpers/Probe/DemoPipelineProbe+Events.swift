@@ -57,10 +57,9 @@ extension DemoPipelineProbe {
     /// lists them.
     ///
     /// Reported by ``CountingDataLoader``, so only for the loads it wraps:
-    /// those of every loader but a `DataLoader`, and of every loader while the
-    /// network conditions are on. The calls are the ones the pipeline made and
-    /// received, after the probe's routing: offline, the fixture loader's; with
-    /// the conditions on, those of the conditions around the loader.
+    /// those of every loader but a `DataLoader`. The calls are the ones the
+    /// pipeline made and received, after the probe's routing: for a fixture
+    /// URL, the fixture loader's.
     struct LoadEvent: Sendable {
         /// The request the pipeline is loading the data for.
         let request: ImageRequest
