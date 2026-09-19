@@ -253,9 +253,18 @@ struct DataCacheLifetimeTests {
     }
 }
 
+/// Looks the symbol up with `RTLD_DEFAULT`, which Swift doesn't import.
+private let _isThreadSanitizerEnabled = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "__tsan_init") != nil
+
 /// The QoS the disk I/O runs at, which is what the priority of the work
 /// comes down to on the serial I/O queue.
-@Suite(.timeLimit(.minutes(5)))
+///
+/// Thread Sanitizer (enabled in the NukeTests scheme) re-submits every block
+/// that goes to a queue inside a block of its own, which runs at the QoS of
+/// the code that submitted it: the automatic drain comes out at the priority
+/// of the test instead of `.utility`, and the rest pass whatever QoS
+/// ``DataCache`` asks for.
+@Suite(.timeLimit(.minutes(5)), .enabled(if: !_isThreadSanitizerEnabled, "Thread Sanitizer runs the blocks at the QoS of the code that submitted them"))
 struct DataCacheQualityOfServiceTests {
     /// Records the QoS of the thread that generates the filename for the
     /// probe key: the writes are the only thing that asks for it, and they
