@@ -719,7 +719,8 @@ struct ImagePipelineDiagnosticsTests {
 
         // THEN the header is a title, then a field per fact with the values in a column
         let header = description.split(separator: "\n", omittingEmptySubsequences: false).prefix { !$0.isEmpty }
-        let title = #"^ImageTask #\#(task.taskId) "avatar" · success · [0-9.]+ ms · from network$"#
+        // The duration is in seconds past 10 s, which a loaded simulator reaches
+        let title = #"^ImageTask #\#(task.taskId) "avatar" · success · [0-9.]+ m?s · from network$"#
         #expect(header.first?.range(of: title, options: .regularExpression) != nil, "No title in:\n\(description)")
         let fields = [
             "url: +\(NSRegularExpression.escapedPattern(for: Test.url.absoluteString))",
