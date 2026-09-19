@@ -247,6 +247,109 @@ struct ResumableDataTests {
 
         #expect(data == nil)
     }
+
+    /// Without a "Content-Length" there is no telling whether the download
+    /// is incomplete (e.g. "Transfer-Encoding: chunked").
+    @Test func createWithoutContentLengthReturnsNil() {
+        // Given
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "ETag": "1234"
+        ])
+
+        // Then
+        #expect(response.expectedContentLength == -1)
+        #expect(ResumableData(response: response, data: _data) == nil)
+    }
+
+    @Test(arguments: [201, 203, 204, 226])
+    func createWithOtherSuccessfulStatusCodeReturnsNil(statusCode: Int) {
+        // Given
+        let response = _makeResponse(statusCode: statusCode, headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
+
+        // Then
+        #expect(ResumableData(response: response, data: _data) == nil)
+    }
+
+    // MARK: - Header Formats
+
+    /// HTTP/2 servers send header names in lowercase.
+    @Test func createWithLowercaseHeaderNames() throws {
+        // Given
+        let response = _makeResponse(headers: [
+            "accept-ranges": "bytes",
+            "content-length": "2000",
+            "etag": "\"abc\""
+        ])
+
+        // When
+        let data = try #require(ResumableData(response: response, data: _data))
+
+        // Then the quoted entity tag is sent back verbatim
+        var request = URLRequest(url: Test.url)
+        data.resume(request: &request)
+        #expect(request.value(forHTTPHeaderField: "If-Range") == "\"abc\"")
+    }
+
+    @Test func createWithLowercaseLastModified() throws {
+        // Given
+        let response = _makeResponse(headers: [
+            "accept-ranges": "bytes",
+            "content-length": "2000",
+            "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT"
+        ])
+
+        // When
+        let data = try #require(ResumableData(response: response, data: _data))
+
+        // Then
+        #expect(data.validator == "Wed, 21 Oct 2015 07:28:00 GMT")
+    }
+
+    /// Range units are case-insensitive (RFC 9110).
+    @Test func createWithUppercaseRangeUnit() {
+        // Given
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "BYTES",
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
+
+        // Then
+        #expect(ResumableData(response: response, data: _data) != nil)
+    }
+
+    // MARK: - Resuming
+
+    @Test func resumingRequestKeepsOtherHeadersAndReplacesRange() throws {
+        // Given a request that already asks for a range
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
+        let data = try #require(ResumableData(response: response, data: _data))
+        var request = URLRequest(url: Test.url)
+        request.setValue("Bearer token", forHTTPHeaderField: "Authorization")
+        request.setValue("bytes=0-99", forHTTPHeaderField: "Range")
+
+        // When
+        data.resume(request: &request)
+
+        // Then
+        #expect(request.value(forHTTPHeaderField: "Range") == "bytes=1000-")
+        #expect(request.value(forHTTPHeaderField: "If-Range") == "1234")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer token")
+    }
+
+    @Test func nonHTTPResponseIsNotResumed() {
+        let response = URLResponse(url: Test.url, mimeType: "image/jpeg", expectedContentLength: 2000, textEncodingName: nil)
+        #expect(!ResumableData.isResumedResponse(response))
+    }
 }
 
 @ImagePipelineActor
@@ -324,7 +427,158 @@ struct ResumableDataStorageTests {
     }
 }
 
+/// Uses its own ``ResumableDataStorage`` instead of the shared one, which every
+/// pipeline in the test process registers with, so that its lifecycle can be
+/// observed.
+@ImagePipelineActor
+@Suite(.timeLimit(.minutes(5)))
+struct ResumableDataStorageLifecycleTests {
+    private let storage = ResumableDataStorage()
+    private let pipeline = ImagePipeline { $0.dataLoader = MockDataLoader() }
+    private let request = ImageRequest(url: Test.url)
+
+    @Test func storingBeforeAnyPipelineRegistersIsIgnored() {
+        // When
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+        storage.register(pipeline.id)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func unregisteringTheLastPipelineDropsTheData() {
+        // Given
+        storage.register(pipeline.id)
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // When
+        storage.unregister(pipeline.id)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func dataIsKeptWhileAnyPipelineIsRegistered() {
+        // Given
+        let other = ImagePipeline { $0.dataLoader = MockDataLoader() }
+        storage.register(pipeline.id)
+        storage.register(other.id)
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // When
+        storage.unregister(other.id)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) != nil)
+    }
+
+    @Test func registeringThePipelineTwiceNeedsOneUnregister() {
+        // Given
+        storage.register(pipeline.id)
+        storage.register(pipeline.id)
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // When
+        storage.unregister(pipeline.id)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func dataIsScopedToThePipeline() {
+        // Given
+        let other = ImagePipeline { $0.dataLoader = MockDataLoader() }
+        storage.register(pipeline.id)
+        storage.register(other.id)
+
+        // When
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: other) == nil)
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) != nil)
+    }
+
+    @Test func dataIsScopedToTheImage() {
+        // Given
+        storage.register(pipeline.id)
+
+        // When
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // Then
+        let other = ImageRequest(url: URL(string: "https://example.com/other.jpeg"))
+        #expect(storage.removeResumableData(for: other, pipeline: pipeline) == nil)
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) != nil)
+    }
+
+    @Test func requestWithoutURLIsIgnored() {
+        // Given
+        storage.register(pipeline.id)
+        let request = ImageRequest(url: nil)
+
+        // When
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func storingAgainReplacesThePreviousData() {
+        // Given
+        storage.register(pipeline.id)
+        storage.storeResumableData(_makeResumableData(count: 100, validator: "v1"), for: request, pipeline: pipeline)
+
+        // When
+        storage.storeResumableData(_makeResumableData(count: 200, validator: "v2"), for: request, pipeline: pipeline)
+
+        // Then
+        let stored = storage.removeResumableData(for: request, pipeline: pipeline)
+        #expect(stored?.validator == "v2")
+        #expect(stored?.data.count == 200)
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline) == nil)
+    }
+
+    @Test func oldestDataIsEvictedAfter100Entries() {
+        // Given
+        storage.register(pipeline.id)
+        let requests = (0...100).map { ImageRequest(url: URL(string: "https://example.com/\($0).jpeg")) }
+
+        // When
+        for request in requests {
+            storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+        }
+
+        // Then
+        #expect(storage.removeResumableData(for: requests[0], pipeline: pipeline) == nil)
+        #expect(storage.removeResumableData(for: requests[1], pipeline: pipeline) != nil)
+        #expect(storage.removeResumableData(for: requests[100], pipeline: pipeline) != nil)
+    }
+
+    @Test func removingAllResponsesKeepsTheStorageUsable() {
+        // Given
+        storage.register(pipeline.id)
+        storage.storeResumableData(_makeResumableData(), for: request, pipeline: pipeline)
+
+        // When
+        storage.removeAllResponses()
+        storage.storeResumableData(_makeResumableData(validator: "v2"), for: request, pipeline: pipeline)
+
+        // Then
+        #expect(storage.removeResumableData(for: request, pipeline: pipeline)?.validator == "v2")
+    }
+}
+
 private let _data = Data(count: 1000)
+
+private func _makeResumableData(count: Int = 1000, validator: String = "1234") -> ResumableData {
+    let response = _makeResponse(headers: [
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(count * 2),
+        "ETag": validator
+    ])
+    return ResumableData(response: response, data: Data(count: count))!
+}
 
 private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
     return HTTPURLResponse(url: Test.url, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
