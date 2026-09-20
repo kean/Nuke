@@ -35,11 +35,10 @@ details worth knowing.
 | **Progressive Decoding** | The scans of a progressive JPEG and the one pass of a baseline JPEG – side by side where the screen has room, on a picker where it doesn't – with a throttled data loader that makes them visible, and the number of previews decoded so far. A restart resumes the downloads and says from where |
 | **Video** | `ImageDecoders.Video` from NukeVideo, which the app registers at launch: one request for an MP4 gives a poster frame and an `AVAsset`, and `VideoPlayerView` plays the asset in `LazyImage`'s content, over the poster until its first frame is up. What the memory and disk caches keep of a video, and the check for a file the decoder takes no frame from, which it reports as a success |
 
-### Caching & Performance
+### Performance
 
 | Screen | Shows |
 |--|--|
-| **Caching** | Three requests – an original, a resize, and a thumbnail – loaded into the memory cache and `URLCache` or `DataCache`: the files each `DataCachePolicy` leaves on disk and their keys, what `.disableDiskCacheWrites` doesn't stop, and the `pipeline.cache` calls that read and write the same entries |
 | **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid, with its destination and priority on menus, and a count of the images each cell found in memory or on disk when it asked. The order the prefetcher starts its downloads in shows that at `.low` it works back from the far end of a batch |
 | **Decompression** | A grid of 12 MP images, two to a row (three on an iPad), each under a URL of its own, with decompression off, on, on with `isUsingPrepareForDisplay`, and replaced by thumbnails. Auto-Scroll scrolls it at a fixed speed on a new pipeline for each, and each keeps its last run: the frames the main thread dropped, hitch time, the longest frame, the footprint's peak, the images shown, and the probe's decode and decompression times. A memory cache of four images, and cells that let go of theirs as they leave the screen, keep it within what a phone can hold |
 
@@ -72,7 +71,7 @@ screenshot of any screen without tapping its way there. Pass them after the
 bundle id, or add them under Edit Scheme › Run › Arguments Passed On Launch:
 
 ```bash
-xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen caching -demoLab 0
+xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen prefetching -demoLab 0
 ```
 
 | Argument | Does |
@@ -117,7 +116,7 @@ Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – 
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
 image task logs where its time went to Console, under the
 `com.github.kean.NukeDemo` subsystem. The pipelines of the **Priority &
-Coalescing**, **Image Processing**, **Caching**, and **Video** screens record
+Coalescing**, **Image Processing**, and **Video** screens record
 their tasks either way, and show what the records say on screen.
 
 From the terminal, with the simulator booted:
@@ -137,7 +136,7 @@ Demo
 ├── App              The app, the catalog, the screen registry, and the launch arguments
 ├── Essentials       LazyImage and FetchImage, the image views, and processors
 ├── Formats          Image formats, animated images, progressive decoding, and video
-├── Caching          Caching, prefetching, and decompression
+├── Performance      Prefetching and decompression
 ├── Integration      A custom decoder and custom data loaders
 ├── Lab              Instruments and stress rigs for working on Nuke, and priority and coalescing
 ├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities

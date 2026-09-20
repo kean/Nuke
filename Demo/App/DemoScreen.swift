@@ -24,8 +24,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case progressiveDecoding = "progressive-decoding"
     case video = "video"
 
-    // Caching & Performance
-    case caching = "caching"
+    // Performance
     case prefetching = "prefetching"
     case decompression = "decompression"
 
@@ -51,7 +50,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .animatedImages: "Animated Images"
         case .progressiveDecoding: "Progressive Decoding"
         case .video: "Video"
-        case .caching: "Caching"
         case .prefetching: "Prefetching"
         case .decompression: "Decompression"
         case .customDecoder: "Custom Decoder"
@@ -74,7 +72,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .animatedImages: "GIF, APNG, WebP, and HEIC with live diagnostics"
         case .progressiveDecoding: "The scans of a progressive JPEG as they arrive"
         case .video: "A poster frame and a looping player from NukeVideo"
-        case .caching: "Memory and disk caches, and what each policy keeps"
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
         case .decompression: "Decoded off the main thread, counted in frames"
         case .customDecoder: "A toy format, picked by its first bytes"
@@ -91,7 +88,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         switch self {
         case .lazyImage, .uikitViews, .imageProcessing: .essentials
         case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
-        case .caching, .prefetching, .decompression: .cachingAndPerformance
+        case .prefetching, .decompression: .performance
         case .customDecoder, .customDataLoader: .integration
         case .pipelineHUD, .concurrencyInspector, .priorityAndCoalescing, .scrollStress, .animationLab: .lab
         }
@@ -109,7 +106,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .animatedImages: AnimatedImagesDemo()
         case .progressiveDecoding: ProgressiveDecodingDemo()
         case .video: VideoDemo()
-        case .caching: CachingDemo()
         case .prefetching: PrefetchingDemo()
         case .decompression: DecompressionDemo()
         case .customDecoder: CustomDecoderDemo()
@@ -129,7 +125,7 @@ extension DemoScreen {
     enum CatalogSection: CaseIterable {
         case essentials
         case formats
-        case cachingAndPerformance
+        case performance
         case integration
         /// Instruments and stress rigs for working on Nuke, where the rest of
         /// the catalog is for adopting it. A Lab screen may cripple the
@@ -142,7 +138,7 @@ extension DemoScreen {
             switch self {
             case .essentials: "Essentials"
             case .formats: "Formats"
-            case .cachingAndPerformance: "Caching & Performance"
+            case .performance: "Performance"
             case .integration: "Integration"
             case .lab: "Lab"
             }
@@ -152,7 +148,7 @@ extension DemoScreen {
             switch self {
             case .essentials: "What most apps need: LazyImage for SwiftUI, the image views for UIKit, and the processors that fit an image to either."
             case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
-            case .cachingAndPerformance: "Where an image comes from the second time it's needed, how to have it ready before the first, and what decoding off the main thread saves."
+            case .performance: "How to have an image ready before it is needed, and what decoding off the main thread saves."
             case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
             case .lab: "Instruments and stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that."
             }

@@ -261,7 +261,6 @@ private struct VideoFigures: View {
             }
             Section {
                 DemoLink(.imageFormats)
-                DemoLink(.caching)
             } header: {
                 Text("See Also")
             }
