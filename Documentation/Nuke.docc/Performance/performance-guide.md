@@ -266,7 +266,7 @@ final class Telemetry: ImagePipeline.Delegate, Sendable {
 }
 ```
 
-The diagnostics also emit an `os_signpost` interval for every stage of the timeline worth one, so the `os_signpost` Instrument shows the same timeline live, with the concurrency of every queue. 
+The diagnostics also emit an `os_signpost` interval for every stage of the timeline worth one, so the `os_signpost` [Instrument shows](https://developer.apple.com/videos/play/wwdc2018/405/) the same timeline live, with the concurrency of every queue. 
 
 ## Selecting a System
 
