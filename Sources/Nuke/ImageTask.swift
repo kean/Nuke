@@ -370,13 +370,12 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
                 return $0.continuations
             }
         case .preview:
-            continuations = status.continuations
+            continuations = _status.withLock { $0.continuations }
         case .finished(let result):
             // Record the result first so that it is already visible to everyone
             // observing the terminal event. A stream created after that replays
             // it instead of registering, so the list is taken.
-            let metrics = _diagnostics?.finish(with: result)
-            _diagnostics = nil
+            let metrics = _diagnostics.take()?.finish(with: result)
             continuations = _status.withLock {
                 $0.result = result
                 $0.metrics = metrics
@@ -386,14 +385,11 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         for continuation in continuations {
             continuation.yield(event)
         }
-        switch event {
-        case .finished(let result):
+        if case .finished(let result) = event {
             for continuation in continuations {
                 continuation.finish()
             }
             _continuation?.resume(returning: result)
-        default:
-            break
         }
 
         onEvent?(event, self)
