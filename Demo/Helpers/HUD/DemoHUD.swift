@@ -171,7 +171,7 @@ final class DemoHUD {
     var appStats: [Stat] {
         let fps = display.framesPerSecond
         return [
-            Stat(value: fps.map { String(format: "%.0f", $0) } ?? "–", caption: "fps", tint: (fps ?? .infinity) < 50 ? .orange : nil),
+            Stat(value: fps.map { String(format: "%.0f", $0) } ?? "–", caption: "fps", tint: display.isKeepingUp ? nil : .orange),
             Stat(value: footprint.current.map { demoByteCount($0) } ?? "–", caption: "memory")
         ]
     }

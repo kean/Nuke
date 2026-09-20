@@ -34,6 +34,12 @@ final class DemoDisplayMonitor {
         /// The frames over the last whole second watched, or `nil` until a
         /// second has been.
         var framesPerSecond: Double?
+        /// The rate the link is driven at, taken from the interval it reports:
+        /// what ``framesPerSecond`` reaches when nothing is missed. It is 60 on
+        /// most displays, and 60 on a 120 Hz one too unless the app opts into
+        /// the higher rate with `CADisableMinimumFrameDuration`, which this one
+        /// doesn't. `nil` until two frames have been watched.
+        var expectedFramesPerSecond: Double?
         /// The refreshes the main thread missed: for every frame that arrived
         /// late, the refresh intervals it was late by.
         var droppedFrameCount = 0
@@ -51,6 +57,15 @@ final class DemoDisplayMonitor {
         /// anything was watched.
         var hitchTimeRatio: Double? {
             watchedDuration > 0 ? hitchDuration / watchedDuration : nil
+        }
+
+        /// Whether the app is keeping up: the frames of the last second against
+        /// the rate the link is driven at, rather than against 60, which a link
+        /// on a 120 Hz display isn't held to. A little slack, as the count is
+        /// taken over a window that rarely ends on a frame.
+        var isKeepingUp: Bool {
+            guard let framesPerSecond, let expectedFramesPerSecond else { return true }
+            return framesPerSecond >= expectedFramesPerSecond * 0.85
         }
     }
 
@@ -90,7 +105,10 @@ final class DemoDisplayMonitor {
     /// Starts the counts over. A monitor that is watching goes on watching,
     /// and the frame rate, which is only ever the last second's, stays.
     func reset() {
-        figures = Figures(framesPerSecond: figures.framesPerSecond)
+        figures = Figures(
+            framesPerSecond: figures.framesPerSecond,
+            expectedFramesPerSecond: figures.expectedFramesPerSecond
+        )
     }
 
     fileprivate func handle(_ link: CADisplayLink) {
@@ -112,6 +130,7 @@ final class DemoDisplayMonitor {
         // display isn't dropping every other frame.
         let interval = previous.targetTimestamp - previous.timestamp
         if interval > 0 {
+            figures.expectedFramesPerSecond = (1 / interval).rounded()
             let late = timestamp - previous.targetTimestamp
             // Rounded, so the jitter of a frame that is on time isn't a drop.
             let missed = Int((late / interval).rounded())
