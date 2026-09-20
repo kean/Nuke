@@ -626,9 +626,6 @@ struct ImageTaskTests {
         dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
         let task = pipeline.imageTask(with: Test.request)
         let events = task.events
-        while await task._streamContinuations.isEmpty {
-            await Task.yield()
-        }
 
         // When nobody reads from it until the task is over
         dataLoader.isSuspended = false
@@ -652,9 +649,6 @@ struct ImageTaskTests {
         dataLoader.isSuspended = true
         let task = pipeline.imageTask(with: Test.request)
         let events = task.events
-        while await task._streamContinuations.isEmpty {
-            await Task.yield()
-        }
 
         // When
         task.cancel()

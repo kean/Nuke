@@ -66,9 +66,6 @@ struct ImagePipelineDiagnosticsRecordingTests {
         // terminal event as it is sent rather than the replay a late
         // subscriber gets
         let stream = task.events
-        while await task._streamContinuations.isEmpty {
-            try await Task.sleep(for: .milliseconds(1))
-        }
         let events = Task {
             var recordAtFinish: ImageTask.Metrics?
             var didFinish = false
