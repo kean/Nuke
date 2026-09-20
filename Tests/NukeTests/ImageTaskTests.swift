@@ -422,12 +422,13 @@ struct ImageTaskTests {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
-        var priorityChanges: [TaskPriority] = []
+        var enqueuedPriorities: [TaskPriority] = []
         let didEnqueue = TestExpectation()
         queue.onEvent = { event in
             switch event {
-            case .enqueued: didEnqueue.fulfill()
-            case .priorityChanged(let operation): priorityChanges.append(operation.priority)
+            case .enqueued(let operation):
+                enqueuedPriorities.append(operation.priority)
+                didEnqueue.fulfill()
             default: break
             }
         }
@@ -439,8 +440,8 @@ struct ImageTaskTests {
         await didEnqueue.wait()
         await Task { @ImagePipelineActor in }.value // Let the update land, too
 
-        // Then the download is scheduled with the new priority right away
-        #expect(priorityChanges == [.veryHigh])
+        // Then the download is enqueued with the new priority right away
+        #expect(enqueuedPriorities == [.veryHigh])
         #expect(task.request.priority == .low)
         queue.isSuspended = false
         _ = try await task.response

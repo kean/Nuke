@@ -146,13 +146,12 @@ public final class ImagePrefetcher: Sendable {
         let task = PrefetchTask(request: request, key: key)
         let pipeline = self.pipeline
         let isDataTask = destination == .diskCache
-        let operation = queue.add { [weak self] in
+        let operation = queue.add(priority: request.priority.taskPriority) { [weak self] in
             let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: isDataTask, isPrefetch: true)
             task.imageTask = imageTask
             _ = try? await imageTask.response
             self?._remove(task)
         }
-        operation.priority = request.priority.taskPriority
         task.operation = operation
         tasks[key] = task
     }

@@ -140,6 +140,35 @@ struct ImagePipelineTests {
         }
     }
 
+    @Test @ImagePipelineActor func lowPriorityRequestsLeaveReservedDataLoadingSlotFree() async {
+        // Given – a data loading queue with two slots, one of them reserved
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let pipeline = pipeline.reconfigured { $0.dataLoadingQueue = queue }
+        dataLoader.isSuspended = true
+
+        // When – two low-priority requests start
+        _ = await queue.waitForOperations(count: 2) {
+            for index in 0..<2 {
+                var request = ImageRequest(url: URL(string: "https://example.com/\(index).jpeg"))
+                request.priority = .low
+                _ = pipeline.imageTask(with: request)
+            }
+        }
+
+        // Then – only one of them takes a slot
+        #expect(queue.runningCount == 1)
+        #expect(queue.pendingCount == 1)
+
+        // When – a normal-priority request starts
+        _ = await queue.waitForOperations(count: 1) {
+            _ = pipeline.imageTask(with: ImageRequest(url: URL(string: "https://example.com/2.jpeg")))
+        }
+
+        // Then – it takes the reserved slot
+        #expect(queue.runningCount == 2)
+        #expect(queue.pendingCount == 1)
+    }
+
     // MARK: - Cancellation
 
     @Test func dataLoadingOperationCancelled() async {
