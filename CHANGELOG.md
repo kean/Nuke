@@ -70,12 +70,8 @@
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
 - `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
 - `LazyImage` checks whether its request changed up to 5× faster on every body update when it keeps the same request – https://github.com/kean/Nuke/pull/969
-<<<<<<< HEAD
 - Subscribing to `ImageTask/events` no longer spawns a `Task`, which makes it 1.2–1.9× faster – https://github.com/kean/Nuke/pull/980
-- Memory cache lookups for requests with `ImageProcessors/Resize` are 2× faster – https://github.com/kean/Nuke/pull/972
-=======
 - Memory cache lookups are up to 2× faster – https://github.com/kean/Nuke/pull/972
->>>>>>> 25622305 (Generalize the cache lookup changelog entry)
 
 **Bug Fixes**
 
