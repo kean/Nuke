@@ -217,7 +217,7 @@ struct ImageRequestImageIdTests {
     }
 
     @Test(.disabled()) func memoryLayout() {
-        #expect(ImageRequest._containerInstanceSize == 128)
+        #expect(ImageRequest._containerInstanceSize == 112)
 
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.size == 9)
         #expect(MemoryLayout<ImageRequest.ThumbnailOptions>.stride == 12)
