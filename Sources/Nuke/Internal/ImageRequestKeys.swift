@@ -8,15 +8,15 @@ import Foundation
 final class MemoryCacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
     private let customKey: String?
-    private let imageId: String?
+    private let imageID: String?
     private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
-    private let processors: [any ImageProcessing]
+    private let processors: [ProcessorID]
     private let _hashValue: Int
 
     init(customKey: String) {
         self.customKey = customKey
-        self.imageId = nil
+        self.imageID = nil
         self.scale = 1
         self.thumbnail = nil
         self.processors = []
@@ -28,13 +28,13 @@ final class MemoryCacheKey: Hashable, Sendable {
 
     init(_ request: ImageRequest) {
         self.customKey = nil
-        self.imageId = request.imageID
+        self.imageID = request.imageID
         self.scale = request.scale
         self.thumbnail = request.thumbnail
-        self.processors = request.processors
+        self.processors = request.processorsIdentity
 
         var hasher = Hasher()
-        hasher.combine(imageId)
+        hasher.combine(imageID)
         hasher.combine(scale)
         hasher.combine(thumbnail)
         hasher.combine(processors.count)
@@ -46,7 +46,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     }
 
     static func == (lhs: MemoryCacheKey, rhs: MemoryCacheKey) -> Bool {
-        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.customKey == rhs.customKey && lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors)
+        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.customKey == rhs.customKey && lhs.imageID == rhs.imageID && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors)
     }
 }
 
@@ -56,15 +56,15 @@ final class MemoryCacheKey: Hashable, Sendable {
 final class TaskLoadImageKey: Hashable, Sendable {
     private let loadKey: TaskFetchOriginalImageKey
     private let options: ImageRequest.Options
-    private let processors: [any ImageProcessing]
+    private let processors: [ProcessorID]
     // Computed once: the pool hashes a key on lookup, on insert, and again when
-    // the task is disposed, and hashing the fields walks the image ID.
+    // the task is disposed.
     private let _hashValue: Int
 
     init(_ request: ImageRequest) {
         self.loadKey = TaskFetchOriginalImageKey(request)
         self.options = request.options
-        self.processors = request.processors
+        self.processors = request.processorsIdentity
 
         var hasher = Hasher()
         hasher.combine(loadKey)
@@ -113,12 +113,12 @@ struct TaskFetchOriginalDataKey: Hashable {
     // Declared first, so the synthesized `==` rejects on it before it compares
     // the image IDs.
     private let _hashValue: Int
-    private let imageId: String?
+    private let imageID: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool
 
     init(_ request: ImageRequest) {
-        self.imageId = request.originalImageID
+        self.imageID = request.originalImageID
         switch request.resource {
         case .url, .data, .image:
             self.cachePolicy = .useProtocolCachePolicy
@@ -129,7 +129,7 @@ struct TaskFetchOriginalDataKey: Hashable {
         }
 
         var hasher = Hasher()
-        hasher.combine(imageId)
+        hasher.combine(imageID)
         hasher.combine(cachePolicy)
         hasher.combine(allowsCellularAccess)
         self._hashValue = hasher.finalize()

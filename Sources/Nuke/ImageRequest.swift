@@ -499,6 +499,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         ref === other.ref
     }
 
+    /// ``processors``, each boxed into its identity when they were set.
+    var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
+
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
 
@@ -518,7 +521,17 @@ extension ImageRequest {
         // It is stored partially for performance reasons (`absoluteString` can be expensive to compute)
         var originalImageID: String?
         var customImageID: String?
-        var processors: [any ImageProcessing]
+        var processors: [any ImageProcessing] {
+            didSet { processorsIdentity = Container.makeIdentity(processors) }
+        }
+
+        // Derived when the fields above are set, so that the keys the pipeline
+        // builds for the request don't derive them again: hashing an ID walks
+        // the string, and comparing processors boxes each of them on both
+        // sides. Eager rather than lazy: the container is only mutated while
+        // uniquely referenced, so there is nothing to synchronize.
+        private(set) var processorsIdentity: [ProcessorID]
+
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
 
@@ -528,6 +541,7 @@ extension ImageRequest {
             self.priority = priority
             self.options = options
             self.originalImageID = originalImageID
+            self.processorsIdentity = Container.makeIdentity(processors)
         }
 
         /// Creates a copy.
@@ -541,6 +555,11 @@ extension ImageRequest {
             self.customImageID = ref.customImageID
             self.scale = ref.scale
             self.thumbnail = ref.thumbnail
+            self.processorsIdentity = ref.processorsIdentity
+        }
+
+        private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ProcessorID] {
+            processors.isEmpty ? [] : processors.map(ProcessorID.init)
         }
     }
 
