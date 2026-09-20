@@ -120,6 +120,8 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         /// - seealso: ``ImageTask/metrics``
         public internal(set) var metrics: Metrics?
 
+        var continuations = ContiguousArray<AsyncStream<Event>.Continuation>()
+
         /// Initializes the status describing a task that has just started.
         ///
         /// The pipeline creates the status for you – use this initializer to
@@ -252,9 +254,6 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
-    /// Guarded by the lock of `_status` rather than by the pipeline actor, so
-    /// that a stream is registered before `events` returns, without a hop.
-    nonisolated(unsafe) private var _streamContinuations = ContiguousArray<AsyncStream<Event>.Continuation>()
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
@@ -368,10 +367,10 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         case .progress(let progress):
             continuations = _status.withLock {
                 $0.progress = progress
-                return _streamContinuations
+                return $0.continuations
             }
         case .preview:
-            continuations = _status.withLock { _ in _streamContinuations }
+            continuations = status.continuations
         case .finished(let result):
             // Record the result first so that it is already visible to everyone
             // observing the terminal event. A stream created after that replays
@@ -381,7 +380,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
             continuations = _status.withLock {
                 $0.result = result
                 $0.metrics = metrics
-                return exchange(&_streamContinuations, with: [])
+                return exchange(&$0.continuations, with: [])
             }
         }
         for continuation in continuations {
@@ -455,7 +454,7 @@ extension ImageTask {
                 if status.progress.completed > 0 || status.progress.total > 0 {
                     continuation.yield(.progress(status.progress))
                 }
-                _streamContinuations.append(continuation)
+                status.continuations.append(continuation)
             }
         }
     }
