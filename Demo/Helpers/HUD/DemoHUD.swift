@@ -176,11 +176,14 @@ final class DemoHUD {
         ]
     }
 
-    /// The three task queues the probe can see, as slots against a limit.
+    /// The task queues an image passes through, as slots against a limit. The
+    /// probe counts the work running on three of them; processors come with the
+    /// request, so processing is a limit and a switch and no count.
     static func queues(_ figures: DemoPipelineDiagnostics) -> [Queue] {
         [
             ("load", figures.dataLoadingQueue),
             ("decode", figures.decodingQueue),
+            ("proc", figures.processingQueue),
             ("decomp", figures.decompressingQueue)
         ].map { name, queue in
             Queue(name: name, running: queue.inFlightCount, limit: queue.limit, isSuspended: queue.isSuspended)

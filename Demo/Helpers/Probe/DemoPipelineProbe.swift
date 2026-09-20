@@ -141,6 +141,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         var diagnostics = counters.figures
         diagnostics.dataLoadingQueue.set(configuration.dataLoadingQueue)
         diagnostics.decodingQueue.set(configuration.imageDecodingQueue)
+        diagnostics.processingQueue.set(configuration.imageProcessingQueue)
         diagnostics.decompressingQueue.set(configuration.imageDecompressingQueue)
         diagnostics.encodingQueue.set(configuration.imageEncodingQueue)
         if isRecordingDiagnostics {
@@ -183,6 +184,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
         // A queue that no pipeline counts stays `nil`.
         total.dataLoadingQueue = .init(inFlightCount: nil)
         total.decodingQueue = .init(inFlightCount: nil)
+        total.processingQueue = .init(inFlightCount: nil)
         total.decompressingQueue = .init(inFlightCount: nil)
         total.encodingQueue = .init(inFlightCount: nil)
         var queues = Set<ObjectIdentifier>()
@@ -192,6 +194,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
             total.add(diagnostics)
             total.dataLoadingQueue.add(diagnostics.dataLoadingQueue, isDistinctQueue: queues.insert(ObjectIdentifier(configuration.dataLoadingQueue)).inserted)
             total.decodingQueue.add(diagnostics.decodingQueue, isDistinctQueue: queues.insert(ObjectIdentifier(configuration.imageDecodingQueue)).inserted)
+            total.processingQueue.add(diagnostics.processingQueue, isDistinctQueue: queues.insert(ObjectIdentifier(configuration.imageProcessingQueue)).inserted)
             total.decompressingQueue.add(diagnostics.decompressingQueue, isDistinctQueue: queues.insert(ObjectIdentifier(configuration.imageDecompressingQueue)).inserted)
             total.encodingQueue.add(diagnostics.encodingQueue, isDistinctQueue: queues.insert(ObjectIdentifier(configuration.imageEncodingQueue)).inserted)
         }

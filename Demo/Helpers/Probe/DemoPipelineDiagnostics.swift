@@ -145,6 +145,10 @@ struct DemoPipelineDiagnostics: Sendable {
     /// asynchronous, which for `ImageDecoders.Default` means a thumbnail.
     /// `nil` for a pipeline recording diagnostics, whose decoders aren't wrapped.
     var decodingQueue = Queue(inFlightCount: 0)
+    /// The processing running on the processing queue. Always `nil`:
+    /// processors come with the request, so the probe never sees one. What it
+    /// does see is the queue itself – its limit, and whether it is suspended.
+    var processingQueue = Queue(inFlightCount: nil)
     /// The calls to `decompress` running.
     var decompressingQueue = Queue(inFlightCount: 0)
     /// The encodes running.
@@ -276,6 +280,7 @@ extension DemoPipelineDiagnostics {
         figures.inFlightByteCount = 0
         figures.dataLoadingQueue = Queue(inFlightCount: 0)
         figures.decodingQueue = Queue(inFlightCount: 0)
+        figures.processingQueue = Queue(inFlightCount: nil)
         figures.decompressingQueue = Queue(inFlightCount: 0)
         figures.encodingQueue = Queue(inFlightCount: 0)
         return figures
