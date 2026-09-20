@@ -129,12 +129,12 @@ struct ProcessorID: Hashable, Sendable {
     }
 }
 
-func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
-    if lhs.isEmpty && rhs.isEmpty { return true }
+func == (lhs: borrowing [any ImageProcessing], rhs: borrowing [any ImageProcessing]) -> Bool {
     guard lhs.count == rhs.count else { return false }
-    // Lazily creates `hashableIdentifiers` because for some processors the
-    // identifiers might be expensive to compute.
-    return zip(lhs, rhs).allSatisfy {
-        $0.hashableIdentifier == $1.hashableIdentifier
+    for i in 0..<lhs.count {
+        if lhs[i].hashableIdentifier != rhs[i].hashableIdentifier {
+            return false
+        }
     }
+    return true
 }
