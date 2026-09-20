@@ -5,136 +5,279 @@
 import SwiftUI
 
 extension View {
-    /// Lays the pipeline HUD over this view while ``DemoHUD/isVisible``: a pill
-    /// at the bottom, which opens into a panel with every figure and the menu
-    /// that opens the pipeline's details.
+    /// Lays the pipeline HUD over this view while ``DemoHUD/isVisible``: a card
+    /// in a corner, folded down to a pill, which opens into every figure and
+    /// the buttons that open the pipeline's details.
+    ///
+    /// It floats over the screen rather than standing on it: it takes none of
+    /// the safe area, and it is dragged from one corner to whichever one it is
+    /// let go nearest.
     ///
     /// Applied once, around the navigation stack, so that it stays put as
-    /// screens come and go. It presents nothing but its menu, so it can't get
-    /// in the way of a screen's own sheets.
+    /// screens come and go.
     func demoPipelineHUD() -> some View {
         overlay {
             DemoHUDContainer(hud: .shared)
         }
     }
+}
 
-    /// Takes a strip off the bottom of the safe area for the pill while the
-    /// HUD is on. Applied to every screen: a screen in a navigation stack
-    /// doesn't inherit a safe area set outside it.
-    func demoHUDRoom() -> some View {
-        safeAreaInset(edge: .bottom, spacing: 0) {
-            DemoHUDRoom()
+extension View {
+    /// Marks this view as the one a sheet is opened from, so the sheet grows
+    /// out of it rather than sliding up from the bottom edge. The demo runs on
+    /// iOS 17, which slides as every sheet used to.
+    @ViewBuilder
+    fileprivate func demoZoomSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18, *) {
+            matchedTransitionSource(id: id, in: namespace)
+        } else {
+            self
+        }
+    }
+
+    /// The other half of ``demoZoomSource(id:in:)``, on the sheet's own root.
+    @ViewBuilder
+    fileprivate func demoZoomDestination(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18, *) {
+            navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
         }
     }
 }
 
-// A view of its own, so that a screen's body doesn't depend on the switch.
-private struct DemoHUDRoom: View {
-    var body: some View {
-        let hud = DemoHUD.shared
-        if hud.isVisible {
-            Color.clear
-                .frame(height: hud.height)
-                .allowsHitTesting(false)
-                .animation(.snappy, value: hud.height)
-        }
-    }
-}
-
-/// Places the HUD at the bottom, above a console sheet, and keeps it sampled
-/// while the app is active.
+/// Places the HUD in the corner it stands in, above a console sheet, moves it
+/// to the corner a drag leaves it nearest, keeps it sampled while the app is
+/// active, and presents the **Pipeline Details** sheet its info button opens.
 struct DemoHUDContainer: View {
     let hud: DemoHUD
 
-    /// The container in the window, where a console sheet reports its top.
+    /// The container in the window: where a console sheet reports its top, and
+    /// the halves that say which corner a dragged card belongs in.
     @State private var frame: CGRect = .zero
+    /// How far the card has been dragged out of its corner; back to zero once
+    /// it has settled into the one it was let go nearest.
+    @State private var dragOffset: CGSize = .zero
     @Environment(\.scenePhase) private var scenePhase
+    /// Ties the details sheet to the card it is opened from, so it zooms out
+    /// of the HUD rather than sliding up from the bottom edge.
+    @Namespace private var namespace
 
-    private static let pillHeight: CGFloat = 30
-    /// The room the pill needs, which is the room the HUD starts out taking.
-    static let pillRoom = pillHeight + 12
+    /// The room the pill needs, which is the room the HUD starts out taking:
+    /// the card's one row, the padding inside the card, and the padding
+    /// around it. Measured after that – see `hud.height`.
+    static let pillRoom: CGFloat = 22 + 12 + 12
+    /// The room an inline navigation bar takes. The HUD is laid over the
+    /// navigation stack rather than inside it, so the bar isn't in the safe
+    /// area it is given: in a top corner it stands clear of the bar itself,
+    /// rather than over the back button.
+    private static let barRoom: CGFloat = 44
 
     var body: some View {
         if hud.isVisible {
             let lift = lift
-            Group {
-                if hud.isExpanded {
-                    // About the width of a phone: wider lines are hard to read across.
-                    DemoHUDPanel(hud: hud).frame(maxWidth: 420)
-                } else {
-                    DemoHUDPill(hud: hud).frame(height: Self.pillHeight)
+            DemoHUDCard(hud: hud)
+                // On the card itself, so that the rest of the overlay – the
+                // room the card is free to be dragged through – stays out of
+                // the way of the screen underneath.
+                .gesture(drag)
+                // The source is the card itself, not the width it is given to
+                // grow into, so the sheet zooms out of what is on screen.
+                .demoZoomSource(id: Self.cardTransitionID, in: namespace)
+                // About the width of a phone: wider lines are hard to read
+                // across. Folded away the card hugs its one row, so the frame
+                // keeps it against the edge it stands on rather than centring
+                // it.
+                .frame(maxWidth: 420, alignment: hud.corner.isLeading ? .leading : .trailing)
+                .padding(padding)
+                // What a bottom corner needs to clear a console sheet. The card
+                // grows and shrinks in one piece, so this follows it the whole
+                // way rather than jumping when it settles.
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hud.height = $0 }
+                .offset(dragOffset)
+                .padding(.bottom, lift)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: hud.corner.alignment)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
+                .animation(.snappy, value: lift)
+                .task(id: scenePhase == .active) {
+                    guard scenePhase == .active else { return }
+                    await hud.sampleUntilCancelled()
                 }
-            }
-            .padding([.horizontal, .top], 8)
-            .padding(.bottom, 4)
-            // The room every screen leaves at the bottom: the panel is as tall
-            // as its figures, and a screen scrolled to the end clears it.
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hud.height = $0 }
-            .padding(.bottom, lift)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-            .animation(.snappy, value: hud.isExpanded)
-            .animation(.snappy, value: lift)
-            .task(id: scenePhase == .active) {
-                guard scenePhase == .active else { return }
-                await hud.sampleUntilCancelled()
-            }
+                .task {
+                    guard DemoLaunchOptions.claimDetails() else { return }
+                    // Long enough for a screen opened with `-demoScreen` to
+                    // have arrived, and for a console of its own to be up,
+                    // which the details step around.
+                    try? await Task.sleep(for: .milliseconds(900))
+                    hud.openDetails()
+                }
+                .sheet(isPresented: isShowingDetails) {
+                    PipelineDetailsSheet()
+                        .demoZoomDestination(id: Self.cardTransitionID, in: namespace)
+                }
         }
     }
 
+    private static let cardTransitionID = "hud-card"
+
+    /// The room around the card: the two edges it stands on, and a little on
+    /// the others, which is where it grows from. A top corner leaves the
+    /// navigation bar its own room as well.
+    private var padding: EdgeInsets {
+        let isTop = hud.corner.isTop
+        return EdgeInsets(top: isTop ? 8 + Self.barRoom : 4, leading: 8, bottom: isTop ? 4 : 8, trailing: 8)
+    }
+
+    /// Carries the card with the finger, and hands it to the corner of the
+    /// half it is let go in – where a flick is going, rather than where it
+    /// left off.
+    private var drag: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .global)
+            .onChanged { dragOffset = $0.translation }
+            .onEnded { value in
+                let end = value.predictedEndLocation
+                withAnimation(.snappy) {
+                    hud.corner = DemoHUD.Corner(isTop: end.y < frame.midY, isLeading: end.x < frame.midX)
+                    // Settles in one move with the corner it is going to,
+                    // rather than snapping back and then sliding there.
+                    dragOffset = .zero
+                }
+            }
+    }
+
+    /// The HUD owns whether the details are up – a console sheet has to step
+    /// aside first – so the sheet reads the switch rather than holding one.
+    private var isShowingDetails: Binding<Bool> {
+        Binding { hud.isShowingDetails } set: { hud.isShowingDetails = $0 }
+    }
+
     /// How far the HUD rises to stay above a console sheet. A sheet pulled up
-    /// past the room the HUD needs covers it, as it covers the screen.
+    /// past the room the HUD needs covers it, as it covers the screen. A top
+    /// corner is above every sheet already.
     private var lift: CGFloat {
-        guard let sheetMinY = hud.consoleSheetMinY else { return 0 }
+        guard !hud.corner.isTop, let sheetMinY = hud.consoleSheetMinY else { return 0 }
         let covered = frame.maxY - sheetMinY
         let needed = hud.isExpanded ? hud.height : Self.pillRoom
         return covered > 0 && frame.height - covered >= needed ? covered : 0
     }
 }
 
-/// The HUD folded away: the three figures worth a glance, and a tap to open
-/// the panel.
-private struct DemoHUDPill: View {
+/// The HUD itself: one card, which is a row of figures folded away and every
+/// figure the HUD has when it is open.
+///
+/// It is one view in both states rather than a pill swapped for a panel, so
+/// opening it is the card growing – the icon stays where it is, the chevron
+/// turns over, and the rows are revealed as there becomes room for them –
+/// rather than one view fading into another.
+private struct DemoHUDCard: View {
     let hud: DemoHUD
 
+    /// Whether the options popover is up, which the ellipsis opens.
+    @State private var isShowingOptions = false
+
+    private var isExpanded: Bool { hud.isExpanded }
+
     var body: some View {
-        let stats = Array(hud.panelStats.prefix(3))
-        Button {
-            hud.isExpanded = true
-        } label: {
-            HStack(spacing: 9) {
-                Image(systemName: "gauge.with.needle")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                ForEach(stats) { stat in
-                    Text(stat.value).foregroundStyle(stat.tint ?? Color.primary)
-                        + Text(verbatim: " \(stat.caption)").foregroundStyle(Color.secondary)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            header
+            if isExpanded {
+                figures
+                    .transition(Self.unfold)
             }
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
-            .padding(.horizontal, 11)
-            .frame(maxHeight: .infinity)
-            .demoHUDBackground(in: Capsule())
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 11)
+        .padding(.vertical, isExpanded ? 12 : 6)
+        // The shape the card is cut to as well as drawn in: a row that is
+        // there before there is room for it is clipped away rather than
+        // hanging over the edge while the card catches up. Folded, the radius
+        // is half the row's height – a capsule, as the system's own glass
+        // controls are at that size.
+        .demoHUDBackground(in: RoundedRectangle(cornerRadius: isExpanded ? 18 : 17, style: .continuous))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !isExpanded else { return }
+            hud.isExpanded = true
+        }
+        .animation(.snappy, value: isExpanded)
+        .accessibilityElement(children: .contain)
+        // Anchored to the whole card rather than to the button that opens it,
+        // so that it is laid beside the card instead of over it: a popover
+        // falls under the card's glass, which is drawn above every
+        // presentation but a sheet's.
+        .popover(isPresented: $isShowingOptions, attachmentAnchor: .rect(.bounds)) {
+            options
+                .presentationCompactAdaptation(.popover)
+                // Dark as the card it belongs to. The scheme sets the rows,
+                // and the background the chrome around them: a popover's own
+                // is glass over the screen, which comes out as pale as the
+                // card's did.
+                .preferredColorScheme(.dark)
+                .presentationBackground(Color(white: 0.13))
+        }
+    }
+
+    /// Rows fade in as the card makes room for them, and go at once when it
+    /// takes the room back: a view being removed holds its place in the layout
+    /// until its transition ends, so a fade out would keep the card open until
+    /// it finished and then let it snap shut.
+    private static let unfold: AnyTransition = .asymmetric(insertion: .opacity, removal: .identity)
+
+    /// The one row the card always has: what the HUD is following, the figures
+    /// worth a glance while it is folded away, and the controls.
+    private var header: some View {
+        HStack(spacing: 8) {
+            // The pin says the HUD is held to this pipeline rather than
+            // following whichever one is busy – see `DemoHUD/pinnedID`.
+            Image(systemName: hud.pinnedID == nil ? "gauge.with.needle" : "pin.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            if isExpanded {
+                Text(hud.followed?.figures.label ?? "No pipeline")
+                    .lineLimit(1)
+                    .transition(Self.unfold)
+                Spacer(minLength: 8)
+                optionsButton
+                    .transition(Self.unfold)
+            } else {
+                glance
+                    .transition(Self.unfold)
+            }
+            // Folded or open, the details are one tap away rather than a tap
+            // into the options: they are what the HUD is usually opened for.
+            button("Pipeline Details", "info.circle") {
+                hud.openDetails()
+            }
+            button(isExpanded ? "Collapse" : "Expand", "chevron.down") {
+                hud.isExpanded.toggle()
+            }
+            .rotationEffect(.degrees(isExpanded ? 0 : 180))
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .frame(height: 22)
+    }
+
+    /// The three figures the folded card shows, in the monospaced style the
+    /// open one sets them in.
+    private var glance: some View {
+        let stats = Array(hud.panelStats.prefix(3))
+        return HStack(spacing: 9) {
+            ForEach(stats) { stat in
+                Text(stat.value).foregroundStyle(stat.tint ?? Color.primary)
+                    + Text(verbatim: " \(stat.caption)").foregroundStyle(Color.secondary)
+            }
+        }
+        .font(.system(size: 12, weight: .medium, design: .monospaced))
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Pipeline HUD")
         .accessibilityValue(stats.map { "\($0.value) \($0.caption)" }.joined(separator: ", "))
-        .accessibilityHint("Opens the panel")
     }
-}
 
-/// The figures of the pipeline the HUD follows and of the app: the four that
-/// matter most, the task queues, and a line each for the rest.
-private struct DemoHUDPanel: View {
-    let hud: DemoHUD
-
-    @Environment(\.demoOpen) private var open
-
-    var body: some View {
+    /// Every figure of the pipeline the HUD follows and of the app: the four
+    /// that matter most, the task queues, and a line each for the rest.
+    private var figures: some View {
         let followed = hud.followed
         let figures = followed?.figures ?? DemoPipelineDiagnostics()
-        VStack(alignment: .leading, spacing: 10) {
-            header(label: followed?.figures.label ?? "No pipeline")
+        return VStack(alignment: .leading, spacing: 10) {
             DemoHUDStats(stats: hud.panelStats)
             DemoHUDQueues(queues: DemoHUD.queues(figures))
             DemoHUDLines(groups: [
@@ -142,58 +285,64 @@ private struct DemoHUDPanel: View {
                 hud.appLines
             ])
         }
-        .padding(12)
-        .demoHUDBackground(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
-    private func header(label: String) -> some View {
-        HStack(spacing: 6) {
-            // The pin says the HUD is held to this pipeline rather than
-            // following whichever one is busy – see `DemoHUD/pinnedID`.
-            Image(systemName: hud.pinnedID == nil ? "gauge.with.needle" : "pin.fill")
-                .foregroundStyle(.secondary)
-            Text(label)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            menu
-            button("Collapse", "chevron.down") { hud.isExpanded = false }
+    /// Everything else the HUD can do, which the catalog leaves to it: where
+    /// it stands, for whoever would rather not drag it, and the switches.
+    ///
+    /// A popover rather than a menu: a menu is laid under the card's glass,
+    /// which swallows every row that falls behind it. A popover still answers
+    /// where it is covered, and anchored to the card – see `body` – it is laid
+    /// clear of it.
+    private var optionsButton: some View {
+        button("HUD Options", "ellipsis") {
+            isShowingOptions = true
         }
-        .font(.system(size: 11, weight: .semibold))
     }
 
-    /// Everything the HUD can do, and the details of the pipeline it shows,
-    /// which the catalog leaves to it.
-    private var menu: some View {
-        Menu {
-            Button("Pipeline Details", systemImage: "list.bullet.rectangle") {
-                // Folds the panel away on the way out: the screen it pushes
-                // has the same figures, and room for them.
-                hud.isExpanded = false
-                open?(.pipelineDetails)
-            }
-            Button("Reset Figures", systemImage: "arrow.counterclockwise") {
-                hud.reset()
-            }
+    /// The popover's rows, which read as a menu's do: a title, the symbol it
+    /// goes by, and a check against the corner the card stands in.
+    private var options: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            option("Reset Figures", "arrow.counterclockwise") { hud.reset() }
             if hud.pinnedID != nil {
-                Button("Follow Active Pipeline", systemImage: "pin.slash") {
-                    hud.pinnedID = nil
+                option("Follow Active Pipeline", "pin.slash") { hud.pinnedID = nil }
+            }
+            option("Hide HUD", "eye.slash") { hud.isVisible = false }
+            Divider()
+            ForEach(DemoHUD.Corner.allCases) { corner in
+                option(corner.title, corner.systemImage, isChosen: corner == hud.corner) {
+                    withAnimation(.snappy) { hud.corner = corner }
                 }
             }
-            Button("Hide HUD", systemImage: "eye.slash") {
-                hud.isVisible = false
-            }
-        } label: {
-            Image(systemName: "ellipsis")
-                .frame(width: 26, height: 22)
-                .contentShape(Rectangle())
         }
-        .accessibilityLabel("HUD Options")
+        .padding(.vertical, 6)
+        .frame(width: 230)
+    }
+
+    private func option(_ title: String, _ systemImage: String, isChosen: Bool = false, action: @escaping () -> Void) -> some View {
+        Button {
+            isShowingOptions = false
+            action()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isChosen ? "checkmark" : systemImage)
+                    .frame(width: 18)
+                Text(title)
+                Spacer(minLength: 0)
+            }
+            .font(.system(size: 15))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func button(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .frame(width: 26, height: 22)
+                .frame(width: 24, height: 22)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -210,12 +359,12 @@ struct DemoHUDStats: View {
             ForEach(stats) { stat in
                 VStack(alignment: .leading, spacing: 1) {
                     Text(stat.value)
-                        .font(.system(size: 19, weight: .medium, design: .monospaced))
+                        .font(.system(size: 21, weight: .medium, design: .monospaced))
                         .foregroundStyle(stat.tint ?? Color.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     Text(stat.caption.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .tracking(0.6)
                         .foregroundStyle(.secondary)
                 }
@@ -242,7 +391,7 @@ struct DemoHUDQueues: View {
             }
             Spacer(minLength: 0)
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.system(size: 11, design: .monospaced))
     }
 
     private func row(_ queue: DemoHUD.Queue) -> some View {
@@ -250,13 +399,7 @@ struct DemoHUDQueues: View {
             Text(queue.name)
                 .foregroundStyle(.secondary)
             if let running = queue.running, (1...Self.maxSlots).contains(queue.limit) {
-                HStack(spacing: 2) {
-                    ForEach(0..<queue.limit, id: \.self) { index in
-                        RoundedRectangle(cornerRadius: 1.5)
-                            .fill(index < running ? (queue.isSuspended ? Color.orange : .green) : Color.primary.opacity(0.18))
-                            .frame(width: 5, height: 11)
-                    }
-                }
+                DemoQueueSlots(running: running, limit: queue.limit, isSuspended: queue.isSuspended, size: CGSize(width: 5, height: 12))
             } else {
                 Text(verbatim: "\(queue.running.map { "\($0)" } ?? "–")/\(queue.limit)")
             }
@@ -268,6 +411,30 @@ struct DemoHUDQueues: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(queue.name) queue")
         .accessibilityValue("\(queue.running.map { "\($0)" } ?? "unknown") of \(queue.limit) running" + (queue.isSuspended ? ", paused" : ""))
+    }
+}
+
+/// A slot per unit of a queue's limit, filled while work runs in it and orange
+/// while the queue is suspended. The HUD and the details sheet draw the same
+/// row at different sizes.
+struct DemoQueueSlots: View {
+    let running: Int
+    let limit: Int
+    var isSuspended = false
+    var size = CGSize(width: 6, height: 11)
+    /// The color of a slot with work in it, or `nil` for the green the HUD
+    /// uses over its dark card.
+    var tint: Color?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<max(0, limit), id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(index < running ? (isSuspended ? Color.orange : (tint ?? .green)) : Color.primary.opacity(0.18))
+                    .frame(width: size.width, height: size.height)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -293,18 +460,55 @@ struct DemoHUDLines: View {
                 }
             }
         }
-        .font(.system(size: 10, design: .monospaced))
+        .font(.system(size: 11, design: .monospaced))
     }
 }
 
+/// What the HUD's glass is tinted with, and what the blur behind it was before
+/// there was glass: enough black to read light figures over a white screen.
+private let demoHUDTint = Color.black.opacity(0.7)
+
 extension View {
-    /// Light figures on a dark blur, which read over photos and text alike,
-    /// lifted off the screen by a shadow.
+    /// The card's background: Liquid Glass, which takes the screen's own light
+    /// and lifts the card off it, where the system has it. The content is cut
+    /// to the same shape, so a card that is still growing shows only as much
+    /// of a row as it has room for.
+    ///
+    /// Dark whatever the app is set in, as the **Pipeline Details** sheet is:
+    /// the HUD is an instrument laid over the screen rather than part of it,
+    /// and a dark card reads as one over a light screen as well as a dark one.
     fileprivate func demoHUDBackground(in shape: some Shape) -> some View {
+        Group {
+            if #available(iOS 26, *) {
+                // Tinted rather than left to the screen. Glass takes its colour
+                // from what is behind it, and the colour scheme doesn't enter
+                // into it: over a light screen an untinted card comes out a pale
+                // grey that the figures are lost in, and the folded pill, which
+                // is thinner, paler still. A dark tint holds the card dark over
+                // anything while the glass keeps its edge and its refraction.
+                //
+                // Interactive, so the glass answers the tap that opens the card
+                // and the drag that carries it to another corner.
+                clipShape(shape)
+                    .glassEffect(.regular.tint(demoHUDTint).interactive(), in: shape)
+            } else {
+                demoHUDBlurBackground(in: shape)
+            }
+        }
+        // The figures are set for a dark card whichever background drew it.
+        .environment(\.colorScheme, .dark)
+        .foregroundStyle(.primary)
+    }
+
+    /// What the card stood in before Liquid Glass: light figures on a dark
+    /// blur, which read over photos and text alike, lifted off the screen by a
+    /// shadow.
+    fileprivate func demoHUDBlurBackground(in shape: some Shape) -> some View {
         self
+            .clipShape(shape)
             .background {
                 shape
-                    .fill(Color.black.opacity(0.55))
+                    .fill(demoHUDTint)
                     .background(.regularMaterial, in: shape)
             }
             .overlay {
@@ -319,8 +523,6 @@ extension View {
             }
             .compositingGroup()
             .shadow(color: .black.opacity(0.28), radius: 10, y: 3)
-            .environment(\.colorScheme, .dark)
-            .foregroundStyle(.primary)
     }
 }
 

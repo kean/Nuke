@@ -404,6 +404,10 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
     /// Whether the screen has been on display before, which makes this
     /// appearance a return from a screen pushed over it.
     @State private var hasAppeared = false
+    /// Whether this console was put away to let the HUD present the
+    /// **Pipeline Details** sheet, and so is the one that comes back when the
+    /// details close.
+    @State private var steppedAsideForDetails = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.demoOpen) private var open
 
@@ -439,6 +443,23 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
             }
             isShowingConsole = true
         }
+        // iOS drops the second sheet of a screen, so a console that is a sheet
+        // steps aside for the details the HUD presents and comes back after.
+        .onChange(of: DemoHUD.shared.isConsoleSteppingAside) { _, isSteppingAside in
+            guard isSteppingAside, isShowingConsole else { return }
+            steppedAsideForDetails = true
+            isShowingConsole = false
+        }
+        .onChange(of: DemoHUD.shared.isShowingDetails) { _, isShowingDetails in
+            guard !isShowingDetails, steppedAsideForDetails else { return }
+            steppedAsideForDetails = false
+            Task {
+                // Out of the way of the details' own dismissal, which is still
+                // running: a sheet asked for during one is dropped.
+                try? await Task.sleep(for: .milliseconds(450))
+                isShowingConsole = true
+            }
+        }
         .inspector(isPresented: $isShowingConsole) {
             console()
                 .listStyle(.insetGrouped)
@@ -448,6 +469,8 @@ private struct DemoConsoleModifier<Console: View>: ViewModifier {
                 }
                 .onDisappear {
                     DemoHUD.shared.consoleSheetMinY = nil
+                    // Says the way is clear, if it went to make room.
+                    DemoHUD.shared.consoleDidHide()
                     if let pendingScreen {
                         self.pendingScreen = nil
                         open?(pendingScreen)

@@ -55,8 +55,8 @@ Stress rigs for whoever works on Nuke, in the last section of the catalog.
 Caches are turned off where they would hide the work, budgets are pushed past
 sensible values, and the screens report numbers rather than explain an API –
 the catalog screen for that API does the explaining. The section ends with the
-switch of the [pipeline HUD](#diagnostics), whose menu opens the details of the
-pipeline it shows.
+switch of the [pipeline HUD](#diagnostics), whose info button opens the details
+of the pipeline it shows.
 
 | Screen | Shows |
 |--|--|
@@ -78,8 +78,10 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen prefetching -dem
 |--|--|
 | `-demoScreen <id>` | Opens the app on a screen, with the catalog beneath it. An id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab section out of the catalog, for a screenshot of the rest alone |
-| `-demoHUD 0` | Leaves the pipeline HUD off, which is otherwise on and folded into its pill; `expanded` opens its panel |
+| `-demoHUD 0` | Leaves the pipeline HUD off, which is otherwise on and folded into its pill; `expanded` opens its card out |
+| `-demoHUDCorner <corner>` | Starts the HUD in `topLeading`, `topTrailing`, `bottomLeading` (the default) or `bottomTrailing`, out of the way of what a screenshot is of |
 | `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, and Scroll Stress scrolls |
+| `-demoDetails 1` | Opens the **Pipeline Details** sheet a moment after launch, which is otherwise reached through the HUD's info button |
 
 A screen's id is the raw value of its case in `App/DemoScreen.swift`. An id
 stays the same when a title changes.
@@ -106,20 +108,36 @@ The photo stream's URLs are in `Resources/photos.json`.
 ## Diagnostics
 
 Every pipeline the demo builds counts what it does, and the pipeline HUD shows
-the figures over every screen. It is on from launch: the pill at the bottom –
-the tasks running, the share of the images that didn't download, and the frames
-of the last second – opens into a panel with the queues, bytes, caches, memory
-footprint, and dropped frames of the pipeline that did something last. The
-catalog's Lab section and the panel's menu switch it off; `-demoHUD 0` leaves
-it off from launch.
+the figures over every screen. It is on from launch, as a card folded into a
+pill in the bottom left corner – the tasks running, the share of the images
+that didn't download, and the frames of the last second. Tap it and the same
+card grows into the queues, bytes, caches, memory footprint, and dropped frames
+of the pipeline that did something last – the queues include processing, as a
+limit and a suspend switch rather than a count, because processors come with
+the request and nothing the probe sees counts them. It floats over the screen
+in Liquid Glass rather than taking a strip of it, dark whatever the app is set
+in, and it is dragged to whichever corner
+it is let go nearest – the card's options name the four for whoever would
+rather not drag it, and `-demoHUDCorner` starts it in one. The catalog's Lab
+section and those options switch it off; `-demoHUD 0` leaves it off from
+launch.
 
-The panel's menu opens **Pipeline Details**, the one screen the catalog has no
-row for: the same figures at length for the pipeline the HUD shows, its five
-task queues with the work running against the limit and a suspend switch each,
-and what its caches hold with a button to empty each of them. With several
-pipelines alive, its picker holds both the screen and the HUD to one of them –
-the HUD's header shows a pin while it does. The App and All Pipelines sections
-and the switches of the HUD are at the end.
+The card's info button opens **Pipeline Details** as a sheet over whatever
+screen is on display: the same figures at length for the pipeline the HUD
+shows, the last half minute of its work in three charts – the images it finished stacked by
+where they came from, the work running on each queue, and what the memory cache
+holds
+– its five task queues with the work running against the limit and a suspend
+button each, and a meter for each of its caches with a button to empty it. At
+its resting height the screen underneath goes on loading, which is what the
+charts draw. With several pipelines alive, the title is a menu that holds both
+the sheet and the HUD to one of them – the HUD shows a pin while it does. The
+App and All Pipelines sections and the switches of the HUD are at the end.
+
+The charts are drawn in one hue, light to dark, rather than a set of colors:
+both stacks have an order – the stages work passes through, and how far the
+pipeline had to go for an image – and orange is left to mean trouble, as it
+does everywhere else in the demo.
 
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
@@ -147,7 +165,7 @@ Demo
 ├── Formats          Image formats, animated images, progressive decoding, and video
 ├── Performance      Prefetching and decompression
 ├── Integration      A custom decoder and custom data loaders
-├── Lab              Stress rigs for working on Nuke, and the details of a pipeline
-├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
+├── Lab              Stress rigs for working on Nuke
+├── Helpers          Shared views, the pipeline probe, the HUD and its details sheet, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixture, and the photo stream's URLs
 ```

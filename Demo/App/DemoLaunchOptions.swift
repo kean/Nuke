@@ -25,14 +25,22 @@ struct DemoLaunchOptions {
 
     /// The pipeline HUD stands over every screen, folded into its pill.
     /// `-demoHUD 0` takes it off, for a screenshot of a screen alone;
-    /// `-demoHUD expanded` opens it as the panel.
+    /// `-demoHUD expanded` opens the card out.
     private(set) var showsHUD = true
     private(set) var expandsHUD = false
+
+    /// `-demoHUDCorner <corner>`: the corner the HUD starts in, out of the way
+    /// of whatever a screenshot is of. It is dragged between them by hand.
+    private(set) var hudCorner = DemoHUD.Corner.bottomLeading
 
     /// `-demoAutorun 1` starts the run of a screen that has one as soon as
     /// the screen opens, once per launch, so that a script can take a
     /// screenshot of the results without a tap.
     private(set) var autoruns = false
+
+    /// `-demoDetails 1` opens the **Pipeline Details** sheet a moment after
+    /// launch, which is otherwise reached through the HUD's info button.
+    private(set) var opensDetails = false
 
     /// The options of this launch.
     static let current = DemoLaunchOptions(defaults: .standard)
@@ -51,7 +59,15 @@ struct DemoLaunchOptions {
             expandsHUD = value == "expanded"
             showsHUD = expandsHUD || defaults.bool(forKey: "demoHUD")
         }
+        if let value = defaults.string(forKey: "demoHUDCorner") {
+            if let corner = DemoHUD.Corner(rawValue: value) {
+                hudCorner = corner
+            } else {
+                Self.logger.error("-demoHUDCorner \(value, privacy: .public): the corners are \(DemoHUD.Corner.allCases.map(\.rawValue).joined(separator: ", "), privacy: .public).")
+            }
+        }
         autoruns = defaults.bool(forKey: "demoAutorun")
+        opensDetails = defaults.bool(forKey: "demoDetails")
     }
 
     private static let logger = Logger(subsystem: "com.github.kean.NukeDemo", category: "Launch")
@@ -68,4 +84,17 @@ extension DemoLaunchOptions {
     }
 
     @MainActor private static var autorunScreens: Set<DemoScreen> = []
+
+    /// Whether the **Pipeline Details** sheet opens itself now: with
+    /// `-demoDetails 1`, the first time the HUD asks in a launch. The HUD is
+    /// laid over the navigation stack once, but a scene that goes away and
+    /// comes back asks again.
+    @MainActor
+    static func claimDetails() -> Bool {
+        guard current.opensDetails, !hasOpenedDetails else { return false }
+        hasOpenedDetails = true
+        return true
+    }
+
+    @MainActor private static var hasOpenedDetails = false
 }

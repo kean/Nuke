@@ -70,8 +70,8 @@ struct DemoMenu: View {
                     }
                     if section == .lab {
                         // The one switch of the HUD: it is on from launch, and
-                        // its own menu opens the details of the pipeline it
-                        // shows.
+                        // its own info button opens the details of the pipeline
+                        // it shows.
                         Toggle(isOn: $hud.isVisible) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Pipeline HUD")
@@ -95,7 +95,6 @@ struct DemoMenu: View {
                 }
             }
         }
-        .demoHUDRoom()
         .demoDestinations()
     }
 }

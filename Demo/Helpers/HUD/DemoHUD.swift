@@ -7,7 +7,8 @@ import Observation
 import SwiftUI
 
 /// The pipeline HUD: whether it is on, and the figures it shows, for the
-/// overlay and the **Pipeline Details** screen its menu opens.
+/// card over every screen and the **Pipeline Details** sheet its info button
+/// opens.
 ///
 /// It samples only while something on screen asks it to: the probe's counters
 /// ten times a second, and the caches every 3 seconds, as a `DataCache` is
@@ -18,39 +19,61 @@ final class DemoHUD {
 
     /// Whether the HUD is over the screen. `-demoHUD 1` starts it on.
     var isVisible: Bool
-    /// The panel rather than the pill. `-demoHUD expanded` starts it open.
+    /// The card opened out rather than folded into its pill. `-demoHUD
+    /// expanded` starts it open.
     var isExpanded: Bool
+    /// The corner the card stands in. It is dragged from one corner to another,
+    /// and the card's options move it too. `-demoHUDCorner <corner>` starts it
+    /// there.
+    var corner: Corner
     /// The top of a console presented as a sheet, in the window, which the HUD
     /// stays above; `nil` when there is none. `demoConsole` sets it.
     var consoleSheetMinY: CGFloat?
-    /// How tall the HUD stands, which is the strip every screen leaves free at
-    /// its bottom – see ``View/demoHUDRoom()``. The panel measures itself: it
-    /// is as tall as the figures it shows.
+    /// How tall the card stands, measured as it grows: what a bottom corner
+    /// needs to clear a console sheet. The HUD floats over the screen rather
+    /// than taking a strip of it, so no screen leaves room for it.
     var height: CGFloat
 
     /// Every pipeline alive, oldest first.
     private(set) var pipelines: [Pipeline] = []
     /// Every pipeline added up, the ones that are gone included.
     private(set) var total = DemoPipelineDiagnostics()
-    /// What the caches hold, by pipeline; missing until sampled once.
+    /// What the caches hold, by pipeline; missing until sampled once. The
+    /// memory figures are read on every tick, the disk ones every few seconds.
     private(set) var caches: [ObjectIdentifier: DemoPipelineDiagnostics.Caches] = [:]
     private(set) var totalCaches: DemoPipelineDiagnostics.Caches?
+    /// The last half minute of each pipeline, which the charts on the **Pipeline
+    /// Details** sheet are drawn from.
+    private(set) var timelines: [ObjectIdentifier: DemoHUDTimeline] = [:]
     private(set) var display = DemoDisplayMonitor.Figures()
     private(set) var footprint = DemoFootprint()
     /// The pipeline the HUD is held to, or `nil` while it follows whichever
-    /// one did something last. The **Pipeline Details** screen sets it, and
-    /// it is dropped when that pipeline goes away.
+    /// one did something last. The **Pipeline Details** sheet sets it, and it
+    /// is dropped when that pipeline goes away.
     var pinnedID: ObjectIdentifier?
     private var followedID: ObjectIdentifier?
 
     @ObservationIgnored private let displayMonitor = DemoDisplayMonitor()
     @ObservationIgnored private var samplingCount = 0
     @ObservationIgnored private var samplingTask: Task<Void, Never>?
+    @ObservationIgnored private var tick = 0
+    /// The pipelines whose disk caches have been read at least once, so that a
+    /// pipeline that has just appeared is swept right away. The memory figures
+    /// alone don't say: they are filled in on the first tick.
+    @ObservationIgnored private var diskSweptIDs: Set<ObjectIdentifier> = []
+
+    /// How often the counters are read.
+    private static let tickInterval = Duration.milliseconds(100)
+    /// The ticks between two points of a timeline.
+    private static let ticksPerPoint = Int(DemoHUDTimeline.interval * 1000) / 100
+    /// The ticks between two sweeps of the disk caches, which are read by
+    /// listing a directory.
+    private static let ticksPerDiskSweep = 30
 
     struct Pipeline: Identifiable {
         let id: ObjectIdentifier
         let figures: DemoPipelineDiagnostics
-        /// What the details screen works with: the caches it clears and the
+        /// What the details sheet works with: the caches it clears and the
         /// task queues it suspends, which are references the configuration
         /// hands out.
         let configuration: ImagePipeline.Configuration
@@ -59,6 +82,7 @@ final class DemoHUD {
     private init() {
         isVisible = DemoLaunchOptions.current.showsHUD
         isExpanded = DemoLaunchOptions.current.expandsHUD
+        corner = DemoLaunchOptions.current.hudCorner
         height = DemoHUDContainer.pillRoom
     }
 
@@ -68,21 +92,19 @@ final class DemoHUD {
         pipelines.first { $0.id == (pinnedID ?? followedID) }
     }
 
-    /// Samples for as long as the calling task runs. The overlay and the Lab
-    /// screen can both call it: the first starts the sampling, the last stops it.
+    /// Samples for as long as the calling task runs. The card and the details
+    /// sheet can both call it: the first starts the sampling, the last stops it.
     func sampleUntilCancelled() async {
         samplingCount += 1
         if samplingCount == 1 {
             displayMonitor.start()
             samplingTask = Task {
-                var tick = 0
                 while !Task.isCancelled {
                     sample()
-                    if tick % 30 == 0 || pipelines.contains(where: { caches[$0.id] == nil }) {
+                    if tick % Self.ticksPerDiskSweep == 0 || pipelines.contains(where: { !diskSweptIDs.contains($0.id) }) {
                         await sampleCaches()
                     }
-                    tick += 1
-                    try? await Task.sleep(for: .milliseconds(100))
+                    try? await Task.sleep(for: Self.tickInterval)
                 }
             }
         }
@@ -94,21 +116,40 @@ final class DemoHUD {
         }
     }
 
-    /// Starts the figures of every pipeline, the display, and the peak
-    /// footprint over.
+    /// Starts the figures of every pipeline, the display, the peak footprint,
+    /// and the charts' window over.
     func reset() {
         DemoPipelineProbe.reset()
         displayMonitor.reset()
         footprint.reset()
+        timelines.removeAll()
         sample()
     }
 
     private func sample() {
-        pipelines = DemoPipelineProbe.liveProbes.map { Pipeline(id: ObjectIdentifier($0), figures: $0.diagnostics, configuration: $0.configuration) }
+        let probes = DemoPipelineProbe.liveProbes
+        pipelines = probes.map { Pipeline(id: ObjectIdentifier($0), figures: $0.diagnostics, configuration: $0.configuration) }
         total = DemoPipelineProbe.total
         display = displayMonitor.figures
         footprint.sample()
+        sampleMemoryCaches(of: probes)
         follow()
+        tick += 1
+        if tick % Self.ticksPerPoint == 0 {
+            record()
+        }
+    }
+
+    /// Adds a point to every live pipeline's timeline.
+    private func record() {
+        var recorded: [ObjectIdentifier: DemoHUDTimeline] = [:]
+        for pipeline in pipelines {
+            var timeline = timelines[pipeline.id] ?? DemoHUDTimeline()
+            timeline.record(pipeline.figures, imageCacheCost: caches[pipeline.id]?.imageCacheCost ?? 0)
+            recorded[pipeline.id] = timeline
+        }
+        // A pipeline that is gone takes its window with it.
+        timelines = recorded
     }
 
     /// Follows the pipeline that did something last, and holds on to it while
@@ -134,7 +175,7 @@ final class DemoHUD {
     }
 
     /// Reads what the caches hold now rather than waiting for the next sweep:
-    /// for the details screen, which has just emptied one.
+    /// for the details sheet, which has just emptied one.
     func refreshCaches() async {
         await sampleCaches()
     }
@@ -148,12 +189,75 @@ final class DemoHUD {
         // A cache that two pipelines share counts once.
         totalCaches = await DemoPipelineProbe.sampleCaches(of: probes)
         self.caches = caches
+        diskSweptIDs = Set(caches.keys)
+    }
+
+    /// Reads what the memory caches hold, which every tick can afford, and
+    /// leaves the disk figures of the last sweep where they were. It is what
+    /// keeps the memory line of the HUD and the cache chart of the details
+    /// moving between the sweeps.
+    private func sampleMemoryCaches(of probes: [DemoPipelineProbe]) {
+        var updated: [ObjectIdentifier: DemoPipelineDiagnostics.Caches] = [:]
+        for probe in probes {
+            let id = ObjectIdentifier(probe)
+            var caches = self.caches[id] ?? DemoPipelineDiagnostics.Caches()
+            caches.setMemoryFigures(DemoPipelineProbe.memoryCaches(of: [probe]))
+            updated[id] = caches
+        }
+        caches = updated
+        var total = totalCaches ?? DemoPipelineDiagnostics.Caches()
+        total.setMemoryFigures(DemoPipelineProbe.memoryCaches(of: probes))
+        totalCaches = total
+    }
+
+    // MARK: Details
+
+    /// Whether the **Pipeline Details** sheet is up. The HUD presents it, over
+    /// whatever screen is on display.
+    var isShowingDetails = false
+    /// Whether a screen's console is stepping aside for the details. iOS drops
+    /// the second sheet of a screen, so a console that is a sheet goes first
+    /// and comes back when the details close – see ``View/demoConsole(collapsedHeight:info:console:)``.
+    private(set) var isConsoleSteppingAside = false
+
+    /// Opens the details, after the console of the screen below has stepped
+    /// aside if it has one.
+    func openDetails() {
+        guard !isShowingDetails, !isConsoleSteppingAside else { return }
+        guard consoleSheetMinY != nil else {
+            isShowingDetails = true
+            return
+        }
+        isConsoleSteppingAside = true
+        Task {
+            // If nothing answers – a console already on its way out, or one
+            // that left its figure behind – the details open anyway rather
+            // than waiting on a sheet that isn't there, which would leave the
+            // info button doing nothing from then on.
+            try? await Task.sleep(for: .milliseconds(600))
+            guard isConsoleSteppingAside else { return }
+            isConsoleSteppingAside = false
+            isShowingDetails = true
+        }
+    }
+
+    /// Called by a console sheet once it has gone, to say the way is clear.
+    /// The details wait out the rest of the dismissal: a sheet asked for while
+    /// another is still going is dropped rather than queued.
+    func consoleDidHide() {
+        guard isConsoleSteppingAside else { return }
+        isConsoleSteppingAside = false
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            isShowingDetails = true
+        }
     }
 
     // MARK: Figures
 
-    /// The four figures the panel leads with, and the pill the first three of:
-    /// what the pipeline it follows is doing, and whether the app keeps up.
+    /// The four figures the open card leads with, and the folded one the first
+    /// three of: what the pipeline it follows is doing, and whether the app
+    /// keeps up.
     var panelStats: [Stat] {
         Self.stats(followed?.figures ?? DemoPipelineDiagnostics()) + appStats
     }
@@ -190,7 +294,7 @@ final class DemoHUD {
         }
     }
 
-    /// The lines for a pipeline, under its stats. Every value starts at the
+    /// The lines for a pipeline, under its figures. Every value starts at the
     /// same column, and the figures that move on their own are padded out to
     /// the width they reach in a busy run, so that what follows stays still.
     static func lines(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [Line] {
@@ -213,15 +317,18 @@ final class DemoHUD {
         return parts.isEmpty ? "none" : parts.joined(separator: " · ")
     }
 
-    /// The lines for the app, under its stats: what the display cost, and the
-    /// highest the footprint has been.
-    var appLines: [Line] {
+    /// What a busy main thread cost the display, which the card and the sheet
+    /// both show.
+    var displayLine: Line {
         let hitch = display.hitchTimeRatio.map { String(format: "%.1f ms/s", $0 * 1000) } ?? "–"
-        return [
-            Line(label: "display", value: "\(Self.field("\(display.droppedFrameCount) dropped", 12)) · \(Self.field("\(hitch) hitch", 16)) · \(demoDelay(display.longestFrame)) worst",
-                 tint: display.droppedFrameCount > 0 ? .orange : nil),
-            Line(label: "peak", value: demoByteCount(footprint.peak))
-        ]
+        return Line(label: "display", value: "\(Self.field("\(display.droppedFrameCount) dropped", 12)) · \(Self.field("\(hitch) hitch", 16)) · \(demoDelay(display.longestFrame)) worst",
+                    tint: display.droppedFrameCount > 0 ? .orange : nil)
+    }
+
+    /// The lines for the app, under its figures. The sheet sets the peak
+    /// beside the footprint instead, where the two read together.
+    var appLines: [Line] {
+        [displayLine, Line(label: "peak", value: demoByteCount(footprint.peak))]
     }
 
     /// A figure and the word after it, padded out on its right to the width it
@@ -240,13 +347,63 @@ final class DemoHUD {
         limit > 0 ? "\(demoByteCount(count))/\(demoByteCount(limit))" : "none"
     }
 
-    private static func hitRate(_ figures: DemoPipelineDiagnostics) -> String {
+    /// The share of the images that didn't download, as a percentage, or a
+    /// dash before any of them have arrived.
+    static func hitRate(_ figures: DemoPipelineDiagnostics) -> String {
         let count = figures.networkResponseCount + figures.diskResponseCount + figures.servedFromMemoryCount
         return count > 0 ? "\(Int((figures.hitRate * 100).rounded()))%" : "–"
     }
 }
 
 extension DemoHUD {
+    /// A corner of the screen the card stands in, which it is dragged between.
+    enum Corner: String, CaseIterable, Identifiable {
+        case topLeading, topTrailing, bottomLeading, bottomTrailing
+
+        /// The corner of the half the card was let go in.
+        init(isTop: Bool, isLeading: Bool) {
+            switch (isTop, isLeading) {
+            case (true, true): self = .topLeading
+            case (true, false): self = .topTrailing
+            case (false, true): self = .bottomLeading
+            case (false, false): self = .bottomTrailing
+            }
+        }
+
+        var id: String { rawValue }
+        var isTop: Bool { self == .topLeading || self == .topTrailing }
+        var isLeading: Bool { self == .topLeading || self == .bottomLeading }
+
+        var alignment: Alignment {
+            switch self {
+            case .topLeading: .topLeading
+            case .topTrailing: .topTrailing
+            case .bottomLeading: .bottomLeading
+            case .bottomTrailing: .bottomTrailing
+            }
+        }
+
+        /// What the card's options call it: the words a screen is described
+        /// in, rather than the leading and trailing a layout is written in.
+        var title: String {
+            switch self {
+            case .topLeading: "Top Left"
+            case .topTrailing: "Top Right"
+            case .bottomLeading: "Bottom Left"
+            case .bottomTrailing: "Bottom Right"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .topLeading: "arrow.up.left"
+            case .topTrailing: "arrow.up.right"
+            case .bottomLeading: "arrow.down.left"
+            case .bottomTrailing: "arrow.down.right"
+            }
+        }
+    }
+
     /// One of the figures the HUD leads with, set large enough to read at a
     /// glance: a value and the word under it.
     struct Stat: Identifiable {
@@ -259,8 +416,8 @@ extension DemoHUD {
         var id: String { caption }
     }
 
-    /// A label and the figures after it, as the panel and the **Pipeline
-    /// Details** screen both list them.
+    /// A label and the figures after it, as the card and the **Pipeline
+    /// Details** sheet both list them.
     struct Line: Identifiable {
         let label: String
         let value: String

@@ -37,9 +37,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case scrollStress = "scroll-stress"
     case animationLab = "animation-lab"
 
-    // The instrument, which the catalog doesn't list – see ``section``.
-    case pipelineDetails = "pipeline-details"
-
     var id: String { rawValue }
 
     var title: String {
@@ -55,7 +52,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: "Decompression"
         case .customDecoder: "Custom Decoder"
         case .customDataLoader: "Custom Data Loader"
-        case .pipelineDetails: "Pipeline Details"
         case .priorityAndCoalescing: "Priority & Coalescing"
         case .scrollStress: "Scroll Stress"
         case .animationLab: "Animation Lab"
@@ -76,25 +72,20 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: "Decoded off the main thread, counted in frames"
         case .customDecoder: "A toy format, picked by its first bytes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
-        case .pipelineDetails: "One pipeline's figures, queues, and caches"
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
         }
     }
 
-    /// The section of the catalog that lists the screen, or `nil` for one it
-    /// doesn't list. The details of a pipeline are opened from the HUD, which
-    /// is over every screen and already shows that pipeline, rather than from
-    /// a row of their own.
-    var section: CatalogSection? {
+    /// The section of the catalog that lists the screen.
+    var section: CatalogSection {
         switch self {
         case .lazyImage, .uikitViews, .imageProcessing: .essentials
         case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
         case .prefetching, .decompression: .performance
         case .customDecoder, .customDataLoader: .integration
         case .priorityAndCoalescing, .scrollStress, .animationLab: .lab
-        case .pipelineDetails: nil
         }
     }
 
@@ -114,7 +105,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: DecompressionDemo()
         case .customDecoder: CustomDecoderDemo()
         case .customDataLoader: CustomDataLoaderDemo()
-        case .pipelineDetails: PipelineDetailsDemo()
         case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationLab: AnimationLabDemo()
@@ -153,7 +143,7 @@ extension DemoScreen {
             case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
             case .performance: "How to have an image ready before it is needed, and what decoding off the main thread saves."
             case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
-            case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen, and its menu opens the details of the pipeline it shows."
+            case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen, and its info button opens the details of the pipeline it shows."
             }
         }
 
@@ -166,13 +156,12 @@ extension DemoScreen {
 extension View {
     /// Resolves the ``DemoScreen`` values pushed onto the navigation stack
     /// this view is in. The catalog registers it once, at the root, for the
-    /// whole stack. Every screen leaves room for the pipeline HUD.
+    /// whole stack.
     func demoDestinations() -> some View {
         navigationDestination(for: DemoScreen.self) { screen in
             screen.destination
                 .navigationTitle(screen.title)
                 .navigationBarTitleDisplayMode(.inline)
-                .demoHUDRoom()
         }
     }
 }
