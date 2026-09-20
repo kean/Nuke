@@ -446,8 +446,8 @@ struct DemoHUDQueues: View {
         HStack(spacing: 5) {
             Text(queue.name)
                 .foregroundStyle(.secondary)
-            if let running = queue.running, (1...Self.maxSlots).contains(queue.limit) {
-                DemoQueueSlots(running: running, limit: queue.limit, isSuspended: queue.isSuspended, size: CGSize(width: 5, height: 12))
+            if (1...Self.maxSlots).contains(queue.limit) {
+                DemoQueueSlots(running: queue.running ?? 0, limit: queue.limit, isSuspended: queue.isSuspended, size: CGSize(width: 5, height: 12))
             } else {
                 Text(verbatim: "\(queue.running.map { "\($0)" } ?? "–")/\(queue.limit)")
             }
