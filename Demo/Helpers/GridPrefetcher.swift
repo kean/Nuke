@@ -15,8 +15,9 @@ final class GridPrefetcher {
     /// Called every time the prefetch window changes.
     var onChange: ((_ started: [Int], _ stopped: [Int]) -> Void)?
 
-    private let prefetcher = ImagePrefetcher()
-    private let urls: [URL]
+    private let prefetcher: ImagePrefetcher
+    /// A request per cell, the same the cell displays with.
+    private let requests: [ImageRequest]
     private let windowSize: Int
 
     private var visible: Set<Int> = []
@@ -24,8 +25,9 @@ final class GridPrefetcher {
     private var window: Range<Int> = 0..<0
     private var isUpdateScheduled = false
 
-    init(urls: [URL], windowSize: Int = 16) {
-        self.urls = urls
+    init(prefetcher: ImagePrefetcher, requests: [ImageRequest], windowSize: Int = 16) {
+        self.prefetcher = prefetcher
+        self.requests = requests
         self.windowSize = windowSize
     }
 
@@ -72,7 +74,7 @@ final class GridPrefetcher {
     }
 
     private func setWindow(_ newWindow: Range<Int>) {
-        let valid = Set(urls.indices)
+        let valid = Set(requests.indices)
         let old = Set(window).intersection(valid)
         let new = Set(newWindow).intersection(valid)
         window = newWindow
@@ -81,8 +83,8 @@ final class GridPrefetcher {
         let stopped = old.subtracting(new).sorted()
         guard !started.isEmpty || !stopped.isEmpty else { return }
 
-        prefetcher.startPrefetching(with: started.map { urls[$0] })
-        prefetcher.stopPrefetching(with: stopped.map { urls[$0] })
+        prefetcher.startPrefetching(with: started.map { requests[$0] })
+        prefetcher.stopPrefetching(with: stopped.map { requests[$0] })
         onChange?(started, stopped)
     }
 }

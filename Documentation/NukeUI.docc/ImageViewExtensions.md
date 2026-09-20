@@ -29,7 +29,7 @@ NukeUI.loadImage(with: url, into: cell.imageView)
 }
 ```
 
-What works for `UITableView`, also does for a `UICollectionView`. You can see `UICollectionView` in action in the [demo project](https://github.com/kean/NukeDemo).
+What works for `UITableView`, also does for a `UICollectionView`. The **UIKit Views** screen in the [demo app](https://github.com/kean/Nuke/tree/main/Demo) loads a `UICollectionView` this way, next to the same photos in a grid of ``LazyImageView``.
 
 > When the view is deallocated, an associated request also gets canceled automatically. To manually cancel the request, call ``NukeUI/cancelRequest(for:)``.
 

@@ -10,7 +10,7 @@ The framework is lean and compiles in under 2 seconds. It has an automated test 
 
 ## Getting Started
 
-Start learning with <doc:getting-started> and review the rest of the articles in the documentation as needed. To see Nuke in action, open `Nuke.xcodeproj` from the [repo](https://github.com/kean/Nuke) and run the `NukeDemo` scheme: the demo app has a screen for every topic in this documentation.
+Start learning with <doc:getting-started> and review the rest of the articles in the documentation as needed. To see Nuke in action, open `Nuke.xcodeproj` from the [repo](https://github.com/kean/Nuke) and run the `NukeDemo` scheme. The demo app is a catalog of screens ordered the way an app adopts Nuke, from loading a first image to plugging into the pipeline, followed by a Lab of stress tests and instruments for working on Nuke itself.
 
 Upgrading from the previous version? Use a [Migration Guide](https://github.com/kean/Nuke/tree/main/Documentation/Migrations).
 
