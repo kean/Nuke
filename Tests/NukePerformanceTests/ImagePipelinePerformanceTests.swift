@@ -112,6 +112,34 @@ struct ImagePipelinePerformanceTests {
             }
         }
     }
+
+    @Test
+    func imageTaskEventsPerformance() async {
+        let pipeline = makePipeline()
+        let requests = (0..<5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+        await measure {
+            await withTaskGroup(of: Void.self) { group in
+                for request in requests {
+                    group.addTask {
+                        for await _ in pipeline.imageTask(with: request).events {}
+                    }
+                }
+            }
+        }
+    }
+
+    /// Every read of `events`, `progress`, or `previews` is a new subscription.
+    @Test
+    func imageTaskEventsSubscriptionPerformance() async throws {
+        let pipeline = makePipeline()
+        let task = pipeline.imageTask(with: ImageRequest(url: URL(string: "http://test.com/1")))
+        _ = try await task.response
+        await measure {
+            for _ in 0..<10_000 {
+                for await _ in task.events {}
+            }
+        }
+    }
 }
 
 /// Never has the data, so every iteration downloads it again.

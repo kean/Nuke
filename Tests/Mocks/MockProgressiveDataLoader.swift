@@ -17,11 +17,8 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
 
     /// Serves the first chunk from `loadData` without waiting for `resume()`.
     ///
-    /// Set to `false` in the tests that serve the next chunk only when they
-    /// receive a preview: subscribing to `ImageTask/previews` reaches the
-    /// pipeline actor asynchronously and the previews produced before it lands
-    /// are not replayed, so such a test deadlocks if it loses the first one.
-    /// See `ImageTask/subscribedPreviews()`.
+    /// Set to `false` in the tests that serve every chunk themselves, one for
+    /// each preview they receive.
     var servesFirstChunkAutomatically = true
 
     /// Both are only ever touched on the main queue, which is what serializes
