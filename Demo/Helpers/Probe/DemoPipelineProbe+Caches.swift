@@ -43,6 +43,18 @@ extension DemoPipelineDiagnostics {
         var framePoolCost = 0
         /// `AnimatedImageFramePool.shared.costLimit`.
         var framePoolCostLimit = 0
+
+        /// Takes the memory figures of `other` and leaves the disk ones as
+        /// they are: the memory caches can be read on every tick, the disks
+        /// only every few seconds – see
+        /// ``DemoPipelineProbe/memoryCaches(of:)``.
+        mutating func setMemoryFigures(_ other: Caches) {
+            imageCacheCost = other.imageCacheCost
+            imageCacheCostLimit = other.imageCacheCostLimit
+            imageCacheCount = other.imageCacheCount
+            framePoolCost = other.framePoolCost
+            framePoolCostLimit = other.framePoolCostLimit
+        }
     }
 }
 
@@ -63,17 +75,12 @@ extension DemoPipelineProbe {
     /// caller that tracks the probes rather than the pipelines, such as the HUD.
     @MainActor
     static func sampleCaches(of probes: [DemoPipelineProbe]) async -> DemoPipelineDiagnostics.Caches {
-        var caches = DemoPipelineDiagnostics.Caches()
+        var caches = memoryCaches(of: probes)
         var seen = Set<ObjectIdentifier>()
         var dataCaches: [DataCache] = []
         var urlCaches: [URLCache] = []
         for probe in probes {
             let configuration = probe.configuration
-            if let cache = configuration.imageCache as? ImageCache, seen.insert(ObjectIdentifier(cache)).inserted {
-                caches.imageCacheCost += cache.totalCost
-                caches.imageCacheCostLimit += cache.costLimit
-                caches.imageCacheCount += cache.totalCount
-            }
             if let cache = configuration.dataCache as? DataCache, seen.insert(ObjectIdentifier(cache)).inserted {
                 dataCaches.append(cache)
             }
@@ -83,10 +90,6 @@ extension DemoPipelineProbe {
                 urlCaches.append(cache)
             }
         }
-
-        let pool = AnimatedImageFramePool.shared
-        caches.framePoolCost = pool.totalCost
-        caches.framePoolCostLimit = pool.costLimit
 
         if !dataCaches.isEmpty {
             caches.dataCacheSizeLimit = dataCaches.reduce(0) { $0 + $1.sizeLimit }
@@ -108,6 +111,30 @@ extension DemoPipelineProbe {
         if !urlCaches.isEmpty {
             caches.urlCacheDiskUsage = disk.urlCacheDiskUsage
         }
+        return caches
+    }
+
+    /// What the memory caches and the frame pool of the given probes' pipelines
+    /// hold, without touching a disk. `ImageCache` and the pool keep their
+    /// totals as they go, so this is a few locks and no I/O: cheap enough to
+    /// read with the counters, which is what keeps the HUD's memory figures and
+    /// the cache chart moving between the disk sweeps.
+    ///
+    /// The disk fields are left unset: ``sampleCaches(of:)`` fills them in.
+    @MainActor
+    static func memoryCaches(of probes: [DemoPipelineProbe]) -> DemoPipelineDiagnostics.Caches {
+        var caches = DemoPipelineDiagnostics.Caches()
+        var seen = Set<ObjectIdentifier>()
+        for probe in probes {
+            if let cache = probe.configuration.imageCache as? ImageCache, seen.insert(ObjectIdentifier(cache)).inserted {
+                caches.imageCacheCost += cache.totalCost
+                caches.imageCacheCostLimit += cache.costLimit
+                caches.imageCacheCount += cache.totalCount
+            }
+        }
+        let pool = AnimatedImageFramePool.shared
+        caches.framePoolCost = pool.totalCost
+        caches.framePoolCostLimit = pool.costLimit
         return caches
     }
 }
