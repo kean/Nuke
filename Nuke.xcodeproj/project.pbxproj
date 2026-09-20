@@ -693,7 +693,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1400;
-				LastUpgradeCheck = 2640;
+				LastUpgradeCheck = 2700;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
 					0C4F8FDE22E4B6ED0070ECFD = {
@@ -718,11 +718,11 @@
 						CreatedOnToolsVersion = 8.0;
 						TestTargetID = 0C8D7BCF1D9DBF1600D12EB7;
 					};
-					0CB1DE000100000000000003 = {
-						CreatedOnToolsVersion = 26.4;
-					};
 					0C91748F1BAE99EE004A7905 = {
 						CreatedOnToolsVersion = 7.0;
+					};
+					0CB1DE000100000000000003 = {
+						CreatedOnToolsVersion = 26.4;
 					};
 				};
 			};
