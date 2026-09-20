@@ -7,8 +7,14 @@ import Nuke
 import SwiftUI
 
 /// One pipeline at length: the figures the HUD folds away, the last half
-/// minute of its work in charts, what runs on each of its task queues, and what its
-/// caches hold, with the controls that empty a cache or suspend a queue.
+/// minute of its work in charts, what runs on each of its task queues, and what
+/// its caches hold, with the controls that empty a cache or suspend a queue.
+///
+/// A panel rather than a settings screen: one dark surface, and a stack of
+/// bands with a hairline between them. A grouped list drew a card around every
+/// row and hung a paragraph under every card, which left the chrome more of the
+/// screen than the figures had; what those paragraphs said is in the info sheet
+/// now, where it is read once rather than scrolled past every time.
 ///
 /// A sheet from the HUD, which stands over every screen, rather than a screen
 /// of its own: at the medium detent the screen it was opened over is still
@@ -16,37 +22,52 @@ import SwiftUI
 /// second sheet of a screen, so a screen whose console is a sheet steps aside
 /// for it – see ``DemoHUD/openDetails()``.
 ///
-/// Which pipeline it shows is the one the HUD shows, and its picker holds the
+/// Which pipeline it shows is the one the HUD shows, and its title holds the
 /// HUD to one when several are alive – see ``DemoHUD/pinnedID``.
 struct PipelineDetailsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var isShowingInfo = false
+    @State private var isShowingOptions = false
+    @State private var isShowingPipelines = false
+
+    /// The surface the whole sheet is drawn on: one panel, a shade off black,
+    /// rather than a grouped list's cards on a ground of their own.
+    private static let panel = Color(white: 0.07)
 
     var body: some View {
         @Bindable var hud = DemoHUD.shared
         return NavigationStack {
-            List {
-                if let pipeline = hud.followed {
-                    figuresSection(pipeline)
-                    requestsSection(pipeline, hud: hud)
-                    queuesSection(pipeline, hud: hud)
-                    cachesSection(pipeline, hud: hud)
-                } else {
-                    Section {
-                        Text("No pipeline has been built yet. Open a screen that loads an image and its figures appear here.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let pipeline = hud.followed {
+                        figuresBand(pipeline)
+                        Divider()
+                        requestsBand(pipeline, hud: hud)
+                        Divider()
+                        queuesBand(pipeline, hud: hud)
+                        Divider()
+                        cachesBand(pipeline, hud: hud)
+                    } else {
+                        noPipelineBand
                     }
+                    Divider()
+                    appBand(hud)
+                    Divider()
+                    totalBand(hud)
+                    Divider()
+                    hudBand(hud)
                 }
-                appSection(hud)
-                totalSection(hud)
-                hudSection(hud)
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
             }
+            .background(Self.panel)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Self.panel, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    PipelineTitle(hud: hud)
+                    title(hud)
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     options(hud)
@@ -67,7 +88,7 @@ struct PipelineDetailsSheet: View {
         // one is a wall of small figures, and over a photo – or worse, over an
         // animation – what shows through washes them out. It also keeps the
         // two detents looking like one sheet.
-        .presentationBackground(Color(.systemGroupedBackground))
+        .presentationBackground(Self.panel)
         // The screen it was opened over goes on loading underneath, and the
         // charts go on filling while it does.
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
@@ -87,171 +108,87 @@ struct PipelineDetailsSheet: View {
         }
     }
 
-    private func options(_ hud: DemoHUD) -> some View {
-        Menu {
-            Button("Reset Figures", systemImage: "arrow.counterclockwise") {
-                hud.reset()
-            }
-            if hud.pinnedID != nil {
-                Button("Follow Active Pipeline", systemImage: "pin.slash") {
-                    hud.pinnedID = nil
+    // MARK: Bands
+
+    /// One band of the panel: its name set small above the figures, and a note
+    /// under the name where they need a word of explanation.
+    private func band<Content: View>(
+        _ name: String,
+        _ note: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 11) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name.uppercased())
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1)
+                    .foregroundStyle(.secondary)
+                if let note {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Button("About These Figures", systemImage: "questionmark") {
-                isShowingInfo = true
-            }
-        } label: {
-            Image(systemName: "ellipsis.circle")
+            content()
         }
-        .accessibilityLabel("Options")
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 16)
     }
 
-    // MARK: Figures
+    private var noPipelineBand: some View {
+        band("Figures") {
+            Text("No pipeline has been built yet. Open a screen that loads an image and its figures appear here.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
 
-    private func figuresSection(_ pipeline: DemoHUD.Pipeline) -> some View {
+    private func figuresBand(_ pipeline: DemoHUD.Pipeline) -> some View {
         let figures = pipeline.figures
-        return Section {
-            DemoFigureGrid(figures: [
-                .init("active", "\(figures.activeTaskCount)", tint: figures.activeTaskCount > 0 ? .green : nil),
-                .init("hit", DemoHUD.hitRate(figures)),
-                .init("done", "\(figures.succeededTaskCount)"),
-                .init("cancelled", "\(figures.cancelledTaskCount)"),
-                .init("failed", "\(figures.failedTaskCount)", tint: figures.failedTaskCount > 0 ? .orange : nil),
-                .init("avg task", Self.milliseconds(figures.taskDuration.average))
-            ])
-            .demoFiguresRow()
-            DemoHUDLines(groups: [Self.workLines(figures)])
-                .demoFiguresRow()
-        } header: {
-            Text("Figures")
-        } footer: {
-            Text("What this pipeline has done since the last reset, as the probe it is built with counts it. Hit is the share of the images that didn't download.")
+        return band("Figures", "Since the last reset. Decode and decomp: average · longest.") {
+            DemoHUDStats(stats: [
+                DemoHUD.Stat(value: "\(figures.activeTaskCount)", caption: "active", tint: figures.activeTaskCount > 0 ? .green : nil),
+                DemoHUD.Stat(value: DemoHUD.hitRate(figures), caption: "hit"),
+                DemoHUD.Stat(value: "\(figures.succeededTaskCount)", caption: "done"),
+                Self.milliseconds(figures.taskDuration.average, caption: "avg task")
+            ], size: 25)
+            DemoFieldGrid(groups: [Self.taskFields(figures), Self.workFields(figures)], size: 12)
         }
     }
 
-    /// The lines under the headline figures: where the images came from, what
-    /// the downloads cost, and how long the work off the main thread took.
-    private static func workLines(_ figures: DemoPipelineDiagnostics) -> [DemoHUD.Line] {
-        [
-            DemoHUD.Line(label: "source", value: "\(figures.networkResponseCount) network · \(figures.diskResponseCount) disk · \(figures.servedFromMemoryCount) memory"),
-            DemoHUD.Line(label: "network", value: "\(demoByteCount(figures.downloadedByteCount)) down · \(demoByteCount(figures.inFlightByteCount)) in flight"),
-            DemoHUD.Line(label: "decode", value: timing(figures.decoding)),
-            DemoHUD.Line(label: "decomp", value: timing(figures.decompression))
-        ]
-    }
-
-    private static func timing(_ timing: DemoPipelineDiagnostics.Timing) -> String {
-        guard timing.count > 0 else { return "–" }
-        return "avg \(milliseconds(timing.average)) · max \(milliseconds(timing.max)) · \(timing.count)"
-    }
-
-    private static func milliseconds(_ seconds: TimeInterval) -> String {
-        guard seconds > 0 else { return "–" }
-        return String(format: seconds < 0.01 ? "%.1f ms" : "%.0f ms", seconds * 1000)
-    }
-
-    // MARK: Requests
-
-    private func requestsSection(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
-        Section {
+    private func requestsBand(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
+        band("Images finished", "One bar every half second, over the last 30 seconds.") {
             DemoRequestsChart(timeline: hud.timelines[pipeline.id] ?? DemoHUDTimeline())
                 .equatable()
-                .demoFiguresRow()
-        } header: {
-            Text("Requests")
-        } footer: {
-            Text("Every image the pipeline finished, stacked by where it came from. The darker the stack, the further the pipeline had to go for them: the memory cache, then the disk cache, then a download.")
         }
     }
 
-    // MARK: Queues
-
-    /// One of the pipeline's task queues: where it is on the configuration,
-    /// and where the probe counts the work running on it. The probe can't see
-    /// processing, as processors come with the request.
-    private struct QueueKind: Identifiable {
-        let title: String
-        let queue: KeyPath<ImagePipeline.Configuration, TaskQueue>
-        var figures: KeyPath<DemoPipelineDiagnostics, DemoPipelineDiagnostics.Queue>?
-
-        var id: String { title }
-    }
-
-    private static let queues = [
-        QueueKind(title: "Data Loading", queue: \.dataLoadingQueue, figures: \.dataLoadingQueue),
-        QueueKind(title: "Decoding", queue: \.imageDecodingQueue, figures: \.decodingQueue),
-        QueueKind(title: "Processing", queue: \.imageProcessingQueue),
-        QueueKind(title: "Decompressing", queue: \.imageDecompressingQueue, figures: \.decompressingQueue),
-        QueueKind(title: "Encoding", queue: \.imageEncodingQueue, figures: \.encodingQueue)
-    ]
-
-    private func queuesSection(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
+    private func queuesBand(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
         let figures = pipeline.figures
         let ceiling = figures.dataLoadingQueue.limit + figures.decodingQueue.limit + figures.decompressingQueue.limit
-        return Section {
+        return band("Queues", "Suspend one and the work gathers in front of it.") {
             DemoQueuesChart(timeline: hud.timelines[pipeline.id] ?? DemoHUDTimeline(), ceiling: ceiling)
                 .equatable()
-                .demoFiguresRow()
-            ForEach(Self.queues) { kind in
-                queueRow(kind, pipeline: pipeline)
+            VStack(spacing: 0) {
+                ForEach(Self.queues) { kind in
+                    queueRow(kind, pipeline: pipeline)
+                }
             }
-        } header: {
-            Text("Queues")
-        } footer: {
-            Text("The work running on each queue against its limit, as the probe counts it. Suspend one and the tasks gather in front of it, on every screen this pipeline serves, until it is resumed: the HUD shows a suspended queue in orange.")
         }
     }
 
-    private func queueRow(_ kind: QueueKind, pipeline: DemoHUD.Pipeline) -> some View {
-        let queue = pipeline.configuration[keyPath: kind.queue]
-        let running = kind.figures.flatMap { pipeline.figures[keyPath: $0].inFlightCount }
-        let limit = queue.maxConcurrentTaskCount
-        return HStack(spacing: 10) {
-            Text(kind.title)
-                .font(.subheadline)
-            Spacer(minLength: 4)
-            if let running, (1...8).contains(limit) {
-                DemoQueueSlots(
-                    running: running,
-                    limit: limit,
-                    isSuspended: queue.isSuspended,
-                    size: CGSize(width: 5, height: 10),
-                    tint: .accentColor
-                )
-            }
-            DemoMonoLabel("\(running.map { "\($0)" } ?? "–")/\(limit)", tint: queue.isSuspended ? .orange : .secondary)
-            Button {
-                queue.isSuspended.toggle()
-            } label: {
-                Image(systemName: queue.isSuspended ? "play.fill" : "pause.fill")
-                    .font(.caption2)
-                    .frame(width: 22, height: 18)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            // Quiet at rest and orange while it holds the work back, which is
-            // the state worth noticing.
-            .tint(queue.isSuspended ? .orange : .secondary)
-            .accessibilityLabel(queue.isSuspended ? "Resume \(kind.title)" : "Suspend \(kind.title)")
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue("\(running.map { "\($0)" } ?? "unknown") of \(limit) running" + (queue.isSuspended ? ", suspended" : ""))
-    }
-
-    // MARK: Caches
-
-    private func cachesSection(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
+    private func cachesBand(_ pipeline: DemoHUD.Pipeline, hud: DemoHUD) -> some View {
         let configuration = pipeline.configuration
         let caches = hud.caches[pipeline.id]
         let timeline = hud.timelines[pipeline.id] ?? DemoHUDTimeline()
         let urlCache = (configuration.dataLoader as? DataLoader)?.session.configuration.urlCache
-        return Section {
+        return band("Caches", "The memory cache over 30 seconds, then each against its limit.") {
             // A pipeline without a memory cache – the Lab turns them off – has
             // nothing to chart, and a flat line with no axis reads as broken.
             if caches?.imageCacheCostLimit ?? 0 > 0 {
                 DemoMemoryCacheChart(timeline: timeline)
                     .equatable()
-                    .demoFiguresRow()
             }
             VStack(spacing: 12) {
                 DemoCacheMeter(
@@ -282,12 +219,160 @@ struct PipelineDetailsSheet: View {
                     limit: caches?.framePoolCostLimit ?? 0
                 )
             }
-            .demoFiguresRow()
-        } header: {
-            Text("Caches")
-        } footer: {
-            Text("What the caches of this pipeline hold. The memory figures are read with the counters; the disk ones every 3 seconds, as a `DataCache` is measured by listing its directory. A cache that two pipelines share is emptied for both. The frame pool is shared by every animation playing, whichever pipeline loaded it.")
         }
+    }
+
+    private func appBand(_ hud: DemoHUD) -> some View {
+        let fps = hud.display.framesPerSecond
+        return band("App", "Frames counted on the main thread, capped at 60 Hz.") {
+            DemoHUDStats(stats: [
+                DemoHUD.Stat(value: fps.map { String(format: "%.0f", $0) } ?? "–", caption: "fps", tint: hud.display.isKeepingUp ? nil : .orange),
+                .bytes(hud.footprint.current, caption: "memory"),
+                .bytes(hud.footprint.peak, caption: "peak")
+            ], size: 25)
+            DemoFieldGrid(groups: [hud.displayFields], size: 12)
+        }
+    }
+
+    private func totalBand(_ hud: DemoHUD) -> some View {
+        let total = hud.total
+        return band("All pipelines", "Added up, the ones that have gone included.") {
+            DemoHUDStats(stats: [
+                DemoHUD.Stat(value: "\(total.activeTaskCount)", caption: "active", tint: total.activeTaskCount > 0 ? .green : nil),
+                DemoHUD.Stat(value: DemoHUD.hitRate(total), caption: "hit"),
+                DemoHUD.Stat(value: "\(total.succeededTaskCount)", caption: "done")
+            ], size: 25)
+            DemoFieldGrid(groups: [Self.taskFields(total), DemoHUD.byteFields(total, caches: hud.totalCaches)], size: 12)
+        }
+    }
+
+    private func hudBand(_ hud: DemoHUD) -> some View {
+        @Bindable var hud = hud
+        return band("HUD", "The card over every screen shows the same figures.") {
+            VStack(spacing: 10) {
+                Toggle("Show HUD", isOn: $hud.isVisible)
+                Toggle("Expanded", isOn: $hud.isExpanded)
+                    .disabled(!hud.isVisible)
+            }
+            .font(.subheadline)
+        }
+    }
+
+    // MARK: Figures
+
+    /// What else became of the tasks, and where the images came from. The
+    /// headline figures above have the ones worth a glance.
+    private static func taskFields(_ figures: DemoPipelineDiagnostics) -> DemoHUD.FieldGroup {
+        DemoHUD.FieldGroup(
+            id: "tasks",
+            leading: [
+                DemoHUD.Field(label: "cancelled", value: "\(figures.cancelledTaskCount)"),
+                DemoHUD.Field(label: "failed", value: "\(figures.failedTaskCount)", tint: figures.failedTaskCount > 0 ? .orange : nil)
+            ],
+            trailing: [
+                DemoHUD.Field(label: "network", value: "\(figures.networkResponseCount)"),
+                DemoHUD.Field(label: "disk", value: "\(figures.diskResponseCount)"),
+                DemoHUD.Field(label: "memory", value: "\(figures.servedFromMemoryCount)")
+            ]
+        )
+    }
+
+    /// What the downloads cost, and what the work off the main thread took.
+    private static func workFields(_ figures: DemoPipelineDiagnostics) -> DemoHUD.FieldGroup {
+        DemoHUD.FieldGroup(
+            id: "work",
+            leading: [
+                DemoHUD.Field(label: "downloaded", value: demoByteCount(figures.downloadedByteCount)),
+                DemoHUD.Field(label: "in flight", value: demoByteCount(figures.inFlightByteCount))
+            ],
+            trailing: [
+                DemoHUD.Field(label: "decode", value: timing(figures.decoding)),
+                DemoHUD.Field(label: "decomp", value: timing(figures.decompression))
+            ]
+        )
+    }
+
+    /// A timing as the two figures worth having: the average and the longest.
+    private static func timing(_ timing: DemoPipelineDiagnostics.Timing) -> String {
+        guard timing.count > 0 else { return "–" }
+        return "\(number(timing.average)) · \(number(timing.max)) ms"
+    }
+
+    private static func number(_ seconds: TimeInterval) -> String {
+        String(format: seconds < 0.01 ? "%.1f" : "%.0f", seconds * 1000)
+    }
+
+    /// A duration as a headline figure, with the unit set apart from it.
+    private static func milliseconds(_ seconds: TimeInterval, caption: String) -> DemoHUD.Stat {
+        guard seconds > 0 else { return DemoHUD.Stat(value: "–", caption: caption) }
+        return DemoHUD.Stat(value: number(seconds), unit: "ms", caption: caption)
+    }
+
+    // MARK: Queues
+
+    /// One of the pipeline's task queues: where it is on the configuration,
+    /// and where the probe counts the work running on it. The probe can't see
+    /// processing, as processors come with the request.
+    private struct QueueKind: Identifiable {
+        let title: String
+        let queue: KeyPath<ImagePipeline.Configuration, TaskQueue>
+        var figures: KeyPath<DemoPipelineDiagnostics, DemoPipelineDiagnostics.Queue>?
+
+        var id: String { title }
+    }
+
+    private static let queues = [
+        QueueKind(title: "Data loading", queue: \.dataLoadingQueue, figures: \.dataLoadingQueue),
+        QueueKind(title: "Decoding", queue: \.imageDecodingQueue, figures: \.decodingQueue),
+        QueueKind(title: "Processing", queue: \.imageProcessingQueue),
+        QueueKind(title: "Decompressing", queue: \.imageDecompressingQueue, figures: \.decompressingQueue),
+        QueueKind(title: "Encoding", queue: \.imageEncodingQueue, figures: \.encodingQueue)
+    ]
+
+    private func queueRow(_ kind: QueueKind, pipeline: DemoHUD.Pipeline) -> some View {
+        let queue = pipeline.configuration[keyPath: kind.queue]
+        let running = kind.figures.flatMap { pipeline.figures[keyPath: $0].inFlightCount }
+        let limit = queue.maxConcurrentTaskCount
+        let isSuspended = queue.isSuspended
+        return HStack(spacing: 10) {
+            Text(kind.title)
+                .font(.subheadline)
+                .foregroundStyle(isSuspended ? Color.orange : .primary)
+            Spacer(minLength: 4)
+            if let running, (1...8).contains(limit) {
+                DemoQueueSlots(
+                    running: running,
+                    limit: limit,
+                    isSuspended: isSuspended,
+                    size: CGSize(width: 5, height: 11),
+                    tint: DemoChartRamp.single
+                )
+            }
+            Text(verbatim: "\(running.map { "\($0)" } ?? "–")/\(limit)")
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(isSuspended ? Color.orange : .secondary)
+                .frame(width: 30, alignment: .trailing)
+            Button {
+                queue.isSuspended.toggle()
+            } label: {
+                Image(systemName: isSuspended ? "play.fill" : "pause.fill")
+                    .font(.system(size: 10))
+                    // Quiet at rest and orange while it holds the work back,
+                    // which is the state worth noticing.
+                    .foregroundStyle(isSuspended ? Color.orange : Color.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(isSuspended ? Color.orange.opacity(0.20) : Color.primary.opacity(0.09)))
+                    // The circle is the size the row reads at; what answers a
+                    // finger is the whole of the row's height beside it.
+                    .frame(width: 44, height: 40)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSuspended ? "Resume \(kind.title)" : "Suspend \(kind.title)")
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityValue("\(running.map { "\($0)" } ?? "unknown") of \(limit) running" + (isSuspended ? ", suspended" : ""))
     }
 
     /// Empties a cache and reads the figures again, rather than leaving them
@@ -299,89 +384,16 @@ struct PipelineDetailsSheet: View {
         }
     }
 
-    // MARK: App and totals
+    // MARK: Title and options
 
-    private func appSection(_ hud: DemoHUD) -> some View {
-        let fps = hud.display.framesPerSecond
-        return Section {
-            DemoFigureGrid(figures: [
-                .init("fps", fps.map { String(format: "%.0f", $0) } ?? "–", tint: hud.display.isKeepingUp ? nil : .orange),
-                .init("memory", hud.footprint.current.map { demoByteCount($0) } ?? "–"),
-                .init("peak", demoByteCount(hud.footprint.peak))
-            ])
-            .demoFiguresRow()
-            DemoHUDLines(groups: [[hud.displayLine]])
-                .demoFiguresRow()
-        } header: {
-            Text("App")
-        } footer: {
-            Text("The frames of the last second, the memory the system charges the app for, and what a busy main thread cost the display, counted by a `CADisplayLink` on the main thread. It is driven at 60 Hz, on a 120 Hz display as well, so 60 fps is as high as this goes. A frame the render server drops on its own isn't seen.")
-        }
-    }
-
-    private func totalSection(_ hud: DemoHUD) -> some View {
-        let total = hud.total
-        return Section {
-            DemoFigureGrid(figures: [
-                .init("active", "\(total.activeTaskCount)", tint: total.activeTaskCount > 0 ? .green : nil),
-                .init("hit", DemoHUD.hitRate(total)),
-                .init("done", "\(total.succeededTaskCount)")
-            ])
-            .demoFiguresRow()
-            DemoHUDLines(groups: [DemoHUD.lines(hud.total, caches: hud.totalCaches)])
-                .demoFiguresRow()
-        } header: {
-            Text("All Pipelines")
-        } footer: {
-            Text("Every pipeline added up, the ones that have gone included. A cache that two of them share counts once.")
-        }
-    }
-
-    private func hudSection(_ hud: DemoHUD) -> some View {
-        @Bindable var hud = hud
-        return Section {
-            Toggle("Show HUD", isOn: $hud.isVisible)
-            Toggle("Expanded", isOn: $hud.isExpanded)
-                .disabled(!hud.isVisible)
-        } header: {
-            Text("HUD")
-        } footer: {
-            Text("The HUD stands over every screen and shows the same figures for the pipeline above, folded down to what fits. The Lab section of the catalog has the same switch.")
-        }
-    }
-
-    private static let info = DemoInfo(
-        "Pipeline Details",
-        "One pipeline: what it has done since the last reset, as the probe it is built with counts it; the last half minute of its work in charts; what runs on each of its task queues; and what its caches hold, with the controls that empty one. The HUD over every screen shows the same figures, folded down to what fits.",
-        points: [
-            .init("Which pipeline", "The HUD follows the pipeline that did something last, and holds on to it while it keeps busy. Pick one from the title and both sheet and HUD stay with it; the HUD shows a pin while they do."),
-            .init("The charts", "The last 30 seconds, a point every half second. They are drawn in one hue, light to dark, because both stacks have an order: the stages work passes through, and how far the pipeline had to go for an image."),
-            .init("Source", "Where the images came from: a download, `URLCache` and fixtures included; `DataCache`; or the memory cache, with or without a task. Hit is the share that didn't download."),
-            .init("Queues", "The work running on each queue against its limit, a slot apiece. `TaskQueue` makes its limit and suspension public and keeps what waits to itself, so the probe counts what it sees running; processing it can't see at all, as processors come with the request."),
-            .init("Caches", "The memory cache, the `DataCache`, the `URLCache` of the loader's session, and the shared frame pool, each against its limit. Emptying one is the way to see a screen load the same images again."),
-            .init("Blind spots", "Work waiting in a queue, processing, and frames the render server drops. The disk caches are read every 3 seconds.")
-        ]
-    )
-}
-
-/// What the sheet is titled: the pipeline it shows, and the menu that holds it
-/// to one when several are alive. In the title rather than a section of its
-/// own, which a picker with one choice doesn't earn.
-private struct PipelineTitle: View {
-    let hud: DemoHUD
-
-    var body: some View {
-        @Bindable var hud = hud
+    /// What the sheet is titled: the pipeline it shows, and, when several are
+    /// alive, the list that holds both sheet and HUD to one of them.
+    private func title(_ hud: DemoHUD) -> some View {
         let label = hud.followed?.figures.label ?? "Pipeline Details"
         return Group {
             if hud.pipelines.count > 1 {
-                Menu {
-                    Picker("Pipeline", selection: $hud.pinnedID) {
-                        Text("Active").tag(ObjectIdentifier?.none)
-                        ForEach(hud.pipelines) { pipeline in
-                            Text(pipeline.figures.label).tag(ObjectIdentifier?.some(pipeline.id))
-                        }
-                    }
+                Button {
+                    isShowingPipelines = true
                 } label: {
                     HStack(spacing: 3) {
                         Text(label)
@@ -393,62 +405,64 @@ private struct PipelineTitle: View {
                 }
                 .accessibilityLabel("Pipeline, \(label)")
                 .accessibilityHint("Picks the pipeline this sheet and the HUD show")
+                .demoOptionsPopover(isPresented: $isShowingPipelines) {
+                    DemoOptionRow(title: "Active", systemImage: "bolt", isChosen: hud.pinnedID == nil) {
+                        isShowingPipelines = false
+                        hud.pinnedID = nil
+                    }
+                    ForEach(hud.pipelines) { pipeline in
+                        DemoOptionRow(title: pipeline.figures.label, systemImage: "pin", isChosen: hud.pinnedID == pipeline.id) {
+                            isShowingPipelines = false
+                            hud.pinnedID = pipeline.id
+                        }
+                    }
+                }
             } else {
                 Text(label)
                     .font(.headline)
             }
         }
     }
-}
 
-/// The headline figures of a pipeline, three to a row: a shape a reader scans
-/// rather than a paragraph of monospaced text.
-struct DemoFigureGrid: View {
-    let figures: [Figure]
-
-    struct Figure: Identifiable {
-        let caption: String
-        let value: String
-        var tint: Color?
-
-        var id: String { caption }
-
-        init(_ caption: String, _ value: String, tint: Color? = nil) {
-            self.caption = caption
-            self.value = value
-            self.tint = tint
+    /// The sheet's own options. A popover rather than a menu: a menu is
+    /// presented by UIKit and follows the window, so inside a sheet held dark
+    /// it comes up light.
+    private func options(_ hud: DemoHUD) -> some View {
+        Button {
+            isShowingOptions = true
+        } label: {
+            Image(systemName: "ellipsis.circle")
         }
-    }
-
-    var body: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .topLeading), count: 3),
-            alignment: .leading,
-            spacing: 12
-        ) {
-            ForEach(figures) { figure in
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(figure.value)
-                        .font(.system(size: 17, weight: .medium, design: .monospaced))
-                        .foregroundStyle(figure.tint ?? .primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text(figure.caption.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(0.6)
-                        .foregroundStyle(.secondary)
+        .accessibilityLabel("Options")
+        .demoOptionsPopover(isPresented: $isShowingOptions) {
+            DemoOptionRow(title: "Reset Figures", systemImage: "arrow.counterclockwise") {
+                isShowingOptions = false
+                hud.reset()
+            }
+            if hud.pinnedID != nil {
+                DemoOptionRow(title: "Follow Active Pipeline", systemImage: "pin.slash") {
+                    isShowingOptions = false
+                    hud.pinnedID = nil
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
+            }
+            DemoOptionRow(title: "About These Figures", systemImage: "questionmark") {
+                isShowingOptions = false
+                isShowingInfo = true
             }
         }
     }
-}
 
-extension View {
-    /// A row of figures, with narrower insets than a row of controls: the
-    /// charts and the monospaced blocks are set for the width they are given.
-    fileprivate func demoFiguresRow() -> some View {
-        listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
-    }
+    private static let info = DemoInfo(
+        "Pipeline Details",
+        "One pipeline: what it has done since the last reset, as the probe it is built with counts it; the last half minute of its work in charts; what runs on each of its task queues; and what its caches hold, with the controls that empty one. The HUD over every screen shows the same figures, folded down to what fits.",
+        points: [
+            .init("Which pipeline", "The HUD follows the pipeline that did something last, and holds on to it while it keeps busy. Pick one from the title and both sheet and HUD stay with it; the HUD shows a pin while they do."),
+            .init("The charts", "The last 30 seconds, a point every half second. They are drawn in one hue, light to dark, because both stacks have an order: the stages work passes through, and how far the pipeline had to go for an image."),
+            .init("Source", "Where the images came from: a download, `URLCache` and fixtures included; `DataCache`; or the memory cache, with or without a task. Hit is the share that didn't download."),
+            .init("Queues", "The work running on each queue against its limit, a slot apiece. `TaskQueue` makes its limit and suspension public and keeps what waits to itself, so the probe counts what it sees running; processing it can't see at all, as processors come with the request. A suspended queue holds its work back on every screen this pipeline serves, and the HUD shows it in orange."),
+            .init("Caches", "The memory cache, the `DataCache`, the `URLCache` of the loader's session, and the shared frame pool, each against its limit. The memory figures are read with the counters; the disk ones every 3 seconds, as a `DataCache` is measured by listing its directory. A cache that two pipelines share is emptied for both, and the frame pool is shared by every animation playing, whichever pipeline loaded it."),
+            .init("The app", "The frames of the last second, counted by a `CADisplayLink` on the main thread. It is driven at 60 Hz, on a 120 Hz display as well, so 60 fps is as high as this goes."),
+            .init("Blind spots", "Work waiting in a queue, processing, and frames the render server drops on its own.")
+        ]
+    )
 }

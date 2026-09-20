@@ -110,28 +110,34 @@ Every pipeline the demo builds counts what it does, and the pipeline HUD shows
 the figures over every screen. It is on from launch, as a card folded into a
 pill in the bottom left corner – the tasks running, the share of the images
 that didn't download, and the frames of the last second. Tap it and the same
-card grows into the queues, bytes, caches, memory footprint, and dropped frames
-of the pipeline that did something last – the queues include processing, as a
+card grows into those four figures at full size, the task queues as slots
+against their limits, and then the tasks, the bytes, the caches, and what a
+busy main thread cost the display, in two columns of label and figure with a
+rule between each group. Every figure ends at the same edge, so a count that
+grows from 9 to 10 moves nothing around it. The queues include processing, as a
 limit and a suspend switch rather than a count, because processors come with
-the request and nothing the probe sees counts them. It floats over the screen
-in Liquid Glass rather than taking a strip of it, dark whatever the app is set
-in, and it is dragged to whichever corner
-it is let go nearest – the card's options name the four for whoever would
-rather not drag it, and `-demoHUDCorner` starts it in one. The catalog's Lab
-section and those options switch it off; `-demoHUD 0` leaves it off from
-launch.
+the request and nothing the probe sees counts them.
+
+The card floats over the screen in Liquid Glass rather than taking a strip of
+it, dark whatever the app is set in, and it is dragged to whichever corner it
+is let go nearest – the card's options name the four for whoever would rather
+not drag it, and `-demoHUDCorner` starts it in one. The catalog's Lab section
+and those options switch it off; `-demoHUD 0` leaves it off from launch.
 
 The card's info button opens **Pipeline Details** as a sheet over whatever
 screen is on display: the same figures at length for the pipeline the HUD
-shows, the last half minute of its work in three charts – the images it finished stacked by
-where they came from, the work running on each queue, and what the memory cache
-holds
-– its five task queues with the work running against the limit and a suspend
-button each, and a meter for each of its caches with a button to empty it. At
-its resting height the screen underneath goes on loading, which is what the
-charts draw. With several pipelines alive, the title is a menu that holds both
-the sheet and the HUD to one of them – the HUD shows a pin while it does. The
-App and All Pipelines sections and the switches of the HUD are at the end.
+shows. It is a panel rather than a settings screen – one dark surface, a stack
+of bands with a hairline between them – because a grouped list drew a card
+around every row and hung a paragraph under every card, which left the chrome
+more of the screen than the figures had; what those paragraphs said is in the
+info sheet now, where it is read once rather than scrolled past every time. The
+bands: the pipeline's figures, the images it finished stacked by where they
+came from, the work running on each of its five task queues with a suspend
+button apiece, a meter for each of its caches with a button to empty it, then
+the app, every pipeline added up, and the switches of the HUD. At its resting
+height the screen underneath goes on loading, which is what the charts draw.
+With several pipelines alive, the title opens a list that holds both the sheet
+and the HUD to one of them – the HUD shows a pin while it does.
 
 The charts are drawn in one hue, light to dark, rather than a set of colors:
 both stacks have an order – the stages work passes through, and how far the

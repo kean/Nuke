@@ -47,14 +47,15 @@ enum DemoChartRamp {
     }
 }
 
-/// A chart of the last half minute, drawn small: a title, the chart, and the legend
-/// under it. Every chart on the sheet is built from this one, so they line up
-/// and read as a set.
+/// A chart of the last half minute, drawn small, with the legend under it.
+/// Every chart on the sheet is built from this one, so they line up and read as
+/// a set.
+///
+/// It carries no title of its own: the band it stands in names it, and a
+/// heading of its own under that heading would say it twice.
 struct DemoTimelineChart<Content: ChartContent>: View {
-    let title: String
-    let caption: String
     /// The series in the order they stack, bottom first. One series needs no
-    /// legend – the title names it – so it passes none.
+    /// legend – the band names it – so it passes none.
     var series: [String] = []
     /// The window, which is the whole half minute whatever has been recorded
     /// so far.
@@ -70,18 +71,8 @@ struct DemoTimelineChart<Content: ChartContent>: View {
     @ChartContentBuilder let content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Text(caption)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            chart
-                .frame(height: height)
-        }
-        .padding(.vertical, 2)
+        chart
+            .frame(height: height)
     }
 
     @ViewBuilder
@@ -138,7 +129,7 @@ private struct DemoChartYScale: ViewModifier {
 }
 
 /// Pins the series to their steps of the ramp and puts the legend under the
-/// chart. A chart of one series takes neither: its title names what it draws.
+/// chart. A chart of one series takes neither: the band it stands in names it.
 private struct DemoChartSeriesStyle: ViewModifier {
     let series: [String]
 
@@ -165,8 +156,6 @@ struct DemoRequestsChart: View, Equatable {
     var body: some View {
         let busiest = timeline.points.map { $0.memoryCount + $0.diskCount + $0.networkCount }.max() ?? 0
         DemoTimelineChart(
-            title: "Images finished",
-            caption: "One bar every half second, over the last 30 seconds",
             series: DemoHUDTimeline.Source.allCases.map(\.rawValue),
             domain: timeline.domain,
             // Idle, there are no bars for the chart to scale to, and a box
@@ -198,8 +187,6 @@ struct DemoQueuesChart: View, Equatable {
 
     var body: some View {
         DemoTimelineChart(
-            title: "Work running",
-            caption: "The three queues the probe can see, over the last 30 seconds",
             series: DemoHUDTimeline.Stage.allCases.map(\.rawValue),
             domain: timeline.domain,
             yMaximum: max(1, ceiling),
@@ -227,8 +214,6 @@ struct DemoMemoryCacheChart: View, Equatable {
     var body: some View {
         let peak = timeline.points.map(\.imageCacheCost).max() ?? 0
         DemoTimelineChart(
-            title: "Memory cache",
-            caption: "What the decoded images take, over the last 30 seconds",
             domain: timeline.domain,
             // Follows the peak so nothing is clipped, and holds a floor so an
             // empty cache still has an axis to be empty against.

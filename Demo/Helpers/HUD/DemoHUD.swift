@@ -276,7 +276,7 @@ final class DemoHUD {
         let fps = display.framesPerSecond
         return [
             Stat(value: fps.map { String(format: "%.0f", $0) } ?? "–", caption: "fps", tint: display.isKeepingUp ? nil : .orange),
-            Stat(value: footprint.current.map { demoByteCount($0) } ?? "–", caption: "memory")
+            .bytes(footprint.current, caption: "memory")
         ]
     }
 
@@ -294,48 +294,77 @@ final class DemoHUD {
         }
     }
 
-    /// The lines for a pipeline, under its figures. Every value starts at the
-    /// same column, and the figures that move on their own are padded out to
-    /// the width they reach in a busy run, so that what follows stays still.
-    static func lines(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [Line] {
-        [
-            Line(label: "tasks", value: "\(field("\(figures.succeededTaskCount) done", 9)) · \(field("\(figures.cancelledTaskCount) cancelled", 14)) · \(figures.failedTaskCount) failed",
-                 tint: figures.failedTaskCount > 0 ? .orange : nil),
-            Line(label: "source", value: "\(field("\(figures.networkResponseCount) network", 12)) · \(field("\(figures.diskResponseCount) disk", 9)) · \(figures.servedFromMemoryCount) memory"),
-            Line(label: "network", value: "\(field("\(bytes(figures.downloadedByteCount)) down", 14)) · \(bytes(figures.inFlightByteCount)) in flight"),
-            // The caches are read every few seconds, so they need no padding.
-            Line(label: "memory", value: caches.map { "image \(bytes($0.imageCacheCost, of: $0.imageCacheCostLimit)) · pool \(bytes($0.framePoolCost, of: $0.framePoolCostLimit))" } ?? "…"),
-            Line(label: "disk", value: caches.map(disk) ?? "…")
-        ]
+    /// The figures under a pipeline's headline four: what became of its tasks
+    /// on the left, and where its images came from on the right.
+    static func taskFields(_ figures: DemoPipelineDiagnostics) -> FieldGroup {
+        FieldGroup(
+            id: "tasks",
+            leading: [
+                Field(label: "done", value: "\(figures.succeededTaskCount)"),
+                Field(label: "cancelled", value: "\(figures.cancelledTaskCount)"),
+                Field(label: "failed", value: "\(figures.failedTaskCount)", tint: figures.failedTaskCount > 0 ? .orange : nil)
+            ],
+            trailing: [
+                Field(label: "network", value: "\(figures.networkResponseCount)"),
+                Field(label: "disk", value: "\(figures.diskResponseCount)"),
+                Field(label: "memory", value: "\(figures.servedFromMemoryCount)")
+            ]
+        )
     }
 
-    private static func disk(_ caches: DemoPipelineDiagnostics.Caches) -> String {
-        let parts = [
-            caches.dataCacheSize.map { "data \(bytes($0, of: caches.dataCacheSizeLimit ?? 0))" },
-            caches.urlCacheDiskUsage.map { "http \(bytes($0, of: caches.urlCacheDiskCapacity ?? 0))" }
-        ].compactMap { $0 }
-        return parts.isEmpty ? "none" : parts.joined(separator: " · ")
+    /// The bytes: what the downloads cost on the left, and what the caches
+    /// hold against their limits on the right.
+    static func byteFields(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> FieldGroup {
+        FieldGroup(
+            id: "bytes",
+            leading: [
+                Field(label: "downloaded", value: bytes(figures.downloadedByteCount)),
+                Field(label: "in flight", value: bytes(figures.inFlightByteCount)),
+                Field(label: "frame pool", value: caches.map { bytes($0.framePoolCost, of: $0.framePoolCostLimit) } ?? "…")
+            ],
+            trailing: [
+                Field(label: "image cache", value: caches.map { bytes($0.imageCacheCost, of: $0.imageCacheCostLimit) } ?? "…"),
+                Field(label: "data cache", value: caches.map { disk($0.dataCacheSize, of: $0.dataCacheSizeLimit) } ?? "…"),
+                Field(label: "http cache", value: caches.map { disk($0.urlCacheDiskUsage, of: $0.urlCacheDiskCapacity) } ?? "…")
+            ]
+        )
+    }
+
+    /// A disk cache against its limit. A pipeline that hasn't got the cache has
+    /// no limit to draw against; one whose directory hasn't been listed yet has
+    /// the limit and not the size.
+    private static func disk(_ size: Int?, of limit: Int?) -> String {
+        guard let limit, limit > 0 else { return "none" }
+        guard let size else { return "…" }
+        return bytes(size, of: limit)
     }
 
     /// What a busy main thread cost the display, which the card and the sheet
     /// both show.
-    var displayLine: Line {
+    var displayFields: FieldGroup {
         let hitch = display.hitchTimeRatio.map { String(format: "%.1f ms/s", $0 * 1000) } ?? "–"
-        return Line(label: "display", value: "\(Self.field("\(display.droppedFrameCount) dropped", 12)) · \(Self.field("\(hitch) hitch", 16)) · \(demoDelay(display.longestFrame)) worst",
-                    tint: display.droppedFrameCount > 0 ? .orange : nil)
+        return FieldGroup(
+            id: "display",
+            leading: [
+                Field(label: "dropped", value: "\(display.droppedFrameCount)", tint: display.droppedFrameCount > 0 ? .orange : nil),
+                Field(label: "hitch", value: hitch)
+            ],
+            trailing: [
+                Field(label: "worst frame", value: demoDelay(display.longestFrame))
+            ]
+        )
     }
 
-    /// The lines for the app, under its figures. The sheet sets the peak
-    /// beside the footprint instead, where the two read together.
-    var appLines: [Line] {
-        [displayLine, Line(label: "peak", value: demoByteCount(footprint.peak))]
-    }
-
-    /// A figure and the word after it, padded out on its right to the width it
-    /// reaches in a busy run: the figures after it on the line stay still as
-    /// it grows, and the line still starts where every other line starts.
-    private static func field(_ text: String, _ width: Int) -> String {
-        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
+    /// Everything the open card carries under its headline four. The peak
+    /// footprint rides with the display, which is the only room the card has
+    /// for it; the sheet sets it beside the footprint instead, where the two
+    /// read together.
+    func cardFields(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [FieldGroup] {
+        [
+            Self.taskFields(figures),
+            Self.byteFields(figures, caches: caches),
+            displayFields.appending(Field(label: "peak", value: demoByteCount(footprint.peak)))
+        ]
     }
 
     private static func bytes(_ count: some BinaryInteger) -> String {
@@ -408,22 +437,60 @@ extension DemoHUD {
     /// glance: a value and the word under it.
     struct Stat: Identifiable {
         let value: String
+        /// What the value is measured in, set smaller than the value where
+        /// there is one: it is the number that is read.
+        var unit: String?
         let caption: String
         /// The color of a value worth noticing – work running, frames missed –
         /// or `nil` for the color the rest of the figures are set in.
         var tint: Color?
 
         var id: String { caption }
+
+        /// A figure in bytes, with its unit split off the number: "84 MB" set
+        /// whole is wider than the figures beside it, and a row of headline
+        /// figures is read across.
+        static func bytes(_ count: Int?, caption: String, tint: Color? = nil) -> Stat {
+            guard let count else { return Stat(value: "–", caption: caption, tint: tint) }
+            let text = demoByteCount(count)
+            guard let space = text.lastIndex(of: " ") else {
+                return Stat(value: text, caption: caption, tint: tint)
+            }
+            return Stat(
+                value: String(text[text.startIndex..<space]),
+                unit: String(text[text.index(after: space)...]),
+                caption: caption,
+                tint: tint
+            )
+        }
     }
 
-    /// A label and the figures after it, as the card and the **Pipeline
-    /// Details** sheet both list them.
-    struct Line: Identifiable {
+    /// A label and the figure after it, as the card and the **Pipeline
+    /// Details** sheet both set them: the label at the left of its column and
+    /// the figure at the right, so that a column of figures lines up however
+    /// long the labels are.
+    struct Field: Identifiable {
         let label: String
         let value: String
         var tint: Color?
 
         var id: String { label }
+    }
+
+    /// Two columns of fields, which are read down rather than across. Each
+    /// column is a group of its own – what became of the tasks, and where the
+    /// images came from – and the rows only pair them up.
+    struct FieldGroup: Identifiable {
+        let id: String
+        let leading: [Field]
+        let trailing: [Field]
+
+        var rowCount: Int { max(leading.count, trailing.count) }
+
+        /// The same group with one more field at the foot of its right column.
+        func appending(_ field: Field) -> FieldGroup {
+            FieldGroup(id: id, leading: leading, trailing: trailing + [field])
+        }
     }
 
     /// A task queue: the work running against the limit, as a row of slots.

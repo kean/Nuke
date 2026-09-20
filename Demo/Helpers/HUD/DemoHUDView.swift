@@ -200,20 +200,35 @@ private struct DemoHUDCard: View {
         }
         .animation(.snappy, value: isExpanded)
         .accessibilityElement(children: .contain)
-        // Anchored to the whole card rather than to the button that opens it,
-        // so that it is laid beside the card instead of over it: a popover
+        // On the whole card rather than on the button that opens it, so that
+        // the popover is laid beside the card instead of over it: a popover
         // falls under the card's glass, which is drawn above every
         // presentation but a sheet's.
-        .popover(isPresented: $isShowingOptions, attachmentAnchor: .rect(.bounds)) {
-            options
-                .presentationCompactAdaptation(.popover)
-                // Dark as the card it belongs to. The scheme sets the rows,
-                // and the background the chrome around them: a popover's own
-                // is glass over the screen, which comes out as pale as the
-                // card's did.
-                .preferredColorScheme(.dark)
-                .presentationBackground(Color(white: 0.13))
+        .demoOptionsPopover(isPresented: $isShowingOptions) {
+            DemoOptionRow(title: "Reset Figures", systemImage: "arrow.counterclockwise") {
+                choose { hud.reset() }
+            }
+            if hud.pinnedID != nil {
+                DemoOptionRow(title: "Follow Active Pipeline", systemImage: "pin.slash") {
+                    choose { hud.pinnedID = nil }
+                }
+            }
+            DemoOptionRow(title: "Hide HUD", systemImage: "eye.slash") {
+                choose { hud.isVisible = false }
+            }
+            Divider()
+            ForEach(DemoHUD.Corner.allCases) { corner in
+                DemoOptionRow(title: corner.title, systemImage: corner.systemImage, isChosen: corner == hud.corner) {
+                    choose { withAnimation(.snappy) { hud.corner = corner } }
+                }
+            }
         }
+    }
+
+    /// Closes the popover and then does what the row said, as a menu does.
+    private func choose(_ action: () -> Void) {
+        isShowingOptions = false
+        action()
     }
 
     /// Rows fade in as the card makes room for them, and go at once when it
@@ -273,70 +288,33 @@ private struct DemoHUDCard: View {
     }
 
     /// Every figure of the pipeline the HUD follows and of the app: the four
-    /// that matter most, the task queues, and a line each for the rest.
+    /// that matter most, the task queues, and the rest in two columns that
+    /// line up under them.
     private var figures: some View {
         let followed = hud.followed
         let figures = followed?.figures ?? DemoPipelineDiagnostics()
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 0) {
             DemoHUDStats(stats: hud.panelStats)
+            rule
             DemoHUDQueues(queues: DemoHUD.queues(figures))
-            DemoHUDLines(groups: [
-                DemoHUD.lines(figures, caches: followed.flatMap { hud.caches[$0.id] }),
-                hud.appLines
-            ])
+            rule
+            DemoFieldGrid(groups: hud.cardFields(figures, caches: followed.flatMap { hud.caches[$0.id] }))
         }
+    }
+
+    /// What separates one group of figures from the next: a hairline rather
+    /// than a gap, as the groups are a few lines each and space alone doesn't
+    /// hold them apart at this size.
+    private var rule: some View {
+        Divider().padding(.vertical, 9)
     }
 
     /// Everything else the HUD can do, which the catalog leaves to it: where
     /// it stands, for whoever would rather not drag it, and the switches.
-    ///
-    /// A popover rather than a menu: a menu is laid under the card's glass,
-    /// which swallows every row that falls behind it. A popover still answers
-    /// where it is covered, and anchored to the card – see `body` – it is laid
-    /// clear of it.
     private var optionsButton: some View {
         button("HUD Options", "ellipsis") {
             isShowingOptions = true
         }
-    }
-
-    /// The popover's rows, which read as a menu's do: a title, the symbol it
-    /// goes by, and a check against the corner the card stands in.
-    private var options: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            option("Reset Figures", "arrow.counterclockwise") { hud.reset() }
-            if hud.pinnedID != nil {
-                option("Follow Active Pipeline", "pin.slash") { hud.pinnedID = nil }
-            }
-            option("Hide HUD", "eye.slash") { hud.isVisible = false }
-            Divider()
-            ForEach(DemoHUD.Corner.allCases) { corner in
-                option(corner.title, corner.systemImage, isChosen: corner == hud.corner) {
-                    withAnimation(.snappy) { hud.corner = corner }
-                }
-            }
-        }
-        .padding(.vertical, 6)
-        .frame(width: 230)
-    }
-
-    private func option(_ title: String, _ systemImage: String, isChosen: Bool = false, action: @escaping () -> Void) -> some View {
-        Button {
-            isShowingOptions = false
-            action()
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: isChosen ? "checkmark" : systemImage)
-                    .frame(width: 18)
-                Text(title)
-                Spacer(minLength: 0)
-            }
-            .font(.system(size: 15))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     private func button(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> some View {
@@ -350,16 +328,75 @@ private struct DemoHUDCard: View {
     }
 }
 
-/// The figures the HUD leads with, in a row of columns.
+extension View {
+    /// A popover that stands in for a menu, holding rows of ``DemoOptionRow``.
+    ///
+    /// A popover rather than a menu in both places the HUD's instruments have
+    /// one, for two different reasons. Over the card, a menu is drawn *under*
+    /// the card's Liquid Glass, which swallows every row that falls behind it;
+    /// inside a sheet held dark, a menu is presented by UIKit and follows the
+    /// window, so it comes up light whatever the sheet is set to. The popover
+    /// is laid out against the bounds of whatever it is attached to, so the
+    /// card attaches it to itself and is stepped around rather than covered.
+    func demoOptionsPopover<Content: View>(
+        isPresented: Binding<Bool>,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        popover(isPresented: isPresented, attachmentAnchor: .rect(.bounds)) {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .padding(.vertical, 6)
+            .frame(width: 230)
+            .presentationCompactAdaptation(.popover)
+            // The scheme sets the rows, and the background the chrome around
+            // them: a popover's own is glass over the screen, which comes out
+            // as pale as the HUD's card did before it was tinted.
+            .preferredColorScheme(.dark)
+            .presentationBackground(Color(white: 0.13))
+        }
+    }
+}
+
+/// A row of an options popover, which reads as a menu's does: a title, the
+/// symbol it goes by, and a check against the one in force.
+struct DemoOptionRow: View {
+    let title: String
+    let systemImage: String
+    var isChosen = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: isChosen ? "checkmark" : systemImage)
+                    .frame(width: 18)
+                Text(title)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .font(.system(size: 15))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// The figures the HUD leads with, in a row of columns of equal width: the
+/// card and the **Pipeline Details** sheet set the same row at two sizes.
 struct DemoHUDStats: View {
     let stats: [DemoHUD.Stat]
+    /// The size the values are set at. The unit after a value follows it; the
+    /// caption under it doesn't, as it is already as small as it reads at.
+    var size: CGFloat = 21
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             ForEach(stats) { stat in
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(stat.value)
-                        .font(.system(size: 21, weight: .medium, design: .monospaced))
+                    value(stat)
                         .foregroundStyle(stat.tint ?? Color.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -373,6 +410,14 @@ struct DemoHUDStats: View {
             }
         }
     }
+
+    private func value(_ stat: DemoHUD.Stat) -> Text {
+        let value = Text(stat.value)
+            .font(.system(size: size, weight: .medium, design: .monospaced))
+        guard let unit = stat.unit else { return value }
+        return value + Text(verbatim: " \(unit)")
+            .font(.system(size: size * 0.62, weight: .medium, design: .monospaced))
+    }
 }
 
 /// The task queues, a slot each: filled while work runs in it, and orange
@@ -385,11 +430,14 @@ struct DemoHUDQueues: View {
     private static let maxSlots = 8
 
     var body: some View {
-        HStack(spacing: 14) {
+        // A column apiece, of the width the figures above them take, so that
+        // the queues read as one more row of the card rather than a line of
+        // text that happens to have blocks in it.
+        HStack(spacing: 8) {
             ForEach(queues) { queue in
                 row(queue)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            Spacer(minLength: 0)
         }
         .font(.system(size: 11, design: .monospaced))
     }
@@ -438,29 +486,60 @@ struct DemoQueueSlots: View {
     }
 }
 
-/// Lines of figures in a monospaced block, the labels in a column.
-struct DemoHUDLines: View {
-    let groups: [[DemoHUD.Line]]
+/// Figures in two columns of equal width, each a label at the left of its
+/// column and the figure at the right.
+///
+/// The columns are read down, not across: each is a group of its own, and the
+/// rows only pair them up. Every figure ends at the same edge, so a count that
+/// grows from 9 to 10 moves nothing around it – which is what the lines this
+/// replaced padded their values out to manage.
+struct DemoFieldGrid: View {
+    let groups: [DemoHUD.FieldGroup]
+    var size: CGFloat = 11
+    /// The room between one group and the next, where the caller sets the
+    /// groups apart itself rather than leaving them a rule.
+    var spacing: CGFloat = 8
 
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 2) {
-            ForEach(groups.indices, id: \.self) { index in
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                 if index > 0 {
-                    Divider().padding(.vertical, 3)
+                    Divider().padding(.vertical, spacing)
                 }
-                ForEach(groups[index]) { line in
-                    GridRow {
-                        Text(line.label)
-                            .foregroundStyle(.secondary)
-                        Text(line.value)
-                            .foregroundStyle(line.tint ?? Color.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 3) {
+                    ForEach(0..<group.rowCount, id: \.self) { row in
+                        GridRow {
+                            cell(group.leading, row)
+                            cell(group.trailing, row)
+                        }
                     }
                 }
             }
         }
-        .font(.system(size: 11, design: .monospaced))
+        .font(.system(size: size, design: .monospaced))
+    }
+
+    /// One field of a column, or the room it would have taken where the
+    /// column is shorter than the one beside it.
+    @ViewBuilder
+    private func cell(_ fields: [DemoHUD.Field], _ row: Int) -> some View {
+        if row < fields.count {
+            let field = fields[row]
+            HStack(spacing: 6) {
+                Text(field.label)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                Text(field.value)
+                    .foregroundStyle(field.tint ?? Color.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .combine)
+        } else {
+            Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+        }
     }
 }
 
