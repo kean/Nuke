@@ -2,11 +2,12 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Nuke
 import Observation
 import SwiftUI
 
 /// The pipeline HUD: whether it is on, and the figures it shows, for the
-/// overlay, the gauge in the navigation bar, and the **Pipeline HUD** screen.
+/// overlay and the **Pipeline Details** screen its menu opens.
 ///
 /// It samples only while something on screen asks it to: the probe's counters
 /// ten times a second, and the caches every 3 seconds, as a `DataCache` is
@@ -36,6 +37,10 @@ final class DemoHUD {
     private(set) var totalCaches: DemoPipelineDiagnostics.Caches?
     private(set) var display = DemoDisplayMonitor.Figures()
     private(set) var footprint = DemoFootprint()
+    /// The pipeline the HUD is held to, or `nil` while it follows whichever
+    /// one did something last. The **Pipeline Details** screen sets it, and
+    /// it is dropped when that pipeline goes away.
+    var pinnedID: ObjectIdentifier?
     private var followedID: ObjectIdentifier?
 
     @ObservationIgnored private let displayMonitor = DemoDisplayMonitor()
@@ -45,6 +50,10 @@ final class DemoHUD {
     struct Pipeline: Identifiable {
         let id: ObjectIdentifier
         let figures: DemoPipelineDiagnostics
+        /// What the details screen works with: the caches it clears and the
+        /// task queues it suspends, which are references the configuration
+        /// hands out.
+        let configuration: ImagePipeline.Configuration
     }
 
     private init() {
@@ -53,9 +62,10 @@ final class DemoHUD {
         height = DemoHUDContainer.pillRoom
     }
 
-    /// The pipeline the overlay shows.
+    /// The pipeline the overlay shows: the one it is pinned to, or the one it
+    /// follows.
     var followed: Pipeline? {
-        pipelines.first { $0.id == followedID }
+        pipelines.first { $0.id == (pinnedID ?? followedID) }
     }
 
     /// Samples for as long as the calling task runs. The overlay and the Lab
@@ -94,7 +104,7 @@ final class DemoHUD {
     }
 
     private func sample() {
-        pipelines = DemoPipelineProbe.liveProbes.map { Pipeline(id: ObjectIdentifier($0), figures: $0.diagnostics) }
+        pipelines = DemoPipelineProbe.liveProbes.map { Pipeline(id: ObjectIdentifier($0), figures: $0.diagnostics, configuration: $0.configuration) }
         total = DemoPipelineProbe.total
         display = displayMonitor.figures
         footprint.sample()
@@ -104,6 +114,11 @@ final class DemoHUD {
     /// Follows the pipeline that did something last, and holds on to it while
     /// it keeps busy, so that two pipelines loading at once don't take turns.
     private func follow() {
+        if let pinnedID {
+            // A pipeline that is gone can't be shown, so the pin goes with it.
+            guard !pipelines.contains(where: { $0.id == pinnedID }) else { return }
+            self.pinnedID = nil
+        }
         let now = ContinuousClock.now
         func lastActive(_ pipeline: Pipeline) -> ContinuousClock.Instant? {
             pipeline.figures.activeTaskCount > 0 ? now : pipeline.figures.taskDuration.lastMeasuredAt
@@ -116,6 +131,12 @@ final class DemoHUD {
             guard let rhs = lastActive(rhs) else { return false }
             return lastActive(lhs).map { $0 < rhs } ?? true
         }?.id
+    }
+
+    /// Reads what the caches hold now rather than waiting for the next sweep:
+    /// for the details screen, which has just emptied one.
+    func refreshCaches() async {
+        await sampleCaches()
     }
 
     private func sampleCaches() async {
@@ -235,8 +256,8 @@ extension DemoHUD {
         var id: String { caption }
     }
 
-    /// A label and the figures after it, as the panel and the **Pipeline HUD**
-    /// screen both list them.
+    /// A label and the figures after it, as the panel and the **Pipeline
+    /// Details** screen both list them.
     struct Line: Identifiable {
         let label: String
         let value: String

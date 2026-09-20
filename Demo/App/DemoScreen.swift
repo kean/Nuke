@@ -37,9 +37,8 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case scrollStress = "scroll-stress"
     case animationLab = "animation-lab"
 
-    // The instruments, which the catalog doesn't list – see ``section``.
-    case pipelineHUD = "pipeline-hud"
-    case concurrencyInspector = "concurrency-inspector"
+    // The instrument, which the catalog doesn't list – see ``section``.
+    case pipelineDetails = "pipeline-details"
 
     var id: String { rawValue }
 
@@ -56,8 +55,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: "Decompression"
         case .customDecoder: "Custom Decoder"
         case .customDataLoader: "Custom Data Loader"
-        case .pipelineHUD: "Pipeline HUD"
-        case .concurrencyInspector: "Concurrency Inspector"
+        case .pipelineDetails: "Pipeline Details"
         case .priorityAndCoalescing: "Priority & Coalescing"
         case .scrollStress: "Scroll Stress"
         case .animationLab: "Animation Lab"
@@ -78,8 +76,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: "Decoded off the main thread, counted in frames"
         case .customDecoder: "A toy format, picked by its first bytes"
         case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
-        case .pipelineHUD: "Each pipeline's figures, over any screen"
-        case .concurrencyInspector: "A burst's tasks and the five queues"
+        case .pipelineDetails: "One pipeline's figures, queues, and caches"
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
@@ -87,8 +84,9 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     }
 
     /// The section of the catalog that lists the screen, or `nil` for one it
-    /// doesn't list. The instruments are opened from the pipeline HUD, which
-    /// is over every screen, rather than from a row of their own.
+    /// doesn't list. The details of a pipeline are opened from the HUD, which
+    /// is over every screen and already shows that pipeline, rather than from
+    /// a row of their own.
     var section: CatalogSection? {
         switch self {
         case .lazyImage, .uikitViews, .imageProcessing: .essentials
@@ -96,7 +94,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching, .decompression: .performance
         case .customDecoder, .customDataLoader: .integration
         case .priorityAndCoalescing, .scrollStress, .animationLab: .lab
-        case .pipelineHUD, .concurrencyInspector: nil
+        case .pipelineDetails: nil
         }
     }
 
@@ -116,8 +114,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .decompression: DecompressionDemo()
         case .customDecoder: CustomDecoderDemo()
         case .customDataLoader: CustomDataLoaderDemo()
-        case .pipelineHUD: PipelineHUDDemo()
-        case .concurrencyInspector: ConcurrencyInspectorDemo()
+        case .pipelineDetails: PipelineDetailsDemo()
         case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationLab: AnimationLabDemo()
@@ -156,7 +153,7 @@ extension DemoScreen {
             case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
             case .performance: "How to have an image ready before it is needed, and what decoding off the main thread saves."
             case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
-            case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen and opens the instruments from its menu."
+            case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen, and its menu opens the details of the pipeline it shows."
             }
         }
 

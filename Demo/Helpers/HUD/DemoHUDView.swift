@@ -7,7 +7,7 @@ import SwiftUI
 extension View {
     /// Lays the pipeline HUD over this view while ``DemoHUD/isVisible``: a pill
     /// at the bottom, which opens into a panel with every figure and the menu
-    /// that opens the instruments.
+    /// that opens the pipeline's details.
     ///
     /// Applied once, around the navigation stack, so that it stays put as
     /// screens come and go. It presents nothing but its menu, so it can't get
@@ -148,7 +148,9 @@ private struct DemoHUDPanel: View {
 
     private func header(label: String) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: "gauge.with.needle")
+            // The pin says the HUD is held to this pipeline rather than
+            // following whichever one is busy – see `DemoHUD/pinnedID`.
+            Image(systemName: hud.pinnedID == nil ? "gauge.with.needle" : "pin.fill")
                 .foregroundStyle(.secondary)
             Text(label)
                 .lineLimit(1)
@@ -159,16 +161,23 @@ private struct DemoHUDPanel: View {
         .font(.system(size: 11, weight: .semibold))
     }
 
-    /// Everything the HUD can do, and the two instruments, which the catalog
-    /// leaves to it: they are about the pipeline the HUD is already showing.
+    /// Everything the HUD can do, and the details of the pipeline it shows,
+    /// which the catalog leaves to it.
     private var menu: some View {
         Menu {
+            Button("Pipeline Details", systemImage: "list.bullet.rectangle") {
+                // Folds the panel away on the way out: the screen it pushes
+                // has the same figures, and room for them.
+                hud.isExpanded = false
+                open?(.pipelineDetails)
+            }
             Button("Reset Figures", systemImage: "arrow.counterclockwise") {
                 hud.reset()
             }
-            Section("Instruments") {
-                screenButton(.pipelineHUD, "list.bullet.rectangle")
-                screenButton(.concurrencyInspector, "square.grid.3x3")
+            if hud.pinnedID != nil {
+                Button("Follow Active Pipeline", systemImage: "pin.slash") {
+                    hud.pinnedID = nil
+                }
             }
             Button("Hide HUD", systemImage: "eye.slash") {
                 hud.isVisible = false
@@ -179,15 +188,6 @@ private struct DemoHUDPanel: View {
                 .contentShape(Rectangle())
         }
         .accessibilityLabel("HUD Options")
-    }
-
-    /// Folds the panel away on the way out: the screen it pushes has figures
-    /// of its own, and room for them.
-    private func screenButton(_ screen: DemoScreen, _ systemImage: String) -> some View {
-        Button(screen.title, systemImage: systemImage) {
-            hud.isExpanded = false
-            open?(screen)
-        }
     }
 
     private func button(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> some View {

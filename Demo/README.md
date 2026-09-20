@@ -55,7 +55,8 @@ Stress rigs for whoever works on Nuke, in the last section of the catalog.
 Caches are turned off where they would hide the work, budgets are pushed past
 sensible values, and the screens report numbers rather than explain an API –
 the catalog screen for that API does the explaining. The section ends with the
-switch of the [pipeline HUD](#diagnostics), which opens the two instruments.
+switch of the [pipeline HUD](#diagnostics), whose menu opens the details of the
+pipeline it shows.
 
 | Screen | Shows |
 |--|--|
@@ -78,7 +79,7 @@ xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen prefetching -dem
 | `-demoScreen <id>` | Opens the app on a screen, with the catalog beneath it. An id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab section out of the catalog, for a screenshot of the rest alone |
 | `-demoHUD 0` | Leaves the pipeline HUD off, which is otherwise on and folded into its pill; `expanded` opens its panel |
-| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, and Scroll Stress scrolls |
+| `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, and Scroll Stress scrolls |
 
 A screen's id is the raw value of its case in `App/DemoScreen.swift`. An id
 stays the same when a title changes.
@@ -112,12 +113,13 @@ footprint, and dropped frames of the pipeline that did something last. The
 catalog's Lab section and the panel's menu switch it off; `-demoHUD 0` leaves
 it off from launch.
 
-The panel's menu opens the two instruments, which the catalog has no rows for:
-
-| Screen | Shows |
-|--|--|
-| **Pipeline HUD** | The same figures for each pipeline alive and all of them added up, with the switch, Expanded, and a reset |
-| **Concurrency Inspector** | A burst of 240 fixture requests – photos, blurred photos, and thumbnails of a 12 MP JPEG – on a pipeline of its own, with cancel: a map of every task by where it is (waiting, loading, decoding, processing, decompressing, finished), and the five task queues with the work running against the limit and a suspend switch each |
+The panel's menu opens **Pipeline Details**, the one screen the catalog has no
+row for: the same figures at length for the pipeline the HUD shows, its five
+task queues with the work running against the limit and a suspend switch each,
+and what its caches hold with a button to empty each of them. With several
+pipelines alive, its picker holds both the screen and the HUD to one of them –
+the HUD's header shows a pin while it does. The App and All Pipelines sections
+and the switches of the HUD are at the end.
 
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
@@ -145,7 +147,7 @@ Demo
 ├── Formats          Image formats, animated images, progressive decoding, and video
 ├── Performance      Prefetching and decompression
 ├── Integration      A custom decoder and custom data loaders
-├── Lab              Instruments and stress rigs for working on Nuke, and priority and coalescing
+├── Lab              Stress rigs for working on Nuke, and the details of a pipeline
 ├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixture, and the photo stream's URLs
 ```
