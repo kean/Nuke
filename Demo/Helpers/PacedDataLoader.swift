@@ -26,8 +26,7 @@ import os
 /// it reaches nothing of the app's.
 ///
 /// **Fixtures.** `DemoPipelineProbe` answers this loader's requests for a
-/// fixture URL with ``fixtureLoader``: at the same ``pace``, reported to the
-/// same ``hooks``.
+/// fixture URL with ``fixtureLoader``, at the same ``pace``.
 final class PacedDataLoader: DataLoading, Sendable {
     /// The fixture loader's pace, so that the fixture loader answering for
     /// this one keeps it. Only a fixture has scans to wait for.
@@ -35,17 +34,14 @@ final class PacedDataLoader: DataLoading, Sendable {
 
     /// When the chunks arrive.
     let pace: Pace
-    /// What a screen hears of every load.
-    let hooks: DemoLoadHooks
     /// Answers this loader's requests for a fixture URL.
     let fixtureLoader: DemoFixtureLoader
 
     private let session: URLSession
 
-    init(pace: Pace, hooks: DemoLoadHooks = DemoLoadHooks()) {
+    init(pace: Pace) {
         self.pace = pace
-        self.hooks = hooks
-        self.fixtureLoader = DemoFixtureLoader(pace: pace, hooks: hooks)
+        self.fixtureLoader = DemoFixtureLoader(pace: pace)
         // The session a `.withDataCache` configuration gives its own loader:
         // the pipeline's disk cache is the one that caches.
         let configuration = URLSessionConfiguration.default
@@ -58,7 +54,7 @@ final class PacedDataLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-        let load = PacedLoad(load: DemoLoad(request), pace: pace, hooks: hooks, session: session, didReceiveData: didReceiveData, completion: completion)
+        let load = PacedLoad(request: request, pace: pace, session: session, didReceiveData: didReceiveData, completion: completion)
         Task {
             await load.start()
         }
@@ -69,9 +65,8 @@ final class PacedDataLoader: DataLoading, Sendable {
 /// One load. An actor, so a cancel and the chunks are handled in turn: once
 /// `completion` has been called, from either side, nothing else is.
 private actor PacedLoad: Cancellable {
-    private let load: DemoLoad
+    private let request: URLRequest
     private let pace: PacedDataLoader.Pace
-    private let hooks: DemoLoadHooks
     private let session: URLSession
     private let didReceiveData: @Sendable (Data, URLResponse) -> Void
     private let completion: @Sendable (Error?) -> Void
@@ -79,22 +74,17 @@ private actor PacedLoad: Cancellable {
     private var isFinished = false
 
     init(
-        load: DemoLoad,
+        request: URLRequest,
         pace: PacedDataLoader.Pace,
-        hooks: DemoLoadHooks,
         session: URLSession,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) {
-        self.load = load
+        self.request = request
         self.pace = pace
-        self.hooks = hooks
         self.session = session
         self.didReceiveData = didReceiveData
         self.completion = completion
-        // Called here, in the pipeline's call to the loader, so a screen
-        // hears of the load before anything else happens to it.
-        hooks.didStart?(load)
     }
 
     func start() {
@@ -114,11 +104,9 @@ private actor PacedLoad: Cancellable {
         do {
             // Suspends while the response downloads, which lets a cancel
             // through: it cancels the download too.
-            var (data, response) = try await session.data(for: load.request)
-            // A cancel that raced the download's end has called `completion`:
-            // the hooks hear of nothing after it.
+            let (data, response) = try await session.data(for: request)
+            // A cancel that raced the download's end has called `completion`.
             guard !isFinished else { return }
-            response = hooks.willPassResponse?(load, response) ?? response
             if let response = response as? HTTPURLResponse, !(200..<300).contains(response.statusCode) {
                 throw DataLoader.Error.statusCodeUnacceptable(response.statusCode)
             }
@@ -148,42 +136,4 @@ private actor PacedLoad: Cancellable {
         task?.cancel()
         completion(error)
     }
-}
-
-// MARK: - Hooks
-
-/// A load of a ``PacedDataLoader`` or a ``DemoFixtureLoader``, as
-/// ``DemoLoadHooks`` see it.
-struct DemoLoad: Sendable {
-    /// Unique among the loads of the app.
-    let id: Int
-    /// The request the pipeline passed to the loader, with the headers the
-    /// pipeline and its delegate added.
-    let request: URLRequest
-
-    init(_ request: URLRequest) {
-        self.id = Self.lastID.withLock {
-            $0 += 1
-            return $0
-        }
-        self.request = request
-    }
-
-    private static let lastID = OSAllocatedUnfairLock(initialState: 0)
-}
-
-/// What a screen hears from inside the loads of a ``PacedDataLoader``, and of
-/// the fixture loader that answers for it: for a screen that shows what went
-/// to the server and what came back.
-///
-/// Each hook is called on the load's own thread, once per load, while the
-/// load waits for it, so hand off and return.
-struct DemoLoadHooks: Sendable {
-    /// The pipeline passed a request to the loader: after `willLoadData`,
-    /// before anything went out.
-    var didStart: (@Sendable (DemoLoad) -> Void)?
-    /// The response, before the pipeline sees it. The pipeline gets the
-    /// response this returns, so a screen can take a header out of it and
-    /// stand in for a server that doesn't send one.
-    var willPassResponse: (@Sendable (DemoLoad, URLResponse) -> URLResponse)?
 }

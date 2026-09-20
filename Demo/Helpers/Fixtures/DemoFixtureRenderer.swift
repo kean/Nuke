@@ -18,7 +18,7 @@ import UniformTypeIdentifiers
 /// else is: Core Graphics drew the same translucent shapes a little
 /// differently when several threads drew at once, so ``DemoFixtureStore``
 /// makes one fixture at a time. Another OS version may encode it differently,
-/// which is why the Lab lists a digest of each one.
+/// which is why the store logs a digest of each one.
 ///
 /// The drawing is cheap on purpose – a few hundred shapes, flat frames for
 /// the animations – so that the first request for a fixture doesn't wait long
@@ -28,15 +28,9 @@ enum DemoFixtureRenderer {
     static func data(for fixture: DemoFixture) throws -> Data {
         let data: Data? = switch fixture {
         case .photo(let index):
-            jpeg(photo(index: index), isProgressive: false)
-        case .jpeg:
-            jpeg(landscape, isProgressive: false)
-        case .progressiveJPEG:
-            jpeg(landscape, isProgressive: true)
+            jpeg(photo(index: index))
         case .largeJPEG:
-            jpeg(picture(seed: 3, width: 4000, height: 3000, title: "12 MP", caption: "FIXTURE 4000×3000"), isProgressive: false)
-        case .png:
-            encode([graphic], type: .png)
+            jpeg(picture(seed: 3, width: 4000, height: 3000, title: "12 MP", caption: "FIXTURE 4000×3000"))
         case .gif:
             gif(frameCount: 60, size: 400, delay: 0.03, title: "GIF")
         case .longGIF:
@@ -45,13 +39,7 @@ enum DemoFixtureRenderer {
             apng(frameCount: 20, size: 100, delay: 0.075)
         case .mixedDelayGIF:
             mixedDelayGIF
-        case .heic:
-            encode(
-                [picture(seed: 11, width: 1008, height: 756, title: "HEIC", caption: "FIXTURE 1008×756")],
-                type: .heic,
-                frameProperties: [kCGImageDestinationLossyCompressionQuality: 0.8]
-            )
-        case .webp, .animatedWebP, .video, .missing, .nukePix, .truncatedNukePix:
+        case .animatedWebP, .nukePix, .truncatedNukePix:
             nil
         }
         guard let data else {
@@ -68,21 +56,13 @@ enum DemoFixtureRenderer {
         return picture(seed: index, width: width, height: height, title: "\(index)", caption: "FIXTURE \(width)×\(height)")
     }
 
-    /// The picture behind ``DemoFixture/jpeg`` and
-    /// ``DemoFixture/progressiveJPEG``: the two encodings are of the same
-    /// pixels.
-    private static var landscape: CGImage {
-        picture(seed: 7, width: 1440, height: 960, title: "JPEG", caption: "FIXTURE 1440×960")
-    }
-
     /// A diagonal gradient under a scatter of rings, with a title and a
     /// caption on a dark plate in the middle.
     ///
     /// The rings give the encoder detail to spend bytes on, so a stand-in is
-    /// about the size of a photo on disk, and the scans of a progressive
-    /// encoding sharpen visibly. There are at most 1,200 of them whatever the
-    /// size, drawn larger on a larger canvas, which keeps a 12 MP picture
-    /// under a tenth of a second.
+    /// about the size of a photo on disk. There are at most 1,200 of them
+    /// whatever the size, drawn larger on a larger canvas, which keeps a
+    /// 12 MP picture under a tenth of a second.
     static func picture(seed: Int, width: Int, height: Int, title: String, caption: String) -> CGImage {
         let context = makeContext(width: width, height: height)
         let size = CGSize(width: width, height: height)
@@ -121,19 +101,6 @@ enum DemoFixtureRenderer {
         return context.makeImage()!
     }
 
-    /// A ring on a transparent background, for the PNG.
-    private static var graphic: CGImage {
-        let context = makeContext(width: 840, height: 510)
-        context.setStrokeColor(color(hue: 0.58, saturation: 0.8, brightness: 0.9))
-        context.setLineWidth(60)
-        context.strokeEllipse(in: CGRect(x: 180, y: 15, width: 480, height: 480))
-        context.setFillColor(color(hue: 0.58, saturation: 0.8, brightness: 0.9, alpha: 0.25))
-        context.fillEllipse(in: CGRect(x: 210, y: 45, width: 420, height: 420))
-        draw("PNG", in: context, fontSize: 120, center: CGPoint(x: 420, y: 275), color: black(alpha: 0.85))
-        draw("FIXTURE 840×510 · ALPHA", in: context, fontSize: 24, center: CGPoint(x: 420, y: 170), color: black(alpha: 0.7))
-        return context.makeImage()!
-    }
-
     /// A frame of an animation: a flat color that turns through the hues over
     /// the loop, the frame's number, and a bar that fills to the last frame.
     /// Flat colors keep the GIF encoder's palettes small and quick.
@@ -169,12 +136,8 @@ enum DemoFixtureRenderer {
 
     // MARK: Encoding
 
-    private static func jpeg(_ image: CGImage, isProgressive: Bool) -> Data? {
-        var properties: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.8]
-        if isProgressive {
-            properties[kCGImagePropertyJFIFDictionary] = [kCGImagePropertyJFIFIsProgressive: true]
-        }
-        return encode([image], type: .jpeg, frameProperties: properties)
+    private static func jpeg(_ image: CGImage) -> Data? {
+        encode([image], type: .jpeg, frameProperties: [kCGImageDestinationLossyCompressionQuality: 0.8])
     }
 
     private static func gif(frameCount: Int, size: Int, delay: Double, title: String) -> Data? {
@@ -223,51 +186,6 @@ enum DemoFixtureRenderer {
             CGImageDestinationAddImage(destination, image, frameProperties as CFDictionary)
         }
         return CGImageDestinationFinalize(destination) ? data as Data : nil
-    }
-
-    // MARK: Progressive JPEG
-
-    /// Where each scan of a JPEG starts: the offset of every start-of-scan
-    /// (SOS) marker, in order. A baseline JPEG has one.
-    ///
-    /// Data cut right before a scan's marker holds every scan before it in
-    /// full, which is what an incremental decoder needs to show them. The
-    /// walk follows the marker segments by their lengths, and skips a scan's
-    /// entropy-coded data up to the next marker: a `0xFF` there is followed by
-    /// a stuffed zero or a restart marker.
-    static func scanOffsets(inJPEG data: Data) -> [Int] {
-        let bytes = [UInt8](data)
-        guard bytes.count > 4, bytes[0] == 0xFF, bytes[1] == 0xD8 else {
-            return []
-        }
-        var offsets: [Int] = []
-        var index = 2
-        while index + 3 < bytes.count {
-            guard bytes[index] == 0xFF else {
-                index += 1
-                continue
-            }
-            let marker = bytes[index + 1]
-            if marker == 0xD9 { break } // End of image
-            if marker == 0xFF { // Fill byte
-                index += 1
-                continue
-            }
-            let length = Int(bytes[index + 2]) << 8 | Int(bytes[index + 3])
-            guard marker == 0xDA else {
-                index += 2 + length
-                continue
-            }
-            offsets.append(index)
-            index += 2 + length
-            while index + 1 < bytes.count {
-                if bytes[index] == 0xFF, bytes[index + 1] != 0x00, !(0xD0...0xD7).contains(bytes[index + 1]) {
-                    break
-                }
-                index += 1
-            }
-        }
-        return offsets
     }
 
     // MARK: Drawing

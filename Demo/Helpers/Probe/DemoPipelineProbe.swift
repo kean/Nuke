@@ -60,8 +60,6 @@ import OSLog
 /// between the pipeline and its data loader, a load event handler (see
 /// ``LoadEvent``).
 final class DemoPipelineProbe: ImagePipeline.Delegate {
-    /// The name the pipeline is listed under.
-    let label: String
     let configuration: ImagePipeline.Configuration
 
     private let counters: Counters
@@ -77,7 +75,6 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
 
     private init(label: String, configuration: ImagePipeline.Configuration, delegate: (any ImagePipeline.Delegate)?, onEvent: EventHandler?, onLoad: LoadEventHandler?) {
         let counters = Counters(label: label)
-        self.label = label
         self.configuration = configuration
         self.counters = counters
         self.base = delegate ?? DemoDefaultDelegate()
@@ -347,9 +344,7 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     }
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        let key = base.cacheKey(for: request, pipeline: pipeline)
-        onEvent?(Event(request: request, kind: .cacheKey(key)))
-        return key
+        base.cacheKey(for: request, pipeline: pipeline)
     }
 
     @ImagePipelineActor
@@ -383,7 +378,6 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
     @ImagePipelineActor
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
         base.imageTaskDidStart(task, pipeline: pipeline)
-        onEvent?(Event(request: task.request, kind: .imageTaskDidStart))
     }
 
     @ImagePipelineActor
@@ -398,26 +392,6 @@ final class DemoPipelineProbe: ImagePipeline.Delegate {
             }
         }
         base.imageTask(task, didReceiveEvent: event, pipeline: pipeline)
-        if let onEvent {
-            report(event, of: task, to: onEvent)
-        }
-    }
-
-    /// Passes a task's event on to the screen: every one but the progress
-    /// before the data is complete, which arrives once per chunk.
-    @ImagePipelineActor
-    private func report(_ event: ImageTask.Event, of task: ImageTask, to onEvent: EventHandler) {
-        let kind: Event.Kind
-        switch event {
-        case .progress(let progress):
-            guard progress.total > 0, progress.completed == progress.total else { return }
-            kind = .progress(progress)
-        case .preview:
-            kind = .preview
-        case .finished(let result):
-            kind = .finished(result)
-        }
-        onEvent(Event(request: task.request, kind: kind))
     }
 
     // MARK: Logging

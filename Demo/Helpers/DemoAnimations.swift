@@ -96,7 +96,6 @@ enum DemoAnimationError: Error {
 /// holds its place until the first frame lands.
 struct DemoLoadedAnimation: Identifiable {
     let id: Int
-    let title: String
     let player: AnimatedImagePlayer
     let poster: UIImage?
 }
@@ -125,7 +124,6 @@ func loadDemoAnimations(
             player.play()
             load.animations.append(DemoLoadedAnimation(
                 id: index,
-                title: image.title,
                 player: player,
                 poster: poster
             ))

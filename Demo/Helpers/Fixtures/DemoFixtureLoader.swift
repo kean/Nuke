@@ -38,16 +38,12 @@ import os
 final class DemoFixtureLoader: DataLoading, Sendable {
     /// How the data arrives.
     let pace: Pace
-    /// What a screen hears of every load: see ``PacedDataLoader``, which
-    /// this loader answers for when the URL is a fixture's.
-    let hooks: DemoLoadHooks
 
     private let store: DemoFixtureStore
 
-    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared, hooks: DemoLoadHooks = DemoLoadHooks()) {
+    init(pace: Pace = .immediate, store: DemoFixtureStore = .shared) {
         self.pace = pace
         self.store = store
-        self.hooks = hooks
     }
 
     /// When a fixture's bytes arrive, fixed rather than jittered, so a run is
@@ -57,31 +53,15 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         var latency: Duration = .zero
         /// The most bytes a chunk carries, or `nil` for the whole fixture in
         /// one chunk.
-        ///
-        /// A progressive JPEG is cut at its scans instead, one chunk each, and
-        /// waits ``interval`` for every `chunkSize` bytes in a scan, and at
-        /// least ``scanInterval``: each preview the pipeline decodes shows one
-        /// more whole scan.
         var chunkSize: Int?
         /// The number of chunks the data comes in whatever its size, in place
         /// of ``chunkSize``, so that every load takes the same time.
         var chunkCount: Int?
         /// The wait before each chunk.
         var interval: Duration = .zero
-        /// The least wait before each scan of a progressive JPEG after the
-        /// first. The pipeline decodes no preview sooner than
-        /// `progressiveDecodingInterval` after the last one, so a scan that
-        /// arrives sooner shows up only with the next one.
-        var scanInterval: Duration = .zero
 
         /// Everything at once, right away.
         static let immediate = Pace()
-
-        /// Chunks of `chunkSize` bytes, `interval` apart: the pace of a
-        /// ``ThrottledDataLoader`` with the same settings.
-        static func throttled(chunkSize: Int, interval: Duration) -> Pace {
-            Pace(chunkSize: chunkSize, interval: interval)
-        }
 
         /// `count` chunks, `interval` apart, whatever the size.
         static func chunks(_ count: Int, interval: Duration) -> Pace {
@@ -103,7 +83,7 @@ final class DemoFixtureLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-        let load = Load(load: DemoLoad(request), pace: pace, hooks: hooks, store: store, didReceiveData: didReceiveData, completion: completion)
+        let load = Load(request: request, pace: pace, store: store, didReceiveData: didReceiveData, completion: completion)
         Task {
             await load.start()
         }
@@ -114,9 +94,8 @@ final class DemoFixtureLoader: DataLoading, Sendable {
 /// One load. An actor, so a cancel and the chunks are handled in turn: once
 /// `completion` has been called, from either side, nothing else is.
 private actor Load: Cancellable {
-    private let load: DemoLoad
+    private let request: URLRequest
     private let pace: DemoFixtureLoader.Pace
-    private let hooks: DemoLoadHooks
     private let store: DemoFixtureStore
     private let didReceiveData: @Sendable (Data, URLResponse) -> Void
     private let completion: @Sendable (Error?) -> Void
@@ -124,20 +103,17 @@ private actor Load: Cancellable {
     private var isFinished = false
 
     init(
-        load: DemoLoad,
+        request: URLRequest,
         pace: DemoFixtureLoader.Pace,
-        hooks: DemoLoadHooks,
         store: DemoFixtureStore,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) {
-        self.load = load
+        self.request = request
         self.pace = pace
-        self.hooks = hooks
         self.store = store
         self.didReceiveData = didReceiveData
         self.completion = completion
-        hooks.didStart?(load)
     }
 
     func start() {
@@ -154,7 +130,6 @@ private actor Load: Cancellable {
     }
 
     private func run() async {
-        let request = load.request
         let url = request.url
         do {
             guard let fixture = DemoFixture(url: url) else {
@@ -163,16 +138,13 @@ private actor Load: Cancellable {
             }
             // Suspends while the fixture is made, which lets a cancel through.
             let entry = try await store.entry(for: fixture)
-            // A cancel that got in has called `completion`: the hooks hear of
-            // nothing after it.
             guard !isFinished else { return }
             let reply = Reply(to: request, url: url ?? fixture.url, fixture: fixture, entry: entry)
-            let response = hooks.willPassResponse?(load, reply.response) ?? reply.response
             try await wait(pace.latency)
-            for (range, wait) in chunks(of: entry, in: reply.body) {
+            for (range, wait) in chunks(in: reply.body) {
                 try await self.wait(wait)
                 guard !isFinished else { return }
-                didReceiveData(entry.data[range], response)
+                didReceiveData(entry.data[range], reply.response)
             }
             finish(nil)
         } catch {
@@ -183,7 +155,7 @@ private actor Load: Cancellable {
     /// The ranges of the data to send, each with the wait before it: the
     /// bytes of `body`, which is all of them unless the request asked for
     /// the rest.
-    private func chunks(of entry: DemoFixtureStore.Entry, in body: Range<Int>) -> [(Range<Int>, Duration)] {
+    private func chunks(in body: Range<Int>) -> [(Range<Int>, Duration)] {
         let count = body.count
         // An empty body is no data at all, as it is from `URLSession`.
         guard count > 0 else {
@@ -191,18 +163,6 @@ private actor Load: Cancellable {
         }
         guard let chunkSize = pace.chunkSize(for: count), chunkSize > 0 else {
             return [(body, .zero)]
-        }
-        let scans = entry.record.scanOffsets
-        if scans.count > 1 {
-            // A scan per chunk, the first one with the headers before it. The
-            // rest of a fixture starts with the rest of a scan.
-            let bounds = [body.lowerBound] + scans.dropFirst().filter { body.lowerBound < $0 && $0 < body.upperBound } + [body.upperBound]
-            return zip(bounds, bounds.dropFirst()).enumerated().map { index, bound in
-                let (start, end) = bound
-                let steps = ((end - start) + chunkSize - 1) / chunkSize
-                let wait = pace.interval * max(1, steps)
-                return (start..<end, index == 0 ? wait : max(wait, pace.scanInterval))
-            }
         }
         return stride(from: body.lowerBound, to: body.upperBound, by: chunkSize).map { start in
             (start..<min(start + chunkSize, body.upperBound), pace.interval)
@@ -233,7 +193,7 @@ private struct Reply {
     init(to request: URLRequest, url: URL, fixture: DemoFixture, entry: DemoFixtureStore.Entry) {
         let count = entry.data.count
         // A strong validator: the same bytes on every run give the same one.
-        let entityTag = "\"\(entry.record.digest)\""
+        let entityTag = "\"\(entry.digest)\""
         var headers = [
             "Content-Type": fixture.mimeType,
             "ETag": entityTag,

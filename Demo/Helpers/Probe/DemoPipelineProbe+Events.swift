@@ -11,20 +11,14 @@ extension DemoPipelineProbe {
     ///
     /// A probe reports events only to the handler it was created with (see
     /// ``DemoPipelineProbe/makePipeline(_:configuration:delegate:onEvent:)``);
-    /// without one, a hook costs a check for `nil`. Only the calls the Pipeline
-    /// Delegate screen lists are reported: add a case when a screen needs
-    /// another.
+    /// without one, a hook costs a check for `nil`. Only the calls a screen
+    /// listens for are reported: add a case when a screen needs another.
     struct Event: Sendable {
         /// The request the pipeline asked about.
         let request: ImageRequest
         let kind: Kind
 
         enum Kind: Sendable {
-            /// `cacheKey(for:pipeline:)`, with the key the delegate returned:
-            /// `nil` for the default one. The pipeline asks on every read and
-            /// write of either cache, including NukeUI's lookups on the main
-            /// thread.
-            case cacheKey(String?)
             /// `willLoadData(for:urlRequest:pipeline:)`, with the URL request
             /// the delegate returned. Not reported if the delegate threw.
             case willLoadData(URLRequest)
@@ -34,17 +28,6 @@ extension DemoPipelineProbe {
             /// the data the delegate returned – `nil` if it returned `nil` or
             /// nothing, which leaves the cache untouched.
             case willCache(byteCount: Int, isEncodedImage: Bool, storedByteCount: Int?)
-            /// `imageTaskDidStart(_:pipeline:)`.
-            case imageTaskDidStart
-            /// The last `.progress` event of a task: the one that completes its
-            /// data, when the size is known. The ones before it aren't
-            /// reported, which keeps the handler off the path every chunk of
-            /// data takes.
-            case progress(ImageTask.Progress)
-            /// A `.preview` event.
-            case preview
-            /// The `.finished` event.
-            case finished(Result<ImageResponse, ImagePipeline.Error>)
         }
     }
 

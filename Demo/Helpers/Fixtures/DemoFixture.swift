@@ -19,24 +19,16 @@ import Foundation
 /// what it is on its face – "FIXTURE 360×240" – so a screenshot shows where
 /// its images came from.
 ///
-/// The bundled ones, in `Resources/Fixtures`, were drawn the same way and
+/// The bundled one, in `Resources/Fixtures`, was drawn the same way and
 /// encoded on a Mac: the animated WebP with
-/// `img2webp -loop 0 -lossy -q 60 -d 100` from 50 frames, the still WebP with
-/// `cwebp -q 70`, and the video with `AVAssetWriter` (H.264, 30 fps, 120 kbps).
+/// `img2webp -loop 0 -lossy -q 60 -d 100` from 50 frames.
 enum DemoFixture: Hashable, Sendable {
     /// A stand-in for the photo at this index of the photo stream: 360×240,
     /// or 240×360 for every third one, like the photos it replaces.
     case photo(Int)
-    /// A 1440×960 baseline JPEG, the size of the landscape photo.
-    case jpeg
-    /// The same picture as ``jpeg``, encoded as a progressive JPEG with ten
-    /// scans. ``DemoFixtureLoader`` delivers it a scan at a time.
-    case progressiveJPEG
     /// A 12 MP JPEG, 4000×3000, for decoding and downsampling costs that
     /// show.
     case largeJPEG
-    /// An 840×510 PNG with transparency.
-    case png
     /// A 400×400 GIF, 60 frames of 30 ms.
     case gif
     /// A 300×300 GIF, 200 frames of 50 ms: more than the default frame
@@ -45,19 +37,8 @@ enum DemoFixture: Hashable, Sendable {
     /// A 100×100 animated PNG, 20 frames of 75 ms: a ball bouncing on a
     /// transparent background.
     case apng
-    /// A 1024×772 WebP. Bundled.
-    case webp
-    /// A 1008×756 HEIC still, the size of the iPhone photo it stands in for.
-    /// Image I/O encodes it, so the encoder of the system it runs on decides
-    /// its bytes.
-    case heic
     /// A 300×225 animated WebP, 50 frames of 100 ms. Bundled.
     case animatedWebP
-    /// A 320×240 H.264 video, 2 seconds. Bundled.
-    case video
-    /// Fails the way a missing image on a server does: with
-    /// `DataLoader.Error.statusCodeUnacceptable(404)`, and no data.
-    case missing
     /// A 96×96 GIF of four frames of 0, 10, 20, and 500 ms, for the delay
     /// map of **Animated Images**.
     case mixedDelayGIF
@@ -73,10 +54,7 @@ enum DemoFixture: Hashable, Sendable {
     }
 
     /// Every fixture but the photos.
-    static let named: [DemoFixture] = [.jpeg, .progressiveJPEG, .largeJPEG, .png, .gif, .longGIF, .apng, .webp, .heic, .animatedWebP, .video, .missing]
-
-    /// The files of the Custom Decoder screen, which no other screen lists.
-    static let nukePixFiles: [DemoFixture] = [.nukePix, .truncatedNukePix]
+    static let named: [DemoFixture] = [.largeJPEG, .gif, .longGIF, .apng, .animatedWebP, .mixedDelayGIF, .nukePix, .truncatedNukePix]
 
     // MARK: URLs
 
@@ -93,7 +71,7 @@ enum DemoFixture: Hashable, Sendable {
     init?(url: URL?) {
         guard let url, Self.isFixture(url) else { return nil }
         let name = url.lastPathComponent
-        if let fixture = (Self.named + Self.nukePixFiles + [.mixedDelayGIF]).first(where: { $0.name == name }) {
+        if let fixture = Self.named.first(where: { $0.name == name }) {
             self = fixture
         } else if name.hasPrefix("photo-"), name.hasSuffix(".jpeg"),
                   let index = Int(name.dropFirst("photo-".count).dropLast(".jpeg".count)),
@@ -116,57 +94,24 @@ enum DemoFixture: Hashable, Sendable {
     var name: String {
         switch self {
         case .photo(let index): "photo-\(index).jpeg"
-        case .jpeg: "landscape.jpeg"
-        case .progressiveJPEG: "progressive.jpeg"
         case .largeJPEG: "large.jpeg"
-        case .png: "graphic.png"
         case .gif: "animation.gif"
         case .longGIF: "long.gif"
         case .apng: "ball.png"
-        case .webp: "still.webp"
-        case .heic: "photo.heic"
         case .animatedWebP: "animation.webp"
-        case .video: "video.mp4"
-        case .missing: "missing.jpeg"
         case .mixedDelayGIF: "mixed-delay.gif"
         case .nukePix: "badge.nukepix"
         case .truncatedNukePix: "truncated.nukepix"
         }
     }
 
-    /// What it is, in a few words.
-    var summary: String {
-        switch self {
-        case .photo(let index):
-            let (width, height) = Self.photoSize(at: index)
-            return "\(width)×\(height) JPEG"
-        case .jpeg: return "1440×960 baseline JPEG"
-        case .progressiveJPEG: return "1440×960 progressive JPEG"
-        case .largeJPEG: return "4000×3000 JPEG"
-        case .png: return "840×510 PNG with alpha"
-        case .gif: return "400×400 GIF · 60 frames"
-        case .longGIF: return "300×300 GIF · 200 frames"
-        case .apng: return "100×100 APNG · 20 frames"
-        case .webp: return "1024×772 WebP · bundled"
-        case .heic: return "1008×756 HEIC"
-        case .animatedWebP: return "300×225 WebP · 50 frames · bundled"
-        case .video: return "320×240 MP4 · 2 s · bundled"
-        case .missing: return "Fails with a 404"
-        case .mixedDelayGIF: return "96×96 GIF · 4 frames of 0–500 ms"
-        case .nukePix: return "56×26 NukePix"
-        case .truncatedNukePix: return "56×26 NukePix · cut off at 60%"
-        }
-    }
-
     /// The MIME type the fixture loader reports.
     var mimeType: String {
         switch self {
-        case .photo, .jpeg, .progressiveJPEG, .largeJPEG, .missing: "image/jpeg"
-        case .png, .apng: "image/png"
+        case .photo, .largeJPEG: "image/jpeg"
+        case .apng: "image/png"
         case .gif, .longGIF, .mixedDelayGIF: "image/gif"
-        case .webp, .animatedWebP: "image/webp"
-        case .heic: "image/heic"
-        case .video: "video/mp4"
+        case .animatedWebP: "image/webp"
         case .nukePix, .truncatedNukePix: "image/x-nukepix"
         }
     }

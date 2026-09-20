@@ -90,11 +90,10 @@ stays the same when a title changes.
 The Lab screens load fixtures rather than the network by default, so that one
 run measures what the last one did rather than the network in between. Each
 fixture has a URL of its own, `demo-fixture://nuke/<name>`: a stand-in for each
-photo with its index drawn on it, a baseline and a progressive JPEG, a 12 MP
-JPEG, a PNG, a HEIC, three GIFs (the long one has 200 frames), and an APNG, all
-drawn and encoded the first time a load asks for them, plus a WebP, an animated
-WebP, and a video bundled in `Resources/Fixtures`. The generated ones are the
-same bytes on every run.
+photo with its index drawn on it, a 12 MP JPEG, three GIFs (the long one has
+200 frames), and an APNG, all drawn and encoded the first time a load asks for
+them, plus an animated WebP bundled in `Resources/Fixtures`. The generated ones
+are the same bytes on every run.
 
 Every pipeline's delegate sends a request for a fixture to the fixture loader;
 any other URL goes to the loader the pipeline was configured with. The fixture
@@ -142,5 +141,5 @@ Demo
 ├── Integration      A custom decoder and custom data loaders
 ├── Lab              Instruments and stress rigs for working on Nuke, and priority and coalescing
 ├── Helpers          Shared views, the pipeline probe and HUD, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
-└── Resources        The app icon, the logo, a bundled animation, the bundled fixtures, and the photo stream's URLs
+└── Resources        The app icon, the logo, a bundled animation, the bundled fixture, and the photo stream's URLs
 ```
