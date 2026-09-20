@@ -48,19 +48,37 @@ struct DemoMenu: View {
             .navigationTitle("Nuke")
             .navigationBarTitleDisplayMode(.inline)
         }
-        // For the rows that can't be a `NavigationLink` – see `DemoLink`.
-        .environment(\.demoOpen, DemoOpenAction { path.append($0) })
         // Over the whole stack, so it stays put as screens come and go.
         .demoPipelineHUD()
+        // For the rows that can't be a `NavigationLink` – see `DemoLink` – and
+        // for the HUD, which stands outside the stack. Outside the overlay:
+        // an environment set under it wouldn't reach the HUD.
+        .environment(\.demoOpen, DemoOpenAction { screen in
+            guard path.last != screen else { return }
+            path.append(screen)
+        })
     }
 
     private var menu: some View {
-        List {
+        @Bindable var hud = DemoHUD.shared
+        return List {
             let sections = DemoScreen.CatalogSection.allCases.filter { showsLab || $0 != .lab }
             ForEach(sections, id: \.self) { section in
                 Section {
                     ForEach(section.screens) { screen in
                         DemoLink(screen)
+                    }
+                    if section == .lab {
+                        // The one switch of the HUD: it is on from launch, and
+                        // its own menu opens the two instruments.
+                        Toggle(isOn: $hud.isVisible) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pipeline HUD")
+                                Text("Every pipeline's figures, over any screen")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 } header: {
                     Text(section.title)

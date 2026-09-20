@@ -6,11 +6,12 @@ import SwiftUI
 
 extension View {
     /// Lays the pipeline HUD over this view while ``DemoHUD/isVisible``: a pill
-    /// at the bottom, which opens into a panel with every figure.
+    /// at the bottom, which opens into a panel with every figure and the menu
+    /// that opens the instruments.
     ///
     /// Applied once, around the navigation stack, so that it stays put as
-    /// screens come and go. It presents nothing, so it can't get in the way of
-    /// a screen's own sheets.
+    /// screens come and go. It presents nothing but its menu, so it can't get
+    /// in the way of a screen's own sheets.
     func demoPipelineHUD() -> some View {
         overlay {
             DemoHUDContainer(hud: .shared)
@@ -27,7 +28,7 @@ extension View {
     }
 }
 
-// Views of their own, so that a screen's body doesn't depend on the switch.
+// A view of its own, so that a screen's body doesn't depend on the switch.
 private struct DemoHUDRoom: View {
     var body: some View {
         if DemoHUD.shared.isVisible {
@@ -35,23 +36,6 @@ private struct DemoHUDRoom: View {
                 .frame(height: DemoHUDContainer.reservedHeight)
                 .allowsHitTesting(false)
         }
-    }
-}
-
-/// The button in the navigation bar of every screen that shows and hides the
-/// HUD. ``View/demoInfoButton(isPresented:)`` puts it beside the question mark.
-struct DemoHUDToggle: View {
-    var body: some View {
-        let hud = DemoHUD.shared
-        // A toggle styled as a button fills its background when on, which is
-        // too loud for a bar button.
-        Button {
-            hud.isVisible.toggle()
-        } label: {
-            Label("Pipeline HUD", systemImage: "gauge.with.needle")
-                .symbolVariant(hud.isVisible ? .fill : .none)
-        }
-        .accessibilityAddTraits(hud.isVisible ? .isSelected : [])
     }
 }
 
@@ -64,7 +48,7 @@ private struct DemoHUDContainer: View {
     @State private var frame: CGRect = .zero
     @Environment(\.scenePhase) private var scenePhase
 
-    private static let pillHeight: CGFloat = 28
+    private static let pillHeight: CGFloat = 30
     static let reservedHeight = pillHeight + 12
 
     var body: some View {
@@ -96,69 +80,193 @@ private struct DemoHUDContainer: View {
     private var lift: CGFloat {
         guard let sheetMinY = hud.consoleSheetMinY else { return 0 }
         let covered = frame.maxY - sheetMinY
-        let needed = hud.isExpanded ? 200 : Self.reservedHeight
+        let needed = hud.isExpanded ? 240 : Self.reservedHeight
         return covered > 0 && frame.height - covered >= needed ? covered : 0
     }
 }
 
-/// The HUD folded away: a tap opens the panel.
+/// The HUD folded away: the three figures worth a glance, and a tap to open
+/// the panel.
 private struct DemoHUDPill: View {
     let hud: DemoHUD
 
     var body: some View {
-        let headline = hud.headline
+        let stats = Array(hud.panelStats.prefix(3))
         Button {
             hud.isExpanded = true
         } label: {
-            Label(headline, systemImage: "gauge.with.needle")
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .padding(.horizontal, 10)
-                .frame(maxHeight: .infinity)
-                .demoHUDBackground(in: Capsule())
+            HStack(spacing: 9) {
+                Image(systemName: "gauge.with.needle")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                ForEach(stats) { stat in
+                    Text(stat.value).foregroundStyle(stat.tint ?? Color.primary)
+                        + Text(verbatim: " \(stat.caption)").foregroundStyle(Color.secondary)
+                }
+            }
+            .font(.system(size: 11, weight: .medium, design: .monospaced))
+            .padding(.horizontal, 11)
+            .frame(maxHeight: .infinity)
+            .demoHUDBackground(in: Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Pipeline HUD")
-        .accessibilityValue(headline)
+        .accessibilityValue(stats.map { "\($0.value) \($0.caption)" }.joined(separator: ", "))
+        .accessibilityHint("Opens the panel")
     }
 }
 
-/// The figures of the pipeline the HUD follows, and of the app.
+/// The figures of the pipeline the HUD follows and of the app: the four that
+/// matter most, the task queues, and a line each for the rest.
 private struct DemoHUDPanel: View {
     let hud: DemoHUD
 
+    @Environment(\.demoOpen) private var open
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Text(hud.followed?.figures.label ?? "No pipeline")
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                button("Reset", "arrow.counterclockwise") { hud.reset() }
-                button("Collapse", "arrow.down.right.and.arrow.up.left") { hud.isExpanded = false }
-            }
-            .font(.caption.weight(.semibold))
-            .buttonStyle(.plain)
+        let followed = hud.followed
+        let figures = followed?.figures ?? DemoPipelineDiagnostics()
+        VStack(alignment: .leading, spacing: 10) {
+            header(label: followed?.figures.label ?? "No pipeline")
+            DemoHUDStats(stats: hud.panelStats)
+            DemoHUDQueues(queues: DemoHUD.queues(figures))
             DemoHUDLines(groups: [
-                DemoHUD.lines(hud.followed?.figures ?? DemoPipelineDiagnostics(), caches: hud.followed.flatMap { hud.caches[$0.id] }),
+                DemoHUD.lines(figures, caches: followed.flatMap { hud.caches[$0.id] }),
                 hud.appLines
             ])
         }
-        .padding(10)
-        .demoHUDBackground(in: RoundedRectangle(cornerRadius: 14))
+        .padding(12)
+        .demoHUDBackground(in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func header(label: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "gauge.with.needle")
+                .foregroundStyle(.secondary)
+            Text(label)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            menu
+            button("Collapse", "chevron.down") { hud.isExpanded = false }
+        }
+        .font(.system(size: 11, weight: .semibold))
+    }
+
+    /// Everything the HUD can do, and the two instruments, which the catalog
+    /// leaves to it: they are about the pipeline the HUD is already showing.
+    private var menu: some View {
+        Menu {
+            Button("Reset Figures", systemImage: "arrow.counterclockwise") {
+                hud.reset()
+            }
+            Section("Instruments") {
+                screenButton(.pipelineHUD, "list.bullet.rectangle")
+                screenButton(.concurrencyInspector, "square.grid.3x3")
+            }
+            Button("Hide HUD", systemImage: "eye.slash") {
+                hud.isVisible = false
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .frame(width: 26, height: 22)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("HUD Options")
+    }
+
+    /// Folds the panel away on the way out: the screen it pushes has figures
+    /// of its own, and room for them.
+    private func screenButton(_ screen: DemoScreen, _ systemImage: String) -> some View {
+        Button(screen.title, systemImage: systemImage) {
+            hud.isExpanded = false
+            open?(screen)
+        }
     }
 
     private func button(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .frame(width: 28, height: 24)
+                .frame(width: 26, height: 22)
                 .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(title)
+    }
+}
+
+/// The figures the HUD leads with, in a row of columns.
+struct DemoHUDStats: View {
+    let stats: [DemoHUD.Stat]
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            ForEach(stats) { stat in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(stat.value)
+                        .font(.system(size: 19, weight: .medium, design: .monospaced))
+                        .foregroundStyle(stat.tint ?? Color.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    Text(stat.caption.uppercased())
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(0.6)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+}
+
+/// The task queues, a slot each: filled while work runs in it, and orange
+/// while the queue is suspended.
+struct DemoHUDQueues: View {
+    let queues: [DemoHUD.Queue]
+
+    /// Past this, the slots are a count instead: a total adds up the limits of
+    /// every pipeline alive, and a row of 30 slots says nothing.
+    private static let maxSlots = 8
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ForEach(queues) { queue in
+                row(queue)
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: 10, design: .monospaced))
+    }
+
+    private func row(_ queue: DemoHUD.Queue) -> some View {
+        HStack(spacing: 5) {
+            Text(queue.name)
+                .foregroundStyle(.secondary)
+            if let running = queue.running, (1...Self.maxSlots).contains(queue.limit) {
+                HStack(spacing: 2) {
+                    ForEach(0..<queue.limit, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(index < running ? (queue.isSuspended ? Color.orange : .green) : Color.primary.opacity(0.18))
+                            .frame(width: 5, height: 11)
+                    }
+                }
+            } else {
+                Text(verbatim: "\(queue.running.map { "\($0)" } ?? "–")/\(queue.limit)")
+            }
+            if queue.isSuspended {
+                Text("paused")
+                    .foregroundStyle(.orange)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(queue.name) queue")
+        .accessibilityValue("\(queue.running.map { "\($0)" } ?? "unknown") of \(queue.limit) running" + (queue.isSuspended ? ", paused" : ""))
     }
 }
 
 /// Lines of figures in a monospaced block, the labels in a column.
 struct DemoHUDLines: View {
-    let groups: [[(String, String)]]
+    let groups: [[DemoHUD.Line]]
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 2) {
@@ -166,10 +274,14 @@ struct DemoHUDLines: View {
                 if index > 0 {
                     Divider().padding(.vertical, 3)
                 }
-                ForEach(groups[index], id: \.0) { line in
+                ForEach(groups[index]) { line in
                     GridRow {
-                        Text(line.0).foregroundStyle(.secondary)
-                        Text(line.1).lineLimit(1).minimumScaleFactor(0.7)
+                        Text(line.label)
+                            .foregroundStyle(.secondary)
+                        Text(line.value)
+                            .foregroundStyle(line.tint ?? Color.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
             }
@@ -179,15 +291,27 @@ struct DemoHUDLines: View {
 }
 
 extension View {
-    /// Light figures on a dark blur, which read over photos and text alike.
+    /// Light figures on a dark blur, which read over photos and text alike,
+    /// lifted off the screen by a shadow.
     fileprivate func demoHUDBackground(in shape: some Shape) -> some View {
         self
             .background {
                 shape
-                    .fill(Color.black.opacity(0.6))
+                    .fill(Color.black.opacity(0.55))
                     .background(.regularMaterial, in: shape)
             }
-            .overlay(shape.stroke(Color.white.opacity(0.14), lineWidth: 0.5))
+            .overlay {
+                shape.stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.3), Color.white.opacity(0.08)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
+            }
+            .compositingGroup()
+            .shadow(color: .black.opacity(0.28), radius: 10, y: 3)
             .environment(\.colorScheme, .dark)
             .foregroundStyle(.primary)
     }

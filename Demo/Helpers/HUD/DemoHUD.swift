@@ -124,26 +124,53 @@ final class DemoHUD {
         self.caches = caches
     }
 
-    // MARK: Lines
+    // MARK: Figures
 
-    /// The lines for a pipeline. A figure padded to the width it reaches in a
-    /// busy run keeps the words after it still.
-    static func lines(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [(String, String)] {
-        let queues = [
+    /// The four figures the panel leads with, and the pill the first three of:
+    /// what the pipeline it follows is doing, and whether the app keeps up.
+    var panelStats: [Stat] {
+        Self.stats(followed?.figures ?? DemoPipelineDiagnostics()) + appStats
+    }
+
+    /// What a pipeline is doing now, large.
+    static func stats(_ figures: DemoPipelineDiagnostics) -> [Stat] {
+        [
+            Stat(value: "\(figures.activeTaskCount)", caption: "active", tint: figures.activeTaskCount > 0 ? .green : nil),
+            Stat(value: hitRate(figures), caption: "hit")
+        ]
+    }
+
+    /// What the app costs, large: the frames of the last second, and the
+    /// memory the system charges it for.
+    var appStats: [Stat] {
+        let fps = display.framesPerSecond
+        return [
+            Stat(value: fps.map { String(format: "%.0f", $0) } ?? "–", caption: "fps", tint: (fps ?? .infinity) < 50 ? .orange : nil),
+            Stat(value: footprint.current.map { demoByteCount($0) } ?? "–", caption: "memory")
+        ]
+    }
+
+    /// The three task queues the probe can see, as slots against a limit.
+    static func queues(_ figures: DemoPipelineDiagnostics) -> [Queue] {
+        [
             ("load", figures.dataLoadingQueue),
             ("decode", figures.decodingQueue),
             ("decomp", figures.decompressingQueue)
         ].map { name, queue in
-            "\(name) \(queue.inFlightCount.map { "\($0)" } ?? "–")/\(queue.limit)\(queue.isSuspended ? " paused" : "")"
+            Queue(name: name, running: queue.inFlightCount, limit: queue.limit, isSuspended: queue.isSuspended)
         }
-        return [
-            ("tasks", "\(pad(figures.activeTaskCount, 3)) active · \(pad(figures.succeededTaskCount, 4)) done · \(pad(figures.cancelledTaskCount, 3)) cancelled"
-                + (figures.failedTaskCount > 0 ? " · \(figures.failedTaskCount) failed" : "")),
-            ("source", "\(pad(figures.networkResponseCount, 3)) network · \(pad(figures.diskResponseCount, 3)) disk · \(pad(figures.servedFromMemoryCount, 3)) memory · \(hitRate(figures)) hit"),
-            ("queues", queues.joined(separator: " · ")),
-            ("network", "\(bytes(figures.downloadedByteCount)) down · \(bytes(figures.inFlightByteCount)) in flight"),
-            ("memory", caches.map { "image \(bytes($0.imageCacheCost, of: $0.imageCacheCostLimit)) · pool \(bytes($0.framePoolCost, of: $0.framePoolCostLimit))" } ?? "…"),
-            ("disk", caches.map(disk) ?? "…")
+    }
+
+    /// The lines for a pipeline, under its stats. A figure padded to the width
+    /// it reaches in a busy run keeps the words after it still.
+    static func lines(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [Line] {
+        [
+            Line(label: "tasks", value: "\(pad(figures.succeededTaskCount, 4)) done · \(pad(figures.cancelledTaskCount, 3)) cancelled · \(pad(figures.failedTaskCount, 2)) failed",
+                 tint: figures.failedTaskCount > 0 ? .orange : nil),
+            Line(label: "source", value: "\(pad(figures.networkResponseCount, 3)) network · \(pad(figures.diskResponseCount, 3)) disk · \(pad(figures.servedFromMemoryCount, 3)) memory"),
+            Line(label: "network", value: "\(bytes(figures.downloadedByteCount)) down · \(bytes(figures.inFlightByteCount)) in flight"),
+            Line(label: "memory", value: caches.map { "image \(bytes($0.imageCacheCost, of: $0.imageCacheCostLimit)) · pool \(bytes($0.framePoolCost, of: $0.framePoolCostLimit))" } ?? "…"),
+            Line(label: "disk", value: caches.map(disk) ?? "…")
         ]
     }
 
@@ -155,21 +182,15 @@ final class DemoHUD {
         return parts.isEmpty ? "none" : parts.joined(separator: " · ")
     }
 
-    /// The lines for the app: its memory, and whether the display keeps up.
-    var appLines: [(String, String)] {
-        let fps = display.framesPerSecond.map { String(format: "%.1f", $0) } ?? "–"
+    /// The lines for the app, under its stats: what the display cost, and the
+    /// highest the footprint has been.
+    var appLines: [Line] {
+        let hitch = display.hitchTimeRatio.map { String(format: "%.1f ms/s", $0 * 1000) } ?? "–"
         return [
-            ("footprint", "\(footprint.current.map { Self.bytes($0) } ?? "–") · peak \(Self.bytes(footprint.peak))"),
-            ("display", "\(demoPad(fps, to: 5)) fps · \(Self.pad(display.droppedFrameCount, 4)) dropped · \(demoDelay(display.longestFrame)) worst")
+            Line(label: "display", value: "\(Self.pad(display.droppedFrameCount, 4)) dropped · \(demoPad(hitch, to: 9)) hitch · \(demoDelay(display.longestFrame)) worst",
+                 tint: display.droppedFrameCount > 0 ? .orange : nil),
+            Line(label: "peak", value: demoPad(demoByteCount(footprint.peak), to: 8))
         ]
-    }
-
-    /// The pill: whether anything is loading, whether the caches answer, and
-    /// whether the screen keeps up.
-    var headline: String {
-        let figures = followed?.figures ?? DemoPipelineDiagnostics()
-        let fps = display.framesPerSecond.map { String(format: "%.0f", $0) } ?? "–"
-        return "\(Self.pad(figures.activeTaskCount, 3)) active · \(Self.hitRate(figures)) hit · \(demoPad(fps, to: 3)) fps"
     }
 
     private static func pad(_ value: Int, _ width: Int) -> String {
@@ -187,6 +208,41 @@ final class DemoHUD {
 
     private static func hitRate(_ figures: DemoPipelineDiagnostics) -> String {
         let count = figures.networkResponseCount + figures.diskResponseCount + figures.servedFromMemoryCount
-        return demoPad(count > 0 ? "\(Int((figures.hitRate * 100).rounded()))%" : "–", to: 4)
+        return count > 0 ? "\(Int((figures.hitRate * 100).rounded()))%" : "–"
+    }
+}
+
+extension DemoHUD {
+    /// One of the figures the HUD leads with, set large enough to read at a
+    /// glance: a value and the word under it.
+    struct Stat: Identifiable {
+        let value: String
+        let caption: String
+        /// The color of a value worth noticing – work running, frames missed –
+        /// or `nil` for the color the rest of the figures are set in.
+        var tint: Color?
+
+        var id: String { caption }
+    }
+
+    /// A label and the figures after it, as the panel and the **Pipeline HUD**
+    /// screen both list them.
+    struct Line: Identifiable {
+        let label: String
+        let value: String
+        var tint: Color?
+
+        var id: String { label }
+    }
+
+    /// A task queue: the work running against the limit, as a row of slots.
+    struct Queue: Identifiable {
+        let name: String
+        /// `nil` where the probe can't see the work.
+        let running: Int?
+        let limit: Int
+        let isSuspended: Bool
+
+        var id: String { name }
     }
 }

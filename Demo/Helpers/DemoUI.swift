@@ -44,14 +44,8 @@ extension View {
     /// Adds the question mark button without the sheet, for a screen that keeps
     /// a sheet of its own on display and has to present ``DemoInfoSheet`` from
     /// inside it – iOS drops the second sheet of a screen.
-    ///
-    /// The switch of the pipeline HUD goes beside it, which puts it on every
-    /// screen.
     func demoInfoButton(isPresented: Binding<Bool>) -> some View {
         toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                DemoHUDToggle()
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 DemoInfoButton(isPresented: isPresented)
             }

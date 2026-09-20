@@ -33,11 +33,13 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case customDataLoader = "custom-data-loader"
 
     // Lab
-    case pipelineHUD = "pipeline-hud"
-    case concurrencyInspector = "concurrency-inspector"
     case priorityAndCoalescing = "priority-and-coalescing"
     case scrollStress = "scroll-stress"
     case animationLab = "animation-lab"
+
+    // The instruments, which the catalog doesn't list – see ``section``.
+    case pipelineHUD = "pipeline-hud"
+    case concurrencyInspector = "concurrency-inspector"
 
     var id: String { rawValue }
 
@@ -84,13 +86,17 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         }
     }
 
-    var section: CatalogSection {
+    /// The section of the catalog that lists the screen, or `nil` for one it
+    /// doesn't list. The instruments are opened from the pipeline HUD, which
+    /// is over every screen, rather than from a row of their own.
+    var section: CatalogSection? {
         switch self {
         case .lazyImage, .uikitViews, .imageProcessing: .essentials
         case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
         case .prefetching, .decompression: .performance
         case .customDecoder, .customDataLoader: .integration
-        case .pipelineHUD, .concurrencyInspector, .priorityAndCoalescing, .scrollStress, .animationLab: .lab
+        case .priorityAndCoalescing, .scrollStress, .animationLab: .lab
+        case .pipelineHUD, .concurrencyInspector: nil
         }
     }
 
@@ -127,11 +133,11 @@ extension DemoScreen {
         case formats
         case performance
         case integration
-        /// Instruments and stress rigs for working on Nuke, where the rest of
-        /// the catalog is for adopting it. A Lab screen may cripple the
-        /// pipeline to make a point – disable its caches, push its budgets
-        /// past sensible values – and it reports numbers rather than
-        /// explaining an API.
+        /// Stress rigs for working on Nuke, where the rest of the catalog is
+        /// for adopting it. A Lab screen may cripple the pipeline to make a
+        /// point – disable its caches, push its budgets past sensible values –
+        /// and it reports numbers rather than explaining an API. It ends with
+        /// the switch of the pipeline HUD.
         case lab
 
         var title: String {
@@ -150,7 +156,7 @@ extension DemoScreen {
             case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
             case .performance: "How to have an image ready before it is needed, and what decoding off the main thread saves."
             case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
-            case .lab: "Instruments and stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that."
+            case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen and opens the instruments from its menu."
             }
         }
 

@@ -23,9 +23,10 @@ struct DemoLaunchOptions {
     /// opens a Lab screen.
     private(set) var showsLab = true
 
-    /// `-demoHUD 1` opens the app with the pipeline HUD over every screen,
-    /// folded into its pill; `-demoHUD expanded` opens it as the panel.
-    private(set) var showsHUD = false
+    /// The pipeline HUD stands over every screen, folded into its pill.
+    /// `-demoHUD 0` takes it off, for a screenshot of a screen alone;
+    /// `-demoHUD expanded` opens it as the panel.
+    private(set) var showsHUD = true
     private(set) var expandsHUD = false
 
     /// `-demoAutorun 1` starts the run of a screen that has one as soon as

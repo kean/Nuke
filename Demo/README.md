@@ -51,15 +51,14 @@ details worth knowing.
 
 ## Lab
 
-Instruments and stress rigs for whoever works on Nuke, in the last section of
-the catalog. Caches are turned off where they would hide the work, budgets are
-pushed past sensible values, and the screens report numbers rather than explain
-an API – the catalog screen for that API does the explaining.
+Stress rigs for whoever works on Nuke, in the last section of the catalog.
+Caches are turned off where they would hide the work, budgets are pushed past
+sensible values, and the screens report numbers rather than explain an API –
+the catalog screen for that API does the explaining. The section ends with the
+switch of the [pipeline HUD](#diagnostics), which opens the two instruments.
 
 | Screen | Shows |
 |--|--|
-| **Pipeline HUD** | The HUD's lines – tasks, where the images came from and the hit rate, queues, network bytes, the image cache and frame pool, disk, footprint, and frames – for each pipeline alive and all of them added up, with the switch, Expanded, and a reset |
-| **Concurrency Inspector** | A burst of 240 fixture requests – photos, blurred photos, and thumbnails of a 12 MP JPEG – on a pipeline of its own, with cancel: a map of every task by where it is (waiting, loading, decoding, processing, decompressing, finished), and the five task queues with the work running against the limit and a suspend switch each |
 | **Priority & Coalescing** | Twenty requests for six photos against a data loading queue of two slots: a counter of tasks and downloads, the downloads running and waiting in the order they will start, and a priority on every request that moves its download in the line. Hold suspends the queue, and one request shows what `.skipDataLoadingQueue` does when its URL is already loading |
 | **Scroll Stress** | The pipeline under fast scrolling on fixtures with every cache disabled, ten images to a row, with the HUD on and a frame counter of its own. Auto-Scroll scrolls at a fixed speed for 10 s and keeps the last run – frames dropped, the longest frame, and the tasks started – so two builds can be compared |
 | **Animation Lab** | Up to 36 animations playing at once from fixtures, drawing their frames from the shared `AnimatedImageFramePool`: the pool's budget from 4 to 256 MB, a memory warning with the pool before it and at its lowest, lockstep on and off, and each cell's frames and bytes buffered |
@@ -71,14 +70,14 @@ screenshot of any screen without tapping its way there. Pass them after the
 bundle id, or add them under Edit Scheme › Run › Arguments Passed On Launch:
 
 ```bash
-xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen prefetching -demoLab 0
+xcrun simctl launch booted com.github.kean.NukeDemo -demoScreen prefetching -demoHUD 0
 ```
 
 | Argument | Does |
 |--|--|
 | `-demoScreen <id>` | Opens the app on a screen, with the catalog beneath it. An id that no screen has opens the catalog and logs why |
 | `-demoLab 0` | Leaves the Lab section out of the catalog, for a screenshot of the rest alone |
-| `-demoHUD 1` | Opens the app with the pipeline HUD on, folded into its pill; `expanded` opens its panel |
+| `-demoHUD 0` | Leaves the pipeline HUD off, which is otherwise on and folded into its pill; `expanded` opens its panel |
 | `-demoAutorun 1` | Starts the run of a screen that has one as soon as it opens, once per launch: Decompression scrolls in each configuration, Concurrency Inspector starts a burst, and Scroll Stress scrolls |
 
 A screen's id is the raw value of its case in `App/DemoScreen.swift`. An id
@@ -106,11 +105,19 @@ The photo stream's URLs are in `Resources/photos.json`.
 ## Diagnostics
 
 Every pipeline the demo builds counts what it does, and the pipeline HUD shows
-the figures over any screen: tap the gauge in the navigation bar, or launch with
-`-demoHUD 1`. The pill at the bottom opens into a panel with the tasks, where
-the images came from, the queues, bytes, caches, memory footprint, and dropped
-frames of the pipeline that did something last. **Pipeline HUD** in the Lab
-shows the same lines for every pipeline at once.
+the figures over every screen. It is on from launch: the pill at the bottom –
+the tasks running, the share of the images that didn't download, and the frames
+of the last second – opens into a panel with the queues, bytes, caches, memory
+footprint, and dropped frames of the pipeline that did something last. The
+catalog's Lab section and the panel's menu switch it off; `-demoHUD 0` leaves
+it off from launch.
+
+The panel's menu opens the two instruments, which the catalog has no rows for:
+
+| Screen | Shows |
+|--|--|
+| **Pipeline HUD** | The same figures for each pipeline alive and all of them added up, with the switch, Expanded, and a reset |
+| **Concurrency Inspector** | A burst of 240 fixture requests – photos, blurred photos, and thumbnails of a 12 MP JPEG – on a pipeline of its own, with cancel: a map of every task by where it is (waiting, loading, decoding, processing, decompressing, finished), and the five task queues with the work running against the limit and a suspend switch each |
 
 Launch the app with the `NUKE_DIAGNOSTICS_ENABLED` environment variable set – it is in
 the scheme, unticked, under Run › Arguments › Environment Variables – and every
