@@ -38,14 +38,17 @@ struct AnimatedImagesDemo: View {
     @State private var settledDisplaySize: CGSize = .zero
     @Environment(\.displayScale) private var displayScale
 
-    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
-
     var body: some View {
         canvas
             .task(id: reloadKey) { await load() }
             .task(id: copiesKey) { rebuildCopies() }
             .task(id: displayedSize) { await settleDisplaySize() }
-            .onReceive(timer) { _ in sample() }
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(0.1))
+                    sample()
+                }
+            }
             // Before `demoConsole`, which scopes the title to the stage.
             .navigationTitle(image.title)
             .toolbarTitleMenu {

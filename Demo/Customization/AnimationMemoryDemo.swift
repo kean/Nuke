@@ -24,12 +24,15 @@ struct AnimationMemoryDemo: View {
     /// way out: the pool is shared with every other screen.
     @State private var poolCostLimit: Int?
 
-    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
-
     var body: some View {
         stage
             .task(id: reloadKey) { await load() }
-            .onReceive(timer) { _ in sample() }
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(0.1))
+                    sample()
+                }
+            }
             .onChange(of: settings.poolCostLimitMB) { applyPoolCostLimit() }
             .onAppear {
                 poolCostLimit = AnimatedImageFramePool.shared.costLimit
