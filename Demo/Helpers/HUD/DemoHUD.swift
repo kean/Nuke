@@ -22,6 +22,10 @@ final class DemoHUD {
     /// The top of a console presented as a sheet, in the window, which the HUD
     /// stays above; `nil` when there is none. `demoConsole` sets it.
     var consoleSheetMinY: CGFloat?
+    /// How tall the HUD stands, which is the strip every screen leaves free at
+    /// its bottom – see ``View/demoHUDRoom()``. The panel measures itself: it
+    /// is as tall as the figures it shows.
+    var height: CGFloat
 
     /// Every pipeline alive, oldest first.
     private(set) var pipelines: [Pipeline] = []
@@ -46,6 +50,7 @@ final class DemoHUD {
     private init() {
         isVisible = DemoLaunchOptions.current.showsHUD
         isExpanded = DemoLaunchOptions.current.expandsHUD
+        height = DemoHUDContainer.pillRoom
     }
 
     /// The pipeline the overlay shows.

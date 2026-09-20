@@ -31,17 +31,19 @@ extension View {
 // A view of its own, so that a screen's body doesn't depend on the switch.
 private struct DemoHUDRoom: View {
     var body: some View {
-        if DemoHUD.shared.isVisible {
+        let hud = DemoHUD.shared
+        if hud.isVisible {
             Color.clear
-                .frame(height: DemoHUDContainer.reservedHeight)
+                .frame(height: hud.height)
                 .allowsHitTesting(false)
+                .animation(.snappy, value: hud.height)
         }
     }
 }
 
 /// Places the HUD at the bottom, above a console sheet, and keeps it sampled
 /// while the app is active.
-private struct DemoHUDContainer: View {
+struct DemoHUDContainer: View {
     let hud: DemoHUD
 
     /// The container in the window, where a console sheet reports its top.
@@ -49,7 +51,8 @@ private struct DemoHUDContainer: View {
     @Environment(\.scenePhase) private var scenePhase
 
     private static let pillHeight: CGFloat = 30
-    static let reservedHeight = pillHeight + 12
+    /// The room the pill needs, which is the room the HUD starts out taking.
+    static let pillRoom = pillHeight + 12
 
     var body: some View {
         if hud.isVisible {
@@ -63,7 +66,11 @@ private struct DemoHUDContainer: View {
                 }
             }
             .padding([.horizontal, .top], 8)
-            .padding(.bottom, 4 + lift)
+            .padding(.bottom, 4)
+            // The room every screen leaves at the bottom: the panel is as tall
+            // as its figures, and a screen scrolled to the end clears it.
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { hud.height = $0 }
+            .padding(.bottom, lift)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
             .animation(.snappy, value: hud.isExpanded)
@@ -80,7 +87,7 @@ private struct DemoHUDContainer: View {
     private var lift: CGFloat {
         guard let sheetMinY = hud.consoleSheetMinY else { return 0 }
         let covered = frame.maxY - sheetMinY
-        let needed = hud.isExpanded ? 240 : Self.reservedHeight
+        let needed = hud.isExpanded ? hud.height : Self.pillRoom
         return covered > 0 && frame.height - covered >= needed ? covered : 0
     }
 }
