@@ -166,14 +166,16 @@ final class DemoHUD {
         }
     }
 
-    /// The lines for a pipeline, under its stats. A figure padded to the width
-    /// it reaches in a busy run keeps the words after it still.
+    /// The lines for a pipeline, under its stats. Every value starts at the
+    /// same column, and the figures that move on their own are padded out to
+    /// the width they reach in a busy run, so that what follows stays still.
     static func lines(_ figures: DemoPipelineDiagnostics, caches: DemoPipelineDiagnostics.Caches?) -> [Line] {
         [
-            Line(label: "tasks", value: "\(pad(figures.succeededTaskCount, 4)) done · \(pad(figures.cancelledTaskCount, 3)) cancelled · \(pad(figures.failedTaskCount, 2)) failed",
+            Line(label: "tasks", value: "\(field("\(figures.succeededTaskCount) done", 9)) · \(field("\(figures.cancelledTaskCount) cancelled", 14)) · \(figures.failedTaskCount) failed",
                  tint: figures.failedTaskCount > 0 ? .orange : nil),
-            Line(label: "source", value: "\(pad(figures.networkResponseCount, 3)) network · \(pad(figures.diskResponseCount, 3)) disk · \(pad(figures.servedFromMemoryCount, 3)) memory"),
-            Line(label: "network", value: "\(bytes(figures.downloadedByteCount)) down · \(bytes(figures.inFlightByteCount)) in flight"),
+            Line(label: "source", value: "\(field("\(figures.networkResponseCount) network", 12)) · \(field("\(figures.diskResponseCount) disk", 9)) · \(figures.servedFromMemoryCount) memory"),
+            Line(label: "network", value: "\(field("\(bytes(figures.downloadedByteCount)) down", 14)) · \(bytes(figures.inFlightByteCount)) in flight"),
+            // The caches are read every few seconds, so they need no padding.
             Line(label: "memory", value: caches.map { "image \(bytes($0.imageCacheCost, of: $0.imageCacheCostLimit)) · pool \(bytes($0.framePoolCost, of: $0.framePoolCostLimit))" } ?? "…"),
             Line(label: "disk", value: caches.map(disk) ?? "…")
         ]
@@ -192,23 +194,26 @@ final class DemoHUD {
     var appLines: [Line] {
         let hitch = display.hitchTimeRatio.map { String(format: "%.1f ms/s", $0 * 1000) } ?? "–"
         return [
-            Line(label: "display", value: "\(Self.pad(display.droppedFrameCount, 4)) dropped · \(demoPad(hitch, to: 9)) hitch · \(demoDelay(display.longestFrame)) worst",
+            Line(label: "display", value: "\(Self.field("\(display.droppedFrameCount) dropped", 12)) · \(Self.field("\(hitch) hitch", 16)) · \(demoDelay(display.longestFrame)) worst",
                  tint: display.droppedFrameCount > 0 ? .orange : nil),
-            Line(label: "peak", value: demoPad(demoByteCount(footprint.peak), to: 8))
+            Line(label: "peak", value: demoByteCount(footprint.peak))
         ]
     }
 
-    private static func pad(_ value: Int, _ width: Int) -> String {
-        demoPad("\(value)", to: width)
+    /// A figure and the word after it, padded out on its right to the width it
+    /// reaches in a busy run: the figures after it on the line stay still as
+    /// it grows, and the line still starts where every other line starts.
+    private static func field(_ text: String, _ width: Int) -> String {
+        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
     }
 
     private static func bytes(_ count: some BinaryInteger) -> String {
-        demoPad(demoByteCount(Int64(count)), to: 8)
+        demoByteCount(Int64(count))
     }
 
     /// A cache's cost against its limit; a pipeline without the cache has none.
     private static func bytes(_ count: Int, of limit: Int) -> String {
-        limit > 0 ? "\(demoPad(demoByteCount(count), to: 7))/\(demoByteCount(limit))" : "none"
+        limit > 0 ? "\(demoByteCount(count))/\(demoByteCount(limit))" : "none"
     }
 
     private static func hitRate(_ figures: DemoPipelineDiagnostics) -> String {
