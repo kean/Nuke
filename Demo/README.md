@@ -47,7 +47,6 @@ details worth knowing.
 | Screen | Shows |
 |--|--|
 | **Custom Decoder** | `NukePixDecoder`, a decoder for a toy format made up for the demo, registered in `ImageDecoderRegistry.shared` while the screen is open, with its code in the info sheet. Three files, loaded without the decoder and with it: a NukePix file, which only the new decoder reads; the same file cut short, which the decoder takes by its first bytes and fails; and a PNG, which it passes on to `ImageDecoders.Default`. Each shows its first bytes, what Image I/O makes of it, the decoder the registry picked, and the result |
-| **Custom Data Loader** | Three `DataLoading` implementations on a picker – a throttled download, a file from the app bundle picked by the delegate, and a server that fails – loading the same image on a new pipeline each run, with every call between the pipeline and the loader: the chunks, the pipeline's cancel, and the one `completion`. A throttled load cancelled partway never completes, and the screen shows the data loading slot and the pipeline it keeps |
 
 ## Lab
 
@@ -164,7 +163,7 @@ Demo
 ├── Essentials       LazyImage and FetchImage, the image views, and processors
 ├── Formats          Image formats, animated images, progressive decoding, and video
 ├── Performance      Prefetching and decompression
-├── Integration      A custom decoder and custom data loaders
+├── Integration      A custom decoder
 ├── Lab              Stress rigs for working on Nuke
 ├── Helpers          Shared views, the pipeline probe, the HUD and its details sheet, the frame watchdog, Auto-Scroll, fixtures, demo URLs, the demo's data loaders, and a few small utilities
 └── Resources        The app icon, the logo, a bundled animation, the bundled fixture, and the photo stream's URLs

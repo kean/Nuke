@@ -30,7 +30,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
 
     // Integration
     case customDecoder = "custom-decoder"
-    case customDataLoader = "custom-data-loader"
 
     // Lab
     case priorityAndCoalescing = "priority-and-coalescing"
@@ -51,7 +50,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: "Prefetching"
         case .decompression: "Decompression"
         case .customDecoder: "Custom Decoder"
-        case .customDataLoader: "Custom Data Loader"
         case .priorityAndCoalescing: "Priority & Coalescing"
         case .scrollStress: "Scroll Stress"
         case .animationLab: "Animation Lab"
@@ -71,7 +69,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
         case .decompression: "Decoded off the main thread, counted in frames"
         case .customDecoder: "A toy format, picked by its first bytes"
-        case .customDataLoader: "Throttled, bundled, and failing loaders, call by call"
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
@@ -84,7 +81,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .lazyImage, .uikitViews, .imageProcessing: .essentials
         case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
         case .prefetching, .decompression: .performance
-        case .customDecoder, .customDataLoader: .integration
+        case .customDecoder: .integration
         case .priorityAndCoalescing, .scrollStress, .animationLab: .lab
         }
     }
@@ -104,7 +101,6 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: PrefetchingDemo()
         case .decompression: DecompressionDemo()
         case .customDecoder: CustomDecoderDemo()
-        case .customDataLoader: CustomDataLoaderDemo()
         case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationLab: AnimationLabDemo()
@@ -142,7 +138,7 @@ extension DemoScreen {
             case .essentials: "What most apps need: LazyImage for SwiftUI, the image views for UIKit, and the processors that fit an image to either."
             case .formats: "What the pipeline decodes: still images, animations, the scans of a progressive JPEG as they arrive, and, with NukeVideo, video."
             case .performance: "How to have an image ready before it is needed, and what decoding off the main thread saves."
-            case .integration: "Where an app plugs into the pipeline: a decoder for a format of its own, and a data loader of its own."
+            case .integration: "Where an app plugs into the pipeline with a decoder for a format of its own."
             case .lab: "Stress rigs for whoever works on Nuke. Caches are turned off where they would hide the work, and the screens report numbers rather than explain them – the sections above do that. The pipeline HUD stands over every screen, and its info button opens the details of the pipeline it shows."
             }
         }
