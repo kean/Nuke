@@ -63,9 +63,6 @@ extension ImageProcessors {
         }
 
         public var identifier: String {
-            guard !isCGSizeInterpolatedThroughRetroactiveConformance else {
-                return "com.github.kean/nuke/resize?s=\(size.cgSize),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
-            }
             // Appended piece by piece instead of interpolated: interpolating a
             // `CGSize` looks up its conformances at runtime and builds its
             // `debugDescription`, "(width, height)", as an intermediate string.
@@ -88,16 +85,6 @@ extension ImageProcessors {
         }
     }
 }
-
-// Interpolation prints a `CGSize` through a `CustomStringConvertible` or
-// `TextOutputStreamable` conformance if an app adds one retroactively, and
-// `Resize.identifier` keeps interpolating then, so its output doesn't change.
-// The casts are from `Any`, like the interpolation's: casting `CGSize` directly
-// warns that the test is always true, which it isn't.
-private let isCGSizeInterpolatedThroughRetroactiveConformance: Bool = {
-    let size: Any = CGSize.zero
-    return size is any CustomStringConvertible || size is any TextOutputStreamable
-}()
 
 // Adds Hashable without making changes to public CGSize API. It uses `Float`
 // to reduce memory size.
