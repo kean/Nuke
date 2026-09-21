@@ -13,18 +13,24 @@ extension String {
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
     var sha1: String {
-        let digest = Insecure.SHA1.hash(data: Data(self.utf8))
-        let hexCount = Insecure.SHA1Digest.byteCount * 2
-        let bytes = [UInt8](unsafeUninitializedCapacity: hexCount) { buffer, count in
-            var i = 0
-            for byte in digest {
-                buffer[i] = sha1HexChars[Int(byte >> 4)]
-                buffer[i &+ 1] = sha1HexChars[Int(byte & 0x0F)]
-                i &+= 2
+        // Hashes the UTF-8 in place and writes the hex straight into the new
+        // string: no `Data` copy of the key, no array behind the digest's
+        // iterator, and no buffer to copy the hex out of. `withUTF8` only
+        // copies a string that isn't contiguous UTF-8, e.g. a bridged one.
+        var string = self
+        var hasher = Insecure.SHA1()
+        string.withUTF8 { hasher.update(bufferPointer: UnsafeRawBufferPointer($0)) }
+        return hasher.finalize().withUnsafeBytes { digest in
+            String(unsafeUninitializedCapacity: digest.count * 2) { buffer in
+                var i = 0
+                for byte in digest {
+                    buffer[i] = sha1HexChars[Int(byte >> 4)]
+                    buffer[i &+ 1] = sha1HexChars[Int(byte & 0x0F)]
+                    i &+= 2
+                }
+                return i
             }
-            count = hexCount
         }
-        return String(decoding: bytes, as: UTF8.self)
     }
 }
 

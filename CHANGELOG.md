@@ -73,6 +73,7 @@
 - Subscribing to `ImageTask/events` no longer spawns a `Task`, which makes it 1.2–1.9× faster – https://github.com/kean/Nuke/pull/980
 - Operations that require comparing processors – cache lookups, coalsing, etc – are up to 2× faster – https://github.com/kean/Nuke/pull/972
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
+- Creating data cache keys is up to 3x faster – https://github.com/kean/Nuke/pull/979
 
 **Bug Fixes**
 
