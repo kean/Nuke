@@ -50,7 +50,6 @@ struct ImageProcessingProtocolTests {
 
         #expect(circle.identifier == impostor.identifier)
         #expect(circle.hashableIdentifier != impostor.hashableIdentifier)
-        #expect(!([circle] == [impostor] as [any ImageProcessing]))
     }
 
     // MARK: - Default Container Processing

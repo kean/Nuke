@@ -103,13 +103,3 @@ extension UIColor {
     }
 }
 #endif
-
-func == (lhs: borrowing [any ImageProcessing], rhs: borrowing [any ImageProcessing]) -> Bool {
-    guard lhs.count == rhs.count else { return false }
-    for i in 0..<lhs.count {
-        if lhs[i].hashableIdentifier != rhs[i].hashableIdentifier {
-            return false
-        }
-    }
-    return true
-}

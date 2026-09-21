@@ -11,7 +11,7 @@ final class MemoryCacheKey: Hashable, Sendable {
     private let imageID: String?
     private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
-    private let processors: [ProcessorID]
+    private let processors: [ImageProcessorID]
     private let _hashValue: Int
 
     init(customKey: String) {
@@ -56,7 +56,7 @@ final class MemoryCacheKey: Hashable, Sendable {
 final class TaskLoadImageKey: Hashable, Sendable {
     private let loadKey: TaskFetchOriginalImageKey
     private let options: ImageRequest.Options
-    private let processors: [ProcessorID]
+    private let processors: [ImageProcessorID]
     // Computed once: the pool hashes a key on lookup, on insert, and again when
     // the task is disposed.
     private let _hashValue: Int

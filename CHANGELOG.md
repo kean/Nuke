@@ -72,6 +72,7 @@
 - `LazyImage` checks whether its request changed up to 5× faster on every body update when it keeps the same request – https://github.com/kean/Nuke/pull/969
 - Subscribing to `ImageTask/events` no longer spawns a `Task`, which makes it 1.2–1.9× faster – https://github.com/kean/Nuke/pull/980
 - Operations that require comparing processors – cache lookups, coalsing, etc – are up to 2× faster – https://github.com/kean/Nuke/pull/972
+- `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 
 **Bug Fixes**
 

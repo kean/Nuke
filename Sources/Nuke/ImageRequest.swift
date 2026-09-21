@@ -500,7 +500,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// ``processors``, each boxed into its identity when they were set.
-    var processorsIdentity: [ProcessorID] { ref.processorsIdentity }
+    package var processorsIdentity: [ImageProcessorID] { ref.processorsIdentity }
 
     static var _containerInstanceSize: Int { class_getInstanceSize(Container.self) }
 }
@@ -530,7 +530,7 @@ extension ImageRequest {
         // the string, and comparing processors boxes each of them on both
         // sides. Eager rather than lazy: the container is only mutated while
         // uniquely referenced, so there is nothing to synchronize.
-        private(set) var processorsIdentity: [ProcessorID]
+        private(set) var processorsIdentity: [ImageProcessorID]
 
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
@@ -558,8 +558,8 @@ extension ImageRequest {
             self.processorsIdentity = ref.processorsIdentity
         }
 
-        private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ProcessorID] {
-            processors.isEmpty ? [] : processors.map(ProcessorID.init)
+        private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ImageProcessorID] {
+            processors.isEmpty ? [] : processors.map(ImageProcessorID.init)
         }
     }
 

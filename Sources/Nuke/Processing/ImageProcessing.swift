@@ -115,9 +115,10 @@ public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
 /// Asking a `Hashable` processor for its `hashableIdentifier` converts it to
 /// `AnyHashable`, which looks up the conformance at runtime, and comparing two
 /// `[any ImageProcessing]` does that for every element on both sides. The
-/// memory cache compares processors on every hit, so a request boxes them
-/// once, when they are set, and its keys compare these instead.
-struct ProcessorID: Hashable, Sendable {
+/// memory cache compares processors on every hit, and `LazyImage` on every
+/// view update, so a request boxes them once, when they are set, and both
+/// compare these instead.
+package struct ImageProcessorID: Hashable, Sendable {
     // `AnyHashable` erases the `Sendable` conformance of whatever it wraps.
     // Here it wraps what a processor returned – by default the processor
     // itself or its identifier, both `Sendable` – and the keys carry it across
@@ -127,14 +128,4 @@ struct ProcessorID: Hashable, Sendable {
     init(_ processor: any ImageProcessing) {
         self.value = processor.hashableIdentifier
     }
-}
-
-func == (lhs: borrowing [any ImageProcessing], rhs: borrowing [any ImageProcessing]) -> Bool {
-    guard lhs.count == rhs.count else { return false }
-    for i in 0..<lhs.count {
-        if lhs[i].hashableIdentifier != rhs[i].hashableIdentifier {
-            return false
-        }
-    }
-    return true
 }
