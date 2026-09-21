@@ -72,7 +72,7 @@ struct ImageRequestTests {
     }
 
     private func expectProcessorsIdentity(_ lhs: [any ImageProcessing], _ rhs: [any ImageProcessing], isEqual: Bool, sourceLocation: SourceLocation = #_sourceLocation) {
-        let processorsEqual = lhs == rhs
+        let processorsEqual = lhs.map { $0.hashableIdentifier } == rhs.map { $0.hashableIdentifier }
         #expect(processorsEqual == isEqual, sourceLocation: sourceLocation)
         let lhs = ImageRequest(url: Test.url, processors: lhs)
         let rhs = ImageRequest(url: Test.url, processors: rhs)
