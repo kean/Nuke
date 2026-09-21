@@ -118,7 +118,7 @@ public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
 /// memory cache compares processors on every hit, and `LazyImage` on every
 /// view update, so a request boxes them once, when they are set, and both
 /// compare these instead.
-package struct ProcessorID: Hashable, Sendable {
+package struct ImageProcessorID: Hashable, Sendable {
     // `AnyHashable` erases the `Sendable` conformance of whatever it wraps.
     // Here it wraps what a processor returned – by default the processor
     // itself or its identifier, both `Sendable` – and the keys carry it across
