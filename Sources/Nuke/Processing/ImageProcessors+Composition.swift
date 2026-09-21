@@ -14,11 +14,13 @@ extension ImageProcessors {
     /// Composes multiple processors.
     public struct Composition: ImageProcessing, Hashable, CustomStringConvertible {
         let processors: [any ImageProcessing]
+        private let identifiers: [ProcessorID]
 
         /// Composes multiple processors.
         public init(_ processors: [any ImageProcessing]) {
             // note: multiple compositions are not flatten by default.
             self.processors = processors
+            self.identifiers = processors.map(ProcessorID.init)
         }
 
         /// Processes the given image by applying each processor in an order in
@@ -57,7 +59,7 @@ extension ImageProcessors {
 
         /// Compares all the underlying processors for equality.
         public static func == (lhs: Composition, rhs: Composition) -> Bool {
-            lhs.processors == rhs.processors
+            lhs.identifiers == rhs.identifiers
         }
 
         public var description: String {
