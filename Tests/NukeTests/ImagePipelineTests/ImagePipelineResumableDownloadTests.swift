@@ -166,6 +166,42 @@ struct ImagePipelineResumableDownloadTests {
         #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=10000-")
     }
 
+    @Test func resumedResponseWithHugeContentLengthLoadsWithoutSizeLimit() async throws {
+        // GIVEN a pipeline without a size limit
+        let pipeline = ImagePipeline {
+            $0.dataLoader = server
+            $0.imageCache = nil
+            $0.maximumResponseDataSize = nil
+        }
+        server.steps = [.fail(after: 10000), .serveAdvertising(contentLength: "99999999999999999999")]
+        _ = try? await pipeline.data(for: Test.request)
+
+        // WHEN
+        let (data, response) = try await pipeline.data(for: Test.request)
+
+        // THEN
+        #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=10000-")
+        #expect((response as? HTTPURLResponse)?.statusCode == 206)
+        #expect(data == Test.data)
+    }
+
+    @Test func responseWithHugeContentLengthLoadsWithoutSizeLimit() async throws {
+        // GIVEN a pipeline without a size limit
+        let pipeline = ImagePipeline {
+            $0.dataLoader = server
+            $0.imageCache = nil
+            $0.maximumResponseDataSize = nil
+        }
+        server.steps = [.serveAdvertising(contentLength: "99999999999999999999")]
+
+        // WHEN
+        let (data, response) = try await pipeline.data(for: Test.request)
+
+        // THEN
+        #expect((response as? HTTPURLResponse)?.statusCode == 200)
+        #expect(data == Test.data)
+    }
+
     /// "If-Range" is what keeps the bytes of the old version out of the new
     /// one: a server with a different version answers with all of it.
     @Test func resourceThatChangedIsDownloadedFromScratch() async throws {
@@ -274,7 +310,7 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
         /// Responds with "206 Partial Content" to a "Range" request with a
         /// matching "If-Range", or with "200 OK" to anything else.
         case serve
-        /// Same as `serve`, but the 206 advertises the given "Content-Length".
+        /// Same as `serve`, but advertises the given "Content-Length".
         case serveAdvertising(contentLength: String)
         /// Ignores the "Range" header and sends the whole resource with "200 OK".
         case ignoreRange
@@ -339,6 +375,7 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
             completion(URLError(.notConnectedToInternet))
         case .serve, .serveAdvertising:
             guard let offset = resumeOffset(for: request, data: data, validator: validator) else {
+                let ok = makeResponse(statusCode: 200, headers: headers(["Content-Length": contentLength(for: step) ?? "\(data.count)"]))
                 send(0..<data.count, ok)
                 completion(nil)
                 return cancellable

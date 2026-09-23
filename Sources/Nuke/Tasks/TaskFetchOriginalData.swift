@@ -4,6 +4,10 @@
 
 import Foundation
 
+/// The most the download buffer reserves up front, however large the server
+/// says the response is. The buffer still grows past it as the bytes arrive.
+private let maximumReservedCapacity: Int64 = 64 * 1024 * 1024
+
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
 final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
@@ -225,8 +229,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 throw .dataDownloadExceededMaximumSize
             }
         }
-        if resumedDataCount > 0, expectedSize > 0, expectedSize <= Int.max {
-            data.reserveCapacity(Int(expectedSize))
+        if resumedDataCount > 0, expectedSize > 0 {
+            data.reserveCapacity(Int(min(expectedSize, maximumReservedCapacity)))
         }
     }
 
@@ -243,8 +247,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // Append data and save response
         if data.isEmpty {
             data = chunk
-            if response.expectedContentLength > chunk.count, response.expectedContentLength <= Int.max {
-                data.reserveCapacity(Int(response.expectedContentLength))
+            if response.expectedContentLength > chunk.count {
+                data.reserveCapacity(Int(min(response.expectedContentLength, maximumReservedCapacity)))
             }
         } else {
             data.append(chunk)
