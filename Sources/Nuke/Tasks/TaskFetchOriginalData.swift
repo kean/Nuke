@@ -4,6 +4,10 @@
 
 import Foundation
 
+/// The most the download buffer reserves up front, however large the server
+/// says the response is. The buffer still grows past it as the bytes arrive.
+private let maximumReservedCapacity: Int64 = 64 * 1024 * 1024
+
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
 final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
@@ -216,22 +220,29 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let resumableData, ResumableData.isResumedResponse(response) {
             data = resumableData.data
             resumedDataCount = Int64(resumableData.data.count)
-            let expectedSize = response.expectedContentLength + resumedDataCount
-            if expectedSize > 0, expectedSize <= Int.max {
-                data.reserveCapacity(Int(expectedSize))
-            }
             signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
         }
         resumableData = nil // Get rid of resumable data
 
         // Check the expected size early to avoid a large `reserveCapacity`
         // allocation when the server reports a content length above the limit.
+        let expectedSize = self.expectedSize(of: response)
         if let maximumResponseDataSize = pipeline.configuration.maximumResponseDataSize {
-            let expectedSize = response.expectedContentLength + resumedDataCount
             if expectedSize > 0, expectedSize > maximumResponseDataSize {
                 throw .dataDownloadExceededMaximumSize
             }
         }
+        if resumedDataCount > 0, expectedSize > 0 {
+            data.reserveCapacity(Int(min(expectedSize, maximumReservedCapacity)))
+        }
+    }
+
+    /// The size of the whole resource: the advertised content length plus the
+    /// resumed bytes. Saturates, since Foundation reports a content length it
+    /// can't represent as `Int64.max`.
+    private func expectedSize(of response: URLResponse) -> Int64 {
+        let (size, isOverflow) = response.expectedContentLength.addingReportingOverflow(resumedDataCount)
+        return isOverflow ? .max : size
     }
 
     /// Processes a data chunk. Returns `false` when the size limit is exceeded.
@@ -239,8 +250,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // Append data and save response
         if data.isEmpty {
             data = chunk
-            if response.expectedContentLength > chunk.count, response.expectedContentLength <= Int.max {
-                data.reserveCapacity(Int(response.expectedContentLength))
+            if response.expectedContentLength > chunk.count {
+                data.reserveCapacity(Int(min(response.expectedContentLength, maximumReservedCapacity)))
             }
         } else {
             data.append(chunk)
@@ -251,13 +262,13 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             throw .dataDownloadExceededMaximumSize
         }
 
-        let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
+        let progress = TaskProgress(completed: Int64(data.count), total: expectedSize(of: response))
         send(progress: progress)
 
         // If the image hasn't been fully loaded yet, give decoder a chance
         // to decode the data chunk. In case `expectedContentLength` is `0`,
         // progressive decoding doesn't run.
-        guard data.count < response.expectedContentLength + resumedDataCount else { return }
+        guard data.count < expectedSize(of: response) else { return }
         send(value: (data, response))
     }
 
@@ -272,7 +283,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             stage.bytes = Int64(data.count)
             stage.resumedBytes = resumedDataCount
             if let urlResponse, urlResponse.expectedContentLength >= 0 {
-                stage.expectedBytes = urlResponse.expectedContentLength + resumedDataCount
+                stage.expectedBytes = expectedSize(of: urlResponse)
             }
         }
 
