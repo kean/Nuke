@@ -36,6 +36,19 @@ struct AnimatedImageFrameSharingTests {
         #expect(second.store.frame(at: 3) === first.store.frame(at: 3))
     }
 
+    @Test func aSecondPlayerShowsTheFrameTheFirstDecoded() async throws {
+        // No decode is coming for a frame already in memory, so nothing else
+        // would ever put it on screen.
+        let source = try makeSource(frameCount: 6)
+        let first = makePlayer(source: source)
+        await first.waitUntilFull()
+
+        let (second, _) = makeIdlePlayer(source: source)
+
+        #expect(second.image != nil)
+        #expect(second.diagnostics.displayedFrameCount == 1)
+    }
+
     @Test func aSharedFrameIsCountedOnce() async throws {
         let source = try makeSource(frameCount: 6)
         let first = makePlayer(source: source)
@@ -468,6 +481,25 @@ struct AnimatedImageFrameSharingTests {
         let (second, _) = makeIdlePlayer(source: source)
 
         #expect(second.currentFrameIndex == 3)
+    }
+
+    @Test func aPlayerThatJoinsMidAnimationShowsTheFrameItJoinsOn() async throws {
+        let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
+        let (first, clock) = makeIdlePlayer(source: source)
+        first.play()
+        await first.waitUntilFull()
+        for _ in 0..<3 { clock.tick(0.1) }
+
+        let (second, secondClock) = makeIdlePlayer(source: source)
+        second.play()
+
+        // On screen from the start, and for its whole delay rather than
+        // skipped for the one after it.
+        #expect(second.currentFrameIndex == 3)
+        #expect(second.image != nil)
+        secondClock.tick(0.1)
+        #expect(second.currentFrameIndex == 4)
+        #expect(second.diagnostics.displayedFrameCount == 2)
     }
 
     @Test func aPlayerCanBeToldToStartAtTheBeginning() async throws {

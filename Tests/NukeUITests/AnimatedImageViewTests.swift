@@ -759,6 +759,22 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+    @Test func anAnimationHeldStillShowsTheFirstFrameAnotherPlayerDecoded() async {
+        // A cell that comes back for an animation whose frames are still in
+        // memory: nothing is left to decode, and no poster to fall back on.
+        let host = TestWindow(view: view)
+        let source = Test.animatedGIFSource(frameCount: 8)
+        let other = AnimatedImagePlayer(source: source)
+        await other.waitUntilFull()
+
+        view.isPlaybackEnabled = false
+        view.animatedImage = source
+
+        #expect(view.image != nil)
+        #expect(view.image === view.player?.image)
+        host.close()
+    }
+
     @Test func picksUpWhereItLeftOffWhenItComesBackToTheWindow() async throws {
         // A cell that scrolls off screen and back: the same player, on the
         // frame it stopped on, with its window of frames back.
