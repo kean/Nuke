@@ -37,17 +37,14 @@ JOBS=(
 
     "test-nukeui-ios|ios-ui|test|NukeUI|iOS"
     "test-nukeextensions-ios|ios-ui|test|NukeExtensions|iOS"
-    "test-nukevideo-ios|ios-ui|test|NukeVideo|iOS"
 
     "test-nuke-tvos|tvos|test|Nuke|tvOS"
     "test-nukeui-tvos|tvos|test|NukeUI|tvOS"
     "test-nukeextensions-tvos|tvos|test|NukeExtensions|tvOS"
-    "test-nukevideo-tvos|tvos|test|NukeVideo|tvOS"
 
     "test-nuke-macos|macos|test|Nuke|macOS"
     "test-nukeui-macos|macos|test|NukeUI|macOS"
     "test-nukeextensions-macos|macos|test|NukeExtensions|macOS"
-    "test-nukevideo-macos|macos|test|NukeVideo|macOS"
 
     "build-nuke-watchos|platforms|build|Nuke|watchOS"
     "build-nukeui-watchos|platforms|build|NukeUI|watchOS"

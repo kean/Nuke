@@ -37,7 +37,7 @@ jobs:
           - group: ios-core
             name: Tests (Nuke, iOS)
           - group: ios-ui
-            name: Tests (NukeUI + NukeExtensions + NukeVideo, iOS)
+            name: Tests (NukeUI + NukeExtensions, iOS)
           - group: tvos
             name: Tests (tvOS)
           - group: macos
