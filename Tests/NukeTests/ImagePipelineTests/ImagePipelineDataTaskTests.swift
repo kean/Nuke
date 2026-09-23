@@ -428,15 +428,12 @@ struct ImagePipelineDataTaskTests {
 
     /// Data tasks share the data loading queue with the image tasks, and a
     /// cancelled download hands its slot over to the next one.
-    ///
-    /// - note: The slot is only freed once the loader calls `completion`,
-    /// which the default `DataLoader` does after `cancel()` because
-    /// `URLSession` reports the cancellation. A loader that stays silent
-    /// after `cancel()`, as the `DataLoading` docs ask, never frees it.
-    @Test func cancelledDownloadHandsItsSlotToTheNextOne() async throws {
-        // GIVEN one download at a time, and a loader that reports the
-        // cancellation the way `URLSession` does
-        let loader = _StallingDataLoader()
+    @Test(arguments: [true, false])
+    func cancelledDownloadHandsItsSlotToTheNextOne(callsCompletionOnCancel: Bool) async throws {
+        // GIVEN one download at a time, and a loader that either reports the
+        // cancellation the way `URLSession` does, or stays silent after
+        // `cancel()`, as the `DataLoading` docs allow
+        let loader = _StallingDataLoader(callsCompletionOnCancel: callsCompletionOnCancel)
         let pipeline = ImagePipeline {
             $0.dataLoader = loader
             $0.imageCache = nil
@@ -457,7 +454,14 @@ struct ImagePipelineDataTaskTests {
         stalled.cancel()
 
         // THEN the data task gets the slot
-        #expect(try await next.response.container.data == Test.data)
+        let finished = TestExpectation()
+        let nextResult = Task {
+            defer { finished.fulfill() }
+            return try? await next.response
+        }
+        await finished.wait(timeout: .seconds(10))
+        next.cancel()
+        #expect(await nextResult.value?.container.data == Test.data)
         #expect(loader.requestCount == 2)
         await #expect(throws: ImagePipeline.Error.cancelled) {
             try await stalled.response
@@ -569,17 +573,22 @@ private final class _ScriptedDataLoader: DataLoading, @unchecked Sendable {
     }
 }
 
-/// Serves `Test.data`, except for ``stalledURL``, which never responds until
-/// it is cancelled, and then fails with `URLError.cancelled`, like
-/// `URLSession` does.
+/// Serves `Test.data`, except for ``stalledURL``, which never responds. When
+/// it is cancelled, it fails with `URLError.cancelled`, like `URLSession`
+/// does, if `callsCompletionOnCancel` is set, and calls nothing otherwise.
 private final class _StallingDataLoader: DataLoading, @unchecked Sendable {
     static let stalledURL = URL(string: "https://example.com/stalled.jpeg")!
 
     let started = TestExpectation()
+    let callsCompletionOnCancel: Bool
     var requestCount: Int { lock.withLock { _requestCount } }
 
     private let lock = NSLock()
     private var _requestCount = 0
+
+    init(callsCompletionOnCancel: Bool) {
+        self.callsCompletionOnCancel = callsCompletionOnCancel
+    }
 
     func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
         lock.withLock { _requestCount += 1 }
@@ -589,8 +598,11 @@ private final class _StallingDataLoader: DataLoading, @unchecked Sendable {
             return AnonymousCancellable {}
         }
         started.fulfill()
+        let callsCompletionOnCancel = callsCompletionOnCancel
         return AnonymousCancellable {
-            completion(URLError(.cancelled))
+            if callsCompletionOnCancel {
+                completion(URLError(.cancelled))
+            }
         }
     }
 }
