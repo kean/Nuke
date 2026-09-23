@@ -10,7 +10,8 @@ public protocol DataLoading: Sendable {
     /// - parameter didReceiveData: Can be called multiple times if streaming
     /// is supported.
     /// - parameter completion: Must be called once after all (or none in case
-    /// of an error) `didReceiveData` closures have been called.
+    /// of an error) `didReceiveData` closures have been called, unless the
+    /// returned `Cancellable` was cancelled.
     func loadData(
         with request: URLRequest,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,

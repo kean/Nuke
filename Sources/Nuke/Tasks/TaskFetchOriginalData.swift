@@ -110,6 +110,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             self.dataLoadTask?.cancel()
             self.dataLoadCancellable?.cancel()
             self.tryToSaveResumableData()
+            // A loader doesn't have to call the completion after `cancel()`,
+            // so resume here to give back the data loading queue slot.
+            self.finishDataLoad(error: CancellationError())
         }
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
