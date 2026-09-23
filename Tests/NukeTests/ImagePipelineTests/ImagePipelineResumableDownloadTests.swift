@@ -150,6 +150,22 @@ struct ImagePipelineResumableDownloadTests {
         #expect(progress.values.allSatisfy { $0.total == 22789 })
     }
 
+    /// Foundation reports a "Content-Length" it can't represent as
+    /// `Int64.max`, so adding the resumed bytes to it must not overflow.
+    @Test func resumedResponseWithHugeContentLengthExceedsMaximumSize() async throws {
+        // GIVEN a download that failed after 10000 bytes
+        server.steps = [.fail(after: 10000), .serveAdvertising(contentLength: "99999999999999999999")]
+        _ = try? await pipeline.data(for: Test.request)
+
+        // WHEN the resumed response advertises a length above the limit
+        await #expect(throws: ImagePipeline.Error.dataDownloadExceededMaximumSize) {
+            try await pipeline.data(for: Test.request)
+        }
+
+        // THEN
+        #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=10000-")
+    }
+
     /// "If-Range" is what keeps the bytes of the old version out of the new
     /// one: a server with a different version answers with all of it.
     @Test func resourceThatChangedIsDownloadedFromScratch() async throws {
@@ -258,6 +274,8 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
         /// Responds with "206 Partial Content" to a "Range" request with a
         /// matching "If-Range", or with "200 OK" to anything else.
         case serve
+        /// Same as `serve`, but the 206 advertises the given "Content-Length".
+        case serveAdvertising(contentLength: String)
         /// Ignores the "Range" header and sends the whole resource with "200 OK".
         case ignoreRange
         /// Fails before sending a response.
@@ -319,7 +337,7 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
             completion(nil)
         case .failBeforeResponse:
             completion(URLError(.notConnectedToInternet))
-        case .serve:
+        case .serve, .serveAdvertising:
             guard let offset = resumeOffset(for: request, data: data, validator: validator) else {
                 send(0..<data.count, ok)
                 completion(nil)
@@ -327,12 +345,16 @@ private final class _RangeServer: DataLoading, @unchecked Sendable {
             }
             let partial = makeResponse(statusCode: 206, headers: headers([
                 "Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)",
-                "Content-Length": "\(data.count - offset)"
+                "Content-Length": contentLength(for: step) ?? "\(data.count - offset)"
             ]))
             send(offset..<data.count, partial)
             completion(nil)
         }
         return cancellable
+    }
+
+    private func contentLength(for step: Step) -> String? {
+        if case .serveAdvertising(let contentLength) = step { contentLength } else { nil }
     }
 
     /// Returns the offset to resume from if the request asks for a range and
