@@ -95,9 +95,8 @@ struct ImagePipelineLoadDataTests {
 
         // THEN progress is reported once per chunk, in order
         let total = Int64(Test.data.count)
-        let chunkSize = total / 1000
         let expected = (1...1000).map {
-            ImageTaskEvent.progressUpdated(completedUnitCount: $0 == 1000 ? total : Int64($0) * chunkSize, totalUnitCount: total)
+            ImageTaskEvent.progressUpdated(completedUnitCount: total * Int64($0) / 1000, totalUnitCount: total)
         }
         #expect(observer.events.filter(\.isProgress) == expected)
 

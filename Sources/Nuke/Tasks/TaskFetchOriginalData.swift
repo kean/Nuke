@@ -150,7 +150,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
             // The loader calls back on its own thread, once per chunk. The
-            // inbox batches the callbacks instead of paying for a `Task` each.
+            // inbox batches the callbacks instead of paying for a `Task` each,
+            // and only its delivery loads the weak `self`, once per batch.
             let inbox = DataLoadInbox { [weak self] events in
                 self?.apply(events)
             }

@@ -58,17 +58,9 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
                 }
             } else {
                 let response = URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil)
-                if chunkCount > 1 {
-                    let chunkSize = data.count / chunkCount
-                    var offset = 0
-                    for index in 0..<chunkCount {
-                        // The last chunk takes the remainder.
-                        let end = index == chunkCount - 1 ? data.count : offset + chunkSize
-                        didReceiveData(data.subdata(in: offset..<end), response)
-                        offset = end
-                    }
-                } else {
-                    didReceiveData(data, response)
+                for index in 0..<chunkCount {
+                    // A slice shares the fixture's storage, so one chunk costs no copy.
+                    didReceiveData(data[data.count * index / chunkCount..<data.count * (index + 1) / chunkCount], response)
                 }
                 completion(nil)
             }
