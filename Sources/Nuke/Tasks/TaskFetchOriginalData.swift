@@ -3,6 +3,12 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
+
+private enum DataLoadEvent: Sendable {
+    case chunk(Data, URLResponse)
+    case finish(Error?, URLSessionTaskMetrics?)
+}
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
@@ -145,11 +151,16 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     // This method was previously using `AsyncThrowingStream` but it turned out to be
     // sub-optimal in terms of the performance.
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
+        // The callbacks can come from threads with different priorities, and
+        // the actor runs higher-priority jobs first, so they are queued in the
+        // order they arrive and whichever task runs first processes them all.
+        let events = OSAllocatedUnfairLock<[DataLoadEvent]>(initialState: [])
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
             let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
+                events.withLock { $0.append(.chunk(chunk, response)) }
                 Task { @ImagePipelineActor in
-                    self?.dataTaskDidReceive(chunk: chunk, response: response)
+                    self?.processDataLoadEvents(events)
                 }
             }
             // Each branch passes its own completion so that the common one
@@ -157,8 +168,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
                 // The diagnostics are on: ask for what `URLSession` measured.
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
+                    events.withLock { $0.append(.finish(error, metrics)) }
                     Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
+                        self?.processDataLoadEvents(events)
                     }
                 }
                 if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
@@ -166,10 +178,26 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 }
             } else {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
+                    events.withLock { $0.append(.finish(error, nil)) }
                     Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
+                        self?.processDataLoadEvents(events)
                     }
                 }
+            }
+        }
+    }
+
+    private func processDataLoadEvents(_ events: OSAllocatedUnfairLock<[DataLoadEvent]>) {
+        let pending = events.withLock { events in
+            defer { events = [] }
+            return events
+        }
+        for event in pending {
+            switch event {
+            case let .chunk(chunk, response):
+                dataTaskDidReceive(chunk: chunk, response: response)
+            case let .finish(error, metrics):
+                finishDataLoad(error: error, urlSessionMetrics: metrics)
             }
         }
     }
