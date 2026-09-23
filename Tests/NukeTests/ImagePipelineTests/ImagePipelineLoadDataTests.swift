@@ -419,4 +419,47 @@ struct ImagePipelineLoadDataTests {
         #expect(dataCache.writeCount == 1)
         #expect(dataCache.store.count == 1)
     }
+
+    // MARK: - Callback Order
+
+    @Test func chunksAreNotDroppedWhenCompletionIsCalledFromHigherPriorityThread() async throws {
+        // GIVEN a loader that delivers the chunks from background threads and
+        // completes from a user-interactive one
+        let pipeline = pipeline.reconfigured {
+            $0.dataLoader = SplitQoSDataLoader()
+        }
+
+        // WHEN
+        let (data, _) = try await pipeline.data(for: Test.request)
+
+        // THEN all chunks make it before the completion
+        #expect(data == Test.data)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString) == Test.data)
+    }
+}
+
+/// Delivers each chunk from a `.background` thread and calls completion from
+/// a `.userInteractive` one. Each call returns before the next one starts.
+private final class SplitQoSDataLoader: DataLoading, @unchecked Sendable {
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let data = Test.data
+        let response = URLResponse(url: request.url!, mimeType: "image/jpeg", expectedContentLength: data.count, textEncodingName: nil)
+        let half = data.count / 2
+        runOnThread(qos: .background) { didReceiveData(data[0..<half], response) }
+        runOnThread(qos: .background) { didReceiveData(data[half...], response) }
+        runOnThread(qos: .userInteractive) { completion(nil) }
+        return AnonymousCancellable {}
+    }
+}
+
+/// Runs the work on a new thread with the given QoS and waits for it.
+private func runOnThread(qos: QualityOfService, _ work: @escaping @Sendable () -> Void) {
+    let done = DispatchSemaphore(value: 0)
+    let thread = Thread {
+        work()
+        done.signal()
+    }
+    thread.qualityOfService = qos
+    thread.start()
+    done.wait()
 }
