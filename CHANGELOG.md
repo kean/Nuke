@@ -75,6 +75,7 @@
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 - Creating data cache keys is up to 3x faster – https://github.com/kean/Nuke/pull/979
 - Decompression is up to 45% faster on iOS, tvOS, and visionOS: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay` is now enabled by default – https://github.com/kean/Nuke/pull/990
+- `ImagePrefetcher/stopPrefetching(with:)-2tcyq` is 13% faster: it no longer creates an `ImageRequest` for each URL – https://github.com/kean/Nuke/pull/991
 
 **Bug Fixes**
 
