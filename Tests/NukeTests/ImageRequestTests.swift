@@ -209,6 +209,14 @@ struct ImageRequestLoadKeyTests {
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
+    @Test(arguments: [Test.url, URL(string: "http://test.com/1.png?a=b#c"), nil])
+    func keyFromURLMatchesTheKeyOfTheRequest(url: URL?) {
+        let request = ImageRequest(url: url)
+        assertHashableEqual(TaskLoadImageKey(url: url), TaskLoadImageKey(request))
+        assertHashableEqual(TaskFetchOriginalImageKey(url: url), TaskFetchOriginalImageKey(request))
+        assertHashableEqual(TaskFetchOriginalDataKey(url: url), TaskFetchOriginalDataKey(request))
+    }
+
     @Test func mockImageProcessorCorrectlyImplementsIdentifiers() {
         #expect(MockImageProcessor(id: "1").identifier == MockImageProcessor(id: "1").identifier)
         #expect(MockImageProcessor(id: "1").hashableIdentifier == MockImageProcessor(id: "1").hashableIdentifier)

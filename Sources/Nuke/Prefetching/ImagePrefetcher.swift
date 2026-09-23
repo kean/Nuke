@@ -174,7 +174,9 @@ public final class ImagePrefetcher: Sendable {
     ///
     /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
     nonisolated public func stopPrefetching(with urls: [URL]) {
-        stopPrefetching(with: urls.map { ImageRequest(url: $0) })
+        Task { @ImagePipelineActor in
+            self._stopPrefetching(with: urls.lazy.map(TaskLoadImageKey.init(url:)))
+        }
     }
 
     /// Stops prefetching images for the given requests and cancels outstanding
@@ -192,21 +194,21 @@ public final class ImagePrefetcher: Sendable {
     }
 
     private func _stopPrefetching(with requests: [ImageRequest]) {
+        _stopPrefetching(with: requests.lazy.map(TaskLoadImageKey.init))
+    }
+
+    private func _stopPrefetching(with keys: some Sequence<TaskLoadImageKey>) {
         // A stop that finds nothing outstanding doesn't run the prefetcher out
         // of work, so there is no completion to report.
         guard !tasks.isEmpty else {
             return
         }
-        for request in requests {
-            _stopPrefetching(with: request)
+        for key in keys {
+            if let task = tasks.removeValue(forKey: key) {
+                task.cancel()
+            }
         }
         sendCompletionIfNeeded()
-    }
-
-    private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
-            task.cancel()
-        }
     }
 
     /// Stops all prefetching tasks.

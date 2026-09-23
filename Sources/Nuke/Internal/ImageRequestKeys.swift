@@ -73,6 +73,19 @@ final class TaskLoadImageKey: Hashable, Sendable {
         self._hashValue = hasher.finalize()
     }
 
+    /// The key of `ImageRequest(url:)`, without creating the request.
+    init(url: URL?) {
+        self.loadKey = TaskFetchOriginalImageKey(url: url)
+        self.options = []
+        self.processors = []
+
+        var hasher = Hasher()
+        hasher.combine(loadKey)
+        hasher.combine(options)
+        hasher.combine(processors.count)
+        self._hashValue = hasher.finalize()
+    }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(_hashValue)
     }
@@ -95,6 +108,18 @@ struct TaskFetchOriginalImageKey: Hashable {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
         self.scale = request.scale
         self.thumbnail = request.thumbnail
+
+        var hasher = Hasher()
+        hasher.combine(dataLoadKey)
+        hasher.combine(scale)
+        hasher.combine(thumbnail)
+        self._hashValue = hasher.finalize()
+    }
+
+    init(url: URL?) {
+        self.dataLoadKey = TaskFetchOriginalDataKey(url: url)
+        self.scale = 1
+        self.thumbnail = nil
 
         var hasher = Hasher()
         hasher.combine(dataLoadKey)
@@ -127,6 +152,18 @@ struct TaskFetchOriginalDataKey: Hashable {
             self.cachePolicy = urlRequest.cachePolicy
             self.allowsCellularAccess = urlRequest.allowsCellularAccess
         }
+
+        var hasher = Hasher()
+        hasher.combine(imageID)
+        hasher.combine(cachePolicy)
+        hasher.combine(allowsCellularAccess)
+        self._hashValue = hasher.finalize()
+    }
+
+    init(url: URL?) {
+        self.imageID = url?.absoluteString
+        self.cachePolicy = .useProtocolCachePolicy
+        self.allowsCellularAccess = true
 
         var hasher = Hasher()
         hasher.combine(imageID)
