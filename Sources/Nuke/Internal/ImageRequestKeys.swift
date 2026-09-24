@@ -116,9 +116,12 @@ struct TaskFetchOriginalDataKey: Hashable {
     private let imageID: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool
+    // A request that skips the queue must not join a fetch waiting in it.
+    private let skipsDataLoadingQueue: Bool
 
     init(_ request: ImageRequest) {
         self.imageID = request.originalImageID
+        self.skipsDataLoadingQueue = request.options.contains(.skipDataLoadingQueue)
         switch request.resource {
         case .url, .data, .image:
             self.cachePolicy = .useProtocolCachePolicy
@@ -132,6 +135,7 @@ struct TaskFetchOriginalDataKey: Hashable {
         hasher.combine(imageID)
         hasher.combine(cachePolicy)
         hasher.combine(allowsCellularAccess)
+        hasher.combine(skipsDataLoadingQueue)
         self._hashValue = hasher.finalize()
     }
 

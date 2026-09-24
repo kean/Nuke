@@ -209,6 +209,13 @@ struct ImageRequestLoadKeyTests {
         #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
+    @Test func requestsSkippingTheDataLoadingQueueAreNotEquivalent() {
+        let lhs = ImageRequest(url: Test.url)
+        let rhs = ImageRequest(url: Test.url, options: [.skipDataLoadingQueue])
+        #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
+        #expect(TaskFetchOriginalImageKey(lhs) != TaskFetchOriginalImageKey(rhs))
+    }
+
     @Test func mockImageProcessorCorrectlyImplementsIdentifiers() {
         #expect(MockImageProcessor(id: "1").identifier == MockImageProcessor(id: "1").identifier)
         #expect(MockImageProcessor(id: "1").hashableIdentifier == MockImageProcessor(id: "1").hashableIdentifier)
