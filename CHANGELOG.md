@@ -99,6 +99,7 @@
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
+- Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 
 **Documentation**
 
