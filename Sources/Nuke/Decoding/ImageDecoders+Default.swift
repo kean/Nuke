@@ -30,19 +30,20 @@ extension ImageDecoders {
     /// scan in the image data: Image I/O doesn't report the scan boundaries, so
     /// with ``ImagePipeline/PreviewPolicy/incremental`` the decoder generates a
     /// preview per downloaded chunk that it manages to decode.
-    public final class Default: ImageDecoding, @unchecked Sendable {
+    public final class Default: ImageDecoding, Sendable {
+        // The decoding state is mutable and guarded by `lock`.
         /// The number of previews produced so far, including the ones generated
         /// by the ``ImagePipeline/PreviewPolicy/thumbnail`` policy and by the
         /// thumbnail fallback. Not a count of the scans in the image data.
-        private(set) var numberOfScans = 0
-        private var incrementalSource: CGImageSource?
+        private(set) nonisolated(unsafe) var numberOfScans = 0
+        private nonisolated(unsafe) var incrementalSource: CGImageSource?
 
-        private var isPreviewForGIFGenerated = false
-        private var didAttemptThumbnailFallback = false
-        private var scale: CGFloat = 1.0
-        private var thumbnail: ImageRequest.ThumbnailOptions?
-        private(set) var previewPolicy: ImagePipeline.PreviewPolicy = .incremental
-        private(set) var isAnimatedImageParsingEnabled = true
+        private nonisolated(unsafe) var isPreviewForGIFGenerated = false
+        private nonisolated(unsafe) var didAttemptThumbnailFallback = false
+        private let scale: CGFloat
+        private let thumbnail: ImageRequest.ThumbnailOptions?
+        let previewPolicy: ImagePipeline.PreviewPolicy
+        let isAnimatedImageParsingEnabled: Bool
         private let lock = NSLock()
 
         /// Returns `true` when thumbnail decoding is requested, because
@@ -51,7 +52,12 @@ extension ImageDecoders {
         public var isAsynchronous: Bool { thumbnail != nil }
 
         /// Initializes the decoder with default settings.
-        public init() { }
+        public init() {
+            self.scale = 1.0
+            self.thumbnail = nil
+            self.previewPolicy = .incremental
+            self.isAnimatedImageParsingEnabled = true
+        }
 
         /// Initializes the decoder from the given decoding context, reading the
         /// request's scale, thumbnail options, and preview policy.
