@@ -382,6 +382,45 @@ struct DataLoaderTests {
         #expect(collected.transactionMetrics.first?.request.url == url)
     }
 
+    /// The loader reads `delegate` in every session callback and when each
+    /// task is created, which happens on the thread that starts the request,
+    /// so replacing it from another thread has to be synchronized – otherwise
+    /// the process crashes or the thread sanitizer aborts the test run.
+    @Test func delegateIsReplacedWhileLoadingData() async throws {
+        // Given
+        let loader = makeDataLoader()
+        let urls = (0..<50).map { mockURL("delegate-replace-\($0)") }
+        for url in urls {
+            registerMock(url: url, chunks: [Data("x".utf8)])
+        }
+
+        let writer = Task.detached {
+            while !Task.isCancelled {
+                loader.delegate = SpyURLSessionDelegate()
+                await Task.yield()
+            }
+        }
+
+        // When loading data while the delegate is being replaced
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    var received = Data()
+                    for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
+                        received.append(chunk)
+                    }
+                    #expect(received == Data("x".utf8))
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
+        #expect(loader.delegate is SpyURLSessionDelegate)
+    }
+
     // MARK: - Default Validation
 
     @Test func initWithDefaultValidation() async throws {

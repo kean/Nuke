@@ -36,10 +36,12 @@ public final class DataLoader: DataLoading, Sendable {
     ///
     /// - note: The delegate is retained.
     ///
-    /// - warning: Set the delegate before loading any data. The access
-    /// isn't synchronized.
-    public nonisolated(unsafe) var delegate: URLSessionDelegate? {
-        didSet { impl.delegate = delegate }
+    /// - note: The delegate is read by every session callback on the session's
+    /// delegate queue and when each task is created, which can happen on any
+    /// thread, so the access is synchronized.
+    public var delegate: URLSessionDelegate? {
+        get { impl.delegate }
+        set { impl.delegate = newValue }
     }
 
     deinit {
@@ -169,7 +171,13 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
     /// The metrics of the tasks whose handlers asked for them, held from
     /// the moment they are collected to the completion, which delivers them.
     private nonisolated(unsafe) var metrics = [URLSessionTask: URLSessionTaskMetrics]()
-    nonisolated(unsafe) var delegate: URLSessionDelegate?
+
+    var delegate: URLSessionDelegate? {
+        get { _delegate.withLockUnchecked { $0 } }
+        set { _delegate.withLockUnchecked { $0 = newValue } }
+    }
+
+    private let _delegate = OSAllocatedUnfairLock<URLSessionDelegate?>(uncheckedState: nil)
 
     init(validate: @Sendable @escaping (URLResponse) -> Swift.Error?) {
         self.validate = validate
