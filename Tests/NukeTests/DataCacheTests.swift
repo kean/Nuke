@@ -860,6 +860,67 @@ final class DataCacheTests {
         #expect(cache.url(for: "") == nil)
     }
 
+    @Test(arguments: ["", ".", ".."])
+    func urlForFilenameThatIsNotAFile(filename: String) throws {
+        let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { _ in filename })
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        #expect(cache.url(for: "key") == nil)
+    }
+
+    @Test func removeDataForKeyWithEmptyFilenameKeepsTheOtherEntries() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try DataCache(path: root.appendingPathComponent("cache", isDirectory: true), filenameGenerator: { $0 })
+        cache.isSweepEnabled = false
+        cache["a"] = blob
+        await cache.flush()
+        #expect(!cache.containsData(for: ""))
+
+        // WHEN
+        cache.removeData(for: "")
+        await cache.flush()
+
+        // THEN
+        #expect(cache["a"] == blob)
+    }
+
+    @Test func removeDataForKeyWithDotDotFilenameKeepsTheParentDirectory() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cache = try DataCache(path: root.appendingPathComponent("cache", isDirectory: true), filenameGenerator: { $0 })
+        cache.isSweepEnabled = false
+        let sibling = root.appendingPathComponent("sibling.txt")
+        try blob!.write(to: sibling)
+        #expect(!cache.containsData(for: ".."))
+
+        // WHEN
+        cache.removeData(for: "..")
+        await cache.flush()
+
+        // THEN
+        #expect(FileManager.default.fileExists(atPath: sibling.path))
+    }
+
+    @Test func removeCachedImageForRequestWithoutURLKeepsTheDiskCache() async throws {
+        let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { $0.addingPercentEncoding(withAllowedCharacters: .alphanumerics) })
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.isSweepEnabled = false
+        let pipeline = ImagePipeline {
+            $0.dataCache = cache
+            $0.dataLoader = MockDataLoader()
+        }
+        let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
+        pipeline.cache.storeCachedData(blob!, for: request)
+        await cache.flush()
+
+        // WHEN
+        pipeline.cache.removeCachedImage(for: ImageRequest(url: nil))
+        await cache.flush()
+
+        // THEN
+        #expect(pipeline.cache.cachedData(for: request) == blob)
+    }
+
     // MARK: Metadata
 
     @Test func scheduledSweepUpdatesMetadata() async throws {
