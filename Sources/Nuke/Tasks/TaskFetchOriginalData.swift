@@ -350,7 +350,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // (`URLError.cancelled`) or failed to complete with other error.
         guard pipeline.configuration.isResumableDataEnabled else { return }
         if let response = urlResponse, !data.isEmpty,
-           let resumableData = ResumableData(response: response, data: data) {
+           let resumableData = ResumableData(response: response, data: data, resumedDataCount: resumedDataCount) {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
         } else if let resumableData {
             // The request ended before the server responded – put the data that

@@ -179,6 +179,28 @@ struct ImagePipelineResumableDataTests {
         )
         #expect(stored != nil)
     }
+
+    @Test func resumedDownloadThatFailsAgainKeepsResumableData() async throws {
+        // GIVEN a server that fails the first attempt at 8000 bytes and the
+        // resumed one at 20000 bytes – more than the 206 "Content-Length"
+        let dataLoader = _MockFailingRangeDataLoader()
+        dataLoader.steps = [.fail(atOffset: 8000), .fail(atOffset: 20000), .serve]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        // WHEN the download fails, is resumed, and fails again
+        _ = try? await pipeline.data(for: Test.request)
+        _ = try? await pipeline.data(for: Test.request)
+        #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=8000-")
+
+        // THEN the third attempt resumes from where the second one failed
+        let (data, _) = try await pipeline.data(for: Test.request)
+        #expect(data == Test.data)
+        #expect(dataLoader.requests.count == 3)
+        #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=20000-")
+    }
 }
 
 private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
@@ -189,6 +211,56 @@ private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable
         entered?.open()
         await proceed?.wait()
         return urlRequest
+    }
+}
+
+/// Serves `Test.data`, honoring "Range", and fails each attempt at the given
+/// offset of the whole resource.
+private final class _MockFailingRangeDataLoader: DataLoading, @unchecked Sendable {
+    enum Step {
+        case fail(atOffset: Int)
+        case serve
+    }
+
+    let data = Test.data
+    private let lock = NSLock()
+    private var _steps: [Step] = []
+    private var _requests: [URLRequest] = []
+
+    var steps: [Step] {
+        get { lock.withLock { _steps } }
+        set { lock.withLock { _steps = newValue } }
+    }
+    var requests: [URLRequest] { lock.withLock { _requests } }
+
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let step = lock.withLock { () -> Step in
+            _requests.append(request)
+            return _steps.isEmpty ? .serve : _steps.removeFirst()
+        }
+        let offset = request.value(forHTTPHeaderField: "If-Range") == "v1"
+            ? request.value(forHTTPHeaderField: "Range").flatMap { Int(_groups(regex: "bytes=(\\d*)-", in: $0)[0]) }
+            : nil
+        var headerFields = ["Accept-Ranges": "bytes", "ETag": "v1"]
+        if let offset {
+            // "Content-Length" of a partial response covers the remaining bytes only.
+            headerFields["Content-Range"] = "bytes \(offset)-\(data.count - 1)/\(data.count)"
+            headerFields["Content-Length"] = "\(data.count - offset)"
+        } else {
+            headerFields["Content-Length"] = "\(data.count)"
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: offset == nil ? 200 : 206, httpVersion: "HTTP/1.1", headerFields: headerFields)!
+        switch step {
+        case .fail(let end):
+            didReceiveData(data[(offset ?? 0)..<end], response)
+            completion(URLError(.networkConnectionLost))
+        case .serve:
+            didReceiveData(data[(offset ?? 0)...], response)
+            completion(nil)
+        }
+        return AnonymousCancellable {}
     }
 }
 
