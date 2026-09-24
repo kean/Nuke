@@ -37,9 +37,10 @@ To learn more about caching, see <doc:caching>.
 - ``progressiveDecodingInterval``
 - ``isResumableDataEnabled``
 
-### Global Options
+### Diagnostics
 
-- ``isSignpostLoggingEnabled``
+- ``isDiagnosticsEnabled``
+- ``signpostLog``
 
 ### Operation Queues
 

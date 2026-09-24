@@ -56,12 +56,11 @@ extension AsyncPipelineTask {
             operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
                 self?.diagnostics?.startStage(stage)
                 let start: ContinuousClock.Instant? = stage != nil ? .now : nil
-                let result: Result<ImageResponse, ImagePipeline.Error> = await signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                    do {
-                        return .success(try await decoder.decode(context))
-                    } catch {
-                        return .failure(.decodingFailed(decoder: decoder, context: context, error: error))
-                    }
+                let result: Result<ImageResponse, ImagePipeline.Error>
+                do {
+                    result = .success(try await decoder.decode(context))
+                } catch {
+                    result = .failure(.decodingFailed(decoder: decoder, context: context, error: error))
                 }
                 self?.operation = nil
                 self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { (ContinuousClock.now - $0).timeInterval })
@@ -73,10 +72,8 @@ extension AsyncPipelineTask {
         let isRecording = diagnostics != nil
         @Sendable func decode() -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) {
             let start: ContinuousClock.Instant? = isRecording ? .now : nil
-            let result: Result<ImageResponse, ImagePipeline.Error> = signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
-                Result { try decoder.decode(context) }
-                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
-            }
+            let result: Result<ImageResponse, ImagePipeline.Error> = Result { try decoder.decode(context) }
+                .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
             return (result, start.map { (ContinuousClock.now - $0).timeInterval })
         }
         guard decoder.isAsynchronous else {

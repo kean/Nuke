@@ -81,14 +81,12 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             self.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground { () -> (Result<ImageResponse, ImagePipeline.Error>, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
-                let result = signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
-                    Result {
-                        var response = response
-                        response.container = try processor.process(response.container, context: context)
-                        return response
-                    }.mapError { error in
-                        ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
-                    }
+                let result = Result {
+                    var response = response
+                    response.container = try processor.process(response.container, context: context)
+                    return response
+                }.mapError { error in
+                    ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                 }
                 return (result, start.map { (ContinuousClock.now - $0).timeInterval })
             }
@@ -135,9 +133,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             self.diagnostics?.startStage(stage)
             let (response, workDuration) = await performInBackground { () -> (ImageResponse, TimeInterval?) in
                 let start: ContinuousClock.Instant? = isRecording ? .now : nil
-                let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
-                    self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
-                }
+                let response = self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 return (response, start.map { (ContinuousClock.now - $0).timeInterval })
             }
             self.operation = nil
@@ -192,9 +188,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         pipeline.configuration.imageEncodingQueue.add { [weak pipeline, request] in
             guard let pipeline else { return }
             let data = await performInBackground {
-                signpost("EncodeImage") {
-                    encoder.encode(response.container, context: context)
-                }
+                encoder.encode(response.container, context: context)
             }
             guard let data, !data.isEmpty else { return }
             guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }

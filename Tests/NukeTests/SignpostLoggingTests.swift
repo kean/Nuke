@@ -7,12 +7,10 @@ import Foundation
 import os
 @testable import Nuke
 
-/// Signpost logging is off by default, which leaves the instrumentation in the
-/// pipeline unexercised. These run the common paths with it enabled to make sure
-/// the instrumented code behaves exactly like the uninstrumented one.
-///
-/// - note: Serialized because `isSignpostLoggingEnabled` is a global setting.
-@Suite(.timeLimit(.minutes(5)), .serialized)
+/// The diagnostics send the signposts, so these run the common paths with
+/// both on to make sure the signposted pipeline behaves exactly like the
+/// plain one.
+@Suite(.timeLimit(.minutes(5)))
 struct SignpostLoggingTests {
     private let dataLoader: MockDataLoader
     private let pipeline: ImagePipeline
@@ -23,26 +21,48 @@ struct SignpostLoggingTests {
         self.pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+            $0.signpostLog = OSLog(subsystem: "com.github.kean.Nuke.Tests", category: "Signposts")
         }
     }
 
-    @Test func imageIsLoadedWithSignpostLoggingEnabled() async throws {
+    // MARK: Configuration
+
+    @Test func signpostsAreOnByDefault() {
+        #expect(ImagePipeline.Configuration().signpostLog === ImagePipeline.Diagnostics.defaultSignpostLog)
+    }
+
+    @Test func diagnosticsAreRecordedWithoutSignposts() async throws {
         // Given
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+            $0.signpostLog = nil
+        }
 
         // When
-        let image = try await pipeline.image(for: Test.request)
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.image
+
+        // Then
+        #expect(task.metrics?.outcome == .success)
+    }
+
+    // MARK: Loading
+
+    @Test func imageIsLoaded() async throws {
+        // When
+        let task = pipeline.imageTask(with: Test.request)
+        let image = try await task.image
 
         // Then
         #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(task.metrics?.source == .network)
     }
 
-    @Test func processedImageIsLoadedWithSignpostLoggingEnabled() async throws {
+    @Test func processedImageIsLoaded() async throws {
         // Given
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
-
         let request = ImageRequest(url: Test.url, processors: [
             .resize(size: CGSize(width: 320, height: 240), unit: .pixels)
         ])
@@ -54,11 +74,19 @@ struct SignpostLoggingTests {
         #expect(image.sizeInPixels == CGSize(width: 320, height: 240))
     }
 
-    @Test func cancellationIsLoggedWithSignpostLoggingEnabled() async throws {
+    @Test func failureIsLoaded() async {
         // Given
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
 
+        // Then
+        await #expect(throws: ImagePipeline.Error.self) {
+            try await pipeline.image(for: Test.request)
+        }
+    }
+
+    /// Cancelling the task ends the intervals of the stages that were running.
+    @Test func cancellationIsLogged() async throws {
+        // Given
         dataLoader.isSuspended = true
         let task = await withSuspendedDataLoading(for: pipeline, expectedCount: 1) {
             pipeline.imageTask(with: Test.request)
@@ -73,24 +101,19 @@ struct SignpostLoggingTests {
         }
     }
 
-    /// The pipeline reads `isSignpostLoggingEnabled` on every `signpost(...)`
-    /// call from its own threads, so writing it from another thread has to be
-    /// synchronized – otherwise the thread sanitizer aborts the test run.
-    @Test func signpostLoggingIsToggledWhileLoadingImages() async throws {
+    /// Paused diagnostics send no signposts, and turning them back on in the
+    /// middle of the load leaves no interval half-open.
+    @Test func diagnosticsArePausedWhileLoadingImages() async {
         // Given
-        let initialValue = ImagePipeline.Configuration.isSignpostLoggingEnabled
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = initialValue }
-
+        let diagnostics = pipeline.diagnostics
         let writer = Task.detached {
-            var isEnabled = true
             while !Task.isCancelled {
-                isEnabled.toggle()
-                ImagePipeline.Configuration.isSignpostLoggingEnabled = isEnabled
+                diagnostics.isEnabled.toggle()
                 await Task.yield()
             }
         }
 
-        // When loading images while the flag is being toggled
+        // When loading images while the switch is being toggled
         let pipeline = self.pipeline
         await withTaskGroup(of: Void.self) { group in
             for index in 0..<50 {
@@ -106,6 +129,38 @@ struct SignpostLoggingTests {
         await writer.value
     }
 
+    // MARK: Messages
+
+    @Test func stageMessage() {
+        // Given
+        var download = ImagePipeline.Diagnostics.Stage(kind: .download, queuedAt: nil, startedAt: 0)
+        download.source = .network
+        download.bytes = 2048
+        download.resumedBytes = 1024
+        download.statusCode = 206
+
+        var decode = ImagePipeline.Diagnostics.Stage(kind: .decode, queuedAt: nil, startedAt: 0)
+        decode.isProgressive = true
+        decode.decoder = "ImageDecoders.Default"
+        decode.format = "jpeg"
+        decode.pixels = .init(width: 640, height: 480)
+
+        var lookup = ImagePipeline.Diagnostics.Stage(kind: .memoryLookup, queuedAt: nil, startedAt: 0)
+        lookup.result = .miss
+
+        // Then
+        #expect(download.signpostMessage == "network · \(Formatter.bytes(2048)) · \(Formatter.bytes(1024)) resumed · HTTP 206")
+        #expect(decode.signpostMessage == "preview · ImageDecoders.Default · jpeg · 640×480")
+        #expect(lookup.signpostMessage == "miss")
+        #expect(ImagePipeline.Diagnostics.Stage(kind: .rateLimit, queuedAt: nil, startedAt: 0).signpostMessage == "")
+    }
+
+    @Test func requestMessage() {
+        #expect(ImageRequest(url: Test.url).signpostMessage == Test.url.absoluteString)
+        let processed = ImageRequest(url: Test.url, processors: [.resize(width: 100)])
+        #expect(processed.signpostMessage == "\(Test.url.absoluteString) · \(processed.processors[0].identifier)")
+    }
+
     @Test func byteFormatter() {
         #expect(!Formatter.bytes(0).isEmpty)
         #expect(!Formatter.bytes(1024).isEmpty)
@@ -113,66 +168,5 @@ struct SignpostLoggingTests {
         // Zero is a number, not "Zero KB": the records print it next to other
         // byte counts
         #expect(Formatter.bytes(0).hasPrefix("0"), "\(Formatter.bytes(0))")
-    }
-
-    /// The pipeline builds a message for every data load, so it is built
-    /// only when there is a log to write it to.
-    @Test func messageIsBuiltOnlyWhenLoggingIsEnabled() {
-        // Given
-        var count = 0
-        func message() -> String {
-            count += 1
-            return "message"
-        }
-        let object = NSObject()
-
-        // When logging is disabled
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = false
-        signpost(object, "Test", .event, message())
-
-        // Then
-        #expect(count == 0)
-
-        // When logging is enabled
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
-        signpost(object, "Test", .begin, message())
-        signpost(object, "Test", .end, message())
-
-        // Then
-        #expect(count == 2)
-    }
-
-    /// Measuring the work doesn't change it: it runs once, the value comes
-    /// back, and so does the error.
-    @Test(arguments: [false, true])
-    func signpostedWorkReturnsItsResult(isEnabled: Bool) async {
-        // Given
-        ImagePipeline.Configuration.isSignpostLoggingEnabled = isEnabled
-        defer { ImagePipeline.Configuration.isSignpostLoggingEnabled = false }
-        let runs = OSAllocatedUnfairLock(initialState: 0)
-
-        // Then
-        #expect(signpost("Test") { runs.withLock { $0 += 1 }; return 42 } == 42)
-        #expect(throws: MockError(description: "sync")) {
-            try signpost("Test") { () throws -> Int in
-                runs.withLock { $0 += 1 }
-                throw MockError(description: "sync")
-            }
-        }
-        let value = await signpost("Test") { @Sendable () async -> Int in
-            await Task.yield()
-            runs.withLock { $0 += 1 }
-            return 7
-        }
-        #expect(value == 7)
-        await #expect(throws: MockError(description: "async")) {
-            try await signpost("Test") { @Sendable () async throws -> Int in
-                await Task.yield()
-                runs.withLock { $0 += 1 }
-                throw MockError(description: "async")
-            }
-        }
-        #expect(runs.withLock { $0 } == 4)
     }
 }

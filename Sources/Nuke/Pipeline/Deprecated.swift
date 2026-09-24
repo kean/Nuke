@@ -59,6 +59,12 @@ extension ImagePipeline.Configuration {
         get { fatalError() }
         set { fatalError() }
     }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. The pipeline sends signposts while its diagnostics are on; see `isDiagnosticsEnabled` and `signpostLog`.")
+    public static var isSignpostLoggingEnabled: Bool {
+        get { fatalError() }
+        set { fatalError() }
+    }
 }
 
 extension ImageDecodingContext {

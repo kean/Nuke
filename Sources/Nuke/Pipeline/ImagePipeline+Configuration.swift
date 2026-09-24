@@ -161,6 +161,17 @@ extension ImagePipeline {
         /// recording at runtime.
         public var isDiagnosticsEnabled = ImagePipeline.Diagnostics.isEnabledByEnvironment
 
+        /// The log the pipeline sends `os_signpost` intervals to while
+        /// diagnostics are on: one per task, one per job, and one per stage –
+        /// a cache lookup, a download, a decode – so they can be seen in the
+        /// os_signpost and Points of Interest instruments. Set to `nil` to
+        /// record the diagnostics without them.
+        ///
+        /// The signposts follow ``isDiagnosticsEnabled`` and
+        /// ``ImagePipeline/Diagnostics-swift.struct/isEnabled``, and cost next
+        /// to nothing while no tool is recording them.
+        public var signpostLog: OSLog? = ImagePipeline.Diagnostics.defaultSignpostLog
+
         /// The maximum response data size in bytes allowed before the download
         /// is automatically cancelled. Downloads that exceed this limit fail
         /// with ``ImagePipeline/Error/dataDownloadExceededMaximumSize``. `nil`
@@ -171,21 +182,6 @@ extension ImagePipeline {
             let limit = min(209_715_200 /* 200 MB */, physicalMemory / 10)
             return Int(limit)
         }()
-
-        // MARK: - Options (Shared)
-
-        /// Enables `os_signpost` logging for measuring performance. When enabled,
-        /// all performance metrics are visible in the Instruments app. `false`
-        /// by default.
-        ///
-        /// For more information, see the [Logging](https://developer.apple.com/documentation/os/logging)
-        /// documentation and [WWDC 2018 Session 405](https://developer.apple.com/videos/play/wwdc2018/405/).
-        public static var isSignpostLoggingEnabled: Bool {
-            get { _isSignpostLoggingEnabled.withLock { $0 } }
-            set { _isSignpostLoggingEnabled.withLock { $0 = newValue } }
-        }
-
-        private static let _isSignpostLoggingEnabled = OSAllocatedUnfairLock(initialState: false)
 
         private var isCustomImageCacheProvided = false
 
