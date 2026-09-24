@@ -587,6 +587,43 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataCache.store.count == 2)
     }
 
+    // MARK: Processed GIF
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeEncodedImages])
+    func processedGIFIsStoredInDataCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN a GIF and a request that processes it, with the default encoder
+        dataLoader.results[Test.url] = .success(
+            (Test.animatedGIF(frameCount: 3), URLResponse(url: Test.url, mimeType: "gif", expectedContentLength: 0, textEncodingName: nil))
+        )
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.dataCache = dataCache
+            $0.imageCache = nil
+            $0.dataCachePolicy = policy
+        }
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN the processed still (a GIF container without data) is encoded
+        // and stored under the processed key
+        #expect(response.container.type == .gif)
+        #expect(response.container.data == nil)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") != nil)
+
+        // WHEN a fresh pipeline sharing the disk cache loads the same request
+        let freshDataLoader = MockDataLoader()
+        let freshPipeline = pipeline.reconfigured {
+            $0.dataLoader = freshDataLoader
+        }
+        _ = try await freshPipeline.image(for: request)
+
+        // THEN it is served from the disk cache
+        #expect(freshDataLoader.createdTaskCount == 0)
+    }
+
     // MARK: Coalesced Requests
 
     @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeOriginalData], CoalescedRequest.mixes)
