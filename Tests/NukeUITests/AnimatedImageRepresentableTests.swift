@@ -105,6 +105,51 @@ struct AnimatedImageRepresentableTests {
         #expect(replaced.isPlaying == false)
     }
 
+    @Test func showsTheNewPosterRatherThanThePreviousAnimationsFrame() async throws {
+        let (old, _) = AnimatedImageTest.makePlayer(frameCount: 4)
+        await old.waitUntilFull()
+        #expect(old.image != nil)
+        // A decoder held open, so the new animation's first frame never
+        // arrives and only its poster can hold the place.
+        let (new, _, _) = AnimatedImageTest.makeGatedPlayer(frameCount: 4)
+        let oldPoster = Test.image
+        let newPoster = Test.image
+
+        let host = ViewHost(old) { player in
+            AnimatedImage(player: player, poster: player === old ? oldPoster : newPoster)
+        }
+        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.image === old.image })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        #expect(view.image === old.image)
+
+        await host.update(new, until: { view.player === new })
+
+        #expect(view.player === new)
+        #expect(new.image == nil)
+        #expect(view.image === newPoster)
+    }
+
+    @Test func keepsTheFrameOnScreenWhenReconfiguredWithTheSameAnimation() async throws {
+        // Only a new animation brings its poster back: the same one, even
+        // through a player the view rebuilt for its size, keeps its frame. The
+        // long delay keeps that frame on screen for as long as the test looks.
+        let source = Test.animatedGIFSource(frameCount: 2, delays: [60, 60])
+        let firstPoster = Test.image
+        let secondPoster = Test.image
+        let host = ViewHost(firstPoster) { AnimatedImage(source, poster: $0) }
+        await render(host, until: {
+            let view = host.firstView(ofType: AnimatedImageView.self)
+            return view?.player?.image != nil && view?.image === view?.player?.image
+        })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        let frame = try #require(view.player?.image)
+
+        await host.update(secondPoster)
+
+        #expect(view.animatedImage === source)
+        #expect(view.image === frame)
+    }
+
     @Test func pausesOffScreenAndResumesWhenItComesBack() async throws {
         let source = Test.animatedGIFSource(frameCount: 8)
         let host = ViewHost(source) { AnimatedImage($0) }
