@@ -25,10 +25,13 @@ extension ImagePipeline.Diagnostics {
         nonisolated private let anchorTime = Date().timeIntervalSince1970
         nonisolated private let _isEnabled = OSAllocatedUnfairLock(initialState: true)
 
+        /// `nil` if the pipeline sends no signposts.
+        private let signposter: OSSignposter?
         private var nextJobID: UInt64 = 0
 
-        nonisolated init(pipelineID: UUID) {
+        nonisolated init(pipelineID: UUID, signpostLog: OSLog?) {
             self.pipelineID = pipelineID
+            self.signposter = signpostLog.map(OSSignposter.init(logHandle:))
         }
 
         /// The runtime switch, which the app reaches from any thread.
@@ -49,12 +52,14 @@ extension ImagePipeline.Diagnostics {
         /// off. The switch is read here, once per task.
         func makeTaskRecord(for task: ImageTask) -> TaskRecord? {
             guard isEnabled else { return nil }
-            return TaskRecord(task: task, recorder: self)
+            return TaskRecord(task: task, recorder: self, signposter: signposter)
         }
 
         func makeJobRecord(kind: Job.Kind, request: ImageRequest) -> JobRecord {
             nextJobID += 1
-            return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self)
+            // The jobs are recorded with the switch off, but not signposted.
+            let signposter = signposter.flatMap { isEnabled ? $0 : nil }
+            return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self, signposter: signposter)
         }
     }
 }
@@ -77,14 +82,21 @@ extension ImagePipeline.Diagnostics {
         private(set) var rootJob: JobRecord?
         var previewCount = 0
         private var priorityHistory: [PriorityChange] = []
+        private let signposter: OSSignposter?
+        private var signpostInterval: OSSignpostIntervalState?
 
-        init(task: ImageTask, recorder: Recorder) {
+        init(task: ImageTask, recorder: Recorder, signposter: OSSignposter?) {
             self.recorder = recorder
             self.taskID = task.taskId
             self.kind = task._kind
             self.label = task.request.userInfo[.labelKey] as? String
             self.request = ImageTask.Metrics.RequestSummary(task.request)
             self.createdAt = task._createdAt ?? recorder.now
+            self.signposter = signposter
+            if let signposter {
+                let request = task.request
+                signpostInterval = signposter.beginInterval("ImageTask", id: signposter.makeSignpostID(), "#\(task.taskId) \(request.signpostMessage, privacy: .public)")
+            }
         }
 
         /// The pipeline started working on the task, at the given time.
@@ -128,6 +140,11 @@ extension ImagePipeline.Diagnostics {
                 error = ErrorSummary(failure)
             }
 
+            let source = outcome == .success ? Self.source(of: jobs) : nil
+            if let signpostInterval {
+                signposter?.endInterval("ImageTask", signpostInterval, "\(outcome.rawValue, privacy: .public) \(source?.rawValue ?? "", privacy: .public)")
+            }
+
             return ImageTask.Metrics(
                 schemaVersion: ImagePipeline.Diagnostics.schemaVersion,
                 pipelineID: recorder.pipelineID,
@@ -141,7 +158,7 @@ extension ImagePipeline.Diagnostics {
                 duration: now - createdAt,
                 outcome: outcome,
                 error: error,
-                source: outcome == .success ? Self.source(of: jobs) : nil,
+                source: source,
                 isCoalesced: jobs.contains { $0.joinedAt != nil },
                 rootJobID: rootJob?.id,
                 previewCount: previewCount,
@@ -203,6 +220,11 @@ extension ImagePipeline.Diagnostics {
         /// Every task that reached the job, in the order they did. The first
         /// one created it.
         private var joins: [Join] = []
+        /// `nil` if the job sends no signposts.
+        private let signposter: OSSignposter?
+        private var signpostInterval: OSSignpostIntervalState?
+        /// The intervals of the stages that are running, by index.
+        private var stageSignpostIntervals: [Int: OSSignpostIntervalState] = [:]
 
         var id: UInt64 { job.id }
 
@@ -212,7 +234,7 @@ extension ImagePipeline.Diagnostics {
             let joinedAt: TimeInterval?
         }
 
-        init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder) {
+        init(id: UInt64, kind: Job.Kind, request: ImageRequest, recorder: Recorder, signposter: OSSignposter?) {
             self.recorder = recorder
             self.job = Job(
                 id: id,
@@ -221,6 +243,10 @@ extension ImagePipeline.Diagnostics {
                 createdByTaskID: 0,
                 createdAt: recorder.now
             )
+            self.signposter = signposter
+            if let signposter {
+                signpostInterval = signposter.beginInterval(kind.signpostName, id: signposter.makeSignpostID(), "job \(id) \(request.signpostMessage, privacy: .public)")
+            }
         }
 
         // MARK: Subscribers
@@ -267,6 +293,10 @@ extension ImagePipeline.Diagnostics {
             // The work that was running is cancelled along with the job.
             for index in job.stages.indices {
                 job.stages[index].end(at: now)
+                endStageSignpost(index)
+            }
+            if let signpostInterval {
+                signposter?.endInterval(job.kind.signpostName, signpostInterval, "\(outcome.rawValue, privacy: .public)")
             }
         }
 
@@ -284,13 +314,18 @@ extension ImagePipeline.Diagnostics {
         func beginStage(_ kind: Stage.Kind, queued: Bool = false) -> Int {
             let now = recorder.now
             job.stages.append(Stage(kind: kind, queuedAt: queued ? now : nil, startedAt: queued ? nil : now))
-            return job.stages.count - 1
+            let index = job.stages.count - 1
+            if !queued {
+                beginStageSignpost(index)
+            }
+            return index
         }
 
         /// The queued stage left its queue.
         func startStage(_ index: Int?) {
             guard let index else { return }
             job.stages[index].startedAt = recorder.now
+            beginStageSignpost(index)
         }
 
         func updateStage(_ index: Int?, _ update: (inout Stage) -> Void) {
@@ -302,6 +337,7 @@ extension ImagePipeline.Diagnostics {
             guard let index else { return }
             update(&job.stages[index])
             job.stages[index].end(at: recorder.now)
+            endStageSignpost(index)
         }
 
         /// Records a stage that ran synchronously, from `start` to now.
@@ -310,6 +346,9 @@ extension ImagePipeline.Diagnostics {
             update(&stage)
             stage.end(at: recorder.now)
             job.stages.append(stage)
+            // It is over by now, so it is an event, not an interval.
+            let id = job.id
+            signposter?.emitEvent(kind.signpostName, "job \(id) \(stage.signpostMessage, privacy: .public)")
         }
 
         /// The first chunk of a download arrived.
@@ -331,6 +370,20 @@ extension ImagePipeline.Diagnostics {
                     $0.setOutput(response.container)
                 }
             }
+        }
+
+        // MARK: Signposts
+
+        private func beginStageSignpost(_ index: Int) {
+            guard let signposter else { return }
+            let id = job.id
+            stageSignpostIntervals[index] = signposter.beginInterval(job.stages[index].kind.signpostName, id: signposter.makeSignpostID(), "job \(id)")
+        }
+
+        private func endStageSignpost(_ index: Int) {
+            guard let interval = stageSignpostIntervals.removeValue(forKey: index) else { return }
+            let stage = job.stages[index]
+            signposter?.endInterval(stage.kind.signpostName, interval, "\(stage.signpostMessage, privacy: .public)")
         }
 
         // MARK: Snapshot

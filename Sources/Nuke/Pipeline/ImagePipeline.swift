@@ -100,7 +100,7 @@ public final class ImagePipeline: Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
-        self.recorder = configuration.isDiagnosticsEnabled ? Diagnostics.Recorder(pipelineID: id) : nil
+        self.recorder = configuration.isDiagnosticsEnabled ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog) : nil
 
         Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }

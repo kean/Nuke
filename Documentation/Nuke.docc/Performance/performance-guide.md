@@ -165,9 +165,7 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 
 ## Measure
 
-If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information, see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
-
-To collect the same information in a shipping app, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
+To see how the pipeline behaves, how long each operation takes, and how many are performed in parallel, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``. Every task then finishes with an ``ImageTask/Metrics`` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and its `description` is a text timeline of the load.
 
 ```swift
 let pipeline = ImagePipeline {
@@ -240,6 +238,8 @@ j7 loadImage [resize]          67.1 ms  █████████████�
 ```
 
 Only `j7` is this task's. `j4`, `j5`, and `j6` are the prefetcher's: the lookups it had already done by the time this task joined print `–` and say `before join`, and the download is charged the 44.4 ms this task waited for rather than the 91.1 ms it ran for. Every attributed duration is clamped to the lifetime of the task, so the records of two tasks that shared a download never add up to more than the download.
+
+While diagnostics are on, the pipeline also sends the tasks, jobs, and stages as `os_signpost` intervals, so the same timeline, across every task at once, can be seen in the os_signpost and Points of Interest instruments. They go to ``ImagePipeline/Configuration-swift.struct/signpostLog``; set it to `nil` to record diagnostics without them.
 
 ``ImageTask/Metrics/source`` says where the image came from, and it tells a `URLCache` hit apart from a real download – a request the session revalidated and the server answered `304` costs the time of a download and none of the bytes:
 
