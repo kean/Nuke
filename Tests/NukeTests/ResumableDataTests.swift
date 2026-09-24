@@ -131,6 +131,34 @@ struct ResumableDataTests {
         #expect(data?.validator == "1234")
     }
 
+    // The "Content-Length" of a "206 Partial Content" response covers only the
+    // remaining bytes, while the data also includes the resumed ones.
+    @Test func createWithStatusCodePartialContentIncludingResumedData() {
+        // Given 1500 of 2000 bytes, 1000 of which came from the previous attempt
+        let response = _makeResponse(statusCode: 206, headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "1000",
+            "ETag": "1234"
+        ])
+        let data = ResumableData(response: response, data: Data(count: 1500), resumedDataCount: 1000)
+
+        // Then
+        #expect(data?.data.count == 1500)
+    }
+
+    @Test func createWithStatusCodePartialContentWhenDownloadIsCompleteReturnsNil() {
+        // Given all 2000 bytes, 1000 of which came from the previous attempt
+        let response = _makeResponse(statusCode: 206, headers: [
+            "Accept-Ranges": "bytes",
+            "Content-Length": "1000",
+            "ETag": "1234"
+        ])
+        let data = ResumableData(response: response, data: Data(count: 2000), resumedDataCount: 1000)
+
+        // Then
+        #expect(data == nil)
+    }
+
     // MARK: - Creation (Negative)
 
     @Test func createWithEmptyData() {
