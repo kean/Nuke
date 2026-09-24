@@ -187,6 +187,27 @@ struct ImagePrefetcherTests {
         #expect(localPipeline.cache.cachedData(for: Test.request) != nil)
     }
 
+    @Test func startPrefetchingThumbnailToDiskTwiceDownloadsOnce() async {
+        // GIVEN
+        let localPrefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 100)
+
+        // WHEN the same thumbnail is prefetched twice
+        for _ in 0..<2 {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                localPrefetcher.didComplete = { @MainActor @Sendable in
+                    continuation.resume()
+                }
+                localPrefetcher.startPrefetching(with: [request])
+            }
+        }
+
+        // THEN the second prefetch reads the original data stored by the first
+        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
     // MARK: Pause
 
     @Test @ImagePipelineActor func pausingPrefetcher() async {
