@@ -6,7 +6,7 @@ import Foundation
 import os
 
 /// Provides basic networking using `URLSession`.
-public final class DataLoader: DataLoading, @unchecked Sendable {
+public final class DataLoader: DataLoading, Sendable {
     /// The underlying `URLSession` used for loading data.
     public let session: URLSession
     private let impl: _DataLoader
@@ -35,7 +35,10 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     /// ```
     ///
     /// - note: The delegate is retained.
-    public var delegate: URLSessionDelegate? {
+    ///
+    /// - warning: Set the delegate before loading any data. The access
+    /// isn't synchronized.
+    public nonisolated(unsafe) var delegate: URLSessionDelegate? {
         didSet { impl.delegate = delegate }
     }
 
