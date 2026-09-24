@@ -49,15 +49,15 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     // MARK: Fetch Image
 
     private func fetchImage() {
-        guard !request.options.contains(.returnCacheDataDontLoad) else {
-            return send(error: .dataMissingInCache)
-        }
         if let processor = request.processors.last {
             let request = request.withProcessors(request.processors.dropLast())
             dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
                 self?.process($0, isCompleted: $1, processor: processor)
             }
         } else {
+            guard !request.options.contains(.returnCacheDataDontLoad) else {
+                return send(error: .dataMissingInCache)
+            }
             dependency = pipeline.makeTaskFetchOriginalImage(for: request).subscribe(self) { [weak self] in
                 self?.didReceiveImageResponse($0, isCompleted: $1)
             }
