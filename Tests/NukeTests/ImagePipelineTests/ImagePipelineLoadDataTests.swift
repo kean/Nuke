@@ -137,6 +137,51 @@ struct ImagePipelineLoadDataTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
+    // MARK: - Original Data
+
+    @Test func thumbnailRequestIsServedFromTheOriginalDataInDiskCache() async throws {
+        // GIVEN
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 100)
+
+        // WHEN the same data is requested twice
+        _ = try await pipeline.data(for: request)
+        let (data, _) = try await pipeline.data(for: request)
+
+        // THEN the second request reads the original data stored by the first
+        #expect(data == Test.data)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func processedRequestIsServedFromTheOriginalDataInDiskCache() async throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        // WHEN the same data is requested twice
+        _ = try await pipeline.data(for: request)
+        let (data, _) = try await pipeline.data(for: request)
+
+        // THEN the second request reads the original data stored by the first
+        #expect(data == Test.data)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func thumbnailRequestWithReturnCacheDataDontLoadReadsTheOriginalData() async throws {
+        // GIVEN the original data in disk cache
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        // WHEN
+        var request = ImageRequest(url: Test.url, options: [.returnCacheDataDontLoad])
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 100)
+        let (data, _) = try await pipeline.data(for: request)
+
+        // THEN
+        #expect(data == Test.data)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     // MARK: - DataCachePolicy
 
     // MARK: DataCachPolicy.automatic

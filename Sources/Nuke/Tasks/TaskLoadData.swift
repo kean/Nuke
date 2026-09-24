@@ -7,13 +7,21 @@ import Foundation
 /// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: AsyncPipelineTask<ImageResponse> {
     override func start() {
-        if let data = lookUpCachedData(for: request) {
+        if let data = lookUpCachedData(for: request) ?? lookUpOriginalData() {
             let container = ImageContainer(image: .init(), data: data)
             let response = ImageResponse(container: container, request: request)
             self.send(value: response, isCompleted: true)
         } else {
             self.loadData()
         }
+    }
+
+    /// The fetch in `loadData()` stores the original data under the sanitized key.
+    private func lookUpOriginalData() -> Data? {
+        guard request.thumbnail != nil || !request.processors.isEmpty else {
+            return nil
+        }
+        return lookUpCachedData(for: request.withProcessors([]).withoutThumbnail())
     }
 
     private func loadData() {
