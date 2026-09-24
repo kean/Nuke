@@ -366,6 +366,23 @@ struct ImageCacheTests {
         #expect(cache[request3] != nil)
     }
 
+    @Test func imageStoredInAFullCacheIsKeptWhenEveryImageWasRead() {
+        // Given a full cache in which every image was read
+        cache.countLimit = 2
+        cache[request1] = Test.container
+        cache[request2] = Test.container
+        _ = cache[request1]
+        _ = cache[request2]
+
+        // When
+        cache[request3] = Test.container
+
+        // Then
+        #expect(cache[request1] == nil)
+        #expect(cache[request2] != nil)
+        #expect(cache[request3] != nil)
+    }
+
     @Test func trimToCountRespectsLRUOrder() {
         // Given - three items inserted in order
         cache.countLimit = Int.max
