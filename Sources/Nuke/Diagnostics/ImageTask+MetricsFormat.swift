@@ -347,7 +347,9 @@ extension ImageTask.Metrics {
             if let queue = split.queue {
                 entries.append(Entry(at: queue.from, kind: .queue(stage.kind, queue)))
             }
-            entries.append(Entry(at: split.body.from, kind: .stage(stage, split.body)))
+            // A stage that never left its queue is all wait, and its row
+            // has nothing to draw.
+            entries.append(Entry(at: (split.body ?? split.queue)?.from ?? job.createdAt, kind: .stage(stage, split.body)))
         }
         entries += remaining.filter { $0.id == job.parentID }.map { Entry(at: $0.joinedAt ?? $0.createdAt, kind: .job($0)) }
         // The order of the entries breaks a tie, so a wait keeps its stage.
@@ -427,11 +429,13 @@ extension ImageTask.Metrics {
     // MARK: Stages
 
     /// The wait a stage spent in its queue, when the wait is worth a row of
-    /// its own, and the part of the stage that ran. `nil` for a stage the
-    /// task was never there for, which has no span to draw.
-    private func split(_ stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> (queue: Span?, body: Span)? {
+    /// its own, and the part of the stage that ran, `nil` for a stage that
+    /// never left its queue. `nil` for a stage the task was never there for,
+    /// which has no span to draw.
+    private func split(_ stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> (queue: Span?, body: Span?)? {
         guard let span = span(of: stage, in: job) else { return nil }
-        guard stage.queuedAt != nil, let startedAt = stage.startedAt else { return (nil, span) }
+        guard stage.queuedAt != nil else { return (nil, span) }
+        guard let startedAt = stage.startedAt else { return (span, nil) }
         let queueEnd = min(max(startedAt, span.from), span.to)
         guard isWorthARow(queueEnd - span.from, of: duration) else { return (nil, span) }
         return (Span(from: span.from, to: queueEnd), Span(from: queueEnd, to: span.to))
