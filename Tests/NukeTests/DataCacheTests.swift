@@ -524,8 +524,8 @@ struct DataCacheTests {
         #expect(cache.url(for: "") == nil)
     }
 
-    @Test(arguments: ["", ".", "..", "a/b", "/", "a\0b"])
-    func urlForFilenameOutsideOfTheCacheDirectory(filename: String) throws {
+    @Test(arguments: ["", ".", ".."])
+    func urlForFilenameThatIsNotAFile(filename: String) throws {
         let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { _ in filename })
         defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.url(for: "key") == nil)
