@@ -90,9 +90,9 @@ public final class DataCache: DataCaching, Sendable {
     /// size limit for filenames (e.g. 255 UTF-8 characters in APFS) and do not
     /// allow certain characters.
     ///
-    /// Return `nil` for the keys that can't be mapped to a filename. A filename
-    /// that isn't a single path component, such as "" or "..", is treated
-    /// the same way.
+    /// The generated filename must be a single path component: it must not
+    /// contain "/" or a NUL character. Return `nil` for the keys that can't be
+    /// mapped to a filename; "", ".", and ".." are treated the same way.
     public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
     /// All of the mutable state, guarded by a single lock.
@@ -318,12 +318,11 @@ public final class DataCache: DataCaching, Sendable {
         filenameGenerator(key)
     }
 
-    /// Returns `url` for the given cache key, or `nil` if the generated
-    /// filename doesn't name a file inside of the cache directory.
+    /// Returns `url` for the given cache key, or `nil` if there is no
+    /// filename for it.
     public func url(for key: String) -> URL? {
         guard let filename = self.filename(for: key),
-              !filename.isEmpty, filename != ".", filename != "..",
-              !filename.contains("/"), !filename.contains("\0") else { return nil }
+              !filename.isEmpty, filename != ".", filename != ".." else { return nil }
         return self.path.appendingPathComponent(filename, isDirectory: false)
     }
 
