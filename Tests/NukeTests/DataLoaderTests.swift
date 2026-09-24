@@ -496,6 +496,50 @@ struct DataLoaderTests {
 
         #expect(spy.didReceiveResponseCount > 0)
     }
+
+    // MARK: - Authentication Challenges
+
+    @Test func sessionLevelChallengeIsForwardedToDelegate() async {
+        // GIVEN a delegate that implements only the session-level method
+        let loader = makeChallengingLoader()
+        let delegate = SessionLevelChallengeDelegate()
+        loader.delegate = delegate
+
+        // WHEN
+        let errorCode = await loadData(ChallengingURLProtocol.makeURL(), with: loader)
+
+        // THEN the delegate rejects the server trust challenge
+        #expect(delegate.challengeCount == 1)
+        #expect(errorCode == .cancelled)
+    }
+
+    @Test func taskLevelChallengeIsForwardedToDelegate() async {
+        // GIVEN a delegate that implements the task-level method
+        let loader = makeChallengingLoader()
+        let delegate = TaskLevelChallengeDelegate()
+        loader.delegate = delegate
+
+        // WHEN
+        let errorCode = await loadData(ChallengingURLProtocol.makeURL(), with: loader)
+
+        // THEN
+        #expect(delegate.challengeCount == 1)
+        #expect(errorCode == .cancelled)
+    }
+
+    private func makeChallengingLoader() -> DataLoader {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ChallengingURLProtocol.self]
+        return DataLoader(configuration: config)
+    }
+
+    private func loadData(_ url: URL, with loader: DataLoader) async -> URLError.Code? {
+        await withCheckedContinuation { continuation in
+            _ = loader.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }, completion: { error in
+                continuation.resume(returning: (error as? URLError)?.code)
+            })
+        }
+    }
 }
 
 // MARK: - Spy Delegate
@@ -536,4 +580,65 @@ private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @un
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         _didFinishMetricsCount.withLock { $0 += 1 }
     }
+}
+
+// MARK: - Authentication Challenges
+
+/// Implements only the session-level challenge method and rejects the challenge.
+private final class SessionLevelChallengeDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
+    var challengeCount: Int { _challengeCount.withLock { $0 } }
+    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
+
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _challengeCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+}
+
+/// Implements only the task-level challenge method and rejects the challenge.
+private final class TaskLevelChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    var challengeCount: Int { _challengeCount.withLock { $0 } }
+    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _challengeCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+}
+
+/// Challenges every request for server trust, then responds with "trusted"
+/// unless the challenge is cancelled.
+private final class ChallengingURLProtocol: URLProtocol, URLAuthenticationChallengeSender, @unchecked Sendable {
+    static func makeURL() -> URL {
+        URL(string: "challenge://\(UUID().uuidString.lowercased())/image.jpeg")!
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.scheme == "challenge"
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        let space = URLProtectionSpace(host: request.url?.host ?? "", port: 443, protocol: "https", realm: nil, authenticationMethod: NSURLAuthenticationMethodServerTrust)
+        let challenge = URLAuthenticationChallenge(protectionSpace: space, proposedCredential: nil, previousFailureCount: 0, failureResponse: nil, error: nil, sender: self)
+        client?.urlProtocol(self, didReceive: challenge)
+    }
+
+    override func stopLoading() {}
+
+    private func respond() {
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "7"])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data("trusted".utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    func use(_ credential: URLCredential, for challenge: URLAuthenticationChallenge) { respond() }
+    func continueWithoutCredential(for challenge: URLAuthenticationChallenge) { respond() }
+    func cancel(_ challenge: URLAuthenticationChallenge) { client?.urlProtocol(self, didFailWithError: URLError(.cancelled)) }
+    func performDefaultHandling(for challenge: URLAuthenticationChallenge) { respond() }
+    func rejectProtectionSpaceAndContinue(with challenge: URLAuthenticationChallenge) { respond() }
 }

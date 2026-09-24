@@ -255,7 +255,20 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @Sendable @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler) ??
+        let delegate = self.delegate
+        if (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler) != nil {
+            return
+        }
+        // `_DataLoader` doesn't implement the session-level method, so `URLSession`
+        // sends session-wide challenges here; route them the way it would.
+        switch challenge.protectionSpace.authenticationMethod {
+        case NSURLAuthenticationMethodServerTrust, NSURLAuthenticationMethodClientCertificate, NSURLAuthenticationMethodNTLM, NSURLAuthenticationMethodNegotiate:
+            if delegate?.urlSession?(session, didReceive: challenge, completionHandler: completionHandler) != nil {
+                return
+            }
+        default:
+            break
+        }
         completionHandler(.performDefaultHandling, nil)
     }
 
