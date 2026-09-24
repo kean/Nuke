@@ -89,6 +89,10 @@ public final class DataCache: DataCaching, Sendable {
     /// The reason filenames need to be generated is that filesystems have a
     /// size limit for filenames (e.g. 255 UTF-8 characters in APFS) and do not
     /// allow certain characters.
+    ///
+    /// Return `nil` for the keys that can't be mapped to a filename. A filename
+    /// that isn't a single path component, such as "" or "..", is treated
+    /// the same way.
     public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
     /// All of the mutable state, guarded by a single lock.
@@ -314,9 +318,12 @@ public final class DataCache: DataCaching, Sendable {
         filenameGenerator(key)
     }
 
-    /// Returns `url` for the given cache key.
+    /// Returns `url` for the given cache key, or `nil` if the generated
+    /// filename doesn't name a file inside of the cache directory.
     public func url(for key: String) -> URL? {
-        guard let filename = self.filename(for: key) else { return nil }
+        guard let filename = self.filename(for: key),
+              !filename.isEmpty, filename != ".", filename != "..",
+              !filename.contains("/"), !filename.contains("\0") else { return nil }
         return self.path.appendingPathComponent(filename, isDirectory: false)
     }
 
