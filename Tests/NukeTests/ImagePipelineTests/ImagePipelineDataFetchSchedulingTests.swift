@@ -117,6 +117,65 @@ struct ImagePipelineDataFetchSchedulingTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    /// A fetch that skips the queue doesn't join an equivalent fetch waiting
+    /// in it: it gets a fetch of its own.
+    @Test func fetchSkippingTheQueueDoesNotJoinAQueuedFetch() async throws {
+        // GIVEN a fetch waiting in a suspended data loading queue
+        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+        let queued = subscribe(to: pipeline, Test.request)
+        #expect(queue.operationCount == 1)
+
+        // WHEN the same resource is fetched with `.skipDataLoadingQueue`
+        let finished = TestExpectation()
+        let request = ImageRequest(url: Test.url, options: [.skipDataLoadingQueue])
+        _ = subscribe(to: pipeline, request) {
+            if case let .value(_, isCompleted) = $0, isCompleted { finished.fulfill() }
+        }
+
+        // THEN it loads without waiting for the queue
+        await finished.wait(timeout: .seconds(5))
+        #expect(queue.operationCount == 1)
+        #expect(dataLoader.createdTaskCount == 1)
+        queued?.unsubscribe()
+    }
+
+    /// The same, with the only slot of the queue taken by unrelated work.
+    @Test func imageTaskSkippingTheQueueDoesNotWaitForAQueuedEquivalent() async throws {
+        // GIVEN the only slot taken and a request for "a" waiting for it
+        let queue = TaskQueue(maxConcurrentTaskCount: 1)
+        let pipeline = makePipeline {
+            $0.isRateLimiterEnabled = false
+            $0.dataLoadingQueue = queue
+        }
+        let enqueued = TestExpectation(queue: queue, count: 2)
+        let gate = TestExpectation()
+        let blocker = pipeline.imageTask(with: ImageRequest(id: "blocker", data: {
+            await gate.wait()
+            return Test.data
+        }))
+        let queued = pipeline.imageTask(with: ImageRequest(id: "a", data: { Test.data }))
+        await enqueued.wait()
+
+        // WHEN "a" is requested with `.skipDataLoadingQueue`
+        let finished = TestExpectation()
+        let urgent = pipeline.imageTask(with: ImageRequest(id: "a", data: { Test.data }, options: [.skipDataLoadingQueue]))
+        Task {
+            _ = try? await urgent.response
+            finished.fulfill()
+        }
+
+        // THEN it finishes while the slot is still taken
+        await finished.wait(timeout: .seconds(5))
+        #expect(urgent.state == .completed)
+        #expect(queued.state == .running)
+
+        gate.fulfill()
+        _ = try await blocker.response
+        _ = try await queued.response
+    }
+
     // MARK: - Helpers
 
     private func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
