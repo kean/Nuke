@@ -376,6 +376,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         elapsed += step
 
         var advanced = false
+        var didLoop = false
         while elapsed >= source.delays[currentFrameIndex] {
             guard let next = nextFrameIndex else {
                 finish()
@@ -395,7 +396,7 @@ public final class AnimatedImagePlayer: ObservableObject {
                 break
             }
             let remainder = elapsed - source.delays[currentFrameIndex]
-            advance(to: next)
+            didLoop = advance(to: next) || didLoop
             // What is left of a tick that came on time carries over, so that a
             // 70 ms frame on a 50 ms clock averages 70 ms and not 100. What is
             // left of a tick that came late doesn't: the frame just shown gets
@@ -410,6 +411,8 @@ public final class AnimatedImagePlayer: ObservableObject {
 
         store.didUpdateWindow(of: self, isSeeking: false)
         display(frameAt: currentFrameIndex)
+        // Last, so that a seek or a pause made by the handler stands.
+        if didLoop { onLoop?(completedLoopCount) }
     }
 
     /// The frame after the current one, or `nil` when the current frame is
@@ -424,22 +427,24 @@ public final class AnimatedImagePlayer: ObservableObject {
     }
 
     /// Moves the playhead to the given frame, counting a loop when it wraps.
-    private func advance(to index: Int) {
-        if index == 0 {
-            completedLoopCount += 1
-            onLoop?(completedLoopCount)
-        }
+    /// Returns `true` if it wrapped; the caller reports the loop once the
+    /// frame is on screen.
+    private func advance(to index: Int) -> Bool {
         currentFrameIndex = index
         isWaitingForNextFrame = false
+        guard index == 0 else { return false }
+        completedLoopCount += 1
+        return true
     }
 
     /// Stops on the last frame of the last loop.
     private func finish() {
         completedLoopCount += 1
-        onLoop?(completedLoopCount)
         isFinished = true
         isPlaying = false
         clock.isPaused = true
+        onLoop?(completedLoopCount)
+        guard isFinished else { return } // The handler restarted or seeked
         onFinish?()
     }
 
@@ -482,10 +487,11 @@ public final class AnimatedImagePlayer: ObservableObject {
         // whole delay from now. Any other frame – read-ahead, or one a seek
         // left behind – is for the clock to reach.
         guard isPlaying, isWaitingForNextFrame, index == nextFrameIndex else { return }
-        advance(to: index)
+        let didLoop = advance(to: index)
         elapsed = 0
         store.didUpdateWindow(of: self, isSeeking: false)
         display(frameAt: index)
+        if didLoop { onLoop?(completedLoopCount) }
     }
 
     private func makeImage(_ cgImage: CGImage) -> PlatformImage {

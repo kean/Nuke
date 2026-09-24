@@ -112,6 +112,78 @@ struct AnimatedImagePlayerPlaybackTests {
         #expect(player.currentFrameIndex == 1)
     }
 
+    @Test func canBeRestartedFromTheLastLoopHandler() async {
+        // GIVEN an animation that plays once, and a loop handler that starts it
+        // over
+        var options = AnimatedImagePlayer.Options()
+        options.repeatCount = .finite(1)
+        let (player, clock) = makePlayer(frameCount: 3, options: options)
+        player.onLoop = { [unowned player] _ in player.restart() }
+        var finishCount = 0
+        player.onFinish = { finishCount += 1 }
+        player.play()
+        await player.waitUntilFull()
+
+        // WHEN it plays its one loop
+        for _ in 0..<3 { clock.tick(0.1) }
+
+        // THEN it is playing from the beginning again, and it never finished
+        #expect(finishCount == 0)
+        #expect(player.isFinished == false)
+        #expect(player.isPlaying)
+        #expect(player.currentFrameIndex == 0)
+        #expect(player.completedLoopCount == 0)
+        #expect(clock.isPaused == false)
+
+        clock.tick(0.1)
+        #expect(player.currentFrameIndex == 1)
+    }
+
+    @Test func aSeekFromTheLoopHandlerStands() async {
+        // GIVEN a handler that skips the first frames on every loop after the
+        // first
+        let (player, clock) = makePlayer(frameCount: 4)
+        player.onLoop = { [unowned player] _ in player.seek(toFrame: 2) }
+        var shown: [Int] = []
+        player.play()
+        await player.waitUntilFull()
+        player.onFrame = { [unowned player] _ in shown.append(player.currentFrameIndex) }
+
+        // WHEN the animation wraps around
+        for _ in 0..<4 { clock.tick(0.1) }
+
+        // THEN it plays on from the frame the handler asked for
+        #expect(player.currentFrameIndex == 2)
+        #expect(shown == [1, 2, 3, 0, 2])
+        clock.tick(0.1)
+        #expect(player.currentFrameIndex == 3)
+    }
+
+    @Test func aPauseFromTheLoopHandlerHoldsTheFirstFrame() async {
+        // GIVEN a handler that stops the animation after every loop
+        let (player, clock) = makePlayer(frameCount: 3)
+        var indexes: [Int] = []
+        player.onLoop = { [unowned player] _ in
+            // The player is already on the first frame when it is told
+            indexes.append(player.currentFrameIndex)
+            player.pause()
+        }
+        player.play()
+        await player.waitUntilFull()
+
+        // WHEN the animation wraps around
+        for _ in 0..<3 { clock.tick(0.1) }
+
+        // THEN it is paused on the first frame, and stays there
+        #expect(indexes == [0])
+        #expect(player.isPlaying == false)
+        #expect(clock.isPaused)
+        #expect(player.currentFrameIndex == 0)
+        clock.tick(0.1)
+        #expect(player.currentFrameIndex == 0)
+        #expect(player.completedLoopCount == 1)
+    }
+
     // MARK: Seeking
 
     @Test func seekingToADecodedFrameShowsItAtOnce() async throws {
