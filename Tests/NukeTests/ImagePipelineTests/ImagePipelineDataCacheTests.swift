@@ -587,6 +587,28 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataCache.store.count == 2)
     }
 
+    // MARK: ImageRequest.Options.disableDiskCacheWrites
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll, .storeEncodedImages])
+    func encodedImageNotStoredWhenDiskCacheWritesDisabled(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // GIVEN request with a processor that disables disk cache writes
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")], options: [.disableDiskCacheWrites])
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN nothing is stored in disk cache
+        #expect(encoder.encodeCount == 0)
+        #expect(dataCache.writeCount == 0)
+        #expect(dataCache.store.isEmpty)
+    }
+
     // MARK: Coalesced Requests
 
     @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeOriginalData], CoalescedRequest.mixes)
