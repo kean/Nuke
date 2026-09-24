@@ -116,9 +116,9 @@ struct ImagePipelineConfigurationTests {
         #expect(config.isDecompressionEnabled == !original)
     }
 
-    @Test func isUsingPrepareForDisplayIsDisabledByDefault() {
+    @Test func isUsingPrepareForDisplayIsEnabledByDefault() {
         let config = ImagePipeline.Configuration()
-        #expect(config.isUsingPrepareForDisplay == false)
+        #expect(config.isUsingPrepareForDisplay == true)
     }
 
     @Test func isLocalResourcesSupportEnabledByDefault() {
