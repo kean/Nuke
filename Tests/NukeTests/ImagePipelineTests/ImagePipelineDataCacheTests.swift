@@ -234,6 +234,62 @@ struct ImagePipelineDataCachingTests {
         }
         #expect(dataLoader.createdTaskCount == 0)
     }
+
+    @Test func returnCacheDataDontLoadProcessesTheOriginalDataFromTheDisk() async throws {
+        // GIVEN only the original data in the disk cache
+        dataCache.store[Test.url.absoluteString] = Test.data
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.nk_test_processorIDs == ["1"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadProcessesTheOriginalImageFromMemory() async throws {
+        // GIVEN only the original image in the memory cache
+        let pipeline = pipeline.reconfigured { $0.imageCache = MockImageCache() }
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image)
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.nk_test_processorIDs == ["1"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadProcessesTheIntermediateImageFromMemory() async throws {
+        // GIVEN only the intermediate image in the memory cache
+        let pipeline = pipeline.reconfigured { $0.imageCache = MockImageCache() }
+        pipeline.cache[ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])] = ImageContainer(image: Test.image)
+        let request = ImageRequest(
+            url: Test.url,
+            processors: [MockImageProcessor(id: "1"), MockImageProcessor(id: "2")],
+            options: [.returnCacheDataDontLoad]
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN only the last processor is applied
+        #expect(response.image.nk_test_processorIDs == ["2"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadFailsProcessedRequestWhenNothingIsCached() async throws {
+        // GIVEN empty caches
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN/THEN
+        await #expect(throws: ImagePipeline.Error.dataMissingInCache) {
+            try await pipeline.imageTask(with: request).response
+        }
+        #expect(dataLoader.createdTaskCount == 0)
+    }
 }
 
 @Suite(.timeLimit(.minutes(5)))
