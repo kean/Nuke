@@ -27,10 +27,11 @@ extension ImageProcessors {
     ///
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
-    public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, @unchecked Sendable {
-        // Unchecked because of `Filter.custom`: the client owns the `CIFilter`
-        // and can mutate it at any time. `Filter.named` is checked.
-        let filter: Filter
+    public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, Sendable {
+        // `nonisolated(unsafe)` because of `Filter.custom`: the client owns the
+        // `CIFilter` and can mutate it at any time. The processor only ever
+        // applies a copy of it.
+        nonisolated(unsafe) let filter: Filter
         public let identifier: String
 
         enum Filter {
