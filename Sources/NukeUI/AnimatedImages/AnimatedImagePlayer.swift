@@ -143,6 +143,11 @@ public final class AnimatedImagePlayer: ObservableObject {
         // store its first share of the pool.
         store.add(self)
         pool.rebalance()
+        // Another player of this animation may have decoded the frame already,
+        // in which case no decode is coming to display it.
+        if store.frame(at: currentFrameIndex) != nil {
+            display(frameAt: currentFrameIndex)
+        }
     }
 
     deinit {
