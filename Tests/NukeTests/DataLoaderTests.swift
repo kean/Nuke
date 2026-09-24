@@ -460,6 +460,61 @@ struct DataLoaderTests {
         #expect(spy.didCreateTaskCount == 1)
     }
 
+    /// The loader reads `delegate` in every session callback and when each
+    /// task is created, which happens on the thread that starts the request,
+    /// so replacing it from another thread has to be synchronized – otherwise
+    /// the process crashes or the thread sanitizer aborts the test run.
+    @Test func replacingTheDelegateReleasesTheOldOneOutsideTheLock() {
+        // GIVEN a delegate that reads the property when it is released
+        let loader = makeDataLoader()
+        let released = Ref(false)
+        loader.delegate = ReleaseObservingDelegate(onRelease: {
+            _ = loader.delegate
+            released.value = true
+        })
+
+        // WHEN it's replaced
+        loader.delegate = nil
+
+        // THEN it's released without reentering the lock
+        #expect(released.value)
+    }
+
+    @Test func delegateIsReplacedWhileLoadingData() async throws {
+        // Given
+        let loader = makeDataLoader()
+        let urls = (0..<50).map { mockURL("delegate-replace-\($0)") }
+        for url in urls {
+            registerMock(url: url, chunks: [Data("x".utf8)])
+        }
+
+        let writer = Task.detached {
+            while !Task.isCancelled {
+                loader.delegate = SpyURLSessionDelegate()
+                await Task.yield()
+            }
+        }
+
+        // When loading data while the delegate is being replaced
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    var received = Data()
+                    for try await (chunk, _) in loader.loadData(with: URLRequest(url: url)) {
+                        received.append(chunk)
+                    }
+                    #expect(received == Data("x".utf8))
+                }
+            }
+            try await group.waitForAll()
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
+        #expect(loader.delegate is SpyURLSessionDelegate)
+    }
+
     // MARK: - Default Validation
 
     @Test func initWithDefaultValidation() async throws {
@@ -604,5 +659,17 @@ private final class SpyURLSessionDelegate: NSObject, URLSessionDataDelegate, @un
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         didFinishMetricsCount += 1
+    }
+}
+
+private final class ReleaseObservingDelegate: NSObject, URLSessionDelegate {
+    private let onRelease: () -> Void
+
+    init(onRelease: @escaping () -> Void) {
+        self.onRelease = onRelease
+    }
+
+    deinit {
+        onRelease()
     }
 }

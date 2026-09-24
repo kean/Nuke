@@ -34,8 +34,13 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     /// ```
     ///
     /// - note: The delegate is retained.
+    ///
+    /// - note: The delegate is read by every session callback on the session's
+    /// delegate queue and when each task is created, which can happen on any
+    /// thread, so the access is synchronized.
     public var delegate: URLSessionDelegate? {
-        didSet { impl.delegate = delegate }
+        get { impl.delegate }
+        set { impl.delegate = newValue }
     }
 
     deinit {
@@ -129,7 +134,12 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
-    var delegate: URLSessionDelegate?
+    var delegate: URLSessionDelegate? {
+        get { _delegate.value }
+        set { _delegate.replace(with: newValue) }
+    }
+
+    private let _delegate = Mutex<URLSessionDelegate?>(value: nil)
 
     init(validate: @Sendable @escaping (URLResponse) -> Swift.Error?) {
         self.validate = validate
