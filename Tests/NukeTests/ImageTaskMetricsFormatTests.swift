@@ -310,6 +310,50 @@ struct ImageTaskMetricsFormatTests {
         #expect(metrics.formatted(.breakdown).range(of: #"^time: +network 500\.0 ms · queue 300\.0 ms · other 200\.0 ms$"#, options: .regularExpression) != nil)
     }
 
+    /// A stage that never left its queue is all wait, drawn light and named
+    /// after the queue.
+    @Test func neverStartedStageIsAWait() throws {
+        // GIVEN a task cancelled while its download waited for its queue
+        var draft = _Draft(duration: 1)
+        draft.outcome = .cancelled
+        draft.jobs = [_job(1, .fetchOriginalData, from: 0, to: 1, outcome: .cancelled, stages: [
+            _stage(.download, queued: 0, from: nil, duration: nil)
+        ])]
+        let metrics = draft.make()
+
+        // THEN the whole task is the wait
+        #expect(metrics.timeShares.map(\.category) == [.queue], "Unexpected shares: \(metrics.timeShares)")
+
+        // THEN the wait is a light row named after the queue, and the stage
+        // has nothing to draw
+        let timeline = metrics.formatted([.timeline, .chart])
+        let lines = timeline.split(separator: "\n")
+        let wait = try #require(lines.first { $0.contains("─ dataLoadingQueue ") }, "No queue row in:\n\(timeline)")
+        #expect(wait.contains("░") && !wait.contains("█"), "Unexpected row: \(wait)")
+        let download = try #require(lines.first { $0.contains("─ download ") })
+        #expect(!download.contains("█") && !download.contains("░"), "Unexpected row: \(download)")
+        #expect(download.hasSuffix("  never started"), "Unexpected row: \(download)")
+    }
+
+    /// The wait of a stage that never left its queue ends when the stage that
+    /// replaced it is enqueued: it doesn't claim the work that followed.
+    @Test func replacedStageWaitsUntilItsReplacementIsEnqueued() throws {
+        // GIVEN a progressive process that waited 200 ms, then was replaced
+        // by the final one, which waited 100 ms and ran 300 ms
+        var draft = _Draft(duration: 1)
+        draft.jobs = [_job(1, .loadImage, from: 0, to: 1, stages: [
+            _stage(.process, queued: 0.1, from: nil, duration: nil),
+            _stage(.process, queued: 0.3, from: 0.4, duration: 0.3)
+        ])]
+        let metrics = draft.make()
+
+        // THEN
+        let shares = Dictionary(uniqueKeysWithValues: metrics.timeShares.map { ($0.category, $0.duration) })
+        #expect(abs(try #require(shares[.queue]) - 0.3) < 1e-9)
+        #expect(abs(try #require(shares[.process]) - 0.3) < 1e-9)
+        #expect(abs(try #require(shares[.other]) - 0.4) < 1e-9)
+    }
+
     /// A task that joined a stage halfway through is charged from the join.
     @Test func coalescedTaskIsChargedFromTheJoin() throws {
         // GIVEN a task that joined a download 300 ms into it

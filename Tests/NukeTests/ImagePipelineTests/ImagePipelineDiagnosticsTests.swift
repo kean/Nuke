@@ -832,6 +832,76 @@ struct ImagePipelineDiagnosticsTests {
         #expect(description.range(of: #"\ntime: +.*queue [0-9.]+ ms"#, options: .regularExpression) != nil, "No queue share in:\n\(description)")
     }
 
+    /// A task cancelled while its download waits for its queue, which is what
+    /// scrolling past the cells does to a busy pipeline, spent that time
+    /// waiting, not on the network.
+    @Test @ImagePipelineActor func downloadThatNeverLeftItsQueueIsAWait() async throws {
+        // GIVEN a data loading queue that holds its work
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+        defer { queue.isSuspended = false }
+        var task: ImageTask?
+        _ = await queue.waitForOperations(count: 1) {
+            task = pipeline.imageTask(with: Test.request)
+        }
+        let imageTask = try #require(task)
+
+        // WHEN it is cancelled while it waits
+        imageTask.cancel()
+        _ = try? await imageTask.response
+
+        // THEN the download never started
+        let metrics = try #require(imageTask.metrics)
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        try #require(download.queuedAt != nil && download.startedAt == nil)
+
+        // THEN the wait is queue time, not network time
+        let categories = metrics.timeShares.map(\.category)
+        #expect(!categories.contains(.network), "Unexpected shares: \(metrics.timeShares)\n\(metrics.description)")
+        #expect(categories.contains(.queue), "No queue share in: \(metrics.timeShares)")
+    }
+
+    /// The final image replaces a progressive process that is still waiting
+    /// for its queue, and the one that never ran is not processing time.
+    @Test @ImagePipelineActor func progressiveProcessThatNeverRanIsNotProcessing() async throws {
+        // GIVEN a processing queue that holds its work, and a download that
+        // serves the first scan before the rest
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.isDiagnosticsEnabled = true
+        }
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+        defer { queue.isSuspended = false }
+        var task: ImageTask?
+        // The progressive process is enqueued...
+        _ = await queue.waitForOperations(count: 1) {
+            task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [.resize(width: 100)]))
+        }
+        // ...and replaced by the final one while it waits
+        _ = await queue.waitForOperations(count: 1) {
+            dataLoader.resumeServingChunks(2)
+        }
+        queue.isSuspended = false
+        let imageTask = try #require(task)
+        _ = try await imageTask.response
+
+        // THEN one process never ran, the other did
+        let metrics = try #require(imageTask.metrics)
+        let processes = metrics.jobs[0].stages.filter { $0.kind == .process }
+        try #require(processes.count == 2)
+        try #require(processes.filter { $0.startedAt == nil }.count == 1)
+        let ran = try #require(processes.first { $0.startedAt != nil }?.duration)
+
+        // THEN the task spent no more time processing than the process took
+        let process = try #require(metrics.timeShares.first { $0.category == .process }).duration
+        #expect(process <= ran + 1e-6, "process \(process * 1000) ms in the breakdown, \(ran * 1000) ms of processing:\n\(metrics.description)")
+    }
+
     @Test func breakdownAddsUpToTheTask() async throws {
         // WHEN
         let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [.resize(width: 100)]))
