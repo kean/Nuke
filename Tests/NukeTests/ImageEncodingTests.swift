@@ -66,8 +66,8 @@ struct ImageEncodingProtocolTests {
 
     // MARK: - GIF Pass-Through Edge Cases
 
-    @Test func gifContainerWithoutDataReturnsNil() throws {
-        // GIVEN a GIF-typed container with no associated data (animation data lost)
+    @Test func gifContainerWithoutDataEncodesStill() throws {
+        // GIVEN a GIF-typed container with no associated data (e.g. a processed GIF)
         let encoder = ImageEncoders.Default()
         let container = ImageContainer(image: Test.image, type: .gif, data: nil)
         let context = ImageEncodingContext(
@@ -77,10 +77,33 @@ struct ImageEncodingProtocolTests {
         )
 
         // WHEN
-        let result = encoder.encode(container, context: context)
+        let result = try #require(encoder.encode(container, context: context))
 
-        // THEN returns nil — GIF encoding requires the original animated data
-        #expect(result == nil)
+        // THEN the still image is encoded
+        #expect(!result.isEmpty)
+        #expect(AssetType(result) != .gif)
+    }
+
+    @Test func gifThumbnailIsEncoded() throws {
+        // GIVEN a thumbnail of a GIF, which the decoder gives no data
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 4)
+        let gif = Test.animatedGIF()
+        let decoder = try #require(ImageDecoders.Default(context: ImageDecodingContext(request: request, data: gif, previewPolicy: .disabled)))
+        let container = try decoder.decode(gif)
+        #expect(container.type == .gif)
+        #expect(container.data == nil)
+        let context = ImageEncodingContext(
+            request: request,
+            image: container.image,
+            urlResponse: nil
+        )
+
+        // WHEN
+        let result = try #require(ImageEncoders.Default().encode(container, context: context))
+
+        // THEN the thumbnail can be stored in the disk cache
+        #expect(!result.isEmpty)
     }
 
     // MARK: - Context
