@@ -252,6 +252,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
 - Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix a download failing with `.dataIsEmpty`, or storing truncated data in the disk cache, when a custom `DataLoading` calls `completion` from a higher-priority thread than the chunks – https://github.com/kean/Nuke/pull/1012
 
 ### Documentation
 
