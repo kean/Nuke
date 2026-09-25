@@ -138,8 +138,10 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         let ttl = ttl ?? _conf.ttl
         let expirationTimestamp = ttl.map { Date.timeIntervalSinceReferenceDate + $0 } ?? 0
         let entry = Entry(value: value, key: key, cost: cost, expirationTimestamp: expirationTimestamp)
-        _add(entry)
-        _trim()
+        let node = _add(entry)
+        if _totalCost > _conf.costLimit || map.count > _conf.countLimit {
+            _trim(sparing: node)
+        }
     }
 
     @discardableResult
@@ -154,17 +156,21 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         return node.value.value
     }
 
-    private func _add(_ element: Entry) {
+    private func _add(_ element: Entry) -> LinkedList<Entry>.Node {
+        let node: LinkedList<Entry>.Node
         if let existingNode = map[element.key] {
             // Reuse the node to avoid a heap allocation on overwrite.
             _totalCost -= existingNode.value.cost
             existingNode.value = element
             // An update counts as a use; let CLOCK protect it on the next sweep.
             existingNode.value.referenced = true
+            node = existingNode
         } else {
-            map[element.key] = list.append(element)
+            node = list.append(element)
+            map[element.key] = node
         }
         _totalCost += element.cost
+        return node
     }
 
     private func _remove(node: LinkedList<Entry>.Node) {
@@ -200,6 +206,27 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         }
         _trim(toCost: _conf.costLimit)
         _trim(toCount: _conf.countLimit)
+    }
+
+    /// Trims the cache without evicting `node`, the entry just stored, unless
+    /// it alone exceeds a limit.
+    private func _trim(sparing node: LinkedList<Entry>.Node) {
+        // The sweep moves every referenced entry behind the entry just stored,
+        // so once all of them were read, it would reach that entry first and
+        // evict it. Shield it for this sweep, from the tail, so the victim is
+        // one of the other entries, as in CLOCK, then put it back behind the
+        // entries the sweep moved.
+        let isReferenced = node.value.referenced
+        node.value.referenced = true
+        list.moveToLast(node)
+        _trim(toCost: _conf.costLimit)
+        _trim(toCount: _conf.countLimit)
+        if !isReferenced { // A new entry stays unreferenced until it's read
+            node.value.referenced = false
+        }
+        if !list.isEmpty { // Otherwise, a limit of 0 evicted it too
+            list.moveToLast(node)
+        }
     }
 
     func trim(toCost limit: Int) {
