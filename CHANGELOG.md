@@ -100,6 +100,7 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix a download failing with `.dataIsEmpty`, or storing truncated data in the disk cache, when a custom `DataLoading` calls `completion` from a higher-priority thread than the chunks – https://github.com/kean/Nuke/pull/1012
 
 **Documentation**
 
