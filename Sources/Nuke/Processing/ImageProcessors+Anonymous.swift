@@ -26,7 +26,7 @@ extension ImageProcessors {
         }
 
         public var description: String {
-            "AnonymousProcessor(identifier: \(identifier)"
+            "AnonymousProcessor(identifier: \(identifier))"
         }
     }
 }
