@@ -233,6 +233,102 @@ struct ImagePipelineResumableDataTests {
         #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=20000-")
     }
 
+    /// `DataLoader` rejects a "416 Range Not Satisfiable" before the pipeline
+    /// sees the response, which used to look like a request that ended before
+    /// the server responded, so the rejected range was put back and sent
+    /// again on every attempt.
+    @Test func rangeRejectedByTheServerIsNotSentAgain() async throws {
+        // GIVEN a real `DataLoader` talking to a server that serves the first
+        // 10000 bytes and drops the connection, then rejects every range
+        let url = URL(string: "range-rejecting://example.com/image.jpeg")!
+        _RangeRejectingURLProtocol.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [_RangeRejectingURLProtocol.self]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = DataLoader(configuration: configuration)
+            $0.imageCache = nil
+        }
+
+        // WHEN the download fails once the pipeline has the first 10000 bytes
+        let first = pipeline.imageTask(with: ImageRequest(url: url))
+        var progress = first.progress.makeAsyncIterator()
+        _ = await progress.next()
+        _RangeRejectingURLProtocol.dropConnection()
+        _ = try? await first.response
+
+        // WHEN it is resumed, and the server rejects the range
+        _ = try? await pipeline.data(for: ImageRequest(url: url))
+
+        // THEN the next attempt asks for the whole resource, and gets it
+        let (data, _) = try await pipeline.data(for: ImageRequest(url: url))
+        #expect(data == Test.data)
+        #expect(_RangeRejectingURLProtocol.ranges == [nil, "bytes=10000-", nil])
+    }
+}
+
+/// Serves `Test.data` to its scheme: the first attempt delivers 10000 bytes
+/// and stalls until `dropConnection()`, and every ranged request is rejected
+/// with "416 Range Not Satisfiable".
+private final class _RangeRejectingURLProtocol: URLProtocol, @unchecked Sendable {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var _ranges: [String?] = []
+    nonisolated(unsafe) private static var _stalled: _RangeRejectingURLProtocol?
+
+    /// The "Range" header of every request, in order.
+    static var ranges: [String?] { lock.withLock { _ranges } }
+
+    static func reset() {
+        lock.withLock {
+            _ranges = []
+            _stalled = nil
+        }
+    }
+
+    static func dropConnection() {
+        let stalled = lock.withLock { _stalled.take() }
+        if let stalled {
+            stalled.client?.urlProtocol(stalled, didFailWithError: URLError(.networkConnectionLost))
+        }
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.scheme == "range-rejecting"
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        let range = request.value(forHTTPHeaderField: "Range")
+        let attempt = Self.lock.withLock { () -> Int in
+            Self._ranges.append(range)
+            return Self._ranges.count
+        }
+        let data = Test.data
+        let url = request.url!
+        if range != nil {
+            let response = HTTPURLResponse(url: url, statusCode: 416, httpVersion: "HTTP/1.1", headerFields: ["Content-Range": "bytes */\(data.count)"])!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
+            "Content-Length": "\(data.count)",
+            "Accept-Ranges": "bytes",
+            "ETag": "\"v1\""
+        ])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        if attempt == 1 {
+            client?.urlProtocol(self, didLoad: data[0..<10000])
+            Self.lock.withLock { Self._stalled = self }
+        } else {
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        }
+    }
+
+    override func stopLoading() {}
 }
 
 /// Fails the first request after 10000 bytes, and answers a matching "Range"
