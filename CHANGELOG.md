@@ -109,6 +109,7 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `DataCache` skipping the scheduled sweeps when the recorded last sweep date is in the future, e.g. after the device clock was corrected – https://github.com/kean/Nuke/pull/1024
 
 **Documentation**
 
