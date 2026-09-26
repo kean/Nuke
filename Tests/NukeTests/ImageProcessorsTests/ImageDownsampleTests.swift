@@ -68,22 +68,25 @@ struct ImageThumbnailTests {
         #expect(output.sizeInPixels == CGSize(width: 160, height: 90))
     }
 
-#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
     @Test func resizeImageWithOrientationRight() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
         let input = Test.data(name: "right-orientation", extension: "jpeg")
+#if canImport(UIKit)
         #expect(PlatformImage(data: input)?.imageOrientation == .right)
+#endif
 
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
         let output = try #require(options.makeThumbnail(with: input))
 
+#if canImport(UIKit)
         // Then the output orientation is `.up` because `createThumbnailWithTransform`
         // (enabled by default) already bakes the rotation into the pixel data.
         #expect(output.imageOrientation == .up)
+#endif
 
         // Verify the bitmap is landscape — the actual pixel buffer must reflect
         // the displayed orientation, not the raw EXIF-rotated storage.
@@ -93,6 +96,36 @@ struct ImageThumbnailTests {
         #expect(cgImage.width > cgImage.height)
     }
 
+    @Test func resizeImageWithOrientationRightToFill() throws {
+        // Given an image stored as 480x640px and displayed as 640x480px
+        let input = Test.data(name: "right-orientation", extension: "jpeg")
+
+        // When it is resized to fill a 400x100px frame
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 100), unit: .pixels, contentMode: .aspectFill)
+        let output = try #require(options.makeThumbnail(with: input))
+
+        // Then the upright thumbnail just fills the frame
+        #expect(output.sizeInPixels == CGSize(width: 400, height: 300))
+    }
+
+#if os(macOS)
+    /// Without the transform, `NSImage` shows the pixels as stored, so the
+    /// stored portrait frame is what's fitted into the target.
+    @Test func resizeImageWithOrientationRightWithoutTransform() throws {
+        // Given
+        let input = Test.data(name: "right-orientation", extension: "jpeg")
+        var options = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
+        options.createThumbnailWithTransform = false
+
+        // When
+        let output = try #require(options.makeThumbnail(with: input))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 320, height: 427))
+    }
+#endif
+
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
     @Test func resizeImageWithOrientationUp() throws {
         let input = Test.data(name: "baseline", extension: "jpeg")
         #expect(PlatformImage(data: input)?.imageOrientation == .up)

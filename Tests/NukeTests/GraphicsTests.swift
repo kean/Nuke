@@ -86,6 +86,9 @@ struct GraphicsTests {
         let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.alpha(atX: 0, y: 0) == 0)
         #expect(pixels.alpha(atX: 30, y: 30) == 255)
+        // ...and the border is as wide as requested where the circle touches the edge
+        #expect((0..<4).allSatisfy { pixels.red(atX: 30, y: $0) > 200 })
+        #expect(pixels.red(atX: 30, y: 4) < 50)
     }
 
     // MARK: - Rounded Corners
@@ -112,11 +115,32 @@ struct GraphicsTests {
         // When
         let output = try #require(input.processed.byAddingRoundedCorners(radius: 4, border: border))
 
-        // Then the border is stroked along the edge
+        // Then the border is stroked along the edge, as wide as requested
+        // (the stroke is centered on the clip, so only its inner half shows)
         let pixels = try #require(RGBABitmap(image: output))
-        #expect(pixels.red(atX: 30, y: 1) > 100)
+        let column = (0..<8).map { pixels.red(atX: 30, y: $0) }
+        #expect(column.prefix(6).allSatisfy { $0 > 200 }, "\(column)")
+        #expect(column.suffix(2).allSatisfy { $0 < 50 }, "\(column)")
         // ...and the center is left untouched
         #expect(pixels.red(atX: 30, y: 30) < 100)
+    }
+
+    /// A one-pixel border is a solid line, not half a pixel blended with the
+    /// image.
+    @Test func addingRoundedCornersWithOnePixelBorder() throws {
+        // Given
+        let input = Test.rgbImage(width: 60, height: 60, color: CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+        let border = ImageProcessingOptions.Border(color: .red, width: 1, unit: .pixels)
+
+        // When
+        let output = try #require(input.processed.byAddingRoundedCorners(radius: 4, border: border))
+
+        // Then
+        let pixels = try #require(RGBABitmap(image: output))
+        #expect(pixels.red(atX: 30, y: 0) > 200)
+        #expect(pixels.red(atX: 30, y: 1) < 50)
+        #expect(pixels.red(atX: 0, y: 30) > 200)
+        #expect(pixels.red(atX: 1, y: 30) < 50)
     }
 
     /// Rounding the corners requires an alpha channel, which the monochrome
@@ -209,6 +233,35 @@ struct GraphicsTests {
 
         // Then
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
+    }
+
+    /// A side that scales below half a pixel is drawn at one pixel instead of
+    /// the drawing failing.
+    @Test func resizingThinImageProducesOnePixelStrip() throws {
+        // Given a 1000x2 image
+        let input = Test.rgbImage(width: 1000, height: 2)
+
+        // When
+        let output = try #require(input.processed.byResizing(
+            to: CGSize(width: 100, height: 100),
+            contentMode: .aspectFit,
+            upscale: false
+        ))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 100, height: 1))
+    }
+
+    @Test func resizingAndCroppingToThinTargetWithoutUpscalingProducesOnePixelStrip() throws {
+        // Given a 10x10 image and a target whose height, at the native
+        // resolution of the image, is below half a pixel
+        let input = Test.rgbImage(width: 10, height: 10)
+
+        // When
+        let output = try #require(input.processed.byResizingAndCropping(to: CGSize(width: 1000, height: 1), upscale: false))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 10, height: 1))
     }
 
     // MARK: - Invalid Target Sizes
@@ -329,6 +382,88 @@ struct GraphicsTests {
         #expect(cgImage.drawn(inCanvasWithSize: .zero, orientation: .up) == nil)
         #expect(cgImage.drawn(inCanvasWithSize: CGSize(width: CGFloat.nan, height: 30), orientation: .right) == nil)
     }
+
+#if os(macOS)
+    // MARK: - Point Size (AppKit)
+
+    /// `NSImage(data:)` sizes an image by its DPI, and an image can have a
+    /// `@2x` representation, so the point size of the output has to keep the
+    /// points-per-pixel ratio of the input, the way `UIImage.scale` is kept.
+    @Test(arguments: [
+        (0, "GaussianBlur"),
+        (1, "CoreImageFilter"),
+        (2, "RoundedCorners"),
+        (3, "Circle"),
+        (4, "Decompression")
+    ])
+    func processingPreservesThePointSizeOfHighDPIImage(index: Int, name: String) throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+        let process: (NSImage) -> NSImage? = [
+            ImageProcessors.GaussianBlur(radius: 2).process,
+            ImageProcessors.CoreImageFilter(name: "CISepiaTone").process,
+            { $0.processed.byAddingRoundedCorners(radius: 4) },
+            { $0.processed.byDrawingInCircle(border: nil) },
+            { $0.decompressed(isUsingPrepareForDisplay: false) }
+        ][index]
+
+        // When
+        let output = try #require(process(input), "Failed to process: \(name)")
+
+        // Then the pixels are the same and so are the points
+        #expect(output.sizeInPixels == CGSize(width: 40, height: 40))
+        #expect(output.size == CGSize(width: 20, height: 20))
+    }
+
+    @Test func resizingScalesThePointSizeOfHighDPIImage() throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+
+        // When
+        let output = try #require(input.processed.byResizing(to: CGSize(width: 20, height: 20), contentMode: .aspectFill, upscale: false))
+
+        // Then the point size is scaled along with the pixels
+        #expect(output.sizeInPixels == CGSize(width: 20, height: 20))
+        #expect(output.size == CGSize(width: 10, height: 10))
+    }
+
+    @Test func processingPreservesThePointSizeOfDecodedHighDPIImage() throws {
+        // Given a 40x40px PNG saved at 144 DPI, which is what a Retina Mac
+        // writes for a screenshot, decoded by the default decoder
+        let data = try makePNG(width: 40, height: 40, dpi: 144)
+        let input = try ImageDecoders.Default().decode(data).image
+        #expect(input.size == CGSize(width: 20, height: 20))
+
+        // When
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 2).process(input))
+
+        // Then
+        #expect(output.size == input.size)
+    }
+
+    @Test func processingKeepsThePixelSizeOfImageWithoutPointSize() throws {
+        // Given an image with no point size
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: .zero)
+
+        // When
+        let output = try #require(input.processed.byAddingRoundedCorners(radius: 4))
+
+        // Then one point per pixel
+        #expect(output.size == CGSize(width: 40, height: 40))
+    }
+
+    private func makePNG(width: Int, height: Int, dpi: Int) throws -> Data {
+        let cgImage = try #require(Test.rgbImage(width: width, height: height).cgImage)
+        let data = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(data as CFMutableData, AssetType.png.rawValue as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        return data as Data
+    }
+#endif
 
     // MARK: - Pixel Formats
 
