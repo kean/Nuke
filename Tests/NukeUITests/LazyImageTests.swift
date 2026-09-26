@@ -591,6 +591,83 @@ struct LazyImageTests {
         #expect(dataLoader.createdTaskCount == 2)
     }
 
+    /// A new request reports to the callbacks the view has now, not to the
+    /// ones it had when it appeared.
+    @Test func newRequestUsesTheCurrentCallbacks() async {
+        let starts = Ref<[Int]>([])
+        let completions = Ref<[Int]>([])
+        let first = TestExpectation()
+
+        let otherURL = URL(string: "https://example.com/other.jpeg")!
+        let host = ViewHost(1) { version in
+            LazyImage(url: version == 1 ? Test.url : otherURL)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value.append(version) }
+                .onCompletion { _ in
+                    completions.value.append(version)
+                    first.fulfill()
+                }
+        }
+        await first.wait()
+
+        await host.update(2, until: { completions.value.count == 2 })
+
+        #expect(starts.value == [1, 2])
+        #expect(completions.value == [1, 2])
+    }
+
+    @Test func newRequestUsesTheCurrentPipeline() async {
+        let otherDataLoader = MockDataLoader()
+        let otherPipeline = ImagePipeline {
+            $0.dataLoader = otherDataLoader
+            $0.imageCache = nil
+        }
+        let completions = Ref(0)
+        let first = TestExpectation()
+
+        let otherURL = URL(string: "https://example.com/other.jpeg")!
+        let host = ViewHost(1) { version in
+            LazyImage(url: version == 1 ? Test.url : otherURL)
+                .pipeline(version == 1 ? pipeline : otherPipeline)
+                .onCompletion { _ in
+                    completions.value += 1
+                    first.fulfill()
+                }
+        }
+        await first.wait()
+
+        await host.update(2, until: { completions.value == 2 })
+
+        #expect(completions.value == 2)
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(otherDataLoader.createdTaskCount == 1)
+    }
+
+    @Test func newRequestStartedWhenPipelineChanges() async {
+        let otherDataLoader = MockDataLoader()
+        let otherPipeline = ImagePipeline {
+            $0.dataLoader = otherDataLoader
+            $0.imageCache = nil
+        }
+        let completions = Ref(0)
+        let first = TestExpectation()
+
+        let host = ViewHost(pipeline) { pipeline in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .onCompletion { _ in
+                    completions.value += 1
+                    first.fulfill()
+                }
+        }
+        await first.wait()
+
+        await host.update(otherPipeline, until: { completions.value == 2 })
+
+        #expect(completions.value == 2)
+        #expect(otherDataLoader.createdTaskCount == 1)
+    }
+
     @Test func noNewRequestWhenRequestIsUnchanged() async {
         let completions = Ref(0)
         let first = TestExpectation()
