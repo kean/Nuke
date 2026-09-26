@@ -307,16 +307,23 @@ private final class ImageViewController {
         }
 
         // Quick synchronous memory cache lookup.
+        var isDisplayingPreview = false
         if let image = pipeline.cache[request] {
-            display(image, true, .success)
             if !image.isPreview { // Final image was downloaded
+                display(image, true, .success)
                 completion?(.success(ImageResponse(container: image, request: request, cacheType: .memory)))
                 return nil // No task to perform
+            }
+            if options.isProgressiveRenderingEnabled {
+                display(image, true, .success)
+                isDisplayingPreview = true
             }
         }
 
         // Display a placeholder.
-        if let placeholder = options.placeholder {
+        if isDisplayingPreview {
+            // Keep the cached preview on screen while the final image loads.
+        } else if let placeholder = options.placeholder {
             display(ImageContainer(image: placeholder), true, .placeholder)
         } else if options.isPrepareForReuseEnabled {
             imageView.nuke_display(nil) // Remove previously displayed images (if any)
