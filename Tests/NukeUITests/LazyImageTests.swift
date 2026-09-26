@@ -269,6 +269,30 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
+    /// The modifier replaces the request's processors, where `FetchImage` and
+    /// `LazyImageView` only fill in a request that has none.
+    @Test func modifierProcessorsReplaceTheRequestProcessors() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors([MockImageProcessor(id: "p2")])
+                .onCompletion {
+                    response.value = $0.value
+                    completed.fulfill()
+                }
+        }
+        await completed.wait()
+
+        #expect(response.value?.image.nk_test_processorIDs == ["p2"])
+        withExtendedLifetime(host) {}
+    }
+
+    /// Replacing the request's processors with `nil` removes them.
     @Test func nilProcessorsClearRequestProcessors() async {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
