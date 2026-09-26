@@ -496,6 +496,30 @@ struct ImagePipelineCacheTests {
         #expect(!pipeline.cache.containsData(for: Test.request))
     }
 
+    @Test func containsWhenDiskCacheReadsDisabled() {
+        // GIVEN data in the disk cache
+        cache.storeCachedData(Test.data, for: Test.request)
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
+
+        // THEN the disk layer is invisible to the request, as it is for `cachedData`
+        #expect(cache.cachedData(for: request) == nil)
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(!cache.containsCachedImage(for: request))
+        #expect(!cache.containsCachedImage(for: request, caches: [.disk]))
+        #expect(!cache.containsData(for: request))
+    }
+
+    @Test func containsWhenCachePolicyPreventsLookup() {
+        // GIVEN an image in both layers
+        cache.storeCachedImage(Test.container, for: Test.request)
+        let request = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
+
+        // THEN
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(!cache.containsCachedImage(for: request))
+        #expect(!cache.containsData(for: request))
+    }
+
     // MARK: Remove
 
     @Test func removeFromMemoryCache() {
