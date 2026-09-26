@@ -41,6 +41,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                     $0.source = .file
                     $0.bytes = Int64(data.count)
                 }
+                guard !data.isEmpty else {
+                    send(error: .dataIsEmpty)
+                    return
+                }
                 send(value: (data, nil), isCompleted: true)
             } catch {
                 diagnostics?.endStage(stage) { $0.source = .file }
@@ -231,9 +235,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     }
 
     /// The size of the whole resource: the advertised content length plus the
-    /// resumed bytes. Saturates, since Foundation reports a content length it
-    /// can't represent as `Int64.max`.
+    /// resumed bytes, or `-1` if the response doesn't say how long it is (a
+    /// resumed download has more bytes than that). Saturates, since Foundation
+    /// reports a content length it can't represent as `Int64.max`.
     private func expectedSize(of response: URLResponse) -> Int64 {
+        guard response.expectedContentLength >= 0 else { return -1 }
         let (size, isOverflow) = response.expectedContentLength.addingReportingOverflow(resumedDataCount)
         return isOverflow ? .max : size
     }
@@ -281,7 +287,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         if let error {
-            tryToSaveResumableData()
+            tryToSaveResumableData(error: error)
             send(error: error)
             return
         }
@@ -345,18 +351,30 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         send(error: .dataLoadingFailed(error: error))
     }
 
-    private func tryToSaveResumableData() {
+    private func tryToSaveResumableData(error: ImagePipeline.Error? = nil) {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         guard pipeline.configuration.isResumableDataEnabled else { return }
         if let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data, resumedDataCount: resumedDataCount) {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
-        } else if let resumableData {
+        } else if let resumableData, !Self.isRangeRejected(by: error) {
             // The request ended before the server responded – put the data that
-            // `performDataLoad` took out of the storage back where it was.
+            // `performDataLoad` took out of the storage back where it was. Not
+            // when the server rejected the range: the next attempt would only
+            // send it again.
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
         }
+    }
+
+    /// `true` if the data loader rejected a "416 Range Not Satisfiable"
+    /// response to the resumed request.
+    private static func isRangeRejected(by error: ImagePipeline.Error?) -> Bool {
+        if case .dataLoadingFailed(let error as DataLoader.Error)? = error,
+           case .statusCodeUnacceptable(416) = error {
+            return true
+        }
+        return false
     }
 }
 
