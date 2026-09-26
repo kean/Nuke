@@ -15,7 +15,7 @@ func makeCache(
     entryCostLimit: Double = 1
 ) -> Cache<String, String> {
     let cache = Cache<String, String>(costLimit: costLimit, countLimit: countLimit)
-    cache.conf.entryCostLimit = entryCostLimit
+    cache.updateConf { $0.entryCostLimit = entryCostLimit }
     return cache
 }
 
