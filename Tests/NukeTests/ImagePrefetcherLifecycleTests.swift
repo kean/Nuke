@@ -255,13 +255,14 @@ struct ImagePrefetcherLifecycleTests {
         await started.wait(for: 2) // The new one is loading
         await waitForDelivery()
 
-        // THEN only the stop reported that the prefetcher ran out of work
-        #expect(completed.count == 1)
+        // THEN the prefetcher hasn't run out of work: the restart was already
+        // scheduled when the stop ran, and the cancelled load didn't end it
+        #expect(completed.count == 0)
         #expect(observer.cancelledTaskCount == 1)
 
         // WHEN
         dataLoader.isSuspended = false
-        await completed.wait(for: 2)
+        await completed.wait(for: 1)
 
         // THEN
         #expect(pipeline.cache[Test.request] != nil)
