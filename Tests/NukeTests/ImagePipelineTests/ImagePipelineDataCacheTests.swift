@@ -397,6 +397,99 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll])
+    func policyGivenOriginalImageInDiskCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // GIVEN the original image data in the disk cache
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN encoded processed image is stored in disk cache next to the original
+        #expect(encoder.encodeCount == 1)
+        #expect(dataCache.cachedData(for: Test.url.absoluteString + "1") != nil)
+        #expect(dataCache.writeCount == 1)
+        #expect(dataCache.store.count == 2)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll])
+    func policyGivenIntermediateImageInDiskCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // GIVEN the image processed with the first processor in the disk cache
+        let intermediateRequest = request
+        let request = ImageRequest(url: Test.url, processors: [processorFactory.make(id: "1"), processorFactory.make(id: "2")])
+        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN encoded processed image is stored in disk cache, and the
+        // intermediate image is left as is
+        #expect(encoder.encodeCount == 1)
+        #expect(dataCache.cachedData(for: pipeline.cache.makeDataCacheKey(for: request)) != nil)
+        #expect(dataCache.cachedData(for: pipeline.cache.makeDataCacheKey(for: intermediateRequest)) == Test.data)
+        #expect(dataCache.writeCount == 1)
+        #expect(dataCache.store.count == 2)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll])
+    func policyGivenThumbnailGeneratedFromOriginalImageInDiskCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // GIVEN the original image data in the disk cache and a thumbnail request
+        dataCache.store[Test.url.absoluteString] = Test.data
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(maxPixelSize: 400)
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN encoded thumbnail is stored in disk cache next to the original
+        #expect(encoder.encodeCount == 1)
+        #expect(dataCache.cachedData(for: pipeline.cache.makeDataCacheKey(for: request)) != nil)
+        #expect(dataCache.writeCount == 1)
+        #expect(dataCache.store.count == 2)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll, .storeEncodedImages])
+    func policyGivenProcessedImageInDiskCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = policy
+        }
+
+        // GIVEN the processed image in the disk cache
+        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN the image read from the disk cache isn't stored again
+        #expect(encoder.encodeCount == 0)
+        #expect(dataCache.writeCount == 0)
+        #expect(dataCache.store.count == 1)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     // MARK: DataCachPolicy.storeEncodedImages
 
     @Test func policyStoreEncodedImagesGivenRequestWithProcessors() async throws {
