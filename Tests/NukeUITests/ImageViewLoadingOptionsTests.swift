@@ -476,6 +476,35 @@ struct ImageViewLoadingOptionsTests {
         #expect(transitionView.image == nil)
         withExtendedLifetime(window) {}
     }
+
+    @Test func transitionCrossDissolvePreservesAlpha() async {
+        // GIVEN a dimmed image view in a visible hierarchy displaying an image
+        // with a content mode different from the one used for the loaded image
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
+        window.isHidden = false
+        window.addSubview(imageView)
+        imageView.frame = window.bounds
+        imageView.image = Test.image
+        imageView.contentMode = .center
+        imageView.alpha = 0.5
+
+        var options = options
+        options.transition = .fadeIn(duration: 0.1)
+        options.isPrepareForReuseEnabled = false
+        options.contentModes = .init(
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .center
+        )
+
+        // WHEN
+        await loadImageAndWait(with: Test.request, options: options, into: imageView)
+
+        // THEN the transition fades to the view's own alpha instead of 1
+        #expect(imageView.image != nil)
+        #expect(imageView.alpha == 0.5)
+        withExtendedLifetime(window) {}
+    }
 #endif
 
     @Test func settingDefaultProcessor() async {
