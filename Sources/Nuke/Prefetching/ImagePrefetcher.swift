@@ -36,7 +36,11 @@ public final class ImagePrefetcher: Sendable {
                 return true
             }
             guard didChange else { return }
-            Task { @ImagePipelineActor in self.didUpdatePriority(to: newValue) }
+            Task { @ImagePipelineActor in
+                // Read the priority instead of capturing `newValue`: the hops
+                // are unordered, so a stale value could land last.
+                self.didUpdatePriority(to: self.priority)
+            }
         }
     }
     private nonisolated let _priority = OSAllocatedUnfairLock(initialState: ImageRequest.Priority.low)
