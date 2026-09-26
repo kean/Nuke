@@ -551,6 +551,33 @@ struct AnimatedImageFrameSharingTests {
         #expect(second.diagnostics.decodedFrameCount == 0)
     }
 
+    @Test func theFramesOutliveAPlayerReleasedWhileAFrameIsLanding() async throws {
+        // The player goes in the very job that delivers the last frame, so the
+        // frame lands before the pool has swept the player out of the store.
+        // The store is idle all the same, and an idle store keeps everything.
+        let source = try makeSource(frameCount: 4)
+        let decoder = MainActorGatedFrameDecoder()
+        var player: AnimatedImagePlayer? = makePlayer(source: source, decoder: decoder)
+        let store = try #require(player?.store)
+        for index in 0..<3 {
+            decoder.release(index)
+            await store.currentDecode?.value
+        }
+        #expect(store.decodedFrameCount(in: 0..<4) == 3)
+        let decode = try #require(store.currentDecode)
+
+        decoder.willReturn = { index in
+            if index == 3 { player = nil }
+        }
+        decoder.release(3)
+        await decode.value
+        await settle()
+
+        #expect(pool.playerCount == 0)
+        #expect(store.decodedFrameCount(in: 0..<4) == 4)
+        #expect(pool.totalCost == store.byteCount)
+    }
+
     @Test func theFramesGoWhenTheAnimationDoes() async throws {
         var source: AnimatedImageSource? = try makeSource(frameCount: 6)
         var player: AnimatedImagePlayer? = makePlayer(source: try #require(source))
@@ -634,5 +661,37 @@ struct AnimatedImageFrameSharingTests {
     /// the main actor.
     private func settle() async {
         for _ in 0..<10 { await Task.yield() }
+    }
+}
+
+/// A decoder on the main actor – which the protocol allows – that hands over a
+/// frame once the test releases it, and says so just before it does.
+///
+/// A frame then lands in the same job it is returned in, so a test can release
+/// a player as a frame lands and know the decode reaches the store before the
+/// division the release asks for.
+@MainActor
+private final class MainActorGatedFrameDecoder: AnimatedImageFrameDecoding {
+    private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var released: Set<Int> = []
+
+    /// Called with the index of the frame about to be returned.
+    var willReturn: ((Int) -> Void)?
+
+    func decode(at index: Int) async -> CGImage? {
+        if released.remove(index) == nil {
+            await withCheckedContinuation { gates[index] = $0 }
+        }
+        willReturn?(index)
+        return RefusingFrameDecoder.makeFrame(at: index)
+    }
+
+    /// Lets the decode of the given frame finish, whether or not it has started.
+    func release(_ index: Int) {
+        if let gate = gates.removeValue(forKey: index) {
+            gate.resume()
+        } else {
+            released.insert(index)
+        }
     }
 }
