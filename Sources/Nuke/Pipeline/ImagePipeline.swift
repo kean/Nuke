@@ -54,13 +54,16 @@ public final class ImagePipeline: Sendable {
 
     private(set) var isInvalidated = false
 
-    private nonisolated var nextTaskID: UInt64 {
-        _nextTaskID.withLock { value in
-            value += 1
-            return value
-        }
+    /// The state the task creation reads off the actor: the task IDs, and
+    /// whether the pipeline was invalidated. `invalidate()` records the latter
+    /// before it returns, so a task created after that fails even if it reaches
+    /// the actor ahead of the invalidation.
+    private nonisolated let _state = OSAllocatedUnfairLock(initialState: State())
+
+    private struct State {
+        var nextTaskID: UInt64 = 0
+        var isInvalidated = false
     }
-    private nonisolated let _nextTaskID = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     /// Records the diagnostics. `nil` unless
     /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
@@ -135,8 +138,9 @@ public final class ImagePipeline: Sendable {
     /// Invalidates the pipeline and cancels all outstanding tasks. Any new
     /// requests will immediately fail with ``ImagePipeline/Error/pipelineInvalidated`` error.
     nonisolated public func invalidate() {
+        let wasInvalidated = _state.withLock { exchange(&$0.isInvalidated, with: true) }
+        guard !wasInvalidated else { return }
         Task { @ImagePipelineActor in
-            guard !self.isInvalidated else { return }
             self.isInvalidated = true
             while let node = self.tasks.first {
                 self.imageTaskCancelCalled(node.value)
@@ -206,21 +210,28 @@ public final class ImagePipeline: Sendable {
     // MARK: - ImageTask (Internal)
 
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+        let (taskID, isInvalidated) = _state.withLock { state in
+            state.nextTaskID += 1
+            return (state.nextTaskID, state.isInvalidated)
+        }
         // The creation time is the one thing the diagnostics read off the actor.
-        let task = ImageTask(taskID: nextTaskID, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
+        let task = ImageTask(taskID: taskID, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
         // Important to call it before `imageTaskStartCalled`
         imageTaskCreated(task, isDataTask: isDataTask)
         task._task = Task { @ImagePipelineActor in
             await withUnsafeContinuation { continuation in
                 task._continuation = continuation
-                self.startImageTask(task, isDataTask: isDataTask)
+                self.startImageTask(task, isDataTask: isDataTask, isInvalidated: isInvalidated)
             }
         }
         return task
     }
 
-    // By this time, the task has `continuation` set and is fully wired.
-    private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+    /// By this time, the task has `continuation` set and is fully wired.
+    /// `isInvalidated` is the state of the pipeline when the task was created:
+    /// the task and an earlier `invalidate()` reach the actor in no particular
+    /// order.
+    private func startImageTask(_ task: ImageTask, isDataTask: Bool, isInvalidated: Bool) {
         // Stamped before the record is built: building it reads the request,
         // and that cost belongs to the pipeline, not to the wait it measures.
         let startedAt = recorder?.now
@@ -231,7 +242,7 @@ public final class ImagePipeline: Sendable {
             // case, the `cancel` method does not send the task event.
             return task._dispatch(.finished(.failure(.cancelled)))
         }
-        guard !isInvalidated else {
+        guard !isInvalidated && !self.isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
         if let startedAt {
