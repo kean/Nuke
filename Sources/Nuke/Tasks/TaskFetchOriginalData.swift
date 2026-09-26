@@ -19,7 +19,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var dataLoadCancellable: (any Cancellable)?
     private var dataLoadTask: Task<Void, Never>?
     /// The diagnostics stage of the download, from the moment it is enqueued.
+    /// With a custom delegate, the queue admits `willLoadData` and the download
+    /// together, so it is the delegate's stage that waits for the queue, and
+    /// the download's begins once the delegate returns.
     private var downloadStage: Int?
+    private var willLoadDataStage: Int?
 
     override func start() {
         if case .data(let closure) = request.resource {
@@ -52,28 +56,34 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.
-            let queuedAt: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
-            var isDeferred = false
+            var rateLimitStage: Int?
+            var isHeld = true
             rateLimiter.execute { [weak self] in
+                isHeld = false
                 guard let self, !self.isDisposed else {
                     return false
                 }
-                if isDeferred, let queuedAt {
-                    // The limiter held the request: `execute` returned before
-                    // it ran the work.
-                    self.diagnostics?.recordStage(.rateLimit, from: queuedAt)
-                }
+                self.diagnostics?.endStage(rateLimitStage)
                 self.loadData(urlRequest: urlRequest)
                 return true
             }
-            isDeferred = true
+            if isHeld {
+                // The limiter held the request: `execute` returned before it
+                // ran the work. The stage is closed when the work runs, or
+                // along with the job if the task is cancelled first.
+                rateLimitStage = diagnostics?.beginStage(.rateLimit)
+            }
         } else { // Start loading immediately.
             loadData(urlRequest: urlRequest)
         }
     }
 
     private func loadData(urlRequest: URLRequest) {
-        downloadStage = diagnostics?.beginStage(.download, queued: true)
+        if pipeline.isDefaultDelegate {
+            downloadStage = diagnostics?.beginStage(.download, queued: true)
+        } else {
+            willLoadDataStage = diagnostics?.beginStage(.willLoadData, queued: true)
+        }
         if request.options.contains(.skipDataLoadingQueue) {
             dataLoadTask = Task { @ImagePipelineActor in
                 await self.performDataLoad(urlRequest: urlRequest)
@@ -110,6 +120,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             guard let self else { return }
             self.dataLoadTask?.cancel()
             self.dataLoadCancellable?.cancel()
+            if self.urlResponse != nil {
+                // The task's record is captured right after this, and the
+                // download stopped short: say how much of it arrived.
+                self.diagnostics?.updateStage(self.downloadStage) { self.recordTransfer(in: &$0) }
+            }
             self.tryToSaveResumableData()
             // A loader doesn't have to call the completion after `cancel()`,
             // so resume here to give back the data loading queue slot.
@@ -119,7 +134,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
-            let willLoadDataStage = pipeline.isDefaultDelegate ? nil : diagnostics?.beginStage(.willLoadData)
+            diagnostics?.startStage(willLoadDataStage)
             do {
                 urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
             } catch {
@@ -131,7 +146,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             // `onCancelled` already ran, so there is nothing left to clean up.
             guard !isDisposed else { return }
 
-            diagnostics?.startStage(downloadStage)
+            if pipeline.isDefaultDelegate {
+                diagnostics?.startStage(downloadStage)
+            } else {
+                downloadStage = diagnostics?.beginStage(.download)
+            }
             try await loadData(with: urlRequest, dataLoader: dataLoader)
             await dataTaskDidFinish()
         } catch {
@@ -268,17 +287,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
         guard !isDisposed else { return }
 
-        diagnostics?.endStage(downloadStage) { stage in
-            // `URLSession` collected its metrics before the continuation that
-            // brought us here resumed, so they say whether the bytes came off
-            // the network or out of the session's own cache.
-            stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
-            stage.bytes = Int64(data.count)
-            stage.resumedBytes = resumedDataCount
-            if let urlResponse, urlResponse.expectedContentLength >= 0 {
-                stage.expectedBytes = expectedSize(of: urlResponse)
-            }
-        }
+        diagnostics?.endStage(downloadStage) { recordTransfer(in: &$0) }
 
         if let error {
             tryToSaveResumableData()
@@ -296,6 +305,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         await storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
+    }
+
+    /// Stamps the download stage with what it got, and from where.
+    private func recordTransfer(in stage: inout ImagePipeline.Diagnostics.Stage) {
+        // `URLSession` collects its metrics before the completion, so once
+        // they are in they say whether the bytes came off the network or out
+        // of the session's own cache.
+        stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
+        stage.bytes = Int64(data.count)
+        stage.resumedBytes = resumedDataCount
+        if let urlResponse, urlResponse.expectedContentLength >= 0 {
+            stage.expectedBytes = expectedSize(of: urlResponse)
+        }
     }
 
     // MARK: Async Data Loading

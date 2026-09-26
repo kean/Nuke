@@ -257,6 +257,8 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
         #expect(metrics.jobs.allSatisfy { $0.joinedAt != nil })
         #expect(metrics.jobs.allSatisfy { $0.taskIDs == [recorded.taskId] })
+        // The creator is unknown, and the task that joined isn't it
+        #expect(metrics.jobs.allSatisfy { $0.createdByTaskID == 0 })
         #expect(metrics.sharedTaskIDs.isEmpty)
         #expect(dataLoader.createdTaskCount == 1)
         // The header says the task was coalesced, and with nobody it can name
@@ -426,6 +428,48 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(rateLimitRow < downloadRow, "Unexpected timeline:\n\(metrics.description)")
     }
 
+    /// The limiter holds exactly the requests a fast scroll cancels, and the
+    /// wait is on the record of a task cancelled before it was let through.
+    @Test @ImagePipelineActor func requestCancelledWhileTheRateLimiterHoldsItIsAWait() async throws {
+        // GIVEN a rate limiter with a backlog, which holds the next request
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let rateLimiter = try #require(pipeline.rateLimiter)
+        let started = TestExpectation()
+        pipeline.onTaskStarted = { _ in started.fulfill() }
+        let task = pipeline.imageTask(with: Test.request)
+        for _ in 0..<200 {
+            rateLimiter.execute { true }
+        }
+        // The task reached the limiter in the actor turn that started it
+        await started.wait()
+        pipeline.onTaskStarted = nil
+
+        // WHEN it is cancelled while the limiter holds it
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the wait is the only stage, closed with the job
+        let metrics = try #require(task.metrics)
+        let fetch = try #require(metrics.jobs.last)
+        #expect(fetch.kind == .fetchOriginalData)
+        #expect(fetch.stages.map(\.kind) == [.rateLimit])
+        let rateLimit = try #require(fetch.stages.first)
+        let duration = try #require(rateLimit.duration)
+        #expect(try #require(rateLimit.startedAt) + duration <= metrics.endedAt)
+        #expect(dataLoader.createdTaskCount == 0)
+
+        // THEN it is rate limiter time, not `other`
+        let share = try #require(metrics.timeShares.first { $0.category == .rateLimit }, "No rateLimit time in:\n\(metrics.description)")
+        #expect(abs(share.duration - duration) < 1e-6)
+    }
+
     // MARK: - Cancellation
 
     /// "The work that was running is cancelled along with the job": the
@@ -463,6 +507,40 @@ struct ImagePipelineDiagnosticsRecordingTests {
         let description = metrics.description
         #expect(!description.contains("\ntransfer:"), "Unexpected transfer in:\n\(description)")
         #expect(!description.contains("running"), "Unexpected running row in:\n\(description)")
+    }
+
+    /// A download cancelled after it received data – the usual way a download
+    /// stops short – says how much of it arrived, of how much.
+    @Test func cancelledDownloadKeepsTheBytesItReceived() async throws {
+        // GIVEN a download that served its first chunk and holds the rest
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let task = pipeline.imageTask(with: Test.request)
+        await waitUntil { task.status.progress.completed > 0 }
+        let received = task.status.progress.completed
+
+        // WHEN
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the record has the bytes, and the size the server announced
+        let metrics = try #require(task.metrics)
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        #expect(download.firstByteAt != nil)
+        #expect(download.statusCode == 200)
+        #expect(download.source == .network)
+        #expect(download.bytes == received)
+        #expect(download.expectedBytes == Int64(dataLoader.data.count))
+        #expect(metrics.bytes?.downloaded == received)
+        #expect(metrics.bytes?.expected == Int64(dataLoader.data.count))
+        #expect(metrics.description.range(of: #"\ntransfer: +[0-9.]+ KB of [0-9.]+ KB\n"#, options: .regularExpression) != nil, "No transfer in:\n\(metrics.description)")
     }
 
     /// A task that left work others still needed sees it running.
@@ -666,13 +744,14 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.error?.underlyingDomain == NSURLErrorDomain)
         #expect(metrics.error?.underlyingCode == URLError.userAuthenticationRequired.rawValue)
 
-        // THEN the delegate ran and the download never did
+        // THEN the delegate ran and there was no download: it got nothing
+        // from anywhere, so the task has no transfer to report
         let fetch = try #require(metrics.jobs.last)
-        let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData })
+        #expect(fetch.stages.map(\.kind) == [.willLoadData])
+        let willLoadData = try #require(fetch.stages.first)
         #expect(willLoadData.duration != nil)
-        let download = try #require(fetch.stages.first { $0.kind == .download })
-        #expect(download.startedAt == nil)
-        #expect(download.firstByteAt == nil)
+        #expect(metrics.bytes == nil)
+        #expect(!metrics.description.contains("\ntransfer:"), "Unexpected transfer in:\n\(metrics.description)")
         #expect(dataLoader.createdTaskCount == 0)
     }
 

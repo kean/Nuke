@@ -171,6 +171,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
     /// The metrics of the tasks whose handlers asked for them, held from
     /// the moment they are collected to the completion, which delivers them.
     private nonisolated(unsafe) var metrics = [URLSessionTask: URLSessionTaskMetrics]()
+    /// The validation errors of the responses the tasks that collect metrics
+    /// were cancelled for, held until the completion, which delivers them.
+    private nonisolated(unsafe) var rejections = [URLSessionTask: Error]()
 
     var delegate: URLSessionDelegate? {
         get { _delegate.withLockUnchecked { $0 } }
@@ -216,11 +219,17 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
             return
         }
         if let error = validate(response) {
-            // Unregister the handler first: `.cancel` makes `URLSession` deliver
-            // `didCompleteWithError`, which would otherwise call the completion
-            // a second time, breaking the `DataLoading` contract.
-            handlers[dataTask] = nil
-            handler.completion(error, nil)
+            // `.cancel` makes `URLSession` deliver `didCompleteWithError`, which
+            // must not call the completion a second time (the `DataLoading`
+            // contract). A handler that asked for the metrics is completed from
+            // there, since the session collects them only after this point;
+            // the rest are completed right away and unregistered.
+            if handler.collectsMetrics {
+                rejections[dataTask] = error
+            } else {
+                handlers[dataTask] = nil
+                handler.completion(error, nil)
+            }
             completionHandler(.cancel)
             return
         }
@@ -231,11 +240,13 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didCompleteWithError: error)
         assert(task is URLSessionDataTask)
         let metrics = metrics.removeValue(forKey: task)
+        let rejection = rejections.isEmpty ? nil : rejections.removeValue(forKey: task)
         guard let handler = handlers[task] else {
             return
         }
         handlers[task] = nil
-        handler.completion(error, metrics)
+        // The rejected response is the error, not the `.cancelled` it led to.
+        handler.completion(rejection ?? error, metrics)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {

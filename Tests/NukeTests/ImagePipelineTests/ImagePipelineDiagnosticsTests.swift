@@ -429,21 +429,58 @@ struct ImagePipelineDiagnosticsTests {
         // THEN
         let metrics = try #require(task.metrics)
         let fetch = try #require(metrics.jobs.last)
-        #expect(Set(fetch.stages.map(\.kind)) == [.willLoadData, .download])
-        let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData }?.duration)
-        #expect(willLoadData >= 0.02)
-        // The download is enqueued before the delegate runs, so its wait
-        // includes the delegate.
-        let queueWait = try #require(fetch.stages.first { $0.kind == .download }?.queueWait)
-        #expect(queueWait >= 0.02)
-        // THEN the rows read in the order the work ran: the download is
-        // enqueued first, the delegate runs once the queue admits it, and the
-        // download follows
+        #expect(fetch.stages.map(\.kind) == [.willLoadData, .download])
+        let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData })
+        #expect(try #require(willLoadData.duration) >= 0.02)
+        // The queue admits the delegate and the download together, so it is
+        // the delegate that waits for the queue, and the download starts
+        // once the delegate returns
+        #expect(willLoadData.queuedAt != nil)
+        #expect(willLoadData.queueWait != nil)
+        let download = try #require(fetch.stages.first { $0.kind == .download })
+        #expect(download.queuedAt == nil)
+        let downloadStartedAt = try #require(download.startedAt)
+        let willLoadDataEndedAt = try #require(willLoadData.endedAt)
+        #expect(downloadStartedAt >= willLoadDataEndedAt)
+        // THEN the rows read in the order the work ran: the delegate runs once
+        // the queue admits it, and the download follows
         let labels = ["dataLoadingQueue", "willLoadData", "download"]
         let order = metrics.description.split(separator: "\n").compactMap { line in
             labels.first { line.contains("─ \($0) ") }
         }
-        #expect(order == labels, "Unexpected order in:\n\(metrics.description)")
+        #expect(order == labels.filter { $0 != "dataLoadingQueue" } || order == labels, "Unexpected order in:\n\(metrics.description)")
+    }
+
+    /// With one task on an idle pipeline, the queues admit the work at once:
+    /// the time went into the delegate, not into `dataLoadingQueue`.
+    @Test(arguments: [false, true])
+    func delegateTimeIsNotAQueueWait(skipDataLoadingQueue: Bool) async throws {
+        // GIVEN an idle pipeline with a delegate that takes 100 ms
+        let pipeline = ImagePipeline(delegate: _SlowDelegate(delay: .milliseconds(100))) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isRateLimiterEnabled = false
+            $0.isDiagnosticsEnabled = true
+        }
+        var request = Test.request
+        if skipDataLoadingQueue {
+            request.options.insert(.skipDataLoadingQueue)
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: request)
+        _ = try await task.response
+
+        // THEN the delegate's time is not reported as a wait for a queue
+        let metrics = try #require(task.metrics)
+        let fetch = try #require(metrics.jobs.last)
+        let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData }?.duration)
+        #expect(willLoadData >= 0.1)
+        let queue = metrics.timeShares.first { $0.category == .queue }?.duration ?? 0
+        #expect(queue < willLoadData, "queue \(queue * 1000) ms of \(metrics.duration * 1000) ms for a delegate that took \(willLoadData * 1000) ms:\n\(metrics.description)")
+        let other = metrics.timeShares.first { $0.category == .other }?.duration ?? 0
+        #expect(other >= willLoadData - 1e-6, "The delegate's time isn't `other` in:\n\(metrics.description)")
     }
 
     // MARK: - Coalescing
@@ -1123,10 +1160,47 @@ struct ImagePipelineDiagnosticsTests {
         #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
         #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
     }
+
+    /// The session collects the metrics of a task only after the response
+    /// was rejected, so the loader used to complete without them.
+    @Test func rejectedResponseHasURLSessionMetrics() async throws {
+        // GIVEN a pipeline on `DataLoader`, and a resource that is not found
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [_FixtureURLProtocol.self]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = DataLoader(configuration: configuration)
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let url = URL(string: "fixture://diagnostics/404.jpeg")!
+
+        // WHEN
+        let task = pipeline.imageTask(with: url)
+        do {
+            _ = try await task.response
+            Issue.record("Expected the load to fail")
+        } catch {
+            guard case .statusCodeUnacceptable(404)? = error.dataLoadingError as? DataLoader.Error else {
+                Issue.record("Unexpected error: \(error)")
+                return
+            }
+        }
+
+        // THEN the completed download carries what the session measured, the
+        // way a successful download and a network failure do
+        let metrics = try #require(task.metrics)
+        #expect(metrics.error?.code == "dataLoadingFailed")
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        #expect(download.urlSessionTaskID != nil)
+        #expect(download.urlSessionMetrics != nil)
+        #expect(metrics.urlSessionMetrics != nil)
+    }
 }
 
 /// Serves the fixture image to every request of its scheme, so the session
-/// takes the metrics of a real task without a network.
+/// takes the metrics of a real task without a network. "404.jpeg" is not
+/// found.
 private final class _FixtureURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool {
         request.url?.scheme == "fixture"
@@ -1137,7 +1211,8 @@ private final class _FixtureURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
-        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(Test.data.count)"])!
+        let statusCode = request.url?.lastPathComponent == "404.jpeg" ? 404 : 200
+        let response = HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(Test.data.count)"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Test.data)
         client?.urlProtocolDidFinishLoading(self)
@@ -1175,9 +1250,15 @@ private final class _MetricsCollector: ImagePipeline.Delegate {
 }
 
 private final class _SlowDelegate: ImagePipeline.Delegate, Sendable {
+    let delay: Duration
+
+    init(delay: Duration = .milliseconds(25)) {
+        self.delay = delay
+    }
+
     @ImagePipelineActor
     func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        try await Task.sleep(for: .milliseconds(25))
+        try await Task.sleep(for: delay)
         return urlRequest
     }
 }
