@@ -572,7 +572,10 @@ public final class DataCache: DataCaching, Sendable {
         guard let lastSweepDate = getMetadata().lastSweepDate else {
             return true
         }
-        return Date().timeIntervalSince(lastSweepDate) >= sweepInterval
+        let elapsed = Date().timeIntervalSince(lastSweepDate)
+        // A date ahead of the clock was recorded while the clock was wrong and
+        // must not hold the sweeps back until the clock catches up with it.
+        return elapsed < 0 || elapsed >= sweepInterval
     }
 
     private func performSweep() {

@@ -1138,6 +1138,37 @@ final class DataCacheTests {
         await expectation.wait(timeout: .seconds(5))
     }
 
+    @Test func scheduledSweepRunsWhenTheLastOneIsDatedInTheFuture() async throws {
+        // GIVEN a cache over its size limit whose last sweep was recorded while
+        // the clock was set a year ahead
+        let name = UUID().uuidString
+        let path = URL.cachesDirectory.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        let metadata = SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: 365 * 24 * 3600))
+        try JSONEncoder().encode(metadata).write(to: metadataURL(at: path))
+        for index in 0..<4 {
+            try Data(repeating: UInt8(index), count: 1024 * 1024)
+                .write(to: path.appendingPathComponent("entry\(index)"))
+        }
+
+        // WHEN the app launches
+        let expectation = TestExpectation()
+        let cache = try DataCache(
+            name: name,
+            sweepDelay: .milliseconds(500), // Lets the size limit below land before the sweep reads it
+            onSweepCompleted: { expectation.fulfill() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.sizeLimit = 1024 * 1024
+
+        // THEN the launch sweep runs, trims the cache, and repairs the date
+        await expectation.wait(timeout: .seconds(10))
+        #expect(cache.totalSize <= 1024 * 1024)
+        let date = try #require(lastSweepDate(at: cache.path))
+        #expect(Date().timeIntervalSince(date) < 5)
+        cache.isSweepEnabled = false
+    }
+
     // MARK: Sweep Edge Cases
 
     @Test func sweepWhenSizeUnderLimit() async throws {
