@@ -568,8 +568,17 @@ private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions
         return max(targetSize.width, targetSize.height)
     }
     let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+    // The stored pixels are fitted into the target, so the target has to be
+    // turned whenever the image the caller gets is displayed upright: on UIKit
+    // always, since `UIImage` carries the orientation when the transform is
+    // off; on AppKit only when Image I/O bakes it into the thumbnail, since
+    // `NSImage(cgImage:)` shows the pixels as stored.
 #if canImport(UIKit)
     targetSize = targetSize.rotatedForOrientation(orientation)
+#else
+    if thumbnailOptions.createThumbnailWithTransform {
+        targetSize = targetSize.rotatedForOrientation(orientation)
+    }
 #endif
     let imageSize = CGSize(width: width, height: height)
     let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)
