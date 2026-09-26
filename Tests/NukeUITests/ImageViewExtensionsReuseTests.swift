@@ -20,29 +20,13 @@ import AppKit
 /// documented on it.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct ImageViewExtensionsReuseTests {
-    let imageView: _ImageView
-    let observer: ImagePipelineObserver
-    let imageCache: MockImageCache
-    let dataLoader: MockDataLoader
-    let pipeline: ImagePipeline
-    let options: ImageLoadingOptions
-
-    init() {
-        let imageCache = MockImageCache()
-        let dataLoader = MockDataLoader()
-        let observer = ImagePipelineObserver()
-        self.imageCache = imageCache
-        self.dataLoader = dataLoader
-        self.observer = observer
-        self.pipeline = ImagePipeline(delegate: observer) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = imageCache
-        }
-        self.imageView = _ImageView()
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        self.options = options
-    }
+    private let fixture = ImageViewFixture()
+    var imageView: _ImageView { fixture.imageView }
+    var observer: ImagePipelineObserver { fixture.observer }
+    var imageCache: MockImageCache { fixture.imageCache }
+    var dataLoader: MockDataLoader { fixture.dataLoader }
+    var pipeline: ImagePipeline { fixture.pipeline }
+    var options: ImageLoadingOptions { fixture.options }
 
     // MARK: - Reuse
 
@@ -537,7 +521,7 @@ struct ImageViewExtensionsReuseTests {
         // Given an empty image view in a window, which is what makes UIKit
         // run animations. The transition is long so that a temporary view,
         // if one were added, would still be there when the load completes.
-        let (window, container) = makeHostedImageView()
+        let (window, container) = hostInWindow(imageView)
         var options = options
         options.transition = .fadeIn(duration: 10)
         options.contentModes = .init(success: .scaleAspectFill, failure: .center, placeholder: .center)
@@ -555,7 +539,7 @@ struct ImageViewExtensionsReuseTests {
 
     @Test func fadeInWithSameContentModeDoesNotCrossDissolve() async throws {
         // Given a view displaying an image with the target content mode
-        let (window, container) = makeHostedImageView()
+        let (window, container) = hostInWindow(imageView)
         imageView.image = Test.image
         imageView.contentMode = .scaleAspectFill
         var options = options
@@ -573,7 +557,7 @@ struct ImageViewExtensionsReuseTests {
 
     @Test func crossDissolveViewMimicsTheImageView() async throws {
         // Given a view displaying an image with a different content mode
-        let (window, container) = makeHostedImageView()
+        let (window, container) = hostInWindow(imageView)
         let previousImage = Test.image
         imageView.image = previousImage
         imageView.contentMode = .center
@@ -601,16 +585,6 @@ struct ImageViewExtensionsReuseTests {
         #expect(imageView.contentMode == .scaleAspectFill)
         #expect(imageView.image !== previousImage)
         withExtendedLifetime(window) {}
-    }
-
-    private func makeHostedImageView() -> (UIWindow, UIView) {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
-        let container = UIView(frame: window.bounds)
-        window.addSubview(container)
-        window.isHidden = false
-        container.addSubview(imageView)
-        imageView.frame = container.bounds
-        return (window, container)
     }
 #endif
 

@@ -134,6 +134,54 @@ struct ImagePipelineDataTaskTests {
         #expect(dataCache.writeCount == 0)
     }
 
+    @Test func loaderErrorIsReportedAsDataLoadingFailed() async {
+        // GIVEN
+        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
+        dataLoader.results[Test.url] = .failure(expectedError)
+
+        // WHEN/THEN
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
+        } catch {
+            #expect(error == .dataLoadingFailed(error: expectedError))
+        }
+    }
+
+    /// The error of the data loader reaches the caller intact, so an app can
+    /// tell why the download failed – for example, to fall back to a smaller
+    /// image in Low Data Mode.
+    @Test func constrainedNetworkErrorAllowsALowDataModeFallback() async throws {
+        // GIVEN
+        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
+        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
+
+        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
+        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
+
+        let pipeline = self.pipeline
+
+        // Create the default request to fetch the high quality image.
+        var urlRequest = URLRequest(url: highQualityImageURL)
+        urlRequest.allowsConstrainedNetworkAccess = false
+        let request = ImageRequest(urlRequest: urlRequest)
+
+        // WHEN
+        @Sendable func loadImage() async throws(ImagePipeline.Error) -> PlatformImage {
+            do {
+                return try await pipeline.image(for: request)
+            } catch {
+                guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                    throw error
+                }
+                return try await pipeline.image(for: lowQualityImageURL)
+            }
+        }
+
+        // THEN
+        _ = try await loadImage()
+    }
+
     /// A request for an image container has no data to return.
     @Test func imageClosureRequestFailsToLoadData() async throws {
         // GIVEN
@@ -264,6 +312,25 @@ struct ImagePipelineDataTaskTests {
         #expect(calls.withLock { $0 } == 1)
     }
 
+    @Test func closureErrorIsReportedAsDataLoadingFailed() async throws {
+        // GIVEN
+        let request = ImageRequest(id: "test", data: {
+            throw URLError(networkUnavailableReason: .cellular)
+        })
+
+        // WHEN/THEN
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record("Expected failure")
+        } catch {
+            if case let .dataLoadingFailed(error) = error {
+                #expect((error as? URLError)?.networkUnavailableReason == .cellular)
+            } else {
+                Issue.record("Unexpected error type")
+            }
+        }
+    }
+
     /// The docs: "Use disableDiskCache to prevent this".
     @Test func closureDataIsNotStoredWithDisableDiskCache() async throws {
         // GIVEN
@@ -360,6 +427,25 @@ struct ImagePipelineDataTaskTests {
         #expect(dataCache.writeCount == 0)
     }
 
+    /// `data(for:)` awaits the response of the task it creates, so cancelling
+    /// the Swift task that calls it cancels the data task.
+    @Test func cancellingTheSwiftTaskThatAwaitsDataForCancelsTheLoad() async throws {
+        // GIVEN
+        dataLoader.isSuspended = true
+
+        // WHEN
+        let pipeline = self.pipeline
+        let task = Task {
+            try await pipeline.data(for: Test.request)
+        }
+        task.cancel()
+
+        // THEN
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.value
+        }
+    }
+
     @Test func cancellingOneOfTwoDataTasksLeavesTheDownloadRunning() async throws {
         // GIVEN two data tasks waiting for the same download
         dataLoader.isSuspended = true
@@ -444,7 +530,7 @@ struct ImagePipelineDataTaskTests {
 
         // WHEN a data task is started while the only slot is taken
         let next = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // THEN it waits for the slot
         #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 2)
@@ -529,7 +615,7 @@ struct ImagePipelineDataTaskTests {
         #expect(operation.priority == .high)
 
         // WHEN/THEN the priority of the task changes
-        await queue.waitForPriorityChange(of: operation, to: .veryLow) {
+        await waitForPriorityChange(of: operation, to: .veryLow) {
             task.priority = .veryLow
         }
         task.cancel()
@@ -612,5 +698,12 @@ private final class _DataLoadingDelegate: ImagePipeline.Delegate, @unchecked Sen
 
     func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
         isDataCacheDisabled(request) ? nil : pipeline.configuration.dataCache
+    }
+}
+
+private extension URLError {
+    /// Foundation reads the reason from the user info: no initializer takes it.
+    init(networkUnavailableReason reason: NetworkUnavailableReason) {
+        self.init(.notConnectedToInternet, userInfo: [NSURLErrorNetworkUnavailableReasonKey: reason.rawValue])
     }
 }

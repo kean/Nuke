@@ -4,7 +4,6 @@
 
 import Testing
 import Foundation
-import os
 @testable import Nuke
 
 /// "The work only gets canceled when all the registered requests are, and the
@@ -36,12 +35,12 @@ struct ImagePipelineSharedWorkPriorityTests {
 
         // When a high-priority task joins it
         var highTask: ImageTask?
-        await queue.waitForPriorityChange(of: operation, to: .high) {
+        await waitForPriorityChange(of: operation, to: .high) {
             highTask = pipeline.imageTask(with: ImageRequest(url: Test.url, priority: .high))
         }
 
         // And then leaves
-        await queue.waitForPriorityChange(of: operation, to: .low) {
+        await waitForPriorityChange(of: operation, to: .low) {
             highTask?.cancel()
         }
 
@@ -65,15 +64,15 @@ struct ImagePipelineSharedWorkPriorityTests {
         }
         let operation = try #require(operations.first)
         // The second task may join the download after it's enqueued
-        await queue.waitForPriorityChange(of: operation, to: .high) {}
+        await waitForPriorityChange(of: operation, to: .high) {}
 
         // When the task with the highest priority lowers it
-        await queue.waitForPriorityChange(of: operation, to: .normal) {
+        await waitForPriorityChange(of: operation, to: .normal) {
             second?.priority = .veryLow
         }
 
         // And the other one raises it
-        await queue.waitForPriorityChange(of: operation, to: .veryHigh) {
+        await waitForPriorityChange(of: operation, to: .veryHigh) {
             first?.priority = .veryHigh
         }
 
@@ -101,7 +100,7 @@ struct ImagePipelineSharedWorkPriorityTests {
         let operation = try #require(operations.first)
 
         // When/Then
-        await queue.waitForPriorityChange(of: operation, to: .veryHigh) {
+        await waitForPriorityChange(of: operation, to: .veryHigh) {
             task?.priority = .veryHigh
         }
         queue.isSuspended = false
@@ -114,11 +113,11 @@ struct ImagePipelineSharedWorkPriorityTests {
 /// to the data loader is the order in which the queue schedules them.
 @Suite(.timeLimit(.minutes(5))) @ImagePipelineActor
 struct ImagePipelineSchedulingOrderTests {
-    private let dataLoader: RecordingDataLoader
+    private let dataLoader: MockDataLoader
     private let pipeline: ImagePipeline
 
     init() {
-        let dataLoader = RecordingDataLoader()
+        let dataLoader = MockDataLoader()
         self.dataLoader = dataLoader
         self.pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -155,14 +154,17 @@ struct ImagePipelineSchedulingOrderTests {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         var tasks: [ImageTask] = []
-        _ = await queue.waitForOperations(count: 3) {
+        let operations = await queue.waitForOperations(count: 3) {
             for name in ["a", "b", "c"] {
                 tasks.append(pipeline.imageTask(with: url(name)))
             }
         }
+        // The tasks start in the order they were created, and each one
+        // enqueues its download as it starts.
+        let lastOperation = try #require(operations.last)
 
         // When the last one needs its image first
-        await waitForPriorityChange(on: queue, to: .veryHigh) {
+        await waitForPriorityChange(of: lastOperation, to: .veryHigh) {
             tasks[2].priority = .veryHigh
         }
         queue.isSuspended = false
@@ -179,40 +181,5 @@ struct ImagePipelineSchedulingOrderTests {
 
     private func url(_ name: String) -> URL {
         URL(string: "http://test.com/\(name).jpeg")!
-    }
-
-    /// Waits until the priority of any of the operations of the queue
-    /// changes to the given one.
-    private func waitForPriorityChange(on queue: TaskQueue, to priority: TaskPriority, while action: () -> Void) async {
-        let expectation = TestExpectation()
-        let previous = queue.onEvent
-        queue.onEvent = { event in
-            previous?(event)
-            if case .priorityChanged(let operation) = event, operation.priority == priority {
-                expectation.fulfill()
-            }
-        }
-        action()
-        await expectation.wait()
-        queue.onEvent = previous
-    }
-}
-
-/// Serves the fixture for every request and records the order of the requests.
-private final class RecordingDataLoader: DataLoading, Sendable {
-    private let urls = OSAllocatedUnfairLock(initialState: [URL]())
-
-    var requestedURLs: [URL] {
-        urls.withLock { $0 }
-    }
-
-    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        let url = request.url ?? Test.url
-        urls.withLock { $0.append(url) }
-        DispatchQueue.global().async {
-            didReceiveData(Test.data, URLResponse(url: url, mimeType: "jpeg", expectedContentLength: Test.data.count, textEncodingName: nil))
-            completion(nil)
-        }
-        return AnonymousCancellable {}
     }
 }

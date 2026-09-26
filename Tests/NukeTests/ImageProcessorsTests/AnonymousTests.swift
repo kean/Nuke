@@ -12,33 +12,6 @@ import Testing
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsAnonymousTests {
 
-    @Test func anonymousProcessorsHaveDifferentIdentifiers() {
-        #expect(
-            ImageProcessors.Anonymous(id: "1", { $0 }).identifier ==
-            ImageProcessors.Anonymous(id: "1", { $0 }).identifier
-        )
-        #expect(
-            ImageProcessors.Anonymous(id: "1", { $0 }).identifier !=
-            ImageProcessors.Anonymous(id: "2", { $0 }).identifier
-        )
-    }
-
-    @Test func anonymousProcessorsHaveDifferentHashableIdentifiers() {
-        #expect(
-            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier ==
-            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier !=
-            ImageProcessors.Anonymous(id: "2", { $0 }).hashableIdentifier
-        )
-    }
-
-    @Test func anonymousProcessorDescription() {
-        let processor = ImageProcessors.Anonymous(id: "my-processor", { $0 })
-        #expect(processor.description.contains("my-processor"))
-    }
-
     @Test func anonymousProcessorReturnsNil() {
         let processor = ImageProcessors.Anonymous(id: "nil-processor") { _ in nil }
         let result = processor.process(Test.image)

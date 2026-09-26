@@ -40,6 +40,13 @@ struct ImagePipelineInvalidationTests {
              Task { try await pipeline.data(for: ImageRequest(url: URL(string: "http://test.com/data.jpeg"))) })
         }
         #expect(await pipeline.taskCount == 4)
+        // ...with every download handed to the data loader
+        await waitUntil { dataLoader.createdTaskCount == 4 }
+        let cancelledDownloads = LockedArray<Void>()
+        let observation = NotificationCenter.default.addObserver(forName: MockDataLoader.DidCancelTask, object: dataLoader, queue: nil) { _ in
+            cancelledDownloads.append(())
+        }
+        defer { NotificationCenter.default.removeObserver(observation) }
 
         // When
         pipeline.invalidate()
@@ -57,6 +64,8 @@ struct ImagePipelineInvalidationTests {
         #expect(await pipeline.taskCount == 0)
         // The delegate isn't told about the data requests
         #expect(observer.cancelledTaskCount == 3)
+        // Every download is cancelled
+        #expect(cancelledDownloads.count == 4)
     }
 
     // MARK: - New Requests

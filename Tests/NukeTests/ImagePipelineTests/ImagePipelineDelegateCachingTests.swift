@@ -13,13 +13,13 @@ struct ImagePipelineDelegateCachingTests {
     private let dataLoader: MockDataLoader
     private let imageCache: MockImageCache
     private let dataCache: MockDataCache
-    private let delegate: CachingDelegate
+    private let delegate: MockCachingDelegate
 
     init() {
         self.dataLoader = MockDataLoader()
         self.imageCache = MockImageCache()
         self.dataCache = MockDataCache()
-        self.delegate = CachingDelegate()
+        self.delegate = MockCachingDelegate()
     }
 
     private func makePipeline(_ policy: ImagePipeline.DataCachePolicy = .storeOriginalData, _ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
@@ -267,11 +267,8 @@ struct ImagePipelineDelegateCachingTests {
 
     @Test func encoderForProcessedImagesReceivesTheURLResponse() async throws {
         // GIVEN
-        let encoders = LockedArray<ImageEncodingContext>()
-        delegate.encoder = { context in
-            encoders.append(context)
-            return MockImageEncoder(result: Test.data)
-        }
+        let encoder = MockImageEncoder(result: Test.data)
+        delegate.encoder = { _ in encoder }
         let pipeline = makePipeline(.automatic)
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
@@ -280,63 +277,10 @@ struct ImagePipelineDelegateCachingTests {
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
-        let context = try #require(encoders.values.first)
-        #expect(encoders.values.count == 1)
+        let context = try #require(encoder.contexts.first)
+        #expect(encoder.contexts.count == 1)
         #expect(context.urlResponse?.url == Test.url)
         #expect(context.request.processors.count == 1)
         #expect(context.image.nk_test_processorIDs == ["p1"])
-    }
-}
-
-// MARK: - Helpers
-
-/// Overrides the caching hooks of ``ImagePipeline/Delegate-swift.protocol``
-/// with closures, falling back to the pipeline configuration for the ones
-/// that are not set, and records the `willCache` calls.
-final class CachingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    struct WillCacheCall {
-        let data: Data
-        let image: ImageContainer?
-        let request: ImageRequest
-    }
-
-    var imageCache: ((ImageRequest) -> (any ImageCaching)?)?
-    var dataCache: ((ImageRequest) -> (any DataCaching)?)?
-    var cacheKey: ((ImageRequest) -> String?)?
-    var decoder: ((ImageDecodingContext) -> (any ImageDecoding)?)?
-    var encoder: ((ImageEncodingContext) -> any ImageEncoding)?
-    /// Replaces the data passed to `willCache`.
-    var willCacheTransform: ((Data) -> Data?)?
-
-    private let _willCacheCalls = LockedArray<WillCacheCall>()
-    var willCacheCalls: [WillCacheCall] { _willCacheCalls.values }
-
-    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
-        if let imageCache { return imageCache(request) }
-        return pipeline.configuration.imageCache
-    }
-
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
-        if let dataCache { return dataCache(request) }
-        return pipeline.configuration.dataCache
-    }
-
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        cacheKey?(request)
-    }
-
-    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
-        if let decoder { return decoder(context) }
-        return pipeline.configuration.makeImageDecoder(context)
-    }
-
-    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
-        if let encoder { return encoder(context) }
-        return pipeline.configuration.makeImageEncoder(context)
-    }
-
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
-        _willCacheCalls.append(WillCacheCall(data: data, image: image, request: request))
-        return willCacheTransform.map { $0(data) } ?? data
     }
 }

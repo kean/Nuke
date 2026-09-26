@@ -68,14 +68,14 @@ final class ViewHost<Value, Content: View> {
     }
 
     /// Changes the input the content is built from, then lets SwiftUI render.
-    func update(_ value: Value, until condition: () -> Bool = { false }) async {
+    func update(_ value: Value, until condition: (() -> Bool)? = nil) async {
         model.value = value
         await render(until: condition)
     }
 
     /// Detaches the hosted view from the window, triggering `onDisappear`. The
     /// view keeps the state it owns, like a view that scrolls out of sight.
-    func hideContent(until condition: () -> Bool = { false }) async {
+    func hideContent(until condition: (() -> Bool)? = nil) async {
 #if os(macOS)
         window.contentView = NSView(frame: frame)
 #else
@@ -85,7 +85,7 @@ final class ViewHost<Value, Content: View> {
     }
 
     /// Re-attaches the hosted view to the window, triggering `onAppear`.
-    func showContent(until condition: () -> Bool = { false }) async {
+    func showContent(until condition: (() -> Bool)? = nil) async {
 #if os(macOS)
         window.contentView = hostingView
 #else
@@ -96,7 +96,7 @@ final class ViewHost<Value, Content: View> {
 
     /// Removes the content from the view hierarchy entirely, releasing the
     /// state that it owns.
-    func removeContent(until condition: () -> Bool = { false }) async {
+    func removeContent(until condition: (() -> Bool)? = nil) async {
         model.isContentInstalled = false
         await render(until: condition)
     }
@@ -115,14 +115,21 @@ final class ViewHost<Value, Content: View> {
 
     /// Gives SwiftUI a chance to apply pending state changes and lay out.
     ///
-    /// Returns as soon as `condition` holds; otherwise pumps for a fixed number
-    /// of turns. Some transitions (notably `onDisappear` on UIKit) are delivered
-    /// over several run loop turns rather than synchronously.
-    func render(until condition: () -> Bool = { false }) async {
-        for _ in 0..<40 {
+    /// Without a condition, pumps for a fixed number of turns. With one,
+    /// returns as soon as it holds, and records an issue if it doesn't hold
+    /// within the timeout. Some transitions (notably `onDisappear` on UIKit)
+    /// are delivered over several run loop turns rather than synchronously.
+    func render(until condition: (() -> Bool)? = nil, timeout: Duration = .seconds(10)) async {
+        guard let condition else {
+            for _ in 0..<40 {
+                layout()
+                try? await Task.sleep(for: .milliseconds(5))
+            }
+            return
+        }
+        await waitUntil(timeout: timeout) {
             layout()
-            if condition() { return }
-            try? await Task.sleep(for: .milliseconds(5))
+            return condition()
         }
     }
 

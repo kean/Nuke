@@ -7,38 +7,39 @@ import Nuke
 
 class MockImageCache: ImageCaching, @unchecked Sendable {
     private let lock = NSLock()
-    var enabled = true
-    var images = [AnyHashable: ImageContainer]()
-    var readCount = 0
-    var writeCount = 0
+    var images: [AnyHashable: ImageContainer] { lock.withLock { _images } }
+    var readCount: Int { lock.withLock { _readCount } }
+    var writeCount: Int { lock.withLock { _writeCount } }
+
+    private var _images = [AnyHashable: ImageContainer]()
+    private var _readCount = 0
+    private var _writeCount = 0
 
     init() {}
 
     func resetCounters() {
-        readCount = 0
-        writeCount = 0
+        lock.withLock {
+            _readCount = 0
+            _writeCount = 0
+        }
     }
 
     subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
             lock.withLock {
-                readCount += 1
-                return enabled ? images[key] : nil
+                _readCount += 1
+                return _images[key]
             }
         }
         set {
             lock.withLock {
-                writeCount += 1
-                if let image = newValue {
-                    if enabled { images[key] = image }
-                } else {
-                    images[key] = nil
-                }
+                _writeCount += 1
+                _images[key] = newValue
             }
         }
     }
 
     func removeAll() {
-        images.removeAll()
+        lock.withLock { _images.removeAll() }
     }
 }

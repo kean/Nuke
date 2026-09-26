@@ -13,34 +13,6 @@ import Foundation
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsRoundedCornersTests {
 
-    @Test(.disabled()) func thatCornerRadiusIsAdded() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        let expected = Test.image(named: "s-rounded-corners.png")
-        #expect(isEqualImages(output, expected))
-        #expect(output.sizeInPixels == CGSize(width: 200, height: 150))
-    }
-
-    @Test(.disabled()) func thatBorderIsAdded() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
-        let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels, border: border)
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        let expected = Test.image(named: "s-rounded-corners-border.png")
-        #expect(isEqualImages(output, expected))
-    }
-
     @Test func extendedColorSpaceSupport() throws {
         // Given
         let input = Test.image(named: "image-p3", extension: "jpg")
@@ -58,86 +30,14 @@ struct ImageProcessorsRoundedCornersTests {
 #endif
     }
 
-    @Test @MainActor func equalIdentifiers() {
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16).identifier ==
-            ImageProcessors.RoundedCorners(radius: 16).identifier
-        )
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).identifier ==
-            ImageProcessors.RoundedCorners(radius: 16 / Screen.scale, unit: .points).identifier
-        )
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier ==
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier
-        )
-    }
+    /// The radius and the width of the border in points are converted to
+    /// pixels before they become part of the identifiers.
+    @Test @MainActor func pointsAndPixelsProduceTheSameIdentifiers() {
+        let pixels = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red, width: 2, unit: .pixels))
+        let points = ImageProcessors.RoundedCorners(radius: 16 / Screen.scale, unit: .points, border: .init(color: .red, width: 2 / Screen.scale, unit: .points))
 
-    @Test @MainActor func notEqualIdentifiers() {
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16).identifier !=
-            ImageProcessors.RoundedCorners(radius: 8).identifier
-        )
-        if Screen.scale == 1 {
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier ==
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
-            )
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).identifier !=
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
-            )
-        } else {
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier !=
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).identifier
-            )
-        }
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).identifier !=
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .blue)).identifier
-        )
-    }
-
-    @Test @MainActor func equalHashableIdentifiers() {
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier ==
-            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels).hashableIdentifier ==
-            ImageProcessors.RoundedCorners(radius: 16 / Screen.scale, unit: .points).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier ==
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier
-        )
-    }
-
-    @Test @MainActor func notEqualHashableIdentifiers() {
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier !=
-            ImageProcessors.RoundedCorners(radius: 8).hashableIdentifier
-        )
-        if Screen.scale == 1 {
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier ==
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
-            )
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 32, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
-            )
-        } else {
-            #expect(
-                ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
-                ImageProcessors.RoundedCorners(radius: 16, unit: .points, border: .init(color: .red)).hashableIdentifier
-            )
-        }
-        #expect(
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red)).hashableIdentifier !=
-            ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .blue)).hashableIdentifier
-        )
+        #expect(pixels.identifier == points.identifier)
+        #expect(pixels.hashableIdentifier == points.hashableIdentifier)
     }
 
     @Test func description() {

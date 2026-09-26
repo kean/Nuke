@@ -78,10 +78,6 @@ struct MockThrowingProcessor: ImageProcessing {
     }
 }
 
-struct MockError: Error, Equatable {
-    let description: String
-}
-
 // MARK: - MockEmptyImageProcessor
 
 final class MockEmptyImageProcessor: ImageProcessing {

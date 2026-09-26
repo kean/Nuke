@@ -42,16 +42,6 @@ struct ImageCacheTests {
         #expect(cache[Test.request] != nil)
     }
 
-    // MARK: - Subscript
-
-    @Test func imageIsStoredUsingSubscript() {
-        // When
-        cache[Test.request] = Test.container
-
-        // Then
-        #expect(cache[Test.request] != nil)
-    }
-
     // MARK: - Count
 
     @Test func totalCountChanges() {
@@ -174,15 +164,14 @@ struct ImageCacheTests {
     }
 
     @Test func overwritingAnImageWithOneExceedingTheEntryCostLimitRemovesIt() {
-        // Given a cache that takes images up to 10% of its 1000-byte limit,
-        // and images without a bitmap, which cost `1 + data.count`
+        // Given a cache that takes images up to 10% of its 1000-byte limit
         cache.costLimit = 1000
         cache.entryCostLimit = 0.1
-        cache[request1] = ImageContainer(image: PlatformImage(), data: Data(count: 10))
+        cache[request1] = container(cost: 11)
         #expect(cache.totalCost == 11)
 
         // When the image is overwritten with one the cache won't take
-        cache[request1] = ImageContainer(image: PlatformImage(), data: Data(count: 500))
+        cache[request1] = container(cost: 501)
 
         // Then the replaced image is no longer served or charged
         #expect(cache[request1] == nil)

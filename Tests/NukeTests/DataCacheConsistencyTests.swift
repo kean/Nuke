@@ -192,6 +192,38 @@ final class DataCacheConsistencyTests {
         }
     }
 
+    /// A flush in flight writes the snapshot it took before the key was
+    /// written again. It must leave the newer change staged, or the reads
+    /// would find the older data it has just written.
+    @Test func writeStagedWhileAFlushIsInFlightSurvivesTheFlush() async throws {
+        // GIVEN a flush that is about to write the first value
+        let gate = Gate(key: "key")
+        let path = makeUniqueDirectoryURL()
+        defer { try? FileManager.default.removeItem(at: path) }
+        let cache = try DataCache(path: path, filenameGenerator: {
+            gate.pass($0)
+            return DataCache.filename(for: $0)
+        })
+        cache.isSweepEnabled = false
+        cache.flushInterval = .seconds(60)
+        cache["key"] = Data("A".utf8)
+        let flush = Task { await cache.flush() }
+        await gate.entered.wait()
+
+        // WHEN
+        cache["key"] = Data("B".utf8)
+        gate.open()
+        await flush.value
+
+        // THEN the reads see the newer value
+        #expect(cache["key"] == Data("B".utf8))
+
+        // AND the next flush writes it to the disk
+        await cache.flush()
+        let url = try #require(cache.url(for: "key"))
+        #expect(try Data(contentsOf: url) == Data("B".utf8))
+    }
+
     @Test func flushCompletesItsWorkWhenTheAwaitingTaskIsCancelled() async {
         // GIVEN
         let cache = self.cache

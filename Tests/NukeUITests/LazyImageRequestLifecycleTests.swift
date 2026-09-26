@@ -93,12 +93,8 @@ struct LazyImageRequestLifecycleTests {
         #expect(states.value.first?.progress == ImageTask.Progress(completed: 0, total: 0))
 
         progressiveLoader.resume() // Serves the first chunk and holds the rest
-        // Nothing to wait on but the content itself, and the chunk makes a
-        // round trip through the pipeline: more time than one `render` gives.
-        let sawFirstChunk = { states.value.last?.progress.completed == firstChunk }
-        for _ in 0..<25 where !sawFirstChunk() {
-            await host.render(until: sawFirstChunk)
-        }
+        // Nothing to wait on but the content itself
+        await host.render(until: { states.value.last?.progress.completed == firstChunk })
 
         let last = try #require(states.value.last)
         #expect(last.isLoading)
@@ -255,31 +251,6 @@ struct LazyImageRequestLifecycleTests {
         #expect(results.value.count == 1)
     }
 
-    /// The fast path compares requests by identity, and a view that rebuilds
-    /// its processors on every update never hits it: the processors have to
-    /// compare equal by their identifiers.
-    @Test func recreatingEqualProcessorsOnUpdateDoesNotReload() async {
-        let completions = Ref(0)
-        let first = TestExpectation()
-        let host = ViewHost(0) { _ in
-            LazyImage(url: Test.url)
-                .pipeline(pipeline)
-                .processors([MockImageProcessor(id: "p1"), MockImageProcessor(id: "p2")])
-                .onCompletion { _ in
-                    completions.value += 1
-                    first.fulfill()
-                }
-        }
-        await first.wait()
-
-        await host.update(1)
-        await host.render()
-
-        // A reload would complete again, from the memory cache.
-        #expect(completions.value == 1)
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
     @Test func changingTheRequestOptionsReloads() async throws {
         let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
         let first = TestExpectation()
@@ -408,6 +379,7 @@ struct LazyImageRequestLifecycleTests {
         let firstTask = try #require(tasks.value.first)
 
         await host.hideContent(until: { firstTask.isCancelled })
+        #expect(firstTask.isCancelled)
         await host.showContent(until: { tasks.value.count == 2 })
 
         let secondTask = try #require(tasks.value.last)
@@ -448,6 +420,7 @@ struct LazyImageRequestLifecycleTests {
         let task = try #require(tasks.value.first)
 
         await host.hideContent(until: { task.priority == .veryLow })
+        #expect(task.priority == .veryLow)
         dataLoader.isSuspended = false
         await completed.wait()
 

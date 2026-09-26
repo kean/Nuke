@@ -776,6 +776,43 @@ struct TaskTests {
         #expect(!created[2].isDisposed)
     }
 
+    /// A subscriber can ask for the same work from its completion handler – to
+    /// retry a failure, say. The task that is finishing has to be out of the
+    /// pool by then, or the subscriber would join it instead of getting the
+    /// work done again.
+    @Test(arguments: [false, true])
+    func taskIsDisposedBeforeSubscribersGetTheCompletion(isFailure: Bool) throws {
+        // Given a subscriber that asks for the same work once the task is done
+        let pool = TaskPool<String, Int, MyError>(true)
+        var created: [AsyncTask<Int, MyError>] = []
+        func publisher() -> AsyncTask<Int, MyError>.Publisher {
+            pool.publisherForKey("a") {
+                let task = AsyncTask<Int, MyError>()
+                created.append(task)
+                return task
+            }
+        }
+        var isDisposedWhenCompleted: Bool?
+        var received = [AsyncTask<Int, MyError>.Event]()
+        _ = publisher().subscribe(subscriber: Observer.shared) { _ in
+            isDisposedWhenCompleted = created[0].isDisposed
+            _ = publisher().subscribe(subscriber: Observer.shared) { received.append($0) }
+        }
+
+        // When
+        if isFailure {
+            created[0].send(error: .init(raw: "1"))
+        } else {
+            created[0].send(value: 1, isCompleted: true)
+        }
+
+        // Then it gets a new task, which does the work again
+        #expect(isDisposedWhenCompleted == true)
+        try #require(created.count == 2)
+        created[1].send(value: 2, isCompleted: true)
+        #expect(received == [.value(2, isCompleted: true)])
+    }
+
     @Test func poolWithCoalescingDisabledNeitherSharesTasksNorComputesKeys() {
         // Given
         let pool = TaskPool<String, Int, MyError>(false)

@@ -61,17 +61,17 @@ struct ImagePipelineTaskLifetimeTests {
     }
 
     @Test func taskIsRemovedWhenRequestIsCancelled() async throws {
-        // Given
-        dataLoader.isSuspended = true
-
-        // When
-        let task = await withSuspendedDataLoading(for: pipeline, expectedCount: 1) {
+        // Given a task whose download is suspended
+        let task = await startSuspended(for: pipeline, count: 1) {
             pipeline.imageTask(with: Test.request)
         }
+
+        // When
         task.cancel()
         await #expect(throws: ImagePipeline.Error.cancelled) {
             try await task.response
         }
+        dataLoader.isSuspended = false
 
         // Then
         #expect(await pipeline.taskCount == 0)

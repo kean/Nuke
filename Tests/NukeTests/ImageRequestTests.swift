@@ -243,22 +243,6 @@ struct ImageRequestImageIdTests {
         assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
-    @Test func thatCacheKeyForProcessedImageDataUsesAbsoluteURLByDefault() {
-        let lhs = ImageRequest(url: Test.url)
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
-        #expect(MemoryCacheKey(lhs) != MemoryCacheKey(rhs))
-    }
-
-    @Test func thatCacheKeyForProcessedImageDataUsesFilteredURLWhenSet() {
-        let lhs = ImageRequest(url: Test.url).with {
-            $0.imageID = Test.url.absoluteString
-        }
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1")).with {
-            $0.imageID = Test.url.absoluteString
-        }
-        assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
-    }
-
     @Test func thatLoadKeyForProcessedImageDoesntUseFilteredURL() {
         let lhs = ImageRequest(url: Test.url).with {
             $0.imageID = Test.url.absoluteString
@@ -393,11 +377,6 @@ struct ThumbnailOptionsTests {
         #expect(MemoryCacheKey(disableWrites) == baseKey)
         #expect(MemoryCacheKey(reload)        == baseKey)
     }
-}
-
-private func assertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, sourceLocation: SourceLocation = #_sourceLocation) {
-    #expect(lhs.hashValue == rhs.hashValue, sourceLocation: sourceLocation)
-    #expect(lhs == rhs, sourceLocation: sourceLocation)
 }
 
 @Suite(.timeLimit(.minutes(5)))

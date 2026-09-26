@@ -54,6 +54,9 @@ extension ImageProcessors {
         /// Initializes the processor with a name of the `CIFilter`.
         public init(name: String) {
             self.filter = .named(name, parameters: [:])
+            // The trailing `)` has no opening one, but it is part of every disk
+            // cache key this identifier has already been persisted in. Don't
+            // "fix" it: that would orphan all the images processed with it.
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 

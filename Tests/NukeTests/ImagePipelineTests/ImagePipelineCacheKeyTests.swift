@@ -17,6 +17,32 @@ struct ImagePipelineCacheKeyTests {
     }
     private var cache: ImagePipeline.Cache { pipeline.cache }
 
+    // MARK: Data Key Format
+
+    /// The data key names the file in the disk cache: a change to its format
+    /// orphans every image that is already on disk.
+    @Test(arguments: [
+        (ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) },
+         "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue"),
+        (ImageRequest(url: Test.url).with { $0.thumbnail = .init(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit) },
+         "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue"),
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Circle()]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle"),
+        // A composition adds the identifiers of its processors as is
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Composition([ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Circle()]), ImageProcessors.Anonymous(id: "1", { $0 })]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle1"),
+        // An empty identifier adds nothing
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "", { $0 }), ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Anonymous(id: "", { $0 })]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false"),
+        // Without a URL, only the processors are left
+        (ImageRequest(url: nil, processors: [ImageProcessors.Resize(width: 320, unit: .pixels)]),
+         "com.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false"),
+        (ImageRequest(url: nil), "")
+    ])
+    func dataKeyFormat(request: ImageRequest, key: String) {
+        #expect(cache.makeDataCacheKey(for: request) == key)
+    }
+
     // MARK: Default Keys
 
     @Test func dataCacheKeyAppendsTheThumbnailBeforeTheProcessors() {
@@ -162,7 +188,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func delegateKeyIsUsedVerbatimForBothLayers() {
         // GIVEN a delegate that keys the images by a custom ID
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let request = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -176,7 +202,7 @@ struct ImagePipelineCacheKeyTests {
     /// for the processors, the thumbnail, and the scale itself.
     @Test func delegateKeyReplacesEveryComponentOfTheDefaultKey() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let lhs = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -193,7 +219,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func delegateReturningNilFallsBackToTheDefaultKeyForThatRequest() {
         // GIVEN a delegate that customizes only some of the requests
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let custom = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -208,7 +234,7 @@ struct ImagePipelineCacheKeyTests {
     /// be the same string.
     @Test func delegateKeyDoesNotCollideWithTheSameImageID() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let custom = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -239,7 +265,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func memoryKeyDigestUsesTheDelegateKey() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let lhs = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -283,7 +309,7 @@ struct ImagePipelineCacheKeyTests {
     @Test func metricsRecordTheDelegateKeyForEveryCacheStage() async throws {
         // GIVEN
         let dataCache = MockDataCache()
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.dataLoader = MockDataLoader()
             $0.imageCache = MockImageCache()
             $0.dataCache = dataCache
@@ -312,8 +338,8 @@ private extension ImageRequest.UserInfoKey {
 }
 
 /// Keys the images by the custom key in `userInfo`, if there is one.
-private final class CustomKeyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        request.userInfo[.customKey] as? String
-    }
+private func makeCustomKeyDelegate() -> MockCachingDelegate {
+    let delegate = MockCachingDelegate()
+    delegate.cacheKey = { $0.userInfo[.customKey] as? String }
+    return delegate
 }

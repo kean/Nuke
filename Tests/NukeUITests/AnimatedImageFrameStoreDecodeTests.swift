@@ -12,11 +12,11 @@ import Testing
 /// identifies it, what it charges the pool, and what it does with the frames
 /// the decoder can't produce.
 @Suite(.timeLimit(.minutes(5))) @MainActor
-struct AnimatedImageFrameStoreDecodeTests {
-    /// A pool of its own for every test: what a player is allowed to hold
-    /// depends on what every other animation on screen is asking for, and the
-    /// suite runs beside every other one.
-    private let pool = AnimatedImageFramePool()
+struct AnimatedImageFrameStoreDecodeTests: AnimatedImagePoolSuite {
+    /// The size of the frames of the animations these tests build.
+    static let frameSize = CGSize(width: 32, height: 32)
+
+    let pool = AnimatedImageFramePool()
 
     // MARK: Keys
 
@@ -26,7 +26,7 @@ struct AnimatedImageFrameStoreDecodeTests {
         // frames are the full-size ones – decoded at the animation's own size
         // rather than at a nonsense one, and shared with a player that asked
         // for no limit at all.
-        let source = try makeSource(frameCount: 4)
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = maxPixelSize
         let odd = makePlayer(source: source, options: options)
@@ -46,7 +46,7 @@ struct AnimatedImageFrameStoreDecodeTests {
         // downsampling – and counts what the decoded ones actually occupy. The
         // two have to agree, or an animation the division held whole would
         // push the pool over its limit.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 32))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 32))
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 16
         let player = makePlayer(source: source, options: options)
@@ -63,8 +63,8 @@ struct AnimatedImageFrameStoreDecodeTests {
     @Test func settlesWhenTheDecoderRefusesAFrame() async throws {
         // A truncated animation: the container promises a frame the data
         // doesn't hold. The store stops expecting it rather than asking again.
-        let source = try makeSource(frameCount: 4)
-        let decoder = CountingRefusingFrameDecoder(source: source, refusing: [2])
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
+        let decoder = GatedFrameDecoder(source: source, refusing: [2], isGated: false)
         let (player, _) = makeIdlePlayer(source: source, decoder: decoder)
         player.play()
 
@@ -74,15 +74,15 @@ struct AnimatedImageFrameStoreDecodeTests {
         #expect(player.store.isPending(2) == false)
         #expect(player.isFrameBuffered(2) == false)
         #expect(player.diagnostics.bufferedFrameCount == 3)
-        #expect(await decoder.requests == [0: 1, 1: 1, 2: 1, 3: 1])
+        #expect(await decoder.decodeCounts == [0: 1, 1: 1, 2: 1, 3: 1])
     }
 
     @Test func doesNotAskForARefusedFrameAgainOnTheNextLoop() async throws {
         // A window that slides decodes every frame again on every loop. A
         // refused one is remembered instead: otherwise a truncated animation
         // would retry the frames it doesn't have on every pass.
-        let source = try makeSource(frameCount: 4)
-        let decoder = CountingRefusingFrameDecoder(source: source, refusing: [2])
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
+        let decoder = GatedFrameDecoder(source: source, refusing: [2], isGated: false)
         let (player, clock) = makeIdlePlayer(source: source, options: .twoFrameBuffer, decoder: decoder)
         player.play()
 
@@ -92,7 +92,7 @@ struct AnimatedImageFrameStoreDecodeTests {
         }
 
         #expect(player.completedLoopCount == 2)
-        let requests = await decoder.requests
+        let requests = await decoder.decodeCounts
         #expect(requests[2] == 1)
         #expect(requests[0, default: 0] >= 2) // The window did slide
     }
@@ -102,7 +102,7 @@ struct AnimatedImageFrameStoreDecodeTests {
     @Test func aSeekDoesNotCancelTheDecodeAnotherPlayerIsWaitingFor() async throws {
         // Two copies of one animation on the same frame wait on one decode.
         // One of them seeking away leaves the other still waiting on it.
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let (first, _) = makeIdlePlayer(source: source, decoder: decoder)
         first.play()
@@ -133,59 +133,5 @@ struct AnimatedImageFrameStoreDecodeTests {
             guard let decode = player.store.currentDecode else { return }
             await decode.value
         }
-    }
-
-    private func makePlayer(
-        source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
-    ) -> AnimatedImagePlayer {
-        let player = AnimatedImagePlayer(source: source, options: options, clock: ManualClock(), pool: pool)
-        player.play()
-        return player
-    }
-
-    /// A player nothing has started, on a clock the test drives.
-    private func makeIdlePlayer(
-        source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        decoder: (any AnimatedImageFrameDecoding)? = nil
-    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let clock = ManualClock()
-        let player = AnimatedImagePlayer(
-            source: source,
-            options: options,
-            clock: clock,
-            pool: pool,
-            power: AnimatedImagePowerMonitor(isThrottling: false),
-            decoder: decoder
-        )
-        return (player, clock)
-    }
-
-    private func makeSource(frameCount: Int, size: CGSize = CGSize(width: 32, height: 32)) throws -> AnimatedImageSource {
-        try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: frameCount, size: size)))
-    }
-}
-
-/// A decoder that refuses some of the frames, the way one reading a truncated
-/// animation does, and counts what it was asked for.
-private actor CountingRefusingFrameDecoder: AnimatedImageFrameDecoding {
-    private let decoder: AnimatedImageFrameDecoder
-    private let refused: Set<Int>
-
-    /// The number of times each frame was asked for.
-    private(set) var requests: [Int: Int] = [:]
-
-    init(source: AnimatedImageSource, refusing refused: Set<Int>) {
-        self.decoder = AnimatedImageFrameDecoder(source: source)
-        self.refused = refused
-    }
-
-    func decode(at index: Int) async -> CGImage? {
-        requests[index, default: 0] += 1
-        guard !refused.contains(index) else {
-            return nil
-        }
-        return await decoder.decode(at: index)
     }
 }

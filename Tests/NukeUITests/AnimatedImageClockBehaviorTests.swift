@@ -321,9 +321,7 @@ struct DisplayLinkClockBehaviorTests {
             #expect(clock.isPaused)
         }
 
-        for _ in 0..<100 where weakLink != nil {
-            await Task.yield()
-        }
+        await waitUntil { weakLink == nil }
         #expect(weakLink == nil)
     }
 
@@ -342,9 +340,7 @@ struct DisplayLinkClockBehaviorTests {
         #expect(clock is DisplayLinkClock)
         clock?.isPaused = false
 
-        for _ in 0..<100 where weakView != nil {
-            await Task.yield()
-        }
+        await waitUntil { weakView == nil }
         #expect(weakView == nil)
         #expect(clock != nil)
     }
@@ -366,9 +362,7 @@ struct DisplayLinkClockBehaviorTests {
             clock = nil // Released here, off the main thread
         }.value
 
-        for _ in 0..<100 where link.value != nil {
-            await Task.yield()
-        }
+        await waitUntil { link.value == nil }
         #expect(link.value == nil)
     }
 #endif
