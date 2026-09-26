@@ -208,6 +208,57 @@ struct LazyImageViewTests {
         #expect(result.isFailure)
     }
 
+    @Test func onCompletionNotCalledForRequestReplacedFromOnFailure() async {
+        // Given a failing request and a fallback image in the memory cache
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let fallback = ImageRequest(url: URL(string: "https://example.com/fallback.jpg")!)
+        pipeline.cache[fallback] = Test.container
+
+        let view = self.view
+        view.onFailure = { _ in view.request = fallback }
+
+        var completions: [String] = []
+        let expectation = TestExpectation()
+        view.onCompletion = { result in
+            completions.append(result.isSuccess ? "success" : "failure")
+            expectation.fulfill()
+        }
+
+        // When
+        view.url = Test.url
+        await expectation.wait()
+
+        // Then the fallback is displayed, and the completion of the replaced
+        // request is not delivered after the one that replaced it
+        #expect(view.imageView.image != nil)
+        #expect(completions == ["success"])
+    }
+
+    @Test func onCompletionNotCalledForRequestReplacedFromOnFailureWhenFallbackLoads() async {
+        // Given a failing request and a fallback that has to be loaded
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let fallback = URL(string: "https://example.com/fallback.jpg")!
+
+        let view = self.view
+        view.onFailure = { _ in view.url = fallback }
+
+        var events: [String] = []
+        view.onStart = { _ in events.append("start") }
+        let expectation = TestExpectation()
+        view.onCompletion = { result in
+            events.append(result.isSuccess ? "success" : "failure")
+            if result.isSuccess { expectation.fulfill() }
+        }
+
+        // When
+        view.url = Test.url
+        await expectation.wait()
+
+        // Then
+        #expect(view.imageView.image != nil)
+        #expect(events == ["start", "start", "success"])
+    }
+
     @Test func onProgressCalled() async {
         dataLoader.results[Test.url] = .success((
             Data(count: 20),
