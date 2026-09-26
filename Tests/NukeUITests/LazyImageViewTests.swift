@@ -946,6 +946,48 @@ struct LazyImageViewTests {
         #expect(animation == nil)
     }
 
+    @Test func fadeInTransitionNotRestartedOnceImageIsOnScreen() async {
+        let progressiveLoader = MockProgressiveDataLoader()
+        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
+        view.transition = .fadeIn(duration: 10)
+        makeImageViewLayerBacked()
+#if !os(macOS)
+        // UIKit only runs animations for views in a window.
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        view.frame = window.bounds
+        window.addSubview(view)
+        window.isHidden = false
+        defer { withExtendedLifetime(window) {} }
+#endif
+
+        var previewCount = 0
+        var restartedFades: [String] = []
+        view.onPreview = { _ in
+            previewCount += 1
+            if previewCount > 1, self.fadeInAnimation() != nil {
+                restartedFades.append("preview \(previewCount)")
+            }
+            // Let the fade-in of the image on screen finish.
+            self.removeAnimations()
+            progressiveLoader.resume()
+        }
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in
+            if self.fadeInAnimation() != nil {
+                restartedFades.append("final")
+            }
+            expectation.fulfill()
+        }
+
+        view.url = Test.url
+        await expectation.wait()
+
+        // The fade-in brings the image in once. Later scans and the final
+        // image replace the image on screen in place.
+        #expect(previewCount > 0)
+        #expect(restartedFades.isEmpty)
+    }
+
     private func makeImageViewLayerBacked() {
 #if os(macOS)
         view.imageView.wantsLayer = true
@@ -956,7 +998,15 @@ struct LazyImageViewTests {
 #if os(macOS)
         view.imageView.layer?.animation(forKey: "imageTransition")
 #else
-        view.imageView.layer.animation(forKey: "imageTransition")
+        view.imageView.layer.animation(forKey: "opacity")
+#endif
+    }
+
+    private func removeAnimations() {
+#if os(macOS)
+        view.imageView.layer?.removeAllAnimations()
+#else
+        view.imageView.layer.removeAllAnimations()
 #endif
     }
 

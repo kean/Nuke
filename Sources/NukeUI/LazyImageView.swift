@@ -391,6 +391,8 @@ public final class LazyImageView: _PlatformBaseView {
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded(clearImage: false, shouldCancel: !container.isPreview)
 
+        let isReplacingVisibleContent = customImageView != nil || (!imageView.isHidden && imageView.image != nil)
+
         // Remove the view created for the previous response (a progressive
         // preview or a cached preview) before displaying the new one.
         removeCustomImageView()
@@ -414,7 +416,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         if !isFromMemory, let transition = transition {
-            runTransition(transition, container)
+            runTransition(transition, container, isReplacingVisibleContent: isReplacingVisibleContent)
         }
     }
 
@@ -495,9 +497,13 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Private (Transitions)
 
-    private func runTransition(_ transition: Transition, _ image: ImageContainer) {
+    private func runTransition(_ transition: Transition, _ image: ImageContainer, isReplacingVisibleContent: Bool) {
         switch transition {
         case .fadeIn(let duration):
+            // The fade-in brings the image in once. A better progressive scan
+            // or the final image replacing the one on screen is swapped in
+            // place instead of fading in from transparent again.
+            guard !isReplacingVisibleContent else { return }
             runFadeInTransition(duration: duration)
         case .custom(let closure):
             closure(self, image)
