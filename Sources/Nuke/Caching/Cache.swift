@@ -36,16 +36,19 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
     }
 
     var conf: Configuration {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _conf
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _conf = newValue
-        }
+        lock.lock()
+        defer { lock.unlock() }
+        return _conf
+    }
+
+    /// Changes the configuration under the lock. A setter on `conf` would
+    /// read, change, and write the whole struct as three separate accesses,
+    /// so two threads changing different limits could put back each other's
+    /// old value.
+    func updateConf(_ body: (inout Configuration) -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        body(&_conf) // `didSet` trims under the lock
     }
 
     @exclusivity(unchecked) private var _conf: Configuration {
