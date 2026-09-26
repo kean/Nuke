@@ -69,6 +69,23 @@ struct ImagePipelineCacheOptionsLoadingTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    @Test func returnCacheDataDontLoadCreatesTheThumbnailFromTheOriginalDataWhenItsEntryCantBeDecoded() async throws {
+        // GIVEN a corrupted thumbnail entry and the original data in the disk cache
+        let request = ImageRequest(url: Test.url, options: [.returnCacheDataDontLoad]).with {
+            $0.thumbnail = .init(maxPixelSize: 100)
+        }
+        dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] = Data("corrupted".utf8)
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.sizeInPixels == CGSize(width: 100, height: 75))
+        #expect(response.cacheType == .disk)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     @Test func returnCacheDataDontLoadProcessesTheOriginalDataFromTheDisk() async throws {
         // GIVEN only the original data in the disk cache
         dataCache.store[Test.url.absoluteString] = Test.data
