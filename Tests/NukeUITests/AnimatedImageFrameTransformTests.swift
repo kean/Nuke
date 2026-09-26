@@ -136,6 +136,30 @@ struct AnimatedImageFrameTransformTests {
         #expect(pool.totalCost == 4 * bytes)
     }
 
+    @Test func aTransformThatDrawsALargerBitmapIsHeldToTheLimit() async throws {
+        // The pool divides its budget by what a frame is estimated to cost –
+        // the canvas – and a transform that draws into a bitmap of its own
+        // costs more than that. Twelve frames of the canvas hold the
+        // four-frame animation whole on the estimate, and three of its frames
+        // drawn at twice the size: once the first frame has landed the
+        // animation is played out of a window, and the pool stays inside its
+        // limit rather than holding four times what it was given.
+        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 4)))
+        let pool = AnimatedImageFramePool(costLimit: 12 * source.bytesPerFrame)
+        var options = AnimatedImagePlayer.Options()
+        options.frameTransform = AnimatedImageFrameTransform(identifier: "doubled") { image in
+            SolidColor.red.makeImage(size: CGSize(width: image.width * 2, height: image.height * 2))
+        }
+        let player = makePlayer(source: source, options: options, pool: pool)
+
+        await player.waitUntilFull()
+
+        #expect(player.diagnostics.isFullyBuffered == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+        #expect(pool.totalCost <= pool.costLimit)
+        #expect(player.diagnostics.bufferedByteCount <= player.diagnostics.bufferByteLimit)
+    }
+
     // MARK: Sharing
 
     @Test func anEmptyIdentifierIsStillATransform() async throws {
@@ -188,13 +212,14 @@ struct AnimatedImageFrameTransformTests {
     /// A player that is playing, which is what makes it ask for every frame.
     private func makePlayer(
         source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        pool: AnimatedImageFramePool? = nil
     ) -> AnimatedImagePlayer {
         let player = AnimatedImagePlayer(
             source: source,
             options: options,
             clock: ManualClock(),
-            pool: pool,
+            pool: pool ?? self.pool,
             power: AnimatedImagePowerMonitor(isThrottling: false)
         )
         player.play()
