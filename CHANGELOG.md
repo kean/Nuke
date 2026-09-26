@@ -106,6 +106,9 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix `loadImage(with:options:into:)` clearing a memory-cached progressive preview, or replacing it with the placeholder, right after displaying it – https://github.com/kean/Nuke/pull/1019
+- Fix setting `FetchImage/priority` and `LazyImageView/priority` back to `nil` not restoring the running task's priority – https://github.com/kean/Nuke/pull/1019
+- Fix the `fadeIn` transition between content modes resetting the image view's `alpha` to 1 – https://github.com/kean/Nuke/pull/1019
 
 **Documentation**
 

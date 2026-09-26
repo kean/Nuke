@@ -117,6 +117,42 @@ struct ImageViewExtensionsTests {
         #expect(imageView.image == nil)
     }
 
+    @Test func memoryCachedPreviewDisplayedWhileLoading() {
+        dataLoader.isSuspended = true
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+        imageCache[Test.request] = preview
+
+        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+
+        // The cached preview stays on screen while the final image loads.
+        #expect(task != nil)
+        #expect(imageView.image === preview.image)
+    }
+
+    @Test func memoryCachedPreviewNotReplacedByPlaceholder() {
+        dataLoader.isSuspended = true
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+        imageCache[Test.request] = preview
+        var options = options
+        options.placeholder = Test.image
+
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+
+        #expect(imageView.image === preview.image)
+    }
+
+    @Test func memoryCachedPreviewIgnoredWhenProgressiveRenderingDisabled() {
+        dataLoader.isSuspended = true
+        imageCache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+        var options = options
+        options.isProgressiveRenderingEnabled = false
+        options.placeholder = Test.image
+
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+
+        #expect(imageView.image === options.placeholder)
+    }
+
     // MARK: - Completion and Progress Closures
 
     @Test func completionCalled() async {

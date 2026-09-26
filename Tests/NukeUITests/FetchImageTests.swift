@@ -173,6 +173,23 @@ struct FetchImageTests {
         }
     }
 
+    @Test func priorityResetToNilRestoresRequestPriority() throws {
+        dataLoader.isSuspended = true
+        let task = Ref<ImageTask?>(nil)
+        image.onStart = { task.value = $0 }
+
+        image.load(ImageRequest(url: Test.url, priority: .high))
+        let imageTask = try #require(task.value)
+        #expect(imageTask.priority == .high)
+
+        image.priority = .veryLow
+        #expect(imageTask.priority == .veryLow)
+
+        // Clearing the override puts the running task back on its own priority.
+        image.priority = nil
+        #expect(imageTask.priority == .high)
+    }
+
     // MARK: - Progress
 
     @Test func progressStartsEmpty() {

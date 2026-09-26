@@ -64,11 +64,12 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// a task is already running.
     public var priority: ImageRequest.Priority? {
         didSet {
-            if let priority {
-                imageTask?.priority = priority
-            }
+            imageTask?.priority = priority ?? requestPriority
         }
     }
+
+    /// The priority of the current request before ``priority`` overrode it.
+    private var requestPriority: ImageRequest.Priority = .normal
 
     /// A pipeline used for performing image requests.
     public var pipeline: ImagePipeline = .shared
@@ -126,6 +127,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         if !processors.isEmpty && request.processors.isEmpty {
             request.processors = processors
         }
+        requestPriority = request.priority
         if let priority {
             request.priority = priority
         }
