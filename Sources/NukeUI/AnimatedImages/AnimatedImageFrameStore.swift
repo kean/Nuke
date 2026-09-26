@@ -275,13 +275,21 @@ final class AnimatedImageFrameStore {
     /// anything is held whole, so the over-claim comes out of the animations
     /// that could have been held whole in it.
     private func claimedFrameCount(upTo limit: Int) -> Int {
+        let lengths = wantedFrameCounts(upTo: limit)
+        let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
+        return min(frameCount, total)
+    }
+
+    /// The number of frames the members on each playhead want between them,
+    /// none of them more than the given number.
+    private func wantedFrameCounts(upTo limit: Int) -> [Int: Int] {
         var lengths: [Int: Int] = [:]
-        for player in liveMembers {
+        for member in members {
+            guard let player = member.player else { continue }
             let index = player.currentFrameIndex
             lengths[index] = max(lengths[index] ?? 0, min(player.wantedFrameCount, limit))
         }
-        let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
-        return min(frameCount, total)
+        return lengths
     }
 
     /// Takes the share of the pool the store holds its frames in.
@@ -334,17 +342,22 @@ final class AnimatedImageFrameStore {
             return frameCount
         }
         let floor = AnimatedImagePlayer.idleFrameCount
-        let playheads = Set(members.compactMap { $0.player?.currentFrameIndex }).sorted()
-        guard playheads.count > 1 else {
+        // Each playhead measured at what the members on it want, the way the
+        // share was asked for: a member nobody is watching holds two frames
+        // however long the window is, and measured at the full length it
+        // would cut the members that are playing short of the read-ahead.
+        let wanted = wantedFrameCounts(upTo: capacity)
+        guard wanted.count > 1 else {
             return max(floor, capacity)
         }
+        let playheads = wanted.keys.sorted()
         // The union grows with the window, so the largest window that fits is
         // a binary search away.
         var low = floor
         var high = max(floor, capacity)
         while low < high {
             let middle = (low + high + 1) / 2
-            if unionSize(of: playheads, length: { _ in middle }) <= capacity {
+            if unionSize(of: playheads, length: { min(middle, wanted[$0] ?? middle) }) <= capacity {
                 low = middle
             } else {
                 high = middle - 1
