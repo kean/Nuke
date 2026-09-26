@@ -211,6 +211,35 @@ struct GraphicsTests {
         #expect(output.sizeInPixels == CGSize(width: 100, height: 100))
     }
 
+    /// A side that scales below half a pixel is drawn at one pixel instead of
+    /// the drawing failing.
+    @Test func resizingThinImageProducesOnePixelStrip() throws {
+        // Given a 1000x2 image
+        let input = Test.rgbImage(width: 1000, height: 2)
+
+        // When
+        let output = try #require(input.processed.byResizing(
+            to: CGSize(width: 100, height: 100),
+            contentMode: .aspectFit,
+            upscale: false
+        ))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 100, height: 1))
+    }
+
+    @Test func resizingAndCroppingToThinTargetWithoutUpscalingProducesOnePixelStrip() throws {
+        // Given a 10x10 image and a target whose height, at the native
+        // resolution of the image, is below half a pixel
+        let input = Test.rgbImage(width: 10, height: 10)
+
+        // When
+        let output = try #require(input.processed.byResizingAndCropping(to: CGSize(width: 1000, height: 1), upscale: false))
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 10, height: 1))
+    }
+
     // MARK: - Invalid Target Sizes
 
     /// The target sizes come straight from the user and converting a non-finite

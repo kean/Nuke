@@ -79,6 +79,44 @@ struct ImageProcessorsResizeTests {
         #expect(output.sizeInPixels == CGSize(width: 480, height: 360))
     }
 
+    /// A side that scales below half a pixel is drawn at one pixel instead of
+    /// failing the processing, the way Image I/O downsamples the same image.
+    @Test func thatThinImageIsResizedToFitAsOnePixelStrip() throws {
+        // Given a 1000x2 image, e.g. a separator or a progress bar
+        let input = Test.rgbImage(width: 1000, height: 2)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, contentMode: .aspectFit)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 100, height: 1))
+    }
+
+    @Test func thatThinImageIsResizedToFitWidth() throws {
+        // Given
+        let input = Test.rgbImage(width: 1000, height: 2)
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 100, height: 1))
+    }
+
+    @Test func thatThinImageIsResizedToFitHeight() throws {
+        // Given
+        let input = Test.rgbImage(width: 2, height: 1000)
+        let processor = ImageProcessors.Resize(height: 100, unit: .pixels)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then
+        #expect(output.sizeInPixels == CGSize(width: 1, height: 100))
+    }
+
     @Test func thatImageIsCropped() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, crop: true)
