@@ -171,6 +171,20 @@ struct ImageProcessorsResizeTests {
         #expect(output.sizeInPixels == CGSize(width: 300, height: 300))
     }
 
+    @Test func thatCropTakesEffectWithAspectFillMode() throws {
+        // Given two processors that differ only in `crop`
+        let cropped = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill, crop: true)
+        let notCropped = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill, crop: false)
+
+        // When
+        let lhs = try #require(cropped.process(Test.image), "Failed to process an image")
+        let rhs = try #require(notCropped.process(Test.image), "Failed to process an image")
+
+        // Then `crop` only applies with `.aspectFill`, as documented
+        #expect(lhs.sizeInPixels == CGSize(width: 400, height: 400))
+        #expect(rhs.sizeInPixels == CGSize(width: 533, height: 400))
+    }
+
     @Test func thatImageIsntCroppedWithAspectFitMode() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
