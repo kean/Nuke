@@ -109,6 +109,10 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `ImageCache` losing a limit written on one thread when another thread writes a different limit at the same time – https://github.com/kean/Nuke/pull/1027
+- Fix concurrent requests for the same URL with different `imageID`s being cached only under the first request's ID – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.containsCachedImage(for:caches:)` and `containsData(for:)` ignoring `.disableDiskCacheReads` – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` encoding the image when there is no data cache to store it in – https://github.com/kean/Nuke/pull/1027
 
 **Documentation**
 
