@@ -266,18 +266,21 @@ struct DataCacheScheduledSweepTests {
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: path) }
         try JSONEncoder().encode(SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: -60))).write(to: metadataURL(at: path))
-
-        // WHEN the interval is shortened before the first sweep runs
-        let expectation = TestExpectation()
+        let lastSweep = try #require(lastSweepDate(at: path))
         let cache = try DataCache(
             name: path.lastPathComponent,
-            sweepDelay: .seconds(1), // Long enough for the change below to land first
-            onSweepCompleted: { expectation.fulfill() }
+            sweepDelay: .seconds(100), // The test performs the sweeps itself
+            onSweepCompleted: {}
         )
+        await cache.performScheduledSweepForTesting()
+        #expect(lastSweepDate(at: path) == lastSweep)
+
+        // WHEN the interval is shortened after the cache is created
         cache.sweepInterval = 10
+        await cache.performScheduledSweepForTesting()
 
         // THEN the sweep is due
-        await expectation.wait()
-        cache.isSweepEnabled = false
+        let date = try #require(lastSweepDate(at: path))
+        #expect(date > lastSweep)
     }
 }

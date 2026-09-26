@@ -984,31 +984,33 @@ final class DataCacheTests {
         await cache.sweep()
         let dateAfterManualSweep = try #require(lastSweepDate(at: cache.path))
 
-        // WHEN the app launches again shortly after
+        // WHEN the app launches again shortly after and its first scheduled
+        // sweep comes around
         let other = try DataCache(
             name: name,
             filenameGenerator: { String($0.reversed()) },
-            sweepDelay: .milliseconds(0),
+            sweepDelay: .seconds(100), // The test performs the sweep itself
             onSweepCompleted: { Issue.record("the sweep ran within `sweepInterval` of the manual one") }
         )
-        try await Task.sleep(for: .milliseconds(300))
+        await other.performScheduledSweepForTesting()
 
         // THEN the launch sweep sees the recent one and skips, leaving the date be
         #expect(lastSweepDate(at: cache.path) == dateAfterManualSweep)
-        _ = other
     }
 
     @Test func scheduledSweepIsSkippedWhenDisabled() async throws {
+        // GIVEN
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) },
-            sweepDelay: .milliseconds(100),
+            sweepDelay: .seconds(100), // The test performs the sweep itself
             onSweepCompleted: { Issue.record("the sweep ran with `isSweepEnabled` off") }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.isSweepEnabled = false
 
-        try await Task.sleep(for: .milliseconds(300))
+        // WHEN the scheduled sweep comes around
+        await cache.performScheduledSweepForTesting()
 
         // THEN the sweep never ran, so it never stamped its metadata either
         let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
@@ -1059,18 +1061,20 @@ final class DataCacheTests {
         cache.isSweepEnabled = false
     }
 
+    /// Runs on the real timer: a sweep it skips must still schedule the next one.
     @Test func scheduledSweepResumesWhenItIsReEnabled() async throws {
-        // GIVEN a cache with the sweep turned off before the first one runs
+        // GIVEN a cache with the sweep turned off before the first one is
+        // scheduled, and a few of the scheduled ones skipped
         let counter = SweepCounter()
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) },
             sweepDelay: .milliseconds(50),
             sweepInterval: 0.05,
+            isSweepEnabled: false,
             onSweepCompleted: { counter.record() }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
-        cache.isSweepEnabled = false
         try await Task.sleep(for: .milliseconds(300))
         #expect(counter.value == 0)
 
