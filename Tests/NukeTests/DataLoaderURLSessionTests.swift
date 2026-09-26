@@ -8,9 +8,8 @@ import os
 @testable import Nuke
 
 // The requests in this file are served by `StubURLProtocol`, which looks up a
-// handler registered under a unique URL for every test. Unlike the shared
-// `MockURLProtocol` registry, it can't be cleared by another suite, so these
-// suites don't need to be serialized.
+// handler registered under a unique URL for every test, so these suites don't
+// need to be serialized.
 
 // MARK: - Loading Contract
 
@@ -50,6 +49,16 @@ struct DataLoaderSessionContractTests {
         // Then modifying one doesn't affect the loaders created later
         #expect(first !== second)
         #expect(second.timeoutIntervalForRequest != 1)
+    }
+
+    @Test func defaultConfigurationHasUrlCache() {
+        #expect(DataLoader.defaultConfiguration.urlCache === DataLoader.sharedUrlCache)
+    }
+
+    @Test func sharedUrlCacheHasExpectedCapacity() {
+        let cache = DataLoader.sharedUrlCache
+        #expect(cache.memoryCapacity == 0)
+        #expect(cache.diskCapacity == 150 * 1048576)
     }
 
     // MARK: Requests
@@ -108,6 +117,7 @@ struct DataLoaderSessionContractTests {
             stub.respond(chunks: [Data("x".utf8)])
         }
         let loader = makeStubLoader()
+        #expect(!loader.prefersIncrementalDelivery) // The default
 
         // When
         loader.prefersIncrementalDelivery = true
@@ -117,6 +127,43 @@ struct DataLoaderSessionContractTests {
 
         // Then
         #expect(observed.withLock { $0 } == [true, false])
+    }
+
+    /// The loader reads `prefersIncrementalDelivery` when each task is created,
+    /// which happens on the thread that starts the request, so writing it from
+    /// another thread has to be synchronized – otherwise the thread sanitizer
+    /// aborts the test run.
+    @Test func prefersIncrementalDeliveryIsToggledWhileLoadingData() async {
+        // Given
+        let loader = makeStubLoader()
+        let urls = (0..<50).map { _ in
+            StubURLProtocol.register { $0.respond(chunks: [Data("x".utf8)]) }
+        }
+
+        let writer = Task.detached {
+            var isEnabled = true
+            while !Task.isCancelled {
+                isEnabled.toggle()
+                loader.prefersIncrementalDelivery = isEnabled
+                await Task.yield()
+            }
+        }
+
+        // When loading data while the flag is being toggled
+        await withTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    let recorder = LoadRecorder()
+                    await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+                    #expect(recorder.error == nil)
+                    #expect(recorder.body == Data("x".utf8))
+                }
+            }
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
     }
 
     @Test func pipelineRequestsIncrementalDeliveryOnlyForProgressiveDecoding() {
@@ -157,6 +204,101 @@ struct DataLoaderSessionContractTests {
         let response = try #require(recorder.responses.first)
         #expect(!(response is HTTPURLResponse))
         #expect(response.mimeType == "text/plain")
+    }
+
+    // MARK: Responses
+
+    @Test func loadMultipleChunks() async throws {
+        // Given
+        let chunks = [Data("aaa".utf8), Data("bbb".utf8), Data("ccc".utf8)]
+        let url = StubURLProtocol.register { $0.respond(chunks: chunks) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error == nil)
+        #expect(recorder.body == Data("aaabbbccc".utf8))
+        let response = try #require(recorder.responses.first as? HTTPURLResponse)
+        #expect(response.statusCode == 200)
+    }
+
+    @Test func loadEmptyBody() async {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(chunks: []) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error == nil)
+        #expect(recorder.chunks.isEmpty)
+    }
+
+    @Test func responseHeadersAreDelivered() async throws {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(headers: ["X-Custom": "value123"], chunks: [Data("x".utf8)]) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        let response = try #require(recorder.responses.first as? HTTPURLResponse)
+        #expect(response.value(forHTTPHeaderField: "X-Custom") == "value123")
+    }
+
+    @Test func loadLargeData() async {
+        // Given a 1 MB body sent in 100 KB chunks
+        let body = Data(repeating: 0xAB, count: 1_000_000)
+        let chunks = _createChunks(for: body, size: 100_000)
+        let url = StubURLProtocol.register { $0.respond(chunks: chunks) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error == nil)
+        #expect(recorder.body == body)
+    }
+
+    @Test func concurrentLoads() async {
+        // Given
+        let loader = makeStubLoader()
+        let urls = (0..<5).map { index in
+            StubURLProtocol.register { $0.respond(chunks: [Data("response-\(index)".utf8)]) }
+        }
+
+        // When/Then each load gets the response to its own request
+        await withTaskGroup(of: Void.self) { group in
+            for (index, url) in urls.enumerated() {
+                group.addTask {
+                    let recorder = LoadRecorder()
+                    await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+                    #expect(recorder.body == Data("response-\(index)".utf8))
+                }
+            }
+        }
+    }
+
+    @Test func errorBeforeResponse() async {
+        // Given a server that can't be reached
+        let url = StubURLProtocol.register { $0.fail(URLError(.cannotFindHost)) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect((recorder.error as? URLError)?.code == .cannotFindHost)
     }
 
     // MARK: Validation
@@ -219,7 +361,7 @@ struct DataLoaderSessionContractTests {
         }
     }
 
-    @Test(arguments: [100, 199, 300, 304, 399, 599])
+    @Test(arguments: [100, 199, 300, 304, 399, 400, 599])
     func defaultValidationRejectsStatusCodesOutside2xx(statusCode: Int) throws {
         let response = try #require(HTTPURLResponse(url: Test.url, statusCode: statusCode, httpVersion: nil, headerFields: nil))
         let error = try #require(DataLoader.validate(response: response) as? DataLoader.Error)
@@ -228,6 +370,75 @@ struct DataLoaderSessionContractTests {
             return
         }
         #expect(code == statusCode)
+    }
+
+    @Test func staticValidateAccepts200() throws {
+        let response = try #require(HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: nil, headerFields: nil))
+        #expect(DataLoader.validate(response: response) == nil)
+    }
+
+    @Test(arguments: [200, 201, 204, 299])
+    func validationAccepts2xxRange(statusCode: Int) async {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(statusCode: statusCode, chunks: [Data("ok".utf8)]) }
+        let loader = makeStubLoader()
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error == nil)
+        #expect((recorder.responses.first as? HTTPURLResponse)?.statusCode == statusCode)
+    }
+
+    /// The initializer validates the status code unless told otherwise.
+    @Test func initWithDefaultValidationRejectsNon2xx() async {
+        // Given a loader created without a `validate` closure
+        let url = StubURLProtocol.register { $0.respond(statusCode: 403, chunks: [Data("forbidden".utf8)]) }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let loader = DataLoader(configuration: configuration)
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error is DataLoader.Error)
+    }
+
+    @Test func customValidation() async {
+        // Given
+        struct CustomError: Error {}
+        let url = StubURLProtocol.register { $0.respond(chunks: [Data("ok".utf8)]) }
+        let loader = makeStubLoader { _ in CustomError() }
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error is CustomError)
+    }
+
+    @Test func noValidationPassesEverything() async {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(statusCode: 500, chunks: [Data("ok".utf8)]) }
+        let loader = makeStubLoader { _ in nil }
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(recorder.error == nil)
+        #expect((recorder.responses.first as? HTTPURLResponse)?.statusCode == 500)
+    }
+
+    @Test func errorDescription() {
+        let error = DataLoader.Error.statusCodeUnacceptable(404)
+        #expect(error.description.contains("404"))
     }
 
     // MARK: Cancellation
@@ -397,6 +608,24 @@ struct DataLoaderSessionContractTests {
         #expect(delegate.events.last == "complete \(URLError.Code.cancelled.rawValue)")
     }
 
+    @Test func metricsAreDeliveredWithTheCompletionWhenAskedFor() async throws {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(chunks: [Data("data".utf8)]) }
+        let loader = makeStubLoader()
+
+        // When
+        let metrics: URLSessionTaskMetrics? = await withCheckedContinuation { continuation in
+            _ = loader.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }) { _, metrics in
+                continuation.resume(returning: metrics)
+            }
+        }
+
+        // Then
+        let collected = try #require(metrics)
+        #expect(collected.transactionMetrics.count == 1)
+        #expect(collected.transactionMetrics.first?.request.url == url)
+    }
+
     /// The diagnostics rely on the metrics of a failed download too.
     @Test func metricsAreDeliveredWhenTheLoadFails() async {
         // Given a server that drops the connection mid-body
@@ -546,6 +775,94 @@ struct DataLoaderDelegateForwardingTests {
         #expect(resolution.withLock { $0 } == .performDefaultHandling)
         #expect(recorder.error == nil)
         #expect(recorder.body == Data("authorized".utf8))
+    }
+
+    // MARK: Authentication Routing
+    //
+    // `DataLoader` implements only the task-level challenge method, so
+    // `URLSession` sends it the session-wide challenges too, and it routes
+    // them the way `URLSession` would.
+
+    @Test func sessionLevelChallengeIsForwardedToDelegate() async {
+        // Given a delegate that implements only the session-level method
+        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
+        let loader = makeStubLoader()
+        let delegate = SessionLevelChallengeDelegate()
+        loader.delegate = delegate
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then the delegate rejects the server trust challenge
+        #expect(delegate.challengeCount == 1)
+        #expect((recorder.error as? URLError)?.code == .cancelled)
+    }
+
+    @Test func taskLevelChallengeIsForwardedToDelegate() async {
+        // Given a delegate that implements the task-level method
+        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
+        let loader = makeStubLoader()
+        let delegate = TaskLevelChallengeDelegate()
+        loader.delegate = delegate
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then
+        #expect(delegate.challengeCount == 1)
+        #expect((recorder.error as? URLError)?.code == .cancelled)
+    }
+
+    @Test func sessionWideChallengeGoesToSessionLevelMethodFirst() async {
+        // Given a delegate that implements both methods
+        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
+        let loader = makeStubLoader()
+        let delegate = BothLevelsChallengeDelegate()
+        loader.delegate = delegate
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then server trust goes to the session-level method, as with `URLSession`
+        #expect(delegate.sessionLevelCount == 1)
+        #expect(delegate.taskLevelCount == 0)
+        #expect((recorder.error as? URLError)?.code == .cancelled)
+    }
+
+    @Test func taskSpecificChallengeGoesToTaskLevelMethod() async {
+        // Given a delegate that implements both methods
+        let url = StubURLProtocol.registerChallenge { _, _ in }
+        let loader = makeStubLoader()
+        let delegate = BothLevelsChallengeDelegate()
+        loader.delegate = delegate
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then HTTP Basic never goes to the session-level method
+        #expect(delegate.sessionLevelCount == 0)
+        #expect(delegate.taskLevelCount == 1)
+        #expect((recorder.error as? URLError)?.code == .cancelled)
+    }
+
+    @Test func taskSpecificChallengeIsNotForwardedToSessionLevelMethod() async {
+        // Given a delegate that implements only the session-level method
+        let url = StubURLProtocol.registerChallenge { _, _ in }
+        let loader = makeStubLoader()
+        let delegate = SessionLevelChallengeDelegate()
+        loader.delegate = delegate
+
+        // When
+        let recorder = LoadRecorder()
+        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+
+        // Then the challenge gets default handling
+        #expect(delegate.challengeCount == 0)
+        #expect(recorder.error == nil)
     }
 
     // MARK: Redirects
@@ -708,6 +1025,42 @@ struct DataLoaderDelegateForwardingTests {
         #expect(first.events.filter { $0 == "complete" }.count == 1)
         #expect(second.events.filter { $0 == "complete" }.count == 1)
     }
+
+    /// The loader reads `delegate` in every session callback and when each
+    /// task is created, which happens on the thread that starts the request,
+    /// so replacing it from another thread has to be synchronized – otherwise
+    /// the process crashes or the thread sanitizer aborts the test run.
+    @Test func delegateIsReplacedWhileLoadingData() async {
+        // Given
+        let loader = makeStubLoader()
+        let urls = (0..<50).map { _ in
+            StubURLProtocol.register { $0.respond(chunks: [Data("x".utf8)]) }
+        }
+
+        let writer = Task.detached {
+            while !Task.isCancelled {
+                loader.delegate = EventLoggingDelegate()
+                await Task.yield()
+            }
+        }
+
+        // When loading data while the delegate is being replaced
+        await withTaskGroup(of: Void.self) { group in
+            for url in urls {
+                group.addTask {
+                    let recorder = LoadRecorder()
+                    await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
+                    #expect(recorder.error == nil)
+                    #expect(recorder.body == Data("x".utf8))
+                }
+            }
+        }
+
+        // Then no data races are reported
+        writer.cancel()
+        await writer.value
+        #expect(loader.delegate is EventLoggingDelegate)
+    }
 }
 
 // MARK: - Helpers
@@ -822,130 +1175,6 @@ private final class LoadRecorder: @unchecked Sendable {
     }
 }
 
-/// How the server-side sender of an authentication challenge was told to
-/// proceed.
-private enum ChallengeResolution: Equatable, Sendable {
-    case useCredential(user: String?)
-    case continueWithoutCredential
-    case cancel
-    case performDefaultHandling
-    case rejectProtectionSpace
-}
-
-/// Serves `stub://` requests with the handler registered under the URL.
-private final class StubURLProtocol: URLProtocol, URLAuthenticationChallengeSender, @unchecked Sendable {
-    typealias Handler = @Sendable (StubURLProtocol) -> Void
-
-    private static let handlers = OSAllocatedUnfairLock<[URL: Handler]>(initialState: [:])
-    private let onChallengeResolved = OSAllocatedUnfairLock<(@Sendable (ChallengeResolution) -> Void)?>(initialState: nil)
-
-    /// Registers the handler under a new unique URL.
-    static func register(_ handler: @escaping Handler) -> URL {
-        let url = URL(string: "stub://\(UUID().uuidString.lowercased())/image.jpeg")!
-        handlers.withLock { $0[url] = handler }
-        return url
-    }
-
-    /// Registers a "302 Found" redirecting to the given URL.
-    static func registerRedirect(to destination: URL) -> URL {
-        register { stub in
-            let response = HTTPURLResponse(url: stub.request.url!, statusCode: 302, httpVersion: "HTTP/1.1", headerFields: ["Location": destination.absoluteString])!
-            stub.client?.urlProtocol(stub, wasRedirectedTo: URLRequest(url: destination), redirectResponse: response)
-        }
-    }
-
-    /// Registers a server that challenges the client for HTTP Basic
-    /// credentials and responds with "authorized" once the challenge sender
-    /// is told how to proceed. (When the client cancels the challenge,
-    /// `URLSession` cancels the task instead of telling the sender.)
-    static func registerChallenge(_ onResolved: @escaping @Sendable (StubURLProtocol, ChallengeResolution) -> Void) -> URL {
-        register { stub in
-            stub.onChallengeResolved.withLock {
-                $0 = { resolution in
-                    onResolved(stub, resolution)
-                    stub.respond(chunks: [Data("authorized".utf8)])
-                }
-            }
-            let space = URLProtectionSpace(host: stub.request.url?.host ?? "", port: 443, protocol: "https", realm: "Nuke", authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
-            let challenge = URLAuthenticationChallenge(protectionSpace: space, proposedCredential: nil, previousFailureCount: 0, failureResponse: nil, error: nil, sender: stub)
-            stub.client?.urlProtocol(stub, didReceive: challenge)
-        }
-    }
-
-    override class func canInit(with request: URLRequest) -> Bool {
-        request.url?.scheme == "stub"
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        guard let url = request.url, let handler = Self.handlers.withLock({ $0[url] }) else {
-            client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL))
-            return
-        }
-        handler(self)
-    }
-
-    override func stopLoading() {}
-
-    // MARK: Responding
-
-    func sendResponse(statusCode: Int = 200, headers: [String: String] = [:]) {
-        let response = HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headers)!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-    }
-
-    func send(_ chunk: Data) {
-        client?.urlProtocol(self, didLoad: chunk)
-    }
-
-    func finish() {
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    func fail(_ error: URLError) {
-        client?.urlProtocol(self, didFailWithError: error)
-    }
-
-    func respond(statusCode: Int = 200, headers: [String: String] = [:], chunks: [Data]) {
-        var headers = headers
-        if headers["Content-Length"] == nil {
-            headers["Content-Length"] = String(chunks.reduce(0) { $0 + $1.count })
-        }
-        sendResponse(statusCode: statusCode, headers: headers)
-        chunks.forEach(send)
-        finish()
-    }
-
-    // MARK: URLAuthenticationChallengeSender
-
-    func use(_ credential: URLCredential, for challenge: URLAuthenticationChallenge) {
-        resolve(.useCredential(user: credential.user))
-    }
-
-    func continueWithoutCredential(for challenge: URLAuthenticationChallenge) {
-        resolve(.continueWithoutCredential)
-    }
-
-    func cancel(_ challenge: URLAuthenticationChallenge) {
-        resolve(.cancel)
-    }
-
-    func performDefaultHandling(for challenge: URLAuthenticationChallenge) {
-        resolve(.performDefaultHandling)
-    }
-
-    func rejectProtectionSpaceAndContinue(with challenge: URLAuthenticationChallenge) {
-        resolve(.rejectProtectionSpace)
-    }
-
-    private func resolve(_ resolution: ChallengeResolution) {
-        onChallengeResolved.withLock { $0 }?(resolution)
-    }
-}
-
 // MARK: - Delegates
 
 /// Logs the session events in the order the delegate hears about them.
@@ -1005,6 +1234,46 @@ private final class ChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchec
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @Sendable @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         completionHandler(disposition, credential)
+    }
+}
+
+/// Implements only the session-level challenge method and rejects the challenge.
+private final class SessionLevelChallengeDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
+    var challengeCount: Int { _challengeCount.withLock { $0 } }
+    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
+
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _challengeCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+}
+
+/// Implements only the task-level challenge method and rejects the challenge.
+private final class TaskLevelChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    var challengeCount: Int { _challengeCount.withLock { $0 } }
+    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _challengeCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+}
+
+/// Implements both challenge methods and rejects the challenge.
+private final class BothLevelsChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    var sessionLevelCount: Int { _sessionLevelCount.withLock { $0 } }
+    var taskLevelCount: Int { _taskLevelCount.withLock { $0 } }
+    private let _sessionLevelCount = OSAllocatedUnfairLock(initialState: 0)
+    private let _taskLevelCount = OSAllocatedUnfairLock(initialState: 0)
+
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _sessionLevelCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        _taskLevelCount.withLock { $0 += 1 }
+        completionHandler(.cancelAuthenticationChallenge, nil)
     }
 }
 

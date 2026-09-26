@@ -1041,14 +1041,14 @@ struct ImagePipelineDiagnosticsTests {
         // GIVEN a pipeline on `DataLoader`, with the session served by a
         // protocol of its own
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [_FixtureURLProtocol.self]
+        configuration.protocolClasses = [StubURLProtocol.self]
         let pipeline = ImagePipeline {
             $0.dataLoader = DataLoader(configuration: configuration)
             $0.imageCache = nil
             $0.dataCache = nil
             $0.isDiagnosticsEnabled = true
         }
-        let url = URL(string: "fixture://diagnostics/image.jpeg")!
+        let url = StubURLProtocol.register { $0.respond(chunks: [Test.data]) }
 
         // WHEN
         let task = pipeline.imageTask(with: url)
@@ -1082,27 +1082,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
         #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
     }
-}
-
-/// Serves the fixture image to every request of its scheme, so the session
-/// takes the metrics of a real task without a network.
-private final class _FixtureURLProtocol: URLProtocol, @unchecked Sendable {
-    override class func canInit(with request: URLRequest) -> Bool {
-        request.url?.scheme == "fixture"
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(Test.data.count)"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Test.data)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
 }
 
 /// Receives the records the way a logger would: from the delegate, with the
