@@ -62,7 +62,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             return fetchImage()
         }
         didLookUpOriginalData = true
-        decodeCachedData(data)
+        decodeCachedData(data, isOwnEntry: false)
     }
 
     private func fetchImage() {
