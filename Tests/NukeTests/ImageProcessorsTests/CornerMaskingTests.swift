@@ -13,8 +13,8 @@ import UIKit
 import AppKit
 #endif
 
-/// ``ImageProcessors/Circle`` and ``ImageProcessors/RoundedCorners`` on every
-/// platform – the snapshot-based tests of the two only run on UIKit.
+/// The pixels ``ImageProcessors/Circle`` and ``ImageProcessors/RoundedCorners``
+/// produce, on every platform.
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsCornerMaskingTests {
 

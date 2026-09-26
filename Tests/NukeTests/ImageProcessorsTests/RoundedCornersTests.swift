@@ -13,34 +13,6 @@ import Foundation
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsRoundedCornersTests {
 
-    @Test(.disabled()) func thatCornerRadiusIsAdded() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        let expected = Test.image(named: "s-rounded-corners.png")
-        #expect(isEqualImages(output, expected))
-        #expect(output.sizeInPixels == CGSize(width: 200, height: 150))
-    }
-
-    @Test(.disabled()) func thatBorderIsAdded() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
-        let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels, border: border)
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        let expected = Test.image(named: "s-rounded-corners-border.png")
-        #expect(isEqualImages(output, expected))
-    }
-
     @Test func extendedColorSpaceSupport() throws {
         // Given
         let input = Test.image(named: "image-p3", extension: "jpg")

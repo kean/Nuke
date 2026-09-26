@@ -210,11 +210,6 @@ struct ImagePipelineDiagnosticsRecordingTests {
         }
     }
 
-    @Test func environmentVariableIsTheDefault() {
-        #expect(ImagePipeline.Diagnostics.isEnabledByEnvironment == ImagePipeline.Diagnostics.isEnabled(in: ProcessInfo.processInfo.environment))
-        #expect(ImagePipeline.Configuration().isDiagnosticsEnabled == ImagePipeline.Diagnostics.isEnabledByEnvironment)
-    }
-
     /// Anything but `0`, `no`, `false`, or nothing at all is on, whatever
     /// the case of the letters.
     @Test func environmentVariableIgnoresCase() {

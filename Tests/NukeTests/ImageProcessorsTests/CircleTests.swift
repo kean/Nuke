@@ -10,36 +10,8 @@ import Foundation
     import UIKit
 #endif
 
-#if os(iOS) || os(tvOS) || os(visionOS)
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsCircleTests {
-
-    @Test(.disabled()) func thatImageIsCroppedToSquareAutomatically() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let processor = ImageProcessors.Circle()
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        #expect(output.sizeInPixels == CGSize(width: 150, height: 150))
-        #expect(isEqualImages(output, Test.image(named: "s-circle.png")))
-    }
-
-    @Test(.disabled()) func thatBorderIsAdded() throws {
-        // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
-        let processor = ImageProcessors.Circle(border: border)
-
-        // When
-        let output = try #require(processor.process(input), "Failed to process an image")
-
-        // Then
-        #expect(output.sizeInPixels == CGSize(width: 150, height: 150))
-        #expect(isEqualImages(output, Test.image(named: "s-circle-border.png")))
-    }
 
     @Test func extendedColorSpaceSupport() throws {
         // Given
@@ -131,6 +103,7 @@ struct ImageProcessorsCircleTests {
         #expect(processor.description == "Circle(border: nil)")
     }
 
+#if !os(macOS)
     @Test func colorToHex() {
         // Given
         let color = UIColor.red
@@ -138,5 +111,5 @@ struct ImageProcessorsCircleTests {
         // Then
         #expect(color.hex == "#FF0000")
     }
-}
 #endif
+}

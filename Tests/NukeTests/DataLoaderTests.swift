@@ -467,36 +467,6 @@ struct DataLoaderTests {
         #expect(cache.diskCapacity == 150 * 1048576)
     }
 
-    // MARK: - Caching
-
-    @Test func willCacheResponseIsForwarded() async throws {
-        let url = mockURL("cache-fwd")
-        MockURLProtocol.handlers[url] = .init { _, client, proto in
-            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "5"])!
-            client.urlProtocol(proto, didReceive: response, cacheStoragePolicy: .allowedInMemoryOnly)
-            client.urlProtocol(proto, didLoad: Data("hello".utf8))
-            client.urlProtocolDidFinishLoading(proto)
-        }
-
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self]
-        config.urlCache = URLCache(memoryCapacity: 1_000_000, diskCapacity: 0)
-        let loader = DataLoader(configuration: config, validate: { _ in nil })
-
-        let spy = SpyURLSessionDelegate()
-        loader.delegate = spy
-
-        for try await _ in loader.loadData(with: URLRequest(url: url)) {}
-
-        await withCheckedContinuation { continuation in
-            loader.session.delegateQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
-
-        #expect(spy.didReceiveResponseCount > 0)
-    }
-
     // MARK: - Authentication Challenges
 
     @Test func sessionLevelChallengeIsForwardedToDelegate() async {

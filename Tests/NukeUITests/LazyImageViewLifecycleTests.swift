@@ -216,6 +216,7 @@ struct LazyImageViewLifecycleTests {
         var events: [String] = []
         view.transition = .custom { view, container in
             events.append("transition")
+            #expect(view === self.view)
             #expect(view.imageView.image === container.image)
             #expect(!view.imageView.isHidden)
         }
@@ -333,6 +334,7 @@ struct LazyImageViewLifecycleTests {
         let startExpectation = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
         view.url = Test.url
         await startExpectation.wait()
+        #expect(view.imageTask != nil)
 
         // When
         await notification(ImagePipelineObserver.didCancelTask, object: observer) {

@@ -106,15 +106,6 @@ struct AnimatedImageSourceTests {
         #expect(source.loopCount == 3)
     }
 
-    @Test func readsAGIFWithNoLoopExtensionAsPlayOnce() throws {
-        // A GIF stores its loop count in the Netscape application extension,
-        // and a GIF without that block plays once in every browser. Treating
-        // the missing count as "forever" is the one place the file and the
-        // player disagree.
-        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(loopCount: nil)))
-        #expect(source.loopCount == 1)
-    }
-
     @Test func defaultsTheLoopCountPerFormat() {
         // Image I/O fills the count in for a GIF written without the extension
         // on some releases, so the fallback is asserted directly: "play once"

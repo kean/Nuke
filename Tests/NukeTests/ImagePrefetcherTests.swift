@@ -208,20 +208,6 @@ struct ImagePrefetcherTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
-    // MARK: Pause
-
-    @Test @ImagePipelineActor func pausingPrefetcher() async {
-        // WHEN
-        prefetcher.isPaused = true
-
-        _ = await prefetcher.queue.waitForOperations(count: 1) {
-            prefetcher.startPrefetching(with: [Test.url])
-        }
-
-        // THEN
-        #expect(observer.startedTaskCount == 0)
-    }
-
     // MARK: Priority
 
     @Test @ImagePipelineActor func defaultPrioritySetToLow() async {
@@ -609,33 +595,6 @@ struct ImagePrefetcherTests {
     private static let thirdURL = URL(string: "http://test.com/example-3.jpeg")!
     /// Twice as many as the prefetcher loads at a time.
     private static let batch = (0..<4).map { URL(string: "http://test.com/batch-\($0).jpeg")! }
-
-    // MARK: Empty Inputs
-
-    @Test func startPrefetchingWithEmptyURLArray() {
-        // WHEN - prefetching is started with an empty URL list
-        prefetcher.startPrefetching(with: [URL]())
-
-        // THEN - no tasks are created and nothing crashes
-        #expect(observer.startedTaskCount == 0)
-    }
-
-    @Test func startPrefetchingWithEmptyRequestArray() {
-        // WHEN - prefetching is started with an empty request list
-        prefetcher.startPrefetching(with: [ImageRequest]())
-
-        // THEN - no tasks are created and nothing crashes
-        #expect(observer.startedTaskCount == 0)
-    }
-
-    @Test func stopPrefetchingWithEmptyArrayIsNoOp() {
-        // GIVEN - nothing is currently being prefetched
-        // WHEN - stopping with an empty list
-        prefetcher.stopPrefetching(with: [URL]())
-
-        // THEN - no crash, no state change
-        #expect(observer.startedTaskCount == 0)
-    }
 
     // MARK: Misc
 

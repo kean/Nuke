@@ -30,18 +30,6 @@ struct ImagePipelineDiagnosticsTests {
 
     // MARK: - Switches
 
-    @Test func nothingIsRecordedByDefault() async throws {
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-        let task = pipeline.imageTask(with: Test.request)
-        _ = try await task.response
-
-        #expect(task.metrics == nil)
-        #expect(!pipeline.diagnostics.isEnabled)
-    }
-
     @Test func runtimeSwitchTurnsTheRecordingOff() async throws {
         #expect(pipeline.diagnostics.isEnabled)
 

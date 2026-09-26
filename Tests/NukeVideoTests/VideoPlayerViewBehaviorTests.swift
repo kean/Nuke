@@ -120,6 +120,10 @@ struct VideoPlayerViewConfigurationTests {
         // When
         view.play()
         view.restart()
+        // ...and the view is added to a window, which resumes a player the
+        // view has, and there is none to resume
+        let host = WindowHost()
+        host.add(view)
 
         // Then not even the player layer is created
         #expect(sublayers(of: view).isEmpty)

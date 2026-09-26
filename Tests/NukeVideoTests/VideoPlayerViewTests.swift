@@ -41,14 +41,6 @@ struct VideoPlayerViewTests {
 
         #expect(player.rate != 0)
     }
-
-    /// There is no player to resume until the video is played.
-    @Test func addingViewWithoutPlayerToWindowDoesNothing() {
-        let view = VideoPlayerView()
-        host.add(view)
-
-        #expect(view.playerLayer.player == nil)
-    }
 }
 
 /// Keeps a window alive for the test and attaches views to it the way an app does.

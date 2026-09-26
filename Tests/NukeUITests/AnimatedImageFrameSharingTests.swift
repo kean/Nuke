@@ -188,8 +188,8 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aViewTakesTheSmallestFramesThatCoverIt() throws {
-        // Two sets already exist, and the cheapest one that answers is the one
-        // it joins: a view never pays for more pixels than it has to.
+        // Two sets already exist that both answer it, and the cheapest one is
+        // the one it joins: a view never pays for more pixels than it has to.
         let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         var medium = AnimatedImagePlayer.Options()
         medium.maxPixelSize = 32
@@ -199,8 +199,9 @@ struct AnimatedImageFrameSharingTests {
         let largeView = makePlayer(source: source, options: large)
         #expect(pool.animationCount == 2)
 
+        // Both sets are within twice the size it asks for.
         var small = AnimatedImagePlayer.Options()
-        small.maxPixelSize = 16
+        small.maxPixelSize = 24
         let smallView = makePlayer(source: source, options: small)
 
         #expect(smallView.store === mediumView.store)

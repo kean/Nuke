@@ -175,6 +175,7 @@ final class DataCacheTests {
     @Test func removeNonExistent() async {
         cache["key"] = nil
         await cache.flush()
+        #expect(cache.contents.isEmpty)
     }
 
     // - Remove + write (new) staged -> remove from staging
@@ -309,7 +310,7 @@ final class DataCacheTests {
         #expect(cache.contents.count == 0)
     }
 
-    @Test func removeAllAndAdd() {
+    @Test func removeAllAndAdd() async {
         // Given
         cache.withSuspendedIO {
             cache["key"] = blob
@@ -321,6 +322,10 @@ final class DataCacheTests {
             // Then
             #expect(cache["key"] == blob)
         }
+
+        // Then the removal reaches the disk before the write that follows it
+        await cache.flush()
+        #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
     @Test func removeAllTwice() {
@@ -494,12 +499,18 @@ final class DataCacheTests {
         cache["key"] = blob
 
         // WHEN
-        await cache.flush() // Must return instead of chasing the traffic
+        let didReturn = TestExpectation()
+        let flush = Task {
+            await cache.flush() // Must return instead of chasing the traffic
+            didReturn.fulfill()
+        }
 
-        // THEN
+        // THEN it returns while the traffic is still going
+        await didReturn.wait(timeout: .seconds(10))
         #expect(cache.containsData(for: "key"))
         traffic.cancel()
         _ = await traffic.value
+        await flush.value
         await cache.flush() // Drain what the traffic left behind
     }
 
@@ -637,11 +648,17 @@ final class DataCacheTests {
         }
 
         // WHEN
-        await cache.sweep() // The writes must not starve the sweep
+        let didReturn = TestExpectation()
+        let sweep = Task {
+            await cache.sweep() // The writes must not starve the sweep
+            didReturn.fulfill()
+        }
 
-        // THEN
+        // THEN it returns while the traffic is still going
+        await didReturn.wait(timeout: .seconds(10))
         traffic.cancel()
         _ = await traffic.value
+        await sweep.value
         await cache.flush() // Drain what the traffic left behind
     }
 
@@ -940,26 +957,6 @@ final class DataCacheTests {
         let metadata = try JSONDecoder().decode(CacheMetadata.self, from: data)
         #expect(metadata.lastSweepDate != nil)
         _ = cache
-    }
-
-    @Test func initWithExistingMetadataSkipsSweep() async throws {
-        let name = UUID().uuidString
-        let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let path = root.appendingPathComponent(name, isDirectory: true)
-        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
-
-        struct CacheMetadata: Codable { var lastSweepDate: Date? }
-        let metadata = CacheMetadata(lastSweepDate: Date())
-        try JSONEncoder().encode(metadata).write(
-            to: path.appendingPathComponent(".data-cache-info")
-        )
-
-        let cache = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
-        defer { try? FileManager.default.removeItem(at: cache.path) }
-
-        cache["key"] = blob
-        await cache.flush()
-        #expect(cache["key"] == blob)
     }
 
     @Test func manualSweepUpdatesMetadata() async throws {

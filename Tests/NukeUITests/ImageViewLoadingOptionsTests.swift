@@ -407,10 +407,13 @@ struct ImageViewLoadingOptionsTests {
     // MARK: - Misc
 
 #if os(iOS) || os(tvOS) || os(visionOS)
-    @Test func transitionCrossDissolve() async {
-        // GIVEN
+    @Test func crossDissolveWithoutSuperviewStillDisplaysImage() async {
+        // GIVEN an image view outside any view hierarchy, showing a
+        // placeholder in a content mode other than the success one, so the
+        // fade-in is a cross-dissolve with nowhere to put its temporary view
         var options = options
-        options.placeholder = Test.image
+        let placeholder = Test.image
+        options.placeholder = placeholder
         options.transition = .fadeIn(duration: 0.33)
         options.isPrepareForReuseEnabled = false
         options.contentModes = .init(
@@ -422,10 +425,14 @@ struct ImageViewLoadingOptionsTests {
         imageView.image = Test.image
 
         // WHEN
-        await loadImageAndWait(with: Test.request, options: options, into: imageView)
+        await loadImageExpectingSuccess(with: Test.request, options: options, into: imageView)
 
-        // THEN make sure we run the pass with cross-disolve and at least
-        // it doesn't crash
+        // THEN the image view still displays the image, in the success
+        // content mode, faded back in
+        #expect(imageView.image != nil)
+        #expect(imageView.image !== placeholder)
+        #expect(imageView.contentMode == .scaleAspectFill)
+        #expect(imageView.alpha == 1)
     }
 
     @Test func transitionCrossDissolveRemovesTemporaryView() async throws {

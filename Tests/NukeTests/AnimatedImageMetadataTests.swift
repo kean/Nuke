@@ -32,6 +32,11 @@ struct AnimatedImageMetadataTests {
         #expect(source.frameCount == 2)
         #expect(source.delays == [AnimatedImageSource.defaultDelay, AnimatedImageSource.defaultDelay])
         #expect(abs(source.duration - 0.2) < 0.0001)
+        // A GIF without the Netscape extension plays once in every browser.
+        // Image I/O publishes that `1` itself, as the container's `LoopCount`,
+        // so this reads its value rather than the fallback for a container
+        // that declares no count, which `defaultsTheLoopCountPerFormat` and
+        // `loopCountFallsBackPerFormatWhenThereIsNoContainerDictionary` pin.
         #expect(source.loopCount == 1)
         #expect(source.size == CGSize(width: 1, height: 1))
     }

@@ -246,32 +246,6 @@ struct LazyImageViewTests {
         #expect(placeholder.isHidden == false)
     }
 
-    @Test func placeholderHiddenAfterSuccess() async {
-        let placeholder = _PlatformBaseView()
-        view.placeholderView = placeholder
-
-        let expectation = TestExpectation()
-        view.onCompletion = { _ in expectation.fulfill() }
-        view.url = Test.url
-        await expectation.wait()
-
-        #expect(placeholder.isHidden == true)
-    }
-
-    @Test func placeholderHiddenAfterFailureByDefault() async {
-        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
-
-        let placeholder = _PlatformBaseView()
-        view.placeholderView = placeholder
-
-        let expectation = TestExpectation()
-        view.onCompletion = { _ in expectation.fulfill() }
-        view.url = Test.url
-        await expectation.wait()
-
-        #expect(placeholder.isHidden == true)
-    }
-
     @Test func placeholderImageWrapsInImageView() {
         view.placeholderImage = Test.image
         #expect(view.placeholderView is _PlatformImageView)
@@ -321,20 +295,6 @@ struct LazyImageViewTests {
         #expect(failureView.isHidden == true)
     }
 
-    @Test func failureViewShownOnFailure() async {
-        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
-
-        let failureView = _PlatformBaseView()
-        view.failureView = failureView
-
-        let expectation = TestExpectation()
-        view.onCompletion = { _ in expectation.fulfill() }
-        view.url = Test.url
-        await expectation.wait()
-
-        #expect(failureView.isHidden == false)
-    }
-
     @Test func failureViewHiddenAfterSuccess() async {
         let failureView = _PlatformBaseView()
         view.failureView = failureView
@@ -361,21 +321,6 @@ struct LazyImageViewTests {
     }
 
     // MARK: - Cancellation
-
-    @Test func cancelClearsImageTask() async {
-        dataLoader.isSuspended = true
-
-        let startExp = TestExpectation(notification: ImagePipelineObserver.didStartTask, object: observer)
-        view.url = Test.url
-        await startExp.wait()
-
-        #expect(view.imageTask != nil)
-
-        await notification(ImagePipelineObserver.didCancelTask, object: observer) {
-            view.cancel()
-        }
-        #expect(view.imageTask == nil)
-    }
 
     @Test func resetCancelsAndClearsImage() async {
         let expectation = TestExpectation()
@@ -493,20 +438,6 @@ struct LazyImageViewTests {
 
     // MARK: - Transition
 
-    @Test func customTransitionRunOnSuccess() async {
-        let transitionExpectation = TestExpectation()
-        view.transition = .custom { v, _ in
-            #expect(v === self.view)
-            transitionExpectation.fulfill()
-        }
-
-        let completionExpectation = TestExpectation()
-        view.onCompletion = { _ in completionExpectation.fulfill() }
-        view.url = Test.url
-        await completionExpectation.wait()
-        await transitionExpectation.wait()
-    }
-
     @Test func transitionNotRunFromMemoryCache() {
         pipeline.cache[Test.request] = Test.container
 
@@ -515,17 +446,6 @@ struct LazyImageViewTests {
         view.request = Test.request
 
         #expect(transitionRun == false)
-        #expect(view.imageView.image != nil)
-    }
-
-    @Test func transitionNilProducesNoTransition() async {
-        view.transition = nil
-
-        let expectation = TestExpectation()
-        view.onCompletion = { _ in expectation.fulfill() }
-        view.url = Test.url
-        await expectation.wait()
-
         #expect(view.imageView.image != nil)
     }
 

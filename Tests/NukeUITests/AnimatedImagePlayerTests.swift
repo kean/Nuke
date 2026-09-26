@@ -557,15 +557,21 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Seeking
 
-    @Test func seekMovesToTheFrame() async {
+    @Test func seekMovesToTheFrame() async throws {
         let (player, _) = AnimatedImageTest.makePlayer(frameCount: 5)
         await player.waitUntilFull()
 
         player.seek(toFrame: 3)
         await player.waitUntilFull()
 
+        // A player that isn't playing holds only the first frames, so the
+        // seek lands on a frame that isn't decoded yet, and the frame goes on
+        // screen when its decode arrives.
         #expect(player.currentFrameIndex == 3)
-        #expect(player.image != nil)
+        let frame = try #require(player.store.frame(at: 3))
+        #expect(AnimatedImageTest.firstPixel(of: player.image) == AnimatedImageTest.firstPixel(of: frame))
+        #expect(player.diagnostics.displayedFrameCount == 2)
+        #expect(player.diagnostics.bufferMissCount == 1)
     }
 
     @Test func seekClampsToTheAnimation() async {
