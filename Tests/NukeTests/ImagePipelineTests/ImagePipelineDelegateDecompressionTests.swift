@@ -10,8 +10,8 @@ import Foundation
 /// and ``ImagePipeline/Delegate-swift.protocol/decompress(response:request:pipeline:)``.
 ///
 /// The decoder used here marks every image it produces as needing
-/// decompression, which the default decoder does on every platform but macOS,
-/// so the same tests run everywhere.
+/// decompression, like the default decoder does, and remembers the last image
+/// it decoded for the tests to compare against.
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineDelegateDecompressionTests {
     private let dataLoader = MockDataLoader()
@@ -119,12 +119,49 @@ struct ImagePipelineDelegateDecompressionTests {
         #expect(response.image === cached)
         #expect(delegate.shouldDecompressRequests.isEmpty)
     }
+
+#if os(macOS)
+    // MARK: macOS
+
+    /// Decompression is off by default on macOS, but the default decoder still
+    /// marks the images so that turning it on has an effect.
+    @Test func imagesAreNotDecompressedByDefaultOnMacOS() async throws {
+        // GIVEN the default decoder and configuration
+        let pipeline = ImagePipeline(delegate: PassthroughDelegate()) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN the decoded image is delivered as is
+        #expect(ImageDecompression.isDecompressionNeeded(for: response.image) == true)
+    }
+
+    @Test func enablingDecompressionOnMacOSInvokesTheDelegate() async throws {
+        // GIVEN the default decoder and decompression enabled
+        let delegate = DecompressionDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+            $0.isDecompressionEnabled = true
+        }
+
+        // WHEN
+        _ = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN
+        #expect(delegate.shouldDecompressRequests.map(\.url) == [Test.url])
+        #expect(delegate.decompressCount == 1)
+    }
+#endif
 }
 
 // MARK: - Helpers
 
 /// Decodes the image with the default decoder and marks it as needing
-/// decompression, which is what the default decoder does on iOS and tvOS.
+/// decompression, which the default decoder does as well.
 private final class MarkingDecoder: ImageDecoding, @unchecked Sendable {
     private let lock = NSLock()
     private var _lastImage: PlatformImage?
