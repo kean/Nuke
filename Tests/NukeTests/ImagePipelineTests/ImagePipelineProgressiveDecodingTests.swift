@@ -296,6 +296,50 @@ struct ImagePipelineProgressiveDecodingTests {
         #expect(!response.isPreview)
     }
 
+    /// The final decode cancels a preview decode that is still running and
+    /// takes its place in `operation`. The preview decode finishing later
+    /// must not clear that handle: the final decode has to stay cancellable.
+    @Test @ImagePipelineActor func finalDecodeIsCancelledAfterALatePreviewDecode() async throws {
+        // GIVEN a decoder that blocks on both the preview and the final image
+        let decoder = GatedImageDecoder()
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in decoder }
+        }
+        let queue = pipeline.configuration.imageDecodingQueue
+        let operations = TestExpectation(queue: queue, count: 2)
+        let task = pipeline.imageTask(with: Test.request)
+        let previews = task.previews
+        let didDeliverPreview = TestExpectation()
+        Task {
+            for await _ in previews {
+                didDeliverPreview.fulfill()
+            }
+        }
+        defer { decoder.openAllGates() }
+
+        // WHEN the rest of the data arrives while the first preview is decoded
+        await decoder.didStartPreview.wait()
+        dataLoader.resume()
+        dataLoader.resume()
+        await operations.wait()
+        await decoder.didStartFinal.wait()
+
+        // WHEN the preview decode finishes after the final one started
+        decoder.openPreviewGate()
+        await didDeliverPreview.wait()
+
+        // WHEN the task is cancelled
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the final decode is cancelled with it
+        #expect(operations.operations.count == 2)
+        #expect(operations.operations.first?.isCancelled == true)
+        #expect(operations.operations.last?.isCancelled == true)
+    }
+
     // MARK: Failures
 
     /// A pending progressive processing operation used to outlive the failed
@@ -404,4 +448,37 @@ struct ImagePipelineProgressiveDecodingTests {
         #expect(previewScale == 7)
     }
 #endif
+}
+
+/// Decodes on the decoding queue, blocking until the gates open: one gate for
+/// the previews, one for the final image.
+private final class GatedImageDecoder: ImageDecoding, @unchecked Sendable {
+    let didStartPreview = TestExpectation()
+    let didStartFinal = TestExpectation()
+    private let previewGate = DispatchSemaphore(value: 0)
+    private let finalGate = DispatchSemaphore(value: 0)
+    private let decoder = ImageDecoders.Default()
+
+    func decode(_ data: Data) throws -> ImageContainer {
+        didStartFinal.fulfill()
+        _ = finalGate.wait(timeout: .now() + 30)
+        return try decoder.decode(data)
+    }
+
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        didStartPreview.fulfill()
+        _ = previewGate.wait(timeout: .now() + 30)
+        return ImageContainer(image: Test.rgbImage(width: 4, height: 4), isPreview: true)
+    }
+
+    func openPreviewGate() {
+        previewGate.signal()
+    }
+
+    func openAllGates() {
+        for _ in 0..<4 {
+            previewGate.signal()
+            finalGate.signal()
+        }
+    }
 }
