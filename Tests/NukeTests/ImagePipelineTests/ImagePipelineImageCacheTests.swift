@@ -89,6 +89,26 @@ struct ImagePipelineImageCacheTests {
         #expect(container.image.sizeInPixels == CGSize(width: 400, height: 300))
         #expect(pipeline.cache[ImageRequest(url: Test.url)] == nil)
     }
+
+    @Test func processedImageIsCachedForTheResponseRequest() async throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
+
+        // WHEN
+        let loaded = try await pipeline.imageTask(with: request).response
+        let cached = try await pipeline.imageTask(with: request).response
+
+        // THEN the responses from the network and from the memory cache are
+        // both for the request with the processor
+        #expect(cached.cacheType == .memory)
+        #expect(loaded.request.processors.count == 1)
+        #expect(cached.request.processors.count == 1)
+
+        // THEN the response request addresses the cached processed image
+        #expect(cache[loaded.request] != nil)
+        pipeline.cache.removeCachedImage(for: loaded.request)
+        #expect(cache[request] == nil)
+    }
 }
 
 /// Make sure that cache layers are checked in the correct order and the
