@@ -200,7 +200,7 @@ struct InternalCacheTests {
         cache.set("b", forKey: "b", cost: 10)
 
         // When
-        cache.conf.costLimit = 10
+        cache.updateConf { $0.costLimit = 10 }
 
         // Then
         #expect(cache.totalCost == 10)
@@ -214,7 +214,7 @@ struct InternalCacheTests {
         cache.set("b", forKey: "b", cost: 1)
 
         // When
-        cache.conf.countLimit = 1
+        cache.updateConf { $0.countLimit = 1 }
 
         // Then
         #expect(cache.totalCount == 1)
@@ -368,7 +368,7 @@ struct InternalCacheTests {
     @Test func defaultTTLIsUsedWhenNoneIsGiven() {
         // Given a cache with a default TTL in the past
         let cache = makeCache()
-        cache.conf.ttl = -1
+        cache.updateConf { $0.ttl = -1 }
 
         // When
         cache.set("value", forKey: "key", cost: 10)
@@ -380,7 +380,7 @@ struct InternalCacheTests {
     @Test func perEntryTTLOverridesTheDefault() {
         // Given
         let cache = makeCache()
-        cache.conf.ttl = -1
+        cache.updateConf { $0.ttl = -1 }
 
         // When
         cache.set("value", forKey: "key", cost: 10, ttl: 60)
