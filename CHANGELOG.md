@@ -252,6 +252,9 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
 - Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix `ImageDecoders/Default` previews ignoring the EXIF orientation, so a rotated progressive image snapped a quarter turn when the download completed – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` decoding full-size progressive previews for a request with `ImageRequest/thumbnail` set – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
 
 ### Documentation
 
