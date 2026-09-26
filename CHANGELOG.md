@@ -252,6 +252,11 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
 - Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix a crash when awaiting `ImageTask/response` from a `Task` started in `ImagePipeline/Delegate/imageTaskCreated(_:pipeline:)` – https://github.com/kean/Nuke/pull/1025
+- Fix creating a pipeline turning off `DataLoader/prefersIncrementalDelivery` on a loader shared with a progressive pipeline – https://github.com/kean/Nuke/pull/1025
+- Fix a request created after `ImagePipeline/invalidate()` returned succeeding when `invalidate()` was called from a lower-priority thread – https://github.com/kean/Nuke/pull/1025
+- Fix a late progressive decode leaving the final decode uncancellable – https://github.com/kean/Nuke/pull/1025
+- Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored for requests created with `ImageRequest(id:image:)` – https://github.com/kean/Nuke/pull/1025
 
 ### Documentation
 
