@@ -12,7 +12,8 @@ public final class DataLoader: DataLoading, Sendable {
     private let impl: _DataLoader
 
     /// Determines whether to deliver a partial response body in increments. By
-    /// default, `false`.
+    /// default, `false`. A pipeline with progressive decoding enabled turns it
+    /// on for its loader.
     ///
     /// - note: The value is read when each task is created, which can happen on
     /// any thread, so the access is synchronized.
