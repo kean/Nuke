@@ -15,7 +15,8 @@ extension ImagePipeline {
         case dataMissingInCache
         /// Data loader failed to load image data with a wrapped error.
         case dataLoadingFailed(error: Swift.Error)
-        /// Data loader returned empty data.
+        /// The loaded data is empty: an empty download, local resource, or
+        /// result of a `data` closure.
         case dataIsEmpty
         /// No decoder registered for the given data.
         ///

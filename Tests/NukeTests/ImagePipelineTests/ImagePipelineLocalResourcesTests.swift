@@ -65,6 +65,23 @@ struct ImagePipelineLocalResourcesTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    /// An empty local resource fails the way an empty download does, instead
+    /// of succeeding with no data, or failing in the decoder.
+    @Test func emptyFileFailsWithDataIsEmpty() async throws {
+        // Given
+        let url = try makeTemporaryFile(with: Data())
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // When/Then
+        await #expect(throws: ImagePipeline.Error.dataIsEmpty) {
+            try await pipeline.data(for: ImageRequest(url: url))
+        }
+        await #expect(throws: ImagePipeline.Error.dataIsEmpty) {
+            try await pipeline.image(for: ImageRequest(url: url))
+        }
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     @Test func fileURLIsNotStoredInTheDataCache() async throws {
         // Given
         let url = try makeTemporaryFile(with: Test.data)
@@ -107,6 +124,20 @@ struct ImagePipelineLocalResourcesTests {
                 return
             }
         }
+    }
+
+    @Test func emptyDataURLFailsWithDataIsEmpty() async throws {
+        // Given
+        let url = try #require(URL(string: "data:image/jpeg;base64,"))
+
+        // When/Then
+        await #expect(throws: ImagePipeline.Error.dataIsEmpty) {
+            try await pipeline.data(for: ImageRequest(url: url))
+        }
+        await #expect(throws: ImagePipeline.Error.dataIsEmpty) {
+            try await pipeline.image(for: ImageRequest(url: url))
+        }
+        #expect(dataLoader.createdTaskCount == 0)
     }
 
     // MARK: - Case-Insensitive Schemes
