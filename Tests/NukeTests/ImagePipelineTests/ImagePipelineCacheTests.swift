@@ -116,6 +116,21 @@ struct ImagePipelineCacheTests {
         #expect(pipeline.cache[Test.request] != nil)
     }
 
+    @Test func subscriptOverwritingWithAnImageExceedingTheEntryCostLimit() {
+        // GIVEN an image cache that takes images up to 10% of its 1000-byte
+        // limit, holding an image that costs `1 + data.count`
+        let pipeline = pipeline.reconfigured {
+            $0.imageCache = ImageCache(costLimit: 1000, countLimit: 100)
+        }
+        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 10))
+
+        // WHEN it is overwritten with an image the cache won't take
+        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 500))
+
+        // THEN the replaced image is no longer served
+        #expect(pipeline.cache[Test.request] == nil)
+    }
+
     @Test func subscriptWithURL() {
         // GIVEN
         cache[Test.url] = Test.container

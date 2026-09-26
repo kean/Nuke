@@ -122,6 +122,22 @@ struct InternalCacheTests {
         #expect(cache.totalCost == 9)
     }
 
+    @Test func overwritingAnEntryWithAValueExceedingTheEntryCostLimitRemovesIt() {
+        // Given a cache that accepts entries up to 10% of its cost limit
+        let cache = makeCache(costLimit: 100, entryCostLimit: 0.1)
+        cache.set("other", forKey: "other", cost: 5)
+        cache.set("small", forKey: "key", cost: 9)
+
+        // When the key is overwritten with a value the cache won't take
+        cache.set("large", forKey: "key", cost: 11)
+
+        // Then the replaced value is gone too, and so is its cost
+        #expect(cache.value(forKey: "key") == nil)
+        #expect(cache.value(forKey: "other") == "other")
+        #expect(cache.totalCount == 1)
+        #expect(cache.totalCost == 5)
+    }
+
     @Test func entryCostLimitIsClampedToTheValidRange() {
         // Given an out-of-range limit
         let cache = makeCache(costLimit: 100, entryCostLimit: 5)
