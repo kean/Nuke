@@ -249,8 +249,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// Use this initializer to process images already in memory or integrate
     /// with systems that provide pre-decoded images, such as the Photos framework.
     ///
-    /// - note: Unlike ``init(id:data:processors:priority:options:)``, the image is never stored in the disk
-    /// cache because no raw data is available.
+    /// - note: Unlike ``init(id:data:processors:priority:options:)``, no original
+    /// data is stored in the disk cache because none is available. The pipeline
+    /// still encodes and stores the image when ``ImagePipeline/DataCachePolicy``
+    /// asks for it: with processors under ``ImagePipeline/DataCachePolicy/automatic``
+    /// and ``ImagePipeline/DataCachePolicy/storeAll``, and always under
+    /// ``ImagePipeline/DataCachePolicy/storeEncodedImages``.
     ///
     /// - parameters:
     ///   - id: Uniquely identifies the fetched image.

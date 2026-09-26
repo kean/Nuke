@@ -226,8 +226,6 @@ struct ImagePipelineTests {
 
     // MARK: Decompression
 
-#if !os(macOS)
-
     @Test func disablingDecompression() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
@@ -253,6 +251,11 @@ struct ImagePipelineTests {
     }
 
     @Test func decompressionPerformed() async throws {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.isDecompressionEnabled = true
+        }
+
         // WHEN
         let image = try await pipeline.image(for: Test.request)
 
@@ -279,7 +282,10 @@ struct ImagePipelineTests {
     }
 
     @Test func decompressionPerformedWhenProcessorIsAppliedButDoesNothing() async throws {
-        // Given request with scaling processor
+        // Given request with a processor that returns the image as is
+        let pipeline = pipeline.reconfigured {
+            $0.isDecompressionEnabled = true
+        }
         let request = ImageRequest(url: Test.url, processors: [MockEmptyImageProcessor()])
 
         // When
@@ -288,8 +294,6 @@ struct ImagePipelineTests {
         // Then - Expect decompression to be performed (processor was applied but it did nothing)
         #expect(ImageDecompression.isDecompressionNeeded(for: response.image) == nil)
     }
-
-#endif
 
     // MARK: - Thumbnail
 

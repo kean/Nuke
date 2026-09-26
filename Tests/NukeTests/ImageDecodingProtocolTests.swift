@@ -139,12 +139,7 @@ struct ImageDecodingProtocolTests {
         let thumbnailContext = ImageDecodingContext(request: thumbnailRequest, data: Test.data)
         let thumbnail = try #require(ImageDecoders.Default(context: thumbnailContext)).decode(thumbnailContext)
 
-#if os(macOS)
-        // AppKit has no decompression step at all.
-        #expect(ImageDecompression.isDecompressionNeeded(for: final.image) == nil)
-#else
         #expect(ImageDecompression.isDecompressionNeeded(for: final.image) == true)
-#endif
         #expect(ImageDecompression.isDecompressionNeeded(for: preview.image) == nil)
         #expect(ImageDecompression.isDecompressionNeeded(for: thumbnail.image) == nil)
     }
