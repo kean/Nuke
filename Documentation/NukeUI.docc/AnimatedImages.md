@@ -105,7 +105,7 @@ Which of the two it is falls to ``AnimatedImageFramePool``, which every animatio
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
 ```
 
-What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
+What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away, or the bitmap a frame transform draws into when that is larger – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
 
 When the animations together want more than the limit, the pool gives each one its window first and holds as many of them whole as the rest allows, smallest first – so a wall of stickers and one long GIF keeps every sticker whole and plays the GIF out of a window, where an even split would hold nothing whole. When two the same size compete for the last of it, the one already whole keeps its frames. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
 

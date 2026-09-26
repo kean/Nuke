@@ -53,7 +53,12 @@ final class AnimatedImageFrameStore {
     let frameCount: Int
 
     /// The memory one decoded frame occupies, in bytes.
-    let bytesPerFrame: Int
+    ///
+    /// Estimated from the canvas until a frame lands, and what the largest
+    /// frame decoded so far occupies after that: a transform may draw into a
+    /// bitmap of its own, and the budget has to be divided by what the frames
+    /// really cost or the pool holds several times its limit.
+    private(set) var bytesPerFrame: Int
 
     /// Weak: the players hold the animation strongly, so the frames outlive
     /// the last player only as long as something else – ``ImageCache``, by
@@ -498,6 +503,14 @@ final class AnimatedImageFrameStore {
             let cost = image.bytesPerRow * image.height
             frames[index] = Frame(image: image, byteCount: cost)
             byteCount += cost
+            // The budget was divided by the canvas estimate; a frame that
+            // costs more has it divided again by what the frames really cost,
+            // or an animation held whole on the estimate would keep the pool
+            // over its limit for as long as it plays.
+            if cost > bytesPerFrame {
+                bytesPerFrame = cost
+                pool?.rebalance()
+            }
         }
         for player in liveMembers where requesters.contains(ObjectIdentifier(player)) {
             // Offered even if the window moved past the frame: the player is
