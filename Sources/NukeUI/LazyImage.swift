@@ -101,11 +101,11 @@ public struct LazyImage<Content: View>: View {
     /// Sets processors to be applied to the image.
     ///
     /// These processors replace any processors defined in the request, and
-    /// `nil` or `[]` removes them. This differs from ``FetchImage/processors``
-    /// and ``LazyImageView/processors``, which only apply when the request has
-    /// no processors of its own.
+    /// `[]` removes them. `nil` keeps the request's own processors. This
+    /// differs from ``FetchImage/processors`` and ``LazyImageView/processors``,
+    /// which only apply when the request has no processors of its own.
     public consuming func processors(_ processors: [any ImageProcessing]?) -> Self {
-        map { $0.context?.request.processors = processors ?? [] }
+        map { if let processors { $0.context?.request.processors = processors } }
     }
 
     /// Sets the priority of the requests, replacing the request's own
