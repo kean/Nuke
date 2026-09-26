@@ -41,6 +41,10 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                     $0.source = .file
                     $0.bytes = Int64(data.count)
                 }
+                guard !data.isEmpty else {
+                    send(error: .dataIsEmpty)
+                    return
+                }
                 send(value: (data, nil), isCompleted: true)
             } catch {
                 diagnostics?.endStage(stage) { $0.source = .file }
