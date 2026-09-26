@@ -95,6 +95,7 @@
 - Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
 - Fix `ImagePrefetcher/didComplete` not being called when stopping prefetching cancels the last outstanding request – https://github.com/kean/Nuke/pull/968
 - Fix `ImageTask/events`, `ImageTask/progress`, and `ImageTask/previews` missing previews and progress updates sent before the subscription lands – https://github.com/kean/Nuke/pull/980
+- Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
 - Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing processed images in the data cache – https://github.com/kean/Nuke/pull/1008
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
 - Fix a resumed download that failed again discarding its resumable data, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006

@@ -69,6 +69,60 @@ struct ImagePipelineCacheOptionsLoadingTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    @Test func returnCacheDataDontLoadProcessesTheOriginalDataFromTheDisk() async throws {
+        // GIVEN only the original data in the disk cache
+        dataCache.store[Test.url.absoluteString] = Test.data
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.nk_test_processorIDs == ["1"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadProcessesTheOriginalImageFromMemory() async throws {
+        // GIVEN only the original image in the memory cache
+        pipeline.cache[Test.request] = Test.container
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.nk_test_processorIDs == ["1"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadProcessesTheIntermediateImageFromMemory() async throws {
+        // GIVEN only the intermediate image in the memory cache
+        pipeline.cache[ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])] = Test.container
+        let request = ImageRequest(
+            url: Test.url,
+            processors: [MockImageProcessor(id: "1"), MockImageProcessor(id: "2")],
+            options: [.returnCacheDataDontLoad]
+        )
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN only the last processor is applied
+        #expect(response.image.nk_test_processorIDs == ["2"])
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func returnCacheDataDontLoadFailsProcessedRequestWhenNothingIsCached() async throws {
+        // GIVEN empty caches
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], options: [.returnCacheDataDontLoad])
+
+        // WHEN/THEN
+        await #expect(throws: ImagePipeline.Error.dataMissingInCache) {
+            try await pipeline.imageTask(with: request).response
+        }
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
     /// A progressive preview in the memory cache is delivered, but it isn't
     /// the image, so the request still fails when there is nothing else.
     @Test func returnCacheDataDontLoadFailsAfterDeliveringTheCachedPreview() async throws {
