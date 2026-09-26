@@ -464,7 +464,7 @@ extension ImageTask.Metrics {
     /// The queue in `ImagePipeline.Configuration` a stage waits for.
     private func queueName(for kind: ImagePipeline.Diagnostics.Stage.Kind) -> String {
         switch kind {
-        case .download: "dataLoadingQueue"
+        case .download, .willLoadData: "dataLoadingQueue"
         case .decode: "imageDecodingQueue"
         case .process: "imageProcessingQueue"
         case .decompress: "imageDecompressingQueue"

@@ -710,13 +710,14 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.error?.underlyingDomain == NSURLErrorDomain)
         #expect(metrics.error?.underlyingCode == URLError.userAuthenticationRequired.rawValue)
 
-        // THEN the delegate ran and the download never did
+        // THEN the delegate ran and there was no download: it got nothing
+        // from anywhere, so the task has no transfer to report
         let fetch = try #require(metrics.jobs.last)
-        let willLoadData = try #require(fetch.stages.first { $0.kind == .willLoadData })
+        #expect(fetch.stages.map(\.kind) == [.willLoadData])
+        let willLoadData = try #require(fetch.stages.first)
         #expect(willLoadData.duration != nil)
-        let download = try #require(fetch.stages.first { $0.kind == .download })
-        #expect(download.startedAt == nil)
-        #expect(download.firstByteAt == nil)
+        #expect(metrics.bytes == nil)
+        #expect(!metrics.description.contains("\ntransfer:"), "Unexpected transfer in:\n\(metrics.description)")
         #expect(dataLoader.createdTaskCount == 0)
     }
 
