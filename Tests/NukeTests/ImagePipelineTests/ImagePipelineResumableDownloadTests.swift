@@ -247,6 +247,34 @@ struct ImagePipelineResumableDownloadTests {
         ])
     }
 
+    /// A "206 Partial Content" without "Content-Length" has an unknown length,
+    /// which is reported as unknown, the way it is for a download that was
+    /// never resumed: adding the resumed bytes to `-1` would put the total
+    /// below the bytes already received.
+    @Test func progressOfAResumedDownloadWithUnknownLengthIsNotComplete() async throws {
+        // GIVEN a download that failed after 10000 bytes
+        server.steps = [.fail(after: 10000), .serveWithoutContentLength]
+        _ = try? await pipeline.data(for: Test.request)
+
+        // WHEN it is resumed by a response without "Content-Length"
+        var progress: [ImageTask.Progress] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await value in task.progress {
+            progress.append(value)
+        }
+        let response = try await task.response
+        #expect((response.urlResponse as? HTTPURLResponse)?.statusCode == 206)
+
+        // THEN the total is unknown, and the download is never reported as
+        // complete before it is
+        #expect(progress.count > 1)
+        #expect(progress.last?.completed == 22789)
+        for value in progress {
+            #expect(value.total == -1, "\(value)")
+            #expect(value.fraction == 0, "\(value)")
+        }
+    }
+
     @Test func resumedBytesAreReportedInTheMetrics() async throws {
         // GIVEN a pipeline that records diagnostics and a download that failed
         // mid-way
