@@ -392,6 +392,20 @@ struct LazyImageViewTests {
         #expect(task?.priority == .high)
     }
 
+    @Test func nilPriorityRestoresTheRequestPriority() async {
+        dataLoader.isSuspended = true
+
+        let startExp = TestExpectation()
+        view.onStart = { _ in startExp.fulfill() }
+        view.request = ImageRequest(url: Test.url, priority: .high)
+        await startExp.wait()
+
+        let task = view.imageTask
+        view.priority = .veryLow
+        view.priority = nil
+        #expect(task?.priority == .high)
+    }
+
     // MARK: - Pipeline
 
     @Test func customPipelineUsed() async {

@@ -458,11 +458,11 @@ struct LazyImageRequestLifecycleTests {
         await host.hideContent(until: { task.priority == .veryLow })
         #expect(task.priority == .veryLow)
 
-        await host.showContent(until: { tasks.value.last?.priority == .high })
+        await host.showContent(until: { task.priority == .high })
 
-        let current = try #require(tasks.value.last)
-        #expect(current.priority == .high)
-        #expect(!current.isCancelled)
+        #expect(task.priority == .high)
+        #expect(!task.isCancelled)
+        #expect(tasks.value.count == 1)
     }
 
     // MARK: - Helpers

@@ -64,9 +64,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// a task is already running.
     public var priority: ImageRequest.Priority? {
         didSet {
-            if let priority {
-                imageTask?.priority = priority
-            }
+            imageTask?.priority = priority ?? currentRequest?.priority ?? .normal
         }
     }
 
@@ -85,6 +83,10 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     private var imageTask: ImageTask?
     private var asyncTask: Task<Void, Never>?
+
+    /// The request passed to the last `load(_:)` call, before
+    /// ``priority`` and ``processors`` are applied to it.
+    private(set) var currentRequest: ImageRequest?
 
     /// Incremented every time the current request is cancelled or superseded.
     /// Used to discard the results of the async/await-based loads: `Task`
@@ -116,6 +118,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         cancel()
+        currentRequest = request
 
         guard var request else {
             reset()
@@ -200,6 +203,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// ``ImageRequest`` sources.
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
+        currentRequest = nil
         isLoading = true
 
         let generation = loadGeneration

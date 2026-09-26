@@ -153,6 +153,19 @@ struct FetchImageTests {
         }
     }
 
+    @Test func nilPriorityRestoresTheRequestPriority() throws {
+        dataLoader.isSuspended = true
+
+        let task = Ref<ImageTask?>(nil)
+        image.onStart = { task.value = $0 }
+        image.load(ImageRequest(url: Test.url, priority: .high))
+
+        image.priority = .veryLow
+        image.priority = nil
+
+        #expect(try #require(task.value).priority == .high)
+    }
+
     // MARK: - Progress
 
     @Test func progressStartsEmpty() {
