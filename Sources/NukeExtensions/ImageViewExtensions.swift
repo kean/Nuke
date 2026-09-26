@@ -476,8 +476,10 @@ extension ImageViewController {
         transitionView.layer.maskedCorners = imageView.layer.maskedCorners
         imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
 
-        // "Manual" cross-fade.
-        transitionView.alpha = 1
+        // "Manual" cross-fade. Fade to the view's own alpha so a dimmed view
+        // (e.g. `alpha = 0.5`) stays dimmed.
+        let targetAlpha = imageView.alpha
+        transitionView.alpha = targetAlpha
         imageView.alpha = 0
         imageView.nuke_display(image) // Display new image in current view
 
@@ -487,7 +489,7 @@ extension ImageViewController {
             options: params.options,
             animations: {
                 transitionView.alpha = 0
-                imageView.alpha = 1
+                imageView.alpha = targetAlpha
             },
             completion: { [weak transitionView] isCompleted in
                 if isCompleted, let transitionView {
