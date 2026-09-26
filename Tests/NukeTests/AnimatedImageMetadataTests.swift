@@ -241,6 +241,22 @@ struct AnimatedImageMetadataTests {
         }
     }
 
+    @Test func canvasWhosePixelsDoNotFitIsRefused() {
+        // What a decoder of your own parses out of a damaged header: 32-bit
+        // dimensions, or nothing finite. `bytesPerFrame` can't describe either
+        // one, and NukeUI reads it as soon as a view plays the animation.
+        let flipbook = Flipbook(data: Flipbook.encode())!
+        for size in [CGSize(width: 4_294_967_295, height: 4_294_967_295), CGSize(width: CGFloat.infinity, height: 8), CGSize(width: 8, height: CGFloat.infinity)] {
+            let made = AnimatedImageSource(
+                data: Data(),
+                delays: [0.1, 0.1],
+                size: size,
+                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            )
+            #expect(made == nil)
+        }
+    }
+
     // MARK: Decoding the Frames of a Parsed Animation
 
     @Test func imageIOFrameDecoderHonorsTheLimitItIsMadeWith() async throws {
