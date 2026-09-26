@@ -247,11 +247,16 @@ final class AnimatedImageFrameStore {
 
     // MARK: Budget
 
-    /// What the store would use if the pool had it to spare: every frame its
-    /// members' windows cover between them, and never more than the whole
-    /// animation.
+    /// What the store would use if the pool had it to spare: the whole
+    /// animation while a member wants every frame, and otherwise the windows.
+    ///
+    /// Not the union of what the members want, because a window short of the
+    /// whole animation is capped at the read-ahead: a share between the two
+    /// would be handed out and never used, and taken from an animation that
+    /// could have been held whole in it.
     var demand: Int {
-        claimedFrameCount(upTo: frameCount) * bytesPerFrame
+        let wantsEveryFrame = members.contains { ($0.player?.wantedFrameCount ?? 0) >= frameCount }
+        return wantsEveryFrame ? frameCount * bytesPerFrame : leastDemand
     }
 
     /// The least the store can play from: a window of the read-ahead at every
