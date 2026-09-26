@@ -269,6 +269,19 @@ struct ImageRequestImageIdTests {
         #expect(TaskLoadImageKey(lhs) != TaskLoadImageKey(rhs))
     }
 
+    @Test func thatLoadKeyForProcessedImageUsesCustomImageID() {
+        let lhs = ImageRequest(url: Test.url).with {
+            $0.imageID = "a"
+        }
+        let rhs = ImageRequest(url: Test.url).with {
+            $0.imageID = "b"
+        }
+        #expect(TaskLoadImageKey(lhs) != TaskLoadImageKey(rhs))
+        assertHashableEqual(TaskLoadImageKey(lhs), TaskLoadImageKey(ImageRequest(url: Test.url).with { $0.imageID = "a" }))
+        // The data is still fetched once, by URL
+        assertHashableEqual(TaskFetchOriginalImageKey(lhs), TaskFetchOriginalImageKey(rhs))
+    }
+
     @Test func thatLoadKeyForOriginalImageDoesntUseFilteredURL() {
         let lhs = ImageRequest(url: Test.url).with {
             $0.imageID = Test.url.absoluteString

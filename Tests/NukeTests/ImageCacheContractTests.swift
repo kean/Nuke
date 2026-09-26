@@ -373,7 +373,7 @@ struct ImageCacheExpirationTests {
 struct InternalCacheSweepTests {
     private func makeCache(costLimit: Int = 1000, countLimit: Int = 100) -> Cache<String, String> {
         let cache = Cache<String, String>(costLimit: costLimit, countLimit: countLimit)
-        cache.conf.entryCostLimit = 1
+        cache.updateConf { $0.entryCostLimit = 1 }
         return cache
     }
 
@@ -546,9 +546,9 @@ struct InternalCacheSweepTests {
                 cache.trim(toCount: Int.random(in: 0...12, using: &generator))
             case 18:
                 // Never below 10, so that every cost in 0...9 stays admissible
-                cache.conf.costLimit = Int.random(in: 10...60, using: &generator)
+                cache.updateConf { $0.costLimit = Int.random(in: 10...60, using: &generator) }
             default:
-                cache.conf.countLimit = Int.random(in: 1...12, using: &generator)
+                cache.updateConf { $0.countLimit = Int.random(in: 1...12, using: &generator) }
             }
             guard cache.totalCost <= cache.conf.costLimit, cache.totalCount <= cache.conf.countLimit else {
                 Issue.record("Limits exceeded at step \(step): cost \(cache.totalCost)/\(cache.conf.costLimit), count \(cache.totalCount)/\(cache.conf.countLimit)")
@@ -585,7 +585,7 @@ struct ImageCacheConcurrentAccountingTests {
     @Test func concurrentMutationsKeepTheTotalsConsistent() {
         // Given
         let cache = Cache<Int, Int>(costLimit: 100, countLimit: 20)
-        cache.conf.entryCostLimit = 1
+        cache.updateConf { $0.entryCostLimit = 1 }
         let mismatches = OSAllocatedUnfairLock(initialState: 0)
         let keyCount = 40
 

@@ -180,6 +180,35 @@ struct ImagePipelineCoalescingTests {
         #expect(imageCache[request2]?.image.nk_test_processorIDs == ["2"])
     }
 
+    @Test func correctImageIsStoredInMemoryCacheGivenDifferentImageIDs() async throws {
+        let imageCache = MockImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // Given requests with the same URL but different image IDs
+        let request1 = ImageRequest(url: Test.url).with { $0.imageID = "a" }
+        let request2 = ImageRequest(url: Test.url).with { $0.imageID = "b" }
+
+        // When loading both at the same time
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        // Then the data is loaded once, but each task stores its own image
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(imageCache[request1] != nil)
+        #expect(imageCache[request2] != nil)
+
+        // Then loading either again is served from the memory cache
+        let response = try await pipeline.imageTask(with: request2).response
+        #expect(response.cacheType == .memory)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
     // MARK: - Cancellation
 
     @Test func cancellation() async {

@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -76,6 +77,31 @@ struct ImageCacheTests {
 
         // Then
         #expect(cache.countLimit == 1)
+    }
+
+    @Test func concurrentWritesToDifferentLimitsAreNotLost() {
+        // Given
+        let cache = ImageCache(costLimit: 0, countLimit: 0)
+        let lostUpdates = OSAllocatedUnfairLock(initialState: 0)
+        let iterations = 20_000
+
+        // When one thread only writes `costLimit` and another only writes `countLimit`
+        DispatchQueue.concurrentPerform(iterations: 2) { worker in
+            for value in 1...iterations {
+                if worker == 0 {
+                    cache.costLimit = value
+                    if cache.costLimit != value { lostUpdates.withLock { $0 += 1 } }
+                } else {
+                    cache.countLimit = value
+                    if cache.countLimit != value { lostUpdates.withLock { $0 += 1 } }
+                }
+            }
+        }
+
+        // Then neither thread's write is reverted by the other's
+        #expect(lostUpdates.withLock { $0 } == 0)
+        #expect(cache.costLimit == iterations)
+        #expect(cache.countLimit == iterations)
     }
 
     @Test func ttlChanges() {
@@ -500,7 +526,7 @@ struct InternalCacheTTLTests {
 
     @Test func defaultTTLIsUsed() async throws {
         // Given
-        cache.conf.ttl = 0.05 // 50 ms
+        cache.updateConf { $0.ttl = 0.05 } // 50 ms
         cache.set(1, forKey: 1, cost: 1)
         #expect(cache.value(forKey: 1) != nil)
 

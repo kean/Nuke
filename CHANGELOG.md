@@ -106,6 +106,10 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix `ImageCache` losing a limit written on one thread when another thread writes a different limit at the same time – https://github.com/kean/Nuke/pull/1027
+- Fix concurrent requests for the same URL with different `imageID`s being cached only under the first request's ID – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.containsCachedImage(for:caches:)` and `containsData(for:)` ignoring `.disableDiskCacheReads` – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` encoding the image when there is no data cache to store it in – https://github.com/kean/Nuke/pull/1027
 
 **Documentation**
 
