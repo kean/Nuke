@@ -105,7 +105,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 }
                 return (result, start.map { (ContinuousClock.now - $0).timeInterval })
             }
-            self.operation = nil
+            if !Task.isCancelled { // A superseded preview leaves the final operation's handle alone
+                self.operation = nil
+            }
             self.diagnostics?.endStage(stage) {
                 $0.processor = processor.identifier
                 $0.isProgressive = !isCompleted
@@ -151,7 +153,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 let response = self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 return (response, start.map { (ContinuousClock.now - $0).timeInterval })
             }
-            self.operation = nil
+            if !Task.isCancelled { // A superseded preview leaves the final operation's handle alone
+                self.operation = nil
+            }
             self.diagnostics?.endStage(stage) {
                 $0.isProgressive = !isCompleted
                 $0.workDuration = workDuration

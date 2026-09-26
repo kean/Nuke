@@ -382,6 +382,86 @@ struct ImagePipelineProgressiveDecodingTests {
         _ = try? await task.response
     }
 
+    /// The final processing cancels a preview processing that is still running
+    /// and takes its place in `operation`. The preview processing finishing
+    /// later must not clear that handle: the final one has to stay cancellable.
+    @Test @ImagePipelineActor func finalProcessingIsCancelledAfterALatePreviewProcessing() async throws {
+        // GIVEN a processor that blocks on both the preview and the final image
+        final class GatedProcessor: ImageProcessing, @unchecked Sendable {
+            let didStartPreview = TestExpectation()
+            let didStartFinal = TestExpectation()
+            private let previewGate = DispatchSemaphore(value: 0)
+            private let finalGate = DispatchSemaphore(value: 0)
+
+            var identifier: String { "gated" }
+
+            func process(_ image: PlatformImage) -> PlatformImage? {
+                image
+            }
+
+            func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+                if context.isCompleted {
+                    didStartFinal.fulfill()
+                    _ = finalGate.wait(timeout: .now() + 30)
+                } else {
+                    didStartPreview.fulfill()
+                    _ = previewGate.wait(timeout: .now() + 30)
+                }
+                return container
+            }
+
+            func openPreviewGate() {
+                previewGate.signal()
+            }
+
+            func openAllGates() {
+                for _ in 0..<4 {
+                    previewGate.signal()
+                    finalGate.signal()
+                }
+            }
+        }
+        let processor = GatedProcessor()
+
+        // GIVEN a processing queue that runs the final processing alongside the preview
+        let pipeline = pipeline.reconfigured {
+            $0.imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 2)
+        }
+        let queue = pipeline.configuration.imageProcessingQueue
+        let operations = TestExpectation(queue: queue, count: 2)
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, processors: [processor]))
+        let previews = task.previews
+        let didDeliverPreview = TestExpectation()
+        Task {
+            for await _ in previews {
+                didDeliverPreview.fulfill()
+            }
+        }
+        defer { processor.openAllGates() }
+
+        // WHEN the rest of the data arrives while the first preview is processed
+        await processor.didStartPreview.wait()
+        dataLoader.resume()
+        dataLoader.resume()
+        await operations.wait()
+        await processor.didStartFinal.wait()
+
+        // WHEN the preview processing finishes after the final one started
+        processor.openPreviewGate()
+        await didDeliverPreview.wait()
+
+        // WHEN the task is cancelled
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the final processing is cancelled with it
+        #expect(operations.operations.count == 2)
+        #expect(operations.operations.first?.isCancelled == true)
+        #expect(operations.operations.last?.isCancelled == true)
+    }
+
     // MARK: Scale
 
 #if os(iOS) || os(visionOS)
