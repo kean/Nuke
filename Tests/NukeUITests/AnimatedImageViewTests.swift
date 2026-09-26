@@ -408,6 +408,22 @@ struct AnimatedImageViewTests {
         #expect(player.options.maxPixelSize == nil)
     }
 
+    @Test func keepsItsFramesWhenTheViewShrinks() async throws {
+        // Handed the animation before its first layout, the way every cell and
+        // every SwiftUI view is, and then laid out larger than the animation.
+        display(Test.animatedGIF(frameCount: 4, size: CGSize(width: 100, height: 100)))
+        layOut(CGSize(width: 200, height: 200))
+        let player = try #require(view.player)
+        #expect(player.options.maxPixelSize == nil)
+
+        layOut(CGSize(width: 10, height: 10))
+
+        // Smaller frames would save little and cost a decode: the animation
+        // was settled at the first layout, not left waiting for a size.
+        #expect(view.player === player)
+        #expect(view.player?.store === player.store)
+    }
+
     @Test func decodesTheFramesAgainWhenTheViewGrows() async throws {
         layOut(CGSize(width: 20, height: 20))
         display(Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400)))
@@ -756,6 +772,23 @@ struct AnimatedImageViewTests {
         #expect(view.image === player.image)
         #expect(player.currentFrameIndex == 0)
         #expect(player.diagnostics.bufferedFrameCount <= AnimatedImagePlayer.idleFrameCount)
+        host.close()
+    }
+
+    @Test func anAnimationHeldStillHoldsTheFrameAfterTheFirstAndNothingMore() async throws {
+        // The floor every player keeps: the frame on screen and the one after
+        // it, so that playback can start without waiting on a decode.
+        let host = TestWindow(view: view)
+        view.isPlaybackEnabled = false
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        let player = try #require(view.player)
+
+        await player.waitUntilFull()
+
+        #expect(player.isFrameBuffered(0))
+        #expect(player.isFrameBuffered(1))
+        #expect(player.isFrameBuffered(2) == false)
+        #expect(player.diagnostics.decodedFrameCount == AnimatedImagePlayer.idleFrameCount)
         host.close()
     }
 
