@@ -109,6 +109,9 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix a resumed download sending the same `Range` again on every attempt after the server rejected it with "416 Range Not Satisfiable" – https://github.com/kean/Nuke/pull/1026
+- Fix the progress of a resumed download reporting a total below the bytes received when the "206 Partial Content" has no `Content-Length` – https://github.com/kean/Nuke/pull/1026
+- Fix an empty local file or `data:` URL succeeding with empty data instead of failing with `ImagePipeline/Error/dataIsEmpty` – https://github.com/kean/Nuke/pull/1026
 
 **Documentation**
 
