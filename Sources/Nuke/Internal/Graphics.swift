@@ -484,7 +484,12 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CG
     guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
         return nil
     }
+    return makeThumbnail(source: source, options: options, scale: scale)
+}
 
+/// Creates a thumbnail from the first image in the source, which can be an
+/// incremental source with partially downloaded data.
+func makeThumbnail(source: CGImageSource, options: ImageRequest.ThumbnailOptions, scale: CGFloat = 1.0) -> PlatformImage? {
     let maxPixelSize = getMaxPixelSize(for: source, options: options)
     let flags = options.options
     let options = [
@@ -525,7 +530,7 @@ func makeImage(from cgImage: CGImage, source: CGImageSource, scale: CGFloat = 1.
 #endif
 }
 
-private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {
+func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {
     guard thumbnailOptions.options.contains(.flexible) else {
         return CGFloat(thumbnailOptions.size.width)
     }

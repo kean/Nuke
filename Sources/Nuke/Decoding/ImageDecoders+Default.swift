@@ -29,7 +29,9 @@ extension ImageDecoders {
     /// ``ImageContainer/UserInfoKey/scanNumberKey``. It is not the index of a
     /// scan in the image data: Image I/O doesn't report the scan boundaries, so
     /// with ``ImagePipeline/PreviewPolicy/incremental`` the decoder generates a
-    /// preview per downloaded chunk that it manages to decode.
+    /// preview per downloaded chunk that it manages to decode. The previews are
+    /// displayed with the same orientation as the final image, and for a
+    /// request with ``ImageRequest/thumbnail`` they are thumbnails as well.
     public final class Default: ImageDecoding, Sendable {
         // The decoding state is mutable and guarded by `lock`.
         /// The number of previews produced so far, including the ones generated
@@ -38,7 +40,6 @@ extension ImageDecoders {
         private(set) nonisolated(unsafe) var numberOfScans = 0
         private nonisolated(unsafe) var incrementalSource: CGImageSource?
 
-        private nonisolated(unsafe) var isPreviewForGIFGenerated = false
         private nonisolated(unsafe) var didAttemptThumbnailFallback = false
         private let scale: CGFloat
         private let thumbnail: ImageRequest.ThumbnailOptions?
@@ -117,9 +118,9 @@ extension ImageDecoders {
             // frame data, so a single preview is generated from whatever has
             // been downloaded so far regardless of the policy.
             if assetType == .gif {
-                if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data, scale: scale) {
-                    isPreviewForGIFGenerated = true
-                    return ImageContainer(image: image, type: .gif, isPreview: true, userInfo: [:])
+                if numberOfScans == 0, let image = ImageDecoders.Default._decode(data, scale: scale) {
+                    numberOfScans += 1
+                    return ImageContainer(image: image, type: .gif, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
                 }
                 return nil
             }
@@ -133,7 +134,8 @@ extension ImageDecoders {
                 guard let source = CGImageSourceCreateWithData(data as CFData, nil),
                       let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                           kCGImageSourceCreateThumbnailFromImageAlways: false,
-                          kCGImageSourceCreateThumbnailFromImageIfAbsent: false
+                          kCGImageSourceCreateThumbnailFromImageIfAbsent: false,
+                          kCGImageSourceCreateThumbnailWithTransform: true
                       ] as CFDictionary) else {
                     return nil
                 }
@@ -151,20 +153,31 @@ extension ImageDecoders {
 
                 // Check that Image I/O has parsed the image dimensions before
                 // attempting to create a (potentially expensive) CGImage.
-                guard _hasImageDimensions(source) else {
+                guard let orientation = _orientation(ifDimensionsAreKnownIn: source) else {
                     // Fallback: for JPEGs with large EXIF headers, the
                     // incremental source may never produce dimensions. Try
                     // generating a thumbnail from a non-incremental source once.
                     return _thumbnailFallback(data: data, assetType: assetType)
                 }
 
-                guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-                    return nil
+                let image: PlatformImage
+                if let thumbnail {
+                    // A thumbnail request asks for a small image to save memory;
+                    // a preview decoded at the full size of the image would undo
+                    // that, so its previews are thumbnails too.
+                    guard let thumb = makeThumbnail(source: source, options: thumbnail, scale: scale) else {
+                        return nil
+                    }
+                    image = thumb
+                } else {
+                    guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                        return nil
+                    }
+                    image = ImageDecoders.Default._make(cgImage, scale: scale, orientation: orientation)
                 }
 
                 numberOfScans += 1
 
-                let image = ImageDecoders.Default._make(cgImage, scale: scale)
                 return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
             }
         }
@@ -178,11 +191,19 @@ extension ImageDecoders.Default {
     private func _thumbnailFallback(data: Data, assetType: AssetType?) -> ImageContainer? {
         guard !didAttemptThumbnailFallback else { return nil }
 
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                  kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
-                  kCGImageSourceThumbnailMaxPixelSize: 160
-              ] as CFDictionary) else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            return nil
+        }
+        // A thumbnail request caps the preview at the size it asked for.
+        var maxPixelSize: CGFloat = 160
+        if let thumbnail {
+            maxPixelSize = min(maxPixelSize, getMaxPixelSize(for: source, options: thumbnail))
+        }
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ] as CFDictionary) else {
             return nil
         }
         didAttemptThumbnailFallback = true
@@ -191,17 +212,20 @@ extension ImageDecoders.Default {
         return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
     }
 
-    /// Returns `true` if Image I/O has parsed non-zero pixel dimensions for the
-    /// first image in the source. Checking this before calling
-    /// `CGImageSourceCreateImageAtIndex` avoids an expensive no-op when the
-    /// source doesn't have enough data yet.
-    private func _hasImageDimensions(_ source: CGImageSource) -> Bool {
+    /// Returns the orientation the first image in the source declares once
+    /// Image I/O has parsed non-zero pixel dimensions for it, and `nil` until
+    /// then. Checking this before calling `CGImageSourceCreateImageAtIndex`
+    /// avoids an expensive no-op when the source doesn't have enough data yet.
+    private func _orientation(ifDimensionsAreKnownIn source: CGImageSource) -> CGImagePropertyOrientation? {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
-            return false
+            return nil
         }
         let width = properties[kCGImagePropertyPixelWidth] as? Int ?? 0
         let height = properties[kCGImagePropertyPixelHeight] as? Int ?? 0
-        return width > 0 && height > 0
+        guard width > 0 && height > 0 else {
+            return nil
+        }
+        return (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
     }
 
     private static func _decode(_ data: Data, scale: CGFloat) -> PlatformImage? {
@@ -212,11 +236,18 @@ extension ImageDecoders.Default {
 #endif
     }
 
-    private static func _make(_ cgImage: CGImage, scale: CGFloat) -> PlatformImage {
+    /// Wraps a `CGImage` the way `_decode` displays the final image: with the
+    /// EXIF orientation applied, so a preview doesn't snap a quarter turn when
+    /// the download completes. Pass `.up` for an image Image I/O already
+    /// transformed (`kCGImageSourceCreateThumbnailWithTransform`).
+    private static func _make(_ cgImage: CGImage, scale: CGFloat, orientation: CGImagePropertyOrientation = .up) -> PlatformImage {
 #if os(macOS)
+        // `NSImage` can't carry an orientation, so for the rare rotated image
+        // it is baked into the pixels – what `NSImage(data:)` does as well.
+        let cgImage = orientation == .up ? cgImage : (cgImage.drawn(inCanvasWithSize: cgImage.size, orientation: orientation) ?? cgImage)
         return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
 #else
-        return UIImage(cgImage: cgImage, scale: scale, orientation: .up)
+        return UIImage(cgImage: cgImage, scale: scale, orientation: UIImage.Orientation(orientation))
 #endif
     }
 }
