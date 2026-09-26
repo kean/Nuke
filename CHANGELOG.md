@@ -109,6 +109,9 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `ImageDecoders/Default` previews ignoring the EXIF orientation, so a rotated progressive image snapped a quarter turn when the download completed – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` decoding full-size progressive previews for a request with `ImageRequest/thumbnail` set – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
 
 **Documentation**
 
