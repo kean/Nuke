@@ -95,6 +95,40 @@ struct AssetTypeSniffingBoundaryTests {
         #expect(AssetType.isAnimated(data, type: .heic))
     }
 
+    @Test func fileTypeBoxSizeDoesNotMakeTheSniffWalkTheFile() {
+        // A declared size of 0xFFFFFFFF and no known brand. Read to the end of
+        // the data, the sniff is O(file size) – seconds for this file in a
+        // Debug build – and it runs on the pipeline's actor, for every decode.
+        var data = makeFileTypeBox(declaredSize: 0xFFFF_FFFF, brands: ["zzzz"])
+        data += Data(repeating: 0x41, count: 32_000_000)
+
+        let clock = ContinuousClock()
+        var type: AssetType?
+        let elapsed = clock.measure {
+            type = AssetType(data)
+        }
+
+        #expect(type == nil)
+        #expect(elapsed < .milliseconds(100))
+    }
+
+    @Test func brandFarPastAnyRealFileTypeBoxIsNotRead() {
+        var data = makeFileTypeBox(declaredSize: 0xFFFF_FFFF, brands: ["zzzz"])
+        data += Data(repeating: 0x41, count: 1_000_000)
+        data += Data("hevc".utf8)
+
+        #expect(AssetType(data) == nil)
+        #expect(AssetType.isAnimated(data, type: .heic) == false)
+    }
+
+    @Test func fileTypeBoxIsReadUpToSixtyCompatibleBrands() {
+        // A real `ftyp` box lists a handful of compatible brands; sixty is
+        // where the sniff stops trusting the declared size.
+        let filler = Array(repeating: "mif1", count: 59)
+        #expect(AssetType(makeFileTypeBox(brands: ["msf1"] + filler + ["heic"])) == .heic)
+        #expect(AssetType(makeFileTypeBox(brands: ["msf1"] + filler + ["mif1", "heic"])) == nil)
+    }
+
     @Test func truncatedCompatibleBrandIsNotRead() {
         // Two of the four bytes of `heic`: not enough to name the codec yet.
         let data = makeFileTypeBox(brands: ["msf1", "mif1", "heic"]).prefix(22)

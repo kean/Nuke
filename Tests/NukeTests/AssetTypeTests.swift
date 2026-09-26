@@ -252,6 +252,17 @@ struct AssetTypeTests {
         #expect(AssetType(makeISOBaseMedia(brand: brand)) == nil)
     }
 
+    @Test func detectVideoBrandsFromTheMajorBrandOnly() {
+        // Nearly every ISO base media file lists the generic MPEG-4 brands
+        // among its compatible brands: here the `ftyp` box `afconvert` writes
+        // for MPEG-4 audio, and the one a Canon CR3 carries. Neither is a
+        // video, so a video brand only counts as the major one.
+        #expect(AssetType(makeISOBaseMedia(brand: "M4A ", compatibleBrands: ["M4A ", "mp42", "isom", "\0\0\0\0"])) == nil)
+        #expect(AssetType(makeISOBaseMedia(brand: "crx ", compatibleBrands: ["crx ", "isom"])) == nil)
+        #expect(AssetType(makeISOBaseMedia(brand: "3gp4", compatibleBrands: ["3gp4", "isom"])) == nil)
+        #expect(AssetType(makeISOBaseMedia(brand: "mp42", compatibleBrands: ["mp42", "isom"])) == .mp4)
+    }
+
     @Test func detectFormatDeclaredAsACompatibleBrand() {
         // `msf1` says the file is an image sequence and nothing about what its
         // frames are coded with, so the codec is left to the brands that

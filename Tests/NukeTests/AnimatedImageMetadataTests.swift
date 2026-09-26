@@ -85,6 +85,26 @@ struct AnimatedImageMetadataTests {
         }
     }
 
+    @Test func apngDelayAtTheThresholdIsKept() throws {
+        // Image I/O reports the delays as `Float`s, and 11 ms comes back a hair
+        // under the `Double` threshold. Compared in double precision, the one
+        // delay documented as kept was replaced, and the animation played nine
+        // times slower than the file asks for.
+        guard let data = Test.animatedPNG(frameCount: 2, delays: [0.011, 0.011]) else {
+            return // Image I/O on this platform can't write an APNG
+        }
+
+        let source = try #require(AnimatedImageSource(data: data))
+
+        #expect(source.delays.count == 2)
+        for delay in source.delays {
+            #expect(abs(delay - AnimatedImageSource.minimumDelay) < 0.000_001)
+        }
+        // The same correction applies to the delays a caller describes.
+        let delay = TimeInterval(Float(AnimatedImageSource.minimumDelay))
+        #expect(AnimatedImageSource.correctedDelay(delay) == delay)
+    }
+
     @Test func apngLoopCountIsRead() throws {
         guard let data = Test.animatedPNG(frameCount: 2, loopCount: 7) else {
             return // Image I/O on this platform can't write an APNG
@@ -231,6 +251,22 @@ struct AnimatedImageMetadataTests {
     @Test func canvasWithNoAreaIsRefused() {
         let flipbook = Flipbook(data: Flipbook.encode())!
         for size in [CGSize(width: 8, height: 0), CGSize(width: 0, height: 8), CGSize(width: -8, height: 8), CGSize(width: CGFloat.nan, height: 8)] {
+            let made = AnimatedImageSource(
+                data: Data(),
+                delays: [0.1, 0.1],
+                size: size,
+                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            )
+            #expect(made == nil)
+        }
+    }
+
+    @Test func canvasWhosePixelsDoNotFitIsRefused() {
+        // What a decoder of your own parses out of a damaged header: 32-bit
+        // dimensions, or nothing finite. `bytesPerFrame` can't describe either
+        // one, and NukeUI reads it as soon as a view plays the animation.
+        let flipbook = Flipbook(data: Flipbook.encode())!
+        for size in [CGSize(width: 4_294_967_295, height: 4_294_967_295), CGSize(width: CGFloat.infinity, height: 8), CGSize(width: 8, height: CGFloat.infinity)] {
             let made = AnimatedImageSource(
                 data: Data(),
                 delays: [0.1, 0.1],
