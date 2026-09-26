@@ -195,8 +195,10 @@ extension AssetType {
     /// a minor version, and then the compatible brands until the box ends.
     private static func _brands(in data: Data) -> [String] {
         // The major brand is read whatever the declared size says, so that a
-        // file with a damaged size still names itself.
-        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count))
+        // file with a damaged size still names itself. The declared size is
+        // trusted up to a bound: a real `ftyp` box is a few dozen bytes, and a
+        // damaged one must not turn a header sniff into a walk of the file.
+        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count, _maxFileTypeBoxSize))
         var brands: [String] = []
         for offset in stride(from: 8, to: end, by: 4) where offset != 12 {
             guard let brand = _string(at: offset, count: 4, in: data) else { break }
@@ -204,6 +206,9 @@ extension AssetType {
         }
         return brands
     }
+
+    /// The longest `ftyp` box the sniffer reads: sixty compatible brands.
+    private static let _maxFileTypeBoxSize = 256
 
     /// The image format a single ISO base media brand belongs to.
     ///
