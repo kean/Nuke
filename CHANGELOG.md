@@ -110,6 +110,10 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `ImageResponse/request` of a freshly processed image missing the processors – https://github.com/kean/Nuke/pull/1032
+- Fix a thumbnail request re-downloading the image when its disk cache entry can't be decoded, although the original image data is in the disk cache – https://github.com/kean/Nuke/pull/1032
+- Fix `ImagePipeline/Configuration/isDecompressionEnabled` having no effect on macOS – https://github.com/kean/Nuke/pull/1032
+- Fix the `ImageRequest/init(id:image:processors:priority:options:)` documentation claiming the image is never stored in the disk cache; it is encoded and stored according to `ImagePipeline/DataCachePolicy` like other local resources – https://github.com/kean/Nuke/pull/1032
 
 **Documentation**
 
