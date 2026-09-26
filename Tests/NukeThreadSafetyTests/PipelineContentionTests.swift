@@ -175,6 +175,39 @@ struct ImagePipelineContentionTests {
         #expect(lateResult??.error == .pipelineInvalidated)
     }
 
+    /// A task created after `invalidate()` returned fails, whatever the QoS
+    /// of the thread that invalidated the pipeline: the invalidation and the
+    /// start of the task reach the actor in no particular order, so the task
+    /// can't rely on the actor knowing about the invalidation.
+    @Test(arguments: [DispatchQoS.QoSClass.background, .userInitiated])
+    func requestCreatedAfterInvalidateReturnedFails(invalidateQoS: DispatchQoS.QoSClass) async {
+        // Given an image in the memory cache, so that nothing but the
+        // invalidation can fail the task
+        let imageCache = ImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageCache = imageCache
+        }
+        imageCache[ImageCacheKey(request: Test.request)] = Test.container
+
+        // When `invalidate()` returns, and only then a new task is created,
+        // with the actor busy so that both reach it at once
+        let gate = DispatchSemaphore(value: 0)
+        let entered = DispatchSemaphore(value: 0)
+        Task.detached { @ImagePipelineActor in
+            entered.signal()
+            blockOnSemaphore(gate)
+        }
+        blockOnSemaphore(entered)
+        run(on: invalidateQoS) { pipeline.invalidate() }
+        let task = run(on: .userInitiated) { pipeline.imageTask(with: Test.request) }
+        gate.signal()
+
+        // Then
+        let result = await outcomes(of: [task]).first
+        #expect(result??.error == .pipelineInvalidated)
+    }
+
     /// A storm of loads, cancellations, and priority changes from many
     /// threads. A task only fails if it was cancelled, the pipeline releases
     /// every task, and no finished work stays behind to be joined: loading the
@@ -405,6 +438,24 @@ struct ImagePipelineDiagnosticsContentionTests {
 }
 
 // MARK: - Helpers
+
+/// Runs the closure on a global queue with the given QoS and waits for it.
+private func run<T: Sendable>(on qos: DispatchQoS.QoSClass, _ work: @Sendable @escaping () -> T) -> T {
+    let result = OSAllocatedUnfairLock<T?>(initialState: nil)
+    let done = DispatchSemaphore(value: 0)
+    DispatchQueue.global(qos: qos).async {
+        let value = work()
+        result.withLock { $0 = value }
+        done.signal()
+    }
+    done.wait()
+    return result.withLock { $0! }
+}
+
+/// Blocks the calling thread, from an async context.
+private func blockOnSemaphore(_ semaphore: DispatchSemaphore) {
+    semaphore.wait()
+}
 
 /// Creates `threads * perThread` tasks, `perThread` on each of `threads`
 /// threads running at once, and returns them in a stable order.

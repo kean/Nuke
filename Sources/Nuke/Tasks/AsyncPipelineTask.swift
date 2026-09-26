@@ -49,7 +49,9 @@ extension AsyncPipelineTask {
     /// If the decoding is scheduled on the decoding queue, the operation is
     /// stored in ``AsyncTask/operation`` – it also serves as a back-pressure
     /// flag for the progressive decoding – and is cleared before the completion
-    /// is called, so the callers never see a stale handle.
+    /// is called, so the callers never see a stale handle. A cancelled operation
+    /// leaves the handle alone: the final decode cancels the preview decode it
+    /// overtakes and takes its place in the handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
             let stage = diagnostics?.beginStage(.decode, queued: true)
@@ -62,7 +64,9 @@ extension AsyncPipelineTask {
                 } catch {
                     result = .failure(.decodingFailed(decoder: decoder, context: context, error: error))
                 }
-                self?.operation = nil
+                if !Task.isCancelled {
+                    self?.operation = nil
+                }
                 self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: start.map { (ContinuousClock.now - $0).timeInterval })
                 completion(result)
             }
@@ -86,7 +90,9 @@ extension AsyncPipelineTask {
         operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in
             self?.diagnostics?.startStage(stage)
             let (result, workDuration) = await performInBackground(decode)
-            self?.operation = nil
+            if !Task.isCancelled {
+                self?.operation = nil
+            }
             self?.diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
             completion(result)
         }

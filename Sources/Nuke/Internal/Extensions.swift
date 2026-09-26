@@ -4,6 +4,7 @@
 
 import Foundation
 import CryptoKit
+import os
 
 extension String {
     /// Calculates SHA1 from the given string and returns its hex representation.
@@ -66,4 +67,37 @@ struct AnonymousCancellable: Cancellable {
 
 @concurrent func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
     closure()
+}
+
+/// Holds one task until the gate is opened, from any thread. Waiting on an
+/// open gate returns immediately.
+final class OneShotGate: Sendable {
+    private let state = OSAllocatedUnfairLock(initialState: State())
+
+    private struct State {
+        var isOpen = false
+        var waiter: UnsafeContinuation<Void, Never>?
+    }
+
+    func wait() async {
+        await withUnsafeContinuation { continuation in
+            let isOpen = state.withLock { state in
+                if !state.isOpen {
+                    state.waiter = continuation
+                }
+                return state.isOpen
+            }
+            if isOpen {
+                continuation.resume()
+            }
+        }
+    }
+
+    func open() {
+        let waiter = state.withLock { state in
+            state.isOpen = true
+            return state.waiter.take()
+        }
+        waiter?.resume()
+    }
 }
