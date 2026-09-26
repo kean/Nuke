@@ -98,6 +98,7 @@
 - Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
 - Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing processed images in the data cache – https://github.com/kean/Nuke/pull/1008
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
+- Fix processed images and thumbnails built from an original in the disk cache never being stored in the disk cache under the `.automatic` and `.storeAll` policies – https://github.com/kean/Nuke/pull/1016
 - Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
 - Fix a resumed download that failed again discarding its resumable data, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
