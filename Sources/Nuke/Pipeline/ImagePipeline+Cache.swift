@@ -89,10 +89,13 @@ extension ImagePipeline.Cache {
         if caches.contains(.memory) {
             storeCachedImageInMemoryCache(image, for: request)
         }
-        if caches.contains(.disk), !image.isPreview {
-            if let data = encodeImage(image, for: request) {
-                storeCachedData(data, for: request)
-            }
+        // Resolve the data cache and check the write option first: encoding
+        // is synchronous, and there is nothing to store the result in otherwise.
+        if caches.contains(.disk), !image.isPreview,
+           !request.options.contains(.disableDiskCacheWrites),
+           let dataCache = dataCache(for: request),
+           let data = encodeImage(image, for: request) {
+            dataCache.storeData(data, for: makeDataCacheKey(for: request))
         }
     }
 
@@ -108,15 +111,16 @@ extension ImagePipeline.Cache {
 
     /// Returns `true` if any of the caches contain the image.
     ///
+    /// - note: Respects request options such as its cache policy.
+    ///
     /// - important: Checking the disk cache requires disk IO, avoid using it
     /// from the main thread.
     public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool {
         if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
             return true
         }
-        if caches.contains(.disk), let dataCache = dataCache(for: request) {
-            let key = makeDataCacheKey(for: request)
-            return dataCache.containsData(for: key)
+        if caches.contains(.disk) {
+            return containsData(for: request)
         }
         return false
     }
@@ -187,10 +191,15 @@ extension ImagePipeline.Cache {
 
     /// Returns `true` if the data cache contains data for the given image.
     ///
+    /// - note: Respects request options such as its cache policy.
+    ///
     /// - important: Requires disk IO, avoid using from the main thread. It is
     /// cheaper than ``cachedData(for:)`` because it doesn't read the contents
     /// of the file, but it is not free.
     public func containsData(for request: ImageRequest) -> Bool {
+        guard !request.options.contains(.disableDiskCacheReads) else {
+            return false
+        }
         guard let dataCache = dataCache(for: request) else {
             return false
         }
