@@ -10,8 +10,8 @@ import Foundation
 /// hooks that control it.
 ///
 /// The images are decoded with a decoder that marks them as needing
-/// decompression – what the default decoder does on every platform but macOS
-/// – so the stage runs the same way everywhere.
+/// decompression, like the default decoder does, and records the context it
+/// was created with.
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineDecompressionStageTests {
     private let dataLoader: MockDataLoader
