@@ -63,6 +63,7 @@
 - `ImageTask` and `ImageDecoders/Video` are now `Sendable` instead of `@unchecked Sendable` – https://github.com/kean/Nuke/pull/965
 - Add `TaskQueue/reservedTaskCount`: the number of slots that the work with a priority lower than `.normal` can't take – https://github.com/kean/Nuke/pull/981
 - Replace the global `ImagePipeline/Configuration/isSignpostLoggingEnabled` with the per-pipeline `ImagePipeline/Configuration-swift.struct/signpostLog`: the pipeline sends a signpost for every task, job, and stage while diagnostics are on, unless it's set to `nil` – https://github.com/kean/Nuke/pull/995
+- `LazyImage/priority(_:)` with `nil` now keeps the request's own priority instead of resetting it to `.normal` – https://github.com/kean/Nuke/pull/1034
 
 **Performance**
 
@@ -106,6 +107,8 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
+- Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
 
 **Documentation**
 
