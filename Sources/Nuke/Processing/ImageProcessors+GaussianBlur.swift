@@ -56,6 +56,11 @@ private extension CGImage {
         let inputRadius = Double(radius)
         let pi2 = 2.0 * Double.pi
         var kernelSize = UInt32(floor(inputRadius * 3.0 * sqrt(pi2) / 4.0 + 0.5))
+        // vImage sums the window in an `Int32`: with a kernel of 2903 or more
+        // (a radius of ~1544) `kernel² × 255` overflows and it returns garbage
+        // as a success, while asking for gigabytes of scratch memory. 2901 is
+        // the largest odd kernel that keeps the sum in range.
+        kernelSize = min(kernelSize, 2901)
         if kernelSize % 2 == 0 { kernelSize += 1 }
 
         let size = self.size
@@ -77,9 +82,11 @@ private extension CGImage {
         // Three box-blur passes approximate a Gaussian blur. kvImageEdgeExtend
         // extends edge pixels to prevent border artifacts (see #308).
         let flags = vImage_Flags(kvImageEdgeExtend)
-        vImageBoxConvolve_ARGB8888(&inBuffer, &outBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags)
-        vImageBoxConvolve_ARGB8888(&outBuffer, &inBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags)
-        vImageBoxConvolve_ARGB8888(&inBuffer, &outBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags)
+        guard vImageBoxConvolve_ARGB8888(&inBuffer, &outBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags) == kvImageNoError,
+              vImageBoxConvolve_ARGB8888(&outBuffer, &inBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags) == kvImageNoError,
+              vImageBoxConvolve_ARGB8888(&inBuffer, &outBuffer, nil, 0, 0, kernelSize, kernelSize, nil, flags) == kvImageNoError else {
+            return nil
+        }
 
         return outputCtx.makeImage()
     }

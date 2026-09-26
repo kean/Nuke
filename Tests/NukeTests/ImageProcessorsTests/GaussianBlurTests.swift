@@ -189,6 +189,25 @@ struct ImageProcessorsGaussianBlurTests {
         #expect(try pixels(of: identity) != pixels(of: blurred))
     }
 
+    @Test func blurringWithLargeRadiusDoesNotCorruptTheImage() throws {
+        // GIVEN a 1000x1000 image with a red left half and a blue right half
+        let image = imageWithTwoHalves(size: 1000)
+
+        // WHEN blurring with a radius past the kernel cap
+        let input = try pixels(of: image)
+        let output = try pixels(of: #require(ImageProcessors.GaussianBlur(radius: 2000).process(image)))
+
+        // THEN the center pixel is the average of both halves instead of
+        // near-black
+        let left = (500 * 1000 + 250) * 4
+        let right = (500 * 1000 + 750) * 4
+        let center = (500 * 1000 + 500) * 4
+        for channel in 0..<4 {
+            let expected = (Int(input[left + channel]) + Int(input[right + channel])) / 2
+            #expect(abs(Int(output[center + channel]) - expected) <= 8, "channel \(channel)")
+        }
+    }
+
     @Test func smallRadiiProduceDifferentOutput() throws {
         // GIVEN - processors with distinct identifiers, so they must not
         // produce byte-identical output and populate the cache with duplicates
@@ -225,6 +244,24 @@ private func pixels(of image: PlatformImage) throws -> Data {
     }
     #expect(success)
     return Data(bytes)
+}
+
+/// Returns an opaque square image with a red left half and a blue right half.
+private func imageWithTwoHalves(size: Int) -> PlatformImage {
+    let context = CGContext(
+        data: nil,
+        width: size,
+        height: size,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+    )!
+    context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+    context.fill(CGRect(x: 0, y: 0, width: size / 2, height: size))
+    context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+    context.fill(CGRect(x: size / 2, y: 0, width: size / 2, height: size))
+    return PlatformImage(cgImage: context.makeImage()!)
 }
 
 /// Returns the alpha component of every pixel of the image, row by row.
