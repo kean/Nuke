@@ -129,7 +129,6 @@ struct ImagePipelineProcessorTests {
 
     // MARK: - Decompression
 
-#if !os(macOS)
     @Test func decompressionSkippedIfProcessorsAreApplied() async throws {
         // Given
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { image in
@@ -140,5 +139,4 @@ struct ImagePipelineProcessorTests {
         // When/Then
         _ = try await pipeline.image(for: request)
     }
-#endif
 }
