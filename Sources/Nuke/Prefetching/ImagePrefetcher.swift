@@ -136,8 +136,8 @@ public final class ImagePrefetcher: Sendable {
     }
 
     private func _startPrefetching(with request: ImageRequest) {
-        guard pipeline.cache[request] == nil else {
-            return
+        if let image = pipeline.cache[request], !image.isPreview {
+            return // The final image is already in the memory cache
         }
         let key = TaskLoadImageKey(request)
         guard tasks[key] == nil else {
