@@ -159,9 +159,23 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) {
-            viewModel.load($0?.request)
+        .onChange(of: LazyImageUpdate(context: context, options: options)) {
+            // The action is the closure of the previous view, so the options
+            // come from the new value rather than from `self`.
+            apply($0.options)
+            viewModel.load($0.context?.request)
         }
+    }
+
+    private var options: LazyImageOptions {
+        LazyImageOptions(transaction: transaction, pipeline: pipeline, onStart: onStart, onCompletion: onCompletion)
+    }
+
+    private func apply(_ options: LazyImageOptions) {
+        viewModel.transaction = options.transaction
+        viewModel.pipeline = options.pipeline
+        viewModel.onStart = options.onStart
+        viewModel.onCompletion = options.onCompletion
     }
 
     @ViewBuilder
@@ -179,10 +193,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
-        viewModel.transaction = transaction
-        viewModel.pipeline = pipeline
-        viewModel.onStart = onStart
-        viewModel.onCompletion = onCompletion
+        apply(options)
         // Undo the priority lowered by the `.lowerPriority` disappear behavior
         // so that the requests use their own priorities again.
         viewModel.priority = nil
@@ -197,6 +208,25 @@ public struct LazyImage<Content: View>: View {
         case .lowerPriority:
             viewModel.priority = .veryLow
         }
+    }
+}
+
+/// The options a `LazyImage` copies into its view model.
+private struct LazyImageOptions {
+    var transaction: Transaction
+    var pipeline: ImagePipeline
+    var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
+    var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
+}
+
+/// Compared by the request alone, but carries the options of the view it came
+/// from so that a request started by an update uses that update's options.
+private struct LazyImageUpdate: Equatable {
+    var context: LazyImageContext?
+    var options: LazyImageOptions
+
+    static func == (lhs: LazyImageUpdate, rhs: LazyImageUpdate) -> Bool {
+        lhs.context == rhs.context
     }
 }
 
