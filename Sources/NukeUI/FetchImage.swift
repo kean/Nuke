@@ -231,6 +231,9 @@ public final class FetchImage: ObservableObject, Identifiable {
         asyncTask?.cancel()
         asyncTask = nil
         loadGeneration &+= 1
+
+        // The cancelled load never reaches `handle(result:)`
+        if isLoading { isLoading = false }
     }
 
     /// Resets the `FetchImage` instance by cancelling the request and removing

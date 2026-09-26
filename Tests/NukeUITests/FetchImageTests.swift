@@ -378,6 +378,24 @@ struct FetchImageTests {
         #expect(completions.value.isEmpty)
         #expect(image.result == nil)
         #expect(image.imageContainer == nil)
+        #expect(!image.isLoading)
+    }
+
+    @Test func asyncLoadIsLoadingClearedByCancel() async {
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        image.load {
+            started.fulfill()
+            await gate.wait()
+            return Test.response
+        }
+        await started.wait()
+        #expect(image.isLoading)
+
+        image.cancel()
+
+        #expect(!image.isLoading)
+        gate.open()
     }
 
     @Test func asyncLoadDeliversNoResultAfterReset() async {
@@ -609,6 +627,17 @@ struct FetchImageTests {
     }
 
     // MARK: - Cancellation
+
+    @Test func isLoadingClearedByCancel() async {
+        dataLoader.isSuspended = true
+
+        image.load(Test.request)
+        #expect(image.isLoading)
+
+        image.cancel()
+
+        #expect(!image.isLoading)
+    }
 
     @Test func requestCancelledWhenTargetGetsDeallocated() async {
         dataLoader.isSuspended = true
