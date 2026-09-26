@@ -425,6 +425,52 @@ struct AnimatedImageFrameSharingTests: AnimatedImagePoolSuite {
         #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
+    @Test func aPausedCopyElsewhereDoesNotClaimTheFramesBetween() async throws {
+        // Eighteen frames of pool. One copy of the twenty-frame animation plays
+        // from the start and another sits paused halfway through. What the
+        // store can use is a window of the read-ahead and the two frames the
+        // paused copy holds, and the only thing worth asking for beyond that is
+        // the whole animation, which doesn't fit. Counted as the frames between
+        // the playheads, it would be handed twelve – and hold five of them, a
+        // window short of the whole animation being capped at the read-ahead –
+        // while the thirteen-frame animation that fits in what is left would
+        // be held to a window.
+        let pool = makePool(frames: 18)
+        let shared = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
+        let other = Test.animatedGIFSource(frameCount: 13, size: Self.frameSize)
+        let playing = makePlayer(source: shared, pool: pool)
+        let (paused, _) = makeIdlePlayer(source: shared, pool: pool)
+        paused.seek(toFrame: 10)
+        let single = makePlayer(source: other, pool: pool)
+
+        #expect(playing.store.allotment == 5 * Self.bytesPerFrame)
+        #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+        #expect(paused.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+        #expect(single.diagnostics.bufferCapacity == 13)
+
+        await playing.waitUntilFull()
+        await single.waitUntilFull()
+        #expect(pool.totalCost == 18 * Self.bytesPerFrame)
+    }
+
+    @Test func aPausedCopyElsewhereLeavesTheAnimationWhole() throws {
+        // Room for the animation twice over. The copy nobody is watching sits
+        // on a frame the playing copy hasn't reached; the store asks for every
+        // frame all the same, and a division made for an animation arriving
+        // leaves it whole.
+        let pool = makePool(frames: 40)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
+        let playing = makePlayer(source: source, pool: pool)
+        let (paused, _) = makeIdlePlayer(source: source, pool: pool)
+        paused.seek(toFrame: 10)
+        #expect(playing.diagnostics.bufferCapacity == 20)
+
+        let sticker = makePlayer(source: Test.animatedGIFSource(frameCount: 2, size: Self.frameSize), pool: pool)
+
+        #expect(sticker.diagnostics.bufferCapacity == 2)
+        #expect(playing.diagnostics.bufferCapacity == 20)
+    }
+
     @Test func copiesInStepAskForOneWindowBetweenThem() throws {
         // Sixteen frames of pool. The four copies play in step, so what they
         // need is one window of the read-ahead – three frames – and the other
