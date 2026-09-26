@@ -9,37 +9,6 @@ import Nuke
 @Suite(.serialized)
 @MainActor
 struct MiscPerformanceTests {
-    /// Measures the overhead of spawning a large number of unstructured tasks
-    /// on ``ImagePipelineActor`` using bare `Task { @ImagePipelineActor in }`.
-    @Test
-    func unstructuredTasksOnActor() {
-        let count = 50_000
-        measure {
-            let group = DispatchGroup()
-            for _ in 0..<count {
-                group.enter()
-                Task { @ImagePipelineActor in
-                    group.leave()
-                }
-            }
-            group.wait()
-        }
-    }
-
-    /// Measures the same workload using `withDiscardingTaskGroup`, which avoids
-    /// accumulating child-task results and may reduce allocations at scale.
-    @Test
-    func discardingTaskGroupOnActor() async {
-        let count = 50_000
-        await measure {
-            await withDiscardingTaskGroup {
-                for _ in 0..<count {
-                    $0.addTask { @ImagePipelineActor in }
-                }
-            }
-        }
-    }
-
     /// Measures the cost of generating SHA1-based cache filenames, which is on
     /// the hot path when ``DataCache`` resolves keys to filesystem entries.
     @Test

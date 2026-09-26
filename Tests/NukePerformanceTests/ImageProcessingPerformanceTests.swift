@@ -50,13 +50,12 @@ struct ImageProcessingPerformanceTests {
 
     @Test
     func resizeImage() throws {
-        let image = try #require(makeHighResolutionImage())
         let processor = ImageProcessors.Resize(size: CGSize(width: 64, height: 64), unit: .pixels)
 
-        measure {
-            for _ in 0..<10 {
-                _ = processor.process(image)
-            }
+        // A fresh image for every sample: Core Graphics keeps what it drew an
+        // image at, so resizing the same one again times a cache hit.
+        try measure(iterations: 10, setup: { try #require(makeHighResolutionImage()) }) { image in
+            processor.process(image)
         }
     }
 

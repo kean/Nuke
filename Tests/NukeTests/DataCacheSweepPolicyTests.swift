@@ -255,6 +255,7 @@ struct DataCacheScheduledSweepTests {
         #expect(cache["key"] == Data("123".utf8))
         #expect(cache.totalCount == 1)
         cache.isSweepEnabled = false
+        await cache.flush() // The read's access date, before the directory goes
     }
 
     /// The interval is read when the sweep runs, not when the cache is

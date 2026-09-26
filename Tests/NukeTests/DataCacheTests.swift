@@ -40,7 +40,7 @@ final class DataCacheTests {
 
     init() throws {
         cache = try DataCache(
-            name: UUID().uuidString,
+            path: makeUniqueDirectoryURL(),
             filenameGenerator: { String($0.reversed()) }
         )
     }
@@ -57,8 +57,7 @@ final class DataCacheTests {
 
     @Test func initWithPath() throws {
         // Given
-        let name = UUID().uuidString
-        let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.appendingPathComponent(name)
+        let path = makeUniqueDirectoryURL()
 
         // When
         let cache = try DataCache(path: path, filenameGenerator: { $0 })
@@ -72,7 +71,7 @@ final class DataCacheTests {
     // MARK: Default Key Encoder
 
     @Test func defaultKeyEncoder() throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
         let filename = cache.filename(for: "http://test.com")
         #expect(filename == "50334ee0b51600df6397ce93ceed4728c37fee4e")
@@ -827,14 +826,14 @@ final class DataCacheTests {
 
     @Test func flushedDataIsVisibleToANewInstanceAtTheSamePath() async throws {
         // GIVEN
-        let name = UUID().uuidString
-        let cache = try DataCache(name: name, filenameGenerator: { String($0.reversed()) })
+        let path = makeUniqueDirectoryURL()
+        let cache = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
         defer { try? FileManager.default.removeItem(at: cache.path) }
         cache["key"] = blob
         await cache.flush()
 
         // WHEN a separate instance opens the same directory
-        let other = try DataCache(name: name, filenameGenerator: { String($0.reversed()) })
+        let other = try DataCache(path: path, filenameGenerator: { String($0.reversed()) })
 
         // THEN
         #expect(other["key"] == blob)
@@ -844,10 +843,7 @@ final class DataCacheTests {
     // MARK: Default Filename Generator
 
     @Test func initWithPathUsingDefaultFilenameGenerator() async throws {
-        let name = UUID().uuidString
-        let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent(name, isDirectory: true)
-        let cache = try DataCache(path: path)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
 
         cache["http://example.com/image.png"] = blob
@@ -860,26 +856,26 @@ final class DataCacheTests {
     // MARK: Invalid Keys
 
     @Test func cachedDataForEmptyKey() throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.cachedData(for: "") == nil)
     }
 
     @Test func containsDataForEmptyKey() throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(!cache.containsData(for: ""))
     }
 
     @Test func urlForEmptyKey() throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.url(for: "") == nil)
     }
 
     @Test(arguments: ["", ".", ".."])
     func urlForFilenameThatIsNotAFile(filename: String) throws {
-        let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { _ in filename })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { _ in filename })
         defer { try? FileManager.default.removeItem(at: cache.path) }
         #expect(cache.url(for: "key") == nil)
     }
@@ -919,7 +915,7 @@ final class DataCacheTests {
     }
 
     @Test func removeCachedImageForRequestWithoutURLKeepsTheDiskCache() async throws {
-        let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { $0.addingPercentEncoding(withAllowedCharacters: .alphanumerics) })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0.addingPercentEncoding(withAllowedCharacters: .alphanumerics) })
         defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.isSweepEnabled = false
         let pipeline = ImagePipeline {
@@ -1089,6 +1085,7 @@ final class DataCacheTests {
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
             .appendingPathComponent(name, isDirectory: true)
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: path) }
         struct CacheMetadata: Codable { var lastSweepDate: Date? }
         let metadata = CacheMetadata(lastSweepDate: Date(timeIntervalSinceNow: -3600))
         try JSONEncoder().encode(metadata).write(
@@ -1103,17 +1100,17 @@ final class DataCacheTests {
             sweepDelay: .milliseconds(0),
             onSweepCompleted: { expectation.fulfill() }
         )
-        defer { try? FileManager.default.removeItem(at: cache.path) }
 
         // THEN the stale date doesn't hold the sweep back
         await expectation.wait(timeout: .seconds(5))
+        _ = cache
     }
 
     // MARK: Sweep Edge Cases
 
     @Test func sweepWhenSizeUnderLimit() async throws {
         let cache = try DataCache(
-            name: UUID().uuidString,
+            path: makeUniqueDirectoryURL(),
             filenameGenerator: { String($0.reversed()) }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
@@ -1127,7 +1124,7 @@ final class DataCacheTests {
 
     @Test func sweepWhenEmpty() async throws {
         let cache = try DataCache(
-            name: UUID().uuidString,
+            path: makeUniqueDirectoryURL(),
             filenameGenerator: { String($0.reversed()) }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
@@ -1169,7 +1166,7 @@ final class DataCacheTests {
     // MARK: Store Data for Invalid Key
 
     @Test func storeDataForEmptyKeyIsNoOp() async throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
         defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.storeData(blob!, for: "")
         await cache.flush()
@@ -1180,7 +1177,11 @@ final class DataCacheTests {
 }
 
 extension DataCache {
+    /// The entries on disk. The URLs are standardized to match the ones
+    /// ``DataCache/url(for:)`` returns in the temporary directory, which the
+    /// file system reports under "/private".
     var contents: [URL] {
-        return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+        try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+            .map(\.standardizedFileURL)
     }
 }
