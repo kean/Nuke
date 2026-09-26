@@ -189,11 +189,6 @@ extension ImagePipeline {
         return (data?.isEmpty ?? true) ? nil : data
     }
 
-    nonisolated func imageTaskCreated(_ task: ImageTask, isDataTask: Bool) {
-        guard !isDataTask && !isDefaultDelegate else { return }
-        delegate.imageTaskCreated(task, pipeline: self)
-    }
-
     func imageTaskDidStart(_ task: ImageTask, isDataTask: Bool) {
         guard !isDataTask && !isDefaultDelegate else { return }
         delegate.imageTaskDidStart(task, pipeline: self)
