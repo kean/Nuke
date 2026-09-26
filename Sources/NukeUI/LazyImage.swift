@@ -108,9 +108,13 @@ public struct LazyImage<Content: View>: View {
         map { $0.context?.request.processors = processors ?? [] }
     }
 
-    /// Sets the priority of the requests.
+    /// Sets the priority of the requests, replacing the request's own
+    /// priority. `nil` keeps the request's own priority.
+    ///
+    /// A change updates the priority of the request that is already running
+    /// instead of restarting it.
     public consuming func priority(_ priority: ImageRequest.Priority?) -> Self {
-        map { $0.context?.request.priority = priority ?? .normal }
+        map { if let priority { $0.context?.request.priority = priority } }
     }
 
     /// Changes the underlying pipeline used for image loading.
@@ -161,9 +165,7 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) {
-            viewModel.load($0?.request)
-        }
+        .onChange(of: context) { onChange(of: $0) }
     }
 
     @ViewBuilder
@@ -181,14 +183,34 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
+        // Unless the disappear behavior is `.cancel`, the request keeps running
+        // off screen, and restarting it would discard what it has downloaded.
+        let isStillLoading = viewModel.isLoading && viewModel.pipeline === pipeline && isLoaded(context)
         viewModel.transaction = transaction
         viewModel.pipeline = pipeline
         viewModel.onStart = onStart
         viewModel.onCompletion = onCompletion
-        // Undo the priority lowered by the `.lowerPriority` disappear behavior
-        // so that the requests use their own priorities again.
-        viewModel.priority = nil
-        viewModel.load(context?.request)
+        // Undo the priority lowered by the `.lowerPriority` disappear behavior.
+        viewModel.priority = context?.request.priority
+        if !isStillLoading {
+            viewModel.load(context?.request)
+        }
+    }
+
+    private func onChange(of context: LazyImageContext?) {
+        if let context, isLoaded(context) {
+            // Only the priority changed, which doesn't need a new request.
+            viewModel.priority = context.request.priority
+        } else {
+            viewModel.load(context?.request)
+        }
+    }
+
+    /// Returns `true` if the view model has loaded, or is loading, the request
+    /// of the given context, whatever its priority.
+    private func isLoaded(_ context: LazyImageContext?) -> Bool {
+        guard let context, let request = viewModel.currentRequest else { return false }
+        return context.loadsSameImage(as: LazyImageContext(request: request))
     }
 
     private func onDisappear() {
@@ -206,15 +228,20 @@ private struct LazyImageContext: Equatable {
     var request: ImageRequest
 
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
-        let lhs = lhs.request
-        let rhs = rhs.request
+        lhs.loadsSameImage(as: rhs) && lhs.request.priority == rhs.request.priority
+    }
+
+    /// Returns `true` if the requests load the same image, whatever their
+    /// priority.
+    func loadsSameImage(as other: LazyImageContext) -> Bool {
+        let lhs = request
+        let rhs = other.request
         // A view that keeps its request passes a copy of the same one on every
         // update, and that is equal without comparing the processors.
         if lhs.isIdentical(to: rhs) {
             return true
         }
         return lhs.imageID == rhs.imageID &&
-        lhs.priority == rhs.priority &&
         lhs.processorsIdentity == rhs.processorsIdentity &&
         lhs.options == rhs.options &&
         lhs.scale == rhs.scale &&

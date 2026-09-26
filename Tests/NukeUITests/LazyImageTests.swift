@@ -337,7 +337,7 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
-    @Test func nilPriorityResetsRequestPriorityToNormal() async throws {
+    @Test func nilPriorityKeepsTheRequestPriority() async throws {
         dataLoader.isSuspended = true
 
         let started = TestExpectation()
@@ -355,8 +355,57 @@ struct LazyImageTests {
         }
         await started.wait()
 
-        #expect(try #require(task.value).priority == .normal)
+        #expect(try #require(task.value).priority == .high)
         withExtendedLifetime(host) {}
+    }
+
+    /// A priority change updates the running request: restarting it would
+    /// discard what it has downloaded.
+    @Test func priorityChangeUpdatesTheRunningRequest() async throws {
+        dataLoader.isSuspended = true
+
+        let started = TestExpectation()
+        let tasks = Ref<[ImageTask]>([])
+        let host = ViewHost(ImageRequest.Priority.normal) { priority in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .priority(priority)
+                .onStart {
+                    tasks.value.append($0)
+                    started.fulfill()
+                }
+        }
+        await started.wait()
+        let task = try #require(tasks.value.first)
+
+        await host.update(.high, until: { task.priority == .high })
+
+        #expect(task.priority == .high)
+        #expect(!task.isCancelled)
+        #expect(tasks.value.count == 1)
+    }
+
+    @Test func requestPriorityChangeUpdatesTheRunningRequest() async throws {
+        dataLoader.isSuspended = true
+
+        let started = TestExpectation()
+        let tasks = Ref<[ImageTask]>([])
+        let host = ViewHost(ImageRequest(url: Test.url)) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart {
+                    tasks.value.append($0)
+                    started.fulfill()
+                }
+        }
+        await started.wait()
+        let task = try #require(tasks.value.first)
+
+        await host.update(ImageRequest(url: Test.url, priority: .high), until: { task.priority == .high })
+
+        #expect(task.priority == .high)
+        #expect(!task.isCancelled)
+        #expect(tasks.value.count == 1)
     }
 
     // MARK: - Disappear Behavior
@@ -471,17 +520,50 @@ struct LazyImageTests {
         }
         await started.wait()
 
-        let firstTask = try #require(tasks.value.last)
-        await host.hideContent(until: { firstTask.priority == .veryLow })
-        #expect(firstTask.priority == .veryLow)
+        let task = try #require(tasks.value.last)
+        await host.hideContent(until: { task.priority == .veryLow })
+        #expect(task.priority == .veryLow)
 
-        // Reappearing restarts the request. The lowered priority must be undone
-        // so that the new request uses its own priority again.
-        await host.showContent(until: { tasks.value.count > 1 })
+        // The request is still running, so reappearing picks it up instead of
+        // restarting it and discarding what it has downloaded.
+        await host.showContent(until: { task.priority == .normal })
 
-        let secondTask = try #require(tasks.value.last)
-        #expect(secondTask !== firstTask)
-        #expect(secondTask.priority == .normal)
+        #expect(task.priority == .normal)
+        #expect(!task.isCancelled)
+        #expect(tasks.value.count == 1)
+    }
+
+    /// A request that ran off screen is only picked up if it comes from the
+    /// pipeline the view uses now.
+    @Test func requestRestartedWhenPipelineChangesOffScreen() async throws {
+        dataLoader.isSuspended = true
+        let otherDataLoader = MockDataLoader()
+        otherDataLoader.isSuspended = true
+        let otherPipeline = ImagePipeline {
+            $0.dataLoader = otherDataLoader
+            $0.imageCache = nil
+        }
+
+        let started = TestExpectation()
+        let tasks = Ref<[ImageTask]>([])
+        let host = ViewHost(pipeline) { pipeline in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .onDisappear(.lowerPriority)
+                .onStart {
+                    tasks.value.append($0)
+                    started.fulfill()
+                }
+        }
+        await started.wait()
+        let task = try #require(tasks.value.first)
+
+        await host.hideContent(until: { task.priority == .veryLow })
+        await host.update(otherPipeline, until: { true })
+        await host.showContent(until: { tasks.value.count == 2 })
+
+        #expect(tasks.value.count == 2)
+        #expect(task.isCancelled)
     }
 
     // MARK: - Request Changes
@@ -663,10 +745,9 @@ struct LazyImageTests {
         #expect(try #require(results.value.last?.value).request.scale == 2)
     }
 
-    @Test func newRequestStartedWhenPriorityChanges() async {
+    @Test func noNewRequestWhenPriorityChanges() async {
         let completions = Ref(0)
-        let first = TestExpectation()
-        let second = TestExpectation()
+        let completed = TestExpectation()
 
         let host = ViewHost(ImageRequest.Priority.normal) { priority in
             LazyImage(url: Test.url)
@@ -674,15 +755,16 @@ struct LazyImageTests {
                 .priority(priority)
                 .onCompletion { _ in
                     completions.value += 1
-                    if completions.value == 1 { first.fulfill() } else { second.fulfill() }
+                    completed.fulfill()
                 }
         }
-        await first.wait()
+        await completed.wait()
 
-        await host.update(.high)
-        await second.wait()
+        await host.update(.high, until: { true })
+        await host.render()
 
-        #expect(completions.value == 2)
+        #expect(completions.value == 1)
+        #expect(dataLoader.createdTaskCount == 1)
     }
 }
 
