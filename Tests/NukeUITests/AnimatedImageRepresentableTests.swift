@@ -164,6 +164,31 @@ struct AnimatedImageRepresentableTests {
         #expect(view.player === player)
         #expect(player.isPlaying)
     }
+
+    // MARK: Auto-Play
+
+    /// Accessibility › Motion › Auto-Play Animated Images off: the view shows
+    /// the first frame as a still, and plays once the setting is back on.
+    @Test func anAnimatedImageHoldsStillWhenAutoPlayIsOff() async throws {
+        let source = Test.animatedGIFSource(frameCount: 8)
+        let host = ViewHost(false) { isAutoPlayOn in
+            AnimatedImage(source).environment(\.accessibilityPlayAnimatedImagesOverride, isAutoPlayOn)
+        }
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player?.image != nil })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        let player = try #require(view.player)
+
+        #expect(view.isPlaybackEnabled == false)
+        #expect(view.isPlaying == false)
+        #expect(player.currentFrameIndex == 0)
+        #expect(view.image === player.image)
+
+        await host.update(true, until: { view.isPlaying })
+
+        #expect(view.isPlaybackEnabled)
+        #expect(view.player === player)
+        #expect(view.isPlaying)
+    }
 }
 
 #endif

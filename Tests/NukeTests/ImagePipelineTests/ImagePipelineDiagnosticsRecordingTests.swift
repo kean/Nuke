@@ -500,6 +500,51 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.description.range(of: #"\ncoalesced: +no · shared with #\#(task2.taskId) \(j[0-9]+, j[0-9]+, j[0-9]+\)\n"#, options: .regularExpression) != nil, "Unexpected header in:\n\(metrics.description)")
     }
 
+    /// A task that joined a download and left before it finished sees it
+    /// running too: it waited on the download from the moment it joined to
+    /// its own end, and never saw where the download ended.
+    @Test func joinerCancelledMidDownloadSeesTheStageRunning() async throws {
+        // GIVEN a task that joined a download in flight
+        dataLoader.isSuspended = true
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task1 = pipeline.imageTask(with: Test.request)
+        await started.wait()
+        let joined = TestExpectation()
+        pipeline.onTaskStarted = { _ in joined.fulfill() }
+        let task2 = pipeline.imageTask(with: Test.request)
+        await joined.wait()
+        pipeline.onTaskStarted = nil
+
+        // WHEN it leaves before the download completes
+        task2.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task2.response
+        }
+        dataLoader.isSuspended = false
+        _ = try await task1.response
+
+        // THEN the download is running in its copy
+        let metrics = try #require(task2.metrics)
+        #expect(metrics.outcome == .cancelled)
+        #expect(metrics.isCoalesced)
+        let fetch = try #require(metrics.jobs.last)
+        #expect(fetch.kind == .fetchOriginalData)
+        let joinedAt = try #require(fetch.joinedAt)
+        let download = try #require(fetch.stages.first { $0.kind == .download })
+        let startedAt = try #require(download.startedAt)
+        #expect(startedAt < joinedAt)
+        #expect(download.duration == nil)
+
+        // THEN it's attributed the time from the join to the end of the task
+        let attributedDuration = try #require(download.attributedDuration)
+        #expect(abs(attributedDuration - (metrics.endedAt - joinedAt)) < 1e-6)
+
+        // THEN the row says where in the download the task joined, and not
+        // how long the download took
+        let row = try #require(metrics.formatted(.timeline).split(separator: "\n").first { $0.contains("─ download ") }, "No download in:\n\(metrics.description)")
+        #expect(row.range(of: #"  running · joined at (<0\.1|[0-9]+\.[0-9]) ms$"#, options: .regularExpression) != nil, "Unexpected row: \(row)")
+    }
+
     // MARK: - Failures
 
     @Test func decodingFailureIsRecordedOnTheJobThatFailed() async throws {

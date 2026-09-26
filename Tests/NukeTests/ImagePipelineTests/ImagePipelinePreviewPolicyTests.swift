@@ -294,6 +294,55 @@ struct ImagePipelinePreviewPolicyTests {
         #expect(previews.isEmpty)
         #expect(finalImage.sizeInPixels == CGSize(width: 450, height: 300))
     }
+
+    @Test func previewPolicyIsReevaluatedOnlyWhenTheDataDoubles() async throws {
+        // GIVEN a policy that never resolves to anything other than `.disabled`
+        // and data served in 20 chunks of the same size. The default decoder
+        // looks at partial data on the pipeline's actor, so no chunk is
+        // skipped while another one is being decoded.
+        let delegate = MockPreviewPolicyDelegate(policy: .disabled)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "progressive", extension: "jpeg"),
+            chunkCount: 20
+        )
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        _ = try await pipeline.image(for: Test.url)
+
+        // THEN the policy is evaluated for the 1st, 2nd, 4th, 8th and 16th
+        // chunk, each time the data has doubled since the last evaluation
+        #expect(delegate.policyRequestCount == 5)
+    }
+
+    @Test func previewPolicyReevaluationIsCapped() async throws {
+        // GIVEN a policy that never resolves to anything other than `.disabled`
+        // and data served in 100 chunks of the same size
+        let delegate = MockPreviewPolicyDelegate(policy: .disabled)
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "progressive", extension: "jpeg"),
+            chunkCount: 100
+        )
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+
+        // WHEN loading the image
+        _ = try await pipeline.image(for: Test.url)
+
+        // THEN the policy is evaluated for the 1st, 2nd, 4th, 8th, 16th and
+        // 32nd chunk, and not for the 64th, although the data has doubled
+        // again by then
+        #expect(delegate.policyRequestCount == 6)
+    }
 }
 
 // MARK: - Helpers

@@ -527,6 +527,31 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
+    @Test func removeCachedImageRemovesOnlyTheSelectedLayer() {
+        // GIVEN an image stored in both layers
+        let request = Test.request
+        let imageKey = cache.makeImageCacheKey(for: request)
+        let dataKey = cache.makeDataCacheKey(for: request)
+        cache.storeCachedImage(Test.container, for: request)
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.memory])
+
+        // THEN the disk entry is kept
+        #expect(memoryCache[imageKey] == nil)
+        #expect(diskCache.store[dataKey] != nil)
+
+        // GIVEN the image is back in both layers
+        cache.storeCachedImage(Test.container, for: request)
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.disk])
+
+        // THEN the memory entry is kept
+        #expect(memoryCache[imageKey] != nil)
+        #expect(diskCache.store[dataKey] == nil)
+    }
+
     // MARK: Remove All
 
     @Test func removeAll() {

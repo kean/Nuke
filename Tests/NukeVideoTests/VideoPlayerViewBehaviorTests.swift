@@ -614,6 +614,74 @@ struct VideoPlayerViewPlaybackTests {
     }
 }
 
+// MARK: - Foreground
+
+#if os(iOS) || os(tvOS)
+/// The system pauses the videos of an app in the background, and a looping one
+/// resumes when the app comes back. The view observes the notification from
+/// any object, so these tests post it one at a time.
+@Suite(.serialized, .timeLimit(.minutes(5))) @MainActor
+struct VideoPlayerViewForegroundTests {
+    let host = TestWindow()
+
+    @Test func resumesLoopingVideoWhenAppEntersForeground() async throws {
+        // Given a looping video that was paused while the app was in the
+        // background
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate != 0)
+    }
+
+    @Test func doesNotResumeNonLoopingVideoWhenAppEntersForeground() async throws {
+        // Given a video that doesn't loop, paused while the app was in the
+        // background
+        let view = VideoPlayerView()
+        view.isLooping = false
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate == 0)
+    }
+
+    @Test func doesNotResumeTheVideoOfAViewResetInTheBackground() async throws {
+        // Given a looping video that was paused while the app was in the
+        // background, and a view that was reset since
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+        view.reset()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate == 0)
+    }
+}
+#endif
+
 // MARK: - Helpers
 
 /// A 0.3 s video, decoded into an in-memory asset by `ImageDecoders.Video`.

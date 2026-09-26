@@ -236,6 +236,47 @@ struct ImagePipelineDelegateTests {
         #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 0)
     }
 
+    /// The delegate runs in the task that loads the data, which is cancelled
+    /// along with the request, so a delegate that supports cancellation (for
+    /// example, one that refreshes a token) stops early.
+    @Test(arguments: [false, true])
+    func willLoadDataSeesTheTaskCancellation(skipDataLoadingQueue: Bool) async throws {
+        // GIVEN a delegate that suspends inside `willLoadData` until it is cancelled
+        let entered = TestExpectation()
+        let cancelled = TestExpectation()
+        let gate = AsyncGate()
+        defer { gate.open() }
+        let delegate = MockWillLoadDataDelegate { urlRequest in
+            await withTaskCancellationHandler {
+                entered.fulfill()
+                await gate.wait()
+            } onCancel: {
+                cancelled.fulfill()
+                gate.open()
+            }
+            return urlRequest
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        var request = Test.request
+        if skipDataLoadingQueue {
+            request.options.insert(.skipDataLoadingQueue)
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: request)
+        await entered.wait()
+        task.cancel()
+
+        // THEN
+        await cancelled.wait()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+    }
+
     @Test func willLoadDataIsNotCalledForCustomDataFetch() async throws {
         // GIVEN a request using a custom data fetch closure
         let delegate = MockWillLoadDataDelegate()

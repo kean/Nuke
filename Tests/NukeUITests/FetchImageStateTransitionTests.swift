@@ -237,6 +237,42 @@ struct FetchImageStateTransitionTests {
         #expect(image.result?.value?.request.url == otherURL)
     }
 
+#if !os(watchOS)
+    /// The completion of the replaced request has already been dispatched to
+    /// the main queue when the next load starts. It must still be dropped, or
+    /// it would overwrite the image the new load found in the memory cache –
+    /// the classic cell reuse bug.
+    @Test func lateResponseOfReplacedRequestIsDropped() async throws {
+        let observer = ImagePipelineObserver()
+        let pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = MockImageCache()
+        }
+        image.pipeline = pipeline
+        let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
+        image.onCompletion = { results.value.append($0) }
+
+        // Given the first request finishes in the pipeline while the main
+        // thread is busy, so its completion can't run yet
+        try runWhileMainThreadIsBlocked(untilTaskCompletes: observer) {
+            image.load(Test.request)
+        }
+
+        // When the next request is a memory cache hit, loaded before the main
+        // queue drains
+        let cached = ImageContainer(image: Test.image)
+        pipeline.cache[ImageRequest(url: otherURL)] = cached
+        image.load(otherURL)
+        await waitForDelivery()
+
+        // Then only the new request is reported and displayed
+        #expect(results.value.count == 1)
+        #expect(try #require(results.value.first).value?.request.url == otherURL)
+        #expect(image.result?.value?.request.url == otherURL)
+        #expect(image.imageContainer?.image === cached.image)
+    }
+#endif
+
     @Test func asyncLoadCancelsThePipelineRequestInFlight() async throws {
         dataLoader.isSuspended = true
 

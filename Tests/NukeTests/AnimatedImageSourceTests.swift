@@ -139,6 +139,22 @@ struct AnimatedImageSourceTests {
         #expect(source.delays == [0.02, 0.02])
     }
 
+    @Test func delayCorrectionUsesTheValuesBrowsersUse() {
+        // The documentation quotes both.
+        #expect(AnimatedImageSource.minimumDelay == 0.011)
+        #expect(AnimatedImageSource.defaultDelay == 0.1)
+    }
+
+    @Test(arguments: [
+        (0.011, 0.011), // At the threshold: kept
+        (0.0109, 0.1),  // Just under it
+        (0, 0.1),       // Missing
+        (.nan, 0.1)     // Not a number
+    ] as [(TimeInterval, TimeInterval)])
+    func delayCorrectionAtTheThreshold(delay: TimeInterval, corrected: TimeInterval) {
+        #expect(AnimatedImageSource.correctedDelay(delay) == corrected)
+    }
+
     // MARK: Rejecting Non-Animations
 
     @Test func returnsNilForStaticImage() {

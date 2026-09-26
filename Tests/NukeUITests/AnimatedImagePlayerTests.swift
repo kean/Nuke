@@ -603,6 +603,47 @@ struct AnimatedImagePlayerTests {
         #expect(Test.firstPixel(of: player.image) == firstFrame)
     }
 
+    @Test func aSeekToAFrameStillDecodingHoldsTheOldFrameAndGivesTheNewOneItsWholeDelay() async throws {
+        // GIVEN a playing animation whose window holds two frames, on its
+        // first frame
+        let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
+        )
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
+        let firstFrame = Test.firstPixel(of: player.image)
+        player.play()
+
+        // WHEN a scrubber moves the playhead to a frame that isn't decoded,
+        // and the clock keeps ticking while it decodes
+        player.seek(toFrame: 5)
+        let target = try #require(player.store.currentDecode)
+        clock.tick(0.3)
+
+        // THEN the frame it had stays on screen, and the wait isn't playback
+        #expect(player.currentFrameIndex == 5)
+        #expect(Test.firstPixel(of: player.image) == firstFrame)
+        #expect(player.diagnostics.playbackTime == 0)
+        #expect(player.diagnostics.bufferMissCount == 1)
+
+        // WHEN the frame arrives
+        await decoder.release(5)
+        await target.value
+
+        // THEN it is shown at once...
+        let frame = try #require(player.store.frame(at: 5))
+        #expect(Test.firstPixel(of: frame) != firstFrame)
+        #expect(Test.firstPixel(of: player.image) == Test.firstPixel(of: frame))
+        #expect(player.diagnostics.displayedFrameCount == 2)
+
+        // ...for its whole delay from then, however long the wait was
+        try await AnimatedImageTest.decode(6, of: player, with: decoder)
+        clock.tick(0.09)
+        #expect(player.currentFrameIndex == 5)
+        clock.tick(0.02)
+        #expect(player.currentFrameIndex == 6)
+        #expect(player.diagnostics.bufferMissCount == 1)
+    }
+
     @Test func restartSurvivesTheDecodeItInterrupts() async throws {
         let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer

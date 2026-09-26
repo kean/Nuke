@@ -192,6 +192,22 @@ struct ImageProcessorsCompositionTests {
         #expect(output.image.nk_test_processorIDs == ["1", "2"])
     }
 
+    @Test func emptyCompositionKeepsDataAndAnimation() throws {
+        // GIVEN an animated image and a composition with nothing in it
+        let source = Test.animatedGIFSource()
+        let container = ImageContainer(image: Test.image, type: .gif, data: source.data, animation: source)
+        let processor = ImageProcessors.Composition([])
+
+        // WHEN
+        let output = try processor.process(container, context: .mock)
+
+        // THEN no processor produced a new image, so the animation still
+        // describes the one that comes out
+        #expect(output.image === container.image)
+        #expect(output.data == source.data)
+        #expect(output.animation === source)
+    }
+
     @Test func compositionOfBuiltInProcessors() throws {
         // GIVEN an avatar: crop to a square, then mask with a circle
         let processor = ImageProcessors.Composition([

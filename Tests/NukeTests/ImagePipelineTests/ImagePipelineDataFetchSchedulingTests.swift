@@ -80,6 +80,37 @@ struct ImagePipelineDataFetchSchedulingTests {
         closure?.unsubscribe()
     }
 
+    /// The pipeline's rate limiter lets a burst of 25 fetches through at once
+    /// and holds the rest until its bucket refills.
+    @Test func pipelineRateLimiterUsesTheDefaultBurstOf25() async throws {
+        // GIVEN
+        let pipeline = makePipeline()
+        let limiter = try #require(pipeline.rateLimiter)
+        let queue = pipeline.configuration.dataLoadingQueue
+        dataLoader.isSuspended = true
+        let requests = (0..<26).map { ImageRequest(url: URL(string: "https://example.com/image-\($0).jpeg")) }
+
+        // WHEN one more fetch than the burst starts in one turn
+        let clock = ContinuousClock()
+        let start = clock.now
+        for request in requests {
+            _ = subscribe(to: pipeline, request)
+        }
+        let elapsed = clock.now - start
+
+        // THEN the burst goes to the data loading queue right away. At the
+        // default rate of 100 a second, the bucket gains a token every 10 ms,
+        // so the last fetch is certain to be held only if the turn took less.
+        #expect(queue.operationCount >= 25)
+        if elapsed < .milliseconds(10) {
+            #expect(queue.operationCount == 25)
+        }
+
+        // THEN the last one follows once the bucket refills
+        await drain(limiter)
+        #expect(queue.operationCount == 26)
+    }
+
     /// With the rate limiter off, even more fetches than it lets through in
     /// a burst go to the data loading queue right away.
     @Test func fetchesWithoutTheRateLimiterStartImmediately() async throws {

@@ -399,6 +399,23 @@ struct ImageRequestOptionsTests {
         #expect(ImageRequest.Options.disableDiskCache == [.disableDiskCacheReads, .disableDiskCacheWrites])
         #expect(ImageRequest.Options.reloadIgnoringCachedData == [.disableMemoryCacheReads, .disableDiskCacheReads])
     }
+
+    /// An option changes how the image is loaded, not which image it is. A
+    /// request with an option can't join the task of a request without it – a
+    /// `reloadIgnoringCachedData` request would get the image that task found
+    /// in the cache – but both use the same cache entries.
+    @Test(arguments: primitives)
+    func optionsSeparateTheLoadKeyButNotTheCacheKeys(_ option: ImageRequest.Options) {
+        // Given
+        let lhs = ImageRequest(url: Test.url)
+        let rhs = ImageRequest(url: Test.url, options: [option])
+        let cache = ImagePipeline(configuration: .init(dataLoader: MockDataLoader())).cache
+
+        // Then
+        #expect(TaskLoadImageKey(lhs) != TaskLoadImageKey(rhs))
+        assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        #expect(cache.makeDataCacheKey(for: lhs) == cache.makeDataCacheKey(for: rhs))
+    }
 }
 
 // MARK: - Priority

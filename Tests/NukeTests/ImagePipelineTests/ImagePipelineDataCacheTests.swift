@@ -436,6 +436,37 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    @Test func processedGIFIsNotStoredAsAnEncodedImage() async throws {
+        // GIVEN a GIF, a request that processes it, and the default encoder
+        let gif = Test.animatedGIF()
+        dataLoader.results[Test.url] = .success(
+            (gif, URLResponse(url: Test.url, mimeType: "image/gif", expectedContentLength: gif.count, textEncodingName: nil))
+        )
+        let encoderRequests = EventCounter()
+        let pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = .storeEncodedImages
+            $0.makeImageEncoder = { _ in
+                encoderRequests.increment()
+                return ImageEncoders.Default()
+            }
+        }
+
+        // WHEN
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+        let response = try await pipeline.imageTask(with: request).response
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN the pipeline goes to store the processed image, but the encoder
+        // passes the data of a GIF through instead of re-encoding its first
+        // frame, and the processor dropped the data. Nothing is stored: not
+        // the processed still, and not the animation it no longer matches.
+        #expect(encoderRequests.count == 1)
+        #expect(response.container.type == .gif)
+        #expect(response.container.data == nil)
+        #expect(dataCache.writeCount == 0)
+        #expect(dataCache.store.isEmpty)
+    }
+
     // MARK: ImageRequest.Options.disableDiskCacheWrites
 
     @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeAll, .storeEncodedImages])

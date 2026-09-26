@@ -150,6 +150,34 @@ struct ImagePipelineConfigurationTests {
     }
 }
 
+// MARK: - Shared Pipeline
+
+/// `ImagePipeline.shared` is global state: a test that replaces it puts the
+/// original back, and the tests run one at a time.
+@Suite(.serialized, .timeLimit(.minutes(5)))
+struct ImagePipelineSharedInstanceTests {
+    @Test func sharedPipelineIsReplaceableAndDefaultsToURLCache() throws {
+        // Given
+        let original = ImagePipeline.shared
+        defer { ImagePipeline.shared = original }
+
+        // Then it's one pipeline, with the default configuration: `URLCache`
+        // for the disk, and the shared memory cache
+        #expect(ImagePipeline.shared === original)
+        #expect(original.configuration.dataCache == nil)
+        let urlCache = try #require((original.configuration.dataLoader as? DataLoader)?.session.configuration.urlCache)
+        #expect(urlCache === DataLoader.sharedUrlCache)
+        #expect((original.configuration.imageCache as? ImageCache) === ImageCache.shared)
+
+        // When
+        let pipeline = ImagePipeline { $0.dataLoader = MockDataLoader() }
+        ImagePipeline.shared = pipeline
+
+        // Then
+        #expect(ImagePipeline.shared === pipeline)
+    }
+}
+
 // MARK: - Sharing
 
 /// `Configuration` is a struct, but the task queues and the dependencies are
