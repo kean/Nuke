@@ -130,6 +130,10 @@ final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendabl
         defer { os_unfair_lock_unlock(lock) }
 
         guard cost < _conf.entryMaxCost else {
+            // The value replaces the one stored for the key even if it can't be cached.
+            if let node = map[key] {
+                _remove(node: node)
+            }
             return
         }
 
