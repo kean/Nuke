@@ -297,11 +297,7 @@ struct ImageTaskTests {
 
         // When the stream is created after the first chunk is delivered
         let stream = task.events
-        // The mock served the first chunk on the main queue, and nothing else
-        // synchronizes its state.
-        DispatchQueue.main.async {
-            dataLoader.resumeServingChunks(dataLoader.chunks.count)
-        }
+        dataLoader.resumeServingChunks(dataLoader.chunks.count)
 
         // Then it starts with the progress reported before it was created
         let events = await stream.reduce(into: [ImageTask.Event]()) { $0.append($1) }

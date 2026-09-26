@@ -9,7 +9,9 @@ import Nuke
 // per one `resume()` call.
 final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     let urlResponse: HTTPURLResponse
-    var chunks: [Data]
+    /// The chunks it hasn't served yet. It serves them on the main queue, and
+    /// only there.
+    private(set) var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
     private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
@@ -53,13 +55,15 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         return _NoOpCancellable()
     }
 
+    /// Serves the given number of chunks, the way as many calls to `resume()`
+    /// do.
     func resumeServingChunks(_ count: Int) {
         for _ in 0..<count {
-            serveNextChunk()
+            resume()
         }
     }
 
-    func serveNextChunk() {
+    private func serveNextChunk() {
         guard let chunk = chunks.first else { return }
         chunks.removeFirst()
         _didReceiveData?(chunk, urlResponse)
