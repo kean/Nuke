@@ -5,6 +5,7 @@
 import Testing
 import Foundation
 import ImageIO
+import UniformTypeIdentifiers
 @testable import Nuke
 
 #if canImport(UIKit)
@@ -118,7 +119,113 @@ struct ImageDecoderPreviewTests {
         #expect(try decoder.decode(data).userInfo[.scanNumberKey] as? Int == 1)
     }
 
+    // MARK: Thumbnail Request
+
+    @Test func previewsOfAThumbnailRequestAreThumbnails() throws {
+        // A thumbnail request asks for a small image to save memory; a preview
+        // decoded at the full size of the image would undo that, and it can
+        // land in the memory cache under the thumbnail's key.
+        let data = Test.data(name: "progressive", extension: "jpeg")
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 64)
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: false, previewPolicy: .default(for: data))
+        #expect(context.previewPolicy == .incremental)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<20000]))
+        let final = try decoder.decode(data)
+
+        #expect(preview.isPreview)
+        #expect(preview.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(final.image.sizeInPixels == CGSize(width: 64, height: 43))
+        #expect(preview.image.sizeInPixels == final.image.sizeInPixels)
+    }
+
+    @Test func thumbnailFallbackOfAThumbnailRequestIsNoLargerThanTheThumbnail() throws {
+        let data = Test.data(name: "tricky_progressive", extension: "jpeg")
+        var request = Test.request
+        request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 64)
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: false, previewPolicy: .incremental)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<6000]))
+
+        #expect(max(preview.image.sizeInPixels.width, preview.image.sizeInPixels.height) <= 64)
+        #expect(decoder.numberOfScans == 1)
+    }
+
+    // MARK: Orientation
+
+    @Test func incrementalPreviewIsDisplayedWithTheOrientationOfTheFinalImage() throws {
+        // The final image comes from `UIImage(data:)` / `NSImage(data:)`, which
+        // apply the EXIF orientation. A preview that didn't would lie on its
+        // side until the download completes, then snap a quarter turn.
+        let data = makeRotatedJPEG(isProgressive: true)
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: false, previewPolicy: .default(for: data))
+        #expect(context.previewPolicy == .incremental)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data.prefix(data.count * 3 / 4)))
+        let final = try decoder.decode(data)
+
+        #expect(final.image.size == CGSize(width: 300, height: 400))
+        #expect(preview.image.size == final.image.size)
+#if canImport(UIKit)
+        // Carried by the image, as `UIImage(data:)` does, not baked into the pixels
+        #expect(preview.image.imageOrientation == .right)
+        #expect(preview.image.sizeInPixels == CGSize(width: 400, height: 300))
+#endif
+    }
+
+    @Test func thumbnailPolicyPreviewIsDisplayedWithTheOrientationOfTheFinalImage() throws {
+        let data = makeRotatedJPEG(isProgressive: false)
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: false, previewPolicy: .thumbnail)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data.prefix(data.count * 3 / 4)))
+        let final = try decoder.decode(data)
+
+        #expect(final.image.size == CGSize(width: 300, height: 400))
+        #expect(preview.image.size == final.image.size)
+    }
+
+    /// A 400×300 JPEG declaring orientation 6 (`.right`), displayed as
+    /// 300×400, with an embedded thumbnail for the `.thumbnail` policy.
+    private func makeRotatedJPEG(isProgressive: Bool) -> Data {
+        let context = CGContext(data: nil, width: 400, height: 300, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setFillColor(CGColor(red: 1, green: 0.5, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 400, height: 300))
+        context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 200, height: 100))
+        let output = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil)!
+        var properties: [CFString: Any] = [
+            kCGImagePropertyOrientation: CGImagePropertyOrientation.right.rawValue,
+            kCGImageDestinationEmbedThumbnail: true
+        ]
+        if isProgressive {
+            properties[kCGImagePropertyJFIFDictionary] = [kCGImagePropertyJFIFIsProgressive: true]
+        }
+        CGImageDestinationAddImage(destination, context.makeImage()!, properties as CFDictionary)
+        CGImageDestinationFinalize(destination)
+        return output as Data
+    }
+
     // MARK: GIF
+
+    @Test func gifPreviewIsNumberedLikeAnyOther() throws {
+        // Documented on the decoder: the previews are numbered in the order
+        // they are produced, and the final image counts the ones before it.
+        let data = Test.data(name: "cat", extension: "gif")
+        let decoder = ImageDecoders.Default()
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[...60000]))
+        let final = try decoder.decode(data)
+
+        #expect(preview.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(final.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(decoder.numberOfScans == 1)
+    }
 
     @Test func gifPreviewIsRetriedUntilThereIsEnoughDataToDecode() throws {
         // The flag that limits a GIF to a single preview must only be set by a
