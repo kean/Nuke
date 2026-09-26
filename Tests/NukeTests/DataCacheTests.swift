@@ -10,6 +10,8 @@ import Security
 private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
 
+private struct SweepMetadata: Codable { var lastSweepDate: Date? }
+
 @Suite(.timeLimit(.minutes(5)))
 struct DataCacheTests {
     private let cache: DataCache
@@ -451,6 +453,31 @@ struct DataCacheTests {
         // THEN the launch sweep sees the recent one and skips, leaving the date be
         #expect(lastSweepDate(at: cache.path) == dateAfterManualSweep)
         _ = other
+    }
+
+    @Test func scheduledSweepRunsWhenTheLastOneIsDatedInTheFuture() async throws {
+        // GIVEN a cache whose last sweep was recorded while the clock was set
+        // a year ahead
+        let name = UUID().uuidString
+        let root = try #require(FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+        let path = root.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        let metadata = SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: 365 * 24 * 3600))
+        try JSONEncoder().encode(metadata).write(to: path.appendingPathComponent(".data-cache-info"))
+
+        // WHEN the app launches
+        let expectation = TestExpectation()
+        let cache = try DataCache(
+            name: name,
+            sweepDelay: .milliseconds(0),
+            onSweepCompleted: { expectation.fulfill() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+
+        // THEN the launch sweep runs and repairs the date
+        await expectation.wait(timeout: .seconds(10))
+        let date = try #require(lastSweepDate(at: cache.path))
+        #expect(Date().timeIntervalSince(date) < 5)
     }
 
     private func lastSweepDate(at path: URL) -> Date? {

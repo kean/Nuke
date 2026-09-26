@@ -133,9 +133,13 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func scheduleSweep() {
-        if let lastSweepDate = getMetadata().lastSweepDate,
-           Date().timeIntervalSince(lastSweepDate) < sweepInterval {
-            return // Already completed recently
+        if let lastSweepDate = getMetadata().lastSweepDate {
+            let elapsed = Date().timeIntervalSince(lastSweepDate)
+            // A date ahead of the clock was recorded while the clock was wrong and
+            // must not hold the sweeps back until the clock catches up with it.
+            if elapsed >= 0 && elapsed < sweepInterval {
+                return // Already completed recently
+            }
         }
         // Add a bit of a delay to free the resources during launch
         queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
