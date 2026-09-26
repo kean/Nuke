@@ -153,9 +153,15 @@ public final class LazyImageView: _PlatformBaseView {
     public var onProgress: (@MainActor @Sendable (ImageTask.Progress) -> Void)?
 
     /// Gets called when the request finishes successfully.
+    ///
+    /// If a new request is started from this closure, ``onCompletion`` is not
+    /// called for the replaced one.
     public var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request fails.
+    ///
+    /// If a new request is started from this closure, for example a fallback
+    /// image, ``onCompletion`` is not called for the replaced one.
     public var onFailure: (@MainActor @Sendable (ImagePipeline.Error) -> Void)?
 
     /// Gets called when the request is completed.
@@ -174,6 +180,10 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private
 
     private var isResetNeeded = false
+
+    /// Incremented for every load so that a request replaced from a callback
+    /// doesn't report its completion after the request that replaced it.
+    private var loadGeneration = 0
 
     // MARK: Initializers
 
@@ -279,6 +289,7 @@ public final class LazyImageView: _PlatformBaseView {
     private func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
+        loadGeneration &+= 1
         cancel()
 
         guard var request else {
@@ -358,10 +369,14 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         imageTask = nil
+        let generation = loadGeneration
         switch result {
         case .success(let response): onSuccess?(response)
         case .failure(let error): onFailure?(error)
         }
+        // The callback started a new request: its completion was already
+        // delivered or is coming, so the replaced result is not reported.
+        guard generation == loadGeneration else { return }
         onCompletion?(result)
     }
 
