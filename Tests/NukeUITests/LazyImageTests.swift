@@ -601,6 +601,65 @@ struct LazyImageTests {
 
         #expect(completions.value == 2)
     }
+
+    @Test func newRequestUsesPipelineFromSameUpdate() async {
+        let otherDataLoader = MockDataLoader()
+        let otherPipeline = ImagePipeline {
+            $0.dataLoader = otherDataLoader
+            $0.imageCache = nil
+        }
+        let urls = [Test.url, URL(string: "https://example.com/other.jpeg")!]
+        let pipelines = [pipeline, otherPipeline]
+
+        let completions = Ref(0)
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost(0) { index in
+            LazyImage(url: urls[index])
+                .pipeline(pipelines[index])
+                .onCompletion { _ in
+                    completions.value += 1
+                    if completions.value == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        // The request and the pipeline change in the same update, so the new
+        // request must go through the new pipeline.
+        await host.update(1)
+        await second.wait()
+
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(otherDataLoader.createdTaskCount == 1)
+    }
+
+    @Test func newRequestReportsToOnCompletionFromSameUpdate() async throws {
+        let urls = [Test.url, URL(string: "https://example.com/other.jpeg")!]
+
+        let received = Ref<[(viewIndex: Int, url: URL?)]>([])
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost(0) { index in
+            LazyImage(url: urls[index])
+                .pipeline(pipeline)
+                .onCompletion { result in
+                    received.value.append((index, result.value?.request.url))
+                    if received.value.count == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        // The closure of the view that asked for the new URL must receive the
+        // result, not the one captured when the view first appeared.
+        await host.update(1)
+        await second.wait()
+
+        let last = try #require(received.value.last)
+        #expect(last.url == urls[1])
+        #expect(last.viewIndex == 1)
+    }
 }
 
 /// A processor whose identifier can change after it's added to a request.
