@@ -177,8 +177,9 @@ public final class AnimatedImageSource: Sendable {
     /// size, off the main actor's critical path but on the main actor, so make
     /// it cheap and leave the container indexing to the decoder itself.
     ///
-    /// - returns: `nil` if the animation has a single frame or an empty
-    /// canvas, neither of which is something to play.
+    /// - returns: `nil` if the animation has a single frame or a canvas that
+    /// is empty or too large for a frame of it to be counted in bytes, none of
+    /// which is something to play.
     public init?(
         data: Data,
         delays: [TimeInterval],
@@ -186,7 +187,10 @@ public final class AnimatedImageSource: Sendable {
         size: CGSize,
         makeFrameDecoder: @escaping @Sendable (_ maxPixelSize: CGFloat?) -> any AnimatedImageFrameDecoding
     ) {
-        guard delays.count > 1, size.width > 0, size.height > 0 else {
+        // The size is what a decoder parsed out of a header, and a damaged one
+        // can declare 32-bit dimensions, or nothing finite: ``bytesPerFrame``
+        // has to be able to count the canvas, or it traps when a view plays it.
+        guard delays.count > 1, size.width > 0, size.height > 0, size.width * size.height * 4 < CGFloat(Int.max) else {
             return nil
         }
         self.data = data
