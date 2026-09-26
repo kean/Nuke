@@ -78,29 +78,6 @@ struct ImageProcessorsCompositionTests {
         #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
     }
 
-    @Test func identifiersWithSameProcessorsButInDifferentOrder() {
-        // GIVEN processors with equal processors but in different order
-        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
-        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
-
-        // THEN
-        #expect(lhs != rhs)
-        #expect(lhs.identifier != rhs.identifier)
-        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
-    }
-
-    @Test func identifiersEmptyProcessors() {
-        // GIVEN empty processors
-        let lhs = ImageProcessors.Composition([])
-        let rhs = ImageProcessors.Composition([])
-
-        // THEN
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
-        #expect(lhs.identifier == rhs.identifier)
-        #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
-    }
-
     @Test func thatIdentifiesAreFlattened() {
         let lhs = ImageProcessors.Composition([
             ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),

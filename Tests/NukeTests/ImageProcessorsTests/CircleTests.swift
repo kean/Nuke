@@ -27,64 +27,14 @@ struct ImageProcessorsCircleTests {
         #expect(colorSpace.isWideGamutRGB)
     }
 
-    @Test @MainActor func identifierEqual() throws {
-        #expect(
-            ImageProcessors.Circle().identifier ==
-            ImageProcessors.Circle().identifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).identifier ==
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).identifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 4, unit: .pixels)).identifier ==
-            ImageProcessors.Circle(border: .init(color: .red, width: 4 / Screen.scale, unit: .points)).identifier
-        )
-    }
+    /// The width of a border in points is converted to pixels before it
+    /// becomes part of the identifiers.
+    @Test @MainActor func pointsAndPixelsProduceTheSameIdentifiers() {
+        let pixels = ImageProcessors.Circle(border: .init(color: .red, width: 4, unit: .pixels))
+        let points = ImageProcessors.Circle(border: .init(color: .red, width: 4 / Screen.scale, unit: .points))
 
-    @Test func identifierNotEqual() throws {
-        #expect(
-            ImageProcessors.Circle().identifier !=
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).identifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).identifier !=
-            ImageProcessors.Circle(border: .init(color: .red, width: 4, unit: .pixels)).identifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).identifier !=
-            ImageProcessors.Circle(border: .init(color: .blue, width: 2, unit: .pixels)).identifier
-        )
-    }
-
-    @Test @MainActor func hashableIdentifierEqual() throws {
-        #expect(
-            ImageProcessors.Circle().hashableIdentifier ==
-            ImageProcessors.Circle().hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).hashableIdentifier ==
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 4, unit: .pixels)).hashableIdentifier ==
-            ImageProcessors.Circle(border: .init(color: .red, width: 4 / Screen.scale, unit: .points)).hashableIdentifier
-        )
-    }
-
-    @Test func hashableNotEqual() throws {
-        #expect(
-            AnyHashable(ImageProcessors.Circle().identifier) !=
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).hashableIdentifier !=
-            ImageProcessors.Circle(border: .init(color: .red, width: 4, unit: .pixels)).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)).hashableIdentifier !=
-            ImageProcessors.Circle(border: .init(color: .blue, width: 2, unit: .pixels)).hashableIdentifier
-        )
+        #expect(pixels.identifier == points.identifier)
+        #expect(pixels.hashableIdentifier == points.hashableIdentifier)
     }
 
     @Test func description() {

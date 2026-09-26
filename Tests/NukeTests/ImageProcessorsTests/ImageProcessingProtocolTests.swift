@@ -213,6 +213,66 @@ struct ImageProcessorIdentifierUniquenessTests {
     }
 }
 
+// MARK: - Formats
+
+/// The identifiers and descriptions of the built-in processors, character for
+/// character. An identifier is part of the disk cache key: any change to its
+/// format orphans every processed image that is already on disk.
+///
+/// ``ImageProcessors/Resize`` is pinned row by row, crop included, by
+/// `ImageProcessorsResizeTests.identifierFormat`. The values in points are
+/// pinned by the `pointsAndPixelsProduceTheSameIdentifiers` test of every
+/// processor that takes them: they produce the identifiers of the same values
+/// in pixels.
+@Suite(.timeLimit(.minutes(5)))
+struct ImageProcessorFormatTests {
+    @Test(arguments: identifierFormats)
+    func identifierFormatsArePinned(processor: any ImageProcessing, identifier: String) {
+        #expect(processor.identifier == identifier)
+    }
+
+    /// The descriptions that the tests of the processors don't already pin.
+    @Test(arguments: descriptionFormats)
+    func descriptionFormatsArePinned(processor: any ImageProcessing & CustomStringConvertible, description: String) {
+        #expect(processor.description == description)
+    }
+}
+
+private let identifierFormats: [(any ImageProcessing, String)] = {
+    var formats: [(any ImageProcessing, String)] = [
+        (ImageProcessors.RoundedCorners(radius: 16, unit: .pixels), "com.github.kean/nuke/rounded_corners?radius=16.0"),
+        (ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red, width: 2, unit: .pixels)), "com.github.kean/nuke/rounded_corners?radius=16.0,border=Border(color: #FF0000, width: 2.0 pixels)"),
+        (ImageProcessors.Circle(), "com.github.kean/nuke/circle"),
+        (ImageProcessors.Circle(border: .init(color: .red, width: 2, unit: .pixels)), "com.github.kean/nuke/circle?border=Border(color: #FF0000, width: 2.0 pixels)"),
+        (ImageProcessors.Anonymous(id: "com.example/invert") { $0 }, "com.example/invert"),
+        // The identifiers of the processors, concatenated
+        (ImageProcessors.Composition([]), ""),
+        (ImageProcessors.Composition([ImageProcessors.Circle(), ImageProcessors.RoundedCorners(radius: 8, unit: .pixels)]), "com.github.kean/nuke/circlecom.github.kean/nuke/rounded_corners?radius=8.0")
+    ]
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+    formats += [
+        (ImageProcessors.GaussianBlur(), "com.github.kean/nuke/gaussian_blur?radius=8"),
+        // The `)` with no opening one is in every key this initializer has
+        // produced, so it stays
+        (ImageProcessors.CoreImageFilter(name: "CISepiaTone"), "com.github.kean/nuke/core_image?name=CISepiaTone)"),
+        (ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "com.example/sepia"), "com.example/sepia")
+    ]
+#endif
+    return formats
+}()
+
+private let descriptionFormats: [(any ImageProcessing & CustomStringConvertible, String)] = {
+    var formats: [(any ImageProcessing & CustomStringConvertible, String)] = [
+        (ImageProcessors.Anonymous(id: "com.example/invert") { $0 }, "AnonymousProcessor(identifier: com.example/invert)")
+    ]
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
+    formats += [
+        (ImageProcessors.GaussianBlur(), "GaussianBlur(radius: 8)")
+    ]
+#endif
+    return formats
+}()
+
 // MARK: - Helpers
 
 private struct StringIdentifiedProcessor: ImageProcessing {

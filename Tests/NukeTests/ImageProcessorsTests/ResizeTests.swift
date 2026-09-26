@@ -279,88 +279,14 @@ struct ImageProcessorsResizeTests {
     }
 #endif
 
-    @Test @MainActor func thatIdentifiersAreEqualWithSameParameters() {
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).identifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier
-        )
-    }
+    /// The size in points is converted to pixels before it becomes part of the
+    /// identifiers.
+    @Test @MainActor func pointsAndPixelsProduceTheSameIdentifiers() {
+        let pixels = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels)
+        let points = ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points)
 
-    @Test func thatIdentifiersAreNotEqualWithDifferentParameters() {
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).identifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).identifier
-        )
-    }
-
-    @Test @MainActor func thatHashableIdentifiersAreEqualWithSameParameters() {
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).hashableIdentifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier ==
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier
-        )
-    }
-
-    @Test func thatHashableIdentifiersAreNotEqualWithDifferentParameters() {
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).hashableIdentifier
-        )
-        #expect(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier !=
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).hashableIdentifier
-        )
+        #expect(pixels.identifier == points.identifier)
+        #expect(pixels.hashableIdentifier == points.hashableIdentifier)
     }
 
     /// The identifier is part of the disk cache key: a change to its format

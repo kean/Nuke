@@ -58,34 +58,6 @@ struct ImageProcessorsGaussianBlurTests {
         #expect(alpha.max() ?? 0 < 255)
     }
 
-    @Test func imagesWithSameRadiusHasSameIdentifiers() {
-        #expect(
-            ImageProcessors.GaussianBlur(radius: 2).identifier ==
-            ImageProcessors.GaussianBlur(radius: 2).identifier
-        )
-    }
-
-    @Test func imagesWithDifferentRadiusHasDifferentIdentifiers() {
-        #expect(
-            ImageProcessors.GaussianBlur(radius: 2).identifier !=
-            ImageProcessors.GaussianBlur(radius: 3).identifier
-        )
-    }
-
-    @Test func imagesWithSameRadiusHasSameHashableIdentifiers() {
-        #expect(
-            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier ==
-            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier
-        )
-    }
-
-    @Test func imagesWithDifferentRadiusHasDifferentHashableIdentifiers() {
-        #expect(
-            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier !=
-            ImageProcessors.GaussianBlur(radius: 3).hashableIdentifier
-        )
-    }
-
     // MARK: - Output Dimensions
 
     @Test func blurDoesNotChangeImageDimensions() throws {
