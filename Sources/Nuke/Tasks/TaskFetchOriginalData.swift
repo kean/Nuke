@@ -52,28 +52,34 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.
-            let queuedAt: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
-            var isDeferred = false
+            var rateLimitStage: Int?
+            var isHeld = true
             rateLimiter.execute { [weak self] in
+                isHeld = false
                 guard let self, !self.isDisposed else {
                     return false
                 }
-                if isDeferred, let queuedAt {
-                    // The limiter held the request: `execute` returned before
-                    // it ran the work.
-                    self.diagnostics?.recordStage(.rateLimit, from: queuedAt)
-                }
+                self.diagnostics?.endStage(rateLimitStage)
                 self.loadData(urlRequest: urlRequest)
                 return true
             }
-            isDeferred = true
+            if isHeld {
+                // The limiter held the request: `execute` returned before it
+                // ran the work. The stage is closed when the work runs, or
+                // along with the job if the task is cancelled first.
+                rateLimitStage = diagnostics?.beginStage(.rateLimit)
+            }
         } else { // Start loading immediately.
             loadData(urlRequest: urlRequest)
         }
     }
 
     private func loadData(urlRequest: URLRequest) {
-        downloadStage = diagnostics?.beginStage(.download, queued: true)
+        if pipeline.isDefaultDelegate {
+            downloadStage = diagnostics?.beginStage(.download, queued: true)
+        } else {
+            willLoadDataStage = diagnostics?.beginStage(.willLoadData, queued: true)
+        }
         if request.options.contains(.skipDataLoadingQueue) {
             dataLoadTask = Task { @ImagePipelineActor in
                 await self.performDataLoad(urlRequest: urlRequest)

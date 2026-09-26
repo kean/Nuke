@@ -428,6 +428,48 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(rateLimitRow < downloadRow, "Unexpected timeline:\n\(metrics.description)")
     }
 
+    /// The limiter holds exactly the requests a fast scroll cancels, and the
+    /// wait is on the record of a task cancelled before it was let through.
+    @Test @ImagePipelineActor func requestCancelledWhileTheRateLimiterHoldsItIsAWait() async throws {
+        // GIVEN a rate limiter with a backlog, which holds the next request
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let rateLimiter = try #require(pipeline.rateLimiter)
+        let started = TestExpectation()
+        pipeline.onTaskStarted = { _ in started.fulfill() }
+        let task = pipeline.imageTask(with: Test.request)
+        for _ in 0..<200 {
+            rateLimiter.execute { true }
+        }
+        // The task reached the limiter in the actor turn that started it
+        await started.wait()
+        pipeline.onTaskStarted = nil
+
+        // WHEN it is cancelled while the limiter holds it
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the wait is the only stage, closed with the job
+        let metrics = try #require(task.metrics)
+        let fetch = try #require(metrics.jobs.last)
+        #expect(fetch.kind == .fetchOriginalData)
+        #expect(fetch.stages.map(\.kind) == [.rateLimit])
+        let rateLimit = try #require(fetch.stages.first)
+        let duration = try #require(rateLimit.duration)
+        #expect(try #require(rateLimit.startedAt) + duration <= metrics.endedAt)
+        #expect(dataLoader.createdTaskCount == 0)
+
+        // THEN it is rate limiter time, not `other`
+        let share = try #require(metrics.timeShares.first { $0.category == .rateLimit }, "No rateLimit time in:\n\(metrics.description)")
+        #expect(abs(share.duration - duration) < 1e-6)
+    }
+
     // MARK: - Cancellation
 
     /// "The work that was running is cancelled along with the job": the
