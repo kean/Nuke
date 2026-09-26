@@ -276,8 +276,11 @@ extension ImageTask.Metrics {
         for job in jobs {
             for stage in job.stages {
                 guard let span = span(of: stage, in: job) else { continue }
-                // The wait for a queue is not the work it held up.
-                if stage.queuedAt != nil, let startedAt = stage.startedAt, startedAt > span.from {
+                // The wait for a queue is not the work it held up, and a
+                // stage that never left its queue is all wait.
+                if stage.queuedAt != nil, stage.startedAt == nil {
+                    intervals.append((.queue, span))
+                } else if stage.queuedAt != nil, let startedAt = stage.startedAt, startedAt > span.from {
                     let queueEnd = min(startedAt, span.to)
                     intervals.append((.queue, Span(from: span.from, to: queueEnd)))
                     if queueEnd < span.to {
@@ -357,7 +360,20 @@ extension ImageTask.Metrics {
     /// pipeline is busy.
     func span(of stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> Span? {
         guard let begin = stage.queuedAt ?? stage.startedAt else { return nil }
-        return span(from: max(begin, job.joinedAt ?? begin), to: stage.endedAt)
+        return span(from: max(begin, job.joinedAt ?? begin), to: stage.endedAt ?? abandonedAt(stage, in: job))
+    }
+
+    /// When a stage that never left its queue stopped waiting: when the job
+    /// ended, or when the stage of the same kind that replaced it, such as
+    /// the final process after a progressive one, was enqueued.
+    private func abandonedAt(_ stage: ImagePipeline.Diagnostics.Stage, in job: ImagePipeline.Diagnostics.Job) -> TimeInterval? {
+        guard stage.startedAt == nil, let queuedAt = stage.queuedAt else { return nil }
+        let replacedAt = job.stages.lazy
+            .filter { $0.kind == stage.kind }
+            .compactMap(\.queuedAt)
+            .filter { $0 > queuedAt }
+            .min()
+        return [job.endedAt, replacedAt].compactMap { $0 }.min()
     }
 
     /// The request as the session timed it, from the start of the fetch to

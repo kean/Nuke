@@ -264,6 +264,78 @@ struct InternalCacheTests {
         #expect(cache.value(forKey: "b") == nil)
     }
 
+    @Test func newEntryIsKeptWhenEveryEntryWasRead() {
+        // Given a full cache in which every entry was read
+        let cache = makeCache(countLimit: 3)
+        cache.set("a", forKey: "a", cost: 1)
+        cache.set("b", forKey: "b", cost: 1)
+        cache.set("c", forKey: "c", cost: 1)
+        _ = cache.value(forKey: "a")
+        _ = cache.value(forKey: "b")
+        _ = cache.value(forKey: "c")
+
+        // When
+        cache.set("d", forKey: "d", cost: 1)
+
+        // Then the oldest entry is evicted, not the new one
+        #expect(cache.value(forKey: "d") == "d")
+        #expect(cache.value(forKey: "a") == nil)
+        #expect(cache.totalCount == 3)
+    }
+
+    @Test func newEntryReplacesTheReadEntryWhenCountLimitIsOne() {
+        // Given
+        let cache = makeCache(countLimit: 1)
+        cache.set("a", forKey: "a", cost: 1)
+        _ = cache.value(forKey: "a")
+
+        // When
+        cache.set("b", forKey: "b", cost: 1)
+
+        // Then
+        #expect(cache.value(forKey: "b") == "b")
+        #expect(cache.value(forKey: "a") == nil)
+    }
+
+    @Test func newEntryIsKeptWhenEveryEntryWasReadAndCostLimitIsReached() {
+        // Given room for three entries, all read
+        let cache = makeCache(costLimit: 35)
+        cache.set("a", forKey: "a", cost: 11)
+        cache.set("b", forKey: "b", cost: 11)
+        cache.set("c", forKey: "c", cost: 11)
+        _ = cache.value(forKey: "a")
+        _ = cache.value(forKey: "b")
+        _ = cache.value(forKey: "c")
+
+        // When
+        cache.set("d", forKey: "d", cost: 11)
+
+        // Then
+        #expect(cache.value(forKey: "d") == "d")
+        #expect(cache.value(forKey: "a") == nil)
+        #expect(cache.totalCost == 33)
+    }
+
+    @Test func overwrittenEntryIsKeptWhenItsNewCostExceedsTheLimit() {
+        // Given a full cache in which every entry was read
+        let cache = makeCache(costLimit: 30)
+        cache.set("a", forKey: "a", cost: 10)
+        cache.set("b", forKey: "b", cost: 10)
+        cache.set("c", forKey: "c", cost: 10)
+        _ = cache.value(forKey: "a")
+        _ = cache.value(forKey: "b")
+        _ = cache.value(forKey: "c")
+
+        // When "a" is overwritten with a larger value
+        cache.set("a2", forKey: "a", cost: 15)
+
+        // Then the new value is kept and the cost stays within the limit
+        #expect(cache.value(forKey: "a") == "a2")
+        #expect(cache.value(forKey: "b") == nil)
+        #expect(cache.value(forKey: "c") == "c")
+        #expect(cache.totalCost == 25)
+    }
+
     // MARK: - TTL
 
     @Test func expiredEntriesAreNotReturned() {
