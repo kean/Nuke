@@ -57,6 +57,37 @@ struct ImagePipelineResumableDataTests {
         ])
     }
 
+    /// A "206 Partial Content" without "Content-Length" has an unknown length,
+    /// which is reported as unknown, the way it is for a download that was
+    /// never resumed: adding the resumed bytes to `-1` would put the total
+    /// below the bytes already received.
+    @Test func progressOfAResumedDownloadWithUnknownLengthIsNotComplete() async throws {
+        // GIVEN a download that failed after 10000 bytes
+        let pipeline = ImagePipeline {
+            $0.dataLoader = _MockChunkedRangeDataLoader()
+            $0.imageCache = nil
+        }
+        _ = try? await pipeline.data(for: Test.request)
+
+        // WHEN it is resumed by a response without "Content-Length"
+        var progress: [ImageTask.Progress] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await value in task.progress {
+            progress.append(value)
+        }
+        let response = try await task.response
+        #expect((response.urlResponse as? HTTPURLResponse)?.statusCode == 206)
+
+        // THEN the total is unknown, and the download is never reported as
+        // complete before it is
+        #expect(progress.count > 1)
+        #expect(progress.last?.completed == 22789)
+        for value in progress {
+            #expect(value.total == -1, "\(value)")
+            #expect(value.fraction == 0, "\(value)")
+        }
+    }
+
     @Test func resumedBytesAreReportedInTheMetrics() async throws {
         // GIVEN a pipeline that records diagnostics and a download that failed
         // mid-way
@@ -200,6 +231,41 @@ struct ImagePipelineResumableDataTests {
         #expect(data == Test.data)
         #expect(dataLoader.requests.count == 3)
         #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=20000-")
+    }
+
+}
+
+/// Fails the first request after 10000 bytes, and answers a matching "Range"
+/// request with a "206 Partial Content" that has no "Content-Length", served
+/// in 4 KB chunks.
+private final class _MockChunkedRangeDataLoader: DataLoading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var attempt = 0
+
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let attempt = lock.withLock { () -> Int in
+            self.attempt += 1
+            return self.attempt
+        }
+        let data = Test.data
+        let headers = ["Accept-Ranges": "bytes", "ETag": "\"v1\""]
+        if attempt == 1 {
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: headers.merging(["Content-Length": "\(data.count)"]) { $1 })!
+            didReceiveData(data[0..<10000], response)
+            completion(URLError(.networkConnectionLost))
+        } else if let range = request.value(forHTTPHeaderField: "Range"), let offset = Int(_groups(regex: "bytes=(\\d*)-", in: range)[0]) {
+            let response = HTTPURLResponse(url: request.url!, statusCode: 206, httpVersion: "HTTP/1.1", headerFields: headers.merging(["Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)"]) { $1 })!
+            precondition(response.expectedContentLength == -1)
+            for chunk in _createChunks(for: data[offset...], size: 4096) {
+                didReceiveData(chunk, response)
+            }
+            completion(nil)
+        } else {
+            completion(URLError(.badServerResponse))
+        }
+        return AnonymousCancellable {}
     }
 }
 

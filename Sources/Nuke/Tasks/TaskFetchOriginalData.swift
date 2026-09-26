@@ -235,9 +235,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     }
 
     /// The size of the whole resource: the advertised content length plus the
-    /// resumed bytes. Saturates, since Foundation reports a content length it
-    /// can't represent as `Int64.max`.
+    /// resumed bytes, or `-1` if the response doesn't say how long it is (a
+    /// resumed download has more bytes than that). Saturates, since Foundation
+    /// reports a content length it can't represent as `Int64.max`.
     private func expectedSize(of response: URLResponse) -> Int64 {
+        guard response.expectedContentLength >= 0 else { return -1 }
         let (size, isOverflow) = response.expectedContentLength.addingReportingOverflow(resumedDataCount)
         return isOverflow ? .max : size
     }
