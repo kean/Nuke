@@ -120,6 +120,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             guard let self else { return }
             self.dataLoadTask?.cancel()
             self.dataLoadCancellable?.cancel()
+            if self.urlResponse != nil {
+                // The task's record is captured right after this, and the
+                // download stopped short: say how much of it arrived.
+                self.diagnostics?.updateStage(self.downloadStage) { self.recordTransfer(in: &$0) }
+            }
             self.tryToSaveResumableData()
             // A loader doesn't have to call the completion after `cancel()`,
             // so resume here to give back the data loading queue slot.
@@ -282,17 +287,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
         guard !isDisposed else { return }
 
-        diagnostics?.endStage(downloadStage) { stage in
-            // `URLSession` collected its metrics before the continuation that
-            // brought us here resumed, so they say whether the bytes came off
-            // the network or out of the session's own cache.
-            stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
-            stage.bytes = Int64(data.count)
-            stage.resumedBytes = resumedDataCount
-            if let urlResponse, urlResponse.expectedContentLength >= 0 {
-                stage.expectedBytes = expectedSize(of: urlResponse)
-            }
-        }
+        diagnostics?.endStage(downloadStage) { recordTransfer(in: &$0) }
 
         if let error {
             tryToSaveResumableData()
@@ -310,6 +305,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         await storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
+    }
+
+    /// Stamps the download stage with what it got, and from where.
+    private func recordTransfer(in stage: inout ImagePipeline.Diagnostics.Stage) {
+        // `URLSession` collects its metrics before the completion, so once
+        // they are in they say whether the bytes came off the network or out
+        // of the session's own cache.
+        stage.source = stage.urlSessionMetrics?.isServedFromCache == true ? .httpCache : .network
+        stage.bytes = Int64(data.count)
+        stage.resumedBytes = resumedDataCount
+        if let urlResponse, urlResponse.expectedContentLength >= 0 {
+            stage.expectedBytes = expectedSize(of: urlResponse)
+        }
     }
 
     // MARK: Async Data Loading

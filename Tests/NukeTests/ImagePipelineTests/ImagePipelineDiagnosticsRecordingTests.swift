@@ -509,6 +509,40 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(!description.contains("running"), "Unexpected running row in:\n\(description)")
     }
 
+    /// A download cancelled after it received data – the usual way a download
+    /// stops short – says how much of it arrived, of how much.
+    @Test func cancelledDownloadKeepsTheBytesItReceived() async throws {
+        // GIVEN a download that served its first chunk and holds the rest
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let task = pipeline.imageTask(with: Test.request)
+        await waitUntil { task.status.progress.completed > 0 }
+        let received = task.status.progress.completed
+
+        // WHEN
+        task.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+
+        // THEN the record has the bytes, and the size the server announced
+        let metrics = try #require(task.metrics)
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        #expect(download.firstByteAt != nil)
+        #expect(download.statusCode == 200)
+        #expect(download.source == .network)
+        #expect(download.bytes == received)
+        #expect(download.expectedBytes == Int64(dataLoader.data.count))
+        #expect(metrics.bytes?.downloaded == received)
+        #expect(metrics.bytes?.expected == Int64(dataLoader.data.count))
+        #expect(metrics.description.range(of: #"\ntransfer: +[0-9.]+ KB of [0-9.]+ KB\n"#, options: .regularExpression) != nil, "No transfer in:\n\(metrics.description)")
+    }
+
     /// A task that left work others still needed sees it running.
     @Test func taskThatLeftSharedWorkSeesItRunning() async throws {
         // GIVEN two tasks sharing a download that hasn't completed
