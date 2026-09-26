@@ -87,6 +87,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 let result = Result {
                     var response = response
                     response.container = try processor.process(response.container, context: context)
+                    response.request = context.request
                     return response
                 }.mapError { error in
                     ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
