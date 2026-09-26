@@ -106,6 +106,11 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix `LazyImageView` hiding a `failureView` assigned while a failure is displayed, e.g. from `onFailure`, and showing a `placeholderView` assigned after a failure or while a `makeImageView` view displays the image – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` keeping the previous image visible in `imageView` when a memory cache hit, or a response with `isResetEnabled` disabled, is displayed by a `makeImageView` view – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` calling `onCompletion` for a request replaced from `onSuccess` or `onFailure` after the completion of the request that replaced it – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` displaying a memory-cached progressive scan when `isProgressiveImageRenderingEnabled` is disabled – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` restarting the `.fadeIn` transition from transparent for every progressive scan and for the final image while an image is already displayed – https://github.com/kean/Nuke/pull/1028
 
 **Documentation**
 
