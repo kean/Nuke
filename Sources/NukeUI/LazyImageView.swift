@@ -313,7 +313,7 @@ public final class LazyImageView: _PlatformBaseView {
 
     private func handleStart(_ state: ImageLoader.State, task: ImageTask?) {
         resetOrDefer()
-        if let container = state.imageContainer {
+        if isProgressiveRenderingEnabled, let container = state.imageContainer {
             display(container, isFromMemory: true) // A preview found in the memory cache
         }
         setPlaceholderViewHidden(false)
