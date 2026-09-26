@@ -775,6 +775,23 @@ struct AnimatedImageViewTests {
         host.close()
     }
 
+    @Test func anAnimationHeldStillHoldsTheFrameAfterTheFirstAndNothingMore() async throws {
+        // The floor every player keeps: the frame on screen and the one after
+        // it, so that playback can start without waiting on a decode.
+        let host = TestWindow(view: view)
+        view.isPlaybackEnabled = false
+        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        let player = try #require(view.player)
+
+        await player.waitUntilFull()
+
+        #expect(player.isFrameBuffered(0))
+        #expect(player.isFrameBuffered(1))
+        #expect(player.isFrameBuffered(2) == false)
+        #expect(player.diagnostics.decodedFrameCount == AnimatedImagePlayer.idleFrameCount)
+        host.close()
+    }
+
     @Test func anAnimationHeldStillShowsTheFirstFrameAnotherPlayerDecoded() async {
         // A cell that comes back for an animation whose frames are still in
         // memory: nothing is left to decode, and no poster to fall back on.
