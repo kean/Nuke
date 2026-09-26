@@ -107,7 +107,7 @@ struct ImageProcessingExtensions {
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
         }
-        return PlatformImage.make(cgImage: cropped, source: image)
+        return PlatformImage.make(cgImage: cropped, source: image, sourceCGImage: cgImage)
     }
 
     /// Adds rounded corners with the given radius to the image.
@@ -163,7 +163,7 @@ extension PlatformImage {
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return PlatformImage.make(cgImage: outputCGImage, source: self)
+        return PlatformImage.make(cgImage: outputCGImage, source: self, sourceCGImage: cgImage)
     }
 
     /// Decompresses the input image by drawing in the `CGContext`.
@@ -329,8 +329,24 @@ extension NSImage {
         cgImage.map { CIImage(cgImage: $0) }
     }
 
-    static func make(cgImage: CGImage, source: NSImage) -> NSImage {
-        NSImage(cgImage: cgImage, size: .zero)
+    /// Wraps the pixels drawn from `source` in an image with the same points
+    /// per pixel as the source, the way `UIImage` keeps its `scale`: an image
+    /// `NSImage(data:)` sized by its DPI, or one with a `@2x` representation,
+    /// keeps its point size when it's processed.
+    ///
+    /// - parameter sourceCGImage: The `cgImage` of the source, if the caller
+    /// already has it, to save a second `cgImage(forProposedRect:)` call.
+    static func make(cgImage: CGImage, source: NSImage, sourceCGImage: CGImage? = nil) -> NSImage {
+        guard let sourceCGImage = sourceCGImage ?? source.cgImage,
+              sourceCGImage.width > 0, sourceCGImage.height > 0,
+              source.size.width > 0, source.size.height > 0 else {
+            return NSImage(cgImage: cgImage, size: .zero)
+        }
+        let size = NSSize(
+            width: CGFloat(cgImage.width) * source.size.width / CGFloat(sourceCGImage.width),
+            height: CGFloat(cgImage.height) * source.size.height / CGFloat(sourceCGImage.height)
+        )
+        return NSImage(cgImage: cgImage, size: size)
     }
 
     convenience init(cgImage: CGImage) {
@@ -339,7 +355,7 @@ extension NSImage {
 }
 #else
 extension UIImage {
-    static func make(cgImage: CGImage, source: UIImage) -> UIImage {
+    static func make(cgImage: CGImage, source: UIImage, sourceCGImage: CGImage? = nil) -> UIImage {
         UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
 }

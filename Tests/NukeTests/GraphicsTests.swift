@@ -383,6 +383,88 @@ struct GraphicsTests {
         #expect(cgImage.drawn(inCanvasWithSize: CGSize(width: CGFloat.nan, height: 30), orientation: .right) == nil)
     }
 
+#if os(macOS)
+    // MARK: - Point Size (AppKit)
+
+    /// `NSImage(data:)` sizes an image by its DPI, and an image can have a
+    /// `@2x` representation, so the point size of the output has to keep the
+    /// points-per-pixel ratio of the input, the way `UIImage.scale` is kept.
+    @Test(arguments: [
+        (0, "GaussianBlur"),
+        (1, "CoreImageFilter"),
+        (2, "RoundedCorners"),
+        (3, "Circle"),
+        (4, "Decompression")
+    ])
+    func processingPreservesThePointSizeOfHighDPIImage(index: Int, name: String) throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+        let process: (NSImage) -> NSImage? = [
+            ImageProcessors.GaussianBlur(radius: 2).process,
+            ImageProcessors.CoreImageFilter(name: "CISepiaTone").process,
+            { $0.processed.byAddingRoundedCorners(radius: 4) },
+            { $0.processed.byDrawingInCircle(border: nil) },
+            { $0.decompressed(isUsingPrepareForDisplay: false) }
+        ][index]
+
+        // When
+        let output = try #require(process(input), "Failed to process: \(name)")
+
+        // Then the pixels are the same and so are the points
+        #expect(output.sizeInPixels == CGSize(width: 40, height: 40))
+        #expect(output.size == CGSize(width: 20, height: 20))
+    }
+
+    @Test func resizingScalesThePointSizeOfHighDPIImage() throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+
+        // When
+        let output = try #require(input.processed.byResizing(to: CGSize(width: 20, height: 20), contentMode: .aspectFill, upscale: false))
+
+        // Then the point size is scaled along with the pixels
+        #expect(output.sizeInPixels == CGSize(width: 20, height: 20))
+        #expect(output.size == CGSize(width: 10, height: 10))
+    }
+
+    @Test func processingPreservesThePointSizeOfDecodedHighDPIImage() throws {
+        // Given a 40x40px PNG saved at 144 DPI, which is what a Retina Mac
+        // writes for a screenshot, decoded by the default decoder
+        let data = try makePNG(width: 40, height: 40, dpi: 144)
+        let input = try ImageDecoders.Default().decode(data).image
+        #expect(input.size == CGSize(width: 20, height: 20))
+
+        // When
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 2).process(input))
+
+        // Then
+        #expect(output.size == input.size)
+    }
+
+    @Test func processingKeepsThePixelSizeOfImageWithoutPointSize() throws {
+        // Given an image with no point size
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: .zero)
+
+        // When
+        let output = try #require(input.processed.byAddingRoundedCorners(radius: 4))
+
+        // Then one point per pixel
+        #expect(output.size == CGSize(width: 40, height: 40))
+    }
+
+    private func makePNG(width: Int, height: Int, dpi: Int) throws -> Data {
+        let cgImage = try #require(Test.rgbImage(width: width, height: height).cgImage)
+        let data = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(data as CFMutableData, AssetType.png.rawValue as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        return data as Data
+    }
+#endif
+
     // MARK: - Pixel Formats
 
     /// The canvas always has 8 bits per component, and Core Graphics has no
