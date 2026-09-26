@@ -57,6 +57,42 @@ struct ImageProcessorsResizeTests {
         #expect(output.sizeInPixels == CGSize(width: 400, height: 300))
     }
 
+    @Test func resizeToFitWidthOfTallImage() throws {
+        // Given a 10x30000 image
+        let input = Test.rgbImage(width: 10, height: 30_000)
+        let processor = ImageProcessors.Resize(width: 5, unit: .pixels)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then the height follows the aspect ratio instead of being capped
+        #expect(output.sizeInPixels == CGSize(width: 5, height: 15_000))
+    }
+
+    @Test func resizeToFitHeightOfWideImage() throws {
+        // Given a 30000x10 image
+        let input = Test.rgbImage(width: 30_000, height: 10)
+        let processor = ImageProcessors.Resize(height: 5, unit: .pixels)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then the width follows the aspect ratio instead of being capped
+        #expect(output.sizeInPixels == CGSize(width: 15_000, height: 5))
+    }
+
+    @Test func resizeToFitWidthLeavesNarrowerTallImageUnchanged() throws {
+        // Given a 100x20000 image, narrower than the target width
+        let input = Test.rgbImage(width: 100, height: 20_000)
+        let processor = ImageProcessors.Resize(width: 200, unit: .pixels)
+
+        // When
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then there is nothing to do without upscaling
+        #expect(output === input)
+    }
+
     @Test func thatImageIsUpscaledIfOptionIsEnabled() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
@@ -244,6 +280,22 @@ struct ImageProcessorsResizeTests {
         #expect(output.sizeInPixels == CGSize(width: 240, height: 320))
         #expect(output.imageOrientation == .right)
         // Then the image is resized according to orientation
+        #expect(output.size == CGSize(width: 320, height: 240))
+    }
+
+    @Test func resizeToFitWidthWithOrientationRight() throws {
+        // Given an image with `right` orientation: 640x480px as displayed,
+        // 480x640px of raw pixel data
+        let input = Test.image(named: "right-orientation.jpeg")
+        #expect(input.imageOrientation == .right)
+
+        // When resizing to the displayed width
+        let processor = ImageProcessors.Resize(width: 320, unit: .pixels)
+        let output = try #require(processor.process(input), "Failed to process an image")
+
+        // Then the width is measured as the image is displayed
+        #expect(output.sizeInPixels == CGSize(width: 240, height: 320))
+        #expect(output.imageOrientation == .right)
         #expect(output.size == CGSize(width: 320, height: 240))
     }
 
