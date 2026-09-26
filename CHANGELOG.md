@@ -109,6 +109,10 @@
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
+- Fix `ImageProcessors/Resize` failing for a thin image whose short side scales below half a pixel instead of producing a one-pixel strip – https://github.com/kean/Nuke/pull/1020
+- Fix `ImageProcessors/Circle` and `ImageProcessors/RoundedCorners` drawing the border at half the requested width – https://github.com/kean/Nuke/pull/1020
+- Fix processors changing the point size of a high-DPI `NSImage` on macOS – https://github.com/kean/Nuke/pull/1020
+- Fix `ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)` sizing the thumbnail of an EXIF-rotated image against the stored pixels on macOS, so it came out too large – https://github.com/kean/Nuke/pull/1020
 
 **Documentation**
 
