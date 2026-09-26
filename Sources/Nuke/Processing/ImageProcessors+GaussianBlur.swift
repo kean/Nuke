@@ -66,12 +66,23 @@ private extension CGImage {
         let size = self.size
         // vImageBoxConvolve_ARGB8888 needs a 32-bit ARGB layout. A grayscale
         // source yields a 16-bit gray+alpha context (half the row stride vImage
-        // expects), so force RGB for the scratch contexts. `.noneSkipLast` keeps
+        // expects), so switch to RGB for the scratch contexts unless the image
+        // is already RGB: that keeps wide-gamut images (Display P3) in their
+        // color space instead of clipping them to sRGB. `.noneSkipLast` keeps
         // the same 32-bit layout for opaque images without tagging the output
         // with alpha, which would make `ImageEncoders.Default` pick PNG.
         let alphaInfo: CGImageAlphaInfo = isOpaque ? .noneSkipLast : .premultipliedLast
-        guard let inputCtx = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB()),
-              let outputCtx = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB()) else {
+        func makeContexts(_ colorSpace: CGColorSpace) -> (input: CGContext, output: CGContext)? {
+            guard let input = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: colorSpace),
+                  let output = CGContext.make(self, size: size, alphaInfo: alphaInfo, colorSpace: colorSpace) else {
+                return nil
+            }
+            return (input, output)
+        }
+        let rgbColorSpace = colorSpace.flatMap { $0.model == .rgb ? $0 : nil }
+        // Core Graphics rejects some RGB spaces at 8 bits per component, e.g.
+        // the extended-range ones, so fall back to device RGB for those.
+        guard let (inputCtx, outputCtx) = rgbColorSpace.flatMap(makeContexts) ?? makeContexts(CGColorSpaceCreateDeviceRGB()) else {
             return nil
         }
         inputCtx.draw(self, in: CGRect(origin: .zero, size: size))
