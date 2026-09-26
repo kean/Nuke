@@ -222,8 +222,13 @@ public final class AnimatedImageSource: Sendable {
     }
 
     /// Applies the two corrections ``delays`` describes.
+    ///
+    /// The comparison is made in single precision, which is what Image I/O
+    /// reports the delays of an APNG, a WebP, and a HEIC sequence in: read as
+    /// a `Double`, a frame that asks for exactly 11 ms comes back a hair under
+    /// the threshold, and would be slowed down to the default.
     static func correctedDelay(_ delay: TimeInterval) -> TimeInterval {
-        delay >= minimumDelay ? delay : defaultDelay
+        Float(delay) >= Float(minimumDelay) ? delay : defaultDelay
     }
 
     /// Creates an image source over ``data`` for decoding the frames.
