@@ -65,6 +65,24 @@ struct ImagePipelineProcessorTests {
         #expect(response.image.nk_test_processorIDs == [])
     }
 
+    // MARK: - Response
+
+    @Test func responseIsForTheRequestWithTheProcessors() async throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, processors: [
+            MockImageProcessor(id: "processor1"),
+            MockImageProcessor(id: "processor2")
+        ])
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN the response is for the request it was created for, not for the
+        // request of the original image that the processors were applied to
+        #expect(response.request.url == Test.url)
+        #expect(response.request.processors.map(\.identifier) == ["processor1", "processor2"])
+    }
+
     // MARK: - Processor Failures
 
     @Test func processorFailurePropagatesAsError() async throws {
