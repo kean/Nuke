@@ -126,6 +126,30 @@ struct ImagePrefetcherTests {
         #expect(pipeline.cache[Test.request]?.isPreview == false)
     }
 
+    // MARK: Order
+
+    @Test(arguments: [ImageRequest.Priority.low, .veryLow, .normal, .high])
+    @ImagePipelineActor func prefetchesStartInTheOrderTheyWereRequested(priority: ImageRequest.Priority) async {
+        // GIVEN a prefetcher with the default configuration (two at a time)
+        prefetcher.priority = priority
+        nonisolated(unsafe) var order: [Int] = []
+        observer.onTaskCreated = { task in
+            order.append(Int(task.request.url!.deletingPathExtension().lastPathComponent)!)
+        }
+        let urls = (0..<6).map { URL(string: "http://test.com/\($0).jpeg")! }
+
+        // WHEN
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = {
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: urls)
+        }
+
+        // THEN the ones that had to wait for a slot start in FIFO order too
+        #expect(order == [0, 1, 2, 3, 4, 5], "priority: \(priority)")
+    }
+
     // MARK: Stop Prefetching
 
     @Test func stopPrefetching() async {
