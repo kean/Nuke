@@ -580,6 +580,63 @@ struct LazyImageTests {
         #expect(completions.value == 2)
     }
 
+    @Test func newRequestStartedWhenThumbnailChanges() async throws {
+        let starts = Ref(0)
+        let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost(CGFloat(16)) { maxPixelSize in
+            var request = ImageRequest(url: Test.url)
+            request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: maxPixelSize)
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+                .onCompletion {
+                    results.value.append($0)
+                    if results.value.count == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+        let small = try #require(results.value.first?.value)
+        #expect(max(small.image.sizeInPixels.width, small.image.sizeInPixels.height) == 16)
+
+        await host.update(64, until: { starts.value == 2 })
+        #expect(starts.value == 2)
+        guard starts.value == 2 else { return }
+        await second.wait()
+
+        let large = try #require(results.value.last?.value)
+        #expect(max(large.image.sizeInPixels.width, large.image.sizeInPixels.height) == 64)
+    }
+
+    @Test func newRequestStartedWhenScaleChanges() async throws {
+        let starts = Ref(0)
+        let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost(CGFloat(1)) { scale in
+            var request = ImageRequest(url: Test.url)
+            request.scale = scale
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+                .onCompletion {
+                    results.value.append($0)
+                    if results.value.count == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        await host.update(2, until: { starts.value == 2 })
+        #expect(starts.value == 2)
+        guard starts.value == 2 else { return }
+        await second.wait()
+
+        #expect(try #require(results.value.last?.value).request.scale == 2)
+    }
+
     @Test func newRequestStartedWhenPriorityChanges() async {
         let completions = Ref(0)
         let first = TestExpectation()
