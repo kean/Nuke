@@ -211,8 +211,11 @@ struct ImageProcessorsGaussianBlurTests {
     /// including for the kernels larger than the image itself. Without it, the
     /// edges would be darkened by the transparent black outside the image.
     ///
+    /// A radius of `1544` or more used to overflow the `Int32` sums in vImage
+    /// and come back nearly black; the kernel is capped now.
+    ///
     /// - seealso: https://github.com/kean/Nuke/issues/308
-    @Test(arguments: [1, 8, 50, 500])
+    @Test(arguments: [1, 8, 50, 500, 1544, 2000])
     func blurringASolidColorLeavesItUnchanged(radius: Int) throws {
         // Given a 40x40 solid color image
         let image = Test.rgbImage(width: 40, height: 40, color: CGColor(red: 0.2, green: 0.6, blue: 0.4, alpha: 1))
@@ -226,6 +229,40 @@ struct ImageProcessorsGaussianBlurTests {
         #expect(actual.count == expected.count)
         let maxDifference = zip(actual, expected).map { abs(Int($0) - Int($1)) }.max() ?? 0
         #expect(maxDifference <= 1)
+    }
+
+    @Test func blurringWithLargeRadiusDoesNotCorruptTheImage() throws {
+        // GIVEN a 1000x1000 image with a red left half and a blue right half
+        let image = imageWithTwoHalves(size: 1000)
+
+        // WHEN blurring with a radius past the kernel cap
+        let input = try pixels(of: image)
+        let output = try pixels(of: #require(ImageProcessors.GaussianBlur(radius: 2000).process(image)))
+
+        // THEN the center pixel is the average of both halves instead of
+        // near-black
+        let left = (500 * 1000 + 250) * 4
+        let right = (500 * 1000 + 750) * 4
+        let center = (500 * 1000 + 500) * 4
+        for channel in 0..<4 {
+            let expected = (Int(input[left + channel]) + Int(input[right + channel])) / 2
+            #expect(abs(Int(output[center + channel]) - expected) <= 8, "channel \(channel)")
+        }
+    }
+
+    @Test func extendedColorSpaceSupport() throws {
+        // GIVEN a Display P3 image
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        #expect(try #require(input.cgImage?.colorSpace).isWideGamutRGB)
+
+        // WHEN
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 4).process(input))
+
+        // THEN the image keeps its wide-gamut color space instead of being
+        // clipped to device RGB
+        let colorSpace = try #require(output.cgImage?.colorSpace)
+        #expect(colorSpace.isWideGamutRGB)
+        #expect(output.cgImage?.isOpaque == true)
     }
 
     /// The blur runs on premultiplied pixels, which is what keeps the edges of
@@ -324,6 +361,24 @@ private func pixels(of image: PlatformImage) throws -> Data {
 private func alphaChannel(of image: PlatformImage) throws -> [UInt8] {
     let pixels = try pixels(of: image)
     return stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+}
+
+/// Returns an opaque square image with a red left half and a blue right half.
+private func imageWithTwoHalves(size: Int) -> PlatformImage {
+    let context = CGContext(
+        data: nil,
+        width: size,
+        height: size,
+        bitsPerComponent: 8,
+        bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+    )!
+    context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+    context.fill(CGRect(x: 0, y: 0, width: size / 2, height: size))
+    context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+    context.fill(CGRect(x: size / 2, y: 0, width: size / 2, height: size))
+    return PlatformImage(cgImage: context.makeImage()!)
 }
 
 /// Returns a transparent image with an opaque square in the middle.

@@ -106,12 +106,17 @@
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+- Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/Anonymous/description` missing its closing parenthesis – https://github.com/kean/Nuke/pull/1021
 
 **Documentation**
 
 - Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
 - Fix the code samples in the SwiftUI, UIKit, Objective-C, and Performance articles, and compile them in CI – https://github.com/kean/Nuke/pull/955
 - Add an article on animated images and update the format documentation – https://github.com/kean/Nuke/pull/958
+- Fix the `crop` documentation of `ImageProcessors/Resize` saying the flag has no effect with `.aspectFill`; it has no effect with `.aspectFit` – https://github.com/kean/Nuke/pull/1021
 
 # Nuke 13
 

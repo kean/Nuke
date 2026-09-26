@@ -36,7 +36,11 @@ struct ImageProcessorsAnonymousTests {
 
     @Test func anonymousProcessorDescription() {
         let processor = ImageProcessors.Anonymous(id: "my-processor", { $0 })
-        #expect(processor.description.contains("my-processor"))
+        #expect(processor.description == "AnonymousProcessor(identifier: my-processor)")
+        #expect(
+            ImageProcessors.Composition([processor]).description ==
+            "Composition(processors: [AnonymousProcessor(identifier: my-processor)])"
+        )
     }
 
     @Test func anonymousProcessorReturnsNil() {
