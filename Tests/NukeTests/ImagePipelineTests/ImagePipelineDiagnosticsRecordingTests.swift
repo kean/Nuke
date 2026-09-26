@@ -257,6 +257,8 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
         #expect(metrics.jobs.allSatisfy { $0.joinedAt != nil })
         #expect(metrics.jobs.allSatisfy { $0.taskIDs == [recorded.taskId] })
+        // The creator is unknown, and the task that joined isn't it
+        #expect(metrics.jobs.allSatisfy { $0.createdByTaskID == 0 })
         #expect(metrics.sharedTaskIDs.isEmpty)
         #expect(dataLoader.createdTaskCount == 1)
         // The header says the task was coalesced, and with nobody it can name
