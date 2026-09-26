@@ -150,6 +150,29 @@ struct ImagePipelineSchedulingOrderTests {
         #expect(dataLoader.requestedURLs == [url("high"), url("normal"), url("low")])
     }
 
+    @Test(arguments: [ImageRequest.Priority.low, .veryLow, .normal, .high])
+    func pendingDownloadsOfTheSamePriorityStartInTheOrderTheyWereRequested(priority: ImageRequest.Priority) async throws {
+        // Given four downloads with the same priority waiting for the slot
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+        let urls = ["a", "b", "c", "d"].map { url($0) }
+        var tasks: [ImageTask] = []
+        _ = await queue.waitForOperations(count: urls.count) {
+            for url in urls {
+                tasks.append(pipeline.imageTask(with: ImageRequest(url: url, priority: priority)))
+            }
+        }
+
+        // When
+        queue.isSuspended = false
+        for task in tasks {
+            _ = try await task.response
+        }
+
+        // Then they are downloaded in FIFO order, below `.normal` too
+        #expect(dataLoader.requestedURLs == urls, "priority: \(priority)")
+    }
+
     @Test func raisingThePriorityOfAPendingTaskMovesItsDownloadAhead() async throws {
         // Given three downloads with the same priority waiting for the slot
         let queue = pipeline.configuration.dataLoadingQueue

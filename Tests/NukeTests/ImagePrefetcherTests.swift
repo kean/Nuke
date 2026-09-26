@@ -108,6 +108,48 @@ struct ImagePrefetcherTests {
         #expect(observer.startedTaskCount == 0)
     }
 
+    @Test func whenPreviewIsInMemoryCacheTaskStarted() async {
+        // GIVEN a progressive preview left in the memory cache by an earlier load
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        // WHEN
+        await withCheckedContinuation { continuation in
+            prefetcher.didComplete = {
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        // THEN the final image is prefetched and replaces the preview
+        #expect(observer.startedTaskCount == 1)
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(pipeline.cache[Test.request]?.isPreview == false)
+    }
+
+    // MARK: Order
+
+    @Test(arguments: [ImageRequest.Priority.low, .veryLow, .normal, .high])
+    @ImagePipelineActor func prefetchesStartInTheOrderTheyWereRequested(priority: ImageRequest.Priority) async {
+        // GIVEN a prefetcher with the default configuration (two at a time)
+        prefetcher.priority = priority
+        nonisolated(unsafe) var order: [Int] = []
+        observer.onTaskCreated = { task in
+            order.append(Int(task.request.url!.deletingPathExtension().lastPathComponent)!)
+        }
+        let urls = (0..<6).map { URL(string: "http://test.com/\($0).jpeg")! }
+
+        // WHEN
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            prefetcher.didComplete = {
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: urls)
+        }
+
+        // THEN the ones that had to wait for a slot start in FIFO order too
+        #expect(order == [0, 1, 2, 3, 4, 5], "priority: \(priority)")
+    }
+
     // MARK: Stop Prefetching
 
     @Test func stopPrefetching() async {
@@ -377,6 +419,29 @@ struct ImagePrefetcherTests {
             prefetcher.isPaused = false
         }
         #expect(dataOperations.first?.priority == .veryHigh)
+
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
+    @Test @ImagePipelineActor func priorityUpdatesFromThreadsWithDifferentQoSApplyTheLatestValue() async throws {
+        // GIVEN a prefetch that is scheduled, but not started
+        prefetcher.isPaused = true
+        let operations = await prefetcher.queue.waitForOperations(count: 1) {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+        let operation = try #require(operations.first)
+
+        // WHEN the priority is raised from a background thread and then
+        // lowered from a user-initiated one while the actor is busy, so both
+        // hops are queued before either runs (the second one runs first)
+        let applied = TestExpectation()
+        setPriorityFromThreadsWithDifferentQoS(prefetcher, then: applied)
+        await applied.wait()
+
+        // THEN the outstanding prefetch ends up at the latest priority
+        #expect(prefetcher.priority == .veryLow)
+        #expect(operation.priority == .veryLow)
 
         // Cleanup
         prefetcher.stopPrefetching()
@@ -658,6 +723,27 @@ struct ImagePrefetcherTests {
             }
         }
     }
+}
+
+/// Runs synchronously on the pipeline actor so that none of the hops can run
+/// before all of them are queued. `applied` is fulfilled by a hop at the
+/// lowest priority queued last, so it runs after both updates. The lower QoS
+/// is `.utility` rather than `.background`: the latter is starved for tens of
+/// seconds on a loaded machine, and the actor is held while this waits.
+private func setPriorityFromThreadsWithDifferentQoS(_ prefetcher: ImagePrefetcher, then applied: TestExpectation) {
+    let group = DispatchGroup()
+    DispatchQueue.global(qos: .utility).async(group: group) {
+        prefetcher.priority = .veryHigh
+    }
+    group.wait()
+    DispatchQueue.global(qos: .userInitiated).async(group: group) {
+        prefetcher.priority = .veryLow
+    }
+    group.wait()
+    DispatchQueue.global(qos: .utility).async(group: group) {
+        Task { @ImagePipelineActor in applied.fulfill() }
+    }
+    group.wait()
 }
 
 private extension TaskQueue {
