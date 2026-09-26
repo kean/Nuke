@@ -493,6 +493,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// where the actual URL determines what gets fetched.
     var originalImageID: String? { ref.originalImageID }
 
+    /// The user-supplied ``imageID`` override, or `nil` when the request uses
+    /// the default. Part of the load-image task key so that requests for one
+    /// URL under different IDs don't share a task, which would store the image
+    /// under the first request's keys only.
+    var customImageID: String? { ref.customImageID }
+
     /// Returns `true` if both requests share the same storage, which makes them
     /// equal. `false` doesn't mean they are different.
     package func isIdentical(to other: ImageRequest) -> Bool {
