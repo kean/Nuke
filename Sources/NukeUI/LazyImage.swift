@@ -159,8 +159,6 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
-        // The request with the modifiers applied, made once per update.
-        let context = overrides.applied(to: context)
         ZStack {
             if let makeContent {
                 makeContent(viewModel)
@@ -168,9 +166,29 @@ public struct LazyImage<Content: View>: View {
                 makeDefaultContent(for: viewModel)
             }
         }
-        .onAppear { onAppear(context) }
+        .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) { onChange(of: $0) }
+        .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context) }
+    }
+
+    /// The view as of an update, compared by what it loads. The action of
+    /// `onChange(of:perform:)` is the closure from the previous update, so the
+    /// view reads its current options from here and not from that `self`.
+    private struct Update: Equatable {
+        let view: LazyImage
+        /// The request with the modifiers applied, made once per update. It
+        /// has to be a snapshot: a processor's identifier can change in place,
+        /// and reading it again in `==` would see the new one on both sides.
+        let context: LazyImageContext?
+
+        init(view: LazyImage) {
+            self.view = view
+            self.context = view.overrides.applied(to: view.context)
+        }
+
+        static func == (lhs: Update, rhs: Update) -> Bool {
+            lhs.context == rhs.context && lhs.view.pipeline === rhs.view.pipeline
+        }
     }
 
     @ViewBuilder
@@ -187,14 +205,12 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onAppear(_ context: LazyImageContext?) {
+    private func onAppear() {
+        let context = overrides.applied(to: context)
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
-        let isStillLoading = viewModel.isLoading && viewModel.pipeline === pipeline && isLoaded(context)
-        viewModel.transaction = transaction
-        viewModel.pipeline = pipeline
-        viewModel.onStart = onStart
-        viewModel.onCompletion = onCompletion
+        let isStillLoading = viewModel.isLoading && isLoaded(context)
+        configure()
         // Undo the priority lowered by the `.lowerPriority` disappear behavior.
         viewModel.priority = context?.request.priority
         if !isStillLoading {
@@ -202,20 +218,29 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onChange(of context: LazyImageContext?) {
-        if let context, isLoaded(context) {
+    private func onChange(to context: LazyImageContext?) {
+        let isAlreadyLoaded = isLoaded(context)
+        configure()
+        if isAlreadyLoaded {
             // Only the priority changed, which doesn't need a new request.
-            viewModel.priority = context.request.priority
+            viewModel.priority = context?.request.priority
         } else {
             viewModel.load(context?.request)
         }
     }
 
-    /// Returns `true` if the view model has loaded, or is loading, the request
-    /// of the given context, whatever its priority.
+    private func configure() {
+        viewModel.transaction = transaction
+        viewModel.pipeline = pipeline
+        viewModel.onStart = onStart
+        viewModel.onCompletion = onCompletion
+    }
+
+    /// Returns `true` if the view model has loaded, or is loading, the given
+    /// request from the view's pipeline, whatever its priority.
     private func isLoaded(_ context: LazyImageContext?) -> Bool {
         guard let context, let request = viewModel.currentRequest else { return false }
-        return context.loadsSameImage(as: LazyImageContext(request: request))
+        return viewModel.pipeline === pipeline && context.loadsSameImage(as: LazyImageContext(request: request))
     }
 
     private func onDisappear() {
