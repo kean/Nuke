@@ -281,7 +281,7 @@ struct ImagePipelineCacheTests {
 
     // MARK: Store Cached Image
 
-    @Test func storeCachedImageMemoryCache() {
+    @Test func storeCachedImageStoresInBothLayersByDefault() {
         // WHEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
@@ -302,19 +302,6 @@ struct ImagePipelineCacheTests {
         // THEN
         #expect(cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
-
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
-    }
-
-    @Test func storeCachedImageInBothLayers() {
-        // WHEN
-        let request = Test.request
-        cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
-
-        // THEN
-        #expect(cache.cachedImage(for: request) != nil)
-        #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
         #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
@@ -546,22 +533,6 @@ struct ImagePipelineCacheTests {
         // GIVEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
-
-        // WHEN
-        cache.removeAll()
-
-        // THEN
-        #expect(cache.cachedImage(for: request) == nil)
-        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
-
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
-    }
-
-    @Test func removeAllWithAllStatic() {
-        // GIVEN
-        let request = Test.request
-        cache.storeCachedImage(Test.container, for: request, caches: [.all])
 
         // WHEN
         cache.removeAll()

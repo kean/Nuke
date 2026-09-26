@@ -523,8 +523,10 @@ struct LazyImageTests {
         }
         await first.wait()
 
-        // Re-render with a new instance of an equal processor: the request is
-        // rebuilt, but it is equal, so no new load may start.
+        // Re-render with a new instance of an equal processor: the rebuilt
+        // request isn't identical to the old one, so it misses the identity
+        // fast path, but its processors compare equal by their identifiers,
+        // so no new load may start.
         await host.update([MockImageProcessor(id: "p1")])
         await host.render()
 

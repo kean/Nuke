@@ -318,28 +318,6 @@ struct TaskQueueTests {
         #expect(order.value == ["A", "B", "C"])
     }
 
-    @Test func decreasedPriorityPrependsAcrossMultipleDrops() async {
-        // Given – A(veryHigh), B(normal), C(normal)
-        let queue = TaskQueue(maxConcurrentTaskCount: 1)
-        queue.isSuspended = true
-        let order = Ref<[String]>([])
-
-        let opA = queue.add { order.value.append("A") }
-        opA.priority = .veryHigh
-
-        queue.add { order.value.append("B") }
-        queue.add { order.value.append("C") }
-
-        // When – drop A from veryHigh to normal
-        opA.priority = .normal
-
-        queue.isSuspended = false
-        await queue.waitUntilAllOperationsAreFinished()
-
-        // Then – A prepended into normal bucket, ahead of B and C
-        #expect(order.value == ["A", "B", "C"])
-    }
-
     @Test func increasedPriorityAppendsAfterExistingHigherPriorityItems() async {
         // Given – A(normal), B(high), C(high)
         let queue = TaskQueue(maxConcurrentTaskCount: 1)

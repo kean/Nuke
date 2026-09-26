@@ -293,21 +293,6 @@ struct ImageViewLoadingOptionsTests {
         #expect(self.dataLoader.createdTaskCount == 0)
     }
 
-    // MARK: - Shared Options
-
-    @Test func sharedOptionsUsed() {
-        // Given
-        var options = options
-        let placeholder = PlatformImage()
-        options.placeholder = placeholder
-
-        // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
-
-        // Then
-        #expect(imageView.image == placeholder)
-    }
-
     // MARK: - Cache Policy
 
     @Test func reloadIgnoringCachedData() async {

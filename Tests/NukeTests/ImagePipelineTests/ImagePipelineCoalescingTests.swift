@@ -231,26 +231,6 @@ struct ImagePipelineCoalescingTests {
 
     // MARK: - Misc
 
-    @Test func progressIsReported() async throws {
-        // Given
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When/Then
-        let task = pipeline.imageTask(with: Test.url)
-        var progressValues: [ImageTask.Progress] = []
-        for await progress in task.progress {
-            progressValues.append(progress)
-        }
-        _ = try? await task.response
-
-        #expect(progressValues == [
-            ImageTask.Progress(completed: 10, total: 20),
-            ImageTask.Progress(completed: 20, total: 20)
-        ])
-    }
-
     @Test func disablingDeduplication() async throws {
         // Given
         let pipeline = ImagePipeline {

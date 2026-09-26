@@ -42,16 +42,6 @@ struct ImageCacheTests {
         #expect(cache[Test.request] != nil)
     }
 
-    // MARK: - Subscript
-
-    @Test func imageIsStoredUsingSubscript() {
-        // When
-        cache[Test.request] = Test.container
-
-        // Then
-        #expect(cache[Test.request] != nil)
-    }
-
     // MARK: - Count
 
     @Test func totalCountChanges() {

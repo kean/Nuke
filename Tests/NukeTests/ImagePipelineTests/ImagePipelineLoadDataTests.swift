@@ -28,29 +28,6 @@ struct ImagePipelineLoadDataTests {
         }
     }
 
-    // MARK: - Progress Reporting
-
-    @Test func progressClosureIsCalled() async throws {
-        // Given
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When
-        let task = pipeline.imageTask(with: Test.url)
-        var progressValues: [ImageTask.Progress] = []
-        for await progress in task.progress {
-            progressValues.append(progress)
-        }
-        _ = try? await task.response
-
-        // Then
-        #expect(progressValues == [
-            ImageTask.Progress(completed: 10, total: 20),
-            ImageTask.Progress(completed: 20, total: 20)
-        ])
-    }
-
     // MARK: - Errors
 
     @Test func loadWithInvalidURL() async throws {

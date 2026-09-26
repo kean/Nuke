@@ -50,6 +50,27 @@ struct ImageTaskTests {
         task.cancel()
     }
 
+    @Test func progressIsReportedForEveryChunk() async throws {
+        // Given a response that the data loader delivers in two chunks
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        let task = pipeline.imageTask(with: Test.url)
+        var progressValues: [ImageTask.Progress] = []
+        for await progress in task.progress {
+            progressValues.append(progress)
+        }
+        _ = try? await task.response // The data isn't an image, so the task fails
+
+        // Then
+        #expect(progressValues == [
+            ImageTask.Progress(completed: 10, total: 20),
+            ImageTask.Progress(completed: 20, total: 20)
+        ])
+    }
+
     // MARK: - Hashable
 
     @Test func taskIsEqualToItselfOnly() {

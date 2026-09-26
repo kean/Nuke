@@ -235,31 +235,6 @@ struct ImagePipelineAsyncAwaitTests {
         #expect(caughtError == .cancelled)
     }
 
-    @Test func progressUpdated() async throws {
-        // GIVEN
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // WHEN
-        var recordedProgress: [ImageTask.Progress] = []
-        do {
-            let task = pipeline.imageTask(with: Test.url)
-            for await progress in task.progress {
-                recordedProgress.append(progress)
-            }
-            _ = try await task.image
-        } catch {
-            // Do nothing
-        }
-
-        // THEN
-        #expect(recordedProgress == [
-            ImageTask.Progress(completed: 10, total: 20),
-            ImageTask.Progress(completed: 20, total: 20)
-        ])
-    }
-
     @Test func thatProgressivePreviewsAreDelivered() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
@@ -285,28 +260,6 @@ struct ImagePipelineAsyncAwaitTests {
         #expect(!response.container.isPreview)
         #expect(recordedPreviews.count == 2)
         #expect(recordedPreviews.allSatisfy { $0.container.isPreview })
-    }
-
-    // MARK: - Update Priority
-
-    @Test @ImagePipelineActor func updatePriority() async throws {
-        // GIVEN
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        #expect(request.priority == .normal)
-
-        let expectation = TestExpectation(queue: queue, count: 1)
-        let imageTask = pipeline.imageTask(with: request)
-        Task.detached { try? await imageTask.response }
-        await expectation.wait()
-
-        // WHEN/THEN
-        let operation = try #require(expectation.operations.first)
-        await queue.waitForPriorityChange(of: operation, to: .high) {
-            imageTask.priority = .high
-        }
     }
 
     // MARK: - ImageRequest with Async/Await (image container)

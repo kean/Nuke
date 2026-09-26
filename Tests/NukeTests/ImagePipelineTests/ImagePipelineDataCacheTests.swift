@@ -694,7 +694,7 @@ struct ImagePipelineDataCachePolicyTests {
         // WHEN
         _ = try await pipeline.image(for: request)
 
-        // THEN original image data is stored in disk cache
+        // THEN nothing is stored in disk cache: the original is already local
         #expect(encoder.encodeCount == 0)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)
@@ -719,24 +719,6 @@ struct ImagePipelineDataCachePolicyTests {
         #expect(dataCache.store.count == 1)
     }
 
-    @Test func imagesFromMemoryNotCached() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .automatic
-        }
-
-        // GIVEN request without a processor
-        let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"))
-
-        // WHEN
-        _ = try await pipeline.image(for: request)
-
-        // THEN original image data is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.store.count == 0)
-    }
-
     @Test func imagesFromData() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
@@ -751,7 +733,7 @@ struct ImagePipelineDataCachePolicyTests {
         // WHEN
         _ = try await pipeline.image(for: request)
 
-        // THEN original image data is stored in disk cache
+        // THEN nothing is stored in disk cache: the data is in the URL
         #expect(encoder.encodeCount == 0)
         #expect(dataCache.writeCount == 0)
         #expect(dataCache.store.count == 0)

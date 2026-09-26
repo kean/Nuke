@@ -15,25 +15,6 @@ import CoreGraphics
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsGaussianBlurTests {
-    @Test func applyBlur() {
-        // Given
-        let image = Test.image
-        let processor = ImageProcessors.GaussianBlur()
-        #expect(!processor.description.isEmpty)
-
-        // When
-        #expect(processor.process(image) != nil)
-    }
-
-    @Test func applyBlurProducesImagesBackedByCoreGraphics() {
-        // Given
-        let image = Test.image
-        let processor = ImageProcessors.GaussianBlur()
-
-        // When
-        #expect(processor.process(image) != nil)
-    }
-
     @Test func applyBlurPreservesOpacityOfOpaqueImages() throws {
         // Given an opaque image
         let image = Test.image

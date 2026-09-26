@@ -336,7 +336,9 @@ struct ImagePipelineDiagnosticsRecordingTests {
     }
 
     /// A download the task was cancelled out of before `dataLoadingQueue` let
-    /// it run knows when it was enqueued, and nothing else.
+    /// it run, which is what scrolling past the cells does to a busy pipeline,
+    /// knows when it was enqueued, and nothing else. The task spent that time
+    /// waiting, not on the network.
     @Test @ImagePipelineActor func downloadThatNeverLeftItsQueue() async throws {
         // GIVEN a data loading queue that holds its work
         let queue = pipeline.configuration.dataLoadingQueue
@@ -376,6 +378,11 @@ struct ImagePipelineDiagnosticsRecordingTests {
 
         let line = try #require(metrics.description.split(separator: "\n").first { $0.contains("─ download ") }, "No download in:\n\(metrics.description)")
         #expect(line.hasSuffix("never started"), "Unexpected row: \(line)")
+
+        // THEN the wait is queue time, not network time
+        let categories = metrics.timeShares.map(\.category)
+        #expect(!categories.contains(.network), "Unexpected shares: \(metrics.timeShares)\n\(metrics.description)")
+        #expect(categories.contains(.queue), "No queue share in: \(metrics.timeShares)")
     }
 
     // MARK: - Waits

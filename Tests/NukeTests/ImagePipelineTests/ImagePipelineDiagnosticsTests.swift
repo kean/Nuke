@@ -832,35 +832,6 @@ struct ImagePipelineDiagnosticsTests {
         #expect(description.range(of: #"\ntime: +.*queue [0-9.]+ ms"#, options: .regularExpression) != nil, "No queue share in:\n\(description)")
     }
 
-    /// A task cancelled while its download waits for its queue, which is what
-    /// scrolling past the cells does to a busy pipeline, spent that time
-    /// waiting, not on the network.
-    @Test @ImagePipelineActor func downloadThatNeverLeftItsQueueIsAWait() async throws {
-        // GIVEN a data loading queue that holds its work
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        defer { queue.isSuspended = false }
-        var task: ImageTask?
-        _ = await queue.waitForOperations(count: 1) {
-            task = pipeline.imageTask(with: Test.request)
-        }
-        let imageTask = try #require(task)
-
-        // WHEN it is cancelled while it waits
-        imageTask.cancel()
-        _ = try? await imageTask.response
-
-        // THEN the download never started
-        let metrics = try #require(imageTask.metrics)
-        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
-        try #require(download.queuedAt != nil && download.startedAt == nil)
-
-        // THEN the wait is queue time, not network time
-        let categories = metrics.timeShares.map(\.category)
-        #expect(!categories.contains(.network), "Unexpected shares: \(metrics.timeShares)\n\(metrics.description)")
-        #expect(categories.contains(.queue), "No queue share in: \(metrics.timeShares)")
-    }
-
     /// The final image replaces a progressive process that is still waiting
     /// for its queue, and the one that never ran is not processing time.
     @Test @ImagePipelineActor func progressiveProcessThatNeverRanIsNotProcessing() async throws {
