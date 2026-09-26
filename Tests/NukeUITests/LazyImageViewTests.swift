@@ -712,6 +712,26 @@ struct LazyImageViewTests {
         #expect(view.imageView.image != nil)
     }
 
+    @Test func cachedPreviewIgnoredWhenRenderingDisabled() {
+        // A progressive scan of the image is in the memory cache while the
+        // final image is still loading.
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+        dataLoader.isSuspended = true
+        view.isProgressiveImageRenderingEnabled = false
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        view.request = Test.request
+
+        // The final image is being loaded, and the placeholder stays visible
+        // instead of the cached scan.
+        #expect(view.imageTask != nil)
+        #expect(!placeholder.isHidden)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
     private func makeProgressivePipeline(with dataLoader: MockProgressiveDataLoader) -> ImagePipeline {
         ImagePipeline {
             $0.dataLoader = dataLoader

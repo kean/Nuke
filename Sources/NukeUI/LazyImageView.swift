@@ -305,7 +305,7 @@ public final class LazyImageView: _PlatformBaseView {
 
         resetOrDefer()
 
-        if let image = cachedImage, image.isPreview {
+        if let image = cachedImage, image.isPreview, isProgressiveImageRenderingEnabled {
             display(image, isFromMemory: true)
         }
 
