@@ -125,15 +125,17 @@ public final class LazyImageView: _PlatformBaseView {
     /// a source, your processors will be applied instead.
     public var processors: [any ImageProcessing]?
 
-    /// Sets the priority of the image task. The priority can be changed
-    /// dynamically. `nil` by default.
+    /// Overrides the priority of the current and future requests. When `nil`
+    /// (the default), the request's own priority is used. Can be updated while
+    /// a task is already running.
     public var priority: ImageRequest.Priority? {
         didSet {
-            if let priority {
-                imageTask?.priority = priority
-            }
+            imageTask?.priority = priority ?? requestPriority
         }
     }
+
+    /// The priority of the current request before ``priority`` overrode it.
+    private var requestPriority: ImageRequest.Priority = .normal
 
     /// Current image task.
     public var imageTask: ImageTask?
@@ -290,6 +292,7 @@ public final class LazyImageView: _PlatformBaseView {
         if let processors, !processors.isEmpty, request.processors.isEmpty {
             request.processors = processors
         }
+        requestPriority = request.priority
         if let priority {
             request.priority = priority
         }
