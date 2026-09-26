@@ -135,8 +135,15 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
 
     private func loadAsyncImage(_ fetch: @Sendable @escaping () async throws -> ImageContainer) {
         let stage = diagnostics?.beginStage(.download, queued: true)
-        operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
-            await self?.performAsyncImageLoad(fetch, stage: stage)
+        if request.options.contains(.skipDataLoadingQueue) {
+            let task = Task { @ImagePipelineActor [weak self] in
+                await self?.performAsyncImageLoad(fetch, stage: stage)
+            }
+            onCancelled = { task.cancel() }
+        } else {
+            operation = pipeline.configuration.dataLoadingQueue.add(priority: priority) { [weak self] in
+                await self?.performAsyncImageLoad(fetch, stage: stage)
+            }
         }
     }
 
