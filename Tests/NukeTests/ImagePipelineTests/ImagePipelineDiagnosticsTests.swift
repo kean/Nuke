@@ -1123,10 +1123,47 @@ struct ImagePipelineDiagnosticsTests {
         #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
         #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
     }
+
+    /// The session collects the metrics of a task only after the response
+    /// was rejected, so the loader used to complete without them.
+    @Test func rejectedResponseHasURLSessionMetrics() async throws {
+        // GIVEN a pipeline on `DataLoader`, and a resource that is not found
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [_FixtureURLProtocol.self]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = DataLoader(configuration: configuration)
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let url = URL(string: "fixture://diagnostics/404.jpeg")!
+
+        // WHEN
+        let task = pipeline.imageTask(with: url)
+        do {
+            _ = try await task.response
+            Issue.record("Expected the load to fail")
+        } catch {
+            guard case .statusCodeUnacceptable(404)? = error.dataLoadingError as? DataLoader.Error else {
+                Issue.record("Unexpected error: \(error)")
+                return
+            }
+        }
+
+        // THEN the completed download carries what the session measured, the
+        // way a successful download and a network failure do
+        let metrics = try #require(task.metrics)
+        #expect(metrics.error?.code == "dataLoadingFailed")
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        #expect(download.urlSessionTaskID != nil)
+        #expect(download.urlSessionMetrics != nil)
+        #expect(metrics.urlSessionMetrics != nil)
+    }
 }
 
 /// Serves the fixture image to every request of its scheme, so the session
-/// takes the metrics of a real task without a network.
+/// takes the metrics of a real task without a network. "404.jpeg" is not
+/// found.
 private final class _FixtureURLProtocol: URLProtocol, @unchecked Sendable {
     override class func canInit(with request: URLRequest) -> Bool {
         request.url?.scheme == "fixture"
@@ -1137,7 +1174,8 @@ private final class _FixtureURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
-        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(Test.data.count)"])!
+        let statusCode = request.url?.lastPathComponent == "404.jpeg" ? 404 : 200
+        let response = HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(Test.data.count)"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Test.data)
         client?.urlProtocolDidFinishLoading(self)

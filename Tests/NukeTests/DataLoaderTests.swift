@@ -382,6 +382,35 @@ struct DataLoaderTests {
         #expect(collected.transactionMetrics.first?.request.url == url)
     }
 
+    /// The session collects the metrics only after the response is rejected,
+    /// so the completion waits for them – and is still called exactly once,
+    /// with the validation error rather than the cancellation it led to.
+    @Test func metricsAreDeliveredForARejectedResponse() async throws {
+        let url = mockURL("metrics-rejected")
+        registerMock(url: url, statusCode: 404, chunks: [Data("not found".utf8)])
+
+        let loader = makeDataLoader()
+        let completions = OSAllocatedUnfairLock<[(Error?, URLSessionTaskMetrics?)]>(initialState: [])
+        let completed = TestExpectation()
+        _ = loader.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in
+            Issue.record("Unexpected data for a rejected response")
+        }) { error, metrics in
+            completions.withLock { $0.append((error, metrics)) }
+            completed.fulfill()
+        }
+        await completed.wait()
+        // Give a second completion the chance to arrive
+        try await Task.sleep(for: .milliseconds(50))
+
+        let (error, metrics) = try #require(completions.withLock { $0.count == 1 ? $0.first : nil })
+        guard case .statusCodeUnacceptable(404)? = error as? DataLoader.Error else {
+            Issue.record("Unexpected error: \(String(describing: error))")
+            return
+        }
+        let collected = try #require(metrics)
+        #expect(collected.transactionMetrics.first?.request.url == url)
+    }
+
     /// The loader reads `delegate` in every session callback and when each
     /// task is created, which happens on the thread that starts the request,
     /// so replacing it from another thread has to be synchronized – otherwise
