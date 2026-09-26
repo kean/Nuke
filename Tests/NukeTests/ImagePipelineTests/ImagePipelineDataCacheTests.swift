@@ -823,4 +823,36 @@ struct ImagePipelineDataCachePolicyTests {
         // the disk cache should be reused to generate the thumbnail locally
         #expect(dataLoader.createdTaskCount == 1)
     }
+
+    @Test func thumbnailIsGeneratedFromOriginalDataWhenItsOwnEntryCantBeDecoded() async throws {
+        // GIVEN a corrupted thumbnail entry and the original data in the disk cache
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(maxPixelSize: 400)
+        dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] = Data("corrupted".utf8)
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN the thumbnail is generated from the original data on disk
+        #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
+        #expect(response.cacheType == .disk)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func thumbnailIsDownloadedWhenNeitherDiskCacheEntryCanBeDecoded() async throws {
+        // GIVEN corrupted thumbnail and original entries in the disk cache
+        var request = ImageRequest(url: Test.url)
+        request.thumbnail = .init(maxPixelSize: 400)
+        dataCache.store[pipeline.cache.makeDataCacheKey(for: request)] = Data("corrupted".utf8)
+        dataCache.store[Test.url.absoluteString] = Data("corrupted".utf8)
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN each entry is tried once before the image is downloaded
+        #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
+        #expect(dataCache.readCount == 2)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
 }

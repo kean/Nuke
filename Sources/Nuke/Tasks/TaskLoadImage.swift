@@ -10,6 +10,8 @@ import Foundation
 /// The coalescing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
+    private var didLookUpOriginalData = false
+
     override func start() {
         if let container = lookUpCachedImage(for: request) {
             let response = ImageResponse(container: container, request: request, cacheType: .memory)
@@ -42,11 +44,23 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         if let response {
             didReceiveImageResponse(response, isCompleted: true)
         } else {
-            fetchImage()
+            loadOriginalDataOrFetch()
         }
     }
 
     // MARK: Fetch Image
+
+    /// Generates the thumbnail from the original image data in the disk cache
+    /// when the entry for the thumbnail itself can't be decoded, before going
+    /// to the network for it.
+    private func loadOriginalDataOrFetch() {
+        guard request.thumbnail != nil, request.processors.isEmpty, !didLookUpOriginalData,
+              let data = lookUpCachedData(for: request.withoutThumbnail()) else {
+            return fetchImage()
+        }
+        didLookUpOriginalData = true
+        decodeCachedData(data)
+    }
 
     private func fetchImage() {
         if let processor = request.processors.last {
