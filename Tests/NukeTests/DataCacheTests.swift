@@ -824,6 +824,36 @@ final class DataCacheTests {
         #expect(other.totalCount == 1)
     }
 
+    // MARK: Long Filenames
+
+    @Test(arguments: [250, 251, 255]) // The temporary file adds 5 bytes to the name
+    func filenameThatFitsTheFileSystemLimitIsPersisted(length: Int) async throws {
+        // GIVEN a generator that produces filenames up to the 255-byte limit
+        let name = UUID().uuidString
+        let generator: DataCache.FilenameGenerator = { String(repeating: "x", count: length - $0.utf8.count) + $0 }
+        let cache = try DataCache(name: name, filenameGenerator: generator)
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.isSweepEnabled = false
+
+        // The filename itself is valid on this file system
+        let url = try #require(cache.url(for: "ab"))
+        #expect(url.lastPathComponent.utf8.count == length)
+        try Data("probe".utf8).write(to: url)
+        try FileManager.default.removeItem(at: url)
+
+        // WHEN
+        cache["ab"] = blob
+        await cache.flush()
+
+        // THEN the entry is on disk and nothing else was left behind
+        #expect(cache["ab"] == blob)
+        #expect(cache.totalCount == 1)
+        let leftovers = try FileManager.default.contentsOfDirectory(atPath: cache.path.path)
+        #expect(leftovers == [url.lastPathComponent])
+        let other = try DataCache(name: name, filenameGenerator: generator)
+        #expect(other["ab"] == blob)
+    }
+
     // MARK: Default Filename Generator
 
     @Test func initWithPathUsingDefaultFilenameGenerator() async throws {
@@ -1106,6 +1136,37 @@ final class DataCacheTests {
 
         // THEN the stale date doesn't hold the sweep back
         await expectation.wait(timeout: .seconds(5))
+    }
+
+    @Test func scheduledSweepRunsWhenTheLastOneIsDatedInTheFuture() async throws {
+        // GIVEN a cache over its size limit whose last sweep was recorded while
+        // the clock was set a year ahead
+        let name = UUID().uuidString
+        let path = URL.cachesDirectory.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        let metadata = SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: 365 * 24 * 3600))
+        try JSONEncoder().encode(metadata).write(to: metadataURL(at: path))
+        for index in 0..<4 {
+            try Data(repeating: UInt8(index), count: 1024 * 1024)
+                .write(to: path.appendingPathComponent("entry\(index)"))
+        }
+
+        // WHEN the app launches
+        let expectation = TestExpectation()
+        let cache = try DataCache(
+            name: name,
+            sweepDelay: .milliseconds(500), // Lets the size limit below land before the sweep reads it
+            onSweepCompleted: { expectation.fulfill() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+        cache.sizeLimit = 1024 * 1024
+
+        // THEN the launch sweep runs, trims the cache, and repairs the date
+        await expectation.wait(timeout: .seconds(10))
+        #expect(cache.totalSize <= 1024 * 1024)
+        let date = try #require(lastSweepDate(at: cache.path))
+        #expect(Date().timeIntervalSince(date) < 5)
+        cache.isSweepEnabled = false
     }
 
     // MARK: Sweep Edge Cases
