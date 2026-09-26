@@ -323,6 +323,41 @@ struct LazyImageViewTests {
         #expect(placeholder.isHidden == true)
     }
 
+    @Test func placeholderAssignedAfterFailureIsHidden() async {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let failureView = _PlatformBaseView()
+        view.failureView = failureView
+        view.placeholderView = nil
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+        #expect(!failureView.isHidden)
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        // Nothing is loading, and `showPlaceholderOnFailure` is off.
+        #expect(placeholder.isHidden)
+    }
+
+    @Test func placeholderAssignedWhileCustomViewDisplaysImageIsHidden() async {
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+        #expect(customView.superview === view)
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        #expect(placeholder.isHidden)
+    }
+
     @Test func placeholderImageWrapsInImageView() {
         view.placeholderImage = Test.image
         #expect(view.placeholderView is _PlatformImageView)
@@ -396,6 +431,30 @@ struct LazyImageViewTests {
         await expectation.wait()
 
         #expect(failureView.isHidden == true)
+    }
+
+    @Test func failureImageAssignedInOnFailureIsShown() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        // The failure image is chosen based on the error.
+        let view = self.view
+        view.onFailure = { _ in view.failureImage = Test.image }
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+
+        let failureView = try #require(view.failureView)
+        #expect(!failureView.isHidden)
+    }
+
+    @Test func failureImageAssignedAfterNilURLIsShown() throws {
+        view.url = nil
+        view.failureImage = Test.image
+
+        let failureView = try #require(view.failureView)
+        #expect(!failureView.isHidden)
     }
 
     @Test func failureImageWrapsInImageView() {

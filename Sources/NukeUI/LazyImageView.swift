@@ -59,6 +59,10 @@ public final class LazyImageView: _PlatformBaseView {
 
     private var placeholderViewConstraints: [NSLayoutConstraint] = []
 
+    /// The visibility a placeholder view assigned later takes. Shown by
+    /// default, until a request is displayed.
+    private var isPlaceholderViewHidden = false
+
     // MARK: Failure View
 
     /// An image to be shown if the request fails.
@@ -83,6 +87,10 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private var failureViewConstraints: [NSLayoutConstraint] = []
+
+    /// The visibility a failure view assigned later takes, for example one
+    /// chosen from the error in ``onFailure``.
+    private var isFailureViewHidden = true
 
     // MARK: Transition
 
@@ -419,6 +427,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private (Placeholder View)
 
     private func setPlaceholderViewHidden(_ isHidden: Bool) {
+        isPlaceholderViewHidden = isHidden
         guard let placeholderView, placeholderView.isHidden != isHidden else { return }
         placeholderView.isHidden = isHidden
     }
@@ -436,7 +445,7 @@ public final class LazyImageView: _PlatformBaseView {
             oldView.removeFromSuperview()
         }
         if let newView {
-            newView.isHidden = !imageView.isHidden
+            newView.isHidden = isPlaceholderViewHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -455,6 +464,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private (Failure View)
 
     private func setFailureViewHidden(_ isHidden: Bool) {
+        isFailureViewHidden = isHidden
         guard let failureView, failureView.isHidden != isHidden else { return }
         failureView.isHidden = isHidden
     }
@@ -472,7 +482,7 @@ public final class LazyImageView: _PlatformBaseView {
             oldView.removeFromSuperview()
         }
         if let newView {
-            newView.isHidden = true
+            newView.isHidden = isFailureViewHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
         }
