@@ -214,7 +214,9 @@ private struct LazyImageContext: Equatable {
         return lhs.imageID == rhs.imageID &&
         lhs.priority == rhs.priority &&
         lhs.processorsIdentity == rhs.processorsIdentity &&
-        lhs.options == rhs.options
+        lhs.options == rhs.options &&
+        lhs.scale == rhs.scale &&
+        lhs.thumbnail == rhs.thumbnail
     }
 }
 
