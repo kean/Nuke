@@ -89,10 +89,13 @@ extension ImagePipeline.Cache {
         if caches.contains(.memory) {
             storeCachedImageInMemoryCache(image, for: request)
         }
-        if caches.contains(.disk), !image.isPreview {
-            if let data = encodeImage(image, for: request) {
-                storeCachedData(data, for: request)
-            }
+        // Resolve the data cache and check the write option first: encoding
+        // is synchronous, and there is nothing to store the result in otherwise.
+        if caches.contains(.disk), !image.isPreview,
+           !request.options.contains(.disableDiskCacheWrites),
+           let dataCache = dataCache(for: request),
+           let data = encodeImage(image, for: request) {
+            dataCache.storeData(data, for: makeDataCacheKey(for: request))
         }
     }
 
