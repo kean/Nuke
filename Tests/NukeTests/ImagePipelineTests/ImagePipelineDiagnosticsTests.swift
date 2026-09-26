@@ -1082,4 +1082,40 @@ struct ImagePipelineDiagnosticsTests {
         #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
         #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
     }
+
+    /// The session collects the metrics of a task only after the response
+    /// was rejected, so the loader used to complete without them.
+    @Test func rejectedResponseHasURLSessionMetrics() async throws {
+        // GIVEN a pipeline on `DataLoader`, and a resource that is not found
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = DataLoader(configuration: configuration)
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let url = StubURLProtocol.register { $0.respond(statusCode: 404, chunks: [Test.data]) }
+
+        // WHEN
+        let task = pipeline.imageTask(with: url)
+        do {
+            _ = try await task.response
+            Issue.record("Expected the load to fail")
+        } catch {
+            guard case .statusCodeUnacceptable(404)? = error.dataLoadingError as? DataLoader.Error else {
+                Issue.record("Unexpected error: \(error)")
+                return
+            }
+        }
+
+        // THEN the completed download carries what the session measured, the
+        // way a successful download and a network failure do
+        let metrics = try #require(task.metrics)
+        #expect(metrics.error?.code == "dataLoadingFailed")
+        let download = try #require(metrics.jobs.last?.stages.first { $0.kind == .download })
+        #expect(download.urlSessionTaskID != nil)
+        #expect(download.urlSessionMetrics != nil)
+        #expect(metrics.urlSessionMetrics != nil)
+    }
 }
