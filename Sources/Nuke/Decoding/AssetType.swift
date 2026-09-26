@@ -164,16 +164,26 @@ extension AssetType {
         return nil
     }
 
-    /// Returns the type of an ISO base media file, or `nil` if none of the
-    /// brands it declares belongs to a known format, as for bare HEIF
-    /// (`mif1`) or MPEG-4 audio (`M4A `).
+    /// Returns the type of an ISO base media file, or `nil` if the brands it
+    /// declares don't name a known format, as for bare HEIF (`mif1`), MPEG-4
+    /// audio (`M4A `), or Canon's CR3 raw (`crx `).
     ///
-    /// The major brand is only the first answer: a HEIC image sequence leads
-    /// with `msf1`, which says that the file holds a sequence but not what
-    /// codec its frames use. The codec is in the compatible brands that follow.
+    /// The major brand is only the first answer for an image: a HEIC image
+    /// sequence leads with `msf1`, which says that the file holds a sequence
+    /// but not what codec its frames use. The codec is in the compatible
+    /// brands that follow. A video is named by its major brand alone: nearly
+    /// every ISO base media file lists the generic `isom` or `mp42` among its
+    /// compatible brands, an audio file or a camera raw as much as a video.
     private static func _makeISOBaseMedia(_ data: Data) -> AssetType? {
-        for brand in _brands(in: data) {
-            if let type = _makeISOBaseMedia(brand: brand) {
+        let brands = _brands(in: data)
+        guard let major = brands.first else {
+            return nil
+        }
+        if let type = _makeImage(brand: major) ?? _makeVideo(brand: major) {
+            return type
+        }
+        for brand in brands.dropFirst() {
+            if let type = _makeImage(brand: brand) {
                 return type
             }
         }
@@ -185,8 +195,10 @@ extension AssetType {
     /// a minor version, and then the compatible brands until the box ends.
     private static func _brands(in data: Data) -> [String] {
         // The major brand is read whatever the declared size says, so that a
-        // file with a damaged size still names itself.
-        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count))
+        // file with a damaged size still names itself. The declared size is
+        // trusted up to a bound: a real `ftyp` box is a few dozen bytes, and a
+        // damaged one must not turn a header sniff into a walk of the file.
+        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count, _maxFileTypeBoxSize))
         var brands: [String] = []
         for offset in stride(from: 8, to: end, by: 4) where offset != 12 {
             guard let brand = _string(at: offset, count: 4, in: data) else { break }
@@ -195,15 +207,26 @@ extension AssetType {
         return brands
     }
 
-    /// The format a single ISO base media brand belongs to.
+    /// The longest `ftyp` box the sniffer reads: sixty compatible brands.
+    private static let _maxFileTypeBoxSize = 256
+
+    /// The image format a single ISO base media brand belongs to.
     ///
     /// The brands are registered at https://mp4ra.org/registered-types/brands.
-    private static func _makeISOBaseMedia(brand: String) -> AssetType? {
+    private static func _makeImage(brand: String) -> AssetType? {
         switch brand {
         case "heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs":
             return .heic
         case "avif", "avis":
             return .avif
+        default:
+            return nil
+        }
+    }
+
+    /// The video format a single ISO base media brand belongs to.
+    private static func _makeVideo(brand: String) -> AssetType? {
+        switch brand {
         case "isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "mmp4", "avc1", "dash":
             return .mp4
         case "M4V ", "M4VH", "M4VP":

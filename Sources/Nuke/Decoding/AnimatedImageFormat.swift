@@ -65,10 +65,7 @@ enum AnimatedImageFormat: CaseIterable {
         let delay = (properties?[Self.unclampedDelayKey] as? TimeInterval)
             ?? (properties?[Self.delayKey] as? TimeInterval)
             ?? 0
-        guard delay >= AnimatedImageSource.minimumDelay else {
-            return AnimatedImageSource.defaultDelay
-        }
-        return delay
+        return AnimatedImageSource.correctedDelay(delay)
     }
 
     /// Returns the number of loops the image asks for, or `0` for "forever".
