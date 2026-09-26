@@ -108,6 +108,24 @@ struct ImagePrefetcherTests {
         #expect(observer.startedTaskCount == 0)
     }
 
+    @Test func whenPreviewIsInMemoryCacheTaskStarted() async {
+        // GIVEN a progressive preview left in the memory cache by an earlier load
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        // WHEN
+        await withCheckedContinuation { continuation in
+            prefetcher.didComplete = {
+                continuation.resume()
+            }
+            prefetcher.startPrefetching(with: [Test.url])
+        }
+
+        // THEN the final image is prefetched and replaces the preview
+        #expect(observer.startedTaskCount == 1)
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(pipeline.cache[Test.request]?.isPreview == false)
+    }
+
     // MARK: Stop Prefetching
 
     @Test func stopPrefetching() async {
