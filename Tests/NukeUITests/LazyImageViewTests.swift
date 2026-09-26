@@ -208,6 +208,57 @@ struct LazyImageViewTests {
         #expect(result.isFailure)
     }
 
+    @Test func onCompletionNotCalledForRequestReplacedFromOnFailure() async {
+        // Given a failing request and a fallback image in the memory cache
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let fallback = ImageRequest(url: URL(string: "https://example.com/fallback.jpg")!)
+        pipeline.cache[fallback] = Test.container
+
+        let view = self.view
+        view.onFailure = { _ in view.request = fallback }
+
+        var completions: [String] = []
+        let expectation = TestExpectation()
+        view.onCompletion = { result in
+            completions.append(result.isSuccess ? "success" : "failure")
+            expectation.fulfill()
+        }
+
+        // When
+        view.url = Test.url
+        await expectation.wait()
+
+        // Then the fallback is displayed, and the completion of the replaced
+        // request is not delivered after the one that replaced it
+        #expect(view.imageView.image != nil)
+        #expect(completions == ["success"])
+    }
+
+    @Test func onCompletionNotCalledForRequestReplacedFromOnFailureWhenFallbackLoads() async {
+        // Given a failing request and a fallback that has to be loaded
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let fallback = URL(string: "https://example.com/fallback.jpg")!
+
+        let view = self.view
+        view.onFailure = { _ in view.url = fallback }
+
+        var events: [String] = []
+        view.onStart = { _ in events.append("start") }
+        let expectation = TestExpectation()
+        view.onCompletion = { result in
+            events.append(result.isSuccess ? "success" : "failure")
+            if result.isSuccess { expectation.fulfill() }
+        }
+
+        // When
+        view.url = Test.url
+        await expectation.wait()
+
+        // Then
+        #expect(view.imageView.image != nil)
+        #expect(events == ["start", "start", "success"])
+    }
+
     @Test func onProgressCalled() async {
         dataLoader.results[Test.url] = .success((
             Data(count: 20),
@@ -270,6 +321,41 @@ struct LazyImageViewTests {
         await expectation.wait()
 
         #expect(placeholder.isHidden == true)
+    }
+
+    @Test func placeholderAssignedAfterFailureIsHidden() async {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let failureView = _PlatformBaseView()
+        view.failureView = failureView
+        view.placeholderView = nil
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+        #expect(!failureView.isHidden)
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        // Nothing is loading, and `showPlaceholderOnFailure` is off.
+        #expect(placeholder.isHidden)
+    }
+
+    @Test func placeholderAssignedWhileCustomViewDisplaysImageIsHidden() async {
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+        #expect(customView.superview === view)
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        #expect(placeholder.isHidden)
     }
 
     @Test func placeholderImageWrapsInImageView() {
@@ -345,6 +431,30 @@ struct LazyImageViewTests {
         await expectation.wait()
 
         #expect(failureView.isHidden == true)
+    }
+
+    @Test func failureImageAssignedInOnFailureIsShown() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        // The failure image is chosen based on the error.
+        let view = self.view
+        view.onFailure = { _ in view.failureImage = Test.image }
+
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.url = Test.url
+        await expectation.wait()
+
+        let failureView = try #require(view.failureView)
+        #expect(!failureView.isHidden)
+    }
+
+    @Test func failureImageAssignedAfterNilURLIsShown() throws {
+        view.url = nil
+        view.failureImage = Test.image
+
+        let failureView = try #require(view.failureView)
+        #expect(!failureView.isHidden)
     }
 
     @Test func failureImageWrapsInImageView() {
@@ -545,6 +655,51 @@ struct LazyImageViewTests {
         #expect(view.imageView.image == nil)
     }
 
+    @Test func memoryCacheHitDisplayedByCustomViewClearsImageView() async {
+        // Given a view displaying an image in its built-in image view
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.request = Test.request
+        await expectation.wait()
+        #expect(!view.imageView.isHidden)
+
+        // When the next image is a memory cache hit displayed by a custom view
+        let otherRequest = ImageRequest(url: URL(string: "https://example.com/other.jpg")!)
+        pipeline.cache[otherRequest] = Test.container
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+        view.request = otherRequest
+
+        // Then the previous image is neither visible nor retained
+        #expect(customView.superview === view)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
+    @Test func deferredResetForCustomViewClearsImageView() async {
+        // Given a view displaying an image in its built-in image view
+        let firstExpectation = TestExpectation()
+        view.onCompletion = { _ in firstExpectation.fulfill() }
+        view.request = Test.request
+        await firstExpectation.wait()
+        #expect(!view.imageView.isHidden)
+
+        // When the next image, loaded with the reset deferred, is displayed
+        // by a custom view
+        view.isResetEnabled = false
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+        let secondExpectation = TestExpectation()
+        view.onCompletion = { _ in secondExpectation.fulfill() }
+        view.url = URL(string: "https://example.com/other.jpg")!
+        await secondExpectation.wait()
+
+        // Then the previous image is neither visible nor retained
+        #expect(customView.superview === view)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
     @Test func makeImageViewReturningNilFallsBackToDefault() async {
         view.makeImageView = { _ in nil }
 
@@ -712,6 +867,26 @@ struct LazyImageViewTests {
         #expect(view.imageView.image != nil)
     }
 
+    @Test func cachedPreviewIgnoredWhenRenderingDisabled() {
+        // A progressive scan of the image is in the memory cache while the
+        // final image is still loading.
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+        dataLoader.isSuspended = true
+        view.isProgressiveImageRenderingEnabled = false
+
+        let placeholder = _PlatformBaseView()
+        view.placeholderView = placeholder
+
+        view.request = Test.request
+
+        // The final image is being loaded, and the placeholder stays visible
+        // instead of the cached scan.
+        #expect(view.imageTask != nil)
+        #expect(!placeholder.isHidden)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
     private func makeProgressivePipeline(with dataLoader: MockProgressiveDataLoader) -> ImagePipeline {
         ImagePipeline {
             $0.dataLoader = dataLoader
@@ -771,6 +946,48 @@ struct LazyImageViewTests {
         #expect(animation == nil)
     }
 
+    @Test func fadeInTransitionNotRestartedOnceImageIsOnScreen() async {
+        let progressiveLoader = MockProgressiveDataLoader()
+        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
+        view.transition = .fadeIn(duration: 10)
+        makeImageViewLayerBacked()
+#if !os(macOS)
+        // UIKit only runs animations for views in a window.
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        view.frame = window.bounds
+        window.addSubview(view)
+        window.isHidden = false
+        defer { withExtendedLifetime(window) {} }
+#endif
+
+        var previewCount = 0
+        var restartedFades: [String] = []
+        view.onPreview = { _ in
+            previewCount += 1
+            if previewCount > 1, self.fadeInAnimation() != nil {
+                restartedFades.append("preview \(previewCount)")
+            }
+            // Let the fade-in of the image on screen finish.
+            self.removeAnimations()
+            progressiveLoader.resume()
+        }
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in
+            if self.fadeInAnimation() != nil {
+                restartedFades.append("final")
+            }
+            expectation.fulfill()
+        }
+
+        view.url = Test.url
+        await expectation.wait()
+
+        // The fade-in brings the image in once. Later scans and the final
+        // image replace the image on screen in place.
+        #expect(previewCount > 0)
+        #expect(restartedFades.isEmpty)
+    }
+
     private func makeImageViewLayerBacked() {
 #if os(macOS)
         view.imageView.wantsLayer = true
@@ -781,7 +998,15 @@ struct LazyImageViewTests {
 #if os(macOS)
         view.imageView.layer?.animation(forKey: "imageTransition")
 #else
-        view.imageView.layer.animation(forKey: "imageTransition")
+        view.imageView.layer.animation(forKey: "opacity")
+#endif
+    }
+
+    private func removeAnimations() {
+#if os(macOS)
+        view.imageView.layer?.removeAllAnimations()
+#else
+        view.imageView.layer.removeAllAnimations()
 #endif
     }
 

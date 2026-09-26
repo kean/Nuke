@@ -59,6 +59,10 @@ public final class LazyImageView: _PlatformBaseView {
 
     private var placeholderViewConstraints: [NSLayoutConstraint] = []
 
+    /// The visibility a placeholder view assigned later takes. Shown by
+    /// default, until a request is displayed.
+    private var isPlaceholderViewHidden = false
+
     // MARK: Failure View
 
     /// An image to be shown if the request fails.
@@ -83,6 +87,10 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private var failureViewConstraints: [NSLayoutConstraint] = []
+
+    /// The visibility a failure view assigned later takes, for example one
+    /// chosen from the error in ``onFailure``.
+    private var isFailureViewHidden = true
 
     // MARK: Transition
 
@@ -153,9 +161,15 @@ public final class LazyImageView: _PlatformBaseView {
     public var onProgress: (@MainActor @Sendable (ImageTask.Progress) -> Void)?
 
     /// Gets called when the request finishes successfully.
+    ///
+    /// If a new request is started from this closure, ``onCompletion`` is not
+    /// called for the replaced one.
     public var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?
 
     /// Gets called when the request fails.
+    ///
+    /// If a new request is started from this closure, for example a fallback
+    /// image, ``onCompletion`` is not called for the replaced one.
     public var onFailure: (@MainActor @Sendable (ImagePipeline.Error) -> Void)?
 
     /// Gets called when the request is completed.
@@ -174,6 +188,10 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private
 
     private var isResetNeeded = false
+
+    /// Incremented for every load so that a request replaced from a callback
+    /// doesn't report its completion after the request that replaced it.
+    private var loadGeneration = 0
 
     // MARK: Initializers
 
@@ -279,6 +297,7 @@ public final class LazyImageView: _PlatformBaseView {
     private func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
+        loadGeneration &+= 1
         cancel()
 
         guard var request else {
@@ -305,7 +324,7 @@ public final class LazyImageView: _PlatformBaseView {
 
         resetOrDefer()
 
-        if let image = cachedImage, image.isPreview {
+        if let image = cachedImage, image.isPreview, isProgressiveImageRenderingEnabled {
             display(image, isFromMemory: true)
         }
 
@@ -358,21 +377,32 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         imageTask = nil
+        let generation = loadGeneration
         switch result {
         case .success(let response): onSuccess?(response)
         case .failure(let error): onFailure?(error)
         }
+        // The callback started a new request: its completion was already
+        // delivered or is coming, so the replaced result is not reported.
+        guard generation == loadGeneration else { return }
         onCompletion?(result)
     }
 
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded(clearImage: false, shouldCancel: !container.isPreview)
 
+        let isReplacingVisibleContent = customImageView != nil || (!imageView.isHidden && imageView.image != nil)
+
         // Remove the view created for the previous response (a progressive
         // preview or a cached preview) before displaying the new one.
         removeCustomImageView()
 
         if let view = makeImageView?(container) {
+            // A memory cache hit and a deferred reset skip clearing the built-in
+            // image view so that the new image can overwrite it directly, but
+            // a custom view leaves it untouched.
+            if imageView.image != nil { imageView.prepareForReuse() }
+            if !imageView.isHidden { imageView.isHidden = true }
             addSubview(view)
             view.pinToSuperview()
             customImageView = view
@@ -386,7 +416,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         if !isFromMemory, let transition = transition {
-            runTransition(transition, container)
+            runTransition(transition, container, isReplacingVisibleContent: isReplacingVisibleContent)
         }
     }
 
@@ -399,6 +429,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private (Placeholder View)
 
     private func setPlaceholderViewHidden(_ isHidden: Bool) {
+        isPlaceholderViewHidden = isHidden
         guard let placeholderView, placeholderView.isHidden != isHidden else { return }
         placeholderView.isHidden = isHidden
     }
@@ -416,7 +447,7 @@ public final class LazyImageView: _PlatformBaseView {
             oldView.removeFromSuperview()
         }
         if let newView {
-            newView.isHidden = !imageView.isHidden
+            newView.isHidden = isPlaceholderViewHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -435,6 +466,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private (Failure View)
 
     private func setFailureViewHidden(_ isHidden: Bool) {
+        isFailureViewHidden = isHidden
         guard let failureView, failureView.isHidden != isHidden else { return }
         failureView.isHidden = isHidden
     }
@@ -452,7 +484,7 @@ public final class LazyImageView: _PlatformBaseView {
             oldView.removeFromSuperview()
         }
         if let newView {
-            newView.isHidden = true
+            newView.isHidden = isFailureViewHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
         }
@@ -465,9 +497,13 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Private (Transitions)
 
-    private func runTransition(_ transition: Transition, _ image: ImageContainer) {
+    private func runTransition(_ transition: Transition, _ image: ImageContainer, isReplacingVisibleContent: Bool) {
         switch transition {
         case .fadeIn(let duration):
+            // The fade-in brings the image in once. A better progressive scan
+            // or the final image replacing the one on screen is swapped in
+            // place instead of fading in from transparent again.
+            guard !isReplacingVisibleContent else { return }
             runFadeInTransition(duration: duration)
         case .custom(let closure):
             closure(self, image)
