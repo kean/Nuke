@@ -85,6 +85,26 @@ struct AnimatedImageMetadataTests {
         }
     }
 
+    @Test func apngDelayAtTheThresholdIsKept() throws {
+        // Image I/O reports the delays as `Float`s, and 11 ms comes back a hair
+        // under the `Double` threshold. Compared in double precision, the one
+        // delay documented as kept was replaced, and the animation played nine
+        // times slower than the file asks for.
+        guard let data = Test.animatedPNG(frameCount: 2, delays: [0.011, 0.011]) else {
+            return // Image I/O on this platform can't write an APNG
+        }
+
+        let source = try #require(AnimatedImageSource(data: data))
+
+        #expect(source.delays.count == 2)
+        for delay in source.delays {
+            #expect(abs(delay - AnimatedImageSource.minimumDelay) < 0.000_001)
+        }
+        // The same correction applies to the delays a caller describes.
+        let delay = TimeInterval(Float(AnimatedImageSource.minimumDelay))
+        #expect(AnimatedImageSource.correctedDelay(delay) == delay)
+    }
+
     @Test func apngLoopCountIsRead() throws {
         guard let data = Test.animatedPNG(frameCount: 2, loopCount: 7) else {
             return // Image I/O on this platform can't write an APNG
