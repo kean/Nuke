@@ -118,14 +118,14 @@ struct ImagePipelineCacheTests {
 
     @Test func subscriptOverwritingWithAnImageExceedingTheEntryCostLimit() {
         // GIVEN an image cache that takes images up to 10% of its 1000-byte
-        // limit, holding an image that costs `1 + data.count`
+        // limit, holding an image that fits
         let pipeline = pipeline.reconfigured {
             $0.imageCache = ImageCache(costLimit: 1000, countLimit: 100)
         }
-        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 10))
+        pipeline.cache[Test.request] = container(cost: 11)
 
         // WHEN it is overwritten with an image the cache won't take
-        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 500))
+        pipeline.cache[Test.request] = container(cost: 501)
 
         // THEN the replaced image is no longer served
         #expect(pipeline.cache[Test.request] == nil)
@@ -549,7 +549,8 @@ struct ImagePipelineCacheTests {
 
     @Test func makeImageCacheKeyUsesTheCustomKeyFromTheDelegate() {
         // GIVEN a delegate that maps every request to the same key
-        let delegate = MockCustomCacheKeyDelegate()
+        let delegate = MockCachingDelegate()
+        delegate.cacheKey = { _ in "custom-cache-key" }
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = memoryCache
@@ -635,10 +636,4 @@ struct ImagePipelineCacheTests {
         #expect(cached.imageOrientation == .right)
     }
 #endif
-}
-
-private final class MockCustomCacheKeyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        "custom-cache-key"
-    }
 }

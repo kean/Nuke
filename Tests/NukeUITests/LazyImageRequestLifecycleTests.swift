@@ -93,12 +93,8 @@ struct LazyImageRequestLifecycleTests {
         #expect(states.value.first?.progress == ImageTask.Progress(completed: 0, total: 0))
 
         progressiveLoader.resume() // Serves the first chunk and holds the rest
-        // Nothing to wait on but the content itself, and the chunk makes a
-        // round trip through the pipeline: more time than one `render` gives.
-        let sawFirstChunk = { states.value.last?.progress.completed == firstChunk }
-        for _ in 0..<25 where !sawFirstChunk() {
-            await host.render(until: sawFirstChunk)
-        }
+        // Nothing to wait on but the content itself
+        await host.render(until: { states.value.last?.progress.completed == firstChunk })
 
         let last = try #require(states.value.last)
         #expect(last.isLoading)
@@ -383,6 +379,7 @@ struct LazyImageRequestLifecycleTests {
         let firstTask = try #require(tasks.value.first)
 
         await host.hideContent(until: { firstTask.isCancelled })
+        #expect(firstTask.isCancelled)
         await host.showContent(until: { tasks.value.count == 2 })
 
         let secondTask = try #require(tasks.value.last)
@@ -423,6 +420,7 @@ struct LazyImageRequestLifecycleTests {
         let task = try #require(tasks.value.first)
 
         await host.hideContent(until: { task.priority == .veryLow })
+        #expect(task.priority == .veryLow)
         dataLoader.isSuspended = false
         await completed.wait()
 

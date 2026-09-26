@@ -565,13 +565,7 @@ struct LazyImageViewTests {
 
     @Test func isResetEnabledFalseDisplaysProgressivePreviewsWithoutCancellingTask() async throws {
         let progressiveLoader = MockProgressiveDataLoader()
-        view.pipeline = ImagePipeline {
-            $0.dataLoader = progressiveLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
-        }
+        view.pipeline = progressiveLoader.makePipeline()
         // The reset is deferred until a new image is ready, so it is applied
         // when the first preview is displayed.
         view.isResetEnabled = false
@@ -605,7 +599,7 @@ struct LazyImageViewTests {
 
     @Test func progressivePreviewsIgnoredWhenRenderingDisabled() async {
         let progressiveLoader = MockProgressiveDataLoader()
-        view.pipeline = makeProgressivePipeline(with: progressiveLoader)
+        view.pipeline = progressiveLoader.makePipeline()
         view.isProgressiveImageRenderingEnabled = false
 
         var imageWasSetDuringPreview = false
@@ -630,16 +624,6 @@ struct LazyImageViewTests {
         #expect(previewCount > 0)
         #expect(!imageWasSetDuringPreview)
         #expect(view.imageView.image != nil)
-    }
-
-    private func makeProgressivePipeline(with dataLoader: MockProgressiveDataLoader) -> ImagePipeline {
-        ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
-        }
     }
 
     // MARK: - Fade-In Transition

@@ -652,7 +652,10 @@ struct ImagePipelineDiagnosticsRecordingTests {
 
     @Test func delegateThatThrowsBeforeTheDownloadIsRecorded() async throws {
         // GIVEN a delegate that refuses to load the data
-        let pipeline = ImagePipeline(delegate: _ThrowingDelegate()) {
+        let delegate = MockWillLoadDataDelegate { _ in
+            throw URLError(.userAuthenticationRequired)
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isDiagnosticsEnabled = true
@@ -932,14 +935,5 @@ struct ImagePipelineDiagnosticsRecordingTests {
         // THEN the jobs' records are released once the jobs finish unwinding
         await waitUntil { records.1.allSatisfy { $0.value == nil } }
         #expect(task.metrics?.jobs.count == 4)
-    }
-}
-
-// MARK: - Helpers
-
-private final class _ThrowingDelegate: ImagePipeline.Delegate, Sendable {
-    @ImagePipelineActor
-    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        throw URLError(.userAuthenticationRequired)
     }
 }

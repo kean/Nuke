@@ -164,17 +164,8 @@ struct AssetTypeTests {
 
     // MARK: Video
 
-    /// The first 16 bytes of an ISO base media file (MP4, M4V, MOV, HEIC): a
-    /// box length, the `ftyp` box type, the four-character major brand, and a
-    /// minor version.
-    private func makeISOBaseMedia(brand: String, compatibleBrands: [String] = []) -> Data {
-        let size = UInt8(16 + compatibleBrands.count * 4)
-        return Data([0x00, 0x00, 0x00, size]) + Data("ftyp".utf8) + Data(brand.utf8) +
-            Data(repeating: 0x00, count: 4) + compatibleBrands.flatMap { Data($0.utf8) }
-    }
-
     @Test func detectMP4() {
-        let data = makeISOBaseMedia(brand: "isom")
+        let data = Test.fileTypeBox(brands: ["isom"])
         // The major brand ends at byte 12, so shorter slices must return nil.
         #expect(AssetType(data[0..<11]) == nil)
         #expect(AssetType(data[0..<12]) == .mp4)
@@ -183,11 +174,11 @@ struct AssetTypeTests {
 
     @Test(arguments: ["isom", "iso2", "iso4", "iso5", "iso6", "mp41", "mp42", "mmp4", "avc1", "dash"])
     func detectMP4Brands(brand: String) {
-        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .mp4)
+        #expect(AssetType(Test.fileTypeBox(brands: [brand])) == .mp4)
     }
 
     @Test func detectM4V() {
-        let data = makeISOBaseMedia(brand: "M4V ")
+        let data = Test.fileTypeBox(brands: ["M4V "])
         #expect(AssetType(data[0..<11]) == nil)
         #expect(AssetType(data[0..<12]) == .m4v)
         #expect(AssetType(data) == .m4v)
@@ -195,11 +186,11 @@ struct AssetTypeTests {
 
     @Test(arguments: ["M4V ", "M4VH", "M4VP"])
     func detectM4VBrands(brand: String) {
-        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .m4v)
+        #expect(AssetType(Test.fileTypeBox(brands: [brand])) == .m4v)
     }
 
     @Test func detectMOV() {
-        let data = makeISOBaseMedia(brand: "qt  ")
+        let data = Test.fileTypeBox(brands: ["qt  "])
         #expect(AssetType(data[0..<11]) == nil)
         #expect(AssetType(data[0..<12]) == .mov)
         #expect(AssetType(data) == .mov)
@@ -215,13 +206,13 @@ struct AssetTypeTests {
 
     @Test(arguments: ["heic", "heix", "heim", "heis", "hevc", "hevx", "hevm", "hevs"])
     func detectHEICBrands(brand: String) {
-        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .heic)
+        #expect(AssetType(Test.fileTypeBox(brands: [brand])) == .heic)
     }
 
     // MARK: AVIF
 
     @Test func detectAVIF() {
-        let data = makeISOBaseMedia(brand: "avif")
+        let data = Test.fileTypeBox(brands: ["avif"])
         #expect(AssetType(data[0..<11]) == nil)
         #expect(AssetType(data[0..<12]) == .avif)
         #expect(AssetType(data) == .avif)
@@ -230,7 +221,7 @@ struct AssetTypeTests {
     @Test(arguments: ["avif", "avis"])
     func detectAVIFBrands(brand: String) {
         // `avis` is the brand an AVIF image sequence uses.
-        #expect(AssetType(makeISOBaseMedia(brand: brand)) == .avif)
+        #expect(AssetType(Test.fileTypeBox(brands: [brand])) == .avif)
     }
 
     // MARK: Edge Cases
@@ -249,16 +240,16 @@ struct AssetTypeTests {
     func detectUnsupportedISOBaseMediaBrands(brand: String) {
         // Bare HEIF, MPEG-4 audio, and 3GPP aren't formats the decoders
         // support, so the brands they use are not recognized.
-        #expect(AssetType(makeISOBaseMedia(brand: brand)) == nil)
+        #expect(AssetType(Test.fileTypeBox(brands: [brand])) == nil)
     }
 
     @Test func detectFormatDeclaredAsACompatibleBrand() {
         // `msf1` says the file is an image sequence and nothing about what its
         // frames are coded with, so the codec is left to the brands that
         // follow – which is exactly what Image I/O writes for a HEIC sequence.
-        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["mif1", "heic", "hevc"])) == .heic)
-        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["avis", "av01"])) == .avif)
-        #expect(AssetType(makeISOBaseMedia(brand: "msf1", compatibleBrands: ["mif1", "MiPr"])) == nil)
+        #expect(AssetType(Test.fileTypeBox(brands: ["msf1", "mif1", "heic", "hevc"])) == .heic)
+        #expect(AssetType(Test.fileTypeBox(brands: ["msf1", "avis", "av01"])) == .avif)
+        #expect(AssetType(Test.fileTypeBox(brands: ["msf1", "mif1", "MiPr"])) == nil)
     }
 
     // MARK: utType
@@ -355,30 +346,13 @@ struct AssetTypeTests {
     /// so that format is covered by the unit tests only.
     @Test(arguments: [AssetType.png, .jpeg, .gif, .heic, .bmp, .tiff, .jpeg2000, .avif])
     func detectDataProducedByImageIO(type: AssetType) throws {
-        guard let data = encode(Test.data(name: "fixture", extension: "png"), as: type) else {
+        let image = try #require(Test.image(named: "fixture", extension: "png").cgImage)
+        guard let data = Test.encode([image], as: type.rawValue) else {
             return // The platform has no encoder for this format
         }
         #expect(AssetType(data) == type)
 
         let container = try ImageDecoders.Default().decode(data)
         #expect(container.type == type)
-    }
-
-    /// Re-encodes the given image data as the given type, or returns `nil` if
-    /// the platform has no encoder for it.
-    private func encode(_ data: Data, as type: AssetType) -> Data? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-            return nil
-        }
-        let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(output, type.rawValue as CFString, 1, nil) else {
-            return nil
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination) else {
-            return nil
-        }
-        return output as Data
     }
 }

@@ -301,7 +301,7 @@ struct ImagePrefetcherTests {
         // WHEN/THEN
         #expect(operation.priority == .low)
 
-        await pipeline.configuration.dataLoadingQueue.waitForPriorityChange(of: operation, to: .veryLow) {
+        await waitForPriorityChange(of: operation, to: .veryLow) {
             prefetcher.priority = .veryLow
         }
         #expect(operation.priority == .veryLow)
@@ -322,7 +322,7 @@ struct ImagePrefetcherTests {
         }
 
         // WHEN the priority changes before the prefetch starts
-        await prefetcher.queue.waitForPriorityChange(of: operation, to: .veryHigh) {
+        await waitForPriorityChange(of: operation, to: .veryHigh) {
             prefetcher.priority = .veryHigh
         }
 
@@ -354,7 +354,7 @@ struct ImagePrefetcherTests {
         }
 
         // WHEN the priority changes before the prefetch starts
-        await prefetcher.queue.waitForPriorityChange(of: operation, to: .veryHigh) {
+        await waitForPriorityChange(of: operation, to: .veryHigh) {
             prefetcher.priority = .veryHigh
         }
 
@@ -422,39 +422,29 @@ struct ImagePrefetcherTests {
 
     @Test func didCompleteIsCalledForEveryBatch() async {
         // GIVEN one batch that already completed
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let first = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            first.fulfill()
-        }
+        let first = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in first.increment() }
         prefetcher.startPrefetching(with: [Test.url])
-        await first.wait()
+        await first.wait(for: 1)
 
         // WHEN a second batch is prefetched
-        let second = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            second.fulfill()
-        }
+        let second = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in second.increment() }
         prefetcher.startPrefetching(with: [Self.otherURL])
-        await second.wait()
+        await second.wait(for: 1)
 
         // THEN the closure is called once per batch and the replaced closure
         // is never called again
-        #expect(count.withLock { $0 } == 2)
+        #expect(first.count == 1)
+        #expect(second.count == 1)
     }
 
     @Test func didCompleteCanBeCleared() async {
         // GIVEN one batch that already completed
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let first = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            first.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
         prefetcher.startPrefetching(with: [Test.url])
-        await first.wait()
+        await completed.wait(for: 1)
 
         // WHEN the closure is removed and another batch is prefetched
         prefetcher.didComplete = nil
@@ -467,26 +457,22 @@ struct ImagePrefetcherTests {
         prefetcher.didComplete = { @MainActor @Sendable in second.fulfill() }
         prefetcher.startPrefetching(with: [Self.thirdURL])
         await second.wait()
-        #expect(count.withLock { $0 } == 1)
+        #expect(completed.count == 1)
     }
 
     @Test @ImagePipelineActor func didCompleteIsCalledOnceWhenEveryRequestLoads() async {
         // GIVEN more requests than the prefetcher loads at a time
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let completed = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            completed.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
 
         // WHEN every one of them loads
         prefetcher.startPrefetching(with: Self.batch)
-        await completed.wait()
+        await completed.wait(for: 1)
 
         // THEN the closure is called once for the batch, not once per request
-        await prefetcher.queue.waitUntilIdle()
+        await prefetcher.queue.waitUntilAllOperationsAreFinished()
         await waitForDelivery()
-        #expect(count.withLock { $0 } == 1)
+        #expect(completed.count == 1)
         #expect(observer.startedTaskCount == Self.batch.count)
     }
 
@@ -494,12 +480,8 @@ struct ImagePrefetcherTests {
         // GIVEN requests that can't finish on their own: two are loading, and
         // the rest wait in the prefetcher's queue
         dataLoader.isSuspended = true
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let completed = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            completed.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
         _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
             prefetcher.startPrefetching(with: Self.batch)
         }
@@ -509,22 +491,18 @@ struct ImagePrefetcherTests {
 
         // THEN the prefetcher reports that it ran out of work, and doesn't
         // report it again when the loads it cancelled unwind
-        await completed.wait()
-        await prefetcher.queue.waitUntilIdle()
+        await completed.wait(for: 1)
+        await prefetcher.queue.waitUntilAllOperationsAreFinished()
         await waitForDelivery()
-        #expect(count.withLock { $0 } == 1)
+        #expect(completed.count == 1)
     }
 
     @Test @ImagePipelineActor func didCompleteIsCalledWhenAllPrefetchingIsStopped() async {
         // GIVEN requests that can't finish on their own: two are loading, and
         // the rest wait in the prefetcher's queue
         dataLoader.isSuspended = true
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let completed = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            completed.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
         _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
             prefetcher.startPrefetching(with: Self.batch)
         }
@@ -534,21 +512,17 @@ struct ImagePrefetcherTests {
 
         // THEN the prefetcher reports that it ran out of work, and doesn't
         // report it again when the loads it cancelled unwind
-        await completed.wait()
-        await prefetcher.queue.waitUntilIdle()
+        await completed.wait(for: 1)
+        await prefetcher.queue.waitUntilAllOperationsAreFinished()
         await waitForDelivery()
-        #expect(count.withLock { $0 } == 1)
+        #expect(completed.count == 1)
     }
 
     @Test @ImagePipelineActor func didCompleteIsNotCalledUntilTheLastRequestIsStopped() async {
         // GIVEN requests that can't finish on their own
         dataLoader.isSuspended = true
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let completed = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            completed.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
         _ = await prefetcher.queue.waitForOperations(count: Self.batch.count) {
             prefetcher.startPrefetching(with: Self.batch)
         }
@@ -558,27 +532,23 @@ struct ImagePrefetcherTests {
         await waitForDelivery()
 
         // THEN the closure isn't called while there is work outstanding
-        #expect(count.withLock { $0 } == 0)
+        #expect(completed.count == 0)
 
         // WHEN the last one is stopped too
         prefetcher.stopPrefetching(with: Array(Self.batch.suffix(1)))
 
         // THEN it is
-        await completed.wait()
-        #expect(count.withLock { $0 } == 1)
+        await completed.wait(for: 1)
+        #expect(completed.count == 1)
     }
 
     @Test @ImagePipelineActor func didCompleteIsNotCalledWhenThereIsNothingToStop() async {
         // GIVEN a batch that already completed
-        let count = OSAllocatedUnfairLock(initialState: 0)
-        let completed = TestExpectation()
-        prefetcher.didComplete = { @MainActor @Sendable in
-            count.withLock { $0 += 1 }
-            completed.fulfill()
-        }
+        let completed = EventCounter()
+        prefetcher.didComplete = { @MainActor @Sendable in completed.increment() }
         prefetcher.startPrefetching(with: [Test.url])
-        await completed.wait()
-        await prefetcher.queue.waitUntilIdle()
+        await completed.wait(for: 1)
+        await prefetcher.queue.waitUntilAllOperationsAreFinished()
 
         // WHEN prefetching is stopped with nothing left to cancel, as a list
         // does when it scrolls past rows that were already prefetched
@@ -588,7 +558,7 @@ struct ImagePrefetcherTests {
 
         // THEN the closure isn't called again: a stop that cancels nothing
         // doesn't run the prefetcher out of work, it had none left
-        #expect(count.withLock { $0 } == 1)
+        #expect(completed.count == 1)
     }
 
     private static let otherURL = URL(string: "http://test.com/example-2.jpeg")!
@@ -616,22 +586,5 @@ struct ImagePrefetcherTests {
                 localPrefetcher = nil
             }
         }
-    }
-}
-
-private extension TaskQueue {
-    /// Waits until no operation is pending or running. An operation runs until
-    /// its work returns, and the prefetcher's work ends by removing its task –
-    /// the point where it reports completion.
-    func waitUntilIdle() async {
-        guard operationCount > 0 else { return }
-        let idle = TestExpectation()
-        let previous = onEvent
-        onEvent = { event in
-            previous?(event)
-            if self.operationCount == 0 { idle.fulfill() }
-        }
-        await idle.wait()
-        onEvent = previous
     }
 }

@@ -121,9 +121,8 @@ struct ImageContainerTests {
         let k1 = ImageContainer.UserInfoKey("test-key")
         let k2 = ImageContainer.UserInfoKey("test-key")
         let k3 = ImageContainer.UserInfoKey("other-key")
-        #expect(k1 == k2)
+        assertHashableEqual(k1, k2)
         #expect(k1 != k3)
-        #expect(k1.hashValue == k2.hashValue)
     }
 
     @Test func userInfoKeyExpressibleByStringLiteral() {
@@ -207,8 +206,7 @@ struct ImageContainerTests {
         let rawValue = "com.example/key"
         let lhs = ImageContainer.UserInfoKey(rawValue)
         let rhs: ImageContainer.UserInfoKey = "com.example/key"
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
+        assertHashableEqual(lhs, rhs)
         #expect(lhs.rawValue == rawValue)
     }
 }

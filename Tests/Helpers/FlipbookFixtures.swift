@@ -38,7 +38,7 @@ struct Flipbook: Sendable {
         var delay: TimeInterval
         var color: [UInt8] // Red, green, blue
 
-        /// The pixel ``AnimatedImageTest/firstPixel(of:)`` reads back for it.
+        /// The pixel ``Test/firstPixel(of:)`` reads back for it.
         var pixel: [UInt8] { color + [255] }
     }
 
@@ -162,10 +162,6 @@ actor FlipbookFrameDecoder: AnimatedImageFrameDecoding {
 /// with ``ImageDecoderRegistry``, which produces both the still image and the
 /// animation to play in its place.
 struct FlipbookImageDecoder: ImageDecoding {
-    /// Every decoder this initializer made, so that a test can look at what
-    /// the pipeline asked its decoder for.
-    static let decoders = FlipbookDecoderLog()
-
     init?(context: ImageDecodingContext) {
         guard context.isCompleted, Flipbook(data: context.data) != nil else {
             return nil // Not this format, or not all of it yet
@@ -187,9 +183,7 @@ struct FlipbookImageDecoder: ImageDecoding {
             loopCount: flipbook.loopCount,
             size: flipbook.size,
             makeFrameDecoder: { maxPixelSize in
-                let decoder = FlipbookFrameDecoder(flipbook, maxPixelSize: maxPixelSize)
-                FlipbookImageDecoder.decoders.append(decoder)
-                return decoder
+                FlipbookFrameDecoder(flipbook, maxPixelSize: maxPixelSize)
             }
         )
         return container
@@ -201,22 +195,5 @@ struct FlipbookImageDecoder: ImageDecoding {
 #else
         NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
 #endif
-    }
-}
-
-/// The decoders a ``FlipbookImageDecoder`` has handed out, which is how a test
-/// asks what the player decoded and at what size.
-final class FlipbookDecoderLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: [FlipbookFrameDecoder] = []
-
-    var all: [FlipbookFrameDecoder] { lock.withLock { storage } }
-
-    func append(_ decoder: FlipbookFrameDecoder) {
-        lock.withLock { storage.append(decoder) }
-    }
-
-    func removeAll() {
-        lock.withLock { storage.removeAll() }
     }
 }

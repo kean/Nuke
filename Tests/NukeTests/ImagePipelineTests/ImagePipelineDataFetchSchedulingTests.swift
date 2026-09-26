@@ -143,8 +143,8 @@ struct ImagePipelineDataFetchSchedulingTests {
         subscription?.unsubscribe()
 
         // THEN
-        await Task { @ImagePipelineActor in }.value
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
+        await drainPipeline()
         #expect(dataLoader.createdTaskCount == 0)
     }
 

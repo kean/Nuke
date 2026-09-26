@@ -191,7 +191,7 @@ struct ImageProcessorsCoreImageFilterTests {
         let outputs = await withTaskGroup(of: (Int, Int?).self) { group in
             for width in widths {
                 group.addTask {
-                    let input = Self.makeImage(width: width, height: 10)
+                    let input = Test.rgbImage(width: width, height: 10, color: CGColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 1), alphaInfo: .premultipliedLast)
                     return (width, processor.process(input)?.cgImage?.width)
                 }
             }
@@ -207,26 +207,6 @@ struct ImageProcessorsCoreImageFilterTests {
         for width in widths {
             #expect(outputs[width] == width)
         }
-    }
-
-    private static func makeImage(width: Int, height: Int) -> PlatformImage {
-        let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        ctx.setFillColor(CGColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        let cgImage = ctx.makeImage()!
-#if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-#else
-        return UIImage(cgImage: cgImage)
-#endif
     }
 
     // MARK: - Identifiers

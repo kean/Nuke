@@ -44,7 +44,7 @@ struct ImageProcessorsGaussianBlurTests {
 
     @Test func blurSpreadsAlphaOfTransparentImages() throws {
         // GIVEN an opaque square in the middle of a transparent canvas
-        let image = imageWithOpaqueSquare(size: 64, square: 16)
+        let image = Test.imageWithOpaqueSquare(size: 64, square: 16)
         let outsideTheSquare = 32 * 64 + 20 // (x: 20, y: 32)
         #expect(try alphaChannel(of: image)[outsideTheSquare] == 0)
 
@@ -186,7 +186,7 @@ struct ImageProcessorsGaussianBlurTests {
     /// pixel, once its alpha is divided out, is still the color of the shape.
     @Test func blurDoesNotDarkenTheEdgesOfTransparentShapes() throws {
         // GIVEN an opaque square in the middle of a transparent canvas
-        let image = imageWithOpaqueSquare(size: 64, square: 16)
+        let image = Test.imageWithOpaqueSquare(size: 64, square: 16)
         let input = try pixels(of: image)
         let center = (32 * 64 + 32) * 4
         #expect(input[center + 3] == 255)
@@ -210,18 +210,9 @@ struct ImageProcessorsGaussianBlurTests {
 
     @Test func blurringCMYKImage() throws {
         // Given an image in a color space vImage can't process directly
-        let context = try #require(CGContext(
-            data: nil,
-            width: 40,
-            height: 30,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceCMYK(),
-            bitmapInfo: CGImageAlphaInfo.none.rawValue
-        ))
-        context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: 20, height: 30))
-        let image = PlatformImage(cgImage: try #require(context.makeImage()))
+        let cmyk = CGColorSpaceCreateDeviceCMYK()
+        let red = CGColor(red: 1, green: 0, blue: 0, alpha: 1)
+        let image = PlatformImage(cgImage: try #require(Test.makeImage(width: 40, height: 30, colorSpace: cmyk, alphaInfo: .none, color: red)))
 
         // When
         let output = try #require(ImageProcessors.GaussianBlur(radius: 4).process(image))
@@ -251,49 +242,10 @@ struct ImageProcessorsGaussianBlurTests {
 #endif
 }
 
-/// Renders the image into a known ARGB context and returns the raw bytes.
-private func pixels(of image: PlatformImage) throws -> Data {
-    let cgImage = try #require(image.cgImage)
-    let bytesPerRow = cgImage.width * 4
-    var bytes = [UInt8](repeating: 0, count: bytesPerRow * cgImage.height)
-    let success = bytes.withUnsafeMutableBytes { buffer -> Bool in
-        guard let context = CGContext(
-            data: buffer.baseAddress,
-            width: cgImage.width,
-            height: cgImage.height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return false }
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
-        return true
-    }
-    #expect(success)
-    return Data(bytes)
-}
-
 /// Returns the alpha component of every pixel of the image, row by row.
 private func alphaChannel(of image: PlatformImage) throws -> [UInt8] {
     let pixels = try pixels(of: image)
     return stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
-}
-
-/// Returns a transparent image with an opaque square in the middle.
-private func imageWithOpaqueSquare(size: Int, square: Int) -> PlatformImage {
-    let context = CGContext(
-        data: nil,
-        width: size,
-        height: size,
-        bitsPerComponent: 8,
-        bytesPerRow: 0,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    )!
-    context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
-    let origin = (size - square) / 2
-    context.fill(CGRect(x: origin, y: origin, width: square, height: square))
-    return PlatformImage(cgImage: context.makeImage()!)
 }
 
 #endif

@@ -938,38 +938,4 @@ struct AnimatedImageViewTests {
 #endif
 }
 
-/// Puts a view in a window, which is what makes it start animating.
-@MainActor
-private final class TestWindow {
-#if os(macOS)
-    private let window: NSWindow
-
-    init(view: NSView) {
-        let frame = CGRect(x: 0, y: 0, width: 100, height: 100)
-        window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        view.frame = frame
-        window.contentView?.addSubview(view)
-        window.orderFront(nil)
-    }
-
-    func close() {
-        window.orderOut(nil)
-    }
-#else
-    private let window: UIWindow
-
-    init(view: UIView) {
-        let frame = CGRect(x: 0, y: 0, width: 100, height: 100)
-        window = UIWindow(frame: frame)
-        view.frame = frame // A view in a window has a size, as the AppKit half does
-        window.addSubview(view)
-        window.isHidden = false
-    }
-
-    func close() {
-        window.isHidden = true
-    }
-#endif
-}
-
 #endif

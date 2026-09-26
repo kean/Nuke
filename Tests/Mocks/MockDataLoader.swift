@@ -19,8 +19,15 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 
-    var createdTaskCount: Int { _createdTaskCount.withLock { $0 } }
-    private let _createdTaskCount = OSAllocatedUnfairLock(initialState: 0)
+    var createdTaskCount: Int { _requests.withLock { $0.count } }
+
+    /// The requests it was asked to load, in order.
+    var requests: [URLRequest] { _requests.withLock { $0 } }
+
+    /// The URLs of the requests it was asked to load, in order.
+    var requestedURLs: [URL] { requests.compactMap(\.url) }
+
+    private let _requests = OSAllocatedUnfairLock<[URLRequest]>(initialState: [])
 
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
@@ -33,7 +40,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         let task = MockDataTask()
 
         // - warning: Important so it runs atomically
-        _createdTaskCount.withLock { $0 += 1 }
+        _requests.withLock { $0.append(request) }
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
 

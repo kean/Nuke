@@ -31,10 +31,7 @@ struct FetchImageTests {
     }
 
     @Test func imageLoaded() async throws {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
 
         let result = try #require(image.result)
         #expect(result.isSuccess)
@@ -42,10 +39,7 @@ struct FetchImageTests {
     }
 
     @Test func imageLoadedViaURL() async throws {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.url)
-        await expectation.wait()
+        await image.loadAndWait(Test.url)
 
         let result = try #require(image.result)
         #expect(result.isSuccess)
@@ -53,32 +47,18 @@ struct FetchImageTests {
     }
 
     @Test func nilURLFailsWithRequestMissing() async throws {
-        let expectation = TestExpectation()
-        var capturedError: ImagePipeline.Error?
-        image.onCompletion = { result in
-            if case .failure(let error) = result { capturedError = error }
-            expectation.fulfill()
-        }
-        image.load(nil as URL?)
-        await expectation.wait()
+        let result = await image.loadAndWait(nil as URL?)
 
-        let error = try #require(capturedError)
+        let error = try #require(result?.error)
         #expect(error == .imageRequestMissing)
         #expect(image.image == nil)
         #expect(!image.isLoading)
     }
 
     @Test func nilRequestFailsWithRequestMissing() async throws {
-        let expectation = TestExpectation()
-        var capturedError: ImagePipeline.Error?
-        image.onCompletion = { result in
-            if case .failure(let error) = result { capturedError = error }
-            expectation.fulfill()
-        }
-        image.load(nil as ImageRequest?)
-        await expectation.wait()
+        let result = await image.loadAndWait(nil as ImageRequest?)
 
-        let error = try #require(capturedError)
+        let error = try #require(result?.error)
         #expect(error == .imageRequestMissing)
     }
 
@@ -166,7 +146,7 @@ struct FetchImageTests {
 
         let operation = try #require(expectation.operations.first)
 
-        await queue.waitForPriorityChange(of: operation, to: .high) { @Sendable in
+        await waitForPriorityChange(of: operation, to: .high) { @Sendable in
             Task { @MainActor in
                 image.priority = .high
             }
@@ -217,10 +197,7 @@ struct FetchImageTests {
                 count.withLock { $0 += 1 }
             }
 
-            let expectation = TestExpectation()
-            image.onCompletion = { _ in expectation.fulfill() }
-            image.load(Test.request)
-            await expectation.wait()
+            await image.loadAndWait(Test.request)
 
             _ = cancellable
             return count.withLock { $0 }
@@ -232,10 +209,7 @@ struct FetchImageTests {
     }
 
     @Test func progressIsClearedOnReset() async {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
         #expect(image.progress.completed > 0)
 
         image.reset()
@@ -247,14 +221,7 @@ struct FetchImageTests {
 
     @Test func progressivePreviewIsDisplayed() async throws {
         let progressiveLoader = MockProgressiveDataLoader()
-        let progressivePipeline = ImagePipeline {
-            $0.dataLoader = progressiveLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
-        }
-        image.pipeline = progressivePipeline
+        image.pipeline = progressiveLoader.makePipeline()
 
         let previewExpectation = TestExpectation()
         let sawPreview = OSAllocatedUnfairLock(initialState: false)
@@ -287,10 +254,7 @@ struct FetchImageTests {
     // MARK: - Async/Await
 
     @Test func asyncLoadSucceeds() async throws {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load { Test.response }
-        await expectation.wait()
+        await image.loadAndWait { Test.response }
 
         let result = try #require(image.result)
         #expect(result.isSuccess)
@@ -301,10 +265,7 @@ struct FetchImageTests {
     @Test func asyncLoadFails() async throws {
         struct LoadError: Error {}
 
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load { throw LoadError() }
-        await expectation.wait()
+        await image.loadAndWait { throw LoadError() }
 
         let result = try #require(image.result)
         #expect(result.isFailure)
@@ -317,10 +278,7 @@ struct FetchImageTests {
     }
 
     @Test func asyncLoadPreservesPipelineError() async throws {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load { throw ImagePipeline.Error.dataDownloadExceededMaximumSize }
-        await expectation.wait()
+        await image.loadAndWait { throw ImagePipeline.Error.dataDownloadExceededMaximumSize }
 
         let result = try #require(image.result)
         #expect(result.error == .dataDownloadExceededMaximumSize)
@@ -561,10 +519,7 @@ struct FetchImageTests {
     @Test func processorsAppliedFromImage() async {
         image.processors = [MockImageProcessor(id: "p1")]
 
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
 
         #expect(image.imageContainer?.image.nk_test_processorIDs == ["p1"])
     }
@@ -573,10 +528,7 @@ struct FetchImageTests {
         image.processors = [MockImageProcessor(id: "p1")]
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p2")])
 
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(request)
-        await expectation.wait()
+        await image.loadAndWait(request)
 
         #expect(image.imageContainer?.image.nk_test_processorIDs == ["p2"])
     }
@@ -586,10 +538,7 @@ struct FetchImageTests {
     @Test func errorReturnsErrorWhenFailed() async {
         dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
 
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
 
         let state: any LazyImageState = image
         #expect(state.error != nil)
@@ -597,10 +546,7 @@ struct FetchImageTests {
     }
 
     @Test func errorReturnsNilWhenSuccessful() async {
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
 
         let state: any LazyImageState = image
         #expect(state.error == nil)
@@ -611,10 +557,7 @@ struct FetchImageTests {
 
     @Test func resetClearsAllState() async {
         // Load an image first so there's state to clear.
-        let expectation = TestExpectation()
-        image.onCompletion = { _ in expectation.fulfill() }
-        image.load(Test.request)
-        await expectation.wait()
+        await image.loadAndWait(Test.request)
 
         #expect(image.imageContainer != nil)
         #expect(image.result != nil)

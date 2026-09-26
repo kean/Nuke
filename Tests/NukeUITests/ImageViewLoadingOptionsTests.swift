@@ -17,26 +17,12 @@ import AppKit
 
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct ImageViewLoadingOptionsTests {
-    let mockCache: MockImageCache
-    let dataLoader: MockDataLoader
-    let pipeline: ImagePipeline
-    let imageView: _ImageView
-    let options: ImageLoadingOptions
-
-    init() {
-        let mockCache = MockImageCache()
-        let dataLoader = MockDataLoader()
-        self.mockCache = mockCache
-        self.dataLoader = dataLoader
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = mockCache
-        }
-        self.imageView = _ImageView()
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        self.options = options
-    }
+    private let fixture = ImageViewFixture()
+    var mockCache: MockImageCache { fixture.imageCache }
+    var dataLoader: MockDataLoader { fixture.dataLoader }
+    var pipeline: ImagePipeline { fixture.pipeline }
+    var imageView: _ImageView { fixture.imageView }
+    var options: ImageLoadingOptions { fixture.options }
 
     // MARK: - Transition
 
@@ -438,12 +424,7 @@ struct ImageViewLoadingOptionsTests {
     @Test func transitionCrossDissolveRemovesTemporaryView() async throws {
         // GIVEN an image view in a visible hierarchy, already displaying an
         // image. The window is what makes UIKit actually run the animation.
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
-        let container = UIView(frame: window.bounds)
-        window.addSubview(container)
-        window.isHidden = false
-        container.addSubview(imageView)
-        imageView.frame = container.bounds
+        let (window, container) = hostInWindow(imageView)
         imageView.image = Test.image
 
         var options = options

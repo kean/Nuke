@@ -435,9 +435,7 @@ struct ImagePipelineCoalescingTests {
             $0.imageCache = nil
         }
         let first = pipeline.imageTask(with: Test.request)
-        while first.status.progress.completed == 0 {
-            await Task.yield()
-        }
+        await waitUntil { first.status.progress.completed != 0 }
 
         // When another task for the same image joins it
         let didStart = TestExpectation()

@@ -12,12 +12,12 @@ import Foundation
 /// - seealso: ``ImagePipeline/Configuration-swift.struct/isResumableDataEnabled``
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineResumableDownloadTests {
-    private let server: _RangeServer
+    private let server: MockRangeServer
     private let dataCache: MockDataCache
     private let pipeline: ImagePipeline
 
     init() {
-        let server = _RangeServer(data: Test.data, validator: ["ETag": "\"v1\""])
+        let server = MockRangeServer(data: Test.data, validator: ["ETag": "\"v1\""])
         let dataCache = MockDataCache()
         self.server = server
         self.dataCache = dataCache
@@ -77,8 +77,14 @@ struct ImagePipelineResumableDownloadTests {
     @Test func delegateFailureKeepsTheBytes() async throws {
         // GIVEN a download that failed after 10000 bytes, and a retry that
         // the delegate rejected
-        let delegate = _RecordingDelegate()
-        delegate.failingAttempts = [2]
+        let attempts = EventCounter()
+        let delegate = MockWillLoadDataDelegate { request in
+            attempts.increment()
+            if attempts.count == 2 {
+                throw URLError(.userAuthenticationRequired)
+            }
+            return request
+        }
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = server
             $0.imageCache = nil
@@ -96,6 +102,40 @@ struct ImagePipelineResumableDownloadTests {
         #expect(server.requests.count == 2)
         #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=10000-")
         #expect(data == Test.data)
+    }
+
+    @Test func resumedDownloadThatFailsAgainKeepsResumableData() async throws {
+        // GIVEN a server that fails the first attempt at 8000 bytes and the
+        // resumed one at 20000 bytes – more than the 206 "Content-Length"
+        server.steps = [.fail(after: 8000), .fail(after: 20000), .serve]
+
+        // WHEN the download fails, is resumed, and fails again
+        _ = try? await pipeline.data(for: Test.request)
+        _ = try? await pipeline.data(for: Test.request)
+        #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=8000-")
+
+        // THEN the third attempt resumes from where the second one failed
+        let (data, _) = try await pipeline.data(for: Test.request)
+        #expect(data == Test.data)
+        #expect(server.requests.count == 3)
+        #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=20000-")
+    }
+
+    @Test func completedDownloadLeavesNoResumableData() async throws {
+        // GIVEN an initial partial download that fails and stores resumable data
+        server.steps = [.fail(after: 10000), .serve]
+        _ = try? await pipeline.imageTask(with: Test.request).response
+
+        // WHEN the download is resumed and completes successfully (all bytes delivered)
+        _ = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN no resumable data remains in storage: the completed download doesn't
+        // produce a partial entry (ResumableData init requires data.count < Content-Length).
+        let stored = await ResumableDataStorage.shared.removeResumableData(
+            for: ImageRequest(url: Test.url),
+            pipeline: pipeline
+        )
+        #expect(stored == nil)
     }
 
     // MARK: - Cancellation
@@ -123,6 +163,166 @@ struct ImagePipelineResumableDownloadTests {
         #expect(request.value(forHTTPHeaderField: "Range") == "bytes=8000-")
         #expect((response as? HTTPURLResponse)?.statusCode == 206)
         #expect(data == Test.data)
+    }
+
+    @Test func resumableDataIsKeptWhenCancelledBeforeServerResponds() async throws {
+        // GIVEN a pipeline whose delegate suspends the second attempt right
+        // before data loading
+        let attempts = EventCounter()
+        let entered = AsyncGate(), proceed = AsyncGate()
+        let delegate = MockWillLoadDataDelegate { request in
+            attempts.increment()
+            if attempts.count == 2 {
+                entered.open()
+                await proceed.wait()
+            }
+            return request
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = server
+            $0.imageCache = nil
+        }
+
+        // GIVEN an initial partial download that stores resumable data
+        server.steps = [.fail(after: 10000), .serve]
+        _ = try? await pipeline.imageTask(with: Test.request).response
+
+        // WHEN the next attempt is cancelled while `willLoadData` is suspended,
+        // after the pipeline has already taken the data out of the storage
+        let task = pipeline.imageTask(with: Test.request)
+        let response = Task { try await task.response }
+        await entered.wait()
+        task.cancel()
+        await drainPipeline()
+        proceed.open()
+        _ = try? await response.value
+        await drainPipeline()
+
+        // THEN the resumable data is still there for the next attempt
+        let stored = await ResumableDataStorage.shared.removeResumableData(
+            for: ImageRequest(url: Test.url),
+            pipeline: pipeline
+        )
+        #expect(stored != nil)
+    }
+
+    // MARK: - Progress
+
+    @Test func thatProgressIsReported() async throws {
+        // Given an initial request failed mid download
+        server.chunkSize = 3799
+        server.steps = [.fail(after: 11397), .serve]
+
+        // Expect the progress for the first part of the download to be reported.
+        var initialProgress: [ImageTask.Progress] = []
+        do {
+            let task = pipeline.imageTask(with: Test.request)
+            for await progress in task.progress {
+                initialProgress.append(progress)
+            }
+            _ = try await task.response
+        } catch {
+            // Expected failure
+        }
+
+        #expect(initialProgress == [
+            ImageTask.Progress(completed: 3799, total: 22789),
+            ImageTask.Progress(completed: 7598, total: 22789),
+            ImageTask.Progress(completed: 11397, total: 22789)
+        ])
+
+        // Expect progress closure to continue reporting the progress of the
+        // entire download
+        var remainingProgress: [ImageTask.Progress] = []
+        let task2 = pipeline.imageTask(with: Test.request)
+        for await progress in task2.progress {
+            remainingProgress.append(progress)
+        }
+        _ = try await task2.response
+
+        #expect(remainingProgress == [
+            ImageTask.Progress(completed: 15196, total: 22789),
+            ImageTask.Progress(completed: 18995, total: 22789),
+            ImageTask.Progress(completed: 22789, total: 22789)
+        ])
+    }
+
+    @Test func resumedBytesAreReportedInTheMetrics() async throws {
+        // GIVEN a pipeline that records diagnostics and a download that failed
+        // mid-way
+        server.steps = [.fail(after: 11397), .serve]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = server
+            $0.imageCache = nil
+            $0.isDiagnosticsEnabled = true
+        }
+        let task1 = pipeline.imageTask(with: Test.request)
+        _ = try? await task1.response
+        let metrics1 = try #require(task1.metrics)
+        #expect(metrics1.outcome == .failure)
+        #expect(metrics1.bytes?.downloaded == 11397)
+        #expect(metrics1.bytes?.expected == 22789)
+        let failed = try #require(metrics1.jobs.last?.stages.first { $0.kind == .download })
+        #expect(failed.resumedBytes == 0)
+
+        // WHEN the download is resumed
+        let task2 = pipeline.imageTask(with: Test.request)
+        _ = try await task2.response
+
+        // THEN the resumed bytes are reported
+        let metrics2 = try #require(task2.metrics)
+        #expect(metrics2.bytes?.downloaded == 22789)
+        #expect(metrics2.bytes?.resumed == 11397)
+        #expect(metrics2.bytes?.expected == 22789)
+        let resumed = try #require(metrics2.jobs.last?.stages.first { $0.kind == .download })
+        #expect(resumed.statusCode == 206)
+    }
+
+    /// On a "206 Partial Content" response, `expectedContentLength` covers only
+    /// the remaining bytes while the accumulated data already contains the
+    /// resumed prefix. The guard that decides whether to give the decoder a
+    /// chance to produce a preview used to compare the two directly, so it was
+    /// never satisfied and the resumed download produced no previews at all.
+    @Test func previewsAreDeliveredWhenTheDownloadIsResumed() async throws {
+        // GIVEN a pipeline with progressive decoding enabled, and a progressive
+        // JPEG served in three chunks, one scan each
+        let data = Test.data(name: "progressive", extension: "jpeg")
+        server.resource = (data, ["ETag": "\"v1\""])
+        server.chunkSize = data.count / 3
+        let pipeline = ImagePipeline {
+            $0.dataLoader = server
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // GIVEN an initial download that delivers one scan and then fails
+        server.steps = [.fail(after: data.count / 3), .serve]
+        var initialPreviews: [ImageResponse] = []
+        let initialTask = pipeline.imageTask(with: Test.request)
+        for await preview in initialTask.previews {
+            initialPreviews.append(preview)
+        }
+        await #expect(throws: ImagePipeline.Error.self) {
+            try await initialTask.response
+        }
+        #expect(initialPreviews.count == 1)
+
+        // WHEN the download is resumed with "206 Partial Content"
+        var previews: [ImageResponse] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await preview in task.previews {
+            previews.append(preview)
+        }
+        let response = try await task.response
+
+        // THEN the remaining scans are still delivered as previews
+        #expect((response.urlResponse as? HTTPURLResponse)?.statusCode == 206)
+        #expect(previews.count == 1)
+        #expect(previews.allSatisfy { $0.container.isPreview })
+
+        // THEN the final image is produced
+        #expect(!response.container.isPreview)
     }
 
     // MARK: - Server Responses
@@ -275,7 +475,7 @@ struct ImagePipelineResumableDownloadTests {
     /// are applied".
     @Test func willLoadDataSeesTheResumeHeaders() async throws {
         // GIVEN
-        let delegate = _RecordingDelegate()
+        let delegate = MockWillLoadDataDelegate()
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = server
             $0.imageCache = nil
@@ -292,142 +492,5 @@ struct ImagePipelineResumableDownloadTests {
         #expect(requests.first?.value(forHTTPHeaderField: "Range") == nil)
         #expect(requests.last?.value(forHTTPHeaderField: "Range") == "bytes=10000-")
         #expect(requests.last?.value(forHTTPHeaderField: "If-Range") == "\"v1\"")
-    }
-}
-
-// MARK: - Helpers
-
-/// A server that supports HTTP range requests, and does what the test scripts
-/// it to do, one step per request.
-private final class _RangeServer: DataLoading, @unchecked Sendable {
-    enum Step {
-        /// Responds with "200 OK" and fails with `networkConnectionLost` after
-        /// sending the given number of bytes.
-        case fail(after: Int)
-        /// Responds with "200 OK", sends the given number of bytes in a single
-        /// chunk, and never completes.
-        case stall(after: Int)
-        /// Responds with "206 Partial Content" to a "Range" request with a
-        /// matching "If-Range", or with "200 OK" to anything else.
-        case serve
-        /// Same as `serve`, but advertises the given "Content-Length".
-        case serveAdvertising(contentLength: String)
-        /// Ignores the "Range" header and sends the whole resource with "200 OK".
-        case ignoreRange
-        /// Fails before sending a response.
-        case failBeforeResponse
-    }
-
-    /// The resource the server has, and the validator it reports for it.
-    var resource: (data: Data, validator: [String: String]) {
-        get { lock.withLock { _resource } }
-        set { lock.withLock { _resource = newValue } }
-    }
-    var steps: [Step] {
-        get { lock.withLock { _steps } }
-        set { lock.withLock { _steps = newValue } }
-    }
-    var requests: [URLRequest] { lock.withLock { _requests } }
-    var cancelCount: Int { lock.withLock { _cancelCount } }
-
-    private let lock = NSLock()
-    private var _resource: (data: Data, validator: [String: String])
-    private var _steps: [Step] = []
-    private var _requests: [URLRequest] = []
-    private var _cancelCount = 0
-
-    init(data: Data, validator: [String: String]) {
-        self._resource = (data, validator)
-    }
-
-    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        let (step, (data, validator)) = lock.withLock {
-            _requests.append(request)
-            return (_steps.isEmpty ? Step.serve : _steps.removeFirst(), _resource)
-        }
-        let cancellable = AnonymousCancellable { [weak self] in
-            self?.lock.withLock { self?._cancelCount += 1 }
-        }
-
-        func headers(_ extra: [String: String]) -> [String: String] {
-            validator.merging(extra) { $1 }.merging(["Accept-Ranges": "bytes"]) { $1 }
-        }
-        func makeResponse(statusCode: Int, headers: [String: String]) -> HTTPURLResponse {
-            HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headers)!
-        }
-        func send(_ range: Range<Int>, _ response: URLResponse) {
-            for chunk in _createChunks(for: data[range], size: 4096) {
-                didReceiveData(chunk, response)
-            }
-        }
-        let ok = makeResponse(statusCode: 200, headers: headers(["Content-Length": "\(data.count)"]))
-
-        switch step {
-        case .fail(let count):
-            send(0..<count, ok)
-            completion(URLError(.networkConnectionLost))
-        case .stall(let count):
-            didReceiveData(data[0..<count], ok)
-        case .ignoreRange:
-            send(0..<data.count, ok)
-            completion(nil)
-        case .failBeforeResponse:
-            completion(URLError(.notConnectedToInternet))
-        case .serve, .serveAdvertising:
-            guard let offset = resumeOffset(for: request, data: data, validator: validator) else {
-                let ok = makeResponse(statusCode: 200, headers: headers(["Content-Length": contentLength(for: step) ?? "\(data.count)"]))
-                send(0..<data.count, ok)
-                completion(nil)
-                return cancellable
-            }
-            let partial = makeResponse(statusCode: 206, headers: headers([
-                "Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)",
-                "Content-Length": contentLength(for: step) ?? "\(data.count - offset)"
-            ]))
-            send(offset..<data.count, partial)
-            completion(nil)
-        }
-        return cancellable
-    }
-
-    private func contentLength(for step: Step) -> String? {
-        if case .serveAdvertising(let contentLength) = step { contentLength } else { nil }
-    }
-
-    /// Returns the offset to resume from if the request asks for a range and
-    /// its validator matches the resource.
-    private func resumeOffset(for request: URLRequest, data: Data, validator: [String: String]) -> Int? {
-        guard let range = request.value(forHTTPHeaderField: "Range"),
-              let ifRange = request.value(forHTTPHeaderField: "If-Range"),
-              ifRange == validator["ETag"],
-              let offset = _groups(regex: "bytes=(\\d+)-", in: range).first.flatMap({ Int($0) }),
-              offset < data.count else {
-            return nil
-        }
-        return offset
-    }
-}
-
-private final class _RecordingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    /// The attempts, starting with 1, to reject.
-    var failingAttempts: Set<Int> {
-        get { lock.withLock { _failingAttempts } }
-        set { lock.withLock { _failingAttempts = newValue } }
-    }
-    var requests: [URLRequest] { lock.withLock { _requests } }
-
-    private let lock = NSLock()
-    private var _requests: [URLRequest] = []
-    private var _failingAttempts: Set<Int> = []
-
-    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        let isRejected = lock.withLock {
-            _requests.append(urlRequest)
-            return _failingAttempts.contains(_requests.count)
-        }
-        if isRejected {
-            throw URLError(.userAuthenticationRequired)
-        }
-        return urlRequest
     }
 }

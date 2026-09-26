@@ -11,20 +11,18 @@ import Testing
 /// What every player of one animation shares: the decoded frames, the decoder
 /// that produces them, and the share of the pool they are held in.
 @Suite(.timeLimit(.minutes(5))) @MainActor
-struct AnimatedImageFrameSharingTests {
+struct AnimatedImageFrameSharingTests: AnimatedImagePoolSuite {
     /// The frames of the animations these tests build: 32×32, four bytes a
     /// pixel. Every limit below is written as a number of them.
     static let bytesPerFrame = 32 * 32 * 4
+    static let frameSize = CGSize(width: 32, height: 32)
 
-    /// A pool of its own for every test: what a player is allowed to hold
-    /// depends on what every other animation on screen is asking for, and the
-    /// suite runs beside every other one.
-    private let pool = AnimatedImageFramePool()
+    let pool = AnimatedImageFramePool()
 
     // MARK: Sharing the Frames
 
     @Test func aSecondPlayerFindsTheFramesTheFirstDecoded() async throws {
-        let source = try makeSource(frameCount: 6)
+        let source = Test.animatedGIFSource(frameCount: 6, size: Self.frameSize)
         let first = makePlayer(source: source)
         await first.waitUntilFull()
 
@@ -39,7 +37,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func aSecondPlayerShowsTheFrameTheFirstDecoded() async throws {
         // No decode is coming for a frame already in memory, so nothing else
         // would ever put it on screen.
-        let source = try makeSource(frameCount: 6)
+        let source = Test.animatedGIFSource(frameCount: 6, size: Self.frameSize)
         let first = makePlayer(source: source)
         await first.waitUntilFull()
 
@@ -50,7 +48,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aSharedFrameIsCountedOnce() async throws {
-        let source = try makeSource(frameCount: 6)
+        let source = Test.animatedGIFSource(frameCount: 6, size: Self.frameSize)
         let first = makePlayer(source: source)
         let second = makePlayer(source: source)
         await first.waitUntilFull()
@@ -68,7 +66,7 @@ struct AnimatedImageFrameSharingTests {
         // The case the sharing exists for: twenty copies of a sticker used to
         // get a twentieth of the budget each.
         let pool = makePool(frames: 40)
-        let source = try makeSource(frameCount: 30)
+        let source = Test.animatedGIFSource(frameCount: 30, size: Self.frameSize)
 
         let players = (0..<20).map { _ in makePlayer(source: source, pool: pool) }
 
@@ -80,8 +78,8 @@ struct AnimatedImageFrameSharingTests {
         // What is shared is one animation, not the pool.
         let pool = makePool(frames: 40)
 
-        let players = try (0..<20).map { _ in
-            makePlayer(source: try makeSource(frameCount: 30), pool: pool)
+        let players = (0..<20).map { _ in
+            makePlayer(source: Test.animatedGIFSource(frameCount: 30, size: Self.frameSize), pool: pool)
         }
 
         #expect(players.allSatisfy { $0.diagnostics.bufferCapacity == 2 })
@@ -91,7 +89,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func aSizeTheAnimationIsAlreadyInsideOfSharesWithNoSizeAtAll() throws {
         // A view that worked out a limit larger than the animation downsamples
         // nothing, which is what a view that asked for no limit does too.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 32, height: 32))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 32, height: 32))
         var generous = AnimatedImagePlayer.Options()
         generous.maxPixelSize = 512
 
@@ -107,7 +105,7 @@ struct AnimatedImageFrameSharingTests {
         // A frame decoded for a larger view answers a smaller one, which
         // scales it as it draws it, so the same sticker drawn a little smaller
         // in one place than another is decoded once.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let bubble = makePlayer(source: source)
         await bubble.waitUntilFull()
 
@@ -124,7 +122,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func theSmallerViewPaysTheLargerOnesBytes() async throws {
         // The trade: nothing is decoded twice, and the frames the avatar holds
         // are the bubble's – 64 pixels of them, not the 48 it asked for.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let bubble = makePlayer(source: source)
         await bubble.waitUntilFull()
 
@@ -141,7 +139,7 @@ struct AnimatedImageFrameSharingTests {
         // The avatar would hold the hero's frames – sixteen times the pixels
         // it asked for – for the rest of its life, and re-decode them at the
         // hero's price whenever the animation has to be windowed.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let hero = makePlayer(source: source)
 
         var small = AnimatedImagePlayer.Options()
@@ -157,7 +155,7 @@ struct AnimatedImageFrameSharingTests {
         // They would have to be scaled up, which is not a picture worth
         // showing, so the larger view decodes a set of its own – and the set
         // the smaller view is playing from stays where it is.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         var small = AnimatedImagePlayer.Options()
         small.maxPixelSize = 16
         let avatar = makePlayer(source: source, options: small)
@@ -171,7 +169,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func aViewJoinsFramesUpToTwiceTheSizeItAskedForAndNoFurther() throws {
         // The boundary of what a smaller view pays for in bytes: twice the
         // longest side it asked for answers it, a pixel short of half doesn't.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         let fullSize = makePlayer(source: source)
         var half = AnimatedImagePlayer.Options()
         half.maxPixelSize = 32
@@ -190,7 +188,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func aViewTakesTheSmallestFramesThatCoverIt() throws {
         // Two sets already exist that both answer it, and the cheapest one is
         // the one it joins: a view never pays for more pixels than it has to.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         var medium = AnimatedImagePlayer.Options()
         medium.maxPixelSize = 32
         var large = AnimatedImagePlayer.Options()
@@ -213,7 +211,7 @@ struct AnimatedImageFrameSharingTests {
         // Size is not the only thing that has to cover: two views drawing the
         // animation differently must not be handed each other's frames,
         // whatever size they are.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         var tinted = AnimatedImagePlayer.Options()
         tinted.frameTransform = AnimatedImageFrameTransform(identifier: "tint") { $0 }
         _ = makePlayer(source: source, options: tinted)
@@ -228,11 +226,11 @@ struct AnimatedImageFrameSharingTests {
     @Test func theFramesOfALargerViewThatHasGoneAnswerASmallerOne() async throws {
         // The frames outlive the player that decoded them, and a view that
         // wants fewer pixels than they hold still finds them.
-        let source = try makeSource(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let source = Test.animatedGIFSource(frameCount: 4, size: CGSize(width: 64, height: 64))
         var bubble: AnimatedImagePlayer? = makePlayer(source: source)
         await bubble?.waitUntilFull()
         bubble = nil
-        await settle()
+        await drainPendingWork()
 
         var small = AnimatedImagePlayer.Options()
         small.maxPixelSize = 48
@@ -246,7 +244,7 @@ struct AnimatedImageFrameSharingTests {
     // MARK: Sharing the Decoder
 
     @Test func twoPlayersOnTheSameFrameDecodeItOnce() async throws {
-        let source = try makeSource(frameCount: 4)
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let first = makePlayer(source: source, decoder: decoder)
         let second = makePlayer(source: source)
@@ -262,7 +260,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aScreenOfOneAnimationIsDecodedOnce() async throws {
-        let source = try makeSource(frameCount: 12)
+        let source = Test.animatedGIFSource(frameCount: 12, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let first = makePlayer(source: source, decoder: decoder)
         let rest = (0..<19).map { _ in makePlayer(source: source) }
@@ -278,16 +276,14 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aFrameIsOfferedToEveryPlayerWaitingForIt() async throws {
-        let source = try makeSource(frameCount: 4)
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let first = makePlayer(source: source, decoder: decoder)
         let second = makePlayer(source: source)
         var reported = 0
         second.onFrame = { _ in reported += 1 }
 
-        await decoder.release(0)
-        let decode = try #require(first.store.currentDecode)
-        await decode.value
+        try await AnimatedImageTest.decode(0, of: first, with: decoder)
 
         // The player that didn't schedule the decode is handed the frame too.
         #expect(reported == 1)
@@ -297,7 +293,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func theFramesAreDecodedInPlaybackOrder() async throws {
         // What makes the first frames appear first, rather than the animation
         // waiting on a window filled in whatever order the players joined.
-        let source = try makeSource(frameCount: 4)
+        let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let player = makePlayer(source: source, decoder: decoder)
 
@@ -316,7 +312,7 @@ struct AnimatedImageFrameSharingTests {
         // for reaches a store only when its share changes size, and here it
         // doesn't.
         let pool = makePool(frames: 2)
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let decoder = GatedFrameDecoder(source: source)
         let (first, clock) = makeIdlePlayer(source: source, pool: pool, decoder: decoder)
         first.play()
@@ -339,7 +335,7 @@ struct AnimatedImageFrameSharingTests {
         #expect(first.currentFrameIndex == 1)
 
         second = nil
-        await settle()
+        await drainPendingWork()
 
         #expect(first.store.currentDecode != nil)
         await decoder.release(2)
@@ -354,7 +350,7 @@ struct AnimatedImageFrameSharingTests {
         // Four frames of pool for an animation of twenty: one window of the
         // read-ahead, whichever of the two players is asked.
         let pool = makePool(frames: 4)
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
 
@@ -370,7 +366,7 @@ struct AnimatedImageFrameSharingTests {
         // four frames are two each – short of the read-ahead a player alone
         // would keep.
         let pool = makePool(frames: 4)
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
 
@@ -386,7 +382,7 @@ struct AnimatedImageFrameSharingTests {
         // costs is the one frame the first one isn't holding – not a second
         // window. Dividing by the number of playheads would have left two each.
         let pool = makePool(frames: 4)
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
 
@@ -406,8 +402,8 @@ struct AnimatedImageFrameSharingTests {
         // anything is held whole, so the over-claim comes out of the budget the
         // whole animations are held in.
         let pool = makePool(frames: 16)
-        let shared = try makeSource(frameCount: 20)
-        let other = try makeSource(frameCount: 12)
+        let shared = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
+        let other = Test.animatedGIFSource(frameCount: 12, size: Self.frameSize)
 
         let copies = (0..<4).map { _ in makePlayer(source: shared, pool: pool) }
         let single = makePlayer(source: other, pool: pool)
@@ -424,11 +420,11 @@ struct AnimatedImageFrameSharingTests {
         // needs to be held whole – so the division is made again rather than
         // waiting for a player to come or go.
         let pool = makePool(frames: 10)
-        let shared = try makeSource(frameCount: 20)
+        let shared = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let first = makePlayer(source: shared, pool: pool)
         let second = makePlayer(source: shared, pool: pool)
         second.seek(toFrame: 10)
-        let single = makePlayer(source: try makeSource(frameCount: 7), pool: pool)
+        let single = makePlayer(source: Test.animatedGIFSource(frameCount: 7, size: Self.frameSize), pool: pool)
         #expect(single.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
 
         second.seek(toFrame: first.currentFrameIndex)
@@ -439,7 +435,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func scatteredPlayheadsCostNothingWhenTheAnimationFits() throws {
         // Where they are only matters while the animation has to be windowed.
         let pool = makePool(frames: 100)
-        let source = try makeSource(frameCount: 20)
+        let source = Test.animatedGIFSource(frameCount: 20, size: Self.frameSize)
         let first = makePlayer(source: source, pool: pool)
         let second = makePlayer(source: source, pool: pool)
 
@@ -455,7 +451,7 @@ struct AnimatedImageFrameSharingTests {
         // asks for more than the whole animation – here, a dozen of them
         // spread over eight frames, some of them on the same one.
         let pool = makePool(frames: 100)
-        let source = try makeSource(frameCount: 8)
+        let source = Test.animatedGIFSource(frameCount: 8, size: Self.frameSize)
         let players = (0..<12).map { _ in makePlayer(source: source, pool: pool) }
 
         for (index, player) in players.enumerated() {
@@ -471,7 +467,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aPlayerStartsWhereTheOthersAlreadyAre() async throws {
-        let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 8, height: 8))
         let (first, clock) = makeIdlePlayer(source: source)
         await first.waitUntilFull()
         first.play()
@@ -485,7 +481,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aPlayerThatJoinsMidAnimationShowsTheFrameItJoinsOn() async throws {
-        let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 8, height: 8))
         let (first, clock) = makeIdlePlayer(source: source)
         first.play()
         await first.waitUntilFull()
@@ -504,7 +500,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func aPlayerCanBeToldToStartAtTheBeginning() async throws {
-        let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 8, height: 8))
         let (first, clock) = makeIdlePlayer(source: source)
         await first.waitUntilFull()
         first.play()
@@ -521,7 +517,7 @@ struct AnimatedImageFrameSharingTests {
     @Test func aPlayerStartsAtTheBeginningWhenNothingElseIsPlaying() async throws {
         // A player that hasn't started is showing its first frame, not a
         // position worth falling in behind.
-        let source = try makeSource(frameCount: 8, size: CGSize(width: 8, height: 8))
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 8, height: 8))
         let (first, _) = makeIdlePlayer(source: source)
         await first.waitUntilFull()
 
@@ -535,13 +531,13 @@ struct AnimatedImageFrameSharingTests {
     @Test func theFramesOutliveThePlayerThatDecodedThem() async throws {
         // A cell that scrolls off and comes back used to re-decode the whole
         // animation. The frames stay until the pool needs the room.
-        let source = try makeSource(frameCount: 6)
+        let source = Test.animatedGIFSource(frameCount: 6, size: Self.frameSize)
         var first: AnimatedImagePlayer? = makePlayer(source: source)
         await first?.waitUntilFull()
         let cost = pool.totalCost
 
         first = nil
-        await settle()
+        await drainPendingWork()
 
         #expect(pool.playerCount == 0)
         #expect(pool.totalCost == cost) // Still there, waiting for a second look
@@ -553,7 +549,7 @@ struct AnimatedImageFrameSharingTests {
     }
 
     @Test func theFramesGoWhenTheAnimationDoes() async throws {
-        var source: AnimatedImageSource? = try makeSource(frameCount: 6)
+        var source: AnimatedImageSource? = Test.animatedGIFSource(frameCount: 6, size: Self.frameSize)
         var player: AnimatedImagePlayer? = makePlayer(source: try #require(source))
         await player?.waitUntilFull()
         #expect(pool.totalCost > 0)
@@ -562,7 +558,7 @@ struct AnimatedImageFrameSharingTests {
         // let it go – so the frames decoded from it are worth nothing.
         player = nil
         source = nil
-        await settle()
+        await drainPendingWork()
         pool.rebalance()
 
         #expect(pool.animationCount == 0)
@@ -571,12 +567,12 @@ struct AnimatedImageFrameSharingTests {
 
     @Test func theFramesNobodyIsPlayingAreTheFirstToGoBack() async throws {
         let pool = makePool(frames: 8)
-        let kept = try makeSource(frameCount: 8)
-        let dropped = try makeSource(frameCount: 8)
+        let kept = Test.animatedGIFSource(frameCount: 8, size: Self.frameSize)
+        let dropped = Test.animatedGIFSource(frameCount: 8, size: Self.frameSize)
         var idle: AnimatedImagePlayer? = makePlayer(source: dropped, pool: pool)
         await idle?.waitUntilFull()
         idle = nil
-        await settle()
+        await drainPendingWork()
 
         // The pool is full of frames nobody is watching when a player arrives
         // that needs them.
@@ -591,49 +587,5 @@ struct AnimatedImageFrameSharingTests {
 
     private func makePool(frames: Int) -> AnimatedImageFramePool {
         AnimatedImageFramePool(costLimit: frames * Self.bytesPerFrame)
-    }
-
-    /// A player that is playing, which is what makes it ask for a full window
-    /// of frames. One that isn't asks for two.
-    private func makePlayer(
-        source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        pool: AnimatedImageFramePool? = nil,
-        decoder: (any AnimatedImageFrameDecoding)? = nil
-    ) -> AnimatedImagePlayer {
-        let player = makeIdlePlayer(source: source, options: options, pool: pool, decoder: decoder).player
-        player.play()
-        return player
-    }
-
-    /// A player nothing has started, on a clock the test drives.
-    private func makeIdlePlayer(
-        source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        pool: AnimatedImageFramePool? = nil,
-        decoder: (any AnimatedImageFrameDecoding)? = nil
-    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let clock = ManualClock()
-        let player = AnimatedImagePlayer(
-            source: source,
-            options: options,
-            clock: clock,
-            pool: pool ?? self.pool,
-            decoder: decoder
-        )
-        return (player, clock)
-    }
-
-    private func makeSource(
-        frameCount: Int,
-        size: CGSize = CGSize(width: 32, height: 32)
-    ) throws -> AnimatedImageSource {
-        try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: frameCount, size: size)))
-    }
-
-    /// Waits for the division a released player asks for on the next turn of
-    /// the main actor.
-    private func settle() async {
-        for _ in 0..<10 { await Task.yield() }
     }
 }

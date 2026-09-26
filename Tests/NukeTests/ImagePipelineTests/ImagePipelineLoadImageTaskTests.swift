@@ -92,11 +92,8 @@ struct ImagePipelineLoadImageTaskTests {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         let imageCache = imageCache
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
+        let pipeline = dataLoader.makePipeline {
             $0.imageCache = imageCache
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
             $0.isStoringPreviewsInMemoryCache = false
         }
 
@@ -119,11 +116,8 @@ struct ImagePipelineLoadImageTaskTests {
     @Test func previewsStoredInMemoryCacheAreRecordedAsProgressive() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
+        let pipeline = dataLoader.makePipeline {
             $0.imageCache = MockImageCache()
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
             $0.isDiagnosticsEnabled = true
         }
 
@@ -325,13 +319,10 @@ struct ImagePipelineLoadImageTaskTests {
 
     @Test func encoderReceivesTheProcessedImageAndTheURLResponse() async throws {
         // GIVEN
-        let contexts = LockedArray<ImageEncodingContext>()
+        let encoder = MockImageEncoder(result: Test.data)
         let pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .automatic
-            $0.makeImageEncoder = { context in
-                contexts.append(context)
-                return ImageEncoders.Default()
-            }
+            $0.makeImageEncoder = { _ in encoder }
         }
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
 
@@ -340,8 +331,8 @@ struct ImagePipelineLoadImageTaskTests {
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // THEN
-        #expect(contexts.count == 1)
-        let context = try #require(contexts.values.first)
+        #expect(encoder.contexts.count == 1)
+        let context = try #require(encoder.contexts.first)
         #expect(context.image === response.image)
         #expect(context.request.processors.count == 1)
         #expect(context.urlResponse?.url == Test.url)

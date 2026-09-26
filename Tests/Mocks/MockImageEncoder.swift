@@ -13,6 +13,10 @@ final class MockImageEncoder: ImageEncoding {
     var encodeCount: Int { _encodeCount.withLock { $0 } }
     private let _encodeCount = OSAllocatedUnfairLock(initialState: 0)
 
+    /// The context of every container it was asked to encode, in order.
+    var contexts: [ImageEncodingContext] { _contexts.withLock { $0 } }
+    private let _contexts = OSAllocatedUnfairLock<[ImageEncodingContext]>(initialState: [])
+
     init(result: Data?) {
         self.result = result
     }
@@ -20,5 +24,14 @@ final class MockImageEncoder: ImageEncoding {
     func encode(_ image: PlatformImage) -> Data? {
         _encodeCount.withLock { $0 += 1 }
         return result
+    }
+
+    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
+        _contexts.withLock { $0.append(context) }
+        // The default implementation passes the data of a GIF through.
+        if container.type == .gif {
+            return container.data
+        }
+        return encode(container.image)
     }
 }

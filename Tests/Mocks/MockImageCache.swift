@@ -7,7 +7,6 @@ import Nuke
 
 class MockImageCache: ImageCaching, @unchecked Sendable {
     private let lock = NSLock()
-    var enabled = true
     var images: [AnyHashable: ImageContainer] { lock.withLock { _images } }
     var readCount: Int { lock.withLock { _readCount } }
     var writeCount: Int { lock.withLock { _writeCount } }
@@ -29,17 +28,13 @@ class MockImageCache: ImageCaching, @unchecked Sendable {
         get {
             lock.withLock {
                 _readCount += 1
-                return enabled ? _images[key] : nil
+                return _images[key]
             }
         }
         set {
             lock.withLock {
                 _writeCount += 1
-                if let image = newValue {
-                    if enabled { _images[key] = image }
-                } else {
-                    _images[key] = nil
-                }
+                _images[key] = newValue
             }
         }
     }

@@ -290,9 +290,7 @@ struct ImageTaskTests {
             $0.imageCache = nil
         }
         let task = pipeline.imageTask(with: Test.request)
-        while task.status.progress.completed == 0 {
-            await Task.yield()
-        }
+        await waitUntil { task.status.progress.completed != 0 }
         let progress = task.status.progress
 
         // When the stream is created after the first chunk is delivered
@@ -522,6 +520,38 @@ struct ImageTaskTests {
         #expect(task.isCancelled)
     }
 
+    /// "The result is recorded immediately before the finished event is sent,
+    /// so it is guaranteed to be available to the observers of that event."
+    /// The delegate observes the events synchronously, as they are sent.
+    @Test func statusIsUpToDateWhenEachEventIsSent() async throws {
+        // Given
+        let delegate = StatusRecordingDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+
+        // When
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // Then every event agrees with the status captured when it was sent
+        let recorded = delegate.recorded.withLock { $0 }
+        #expect(recorded.count == 3)
+        for (event, status) in recorded {
+            switch event {
+            case .progress(let progress):
+                #expect(status.progress == progress)
+                #expect(status.result == nil)
+            case .finished(let result):
+                #expect(result.value?.image === response.image)
+                #expect(status.result?.value?.image === response.image)
+            case .preview:
+                Issue.record("Unexpected preview")
+            }
+        }
+    }
+
     // MARK: - Priority
 
     @Test func priorityIsTakenFromTheRequest() {
@@ -588,7 +618,7 @@ struct ImageTaskTests {
         let task = pipeline.imageTask(with: ImageRequest(url: Test.url, priority: .low))
         task.priority = .veryHigh
         await didEnqueue.wait()
-        await Task { @ImagePipelineActor in }.value // Let the update land, too
+        await drainPipeline() // Let the update land, too
 
         // Then the download is enqueued with the new priority right away
         #expect(enqueuedPriorities == [.veryHigh])
@@ -631,11 +661,11 @@ struct ImageTaskTests {
     @Test(arguments: QueuedStage.allCases)
     @ImagePipelineActor func priorityChangeReachesTheQueuedOperation(_ stage: QueuedStage) async throws {
         // Given
-        let (task, operation, queue) = try await startTask(queuedIn: stage)
+        let (task, operation) = try await startTask(queuedIn: stage)
         #expect(operation.priority == .normal)
 
         // When/Then
-        await queue.waitForPriorityChange(of: operation, to: .high) {
+        await waitForPriorityChange(of: operation, to: .high) {
             task.priority = .high
         }
     }
@@ -645,10 +675,10 @@ struct ImageTaskTests {
     @Test(arguments: QueuedStage.allCases)
     @ImagePipelineActor func cancellationReachesTheQueuedOperation(_ stage: QueuedStage) async throws {
         // Given
-        let (task, operation, queue) = try await startTask(queuedIn: stage)
+        let (task, operation) = try await startTask(queuedIn: stage)
 
         // When/Then
-        await queue.waitForCancellation(of: operation) {
+        await waitForCancellation(of: operation) {
             task.cancel()
         }
     }
@@ -805,40 +835,6 @@ struct ImageTaskTests {
         #expect(recorded == [.finished(.failure(.cancelled))])
     }
 
-    // MARK: - Status
-
-    /// "The result is recorded immediately before the finished event is sent,
-    /// so it is guaranteed to be available to the observers of that event."
-    /// The delegate observes the events synchronously, as they are sent.
-    @Test func statusIsUpToDateWhenEachEventIsSent() async throws {
-        // Given
-        let delegate = StatusRecordingDelegate()
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
-
-        // When
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // Then every event agrees with the status captured when it was sent
-        let recorded = delegate.recorded.withLock { $0 }
-        #expect(recorded.count == 3)
-        for (event, status) in recorded {
-            switch event {
-            case .progress(let progress):
-                #expect(status.progress == progress)
-                #expect(status.result == nil)
-            case .finished(let result):
-                #expect(result.value?.image === response.image)
-                #expect(status.result?.value?.image === response.image)
-            case .preview:
-                Issue.record("Unexpected preview")
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     /// A stage of the work of a task that waits for a slot in a queue of its own.
@@ -873,7 +869,7 @@ struct ImageTaskTests {
     /// Starts a task and waits until the work of the stage is in its queue,
     /// which stays suspended.
     @ImagePipelineActor
-    private func startTask(queuedIn stage: QueuedStage) async throws -> (ImageTask, TaskQueue.Operation, TaskQueue) {
+    private func startTask(queuedIn stage: QueuedStage) async throws -> (ImageTask, TaskQueue.Operation) {
         let pipeline = stage.pipeline(from: pipeline)
         let queue = stage.queue(of: pipeline)
         queue.isSuspended = true
@@ -881,7 +877,7 @@ struct ImageTaskTests {
         let operations = await queue.waitForOperations(count: 1) {
             task = pipeline.imageTask(with: stage.request)
         }
-        return (try #require(task), try #require(operations.first), queue)
+        return (try #require(task), try #require(operations.first))
     }
 }
 

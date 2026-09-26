@@ -11,29 +11,6 @@ private let blob = "123".data(using: .utf8)
 private let otherBlob = "456".data(using: .utf8)
 private let trafficKeyCount = 10
 
-/// Counts the sweeps that a cache performs and lets a test wait for them.
-private final class SweepCounter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var count = 0
-
-    var value: Int { lock.withLock { count } }
-
-    func record() {
-        lock.withLock { count += 1 }
-    }
-
-    func wait(for target: Int, timeout: Duration = .seconds(10)) async {
-        let deadline = ContinuousClock.now + timeout
-        while value < target {
-            guard ContinuousClock.now < deadline else {
-                Issue.record("Timed out waiting for \(target) sweeps, performed \(value)")
-                return
-            }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-    }
-}
-
 @Suite(.timeLimit(.minutes(5)))
 final class DataCacheTests {
     private let cache: DataCache
@@ -370,7 +347,7 @@ final class DataCacheTests {
         cache["key"] = blob
         await cache.flush()
         let past = Date().addingTimeInterval(-1000)
-        try setAccessDate(past, for: "key")
+        try cache.setAccessDate(past, for: "key")
 
         // WHEN
         #expect(cache.cachedData(for: "key") == blob)
@@ -378,7 +355,7 @@ final class DataCacheTests {
 
         // THEN
         #expect(cache.accessDateUpdateCount == 1)
-        #expect(try accessDate(for: "key") > past)
+        #expect(try cache.accessDate(for: "key") > past)
     }
 
     @Test func theAccessDateUpdatesWithinTheFlushIntervalAreCoalesced() async {
@@ -423,9 +400,7 @@ final class DataCacheTests {
         _ = cache.cachedData(for: "key")
 
         // THEN the drain gets to it on its own
-        while cache.accessDateUpdateCount == 0 {
-            try await Task.sleep(for: .milliseconds(10))
-        }
+        await waitUntil { cache.accessDateUpdateCount > 0 }
     }
 
     @Test func readingDataFromStagingDoesNotUpdateTheAccessDate() async {
@@ -438,18 +413,6 @@ final class DataCacheTests {
         }
         await cache.flush()
         #expect(cache.accessDateUpdateCount == 0)
-    }
-
-    private func setAccessDate(_ date: Date, for key: String) throws {
-        var url = try #require(cache.url(for: key))
-        var values = URLResourceValues()
-        values.contentAccessDate = date
-        try url.setResourceValues(values)
-    }
-
-    private func accessDate(for key: String) throws -> Date {
-        let url = try #require(cache.url(for: key))
-        return try #require(url.resourceValues(forKeys: [.contentAccessDateKey]).contentAccessDate)
     }
 
     // MARK: Flush
@@ -539,9 +502,7 @@ final class DataCacheTests {
         cache["key"] = blob
 
         // THEN the drain gets to it on its own once the interval is over
-        while cache.contents.isEmpty {
-            try await Task.sleep(for: .milliseconds(10))
-        }
+        await waitUntil { !cache.contents.isEmpty }
         #expect(cache.contents == [cache.url(for: "key")].compactMap { $0 })
     }
 
@@ -673,13 +634,7 @@ final class DataCacheTests {
         // The order the changes are written in isn't specified, so stamp the
         // access dates instead of relying on it: `key1` is the least recently
         // used, `key4` the most.
-        let now = Date()
-        for index in 1...4 {
-            var url = try #require(cache.url(for: "key\(index)"))
-            var values = URLResourceValues()
-            values.contentAccessDate = now.addingTimeInterval(TimeInterval(index - 5) * 100)
-            try url.setResourceValues(values)
-        }
+        try cache.stampAccessDates(inOrder: (1...4).map { "key\($0)" })
 
         // WHEN
         await cache.sweep()
@@ -881,7 +836,7 @@ final class DataCacheTests {
     }
 
     @Test func removeDataForKeyWithEmptyFilenameKeepsTheOtherEntries() async throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let root = makeUniqueDirectoryURL()
         defer { try? FileManager.default.removeItem(at: root) }
         let cache = try DataCache(path: root.appendingPathComponent("cache", isDirectory: true), filenameGenerator: { $0 })
         cache.isSweepEnabled = false
@@ -898,7 +853,7 @@ final class DataCacheTests {
     }
 
     @Test func removeDataForKeyWithDotDotFilenameKeepsTheParentDirectory() async throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let root = makeUniqueDirectoryURL()
         defer { try? FileManager.default.removeItem(at: root) }
         let cache = try DataCache(path: root.appendingPathComponent("cache", isDirectory: true), filenameGenerator: { $0 })
         cache.isSweepEnabled = false
@@ -947,11 +902,7 @@ final class DataCacheTests {
         defer { try? FileManager.default.removeItem(at: cache.path) }
         await expectation.wait()
 
-        let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
-        struct CacheMetadata: Codable { var lastSweepDate: Date? }
-        let data = try Data(contentsOf: metadataURL)
-        let metadata = try JSONDecoder().decode(CacheMetadata.self, from: data)
-        #expect(metadata.lastSweepDate != nil)
+        #expect(lastSweepDate(at: cache.path) != nil)
         _ = cache
     }
 
@@ -1006,19 +957,18 @@ final class DataCacheTests {
         await cache.performScheduledSweepForTesting()
 
         // THEN the sweep never ran, so it never stamped its metadata either
-        let metadataURL = cache.path.appendingPathComponent(".data-cache-info")
-        #expect(!FileManager.default.fileExists(atPath: metadataURL.path))
+        #expect(!FileManager.default.fileExists(atPath: metadataURL(at: cache.path).path))
     }
 
     @Test func scheduledSweepRepeatsOnTheSweepInterval() async throws {
         // GIVEN a cache that sweeps every 50 ms
-        let counter = SweepCounter()
+        let counter = EventCounter()
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) },
             sweepDelay: .milliseconds(0),
             sweepInterval: 0.05,
-            onSweepCompleted: { counter.record() }
+            onSweepCompleted: { counter.increment() }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
 
@@ -1030,13 +980,13 @@ final class DataCacheTests {
     @Test func periodicSweepTrimsTheDataWrittenAfterTheFirstSweep() async throws {
         // GIVEN a long-lived cache that has already performed its first sweep
         let mb = 1024 * 1024
-        let counter = SweepCounter()
+        let counter = EventCounter()
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) },
             sweepDelay: .milliseconds(0),
             sweepInterval: 0.05,
-            onSweepCompleted: { counter.record() }
+            onSweepCompleted: { counter.increment() }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
         cache.sizeLimit = mb * 3
@@ -1049,7 +999,7 @@ final class DataCacheTests {
         await cache.flush()
 
         // THEN one of the sweeps that follow brings the cache back under it
-        await counter.wait(for: counter.value + 2)
+        await counter.wait(for: counter.count + 2)
         #expect(cache.totalSize <= mb * 3)
         cache.isSweepEnabled = false
     }
@@ -1058,18 +1008,18 @@ final class DataCacheTests {
     @Test func scheduledSweepResumesWhenItIsReEnabled() async throws {
         // GIVEN a cache with the sweep turned off before the first one is
         // scheduled, and a few of the scheduled ones skipped
-        let counter = SweepCounter()
+        let counter = EventCounter()
         let cache = try DataCache(
             name: UUID().uuidString,
             filenameGenerator: { String($0.reversed()) },
             sweepDelay: .milliseconds(50),
             sweepInterval: 0.05,
             isSweepEnabled: false,
-            onSweepCompleted: { counter.record() }
+            onSweepCompleted: { counter.increment() }
         )
         defer { try? FileManager.default.removeItem(at: cache.path) }
         try await Task.sleep(for: .milliseconds(300))
-        #expect(counter.value == 0)
+        #expect(counter.count == 0)
 
         // WHEN it's turned back on
         cache.isSweepEnabled = true
@@ -1081,21 +1031,15 @@ final class DataCacheTests {
 
     @Test func scheduledSweepRunsWhenTheLastOneIsOlderThanTheInterval() async throws {
         // GIVEN metadata from a sweep that predates `sweepInterval` (1800s)
-        let name = UUID().uuidString
-        let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent(name, isDirectory: true)
+        let path = makeUniqueCachesDirectoryURL()
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: path) }
-        struct CacheMetadata: Codable { var lastSweepDate: Date? }
-        let metadata = CacheMetadata(lastSweepDate: Date(timeIntervalSinceNow: -3600))
-        try JSONEncoder().encode(metadata).write(
-            to: path.appendingPathComponent(".data-cache-info")
-        )
+        try JSONEncoder().encode(SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: -3600))).write(to: metadataURL(at: path))
 
         // WHEN
         let expectation = TestExpectation()
         let cache = try DataCache(
-            name: name,
+            name: path.lastPathComponent,
             filenameGenerator: { String($0.reversed()) },
             sweepDelay: .milliseconds(0),
             onSweepCompleted: { expectation.fulfill() }
@@ -1174,14 +1118,4 @@ final class DataCacheTests {
         #expect(cache.totalCount == 0)
     }
 
-}
-
-extension DataCache {
-    /// The entries on disk. The URLs are standardized to match the ones
-    /// ``DataCache/url(for:)`` returns in the temporary directory, which the
-    /// file system reports under "/private".
-    var contents: [URL] {
-        try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
-            .map(\.standardizedFileURL)
-    }
 }

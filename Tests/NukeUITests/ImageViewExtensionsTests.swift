@@ -14,29 +14,13 @@ import TVUIKit
 
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct ImageViewExtensionsTests {
-    let imageView: _ImageView
-    let observer: ImagePipelineObserver
-    let imageCache: MockImageCache
-    let dataLoader: MockDataLoader
-    let pipeline: ImagePipeline
-    let options: ImageLoadingOptions
-
-    init() {
-        let imageCache = MockImageCache()
-        let dataLoader = MockDataLoader()
-        let observer = ImagePipelineObserver()
-        self.imageCache = imageCache
-        self.dataLoader = dataLoader
-        self.observer = observer
-        self.pipeline = ImagePipeline(delegate: observer) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = imageCache
-        }
-        self.imageView = _ImageView()
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        self.options = options
-    }
+    private let fixture = ImageViewFixture()
+    var imageView: _ImageView { fixture.imageView }
+    var observer: ImagePipelineObserver { fixture.observer }
+    var imageCache: MockImageCache { fixture.imageCache }
+    var dataLoader: MockDataLoader { fixture.dataLoader }
+    var pipeline: ImagePipeline { fixture.pipeline }
+    var options: ImageLoadingOptions { fixture.options }
 
     // MARK: - Loading
 

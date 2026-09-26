@@ -188,7 +188,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func delegateKeyIsUsedVerbatimForBothLayers() {
         // GIVEN a delegate that keys the images by a custom ID
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let request = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -202,7 +202,7 @@ struct ImagePipelineCacheKeyTests {
     /// for the processors, the thumbnail, and the scale itself.
     @Test func delegateKeyReplacesEveryComponentOfTheDefaultKey() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let lhs = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -219,7 +219,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func delegateReturningNilFallsBackToTheDefaultKeyForThatRequest() {
         // GIVEN a delegate that customizes only some of the requests
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let custom = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -234,7 +234,7 @@ struct ImagePipelineCacheKeyTests {
     /// be the same string.
     @Test func delegateKeyDoesNotCollideWithTheSameImageID() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let custom = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -265,7 +265,7 @@ struct ImagePipelineCacheKeyTests {
 
     @Test func memoryKeyDigestUsesTheDelegateKey() {
         // GIVEN
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.imageCache = MockImageCache()
         }
         let lhs = ImageRequest(url: Test.url).with { $0.userInfo[.customKey] = "avatar-1" }
@@ -309,7 +309,7 @@ struct ImagePipelineCacheKeyTests {
     @Test func metricsRecordTheDelegateKeyForEveryCacheStage() async throws {
         // GIVEN
         let dataCache = MockDataCache()
-        let pipeline = ImagePipeline(delegate: CustomKeyDelegate()) {
+        let pipeline = ImagePipeline(delegate: makeCustomKeyDelegate()) {
             $0.dataLoader = MockDataLoader()
             $0.imageCache = MockImageCache()
             $0.dataCache = dataCache
@@ -338,8 +338,8 @@ private extension ImageRequest.UserInfoKey {
 }
 
 /// Keys the images by the custom key in `userInfo`, if there is one.
-private final class CustomKeyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        request.userInfo[.customKey] as? String
-    }
+private func makeCustomKeyDelegate() -> MockCachingDelegate {
+    let delegate = MockCachingDelegate()
+    delegate.cacheKey = { $0.userInfo[.customKey] as? String }
+    return delegate
 }

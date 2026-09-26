@@ -12,7 +12,7 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     /// The chunks it hasn't served yet. It serves them on the main queue, and
     /// only there.
     private(set) var chunks: [Data]
-    let data = Test.data(name: "progressive", extension: "jpeg")
+    let data: Data
 
     private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
     private var _completion: (@Sendable (Error?) -> Void)?
@@ -28,9 +28,13 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     private var isLoading = false
     private var pendingResumeCount = 0
 
-    init() {
+    /// - parameters:
+    ///   - data: The data to serve, a progressive JPEG by default.
+    ///   - chunkCount: The number of equal chunks to serve the data in.
+    init(data: Data = Test.data(name: "progressive", extension: "jpeg"), chunkCount: Int = 3) {
+        self.data = data
         self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
-        self.chunks = Array(_createChunks(for: data, size: data.count / 3))
+        self.chunks = Array(_createChunks(for: data, size: data.count / chunkCount))
     }
 
     func loadData(
@@ -38,7 +42,7 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Error?) -> Void
     ) -> any Cancellable {
-            self._didReceiveData = didReceiveData
+        self._didReceiveData = didReceiveData
         self._completion = completion
         DispatchQueue.main.async {
             self.isLoading = true
@@ -89,6 +93,23 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
                     completed()
                 }
             }
+        }
+    }
+}
+
+extension MockProgressiveDataLoader {
+    /// Makes a pipeline that loads the data with this loader and decodes a
+    /// preview of every chunk it serves: no throttling, no memory cache, and
+    /// serial processing, so the previews are processed in the order they
+    /// arrive, before the final image.
+    func makePipeline(delegate: (any ImagePipeline.Delegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
+        ImagePipeline(delegate: delegate) {
+            $0.dataLoader = self
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
+            configure(&$0)
         }
     }
 }

@@ -79,17 +79,17 @@ struct AssetTypeSniffingBoundaryTests {
         // The bytes that follow the `ftyp` box belong to the next box. Read as
         // brands, the size of a box that happens to spell `heic` would turn a
         // file with no known brand into a HEIC.
-        var data = makeFileTypeBox(declaredSize: 16, brands: ["msf1"])
+        var data = Test.fileTypeBox(brands: ["msf1"], declaredSize: 16)
         data += Data("heic".utf8) + Data("meta".utf8)
 
         #expect(AssetType(data) == nil)
-        #expect(AssetType(makeFileTypeBox(brands: ["msf1", "heic"])) == .heic)
+        #expect(AssetType(Test.fileTypeBox(brands: ["msf1", "heic"])) == .heic)
     }
 
     @Test func fileTypeBoxLargerThanTheDataReadsTheBrandsThatArePresent() {
         // A box size that says more than was downloaded – or a damaged one –
         // must neither trap nor read past the end.
-        let data = makeFileTypeBox(declaredSize: 0xFFFF_FFFF, brands: ["msf1", "mif1", "heic"])
+        let data = Test.fileTypeBox(brands: ["msf1", "mif1", "heic"], declaredSize: 0xFFFF_FFFF)
 
         #expect(AssetType(data) == .heic)
         #expect(AssetType.isAnimated(data, type: .heic))
@@ -97,7 +97,7 @@ struct AssetTypeSniffingBoundaryTests {
 
     @Test func truncatedCompatibleBrandIsNotRead() {
         // Two of the four bytes of `heic`: not enough to name the codec yet.
-        let data = makeFileTypeBox(brands: ["msf1", "mif1", "heic"]).prefix(22)
+        let data = Test.fileTypeBox(brands: ["msf1", "mif1", "heic"]).prefix(22)
 
         #expect(AssetType(data) == nil)
     }
@@ -106,7 +106,7 @@ struct AssetTypeSniffingBoundaryTests {
         // Documented in `_brands(in:)`: the major brand is read whatever the
         // declared size says – here, sizes too small to even hold it.
         for size: UInt32 in [0, 8, 11] {
-            #expect(AssetType(makeFileTypeBox(declaredSize: size, brands: ["avif", "msf1"])) == .avif)
+            #expect(AssetType(Test.fileTypeBox(brands: ["avif", "msf1"], declaredSize: size)) == .avif)
         }
     }
 
@@ -132,7 +132,8 @@ struct AssetTypeSniffingBoundaryTests {
     /// the pipeline gates on the type.
     @Test(arguments: ["com.apple.icns", "com.adobe.photoshop-image", "com.truevision.tga-image", "com.ilm.openexr-image", "public.pbm"])
     func formatTheSnifferDoesNotNameStillDecodes(identifier: String) throws {
-        guard let data = encode(as: identifier) else {
+        let image = try #require(Test.makeImage(width: 16, height: 16, color: CGColor(red: 1, green: 0.5, blue: 0, alpha: 1)))
+        guard let data = Test.encode([image], as: identifier) else {
             return // No encoder for this format on this platform
         }
         #expect(AssetType(data) == nil)
@@ -149,26 +150,26 @@ struct AssetTypeSniffingBoundaryTests {
     // MARK: Animation Detection
 
     @Test func animatedWebPIsDetectedFromTheFlagsByte() {
-        let data = makeWebP(chunk: "VP8X", flags: 0x02)
+        let data = Test.webPHeader(flags: 0x02)
         // The flags are byte 20: 21 bytes are enough, 20 are not.
         #expect(AssetType.isAnimated(data.prefix(21), type: .webp))
         #expect(AssetType.isAnimated(data.prefix(20), type: .webp) == false)
     }
 
     @Test func onlyTheAnimationBitMarksAWebPAsAnimated() {
-        #expect(AssetType.isAnimated(makeWebP(chunk: "VP8X", flags: 0xFF), type: .webp))
-        #expect(AssetType.isAnimated(makeWebP(chunk: "VP8X", flags: 0xFD), type: .webp) == false)
+        #expect(AssetType.isAnimated(Test.webPHeader(flags: 0xFF), type: .webp))
+        #expect(AssetType.isAnimated(Test.webPHeader(flags: 0xFD), type: .webp) == false)
     }
 
     @Test(arguments: ["VP8 ", "VP8L"])
     func simpleWebPIsNeverAnimated(chunk: String) {
         // The lossy and lossless formats have no feature flags: whatever sits
         // at byte 20 is image data, animation bit or not.
-        #expect(AssetType.isAnimated(makeWebP(chunk: chunk, flags: 0xFF), type: .webp) == false)
+        #expect(AssetType.isAnimated(Test.webPHeader(chunk: chunk, flags: 0xFF), type: .webp) == false)
     }
 
     @Test func apngControlChunkIsFoundPastALargeAncillaryChunk() {
-        let data = makePNG(chunks: [
+        let data = Test.png(chunks: [
             ("IHDR", Data(count: 13)),
             ("iTXt", Data(repeating: 0x41, count: 5000)),
             ("acTL", Data(count: 8)),
@@ -180,7 +181,7 @@ struct AssetTypeSniffingBoundaryTests {
 
     @Test func apngControlChunkNameInsideAPayloadIsNotAChunk() {
         // The chunks are walked by their lengths, not searched for by name.
-        let data = makePNG(chunks: [
+        let data = Test.png(chunks: [
             ("IHDR", Data(count: 13)),
             ("tEXt", Data("Comment\u{0}acTL".utf8)),
             ("IDAT", Data(count: 4))
@@ -191,7 +192,7 @@ struct AssetTypeSniffingBoundaryTests {
     @Test func apngControlChunkAfterTheImageDataIsIgnored() {
         // The format requires `acTL` before the first `IDAT`: one after it
         // doesn't make the file an animation, so the walk stops at the pixels.
-        let data = makePNG(chunks: [
+        let data = Test.png(chunks: [
             ("IHDR", Data(count: 13)),
             ("IDAT", Data(count: 4)),
             ("acTL", Data(count: 8))
@@ -201,9 +202,9 @@ struct AssetTypeSniffingBoundaryTests {
 
     @Test(arguments: [UInt32(Int32.max), UInt32(Int32.max) + 1])
     func pngChunkLengthAtTheLimitEndsTheWalk(length: UInt32) {
-        var data = makePNG(chunks: [("IHDR", Data(count: 13))])
-        data += bigEndian(length) + Data("tEXt".utf8) + Data(count: 16)
-        data += makeChunk("acTL", Data(count: 8))
+        var data = Test.png(chunks: [("IHDR", Data(count: 13))])
+        data += Test.pngChunk("tEXt", Data(count: 12), declaredLength: length)
+        data += Test.pngChunk("acTL", Data(count: 8))
 
         #expect(AssetType.isAnimated(data, type: .png) == false)
     }
@@ -219,60 +220,5 @@ struct AssetTypeSniffingBoundaryTests {
         #expect(AssetType.isAnimated(Test.data, type: .png) == false)
         #expect(AssetType.isAnimated(Test.data(name: "animated", extension: "webp"), type: .png) == false)
         #expect(AssetType.isAnimated(Test.data(name: "animated", extension: "avif"), type: .mp4) == false)
-    }
-
-    // MARK: Helpers
-
-    private func makeFileTypeBox(declaredSize: UInt32? = nil, brands: [String]) -> Data {
-        // The major brand, a minor version, then the compatible brands.
-        var payload = Data(brands[0].utf8) + Data(count: 4)
-        for brand in brands.dropFirst() {
-            payload += Data(brand.utf8)
-        }
-        return bigEndian(declaredSize ?? UInt32(8 + payload.count)) + Data("ftyp".utf8) + payload
-    }
-
-    private func makeWebP(chunk: String, flags: UInt8) -> Data {
-        var data = Data("RIFF".utf8) + Data([0x20, 0x00, 0x00, 0x00]) + Data("WEBP".utf8)
-        data += Data(chunk.utf8) + Data([0x0A, 0x00, 0x00, 0x00])
-        data += Data([flags]) + Data(count: 9)
-        return data
-    }
-
-    private func makePNG(chunks: [(String, Data)]) -> Data {
-        chunks.reduce(Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) { $0 + makeChunk($1.0, $1.1) }
-    }
-
-    /// A length, a name, the payload, and a CRC the sniffer never checks.
-    private func makeChunk(_ name: String, _ payload: Data) -> Data {
-        bigEndian(UInt32(payload.count)) + Data(name.utf8) + payload + Data(count: 4)
-    }
-
-    private func bigEndian(_ value: UInt32) -> Data {
-        withUnsafeBytes(of: value.bigEndian) { Data($0) }
-    }
-
-    private func encode(as identifier: String) -> Data? {
-        let context = CGContext(
-            data: nil,
-            width: 16,
-            height: 16,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        context.setFillColor(CGColor(red: 1, green: 0.5, blue: 0, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: 16, height: 16))
-        let output = NSMutableData()
-        guard let image = context.makeImage(),
-              let destination = CGImageDestinationCreateWithData(output, identifier as CFString, 1, nil) else {
-            return nil
-        }
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination), output.length > 0 else {
-            return nil
-        }
-        return output as Data
     }
 }

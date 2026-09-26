@@ -530,7 +530,7 @@ struct ImagePipelineDataTaskTests {
 
         // WHEN a data task is started while the only slot is taken
         let next = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // THEN it waits for the slot
         #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 2)
@@ -615,7 +615,7 @@ struct ImagePipelineDataTaskTests {
         #expect(operation.priority == .high)
 
         // WHEN/THEN the priority of the task changes
-        await queue.waitForPriorityChange(of: operation, to: .veryLow) {
+        await waitForPriorityChange(of: operation, to: .veryLow) {
             task.priority = .veryLow
         }
         task.cancel()

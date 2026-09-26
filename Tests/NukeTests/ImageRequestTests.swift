@@ -379,11 +379,6 @@ struct ThumbnailOptionsTests {
     }
 }
 
-private func assertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, sourceLocation: SourceLocation = #_sourceLocation) {
-    #expect(lhs.hashValue == rhs.hashValue, sourceLocation: sourceLocation)
-    #expect(lhs == rhs, sourceLocation: sourceLocation)
-}
-
 @Suite(.timeLimit(.minutes(5)))
 struct ImageRequestDescriptionTests {
     @Test func descriptionForURL() {

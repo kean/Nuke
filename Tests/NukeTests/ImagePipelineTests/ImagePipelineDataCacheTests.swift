@@ -136,7 +136,7 @@ struct ImagePipelineDataCachingTests {
 
         // When/Then
         let operation = try #require(operations.first)
-        await queue.waitForPriorityChange(of: operation, to: .high) {
+        await waitForPriorityChange(of: operation, to: .high) {
             task.priority = .high
         }
     }
@@ -154,7 +154,7 @@ struct ImagePipelineDataCachingTests {
 
         // When/Then
         let operation = try #require(operations.first)
-        await queue.waitForCancellation(of: operation) {
+        await waitForCancellation(of: operation) {
             task.cancel()
         }
     }
@@ -591,20 +591,8 @@ struct ImagePipelineDataCachePolicyTests {
     // MARK: Misc
 
     @Test func setCustomImageEncoder() async throws {
-        struct MockImageEncoder: ImageEncoding, @unchecked Sendable {
-            let closure: (PlatformImage) -> Data?
-
-            func encode(_ image: PlatformImage) -> Data? {
-                return closure(image)
-            }
-        }
-
         // Given
-        nonisolated(unsafe) var isCustomEncoderCalled = false
-        let encoder = MockImageEncoder { _ in
-            isCustomEncoderCalled = true
-            return nil
-        }
+        let encoder = MockImageEncoder(result: nil)
 
         let pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .automatic
@@ -619,7 +607,7 @@ struct ImagePipelineDataCachePolicyTests {
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
         // Then
-        #expect(isCustomEncoderCalled)
+        #expect(encoder.encodeCount == 1)
         #expect(dataCache.cachedData(for: Test.url.absoluteString + "1") == nil)
     }
 

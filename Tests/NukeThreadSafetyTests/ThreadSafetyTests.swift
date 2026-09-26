@@ -88,7 +88,7 @@ struct ThreadSafetyTests {
             let streams = await makeStreamsOnManyThreads(for: task)
 
             // Then
-            await Task { @ImagePipelineActor in }.value // `onEvent` is called after the streams get the event
+            await drainPipeline() // `onEvent` is called after the streams get the event
             let events = sent.withLock { $0 }.map(EventKey.init)
             #expect(events.contains { if case .preview = $0 { true } else { false } })
             for stream in streams {

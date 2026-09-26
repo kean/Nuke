@@ -43,22 +43,7 @@ struct ImageProcessorsAnimatedImageDataTests {
     @Test func processorCanKeepTheDataByImplementingTheContainerMethod() async throws {
         // GIVEN a processor that knows the data still matches the image it
         // returns, the way one that processes every frame does
-        struct KeepsData: ImageProcessing {
-            var identifier: String { "test.keeps-data" }
-
-            func process(_ image: PlatformImage) -> PlatformImage? {
-                MockImageProcessor(id: identifier).process(image)
-            }
-
-            func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-                guard let image = process(container.image) else {
-                    throw ImageProcessingError.unknown
-                }
-                var container = container
-                container.image = image
-                return container
-            }
-        }
+        let processor = MockDataPreservingProcessor(id: "test.keeps-data")
         let data = Test.animatedGIF(frameCount: 3)
         let dataLoader = MockDataLoader()
         dataLoader.results[Test.url] = .success(
@@ -70,7 +55,7 @@ struct ImageProcessorsAnimatedImageDataTests {
         }
 
         // WHEN
-        let request = ImageRequest(url: Test.url, processors: [KeepsData()])
+        let request = ImageRequest(url: Test.url, processors: [processor])
         let response = try await pipeline.imageTask(with: request).response
 
         // THEN the pipeline calls the container method and delivers what it

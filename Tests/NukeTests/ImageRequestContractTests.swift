@@ -457,8 +457,7 @@ struct ImageRequestScaleKeyTests {
         let rhs = ImageRequest(url: Test.url).with { $0.scale = 2 }
 
         // Then
-        #expect(MemoryCacheKey(lhs) == MemoryCacheKey(rhs))
-        #expect(MemoryCacheKey(lhs).hashValue == MemoryCacheKey(rhs).hashValue)
+        assertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
         #expect(TaskFetchOriginalImageKey(lhs) == TaskFetchOriginalImageKey(rhs))
     }
 }
@@ -511,8 +510,7 @@ struct ImageRequestThumbnailKeyTests {
         options.createThumbnailWithTransform = true
 
         // Then
-        #expect(options == original)
-        #expect(options.hashValue == original.hashValue)
+        assertHashableEqual(options, original)
         #expect(options.identifier == original.identifier)
     }
 
@@ -540,8 +538,7 @@ struct ImageRequestUserInfoTests {
         let rawValue = "com.example/key"
         let lhs = ImageRequest.UserInfoKey(rawValue)
         let rhs: ImageRequest.UserInfoKey = "com.example/key"
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
+        assertHashableEqual(lhs, rhs)
         #expect(lhs.rawValue == rawValue)
     }
 

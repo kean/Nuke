@@ -571,13 +571,7 @@ struct LazyImageViewLifecycleTests {
     @Test func previewIsDisplayedBeforeOnPreviewIsCalled() async {
         // Given
         let progressiveLoader = MockProgressiveDataLoader()
-        view.pipeline = ImagePipeline {
-            $0.dataLoader = progressiveLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
-        }
+        view.pipeline = progressiveLoader.makePipeline()
         let placeholder = _PlatformBaseView()
         view.placeholderView = placeholder
 

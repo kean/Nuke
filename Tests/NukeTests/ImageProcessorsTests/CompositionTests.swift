@@ -72,8 +72,7 @@ struct ImageProcessorsCompositionTests {
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // THEN
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
+        assertHashableEqual(lhs, rhs)
         #expect(lhs.identifier == rhs.identifier)
         #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
     }
@@ -171,7 +170,7 @@ struct ImageProcessorsCompositionTests {
         // GIVEN
         let data = Test.animatedGIF()
         let container = ImageContainer(image: Test.image, type: .gif, data: data)
-        let processor = ImageProcessors.Composition([DataPreservingProcessor(), DataPreservingProcessor()])
+        let processor = ImageProcessors.Composition([MockDataPreservingProcessor(id: "1"), MockDataPreservingProcessor(id: "2")])
 
         // WHEN
         let output = try processor.process(container, context: .mock)
@@ -183,14 +182,14 @@ struct ImageProcessorsCompositionTests {
     @Test func dataIsDroppedWhenAnyProcessorProducesANewImage() throws {
         // GIVEN
         let container = ImageContainer(image: Test.image, type: .gif, data: Test.animatedGIF())
-        let processor = ImageProcessors.Composition([DataPreservingProcessor(), MockImageProcessor(id: "1")])
+        let processor = ImageProcessors.Composition([MockDataPreservingProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // WHEN
         let output = try processor.process(container, context: .mock)
 
         // THEN
         #expect(output.data == nil)
-        #expect(output.image.nk_test_processorIDs == ["1"])
+        #expect(output.image.nk_test_processorIDs == ["1", "2"])
     }
 
     @Test func compositionOfBuiltInProcessors() throws {
@@ -227,16 +226,5 @@ struct ImageProcessorsCompositionTests {
 
         // THEN
         #expect(processor.description == "Composition(processors: [Circle(border: nil), RoundedCorners(radius: 4.0 pixels, border: nil)])")
-    }
-}
-
-/// A processor that returns its input as is, the data included.
-private struct DataPreservingProcessor: ImageProcessing {
-    var identifier: String { "data-preserving" }
-
-    func process(_ image: PlatformImage) -> PlatformImage? { image }
-
-    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        container
     }
 }

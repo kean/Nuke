@@ -14,9 +14,6 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
     static let didCancelTask = Notification.Name("com.github.kean.Nuke.Tests.ImagePipelineObserver.DidCancelTask")
     static let didCompleteTask = Notification.Name("com.github.kean.Nuke.Tests.ImagePipelineObserver.DidFinishTask")
 
-    static let taskKey = "taskKey"
-    static let resultKey = "resultKey"
-
     var events: [ImageTaskEvent] { lock.withLock { _events } }
 
     var onTaskCreated: ((ImageTask) -> Void)? {
@@ -47,7 +44,7 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
             _startedTaskCount += 1
             _events.append(.started)
         }
-        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self)
     }
 
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
@@ -62,13 +59,13 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
                     _cancelledTaskCount += 1
                     _events.append(.cancelled)
                 }
-                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self)
             } else {
                 lock.withLock {
                     _completedTaskCount += 1
                     _events.append(.completed(result: result))
                 }
-                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self)
             }
         }
     }

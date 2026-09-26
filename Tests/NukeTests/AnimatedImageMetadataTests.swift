@@ -152,7 +152,10 @@ struct AnimatedImageMetadataTests {
     @Test func iconWithSeveralSizesIsNotAnAnimation() throws {
         // An ICO holds several images of one icon, and Image I/O counts each
         // of them as a frame.
-        guard let data = makeMultiSizeIcon(sizes: [16, 32]) else {
+        let images = try [16, 32].map { size in
+            try #require(Test.makeImage(width: size, height: size, color: CGColor(red: 0, green: 0.5, blue: 1, alpha: 1)))
+        }
+        guard let data = Test.encode(images, as: UTType.ico.identifier) else {
             return // No ICO encoder on this platform
         }
         let imageSource = try #require(CGImageSourceCreateWithData(data as CFData, nil))
@@ -274,29 +277,4 @@ private func makeGIFWithoutExtensions(frameCount: Int, screenSize: UInt8 = 1) ->
     }
     data += Data([0x3B])
     return data
-}
-
-private func makeMultiSizeIcon(sizes: [Int]) -> Data? {
-    let data = NSMutableData()
-    guard let destination = CGImageDestinationCreateWithData(data, UTType.ico.identifier as CFString, sizes.count, nil) else {
-        return nil
-    }
-    for size in sizes {
-        let context = CGContext(
-            data: nil,
-            width: size,
-            height: size,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        context.setFillColor(CGColor(red: 0, green: 0.5, blue: 1, alpha: 1))
-        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
-        CGImageDestinationAddImage(destination, context.makeImage()!, nil)
-    }
-    guard CGImageDestinationFinalize(destination) else {
-        return nil
-    }
-    return data as Data
 }

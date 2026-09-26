@@ -34,7 +34,7 @@ struct FetchImageStateTransitionTests {
     // MARK: - Replacing the Displayed Image
 
     @Test func loadingNilClearsThePreviouslyLoadedImage() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.imageContainer != nil)
 
         image.load(nil as URL?)
@@ -46,7 +46,7 @@ struct FetchImageStateTransitionTests {
     }
 
     @Test func failedLoadDoesNotKeepTheImageOfThePreviousLoad() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         dataLoader.results[otherURL] = .failure(NSError(domain: "test", code: 42))
 
         let completed = TestExpectation()
@@ -63,7 +63,7 @@ struct FetchImageStateTransitionTests {
     /// A memory cache hit sets the new image directly, so a view never
     /// blinks the placeholder between two images.
     @Test func memoryCacheHitReplacesTheImageWithoutPublishingNil() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         let cached = ImageContainer(image: Test.image)
         pipeline.cache[ImageRequest(url: otherURL)] = cached
 
@@ -383,7 +383,7 @@ struct FetchImageStateTransitionTests {
     // MARK: - Progress
 
     @Test func progressIsClearedWhenTheNextLoadStarts() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.progress.completed > 0)
 
         dataLoader.isSuspended = true
@@ -394,7 +394,7 @@ struct FetchImageStateTransitionTests {
     }
 
     @Test func progressIsClearedByAMemoryCacheHit() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.progress.completed > 0)
         pipeline.cache[ImageRequest(url: otherURL)] = Test.container
 
@@ -408,7 +408,7 @@ struct FetchImageStateTransitionTests {
 
     /// Documented: cancelling continues to display a downloaded image.
     @Test func cancelKeepsTheLoadedImageAndResult() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         let container = try #require(image.imageContainer)
 
         image.cancel()
@@ -439,7 +439,7 @@ struct FetchImageStateTransitionTests {
         image.reset()
         #expect(changes == 0)
 
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         image.reset()
         let changesAfterFirstReset = changes
         #expect(changesAfterFirstReset > 0)
@@ -481,17 +481,6 @@ struct FetchImageStateTransitionTests {
         #expect(!image.isLoading)
     }
 #endif
-
-    // MARK: - Helpers
-
-    private func loadAndWait(_ request: ImageRequest) async throws {
-        let completed = TestExpectation()
-        image.onCompletion = { _ in completed.fulfill() }
-        image.load(request)
-        await completed.wait()
-        image.onCompletion = nil
-        _ = try #require(image.result?.value)
-    }
 }
 
 #if !os(watchOS)

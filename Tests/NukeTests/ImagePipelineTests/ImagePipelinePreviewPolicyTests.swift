@@ -15,12 +15,7 @@ struct ImagePipelinePreviewPolicyTests {
         // GIVEN a progressive JPEG served in chunks with manual resume
         let dataLoader = MockProgressiveDataLoader()
         dataLoader.servesFirstChunkAutomatically = false
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageCache = nil
-        }
+        let pipeline = dataLoader.makePipeline()
 
         // WHEN loading the image and collecting previews
         let task = pipeline.imageTask(with: Test.url)
@@ -43,7 +38,7 @@ struct ImagePipelinePreviewPolicyTests {
 
     @Test func progressiveJPEGWithDisabledPolicyDeliversNoPreviews() async throws {
         // GIVEN a delegate that disables previews and data sent automatically
-        let delegate = PreviewPolicyDelegate(policy: .disabled)
+        let delegate = MockPreviewPolicyDelegate(policy: .disabled)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "progressive", extension: "jpeg")
         )
@@ -95,16 +90,14 @@ struct ImagePipelinePreviewPolicyTests {
     // MARK: - Baseline JPEG with .incremental policy
 
     @Test func baselineJPEGWithIncrementalPolicyDeliversPreviews() async throws {
-        // GIVEN a delegate that forces .incremental for all images
-        let delegate = PreviewPolicyDelegate(policy: .incremental)
-        let dataLoader = MockBaselineDataLoader()
+        // GIVEN a delegate that forces .incremental for all images, and a
+        // baseline JPEG served in two chunks with manual resume: Image I/O
+        // needs roughly half of a baseline JPEG to produce a partial image,
+        // and a third is sometimes too little on newer macOS releases
+        let delegate = MockPreviewPolicyDelegate(policy: .incremental)
+        let dataLoader = MockProgressiveDataLoader(data: Test.data(name: "baseline", extension: "jpeg"), chunkCount: 2)
         dataLoader.servesFirstChunkAutomatically = false
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageCache = nil
-        }
+        let pipeline = dataLoader.makePipeline(delegate: delegate)
 
         // WHEN loading the image
         let task = pipeline.imageTask(with: Test.url)
@@ -127,7 +120,7 @@ struct ImagePipelinePreviewPolicyTests {
 
     @Test func thumbnailPolicyDeliversASinglePreview() async throws {
         // GIVEN a delegate that asks for the embedded thumbnail
-        let delegate = PreviewPolicyDelegate(policy: .thumbnail)
+        let delegate = MockPreviewPolicyDelegate(policy: .thumbnail)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "progressive", extension: "jpeg"),
             chunkCount: 8
@@ -157,7 +150,7 @@ struct ImagePipelinePreviewPolicyTests {
 
     @Test func thumbnailPolicyDeliversNoPreviewsWhenThereIsNoThumbnail() async throws {
         // GIVEN an image with no embedded thumbnail
-        let delegate = PreviewPolicyDelegate(policy: .thumbnail)
+        let delegate = MockPreviewPolicyDelegate(policy: .thumbnail)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "img_751", extension: "heic")
         )
@@ -210,7 +203,7 @@ struct ImagePipelinePreviewPolicyTests {
 
     @Test func gifWithDisabledPolicyDeliversNoPreviews() async throws {
         // GIVEN a delegate that disables previews and a GIF served in chunks
-        let delegate = PreviewPolicyDelegate(policy: .disabled)
+        let delegate = MockPreviewPolicyDelegate(policy: .disabled)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "cat", extension: "gif"),
             chunkCount: 8
@@ -242,7 +235,7 @@ struct ImagePipelinePreviewPolicyTests {
         // first chunk – the norm for progressive JPEGs with large EXIF/ICC
         // preambles, where `PreviewPolicy.default(for:)` returns `.disabled`
         // until `kCGImagePropertyJFIFIsProgressive` can be parsed
-        let delegate = DeferredIncrementalPolicyDelegate()
+        let delegate = MockPreviewPolicyDelegate(policies: [.disabled, .incremental])
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "progressive", extension: "jpeg")
         )
@@ -273,7 +266,7 @@ struct ImagePipelinePreviewPolicyTests {
     @Test func policyIsNotReevaluatedForEveryChunk() async throws {
         // GIVEN a policy that never resolves to anything other than `.disabled`
         // and data served in many chunks
-        let delegate = PreviewPolicyDelegate(policy: .disabled)
+        let delegate = MockPreviewPolicyDelegate(policy: .disabled)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "progressive", extension: "jpeg"),
             chunkCount: 16
@@ -305,33 +298,6 @@ struct ImagePipelinePreviewPolicyTests {
 
 // MARK: - Helpers
 
-/// A delegate that returns a fixed preview policy for all requests.
-private final class PreviewPolicyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    let policy: ImagePipeline.PreviewPolicy
-    private(set) var policyRequestCount = 0
-
-    init(policy: ImagePipeline.PreviewPolicy) {
-        self.policy = policy
-    }
-
-    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
-        policyRequestCount += 1
-        return policy
-    }
-}
-
-/// Returns `.disabled` for the first chunk and `.incremental` for every chunk
-/// after that, mimicking `PreviewPolicy.default(for:)` when the truncated data
-/// doesn't yet prove that the JPEG is progressive.
-private final class DeferredIncrementalPolicyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    private(set) var policyRequestCount = 0
-
-    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
-        policyRequestCount += 1
-        return policyRequestCount == 1 ? .disabled : .incremental
-    }
-}
-
 /// Serves data in chunks automatically without requiring manual resume calls.
 private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
     let data: Data
@@ -361,75 +327,5 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
             completion(nil)
         }
         return AnonymousCancellable {}
-    }
-}
-
-/// Serves a baseline JPEG in chunks with manual resume control.
-private final class MockBaselineDataLoader: DataLoading, @unchecked Sendable {
-    let urlResponse: HTTPURLResponse
-    var chunks: [Data]
-    let data = Test.data(name: "baseline", extension: "jpeg")
-
-    private var _didReceiveData: (@Sendable (Data, URLResponse) -> Void)?
-    private var _completion: (@Sendable (Error?) -> Void)?
-
-    /// See `MockProgressiveDataLoader/servesFirstChunkAutomatically`.
-    var servesFirstChunkAutomatically = true
-
-    private var isLoading = false
-    private var pendingResumeCount = 0
-
-    init() {
-        self.urlResponse = HTTPURLResponse(
-            url: Test.url,
-            statusCode: 200,
-            httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Length": "\(data.count)"]
-        )!
-        // Use two equal chunks so the first chunk contains at least half
-        // the file. Image I/O needs roughly 50 % of a baseline JPEG to
-        // produce a partial image via CGImageSourceCreateImageAtIndex; 1/3
-        // is sometimes too little on newer macOS releases.
-        self.chunks = Array(_createChunks(for: data, size: data.count / 2))
-    }
-
-    func loadData(with request: URLRequest,
-                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
-                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        self._didReceiveData = didReceiveData
-        self._completion = completion
-        DispatchQueue.main.async {
-            self.isLoading = true
-            if self.servesFirstChunkAutomatically {
-                self.serveNextChunk()
-            }
-            let pending = self.pendingResumeCount
-            self.pendingResumeCount = 0
-            for _ in 0..<pending {
-                self.serveNextChunk()
-            }
-        }
-        return AnonymousCancellable {}
-    }
-
-    func resume() {
-        DispatchQueue.main.async {
-            guard self.isLoading else {
-                // `loadData` hasn't been called yet, and serving now would drop
-                // the chunk – there is nobody to hand it to.
-                self.pendingResumeCount += 1
-                return
-            }
-            self.serveNextChunk()
-        }
-    }
-
-    private func serveNextChunk() {
-        guard let chunk = chunks.first else { return }
-        chunks.removeFirst()
-        _didReceiveData?(chunk, urlResponse)
-        if chunks.isEmpty {
-            _completion?(nil)
-        }
     }
 }

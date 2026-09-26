@@ -357,9 +357,11 @@ struct ImagePipelineDiagnosticsTests {
     }
 
     @Test func prefetchTasksAreTagged() async throws {
-        // GIVEN a delegate that picks the records up, the way a logger would
-        let delegate = _MetricsCollector()
-        let pipeline = ImagePipeline(delegate: delegate) {
+        // GIVEN a delegate that picks the tasks up, the way a logger would
+        let observer = ImagePipelineObserver()
+        let tasks = LockedArray<ImageTask>()
+        observer.onTaskCreated = { tasks.append($0) }
+        let pipeline = ImagePipeline(delegate: observer) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isDiagnosticsEnabled = true
@@ -367,10 +369,12 @@ struct ImagePipelineDiagnosticsTests {
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
         // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-        let metrics = await delegate.nextFinished()
+        await notification(ImagePipelineObserver.didCompleteTask, object: observer) {
+            prefetcher.startPrefetching(with: [Test.url])
+        }
 
         // THEN
+        let metrics = try #require(tasks.values.first?.metrics)
         #expect(metrics.kind == .prefetch)
         #expect(metrics.outcome == .success)
         withExtendedLifetime(prefetcher) {}
@@ -379,11 +383,7 @@ struct ImagePipelineDiagnosticsTests {
     @Test func progressiveDecodingCountsThePreviews() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
+        let pipeline = dataLoader.makePipeline {
             $0.isDiagnosticsEnabled = true
         }
 
@@ -403,8 +403,12 @@ struct ImagePipelineDiagnosticsTests {
     }
 
     @Test func willLoadDataIsRecordedForCustomDelegates() async throws {
-        // GIVEN
-        let pipeline = ImagePipeline(delegate: _SlowDelegate()) {
+        // GIVEN a delegate that takes a while to return the request
+        let delegate = MockWillLoadDataDelegate { request in
+            try await Task.sleep(for: .milliseconds(25))
+            return request
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isDiagnosticsEnabled = true
@@ -533,7 +537,7 @@ struct ImagePipelineDiagnosticsTests {
         let task1 = pipeline.imageTask(with: Test.request)
         await started.wait()
         let task2 = pipeline.imageTask(with: Test.request)
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // WHEN
         task1.cancel()
@@ -562,7 +566,7 @@ struct ImagePipelineDiagnosticsTests {
         let task1 = pipeline.imageTask(with: ImageRequest(url: Test.url, priority: .low))
         await started.wait()
         let task2 = pipeline.imageTask(with: ImageRequest(url: Test.url, priority: .high))
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // WHEN the high priority task leaves and the low priority one changes
         task2.cancel()
@@ -570,7 +574,7 @@ struct ImagePipelineDiagnosticsTests {
             try await task2.response
         }
         task1.priority = .veryHigh
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
         dataLoader.isSuspended = false
         _ = try await task1.response
 
@@ -782,7 +786,7 @@ struct ImagePipelineDiagnosticsTests {
 
         // WHEN its priority is raised while it waits
         task.priority = .high
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
         dataLoader.isSuspended = false
         _ = try await task.response
         let description = try #require(task.metrics).description
@@ -826,11 +830,7 @@ struct ImagePipelineDiagnosticsTests {
         // GIVEN a processing queue that holds its work, and a download that
         // serves the first scan before the rest
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
+        let pipeline = dataLoader.makePipeline {
             $0.isDiagnosticsEnabled = true
         }
         let queue = pipeline.configuration.imageProcessingQueue
@@ -1081,41 +1081,5 @@ struct ImagePipelineDiagnosticsTests {
         #expect(lines[index + 1].contains("─ \(transaction.fetchType.rawValue)"), "Unexpected row in:\n\(description)")
         #expect(lines.filter { $0.contains(url.absoluteString) }.count == 1)
         #expect(!metrics.formatted(.all.subtracting(.urlSession)).contains(transaction.fetchType.rawValue))
-    }
-}
-
-/// Receives the records the way a logger would: from the delegate, with the
-/// terminal event.
-@ImagePipelineActor
-private final class _MetricsCollector: ImagePipeline.Delegate {
-    private var finished: [ImageTask.Metrics] = []
-    private var waiter: CheckedContinuation<ImageTask.Metrics, Never>?
-
-    nonisolated init() {}
-
-    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
-        guard case .finished = event, let metrics = task.metrics else { return }
-        if let waiter {
-            self.waiter = nil
-            waiter.resume(returning: metrics)
-        } else {
-            finished.append(metrics)
-        }
-    }
-
-    /// The next record, in the order the tasks finished.
-    func nextFinished() async -> ImageTask.Metrics {
-        if !finished.isEmpty {
-            return finished.removeFirst()
-        }
-        return await withCheckedContinuation { waiter = $0 }
-    }
-}
-
-private final class _SlowDelegate: ImagePipeline.Delegate, Sendable {
-    @ImagePipelineActor
-    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        try await Task.sleep(for: .milliseconds(25))
-        return urlRequest
     }
 }
