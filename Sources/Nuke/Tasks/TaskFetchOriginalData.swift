@@ -287,7 +287,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         if let error {
-            tryToSaveResumableData()
+            tryToSaveResumableData(error: error)
             send(error: error)
             return
         }
@@ -351,18 +351,30 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         send(error: .dataLoadingFailed(error: error))
     }
 
-    private func tryToSaveResumableData() {
+    private func tryToSaveResumableData(error: ImagePipeline.Error? = nil) {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         guard pipeline.configuration.isResumableDataEnabled else { return }
         if let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data, resumedDataCount: resumedDataCount) {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
-        } else if let resumableData {
+        } else if let resumableData, !Self.isRangeRejected(by: error) {
             // The request ended before the server responded – put the data that
-            // `performDataLoad` took out of the storage back where it was.
+            // `performDataLoad` took out of the storage back where it was. Not
+            // when the server rejected the range: the next attempt would only
+            // send it again.
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
         }
+    }
+
+    /// `true` if the data loader rejected a "416 Range Not Satisfiable"
+    /// response to the resumed request.
+    private static func isRangeRejected(by error: ImagePipeline.Error?) -> Bool {
+        if case .dataLoadingFailed(let error as DataLoader.Error)? = error,
+           case .statusCodeUnacceptable(416) = error {
+            return true
+        }
+        return false
     }
 }
 
