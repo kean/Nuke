@@ -279,8 +279,10 @@ public final class AnimatedImageView: _PlatformImageView {
             guard derived != nil, hasOutgrownItsFrames(maxPixelSize, of: source) else { return }
         }
         setPlayer(for: source, scale: player?.options.scale ?? scale(of: image), maxPixelSize: maxPixelSize)
-        // Set after the player, whose `didSet` clears it.
-        sourcePendingDownsampling = maxPixelSize == nil ? source : nil
+        // Set after the player, whose `didSet` clears it. `derived` rather than
+        // `maxPixelSize`: an animation that fits the view is settled, not
+        // waiting – left pending, the next smaller layout would decode it again.
+        sourcePendingDownsampling = derived == nil ? source : nil
     }
 
     /// Whether the view has grown far enough past the size its frames were

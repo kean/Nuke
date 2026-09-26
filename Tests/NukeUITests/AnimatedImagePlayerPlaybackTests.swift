@@ -254,7 +254,7 @@ struct AnimatedImagePlayerPlaybackTests {
         #expect(player.diagnostics.playbackTime == 0.05)
     }
 
-    @Test(arguments: [0, -1, Double.nan])
+    @Test(arguments: [0, -1, Double.nan, Double.infinity])
     func aRateThatIsNotForwardHoldsTheFrame(_ rate: Double) async {
         var options = AnimatedImagePlayer.Options()
         options.playbackRate = rate
@@ -269,6 +269,26 @@ struct AnimatedImagePlayerPlaybackTests {
         #expect(player.isPlaying)
         #expect(player.currentFrameIndex == 0)
         #expect(player.diagnostics.playbackTime == 0)
+    }
+
+    @Test(arguments: [1e9, 1e17])
+    func aHugeRatePlaysAtMostALoopPerTick(_ rate: Double) async {
+        var options = AnimatedImagePlayer.Options()
+        options.playbackRate = rate
+        // A finite repeat count, so that a tick with no bound on its work ends
+        // and the test fails rather than hangs.
+        let (player, clock) = makePlayer(frameCount: 4, loopCount: 1000, options: options)
+        player.play()
+        await player.waitUntilFull()
+
+        clock.tick(1.0 / 60)
+
+        // The display shows one frame per tick however fast the animation is
+        // asked to run, so there is nothing to gain past a loop of frames –
+        // and at these rates the tick would otherwise not return.
+        #expect(player.completedLoopCount == 1)
+        #expect(player.currentFrameIndex == 0)
+        #expect(player.isPlaying)
     }
 
     @Test func slowingDownHoldsEachFrameLonger() async {
