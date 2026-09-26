@@ -373,7 +373,10 @@ final class AnimatedImageFrameStore {
     /// the pool reclaims those frames when it needs the room, and drops them
     /// on a memory warning.
     private func evict(_ windows: [MemberWindow]) {
-        guard !members.isEmpty, !frames.isEmpty else { return }
+        // The windows rather than the members: a released player's entry stays
+        // in `members` until the next sweep, and a frame landing in between
+        // would otherwise take every frame the store holds with it.
+        guard !windows.isEmpty, !frames.isEmpty else { return }
         guard !windows.contains(where: { $0.length >= frameCount }) else {
             return // Some window covers the whole animation: nothing to evict
         }
@@ -390,7 +393,7 @@ final class AnimatedImageFrameStore {
     /// Drops the frames outside every member's window, for the pool to call
     /// when it is over its limit.
     func reclaim() {
-        if members.isEmpty {
+        if isIdle {
             removeAllFrames()
         } else {
             evict(memberWindows())
