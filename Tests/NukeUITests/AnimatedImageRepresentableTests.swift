@@ -36,14 +36,14 @@ struct AnimatedImageRepresentableTests {
 
         let animation = try #require(AnimatedImage(container: container))
         let host = ViewHost(animation) { $0 }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
 
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         #expect(view.animatedImage === source)
         #expect(view.image === poster)
 
         for index in 0..<4 { await decoder.release(index) }
-        await render(host, until: { view.image !== poster })
+        await host.render(until: { view.image !== poster })
 
         #expect(view.image === view.player?.image)
     }
@@ -66,7 +66,7 @@ struct AnimatedImageRepresentableTests {
         let expected = CGSize(width: 20, height: 10)
 
         let host = ViewHost(player) { AnimatedImage(player: $0) }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.bounds.size == expected })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.bounds.size == expected })
 
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         #expect(view.bounds.size == expected)
@@ -79,7 +79,7 @@ struct AnimatedImageRepresentableTests {
         let expected = CGSize(width: 200, height: 100)
 
         let host = ViewHost(source) { AnimatedImage($0).resizable() }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.bounds.size == expected })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.bounds.size == expected })
 
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         #expect(view.bounds.size == expected)
@@ -93,12 +93,11 @@ struct AnimatedImageRepresentableTests {
         let first = Test.animatedGIFSource(frameCount: 4)
         let second = Test.animatedGIFSource(frameCount: 6)
         let host = ViewHost(first) { AnimatedImage($0) }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         let replaced = try #require(view.player)
 
         await host.update(second, until: { view.player?.source === second })
-        await render(host, until: { view.player?.source === second })
 
         #expect(host.firstView(ofType: AnimatedImageView.self) === view)
         #expect(view.player?.source === second)
@@ -118,7 +117,7 @@ struct AnimatedImageRepresentableTests {
         let host = ViewHost(old) { player in
             AnimatedImage(player: player, poster: player === old ? oldPoster : newPoster)
         }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.image === old.image })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.image === old.image })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         #expect(view.image === old.image)
 
@@ -137,7 +136,7 @@ struct AnimatedImageRepresentableTests {
         let firstPoster = Test.image
         let secondPoster = Test.image
         let host = ViewHost(firstPoster) { AnimatedImage(source, poster: $0) }
-        await render(host, until: {
+        await host.render(until: {
             let view = host.firstView(ofType: AnimatedImageView.self)
             return view?.player?.image != nil && view?.image === view?.player?.image
         })
@@ -153,31 +152,42 @@ struct AnimatedImageRepresentableTests {
     @Test func pausesOffScreenAndResumesWhenItComesBack() async throws {
         let source = Test.animatedGIFSource(frameCount: 8)
         let host = ViewHost(source) { AnimatedImage($0) }
-        await render(host, until: { host.firstView(ofType: AnimatedImageView.self)?.isPlaying == true })
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.isPlaying == true })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         let player = try #require(view.player)
 
         await host.hideContent(until: { player.isPlaying == false })
-        await render(host, until: { player.isPlaying == false })
         #expect(player.isPlaying == false)
 
         await host.showContent(until: { player.isPlaying })
-        await render(host, until: { player.isPlaying })
 
         #expect(view.player === player)
         #expect(player.isPlaying)
     }
 
-    // MARK: Helpers
+    // MARK: Auto-Play
 
-    /// Renders until the condition holds, for longer than one
-    /// `render(until:)`, which gives up after a fifth of a second: SwiftUI
-    /// and the decoder each take turns of their own, and on a loaded machine
-    /// they can take longer than that.
-    private func render<Value, Content>(_ host: ViewHost<Value, Content>, until condition: () -> Bool) async {
-        for _ in 0..<25 where !condition() {
-            await host.render(until: condition)
+    /// Accessibility › Motion › Auto-Play Animated Images off: the view shows
+    /// the first frame as a still, and plays once the setting is back on.
+    @Test func anAnimatedImageHoldsStillWhenAutoPlayIsOff() async throws {
+        let source = Test.animatedGIFSource(frameCount: 8)
+        let host = ViewHost(false) { isAutoPlayOn in
+            AnimatedImage(source).environment(\.accessibilityPlayAnimatedImagesOverride, isAutoPlayOn)
         }
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player?.image != nil })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        let player = try #require(view.player)
+
+        #expect(view.isPlaybackEnabled == false)
+        #expect(view.isPlaying == false)
+        #expect(player.currentFrameIndex == 0)
+        #expect(view.image === player.image)
+
+        await host.update(true, until: { view.isPlaying })
+
+        #expect(view.isPlaybackEnabled)
+        #expect(view.player === player)
+        #expect(view.isPlaying)
     }
 }
 

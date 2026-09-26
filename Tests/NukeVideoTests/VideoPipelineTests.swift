@@ -24,8 +24,8 @@ struct VideoPipelineTests {
         // Then
         #expect(response.container.type == .mp4)
         #expect(!response.container.isPreview)
-        #expect(cgImage(of: response.image)?.width == 32)
-        #expect(cgImage(of: response.image)?.height == 16)
+        #expect(response.image.cgImage?.width == 32)
+        #expect(response.image.cgImage?.height == 16)
         let asset = try #require(response.container.userInfo[.videoAssetKey] as? AVAsset)
         #expect(try await asset.load(.isPlayable))
     }
@@ -63,8 +63,8 @@ struct VideoPipelineTests {
         let response = try await pipeline.imageTask(with: request).response
 
         // Then
-        #expect(cgImage(of: response.image)?.width == 8)
-        #expect(cgImage(of: response.image)?.height == 4)
+        #expect(response.image.cgImage?.width == 8)
+        #expect(response.image.cgImage?.height == 4)
         #expect(response.container.type == .mp4)
         let asset = try #require(response.container.userInfo[.videoAssetKey] as? AVAsset)
         let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
@@ -121,7 +121,7 @@ struct VideoPipelineTests {
         #expect(preview.container.isPreview)
         #expect(preview.container.type == .mp4)
         #expect(preview.container.userInfo[.videoAssetKey] is AVAsset)
-        #expect(cgImage(of: preview.image)?.width == 32)
+        #expect(preview.image.cgImage?.width == 32)
         #expect(!response.container.isPreview)
         #expect(response.container.data == data)
     }
@@ -145,7 +145,7 @@ private func makePipeline(
     if decoders == .video {
         registry.register(ImageDecoders.Video.init)
     }
-    let delegate = previewPolicy.map(FixedPreviewPolicyDelegate.init)
+    let delegate = previewPolicy.map(MockPreviewPolicyDelegate.init(policy:))
     return ImagePipeline(delegate: delegate) {
         $0.makeImageDecoder = { context in
             guard let didDecodePartialData else {
@@ -176,18 +176,6 @@ private struct NotifyingDecoder: ImageDecoding {
     func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
         defer { didDecodePartialData() }
         return decoder.decodePartiallyDownloadedData(data)
-    }
-}
-
-private final class FixedPreviewPolicyDelegate: ImagePipeline.Delegate {
-    let policy: ImagePipeline.PreviewPolicy
-
-    init(policy: ImagePipeline.PreviewPolicy) {
-        self.policy = policy
-    }
-
-    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
-        policy
     }
 }
 

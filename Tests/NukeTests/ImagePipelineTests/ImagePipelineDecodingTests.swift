@@ -25,12 +25,9 @@ struct ImagePipelineDecodingTests {
 
     @Test func experimentalDecoder() async throws {
         // Given
-        let decoder = MockExperimentalDecoder()
-
-        let dummyImage = PlatformImage()
         let dummyData = "123".data(using: .utf8)
-        decoder._decode = { data in
-            return ImageContainer(image: dummyImage, data: dummyData, userInfo: ["a": 1])
+        let decoder = MockScriptedDecoder { _ in
+            ImageContainer(image: PlatformImage(), data: dummyData, userInfo: ["a": 1])
         }
 
         let pipeline = pipeline.reconfigured {
@@ -67,46 +64,50 @@ struct ImagePipelineDecodingTests {
 
     // MARK: - Decoder Errors
 
-    @Test func decoderReturningNilResultsInDecodingFailedError() async throws {
-        // GIVEN a decoder whose _decode closure returns nil (causes decode() to throw)
-        let decoder = MockExperimentalDecoder()
-        decoder._decode = { _ in nil }
-
+    @Test func decoderErrorIsWrapped() async {
+        // Given
+        let decoder = MockFailingDecoder()
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in decoder }
         }
 
-        // WHEN
+        // When/Then
         do {
-            _ = try await pipeline.imageTask(with: Test.request).response
-            Issue.record("Expected a decoding error")
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
         } catch {
-            // THEN the pipeline wraps it in a decodingFailed error
-            if case .decodingFailed = error {
-                // Expected
+            if case let .decodingFailed(failedDecoder, context, error) = error {
+                #expect((failedDecoder as? MockFailingDecoder) === decoder)
+                #expect(context.request.url == Test.request.url)
+                #expect(context.data == Test.data)
+                #expect(context.isCompleted)
+                #expect(context.urlResponse?.url == Test.url)
+                #expect(error as? MockError == MockError(description: "decoder-failed"))
             } else {
-                Issue.record("Expected decodingFailed, got \(error)")
+                Issue.record("Unexpected error: \(error)")
             }
         }
     }
 
-    @Test func whenDecoderFactoryReturnsNilPipelineErrors() async throws {
-        // GIVEN a pipeline where no decoder can handle the content
+    @Test func missingDecoderFailsWithDecoderNotRegistered() async {
+        // Given a pipeline where no decoder can handle the data
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in nil }
         }
 
-        // WHEN
+        // When/Then
         do {
-            _ = try await pipeline.imageTask(with: Test.request).response
-            Issue.record("Expected decoderNotRegistered error")
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
         } catch {
-            // THEN
-            if case .decoderNotRegistered = error {
-                // Expected
-            } else {
-                Issue.record("Expected decoderNotRegistered, got \(error)")
+            guard case let .decoderNotRegistered(context) = error else {
+                Issue.record("Expected .decoderNotRegistered")
+                return
             }
+            #expect(context.request.url == Test.request.url)
+            #expect(context.data.count == 22789)
+            #expect(context.isCompleted)
+            #expect(context.urlResponse?.url == Test.url)
         }
     }
 
@@ -160,15 +161,11 @@ struct ImagePipelineDecodingTests {
         let dataLoader = MockProgressiveDataLoader()
         let decoder = MockAsyncDecoder { _ in
             ImageContainer(image: Test.image)
-        }
-        decoder.decodePreview = { _ in
+        } decodePreview: { _ in
             ImageContainer(image: Test.image, isPreview: true)
         }
-        let pipeline = pipeline.reconfigured {
-            $0.dataLoader = dataLoader
+        let pipeline = dataLoader.makePipeline {
             $0.makeImageDecoder = { _ in decoder }
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
         }
 
         // When
@@ -197,11 +194,8 @@ struct ImagePipelineDecodingTests {
         let decoder = MockAsyncDecoder { _ in
             ImageContainer(image: Test.image)
         }
-        let pipeline = pipeline.reconfigured {
-            $0.dataLoader = dataLoader
+        let pipeline = dataLoader.makePipeline {
             $0.makeImageDecoder = { _ in decoder }
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
         }
 
         // When
@@ -221,35 +215,5 @@ struct ImagePipelineDecodingTests {
         // Then the request still succeeds
         #expect(previewCount == 0)
         _ = try await task.response
-    }
-}
-
-private final class MockExperimentalDecoder: ImageDecoding, @unchecked Sendable {
-    var _decode: ((Data) -> ImageContainer?)!
-
-    func decode(_ data: Data) throws -> ImageContainer {
-        guard let image = _decode(data) else {
-            throw ImageDecodingError.unknown
-        }
-        return image
-    }
-}
-
-private final class MockAsyncDecoder: AsyncImageDecoding, @unchecked Sendable {
-    private let _decode: @Sendable (Data) async throws -> ImageContainer
-
-    /// When `nil` (the default), the decoder doesn't support previews.
-    var decodePreview: (@Sendable (Data) -> ImageContainer?)?
-
-    init(_ decode: @escaping @Sendable (Data) async throws -> ImageContainer) {
-        self._decode = decode
-    }
-
-    func decode(_ data: Data) async throws -> ImageContainer {
-        try await _decode(data)
-    }
-
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        decodePreview?(data)
     }
 }

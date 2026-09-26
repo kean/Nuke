@@ -67,21 +67,25 @@ struct ImagePipelineProcessorTests {
 
     // MARK: - Processor Failures
 
-    @Test func processorFailurePropagatesAsError() async throws {
+    @Test func processorReturningNilFailsWithProcessingFailed() async {
         // GIVEN a request with a processor that always returns nil
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
-        // WHEN
+        // WHEN/THEN
         do {
-            _ = try await pipeline.imageTask(with: request).response
-            Issue.record("Expected processing error")
+            _ = try await pipeline.image(for: request)
+            Issue.record("Expected failure")
         } catch {
-            // THEN the pipeline surfaces a processingFailed error
-            if case .processingFailed = error {
-                // Expected
-            } else {
-                Issue.record("Expected processingFailed, got \(error)")
+            guard case let .processingFailed(processor, context, underlyingError) = error else {
+                Issue.record("Expected .processingFailed")
+                return
             }
+            #expect(processor is MockFailingProcessor)
+            #expect(context.request.url == Test.url)
+            #expect(context.response.container.image.sizeInPixels == CGSize(width: 640, height: 480))
+            #expect(context.response.cacheType == nil)
+            #expect(context.isCompleted == true)
+            #expect(underlyingError as? ImageProcessingError == .unknown)
         }
     }
 

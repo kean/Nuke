@@ -13,14 +13,14 @@ import Foundation
 struct ImagePipelineCacheAPIContractTests {
     private let memoryCache: MockImageCache
     private let diskCache: MockDataCache
-    private let delegate: CachingDelegate
+    private let delegate: MockCachingDelegate
     private let pipeline: ImagePipeline
     private var cache: ImagePipeline.Cache { pipeline.cache }
 
     init() {
         let memoryCache = MockImageCache()
         let diskCache = MockDataCache()
-        let delegate = CachingDelegate()
+        let delegate = MockCachingDelegate()
         self.memoryCache = memoryCache
         self.diskCache = diskCache
         self.delegate = delegate
@@ -179,7 +179,7 @@ struct ImagePipelineCacheAPIContractTests {
     @Test func storeCachedImageEncodesWithTheDelegateEncoder() throws {
         // GIVEN
         let encoded = Data("encoded".utf8)
-        let encoder = ContextRecordingEncoder(result: encoded)
+        let encoder = MockImageEncoder(result: encoded)
         delegate.encoder = { _ in encoder }
         let container = Test.container
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
@@ -202,7 +202,7 @@ struct ImagePipelineCacheAPIContractTests {
 
     @Test func storeCachedImageSkipsTheDiskWhenTheImageCantBeEncoded() {
         // GIVEN an encoder that fails
-        delegate.encoder = { _ in ContextRecordingEncoder(result: nil) }
+        delegate.encoder = { _ in MockImageEncoder(result: nil) }
 
         // WHEN
         cache.storeCachedImage(Test.container, for: Test.request)
@@ -214,7 +214,7 @@ struct ImagePipelineCacheAPIContractTests {
 
     @Test func storeCachedImageDoesNotEncodeWhenTheDiskIsNotSelected() {
         // GIVEN
-        let encoder = ContextRecordingEncoder(result: Test.data)
+        let encoder = MockImageEncoder(result: Test.data)
         delegate.encoder = { _ in encoder }
 
         // WHEN
@@ -341,26 +341,5 @@ struct ImagePipelineCacheAPIContractTests {
         #expect(diskCache.store.isEmpty)
         #expect(avatarMemoryCache.images.count == 1)
         #expect(avatarDiskCache.store.count == 1)
-    }
-}
-
-// MARK: - Helpers
-
-private final class ContextRecordingEncoder: ImageEncoding, @unchecked Sendable {
-    let result: Data?
-    private let recorder = LockedArray<ImageEncodingContext>()
-    var contexts: [ImageEncodingContext] { recorder.values }
-
-    init(result: Data?) {
-        self.result = result
-    }
-
-    func encode(_ image: PlatformImage) -> Data? {
-        result
-    }
-
-    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
-        recorder.append(context)
-        return result
     }
 }

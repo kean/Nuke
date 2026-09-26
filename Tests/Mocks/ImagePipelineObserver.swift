@@ -6,27 +6,32 @@ import Foundation
 import Nuke
 
 final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
-    var startedTaskCount = 0
-    var cancelledTaskCount = 0
-    var completedTaskCount = 0
+    var startedTaskCount: Int { lock.withLock { _startedTaskCount } }
+    var cancelledTaskCount: Int { lock.withLock { _cancelledTaskCount } }
+    var completedTaskCount: Int { lock.withLock { _completedTaskCount } }
 
     static let didStartTask = Notification.Name("com.github.kean.Nuke.Tests.ImagePipelineObserver.DidStartTask")
     static let didCancelTask = Notification.Name("com.github.kean.Nuke.Tests.ImagePipelineObserver.DidCancelTask")
     static let didCompleteTask = Notification.Name("com.github.kean.Nuke.Tests.ImagePipelineObserver.DidFinishTask")
 
-    static let taskKey = "taskKey"
-    static let resultKey = "resultKey"
+    var events: [ImageTaskEvent] { lock.withLock { _events } }
 
-    var events = [ImageTaskEvent]()
+    var onTaskCreated: ((ImageTask) -> Void)? {
+        get { lock.withLock { _onTaskCreated } }
+        set { lock.withLock { _onTaskCreated = newValue } }
+    }
 
-    var onTaskCreated: ((ImageTask) -> Void)?
-
+    // The pipeline calls the delegate from its actor, and a task is created on
+    // the thread that asks for it, while the test reads from its own.
     private let lock = NSLock()
+    private var _startedTaskCount = 0
+    private var _cancelledTaskCount = 0
+    private var _completedTaskCount = 0
+    private var _events = [ImageTaskEvent]()
+    private var _onTaskCreated: ((ImageTask) -> Void)?
 
     private func append(_ event: ImageTaskEvent) {
-        lock.lock()
-        events.append(event)
-        lock.unlock()
+        lock.withLock { _events.append(event) }
     }
 
     func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
@@ -35,9 +40,11 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
     }
 
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
-        startedTaskCount += 1
-        append(.started)
-        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+        lock.withLock {
+            _startedTaskCount += 1
+            _events.append(.started)
+        }
+        NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self)
     }
 
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
@@ -48,13 +55,17 @@ final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
             append(.intermediateResponseReceived(response: response))
         case .finished(let result):
             if case .failure(.cancelled) = result {
-                cancelledTaskCount += 1
-                append(.cancelled)
-                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
+                lock.withLock {
+                    _cancelledTaskCount += 1
+                    _events.append(.cancelled)
+                }
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self)
             } else {
-                completedTaskCount += 1
-                append(.completed(result: result))
-                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
+                lock.withLock {
+                    _completedTaskCount += 1
+                    _events.append(.completed(result: result))
+                }
+                NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self)
             }
         }
     }

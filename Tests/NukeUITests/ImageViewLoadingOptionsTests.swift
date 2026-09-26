@@ -17,26 +17,12 @@ import AppKit
 
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct ImageViewLoadingOptionsTests {
-    let mockCache: MockImageCache
-    let dataLoader: MockDataLoader
-    let pipeline: ImagePipeline
-    let imageView: _ImageView
-    let options: ImageLoadingOptions
-
-    init() {
-        let mockCache = MockImageCache()
-        let dataLoader = MockDataLoader()
-        self.mockCache = mockCache
-        self.dataLoader = dataLoader
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = mockCache
-        }
-        self.imageView = _ImageView()
-        var options = ImageLoadingOptions()
-        options.pipeline = pipeline
-        self.options = options
-    }
+    private let fixture = ImageViewFixture()
+    var mockCache: MockImageCache { fixture.imageCache }
+    var dataLoader: MockDataLoader { fixture.dataLoader }
+    var pipeline: ImagePipeline { fixture.pipeline }
+    var imageView: _ImageView { fixture.imageView }
+    var options: ImageLoadingOptions { fixture.options }
 
     // MARK: - Transition
 
@@ -293,21 +279,6 @@ struct ImageViewLoadingOptionsTests {
         #expect(self.dataLoader.createdTaskCount == 0)
     }
 
-    // MARK: - Shared Options
-
-    @Test func sharedOptionsUsed() {
-        // Given
-        var options = options
-        let placeholder = PlatformImage()
-        options.placeholder = placeholder
-
-        // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
-
-        // Then
-        #expect(imageView.image == placeholder)
-    }
-
     // MARK: - Cache Policy
 
     @Test func reloadIgnoringCachedData() async {
@@ -422,10 +393,13 @@ struct ImageViewLoadingOptionsTests {
     // MARK: - Misc
 
 #if os(iOS) || os(tvOS) || os(visionOS)
-    @Test func transitionCrossDissolve() async {
-        // GIVEN
+    @Test func crossDissolveWithoutSuperviewStillDisplaysImage() async {
+        // GIVEN an image view outside any view hierarchy, showing a
+        // placeholder in a content mode other than the success one, so the
+        // fade-in is a cross-dissolve with nowhere to put its temporary view
         var options = options
-        options.placeholder = Test.image
+        let placeholder = Test.image
+        options.placeholder = placeholder
         options.transition = .fadeIn(duration: 0.33)
         options.isPrepareForReuseEnabled = false
         options.contentModes = .init(
@@ -437,21 +411,20 @@ struct ImageViewLoadingOptionsTests {
         imageView.image = Test.image
 
         // WHEN
-        await loadImageAndWait(with: Test.request, options: options, into: imageView)
+        await loadImageExpectingSuccess(with: Test.request, options: options, into: imageView)
 
-        // THEN make sure we run the pass with cross-disolve and at least
-        // it doesn't crash
+        // THEN the image view still displays the image, in the success
+        // content mode, faded back in
+        #expect(imageView.image != nil)
+        #expect(imageView.image !== placeholder)
+        #expect(imageView.contentMode == .scaleAspectFill)
+        #expect(imageView.alpha == 1)
     }
 
     @Test func transitionCrossDissolveRemovesTemporaryView() async throws {
         // GIVEN an image view in a visible hierarchy, already displaying an
         // image. The window is what makes UIKit actually run the animation.
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 200))
-        let container = UIView(frame: window.bounds)
-        window.addSubview(container)
-        window.isHidden = false
-        container.addSubview(imageView)
-        imageView.frame = container.bounds
+        let (window, container) = hostInWindow(imageView)
         imageView.image = Test.image
 
         var options = options

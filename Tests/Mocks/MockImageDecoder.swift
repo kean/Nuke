@@ -28,26 +28,3 @@ class MockImageDecoder: ImageDecoding, @unchecked Sendable {
         decoder.decodePartiallyDownloadedData(data)
     }
 }
-
-class MockAnonymousImageDecoder: ImageDecoding, @unchecked Sendable {
-    let closure: (Data, Bool) -> PlatformImage?
-
-    init(_ closure: @escaping (Data, Bool) -> PlatformImage?) {
-        self.closure = closure
-    }
-
-    convenience init(output: PlatformImage) {
-        self.init { _, _ in output }
-    }
-
-    func decode(_ data: Data) throws -> ImageContainer {
-        guard let image = closure(data, true) else {
-            throw ImageDecodingError.unknown
-        }
-        return ImageContainer(image: image)
-    }
-
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        closure(data, false).map { ImageContainer(image: $0) }
-    }
-}

@@ -118,14 +118,14 @@ struct ImagePipelineCacheTests {
 
     @Test func subscriptOverwritingWithAnImageExceedingTheEntryCostLimit() {
         // GIVEN an image cache that takes images up to 10% of its 1000-byte
-        // limit, holding an image that costs `1 + data.count`
+        // limit, holding an image that fits
         let pipeline = pipeline.reconfigured {
             $0.imageCache = ImageCache(costLimit: 1000, countLimit: 100)
         }
-        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 10))
+        pipeline.cache[Test.request] = container(cost: 11)
 
         // WHEN it is overwritten with an image the cache won't take
-        pipeline.cache[Test.request] = ImageContainer(image: PlatformImage(), data: Data(count: 500))
+        pipeline.cache[Test.request] = container(cost: 501)
 
         // THEN the replaced image is no longer served
         #expect(pipeline.cache[Test.request] == nil)
@@ -281,7 +281,7 @@ struct ImagePipelineCacheTests {
 
     // MARK: Store Cached Image
 
-    @Test func storeCachedImageMemoryCache() {
+    @Test func storeCachedImageStoresInBothLayersByDefault() {
         // WHEN
         let request = Test.request
         cache.storeCachedImage(Test.container, for: request)
@@ -302,19 +302,6 @@ struct ImagePipelineCacheTests {
         // THEN
         #expect(cache.cachedImage(for: request) != nil)
         #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
-
-        #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
-    }
-
-    @Test func storeCachedImageInBothLayers() {
-        // WHEN
-        let request = Test.request
-        cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
-
-        // THEN
-        #expect(cache.cachedImage(for: request) != nil)
-        #expect(memoryCache[cache.makeImageCacheKey(for: request)] != nil)
 
         #expect(cache.cachedImage(for: request, caches: [.disk]) != nil)
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
@@ -540,6 +527,31 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
+    @Test func removeCachedImageRemovesOnlyTheSelectedLayer() {
+        // GIVEN an image stored in both layers
+        let request = Test.request
+        let imageKey = cache.makeImageCacheKey(for: request)
+        let dataKey = cache.makeDataCacheKey(for: request)
+        cache.storeCachedImage(Test.container, for: request)
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.memory])
+
+        // THEN the disk entry is kept
+        #expect(memoryCache[imageKey] == nil)
+        #expect(diskCache.store[dataKey] != nil)
+
+        // GIVEN the image is back in both layers
+        cache.storeCachedImage(Test.container, for: request)
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.disk])
+
+        // THEN the memory entry is kept
+        #expect(memoryCache[imageKey] != nil)
+        #expect(diskCache.store[dataKey] == nil)
+    }
+
     // MARK: Remove All
 
     @Test func removeAll() {
@@ -558,27 +570,12 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
     }
 
-    @Test func removeAllWithAllStatic() {
-        // GIVEN
-        let request = Test.request
-        cache.storeCachedImage(Test.container, for: request, caches: [.all])
-
-        // WHEN
-        cache.removeAll()
-
-        // THEN
-        #expect(cache.cachedImage(for: request) == nil)
-        #expect(memoryCache[cache.makeImageCacheKey(for: request)] == nil)
-
-        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
-        #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) == nil)
-    }
-
     // MARK: Keys
 
     @Test func makeImageCacheKeyUsesTheCustomKeyFromTheDelegate() {
         // GIVEN a delegate that maps every request to the same key
-        let delegate = MockCustomCacheKeyDelegate()
+        let delegate = MockCachingDelegate()
+        delegate.cacheKey = { _ in "custom-cache-key" }
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = memoryCache
@@ -664,10 +661,4 @@ struct ImagePipelineCacheTests {
         #expect(cached.imageOrientation == .right)
     }
 #endif
-}
-
-private final class MockCustomCacheKeyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        "custom-cache-key"
-    }
 }

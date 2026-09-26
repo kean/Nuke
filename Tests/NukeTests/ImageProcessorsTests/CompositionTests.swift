@@ -72,31 +72,7 @@ struct ImageProcessorsCompositionTests {
         let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // THEN
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
-        #expect(lhs.identifier == rhs.identifier)
-        #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
-    }
-
-    @Test func identifiersWithSameProcessorsButInDifferentOrder() {
-        // GIVEN processors with equal processors but in different order
-        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
-        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
-
-        // THEN
-        #expect(lhs != rhs)
-        #expect(lhs.identifier != rhs.identifier)
-        #expect(lhs.hashableIdentifier != rhs.hashableIdentifier)
-    }
-
-    @Test func identifiersEmptyProcessors() {
-        // GIVEN empty processors
-        let lhs = ImageProcessors.Composition([])
-        let rhs = ImageProcessors.Composition([])
-
-        // THEN
-        #expect(lhs == rhs)
-        #expect(lhs.hashValue == rhs.hashValue)
+        assertHashableEqual(lhs, rhs)
         #expect(lhs.identifier == rhs.identifier)
         #expect(lhs.hashableIdentifier == rhs.hashableIdentifier)
     }
@@ -194,7 +170,7 @@ struct ImageProcessorsCompositionTests {
         // GIVEN
         let data = Test.animatedGIF()
         let container = ImageContainer(image: Test.image, type: .gif, data: data)
-        let processor = ImageProcessors.Composition([DataPreservingProcessor(), DataPreservingProcessor()])
+        let processor = ImageProcessors.Composition([MockDataPreservingProcessor(id: "1"), MockDataPreservingProcessor(id: "2")])
 
         // WHEN
         let output = try processor.process(container, context: .mock)
@@ -206,14 +182,30 @@ struct ImageProcessorsCompositionTests {
     @Test func dataIsDroppedWhenAnyProcessorProducesANewImage() throws {
         // GIVEN
         let container = ImageContainer(image: Test.image, type: .gif, data: Test.animatedGIF())
-        let processor = ImageProcessors.Composition([DataPreservingProcessor(), MockImageProcessor(id: "1")])
+        let processor = ImageProcessors.Composition([MockDataPreservingProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // WHEN
         let output = try processor.process(container, context: .mock)
 
         // THEN
         #expect(output.data == nil)
-        #expect(output.image.nk_test_processorIDs == ["1"])
+        #expect(output.image.nk_test_processorIDs == ["1", "2"])
+    }
+
+    @Test func emptyCompositionKeepsDataAndAnimation() throws {
+        // GIVEN an animated image and a composition with nothing in it
+        let source = Test.animatedGIFSource()
+        let container = ImageContainer(image: Test.image, type: .gif, data: source.data, animation: source)
+        let processor = ImageProcessors.Composition([])
+
+        // WHEN
+        let output = try processor.process(container, context: .mock)
+
+        // THEN no processor produced a new image, so the animation still
+        // describes the one that comes out
+        #expect(output.image === container.image)
+        #expect(output.data == source.data)
+        #expect(output.animation === source)
     }
 
     @Test func compositionOfBuiltInProcessors() throws {
@@ -250,16 +242,5 @@ struct ImageProcessorsCompositionTests {
 
         // THEN
         #expect(processor.description == "Composition(processors: [Circle(border: nil), RoundedCorners(radius: 4.0 pixels, border: nil)])")
-    }
-}
-
-/// A processor that returns its input as is, the data included.
-private struct DataPreservingProcessor: ImageProcessing {
-    var identifier: String { "data-preserving" }
-
-    func process(_ image: PlatformImage) -> PlatformImage? { image }
-
-    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        container
     }
 }

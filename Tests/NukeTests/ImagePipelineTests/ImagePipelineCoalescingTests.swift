@@ -6,6 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
+/// Equivalent requests share the work – the download, the decoding, and each
+/// processing step – and the tasks join and leave the work they share.
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineCoalescingTests {
     let dataLoader: MockDataLoader
@@ -65,6 +67,74 @@ struct ImagePipelineCoalescingTests {
 
         let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
             (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    @Test func equivalentRequestsShareOneDownload() async throws {
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func dataAndImageRequestsShareOneDownload() async throws {
+        // Given
+        let pipeline = self.pipeline
+        let (imageTask, dataTask) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: Test.request), Task { try await pipeline.data(for: Test.request) })
+        }
+
+        // When
+        let response = try await imageTask.response
+        let (data, _) = try await dataTask.value
+
+        // Then
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(data == Test.data)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func dataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() async throws {
+        // Given
+        let dataCache = MockDataCache()
+        let pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+        }
+
+        // When - One request reloading cache data, another one not
+        @Sendable func makeRequest(options: ImageRequest.Options) -> ImageRequest {
+            ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
+        }
+
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: makeRequest(options: [])),
+             pipeline.imageTask(with: makeRequest(options: [.reloadIgnoringCachedData])))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func disablingDeduplication() async throws {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.imageCache = nil
+            $0.dataLoader = dataLoader
+            $0.isTaskCoalescingEnabled = false
+        }
+
+        // When/Then
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
         }
         _ = try await task1.response
         _ = try await task2.response
@@ -154,136 +224,6 @@ struct ImagePipelineCoalescingTests {
         #expect(processors.numberOfProcessorsApplied == 2)
     }
 
-    @Test func correctImageIsStoredInMemoryCache() async throws {
-        let imageCache = MockImageCache()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = imageCache
-        }
-
-        // Given requests with the same URLs but different processors
-        let processors = MockProcessorFactory()
-        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
-
-        // When loading images for those requests
-        let response1 = try await pipeline.imageTask(with: request1).response
-        #expect(response1.image.nk_test_processorIDs == ["1"])
-
-        let response2 = try await pipeline.imageTask(with: request2).response
-        #expect(response2.image.nk_test_processorIDs == ["2"])
-
-        // Then
-        #expect(imageCache[request1] != nil)
-        #expect(imageCache[request1]?.image.nk_test_processorIDs == ["1"])
-        #expect(imageCache[request2] != nil)
-        #expect(imageCache[request2]?.image.nk_test_processorIDs == ["2"])
-    }
-
-    // MARK: - Cancellation
-
-    @Test func cancellation() async {
-        dataLoader.queue.isSuspended = true
-
-        // Given two equivalent requests
-        let startExpectation = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
-        let task1 = pipeline.imageTask(with: Test.request)
-        let task2 = pipeline.imageTask(with: Test.request)
-        Task.detached { try? await task1.response }
-        Task.detached { try? await task2.response }
-        await startExpectation.wait()
-
-        // When both tasks are cancelled the image loading session is cancelled
-        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
-            task1.cancel()
-            task2.cancel()
-        }
-    }
-
-    @Test func cancellationOnlyCancelOneTask() async throws {
-        dataLoader.queue.isSuspended = true
-
-        let task1 = pipeline.imageTask(with: Test.request)
-        let task2 = pipeline.imageTask(with: Test.request)
-
-        // Start both tasks
-        Task.detached { try? await task1.response }
-
-        // When cancelling only one of the tasks
-        task1.cancel()
-
-        // Then the image is still loaded via the second task
-        dataLoader.queue.isSuspended = false
-        _ = try await task2.response
-    }
-
-    // MARK: - Loading Data
-
-    @Test func loadsDataOnceWhenLoadingDataAndLoadingImage() async throws {
-        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
-            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
-        }
-        _ = try await task1.response
-        _ = try await task2.response
-
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
-    // MARK: - Misc
-
-    @Test func progressIsReported() async throws {
-        // Given
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When/Then
-        let task = pipeline.imageTask(with: Test.url)
-        var progressValues: [ImageTask.Progress] = []
-        for await progress in task.progress {
-            progressValues.append(progress)
-        }
-        _ = try? await task.response
-
-        #expect(progressValues == [
-            ImageTask.Progress(completed: 10, total: 20),
-            ImageTask.Progress(completed: 20, total: 20)
-        ])
-    }
-
-    @Test func disablingDeduplication() async throws {
-        // Given
-        let pipeline = ImagePipeline {
-            $0.imageCache = nil
-            $0.dataLoader = dataLoader
-            $0.isTaskCoalescingEnabled = false
-        }
-
-        // When/Then
-        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
-            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
-        }
-        _ = try await task1.response
-        _ = try await task2.response
-
-        #expect(dataLoader.createdTaskCount == 2)
-    }
-}
-
-@Suite(.timeLimit(.minutes(5)))
-struct ImagePipelineProcessingDeduplicationTests {
-    let dataLoader: MockDataLoader
-    let pipeline: ImagePipeline
-
-    init() {
-        let dataLoader = MockDataLoader()
-        self.dataLoader = dataLoader
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-    }
-
     @Test func eachProcessingStepIsDeduplicated() async throws {
         // Given requests with the same URLs but different processors
         let processors = MockProcessorFactory()
@@ -299,6 +239,58 @@ struct ImagePipelineProcessingDeduplicationTests {
 
         // Then the processor "1" is only applied once
         #expect(processors.numberOfProcessorsApplied == 2)
+    }
+
+    @Test func processingDeduplicationCanBeDisabled() async throws {
+        // Given
+        let pipeline = pipeline.reconfigured {
+            $0.isTaskCoalescingEnabled = false
+        }
+
+        // Given requests with the same URLs but different processors
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
+
+        // When
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        // Then the processor "1" is applied twice
+        #expect(processors.numberOfProcessorsApplied == 3)
+    }
+
+    @Test func correctImageIsStoredInMemoryCache() async throws {
+        let imageCache = MockImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // Given requests with the same URLs but different processors
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
+
+        // When loading images for those requests
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        }
+        let response1 = try await task1.response
+        #expect(response1.image.nk_test_processorIDs == ["1"])
+
+        let response2 = try await task2.response
+        #expect(response2.image.nk_test_processorIDs == ["2"])
+
+        // Then each image is stored under its own request
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(imageCache[request1] != nil)
+        #expect(imageCache[request1]?.image.nk_test_processorIDs == ["1"])
+        #expect(imageCache[request2] != nil)
+        #expect(imageCache[request2]?.image.nk_test_processorIDs == ["2"])
     }
 
     @Test func eachFinalProcessedImageIsStoredInMemoryCache() async throws {
@@ -325,69 +317,165 @@ struct ImagePipelineProcessingDeduplicationTests {
         #expect(cache[ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])] == nil)
     }
 
-    @Test func intermediateMemoryCachedResultsAreUsed() async throws {
-        let cache = MockImageCache()
-        var conf = pipeline.configuration
-        conf.imageCache = cache
-        let pipeline = ImagePipeline(configuration: conf)
+    // MARK: - Joining and Leaving
 
-        let factory = MockProcessorFactory()
+    /// "The work only gets canceled when all the registered requests are."
+    @Test func downloadIsCancelledOnlyWhenTheLastTaskLeaves() async throws {
+        // Given two tasks that share a download in flight
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let (task1, task2) = await startSuspended(for: pipeline, count: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+        }
+        await didStartLoading.wait()
+        let cancelledDownloads = LockedArray<Void>()
+        let observation = NotificationCenter.default.addObserver(forName: MockDataLoader.DidCancelTask, object: dataLoader, queue: nil) { _ in
+            cancelledDownloads.append(())
+        }
+        defer { NotificationCenter.default.removeObserver(observation) }
 
-        // Given
-        cache[ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2")])] = Test.container
+        // When the first one leaves
+        task1.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task1.response
+        }
+        await drainPipeline()
 
-        // When
-        let request = ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2"), factory.make(id: "3")])
-        let response = try await pipeline.imageTask(with: request).response
+        // Then the download keeps going for the other one
+        #expect(cancelledDownloads.count == 0)
 
-        // Then
-        #expect(response.image.nk_test_processorIDs == ["3"])
-        #expect(dataLoader.createdTaskCount == 0)
-        #expect(factory.numberOfProcessorsApplied == 1)
+        // When the last one leaves
+        task2.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task2.response
+        }
+        await drainPipeline()
+
+        // Then the download is cancelled
+        #expect(cancelledDownloads.count == 1)
+        #expect(dataLoader.createdTaskCount == 1)
     }
 
-    @Test func processingDeduplicationCanBeDisabled() async throws {
+    @Test func cancellingTheImageTaskKeepsTheSharedDownloadForTheDataRequest() async throws {
         // Given
-        let pipeline = pipeline.reconfigured {
-            $0.isTaskCoalescingEnabled = false
+        let pipeline = self.pipeline
+        let (imageTask, dataTask) = await startSuspended(for: pipeline, count: 2) {
+            (pipeline.imageTask(with: Test.request), Task { try await pipeline.data(for: Test.request) })
         }
 
-        // Given requests with the same URLs but different processors
+        // When
+        imageTask.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await imageTask.response
+        }
+        dataLoader.isSuspended = false
+
+        // Then
+        let (data, _) = try await dataTask.value
+        #expect(data == Test.data)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    /// Both requests share the work of the first processor, which one of them
+    /// requested directly. It has to keep going for the other one when that
+    /// request is gone.
+    @Test func cancellingTheRequestThatStartedSharedProcessingKeepsItForTheOthers() async throws {
+        // Given
         let processors = MockProcessorFactory()
-        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
+        let first = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let second = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
+        let (task1, task2) = await startSuspended(for: pipeline, count: 2) {
+            (pipeline.imageTask(with: first), pipeline.imageTask(with: second))
+        }
 
         // When
-        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
-            (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        task1.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task1.response
         }
-        _ = try await task1.response
-        _ = try await task2.response
-
-        // Then the processor "1" is applied twice
-        #expect(processors.numberOfProcessorsApplied == 3)
-    }
-
-    @Test func dataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() async throws {
-        // Given
-        let dataCache = MockDataCache()
-        let pipeline = pipeline.reconfigured {
-            $0.dataCache = dataCache
-        }
-
-        // When - One request reloading cache data, another one not
-        @Sendable func makeRequest(options: ImageRequest.Options) -> ImageRequest {
-            ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
-        }
-
-        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
-            (pipeline.imageTask(with: makeRequest(options: [])),
-             pipeline.imageTask(with: makeRequest(options: [.reloadIgnoringCachedData])))
-        }
-        _ = try await task1.response
-        _ = try await task2.response
+        dataLoader.isSuspended = false
 
         // Then
+        let response = try await task2.response
+        #expect(response.image.nk_test_processorIDs == ["1", "2"])
+        #expect(processors.numberOfProcessorsApplied == 2)
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    /// The work of the cancelled tasks is disposed of and must not be picked
+    /// up by a new request, which would otherwise never finish.
+    @Test func requestAfterEveryTaskWasCancelledStartsNewWork() async throws {
+        // Given two tasks sharing a download that are both cancelled
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let (task1, task2) = await startSuspended(for: pipeline, count: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+        }
+        await didStartLoading.wait()
+        task1.cancel()
+        task2.cancel()
+        for task in [task1, task2] {
+            await #expect(throws: ImagePipeline.Error.cancelled) {
+                try await task.response
+            }
+        }
+
+        // When
+        dataLoader.isSuspended = false
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // Then
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    @Test func taskJoiningInTheMiddleOfTheDownloadGetsTheSameImage() async throws {
+        // Given a download that already delivered its first chunk
+        let dataLoader = MockProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let first = pipeline.imageTask(with: Test.request)
+        await waitUntil { first.status.progress.completed != 0 }
+
+        // When another task for the same image joins it
+        let didStart = TestExpectation()
+        pipeline.onTaskStarted = { _ in didStart.fulfill() }
+        let second = pipeline.imageTask(with: Test.request)
+        await didStart.wait()
+        pipeline.onTaskStarted = nil
+        // The chunks reach the pipeline actor after the task subscribes: the
+        // pipeline starts the task and subscribes it in one go.
+        dataLoader.resumeServingChunks(dataLoader.chunks.count)
+
+        // Then both get the one image the download produced
+        let response1 = try await first.response
+        let response2 = try await second.response
+        #expect(response1.image === response2.image)
+        #expect(second.status.progress == first.status.progress)
+    }
+
+    // MARK: - Errors
+
+    @Test func errorPropagatedToBothCoalescedSubscribers() async {
+        // GIVEN - two tasks for the same URL, data loader will fail
+        let error = NSError(domain: "test", code: -1)
+        dataLoader.results[Test.url] = .failure(error)
+
+        // WHEN - both tasks are started concurrently. Data loading stays
+        // suspended until both have registered with the pipeline, otherwise the
+        // first one can fail before the second subscribes and there is nothing
+        // left to coalesce with.
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: Test.request), pipeline.imageTask(with: Test.request))
+        }
+
+        var errorCount = 0
+        do { _ = try await task1.response } catch { errorCount += 1 }
+        do { _ = try await task2.response } catch { errorCount += 1 }
+
+        // THEN - both subscribers receive an error
+        #expect(errorCount == 2)
+        // Only one network request was made (coalesced)
         #expect(dataLoader.createdTaskCount == 1)
     }
 }

@@ -210,11 +210,6 @@ struct ImagePipelineDiagnosticsRecordingTests {
         }
     }
 
-    @Test func environmentVariableIsTheDefault() {
-        #expect(ImagePipeline.Diagnostics.isEnabledByEnvironment == ImagePipeline.Diagnostics.isEnabled(in: ProcessInfo.processInfo.environment))
-        #expect(ImagePipeline.Configuration().isDiagnosticsEnabled == ImagePipeline.Diagnostics.isEnabledByEnvironment)
-    }
-
     /// Anything but `0`, `no`, `false`, or nothing at all is on, whatever
     /// the case of the letters.
     @Test func environmentVariableIgnoresCase() {
@@ -336,7 +331,9 @@ struct ImagePipelineDiagnosticsRecordingTests {
     }
 
     /// A download the task was cancelled out of before `dataLoadingQueue` let
-    /// it run knows when it was enqueued, and nothing else.
+    /// it run, which is what scrolling past the cells does to a busy pipeline,
+    /// knows when it was enqueued, and nothing else. The task spent that time
+    /// waiting, not on the network.
     @Test @ImagePipelineActor func downloadThatNeverLeftItsQueue() async throws {
         // GIVEN a data loading queue that holds its work
         let queue = pipeline.configuration.dataLoadingQueue
@@ -376,6 +373,11 @@ struct ImagePipelineDiagnosticsRecordingTests {
 
         let line = try #require(metrics.description.split(separator: "\n").first { $0.contains("─ download ") }, "No download in:\n\(metrics.description)")
         #expect(line.hasSuffix("never started"), "Unexpected row: \(line)")
+
+        // THEN the wait is queue time, not network time
+        let categories = metrics.timeShares.map(\.category)
+        #expect(!categories.contains(.network), "Unexpected shares: \(metrics.timeShares)\n\(metrics.description)")
+        #expect(categories.contains(.queue), "No queue share in: \(metrics.timeShares)")
     }
 
     // MARK: - Waits
@@ -496,6 +498,51 @@ struct ImagePipelineDiagnosticsRecordingTests {
         let download = try #require(lines.first { $0.contains("─ download ") })
         #expect(download.hasSuffix("  running"), "Unexpected row: \(download)")
         #expect(metrics.description.range(of: #"\ncoalesced: +no · shared with #\#(task2.taskId) \(j[0-9]+, j[0-9]+, j[0-9]+\)\n"#, options: .regularExpression) != nil, "Unexpected header in:\n\(metrics.description)")
+    }
+
+    /// A task that joined a download and left before it finished sees it
+    /// running too: it waited on the download from the moment it joined to
+    /// its own end, and never saw where the download ended.
+    @Test func joinerCancelledMidDownloadSeesTheStageRunning() async throws {
+        // GIVEN a task that joined a download in flight
+        dataLoader.isSuspended = true
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task1 = pipeline.imageTask(with: Test.request)
+        await started.wait()
+        let joined = TestExpectation()
+        pipeline.onTaskStarted = { _ in joined.fulfill() }
+        let task2 = pipeline.imageTask(with: Test.request)
+        await joined.wait()
+        pipeline.onTaskStarted = nil
+
+        // WHEN it leaves before the download completes
+        task2.cancel()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task2.response
+        }
+        dataLoader.isSuspended = false
+        _ = try await task1.response
+
+        // THEN the download is running in its copy
+        let metrics = try #require(task2.metrics)
+        #expect(metrics.outcome == .cancelled)
+        #expect(metrics.isCoalesced)
+        let fetch = try #require(metrics.jobs.last)
+        #expect(fetch.kind == .fetchOriginalData)
+        let joinedAt = try #require(fetch.joinedAt)
+        let download = try #require(fetch.stages.first { $0.kind == .download })
+        let startedAt = try #require(download.startedAt)
+        #expect(startedAt < joinedAt)
+        #expect(download.duration == nil)
+
+        // THEN it's attributed the time from the join to the end of the task
+        let attributedDuration = try #require(download.attributedDuration)
+        #expect(abs(attributedDuration - (metrics.endedAt - joinedAt)) < 1e-6)
+
+        // THEN the row says where in the download the task joined, and not
+        // how long the download took
+        let row = try #require(metrics.formatted(.timeline).split(separator: "\n").first { $0.contains("─ download ") }, "No download in:\n\(metrics.description)")
+        #expect(row.range(of: #"  running · joined at (<0\.1|[0-9]+\.[0-9]) ms$"#, options: .regularExpression) != nil, "Unexpected row: \(row)")
     }
 
     // MARK: - Failures
@@ -650,7 +697,10 @@ struct ImagePipelineDiagnosticsRecordingTests {
 
     @Test func delegateThatThrowsBeforeTheDownloadIsRecorded() async throws {
         // GIVEN a delegate that refuses to load the data
-        let pipeline = ImagePipeline(delegate: _ThrowingDelegate()) {
+        let delegate = MockWillLoadDataDelegate { _ in
+            throw URLError(.userAuthenticationRequired)
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isDiagnosticsEnabled = true
@@ -930,14 +980,5 @@ struct ImagePipelineDiagnosticsRecordingTests {
         // THEN the jobs' records are released once the jobs finish unwinding
         await waitUntil { records.1.allSatisfy { $0.value == nil } }
         #expect(task.metrics?.jobs.count == 4)
-    }
-}
-
-// MARK: - Helpers
-
-private final class _ThrowingDelegate: ImagePipeline.Delegate, Sendable {
-    @ImagePipelineActor
-    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
-        throw URLError(.userAuthenticationRequired)
     }
 }

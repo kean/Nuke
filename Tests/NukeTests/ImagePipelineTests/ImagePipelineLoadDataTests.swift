@@ -28,29 +28,6 @@ struct ImagePipelineLoadDataTests {
         }
     }
 
-    // MARK: - Progress Reporting
-
-    @Test func progressClosureIsCalled() async throws {
-        // Given
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When
-        let task = pipeline.imageTask(with: Test.url)
-        var progressValues: [ImageTask.Progress] = []
-        for await progress in task.progress {
-            progressValues.append(progress)
-        }
-        _ = try? await task.response
-
-        // Then
-        #expect(progressValues == [
-            ImageTask.Progress(completed: 10, total: 20),
-            ImageTask.Progress(completed: 20, total: 20)
-        ])
-    }
-
     // MARK: - Errors
 
     @Test func loadWithInvalidURL() async throws {
@@ -184,239 +161,72 @@ struct ImagePipelineLoadDataTests {
 
     // MARK: - DataCachePolicy
 
-    // MARK: DataCachPolicy.automatic
-
-    @Test func policyAutomaticGivenRequestWithProcessors() async throws {
+    /// What each policy stores for data tasks: the original data or nothing.
+    /// A data task has no image to encode, so the image task table in
+    /// `ImagePipelineDataCacheTests` differs in the rows where it encodes one.
+    @Test(arguments: [
+        PolicyCase(.automatic, .processed, storesOriginalData: false),
+        PolicyCase(.automatic, .original, storesOriginalData: true),
+        PolicyCase(.automatic, .processedThenOriginal, storesOriginalData: true),
+        PolicyCase(.storeEncodedImages, .processed, storesOriginalData: false),
+        PolicyCase(.storeEncodedImages, .original, storesOriginalData: false),
+        PolicyCase(.storeEncodedImages, .processedThenOriginal, storesOriginalData: false),
+        PolicyCase(.storeOriginalData, .processed, storesOriginalData: true),
+        PolicyCase(.storeOriginalData, .original, storesOriginalData: true),
+        PolicyCase(.storeOriginalData, .processedThenOriginal, storesOriginalData: true),
+        PolicyCase(.storeAll, .processed, storesOriginalData: true),
+        PolicyCase(.storeAll, .original, storesOriginalData: true),
+        PolicyCase(.storeAll, .processedThenOriginal, storesOriginalData: true)
+    ])
+    func policyDecidesWhatDataTasksStore(_ policyCase: PolicyCase) async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .automatic
+            $0.dataCachePolicy = policyCase.policy
         }
 
-        // GIVEN request with a processor
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
-
         // WHEN
-        _ = try await pipeline.data(for: request)
+        for request in policyCase.requests.imageRequests {
+            _ = try await pipeline.data(for: request)
+        }
 
-        // THEN nothing is stored in disk cache
+        // THEN the original data is written once at most
+        let keys: Set<String> = policyCase.storesOriginalData ? [Test.url.absoluteString] : []
+        #expect(Set(dataCache.store.keys) == keys)
+        #expect(dataCache.writeCount == keys.count)
         #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.store.count == 0)
     }
 
-    @Test func policyAutomaticGivenRequestWithoutProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .automatic
+    /// The requests for `Test.url` that a row loads one after the other with a
+    /// data cache policy, and whether the policy stores the original data.
+    struct PolicyCase: Sendable, CustomStringConvertible {
+        let policy: ImagePipeline.DataCachePolicy
+        let requests: Requests
+        let storesOriginalData: Bool
+
+        init(_ policy: ImagePipeline.DataCachePolicy, _ requests: Requests, storesOriginalData: Bool) {
+            self.policy = policy
+            self.requests = requests
+            self.storesOriginalData = storesOriginalData
         }
 
-        // GIVEN request without a processor
-        let request = ImageRequest(url: Test.url)
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN original image data is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    @Test func policyAutomaticGivenTwoRequests() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .automatic
+        var description: String {
+            "\(policy), \(requests.rawValue)"
         }
 
-        // WHEN
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url))
+        enum Requests: String, Sendable {
+            case processed
+            case original
+            case processedThenOriginal = "processed then original"
 
-        // THEN
-        // only original image is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    // MARK: DataCachPolicy.storeOriginalData
-
-    @Test func policyStoreOriginalDataGivenRequestWithProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalData
+            var imageRequests: [ImageRequest] {
+                let processed = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+                let original = ImageRequest(url: Test.url)
+                switch self {
+                case .processed: return [processed]
+                case .original: return [original]
+                case .processedThenOriginal: return [processed, original]
+                }
+            }
         }
-
-        // GIVEN request with a processor
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN nothing is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    @Test func policyStoreOriginalDataGivenRequestWithoutProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalData
-        }
-
-        // GIVEN request without a processor
-        let request = ImageRequest(url: Test.url)
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN original image data is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    @Test func policyStoreOriginalDataGivenTwoRequests() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalData
-        }
-
-        // WHEN
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url))
-
-        // THEN
-        // only original image is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    // MARK: DataCachPolicy.storeEncodedImages
-
-    @Test func policyStoreEncodedImagesGivenRequestWithProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeEncodedImages
-        }
-
-        // GIVEN request with a processor
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN nothing is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.store.count == 0)
-    }
-
-    @Test func policyStoreEncodedImagesGivenRequestWithoutProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeEncodedImages
-        }
-
-        // GIVEN request without a processor
-        let request = ImageRequest(url: Test.url)
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN original image data is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.store.count == 0)
-    }
-
-    @Test func policyStoreEncodedImagesGivenTwoRequests() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeEncodedImages
-        }
-
-        // WHEN
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url))
-
-        // THEN
-        // only original image is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) == nil)
-        #expect(dataCache.writeCount == 0)
-        #expect(dataCache.store.count == 0)
-    }
-
-    // MARK: DataCachPolicy.storeAll
-
-    @Test func policyStoreAllGivenRequestWithProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeAll
-        }
-
-        // GIVEN request with a processor
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN nothing is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    @Test func policyStoreAllGivenRequestWithoutProcessors() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeAll
-        }
-
-        // GIVEN request without a processor
-        let request = ImageRequest(url: Test.url)
-
-        // WHEN
-        _ = try await pipeline.data(for: request)
-
-        // THEN original image data is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
-    }
-
-    @Test func policyStoreAllGivenTwoRequests() async throws {
-        // GIVEN
-        let pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeAll
-        }
-
-        // WHEN
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        _ = try await pipeline.data(for: ImageRequest(url: Test.url))
-
-        // THEN
-        // only original image is stored in disk cache
-        #expect(encoder.encodeCount == 0)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString + "p1") == nil)
-        #expect(dataCache.cachedData(for: Test.url.absoluteString) != nil)
-        #expect(dataCache.writeCount == 1)
-        #expect(dataCache.store.count == 1)
     }
 }

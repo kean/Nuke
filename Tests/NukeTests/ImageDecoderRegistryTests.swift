@@ -57,21 +57,6 @@ struct ImageDecoderRegistryTests {
         #expect(noDecoder == nil)
     }
 
-    @Test func whenReturningNextDecoderIsEvaluated() {
-        // Given
-        let registry = ImageDecoderRegistry()
-        registry.register { _ in
-            return nil
-        }
-
-        // When
-        let context = ImageDecodingContext.mock
-        let decoder = ImageDecoderRegistry().decoder(for: context)
-
-        // Then
-        #expect(decoder is ImageDecoders.Default)
-    }
-
     // MARK: - Fallthrough and Ordering
 
     @Test func whenRegisteredDecoderReturnsNilFallsToBuiltIn() {

@@ -162,4 +162,16 @@ struct ImagePipelineErrorTests {
         #expect(error.description.contains("MockImageDecoder"))
         #expect(error.description.contains("truncated-header"))
     }
+
+    @Test func processingFailedDescriptionIsExact() {
+        // Given
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+        let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
+
+        // Then the message names the processor and the underlying error, and
+        // it's what string interpolation produces
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
+        #expect(error.description == expected)
+        #expect("\(error)" == expected)
+    }
 }

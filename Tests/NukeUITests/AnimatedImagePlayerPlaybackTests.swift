@@ -5,6 +5,7 @@
 import Combine
 import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 @testable import Nuke
 @testable import NukeUI
@@ -22,7 +23,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
     @Test func reportsTheLastLoopBeforeItFinishes() async {
         // GIVEN an animation that asks to be played twice
-        let (player, clock) = makePlayer(frameCount: 3, loopCount: 2)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, loopCount: 2)
         var events: [String] = []
         player.onLoop = { events.append("loop \($0)") }
         player.onFinish = { [unowned player, unowned clock] in
@@ -54,7 +55,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // playing at all is not what anybody asking for zero plays wants.
         var options = AnimatedImagePlayer.Options()
         options.repeatCount = .finite(count)
-        let (player, clock) = makePlayer(frameCount: 3, options: options)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         player.play()
         await player.waitUntilFull()
 
@@ -88,7 +89,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // GIVEN an animation that plays once, and a handler that starts it over
         var options = AnimatedImagePlayer.Options()
         options.repeatCount = .finite(1)
-        let (player, clock) = makePlayer(frameCount: 3, options: options)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         var finishCount = 0
         player.onFinish = { [unowned player] in
             finishCount += 1
@@ -117,7 +118,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // over
         var options = AnimatedImagePlayer.Options()
         options.repeatCount = .finite(1)
-        let (player, clock) = makePlayer(frameCount: 3, options: options)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         player.onLoop = { [unowned player] _ in player.restart() }
         var finishCount = 0
         player.onFinish = { finishCount += 1 }
@@ -142,7 +143,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func aSeekFromTheLoopHandlerStands() async {
         // GIVEN a handler that skips the first frames on every loop after the
         // first
-        let (player, clock) = makePlayer(frameCount: 4)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4)
         player.onLoop = { [unowned player] _ in player.seek(toFrame: 2) }
         var shown: [Int] = []
         player.play()
@@ -161,7 +162,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
     @Test func aPauseFromTheLoopHandlerHoldsTheFirstFrame() async {
         // GIVEN a handler that stops the animation after every loop
-        let (player, clock) = makePlayer(frameCount: 3)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3)
         var indexes: [Int] = []
         player.onLoop = { [unowned player] _ in
             // The player is already on the first frame when it is told
@@ -187,7 +188,7 @@ struct AnimatedImagePlayerPlaybackTests {
     // MARK: Seeking
 
     @Test func seekingToADecodedFrameShowsItAtOnce() async throws {
-        let (player, _) = makePlayer(frameCount: 4)
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 4)
         player.play()
         await player.waitUntilFull()
         var frames: [PlatformImage] = []
@@ -198,12 +199,12 @@ struct AnimatedImagePlayerPlaybackTests {
         // Not on the next tick: a scrubber drawing the frame it asked for.
         #expect(frames.count == 1)
         let frame = try #require(player.store.frame(at: 2))
-        #expect(AnimatedImageTest.firstPixel(of: frames.first) == AnimatedImageTest.firstPixel(of: frame))
+        #expect(Test.firstPixel(of: frames.first) == Test.firstPixel(of: frame))
         #expect(player.image === frames.first)
     }
 
     @Test func seekingToTheFrameOnScreenPublishesButDoesNotRedrawIt() async {
-        let (player, _) = makePlayer(frameCount: 4)
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 4)
         await player.waitUntilFull()
         let displayed = player.diagnostics.displayedFrameCount
         var frameCount = 0
@@ -223,7 +224,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func seekingKeepsTheLoopCountAndDoesNotStartPlayback() async {
         // `completedLoopCount` counts since the player was created; only
         // `restart()` starts it over.
-        let (player, clock) = makePlayer(frameCount: 3)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3)
         player.play()
         await player.waitUntilFull()
         for _ in 0..<4 { clock.tick(0.1) }
@@ -240,7 +241,7 @@ struct AnimatedImagePlayerPlaybackTests {
     // MARK: Timing
 
     @Test func theWaitForTheFirstFrameIsNotPlaybackTime() async {
-        let (player, clock) = makePlayer(frameCount: 4)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4)
         player.play()
 
         // Nothing is decoded yet: the clock runs, but nothing is on screen for
@@ -258,7 +259,7 @@ struct AnimatedImagePlayerPlaybackTests {
     func aRateThatIsNotForwardHoldsTheFrame(_ rate: Double) async {
         var options = AnimatedImagePlayer.Options()
         options.playbackRate = rate
-        let (player, clock) = makePlayer(frameCount: 4, options: options)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4, options: options)
         player.play()
         await player.waitUntilFull()
 
@@ -274,7 +275,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func slowingDownHoldsEachFrameLonger() async {
         var options = AnimatedImagePlayer.Options()
         options.playbackRate = 0.5
-        let (player, clock) = makePlayer(frameCount: 4, options: options)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4, options: options)
         player.play()
         await player.waitUntilFull()
 
@@ -290,7 +291,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
     @Test func asksTheClockForTwoTicksPerItsShortestFrame() {
         // One quick frame among slow ones still has to land on a tick.
-        let (_, clock) = makePlayer(frameCount: 4, delays: [0.5, 0.05, 0.5, 0.5])
+        let (_, clock) = AnimatedImageTest.makePlayer(frameCount: 4, delays: [0.5, 0.05, 0.5, 0.5])
 
         #expect(clock.preferredFrameRate == 40)
     }
@@ -303,7 +304,7 @@ struct AnimatedImagePlayerPlaybackTests {
         player.play()
         await player.waitUntilFull()
         #expect(player.isFrameBuffered(1) == false)
-        let first = AnimatedImageTest.firstPixel(of: player.image)
+        let first = Test.firstPixel(of: player.image)
 
         // WHEN it is due
         clock.tick(0.1)
@@ -312,7 +313,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // for its delay, and the frame counted as one that wasn't there in
         // time
         #expect(player.currentFrameIndex == 1)
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == first)
+        #expect(Test.firstPixel(of: player.image) == first)
         #expect(player.diagnostics.displayedFrameCount == 1)
         #expect(player.diagnostics.bufferMissCount == 1)
 
@@ -320,7 +321,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // frame that isn't coming.
         clock.tick(0.1)
         #expect(player.currentFrameIndex == 2)
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == Self.framePixel(at: 2))
+        #expect(Test.firstPixel(of: player.image) == Self.framePixel(at: 2, of: player))
     }
 
     @Test func startsWithoutAFirstFrameTheDecoderRefuses() async {
@@ -334,7 +335,7 @@ struct AnimatedImagePlayerPlaybackTests {
         clock.tick(0.1)
 
         #expect(player.currentFrameIndex == 1)
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == Self.framePixel(at: 1))
+        #expect(Test.firstPixel(of: player.image) == Self.framePixel(at: 1, of: player))
     }
 
     @Test func finishesAnAnimationWithNoFrameToShow() async {
@@ -356,7 +357,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func handsTheFrameToTheViewAndTheOwnerOnceItIsTheImage() async {
         // Both channels get every frame, and by the time either is called the
         // player reports the frame as its image.
-        let (player, _) = makePlayer(frameCount: 4)
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 4)
         var calls: [String] = []
         player.onFrameForDisplay = { [unowned player] image in
             #expect(player.image === image)
@@ -377,7 +378,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // are rather than at an infinite size.
         var options = AnimatedImagePlayer.Options()
         options.scale = 0
-        let (player, _) = makePlayer(frameCount: 2, size: CGSize(width: 16, height: 16), options: options)
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 2, size: CGSize(width: 16, height: 16), options: options)
 
         await player.waitUntilFull()
 
@@ -389,7 +390,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
     @Test func resumingFromAnotherPlayerCarriesThePlayheadAndTheLoops() async {
         // GIVEN a player halfway through its second loop
-        let (previous, clock) = makePlayer(frameCount: 4)
+        let (previous, clock) = AnimatedImageTest.makePlayer(frameCount: 4, pool: pool)
         previous.play()
         await previous.waitUntilFull()
         for _ in 0..<6 { clock.tick(0.1) }
@@ -412,7 +413,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // GIVEN a player that has played the one loop it was asked for
         var options = AnimatedImagePlayer.Options()
         options.repeatCount = .finite(1)
-        let (previous, clock) = makePlayer(frameCount: 3, options: options)
+        let (previous, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options, pool: pool)
         previous.play()
         await previous.waitUntilFull()
         for _ in 0..<3 { clock.tick(0.1) }
@@ -460,10 +461,10 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func reportsTheMemoryTheWindowIsAllowed() {
         // The share of the pool, at what a frame costs decoded at the size it
         // is decoded at: a quarter as much for frames half as wide.
-        let (full, _) = makePlayer(frameCount: 4, size: CGSize(width: 64, height: 64))
+        let (full, _) = AnimatedImageTest.makePlayer(frameCount: 4, size: CGSize(width: 64, height: 64))
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 32
-        let (downsampled, _) = makePlayer(frameCount: 4, size: CGSize(width: 64, height: 64), options: options)
+        let (downsampled, _) = AnimatedImageTest.makePlayer(frameCount: 4, size: CGSize(width: 64, height: 64), options: options)
         full.play()
         downsampled.play()
 
@@ -511,7 +512,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func publishesOnlyWhatChanges() {
         // Asking a playing player to play, or a paused one to pause, is not a
         // change for a SwiftUI view to redraw for.
-        let (player, _) = makePlayer(frameCount: 4)
+        let (player, _) = AnimatedImageTest.makePlayer(frameCount: 4)
         var changes = 0
         let observer = player.objectWillChange.sink { changes += 1 }
 
@@ -536,7 +537,7 @@ struct AnimatedImagePlayerPlaybackTests {
         weak var weakPlayer: AnimatedImagePlayer?
         weak var weakClock: ManualClock?
         do {
-            let (player, clock) = makePlayer(frameCount: 4)
+            let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 4)
             player.play()
             await player.waitUntilFull()
             clock.tick(0.1)
@@ -597,24 +598,6 @@ struct AnimatedImagePlayerPlaybackTests {
 
     private let noThrottling = AnimatedImagePowerMonitor(isThrottling: false)
 
-    private func makePlayer(
-        frameCount: Int,
-        delays: [TimeInterval]? = nil,
-        loopCount: Int = 0,
-        size: CGSize = CGSize(width: 8, height: 8),
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
-    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        AnimatedImageTest.makePlayer(
-            frameCount: frameCount,
-            delays: delays,
-            loopCount: loopCount,
-            size: size,
-            options: options,
-            pool: pool,
-            power: noThrottling
-        )
-    }
-
     /// A player of an animation some of whose frames can't be decoded, the
     /// way the frames a truncated file is missing can't.
     private func makeRefusingPlayer(
@@ -622,19 +605,15 @@ struct AnimatedImagePlayerPlaybackTests {
         refused: Set<Int>,
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let source = AnimatedImageSource(
-            data: Data(),
-            delays: Array(repeating: 0.1, count: frameCount),
-            size: CGSize(width: 8, height: 8),
-            makeFrameDecoder: { _ in RefusingFrameDecoder(refused: refused) }
-        )!
-        let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: noThrottling)
-        return (player, clock)
+        let source = Test.animatedGIFSource(frameCount: frameCount)
+        let decoder = GatedFrameDecoder(source: source, refusing: refused, isGated: false)
+        return AnimatedImageTest.makePlayer(source: source, options: options, decoder: decoder)
     }
 
-    /// The pixel the frame at the given index reads back as.
-    private static func framePixel(at index: Int) -> [UInt8]? {
-        AnimatedImageTest.firstPixel(of: RefusingFrameDecoder.makeFrame(at: index))
+    /// The pixel the frame of the player's animation at the given index reads
+    /// back as.
+    private static func framePixel(at index: Int, of player: AnimatedImagePlayer) -> [UInt8]? {
+        let frame = CGImageSourceCreateImageAtIndex(player.source.makeImageSource()!, index, nil)!
+        return Test.firstPixel(of: frame)
     }
 }

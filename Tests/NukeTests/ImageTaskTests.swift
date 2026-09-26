@@ -50,6 +50,27 @@ struct ImageTaskTests {
         task.cancel()
     }
 
+    @Test func progressIsReportedForEveryChunk() async throws {
+        // Given a response that the data loader delivers in two chunks
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        let task = pipeline.imageTask(with: Test.url)
+        var progressValues: [ImageTask.Progress] = []
+        for await progress in task.progress {
+            progressValues.append(progress)
+        }
+        _ = try? await task.response // The data isn't an image, so the task fails
+
+        // Then
+        #expect(progressValues == [
+            ImageTask.Progress(completed: 10, total: 20),
+            ImageTask.Progress(completed: 20, total: 20)
+        ])
+    }
+
     // MARK: - Hashable
 
     @Test func taskIsEqualToItselfOnly() {
@@ -216,15 +237,15 @@ struct ImageTaskTests {
     }
 
     @Test func subscribingAfterTheTaskIsCancelledReplaysTheTerminalEvent() async throws {
-        // Given
-        dataLoader.isSuspended = true
-        let task = await withSuspendedDataLoading(for: pipeline, expectedCount: 1) {
+        // Given a task cancelled while its download is suspended
+        let task = await startSuspended(for: pipeline, count: 1) {
             pipeline.imageTask(with: Test.request)
         }
         task.cancel()
         await #expect(throws: ImagePipeline.Error.cancelled) {
             try await task.response
         }
+        dataLoader.isSuspended = false
 
         // When
         var events: [ImageTask.Event] = []
@@ -269,18 +290,12 @@ struct ImageTaskTests {
             $0.imageCache = nil
         }
         let task = pipeline.imageTask(with: Test.request)
-        while task.status.progress.completed == 0 {
-            await Task.yield()
-        }
+        await waitUntil { task.status.progress.completed != 0 }
         let progress = task.status.progress
 
         // When the stream is created after the first chunk is delivered
         let stream = task.events
-        // The mock served the first chunk on the main queue, and nothing else
-        // synchronizes its state.
-        DispatchQueue.main.async {
-            dataLoader.resumeServingChunks(dataLoader.chunks.count)
-        }
+        dataLoader.resumeServingChunks(dataLoader.chunks.count)
 
         // Then it starts with the progress reported before it was created
         let events = await stream.reduce(into: [ImageTask.Event]()) { $0.append($1) }
@@ -401,6 +416,55 @@ struct ImageTaskTests {
         #expect(task.status.result?.isSuccess == true)
     }
 
+    @Test func statusIsEmptyWhileInFlight() async throws {
+        // Given a download in flight
+        dataLoader.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.imageTask(with: Test.request)
+        await didStartLoading.wait()
+
+        // Then
+        #expect(task.status.result == nil)
+        #expect(!task.status.isCancelled)
+        dataLoader.isSuspended = false
+        _ = try await task.response
+    }
+
+    @Test func statusRecordsTheFailure() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(URLError(.notConnectedToInternet) as NSError)
+        let task = pipeline.imageTask(with: Test.request)
+
+        // When
+        _ = try? await task.response
+
+        // Then
+        #expect(task.status.result?.isSuccess == false)
+        #expect(!task.status.isCancelled)
+    }
+
+    @Test func statusRecordsTheCancellation() async throws {
+        // Given a download in flight
+        dataLoader.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.imageTask(with: Test.request)
+        await didStartLoading.wait()
+
+        // When the task is cancelled, the download is cancelled with it
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
+            task.cancel()
+        }
+
+        // Then the outcome is recorded. The data loader hears about the
+        // cancellation while the pipeline is still on its way to recording
+        // it, so wait for the task itself to finish before reading it.
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        #expect(task.status.isCancelled)
+        #expect(task.status.result?.error == .cancelled)
+    }
+
     @Test func statusIsCapturedAtomically() async throws {
         // Given
         let task = pipeline.imageTask(with: Test.request)
@@ -454,6 +518,38 @@ struct ImageTaskTests {
         // The result is deliberately not asserted here: it is written on the
         // pipeline actor, so whether it is set yet is a race.
         #expect(task.isCancelled)
+    }
+
+    /// "The result is recorded immediately before the finished event is sent,
+    /// so it is guaranteed to be available to the observers of that event."
+    /// The delegate observes the events synchronously, as they are sent.
+    @Test func statusIsUpToDateWhenEachEventIsSent() async throws {
+        // Given
+        let delegate = StatusRecordingDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+
+        // When
+        let response = try await pipeline.imageTask(with: Test.request).response
+
+        // Then every event agrees with the status captured when it was sent
+        let recorded = delegate.recorded.withLock { $0 }
+        #expect(recorded.count == 3)
+        for (event, status) in recorded {
+            switch event {
+            case .progress(let progress):
+                #expect(status.progress == progress)
+                #expect(status.result == nil)
+            case .finished(let result):
+                #expect(result.value?.image === response.image)
+                #expect(status.result?.value?.image === response.image)
+            case .preview:
+                Issue.record("Unexpected preview")
+            }
+        }
     }
 
     // MARK: - Priority
@@ -522,13 +618,69 @@ struct ImageTaskTests {
         let task = pipeline.imageTask(with: ImageRequest(url: Test.url, priority: .low))
         task.priority = .veryHigh
         await didEnqueue.wait()
-        await Task { @ImagePipelineActor in }.value // Let the update land, too
+        await drainPipeline() // Let the update land, too
 
         // Then the download is enqueued with the new priority right away
         #expect(enqueuedPriorities == [.veryHigh])
         #expect(task.request.priority == .low)
         queue.isSuspended = false
         _ = try await task.response
+    }
+
+    /// Every update schedules its own hop to the pipeline actor, and the hops
+    /// carry no ordering guarantee between them. Each one has to apply the
+    /// priority that is current when it runs, otherwise a stale value can land
+    /// last and leave the operation out of sync with ``ImageTask/priority``.
+    @Test @ImagePipelineActor func priorityUpdatesNeverApplyAStaleValue() async throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let imageTask = pipeline.imageTask(with: Test.request)
+        Task.detached { try? await imageTask.response }
+        await expectation.wait()
+
+        let operation = try #require(expectation.operations.first)
+        var recorded: [TaskPriority] = []
+        operation.onPriorityChanged = { recorded.append($0) }
+
+        // When two updates are made back to back. The test holds the actor
+        // until it suspends, so both hops are scheduled before either runs.
+        let didApplyUpdates = TestExpectation()
+        imageTask.priority = .veryHigh
+        imageTask.priority = .veryLow
+        Task { @ImagePipelineActor in didApplyUpdates.fulfill() }
+        await didApplyUpdates.wait()
+
+        // Then the operation only ever sees the final priority
+        #expect(recorded == [.veryLow])
+        #expect(imageTask.priority == .veryLow)
+    }
+
+    @Test(arguments: QueuedStage.allCases)
+    @ImagePipelineActor func priorityChangeReachesTheQueuedOperation(_ stage: QueuedStage) async throws {
+        // Given
+        let (task, operation) = try await startTask(queuedIn: stage)
+        #expect(operation.priority == .normal)
+
+        // When/Then
+        await waitForPriorityChange(of: operation, to: .high) {
+            task.priority = .high
+        }
+    }
+
+    // MARK: - Cancellation
+
+    @Test(arguments: QueuedStage.allCases)
+    @ImagePipelineActor func cancellationReachesTheQueuedOperation(_ stage: QueuedStage) async throws {
+        // Given
+        let (task, operation) = try await startTask(queuedIn: stage)
+
+        // When/Then
+        await waitForCancellation(of: operation) {
+            task.cancel()
+        }
     }
 
     // MARK: - Awaiting the Response
@@ -573,6 +725,27 @@ struct ImageTaskTests {
             try await first.value
         }
         #expect(task.isCancelled)
+    }
+
+    /// `image(for:)` awaits the response of the task it creates, so cancelling
+    /// the Swift task that calls it cancels the image task.
+    @Test func cancellingTheSwiftTaskThatAwaitsImageForCancelsTheLoad() async throws {
+        // Given a download in flight
+        dataLoader.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let pipeline = self.pipeline
+        let task = Task {
+            try await pipeline.image(for: Test.url)
+        }
+        await didStartLoading.wait()
+
+        // When
+        task.cancel()
+
+        // Then
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.value
+        }
     }
 
     /// Awaiting from a cancelled Swift task requests the cancellation right
@@ -662,38 +835,49 @@ struct ImageTaskTests {
         #expect(recorded == [.finished(.failure(.cancelled))])
     }
 
-    // MARK: - Status
+    // MARK: - Helpers
 
-    /// "The result is recorded immediately before the finished event is sent,
-    /// so it is guaranteed to be available to the observers of that event."
-    /// The delegate observes the events synchronously, as they are sent.
-    @Test func statusIsUpToDateWhenEachEventIsSent() async throws {
-        // Given
-        let delegate = StatusRecordingDelegate()
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+    /// A stage of the work of a task that waits for a slot in a queue of its own.
+    enum QueuedStage: String, CaseIterable, Sendable {
+        case dataLoading, decoding, processing
 
-        // When
-        let response = try await pipeline.imageTask(with: Test.request).response
-
-        // Then every event agrees with the status captured when it was sent
-        let recorded = delegate.recorded.withLock { $0 }
-        #expect(recorded.count == 3)
-        for (event, status) in recorded {
-            switch event {
-            case .progress(let progress):
-                #expect(status.progress == progress)
-                #expect(status.result == nil)
-            case .finished(let result):
-                #expect(result.value?.image === response.image)
-                #expect(status.result?.value?.image === response.image)
-            case .preview:
-                Issue.record("Unexpected preview")
+        var request: ImageRequest {
+            switch self {
+            case .dataLoading, .decoding: Test.request
+            case .processing: ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
             }
         }
+
+        /// The default decoder decodes on the pipeline's actor unless it's
+        /// asked for a thumbnail, so the decoding stage needs one that doesn't.
+        func pipeline(from pipeline: ImagePipeline) -> ImagePipeline {
+            switch self {
+            case .dataLoading, .processing: pipeline
+            case .decoding: pipeline.reconfigured { $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") } }
+            }
+        }
+
+        func queue(of pipeline: ImagePipeline) -> TaskQueue {
+            switch self {
+            case .dataLoading: pipeline.configuration.dataLoadingQueue
+            case .decoding: pipeline.configuration.imageDecodingQueue
+            case .processing: pipeline.configuration.imageProcessingQueue
+            }
+        }
+    }
+
+    /// Starts a task and waits until the work of the stage is in its queue,
+    /// which stays suspended.
+    @ImagePipelineActor
+    private func startTask(queuedIn stage: QueuedStage) async throws -> (ImageTask, TaskQueue.Operation) {
+        let pipeline = stage.pipeline(from: pipeline)
+        let queue = stage.queue(of: pipeline)
+        queue.isSuspended = true
+        var task: ImageTask?
+        let operations = await queue.waitForOperations(count: 1) {
+            task = pipeline.imageTask(with: stage.request)
+        }
+        return (try #require(task), try #require(operations.first))
     }
 }
 

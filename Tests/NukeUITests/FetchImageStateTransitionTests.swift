@@ -34,7 +34,7 @@ struct FetchImageStateTransitionTests {
     // MARK: - Replacing the Displayed Image
 
     @Test func loadingNilClearsThePreviouslyLoadedImage() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.imageContainer != nil)
 
         image.load(nil as URL?)
@@ -46,7 +46,7 @@ struct FetchImageStateTransitionTests {
     }
 
     @Test func failedLoadDoesNotKeepTheImageOfThePreviousLoad() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         dataLoader.results[otherURL] = .failure(NSError(domain: "test", code: 42))
 
         let completed = TestExpectation()
@@ -63,7 +63,7 @@ struct FetchImageStateTransitionTests {
     /// A memory cache hit sets the new image directly, so a view never
     /// blinks the placeholder between two images.
     @Test func memoryCacheHitReplacesTheImageWithoutPublishingNil() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         let cached = ImageContainer(image: Test.image)
         pipeline.cache[ImageRequest(url: otherURL)] = cached
 
@@ -237,6 +237,42 @@ struct FetchImageStateTransitionTests {
         #expect(image.result?.value?.request.url == otherURL)
     }
 
+#if !os(watchOS)
+    /// The completion of the replaced request has already been dispatched to
+    /// the main queue when the next load starts. It must still be dropped, or
+    /// it would overwrite the image the new load found in the memory cache –
+    /// the classic cell reuse bug.
+    @Test func lateResponseOfReplacedRequestIsDropped() async throws {
+        let observer = ImagePipelineObserver()
+        let pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = MockImageCache()
+        }
+        image.pipeline = pipeline
+        let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
+        image.onCompletion = { results.value.append($0) }
+
+        // Given the first request finishes in the pipeline while the main
+        // thread is busy, so its completion can't run yet
+        try runWhileMainThreadIsBlocked(untilTaskCompletes: observer) {
+            image.load(Test.request)
+        }
+
+        // When the next request is a memory cache hit, loaded before the main
+        // queue drains
+        let cached = ImageContainer(image: Test.image)
+        pipeline.cache[ImageRequest(url: otherURL)] = cached
+        image.load(otherURL)
+        await waitForDelivery()
+
+        // Then only the new request is reported and displayed
+        #expect(results.value.count == 1)
+        #expect(try #require(results.value.first).value?.request.url == otherURL)
+        #expect(image.result?.value?.request.url == otherURL)
+        #expect(image.imageContainer?.image === cached.image)
+    }
+#endif
+
     @Test func asyncLoadCancelsThePipelineRequestInFlight() async throws {
         dataLoader.isSuspended = true
 
@@ -383,7 +419,7 @@ struct FetchImageStateTransitionTests {
     // MARK: - Progress
 
     @Test func progressIsClearedWhenTheNextLoadStarts() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.progress.completed > 0)
 
         dataLoader.isSuspended = true
@@ -394,7 +430,7 @@ struct FetchImageStateTransitionTests {
     }
 
     @Test func progressIsClearedByAMemoryCacheHit() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         #expect(image.progress.completed > 0)
         pipeline.cache[ImageRequest(url: otherURL)] = Test.container
 
@@ -408,7 +444,7 @@ struct FetchImageStateTransitionTests {
 
     /// Documented: cancelling continues to display a downloaded image.
     @Test func cancelKeepsTheLoadedImageAndResult() async throws {
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         let container = try #require(image.imageContainer)
 
         image.cancel()
@@ -439,7 +475,7 @@ struct FetchImageStateTransitionTests {
         image.reset()
         #expect(changes == 0)
 
-        try await loadAndWait(Test.request)
+        _ = try await image.loadAndWait(Test.request)?.get()
         image.reset()
         let changesAfterFirstReset = changes
         #expect(changesAfterFirstReset > 0)
@@ -481,17 +517,6 @@ struct FetchImageStateTransitionTests {
         #expect(!image.isLoading)
     }
 #endif
-
-    // MARK: - Helpers
-
-    private func loadAndWait(_ request: ImageRequest) async throws {
-        let completed = TestExpectation()
-        image.onCompletion = { _ in completed.fulfill() }
-        image.load(request)
-        await completed.wait()
-        image.onCompletion = nil
-        _ = try #require(image.result?.value)
-    }
 }
 
 #if !os(watchOS)

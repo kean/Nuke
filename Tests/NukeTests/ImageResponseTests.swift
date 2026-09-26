@@ -27,10 +27,6 @@ struct ImageResponseTests {
         #expect(response.cacheType == nil)
     }
 
-    @Test func cacheTypeValuesAreDistinct() {
-        #expect(ImageResponse.CacheType.memory != .disk)
-    }
-
     @Test func initializerStoresEveryArgument() {
         // Given
         let container = ImageContainer(image: Test.image, type: .png, isPreview: true)

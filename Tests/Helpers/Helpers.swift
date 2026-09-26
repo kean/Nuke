@@ -51,46 +51,21 @@ enum Test {
         Test.image(named: "fixture", extension: "jpeg")
     }
 
-    // Opaque device RGB image of the given size filled with a solid color.
-    static func rgbImage(width: Int, height: Int, color: CGColor = CGColor(red: 0, green: 0, blue: 1, alpha: 1)) -> PlatformImage {
-        let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
-        )!
-        ctx.setFillColor(color)
-        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        let cgImage = ctx.makeImage()!
-#if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-#else
-        return UIImage(cgImage: cgImage)
-#endif
+    // Device RGB image of the given size filled with a solid color, opaque
+    // unless the alpha info says otherwise.
+    static func rgbImage(
+        width: Int,
+        height: Int,
+        color: CGColor = CGColor(red: 0, green: 0, blue: 1, alpha: 1),
+        alphaInfo: CGImageAlphaInfo = .noneSkipLast
+    ) -> PlatformImage {
+        platformImage(makeImage(width: width, height: height, alphaInfo: alphaInfo, color: color)!)
     }
 
     // Grayscale (monochrome color space) image for color-space-sensitive paths.
     static func grayscaleImage(width: Int, height: Int) -> PlatformImage {
-        let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceGray(),
-            bitmapInfo: CGImageAlphaInfo.none.rawValue
-        )!
-        ctx.setFillColor(CGColor(gray: 0.5, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        let cgImage = ctx.makeImage()!
-#if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-#else
-        return UIImage(cgImage: cgImage)
-#endif
+        let gray = CGColorSpaceCreateDeviceGray()
+        return platformImage(makeImage(width: width, height: height, colorSpace: gray, alphaInfo: .none, color: CGColor(gray: 0.5, alpha: 1))!)
     }
 
     // Test.image size is 640 x 480 pixels
@@ -115,16 +90,6 @@ enum Test {
         urlResponse: urlResponse,
         cacheType: nil
     )
-
-    static func save(_ image: PlatformImage) {
-        let url = try! FileManager.default
-            .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("png")
-        print(url)
-        let data = ImageEncoders.ImageIO(type: .png, compressionRatio: 1).encode(image)!
-        try! data.write(to: url)
-    }
 }
 
 extension ImageDecodingContext {
@@ -132,8 +97,8 @@ extension ImageDecodingContext {
         mock(data: Test.data)
     }
 
-    static func mock(data: Data, previewPolicy: ImagePipeline.PreviewPolicy = .incremental) -> ImageDecodingContext {
-        ImageDecodingContext(request: Test.request, data: data, previewPolicy: previewPolicy)
+    static func mock(data: Data, isCompleted: Bool = true, previewPolicy: ImagePipeline.PreviewPolicy = .incremental) -> ImageDecodingContext {
+        ImageDecodingContext(request: Test.request, data: data, isCompleted: isCompleted, previewPolicy: previewPolicy)
     }
 }
 

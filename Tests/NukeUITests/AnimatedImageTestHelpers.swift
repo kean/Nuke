@@ -4,6 +4,7 @@
 
 import CoreGraphics
 import Foundation
+import Testing
 @testable import Nuke
 @testable import NukeUI
 
@@ -44,12 +45,16 @@ extension AnimatedImagePlayer.Options {
 /// target imports both.
 typealias DecodePriority = _Concurrency.TaskPriority
 
-/// A decoder that produces a frame only once the test releases it.
+/// A decoder that produces a frame only once the test releases it, and that
+/// refuses the frames it is told to, the way one reading a truncated
+/// animation does.
 ///
 /// A player that outruns its decoder is otherwise a race: the test would have
 /// to make the frames big enough to decode slowly and hope they stay slow.
 actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     private let decoder: AnimatedImageFrameDecoder
+    private let refused: Set<Int>
+    private let isGated: Bool
     private var gates: [Int: CheckedContinuation<Void, Never>] = [:]
     private var released: Set<Int> = []
     private var startedPriorities: [Int: DecodePriority] = [:]
@@ -66,16 +71,24 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
     /// is what tells read-ahead in playback order from any other order.
     private(set) var startedIndexes: [Int] = []
 
-    init(source: AnimatedImageSource, maxPixelSize: CGFloat? = nil) {
+    /// - parameter refused: The frames it answers with no image.
+    /// - parameter isGated: `false` for a decoder that hands over every frame
+    ///   as soon as it is asked for it.
+    init(source: AnimatedImageSource, maxPixelSize: CGFloat? = nil, refusing refused: Set<Int> = [], isGated: Bool = true) {
         self.decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: maxPixelSize)
+        self.refused = refused
+        self.isGated = isGated
     }
 
     func decode(at index: Int) async -> CGImage? {
         decodeCounts[index, default: 0] += 1
         startedIndexes.append(index)
         recordPriority(Task.currentPriority, at: index)
-        if released.remove(index) == nil {
+        if isGated, released.remove(index) == nil {
             await withCheckedContinuation { gates[index] = $0 }
+        }
+        guard !refused.contains(index) else {
+            return nil
         }
         return await decoder.decode(at: index)
     }
@@ -110,21 +123,40 @@ actor GatedFrameDecoder: AnimatedImageFrameDecoding {
 
 @MainActor
 enum AnimatedImageTest {
-    /// Builds a player driven by a clock the test owns.
+    /// Builds a player of the given animation, driven by a clock the test owns.
+    ///
+    /// Nothing starts it: a player that isn't playing asks for the first two
+    /// frames only, and `play()` is what makes it ask for a full window.
+    ///
+    /// - parameter pool: A pool of the player's own unless the test passes
+    ///   one: what a player is allowed to hold depends on what every other
+    ///   animation in its pool is asking for, and the suites run beside each
+    ///   other.
+    /// - parameter decoder: A decoder to use in place of the animation's own.
+    static func makePlayer(
+        source: AnimatedImageSource,
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        pool: AnimatedImageFramePool = AnimatedImageFramePool(),
+        decoder: (any AnimatedImageFrameDecoding)? = nil,
+        power: AnimatedImagePowerMonitor = AnimatedImagePowerMonitor(isThrottling: false)
+    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
+        let clock = ManualClock()
+        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: power, decoder: decoder)
+        return (player, clock)
+    }
+
+    /// Builds a player of a generated GIF, driven by a clock the test owns.
     static func makePlayer(
         frameCount: Int = 4,
         delays: [TimeInterval]? = nil,
         loopCount: Int = 0,
         size: CGSize = CGSize(width: 8, height: 8),
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
-        pool: AnimatedImageFramePool = .shared,
+        pool: AnimatedImageFramePool = AnimatedImageFramePool(),
         power: AnimatedImagePowerMonitor = AnimatedImagePowerMonitor(isThrottling: false)
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        let data = Test.animatedGIF(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
-        let source = AnimatedImageSource(data: data)!
-        let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: power)
-        return (player, clock)
+        let source = Test.animatedGIFSource(frameCount: frameCount, delays: delays, loopCount: loopCount, size: size)
+        return makePlayer(source: source, options: options, pool: pool, power: power)
     }
 
     /// Builds a player whose decoder hands over one frame at a time.
@@ -134,13 +166,26 @@ enum AnimatedImageTest {
         size: CGSize = CGSize(width: 8, height: 8),
         options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
     ) -> (player: AnimatedImagePlayer, clock: ManualClock, decoder: GatedFrameDecoder) {
-        let data = Test.animatedGIF(frameCount: frameCount, delays: delays, size: size)
-        let source = AnimatedImageSource(data: data)!
-        let clock = ManualClock()
+        let source = Test.animatedGIFSource(frameCount: frameCount, delays: delays, size: size)
         let decoder = GatedFrameDecoder(source: source)
-        let power = AnimatedImagePowerMonitor(isThrottling: false)
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, power: power, decoder: decoder)
+        let (player, clock) = makePlayer(source: source, options: options, decoder: decoder)
         return (player, clock, decoder)
+    }
+
+    /// Releases the frame and waits for the decode in flight – the one the
+    /// frame is waiting on – to hand it over.
+    ///
+    /// The decode is read before the frame is released: the next one starts
+    /// as soon as it finishes.
+    static func decode(
+        _ index: Int,
+        of player: AnimatedImagePlayer,
+        with decoder: GatedFrameDecoder,
+        sourceLocation: SourceLocation = #_sourceLocation
+    ) async throws {
+        let decode = try #require(player.store.currentDecode, sourceLocation: sourceLocation)
+        await decoder.release(index)
+        await decode.value
     }
 
     /// The size of one decoded frame in memory.
@@ -151,56 +196,45 @@ enum AnimatedImageTest {
         guard let cgImage = player.image?.cgImage else { return nil }
         return cgImage.bytesPerRow * cgImage.height
     }
-
-    /// The color of the top-left pixel, which is what tells the generated
-    /// frames apart.
-    static func firstPixel(of image: PlatformImage?) -> [UInt8]? {
-        guard let cgImage = image?.cgImage else { return nil }
-        return firstPixel(of: cgImage)
-    }
-
-    static func firstPixel(of cgImage: CGImage) -> [UInt8]? {
-        var pixel = [UInt8](repeating: 0, count: 4)
-        let context = pixel.withUnsafeMutableBytes { buffer in
-            CGContext(
-                data: buffer.baseAddress,
-                width: 1,
-                height: 1,
-                bitsPerComponent: 8,
-                bytesPerRow: 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            )
-        }
-        guard let context else { return nil }
-        // Draw the image scaled down to the single pixel of the context: every
-        // generated frame is a solid color, so any pixel identifies the frame.
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1, height: 1))
-        return pixel
-    }
 }
 
-/// Draws every frame in a gray of its own, and refuses the ones it is told to.
-struct RefusingFrameDecoder: AnimatedImageFrameDecoding {
-    let refused: Set<Int>
+/// A suite whose tests each hold the frames of their players in a pool of
+/// their own.
+///
+/// What a player is allowed to hold depends on what every other animation in
+/// its pool is asking for, and the suites run beside each other. Swift Testing
+/// creates the suite anew for every test, so its pool is the test's own, and
+/// the players one test builds share it the way the players on one screen do.
+@MainActor
+protocol AnimatedImagePoolSuite {
+    var pool: AnimatedImageFramePool { get }
+}
 
-    func decode(at index: Int) async -> CGImage? {
-        refused.contains(index) ? nil : RefusingFrameDecoder.makeFrame(at: index)
+extension AnimatedImagePoolSuite {
+    /// A player that is playing, which is what makes it ask for a full window
+    /// of frames. One that isn't asks for two.
+    ///
+    /// - parameter pool: The pool to hold the frames in, if not the test's.
+    func makePlayer(
+        source: AnimatedImageSource,
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        pool: AnimatedImageFramePool? = nil,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
+    ) -> AnimatedImagePlayer {
+        let player = makeIdlePlayer(source: source, options: options, pool: pool, decoder: decoder).player
+        player.play()
+        return player
     }
 
-    static func makeFrame(at index: Int) -> CGImage {
-        let context = CGContext(
-            data: nil,
-            width: 8,
-            height: 8,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        let level = CGFloat(index + 1) / 8
-        context.setFillColor(red: level, green: level, blue: level, alpha: 1)
-        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
-        return context.makeImage()!
+    /// A player nothing has started, on a clock the test drives.
+    ///
+    /// - parameter pool: The pool to hold the frames in, if not the test's.
+    func makeIdlePlayer(
+        source: AnimatedImageSource,
+        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options(),
+        pool: AnimatedImageFramePool? = nil,
+        decoder: (any AnimatedImageFrameDecoding)? = nil
+    ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
+        AnimatedImageTest.makePlayer(source: source, options: options, pool: pool ?? self.pool, decoder: decoder)
     }
 }

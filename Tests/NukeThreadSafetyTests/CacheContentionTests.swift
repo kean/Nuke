@@ -150,7 +150,7 @@ struct DataCacheContentionTests {
     /// returns, everything the thread staged before it is on disk.
     @Test func ownerSeesItsChangesAndFlushPersistsThem() async throws {
         // Given
-        let cache = try DataCache(name: "DataCacheContentionTests-\(UUID().uuidString)", filenameGenerator: { $0 })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0 })
         cache.flushInterval = .milliseconds(1) // Keep the drains racing the writes
         defer { try? FileManager.default.removeItem(at: cache.path) }
 
@@ -202,7 +202,7 @@ struct DataCacheContentionTests {
     /// deletes the directory.
     @Test func removeAllKeepsTheWritesStagedAfterIt() async throws {
         // Given
-        let cache = try DataCache(name: "DataCacheContentionTests-\(UUID().uuidString)", filenameGenerator: { $0 })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0 })
         cache.flushInterval = .milliseconds(1)
         defer { try? FileManager.default.removeItem(at: cache.path) }
         let earlierKeys = (0..<50).map { "earlier-\($0)" }
@@ -246,7 +246,7 @@ struct DataCacheContentionTests {
     /// sweeps racing the writes and the drains must never delete an entry.
     @Test func sweepsUnderTheSizeLimitNeverDeleteEntries() async throws {
         // Given
-        let cache = try DataCache(name: "DataCacheContentionTests-\(UUID().uuidString)", filenameGenerator: { $0 })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0 })
         cache.flushInterval = .milliseconds(1)
         defer { try? FileManager.default.removeItem(at: cache.path) }
 
@@ -288,7 +288,7 @@ struct DataCacheContentionTests {
     /// never undo each other's changes.
     @Test func settingsChangedFromManyThreadsKeepTheirLastValues() async throws {
         // Given
-        let cache = try DataCache(name: "DataCacheContentionTests-\(UUID().uuidString)", filenameGenerator: { $0 })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0 })
         defer { try? FileManager.default.removeItem(at: cache.path) }
 
         // When
@@ -322,7 +322,7 @@ struct DataCacheContentionTests {
     /// then nothing else keeps it alive: the scheduled sweeps hold it weakly.
     @Test func releasedCacheWritesItsStagedChangesAndGoesAway() async throws {
         // Given
-        let path = URL.cachesDirectory.appendingPathComponent("DataCacheContentionTests-\(UUID().uuidString)", isDirectory: true)
+        let path = makeUniqueDirectoryURL()
         defer { try? FileManager.default.removeItem(at: path) }
         let weakCache = WeakRef<DataCache>()
 
@@ -359,7 +359,7 @@ struct ImagePipelineCacheContentionTests {
     /// both cache layers while the others do the same.
     @Test func eachThreadSeesItsOwnChangesInBothLayers() async throws {
         // Given
-        let dataCache = try DataCache(name: "ImagePipelineCacheContentionTests-\(UUID().uuidString)")
+        let dataCache = try DataCache(path: makeUniqueDirectoryURL())
         dataCache.flushInterval = .milliseconds(1)
         defer { try? FileManager.default.removeItem(at: dataCache.path) }
         let pipeline = ImagePipeline {

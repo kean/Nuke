@@ -106,15 +106,6 @@ struct AnimatedImageSourceTests {
         #expect(source.loopCount == 3)
     }
 
-    @Test func readsAGIFWithNoLoopExtensionAsPlayOnce() throws {
-        // A GIF stores its loop count in the Netscape application extension,
-        // and a GIF without that block plays once in every browser. Treating
-        // the missing count as "forever" is the one place the file and the
-        // player disagree.
-        let source = try #require(AnimatedImageSource(data: Test.animatedGIF(loopCount: nil)))
-        #expect(source.loopCount == 1)
-    }
-
     @Test func defaultsTheLoopCountPerFormat() {
         // Image I/O fills the count in for a GIF written without the extension
         // on some releases, so the fallback is asserted directly: "play once"
@@ -146,6 +137,22 @@ struct AnimatedImageSourceTests {
     @Test func keepsDelaysAtTheThreshold() throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 2, delays: [0.02, 0.02])))
         #expect(source.delays == [0.02, 0.02])
+    }
+
+    @Test func delayCorrectionUsesTheValuesBrowsersUse() {
+        // The documentation quotes both.
+        #expect(AnimatedImageSource.minimumDelay == 0.011)
+        #expect(AnimatedImageSource.defaultDelay == 0.1)
+    }
+
+    @Test(arguments: [
+        (0.011, 0.011), // At the threshold: kept
+        (0.0109, 0.1),  // Just under it
+        (0, 0.1),       // Missing
+        (.nan, 0.1)     // Not a number
+    ] as [(TimeInterval, TimeInterval)])
+    func delayCorrectionAtTheThreshold(delay: TimeInterval, corrected: TimeInterval) {
+        #expect(AnimatedImageSource.correctedDelay(delay) == corrected)
     }
 
     // MARK: Rejecting Non-Animations

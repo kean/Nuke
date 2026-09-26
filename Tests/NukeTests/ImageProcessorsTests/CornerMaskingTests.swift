@@ -13,8 +13,8 @@ import UIKit
 import AppKit
 #endif
 
-/// ``ImageProcessors/Circle`` and ``ImageProcessors/RoundedCorners`` on every
-/// platform – the snapshot-based tests of the two only run on UIKit.
+/// The pixels ``ImageProcessors/Circle`` and ``ImageProcessors/RoundedCorners``
+/// produce, on every platform.
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsCornerMaskingTests {
 
@@ -22,7 +22,7 @@ struct ImageProcessorsCornerMaskingTests {
 
     @Test func circleCropsLandscapeImageToTheCenteredSquare() throws {
         // Given a 90x30 image with red, green, and blue vertical stripes
-        let input = stripedImage(width: 90, height: 30, isVertical: true)
+        let input = Test.stripedImage(width: 90, height: 30, isVertical: true)
 
         // When
         let output = try #require(ImageProcessors.Circle().process(input))
@@ -41,7 +41,7 @@ struct ImageProcessorsCornerMaskingTests {
 
     @Test func circleCropsPortraitImageToTheCenteredSquare() throws {
         // Given a 30x90 image with red, green, and blue horizontal stripes
-        let input = stripedImage(width: 30, height: 90, isVertical: false)
+        let input = Test.stripedImage(width: 30, height: 90, isVertical: false)
 
         // When
         let output = try #require(ImageProcessors.Circle().process(input))
@@ -196,36 +196,4 @@ struct ImageProcessorsCornerMaskingTests {
         }
     }
 #endif
-}
-
-// MARK: - Helpers
-
-/// Returns an image made of solid red, green, and blue stripes of equal size,
-/// in that order.
-func stripedImage(width: Int, height: Int, isVertical: Bool) -> PlatformImage {
-    let context = CGContext(
-        data: nil,
-        width: width,
-        height: height,
-        bitsPerComponent: 8,
-        bytesPerRow: 0,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
-    )!
-    let colors = [
-        CGColor(red: 1, green: 0, blue: 0, alpha: 1),
-        CGColor(red: 0, green: 1, blue: 0, alpha: 1),
-        CGColor(red: 0, green: 0, blue: 1, alpha: 1)
-    ]
-    for (index, color) in colors.enumerated() {
-        context.setFillColor(color)
-        if isVertical {
-            let stripe = width / colors.count
-            context.fill(CGRect(x: index * stripe, y: 0, width: stripe, height: height))
-        } else {
-            let stripe = height / colors.count
-            context.fill(CGRect(x: 0, y: index * stripe, width: width, height: stripe))
-        }
-    }
-    return PlatformImage(cgImage: context.makeImage()!)
 }

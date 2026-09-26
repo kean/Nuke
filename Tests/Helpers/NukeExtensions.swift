@@ -56,10 +56,14 @@ extension ImageRequest {
 }
 
 extension ImagePipeline {
-    nonisolated func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+    /// Makes a pipeline with a copy of this pipeline's configuration.
+    ///
+    /// - parameter delegate: The delegate of the new pipeline. The delegate
+    ///   of this one isn't carried over.
+    nonisolated func reconfigured(delegate: (any ImagePipeline.Delegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
         var configuration = self.configuration
         configure(&configuration)
-        return ImagePipeline(configuration: configuration)
+        return ImagePipeline(configuration: configuration, delegate: delegate)
     }
 }
 
@@ -75,28 +79,6 @@ extension ImageCaching {
     subscript(request: ImageRequest) -> ImageContainer? {
         get { self[ImageCacheKey(request: request)] }
         set { self[ImageCacheKey(request: request)] = newValue }
-    }
-}
-
-extension DataLoading {
-    /// Test-only convenience that adapts the callback-based ``DataLoading`` API
-    /// into an `AsyncThrowingStream` so tests can iterate chunks with
-    /// `for try await`. Production code calls the callback API directly.
-    func loadData(with request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), Error> {
-        AsyncThrowingStream { continuation in
-            let cancellable = self.loadData(
-                with: request,
-                didReceiveData: { data, response in
-                    continuation.yield((data, response))
-                },
-                completion: { error in
-                    continuation.finish(throwing: error)
-                }
-            )
-            continuation.onTermination = { _ in
-                cancellable.cancel()
-            }
-        }
     }
 }
 

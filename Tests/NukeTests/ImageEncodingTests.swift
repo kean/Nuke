@@ -118,13 +118,6 @@ struct ImageEncodingProtocolTests {
         #expect(ImageEncoders.ImageIO.isSupported(type: .png))
     }
 
-    @Test func imageIOEncoderIsSupportedIsMemoized() {
-        // The second call is served from the cached availability map
-        let first = ImageEncoders.ImageIO.isSupported(type: .png)
-        let second = ImageEncoders.ImageIO.isSupported(type: .png)
-        #expect(first == second)
-    }
-
     @Test func imageIOEncoderIsNotSupportedForUnknownType() {
         #expect(!ImageEncoders.ImageIO.isSupported(type: AssetType(rawValue: "com.github.kean.nuke.not-a-real-type")))
     }

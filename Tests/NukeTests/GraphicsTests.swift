@@ -374,15 +374,9 @@ enum GraphicsSourceFormat: CaseIterable, Sendable {
         let cgImage: CGImage?
         switch self {
         case .cmyk:
-            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceCMYK(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
-            context?.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
-            context?.fill(CGRect(x: 0, y: 0, width: width, height: height))
-            cgImage = context?.makeImage()
+            cgImage = Test.makeImage(width: width, height: height, colorSpace: CGColorSpaceCreateDeviceCMYK(), alphaInfo: .none, color: CGColor(red: 1, green: 0, blue: 0, alpha: 1))
         case .grayscale16:
-            let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 16, bytesPerRow: 0, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
-            context?.setFillColor(CGColor(gray: 0.5, alpha: 1))
-            context?.fill(CGRect(x: 0, y: 0, width: width, height: height))
-            cgImage = context?.makeImage()
+            cgImage = Test.makeImage(width: width, height: height, bitsPerComponent: 16, colorSpace: CGColorSpaceCreateDeviceGray(), alphaInfo: .none, color: CGColor(gray: 0.5, alpha: 1))
         case .indexed:
             // A two-color palette, the kind a palette PNG decodes to.
             let palette: [UInt8] = [255, 0, 0, 0, 0, 255]
@@ -409,75 +403,4 @@ enum GraphicsSourceFormat: CaseIterable, Sendable {
         }
         return cgImage.map { PlatformImage(cgImage: $0) }
     }
-}
-
-// MARK: - Helpers
-
-/// Reads the image into a known RGBA (premultiplied last) bitmap so that the
-/// individual pixels can be inspected regardless of the source color space.
-struct RGBABitmap {
-    private let bytes: [UInt8]
-    private let bytesPerRow: Int
-
-    init?(image: PlatformImage) {
-        guard let cgImage = image.cgImage else { return nil }
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerRow = width * 4
-        self.bytesPerRow = bytesPerRow
-        var bytes = [UInt8](repeating: 0, count: height * bytesPerRow)
-        let isSuccess = bytes.withUnsafeMutableBytes { buffer -> Bool in
-            guard let ctx = CGContext(
-                data: buffer.baseAddress,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: bytesPerRow,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            ) else { return false }
-            ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-            return true
-        }
-        guard isSuccess else { return nil }
-        self.bytes = bytes
-    }
-
-    func red(atX x: Int, y: Int) -> UInt8 {
-        bytes[y * bytesPerRow + x * 4]
-    }
-
-    func alpha(atX x: Int, y: Int) -> UInt8 {
-        bytes[y * bytesPerRow + x * 4 + 3]
-    }
-}
-
-extension RGBABitmap {
-    /// Returns the color components of the pixel, without the alpha.
-    func color(atX x: Int, y: Int) -> PixelColor {
-        let offset = y * bytesPerRow + x * 4
-        return PixelColor(red: bytes[offset], green: bytes[offset + 1], blue: bytes[offset + 2])
-    }
-}
-
-/// The color components of a pixel, compared with a tolerance for resampling.
-struct PixelColor: CustomStringConvertible {
-    let red: UInt8
-    let green: UInt8
-    let blue: UInt8
-
-    func isClose(to other: PixelColor) -> Bool {
-        abs(Int(red) - Int(other.red)) <= 8 &&
-        abs(Int(green) - Int(other.green)) <= 8 &&
-        abs(Int(blue) - Int(other.blue)) <= 8
-    }
-
-    var description: String { "(\(red), \(green), \(blue))" }
-}
-
-/// Returns the RGBA components of the pixel, read in the device RGB space.
-func pixelComponents(of image: PlatformImage, x: Int, y: Int) throws -> [UInt8] {
-    let bitmap = try #require(RGBABitmap(image: image))
-    let color = bitmap.color(atX: x, y: y)
-    return [color.red, color.green, color.blue, bitmap.alpha(atX: x, y: y)]
 }

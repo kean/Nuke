@@ -65,8 +65,7 @@ struct ImageProcessingOptionsTests {
     @Test func bordersWithSameColorAndWidthAreEqual() {
         let a = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
         let b = ImageProcessingOptions.Border(color: .red, width: 2, unit: .pixels)
-        #expect(a == b)
-        #expect(a.hashValue == b.hashValue)
+        assertHashableEqual(a, b)
     }
 
     @Test func bordersWithDifferentColorsAreNotEqual() {
@@ -178,8 +177,7 @@ struct ImageProcessingOptionsTests {
     @Test @MainActor func bordersWithTheSameWidthInDifferentUnitsAreEqual() {
         let points = ImageProcessingOptions.Border(color: .red, width: 2, unit: .points)
         let pixels = ImageProcessingOptions.Border(color: .red, width: 2 * Screen.scale, unit: .pixels)
-        #expect(points == pixels)
-        #expect(points.hashValue == pixels.hashValue)
+        assertHashableEqual(points, pixels)
         #expect(points.description == pixels.description)
     }
 

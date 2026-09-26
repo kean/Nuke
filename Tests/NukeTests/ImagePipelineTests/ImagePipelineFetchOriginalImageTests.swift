@@ -20,12 +20,7 @@ struct ImagePipelineFetchOriginalImageTests {
     init() {
         let dataLoader = MockProgressiveDataLoader()
         self.dataLoader = dataLoader
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-        }
+        self.pipeline = dataLoader.makePipeline()
     }
 
     // MARK: - Throttling
@@ -33,7 +28,7 @@ struct ImagePipelineFetchOriginalImageTests {
     @Test(arguments: zip([0, 3600] as [TimeInterval], [2, 1]))
     func previewsAreThrottledByTheProgressiveDecodingInterval(interval: TimeInterval, expectedPreviewCount: Int) async throws {
         // GIVEN a decoder that produces a preview for every chunk
-        let decoder = ScriptedDecoder()
+        let decoder = MockScriptedDecoder()
         let pipeline = pipeline.reconfigured {
             $0.progressiveDecodingInterval = interval
             $0.makeImageDecoder = { _ in decoder }
@@ -55,7 +50,7 @@ struct ImagePipelineFetchOriginalImageTests {
     @Test func chunkThatProducedNoPreviewDoesNotStartTheInterval() async throws {
         // GIVEN a decoder that can't make a preview from the first chunk, and
         // an interval longer than the test
-        let decoder = ScriptedDecoder(failingPartialDecodes: [1])
+        let decoder = MockScriptedDecoder(failingPartialDecodes: [1])
         let pipeline = pipeline.reconfigured {
             $0.progressiveDecodingInterval = 3600
             $0.makeImageDecoder = { _ in decoder }
@@ -80,14 +75,10 @@ struct ImagePipelineFetchOriginalImageTests {
     @Test func oneDecoderDecodesThePreviewsAndTheFinalImage() async throws {
         // GIVEN a preview policy other than the default one, which the context
         // of the final image has
-        let decoders = LockedArray<ScriptedDecoder>()
-        let pipeline = ImagePipeline(delegate: PreviewPolicyDelegate(policies: [.thumbnail])) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
+        let decoders = LockedArray<MockScriptedDecoder>()
+        let pipeline = dataLoader.makePipeline(delegate: MockPreviewPolicyDelegate(policies: [.thumbnail])) {
             $0.makeImageDecoder = { context in
-                let decoder = ScriptedDecoder(context: context)
+                let decoder = MockScriptedDecoder(context: context)
                 decoders.append(decoder)
                 return decoder
             }
@@ -109,14 +100,10 @@ struct ImagePipelineFetchOriginalImageTests {
     /// so it is replaced when the policy for more data enables them.
     @Test func decoderIsReplacedWhenThePreviewPolicyEnablesPreviews() async throws {
         // GIVEN a policy that enables the previews from the second chunk
-        let decoders = LockedArray<ScriptedDecoder>()
-        let pipeline = ImagePipeline(delegate: PreviewPolicyDelegate(policies: [.disabled, .incremental])) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
+        let decoders = LockedArray<MockScriptedDecoder>()
+        let pipeline = dataLoader.makePipeline(delegate: MockPreviewPolicyDelegate(policies: [.disabled, .incremental])) {
             $0.makeImageDecoder = { context in
-                let decoder = ScriptedDecoder(context: context)
+                let decoder = MockScriptedDecoder(context: context)
                 decoders.append(decoder)
                 return decoder
             }
@@ -160,7 +147,7 @@ struct ImagePipelineFetchOriginalImageTests {
         // GIVEN a decoder that makes a preview of every chunk as it arrives – a
         // decode on the decoding queue can be dropped or cancelled before its
         // preview reaches the processing – and a suspended processing queue
-        let decoder = ScriptedDecoder()
+        let decoder = MockScriptedDecoder()
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in decoder }
         }
@@ -263,68 +250,6 @@ struct ImagePipelineFetchOriginalImageTests {
 }
 
 // MARK: - Helpers
-
-/// A synchronous decoder that makes a preview of every chunk of data, unless
-/// the previews are disabled or it's told to fail on the given chunks.
-private final class ScriptedDecoder: ImageDecoding, @unchecked Sendable {
-    let previewPolicy: ImagePipeline.PreviewPolicy
-    private let failingPartialDecodes: Set<Int>
-    private let image = Test.rgbImage(width: 4, height: 4)
-    private let lock = NSLock()
-    private var _partialDecodeCount = 0
-    private var _finalDecodeCount = 0
-
-    var partialDecodeCount: Int { lock.withLock { _partialDecodeCount } }
-    var finalDecodeCount: Int { lock.withLock { _finalDecodeCount } }
-
-    /// - parameter failingPartialDecodes: The one-based indices of the partial
-    /// decodes that produce no preview.
-    init(previewPolicy: ImagePipeline.PreviewPolicy = .incremental, failingPartialDecodes: Set<Int> = []) {
-        self.previewPolicy = previewPolicy
-        self.failingPartialDecodes = failingPartialDecodes
-    }
-
-    convenience init(context: ImageDecodingContext) {
-        self.init(previewPolicy: context.previewPolicy)
-    }
-
-    var isAsynchronous: Bool { false }
-
-    func decode(_ data: Data) throws -> ImageContainer {
-        lock.withLock { _finalDecodeCount += 1 }
-        return ImageContainer(image: image)
-    }
-
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        let index = lock.withLock {
-            _partialDecodeCount += 1
-            return _partialDecodeCount
-        }
-        guard previewPolicy != .disabled, !failingPartialDecodes.contains(index) else {
-            return nil
-        }
-        return ImageContainer(image: image, isPreview: true)
-    }
-}
-
-/// Returns the given policies in order, then keeps returning the last one.
-private final class PreviewPolicyDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    private let policies: [ImagePipeline.PreviewPolicy]
-    private let lock = NSLock()
-    private var requestCount = 0
-
-    init(policies: [ImagePipeline.PreviewPolicy]) {
-        self.policies = policies
-    }
-
-    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
-        let index = lock.withLock {
-            defer { requestCount += 1 }
-            return min(requestCount, policies.count - 1)
-        }
-        return policies[index]
-    }
-}
 
 /// Marks the images it processes, failing either the previews or the final
 /// image when asked to.

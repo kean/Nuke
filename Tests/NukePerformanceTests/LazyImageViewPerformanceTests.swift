@@ -12,22 +12,13 @@ import NukeUI
 @Suite(.serialized)
 @MainActor
 final class LazyImageViewPerformanceTests {
-    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessors.Resize(size: CGSize(width: 2, height: 2))])
-
-    init() {
-        // Store something in memory cache to avoid going through an optimized empty Dictionary path
-        ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = ImageContainer(image: PlatformImage())
-    }
-
-    deinit {
-        ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = nil
-    }
+    private let seed = MemoryCacheSeed()
 
     @Test
     func lazyImageViewMainThreadPerformance() {
         let view = LazyImageView()
 
-        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/1)")! }
+        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/1")! }
 
         measure {
             for url in urls {
@@ -40,7 +31,7 @@ final class LazyImageViewPerformanceTests {
     func lazyImageViewMainThreadPerformanceCacheHit() {
         let view = LazyImageView()
 
-        let requests = (0..<50_000).map { _ in ImageRequest(url: URL(string: "http://test.com/1)")!) }
+        let requests = (0..<50_000).map { _ in ImageRequest(url: URL(string: "http://test.com/1")!) }
         for request in requests {
             ImagePipeline.shared.configuration.imageCache?[request] = ImageContainer(image: PlatformImage())
         }
@@ -56,7 +47,7 @@ final class LazyImageViewPerformanceTests {
     func lazyImageViewMainThreadPerformanceWithProcessor() {
         let view = LazyImageView()
 
-        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/1)")! }
+        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/1")! }
 
         measure {
             for url in urls {
@@ -69,7 +60,7 @@ final class LazyImageViewPerformanceTests {
     func lazyImageViewMainThreadPerformanceWithProcessorAndSimilarImageInCache() {
         let view = LazyImageView()
 
-        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/9999999)")! }
+        let urls = (0..<20_000).map { _ in MemoryCacheSeed.url }
 
         measure {
             for url in urls {

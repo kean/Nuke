@@ -8,22 +8,6 @@ import Foundation
 
 private let mb = 1024 * 1024
 
-/// The file where ``DataCache`` keeps the date of its last sweep.
-func metadataURL(at path: URL) -> URL {
-    path.appendingPathComponent(".data-cache-info", isDirectory: false)
-}
-
-struct SweepMetadata: Codable {
-    var lastSweepDate: Date?
-}
-
-func lastSweepDate(at path: URL) -> Date? {
-    guard let data = try? Data(contentsOf: metadataURL(at: path)) else {
-        return nil
-    }
-    return try? JSONDecoder().decode(SweepMetadata.self, from: data).lastSweepDate
-}
-
 @Suite(.timeLimit(.minutes(5)))
 struct DataCacheConfigurationTests {
     @Test func defaults() throws {
@@ -94,24 +78,6 @@ final class DataCacheSweepPolicyTests {
     deinit {
         cache.suspendIO()
         try? FileManager.default.removeItem(at: cache.path)
-    }
-
-    /// Stamps the access dates so that `keys[0]` is the least recently used
-    /// entry and the last key is the most recently used one.
-    ///
-    /// The modification dates go further back than the access dates: APFS
-    /// refreshes the access date of a file it reads only while it's older
-    /// than the modification date, and the tests need the date to change
-    /// only when the cache refreshes it.
-    private func stampAccessDates(inOrder keys: [String]) throws {
-        let now = Date()
-        for (index, key) in keys.enumerated() {
-            var url = try #require(cache.url(for: key))
-            var values = URLResourceValues()
-            values.contentModificationDate = now.addingTimeInterval(-10_000)
-            values.contentAccessDate = now.addingTimeInterval(TimeInterval(index - keys.count - 1) * 100)
-            try url.setResourceValues(values)
-        }
     }
 
     // MARK: Limits
@@ -187,7 +153,7 @@ final class DataCacheSweepPolicyTests {
             cache[key] = Data(repeating: 1, count: mb)
         }
         await cache.flush()
-        try stampAccessDates(inOrder: keys)
+        try cache.stampAccessDates(inOrder: keys)
         cache.sizeLimit = mb * 3 // The trim ratio takes it down to 2.1 MB
 
         // WHEN the least recently used entry is read
@@ -210,7 +176,7 @@ final class DataCacheSweepPolicyTests {
             cache[key] = Data(repeating: 1, count: mb)
         }
         await cache.flush()
-        try stampAccessDates(inOrder: keys)
+        try cache.stampAccessDates(inOrder: keys)
         cache.sizeLimit = mb * 3
 
         // WHEN the least recently used entry is replaced
@@ -232,7 +198,7 @@ final class DataCacheSweepPolicyTests {
 struct DataCacheScheduledSweepTests {
     @Test func corruptMetadataDoesNotPreventTheScheduledSweep() async throws {
         // GIVEN a metadata file that isn't valid JSON next to an entry
-        let path = URL.cachesDirectory.appendingPathComponent("DataCacheScheduledSweepTests-\(UUID().uuidString)", isDirectory: true)
+        let path = makeUniqueCachesDirectoryURL()
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: path) }
         try Data("not json".utf8).write(to: metadataURL(at: path))
@@ -255,6 +221,7 @@ struct DataCacheScheduledSweepTests {
         #expect(cache["key"] == Data("123".utf8))
         #expect(cache.totalCount == 1)
         cache.isSweepEnabled = false
+        await cache.flush() // The read's access date, before the directory goes
     }
 
     /// The interval is read when the sweep runs, not when the cache is
@@ -262,22 +229,25 @@ struct DataCacheScheduledSweepTests {
     @Test func sweepIntervalChangedAfterInitDecidesWhetherTheSweepIsDue() async throws {
         // GIVEN the last sweep a minute ago – recent enough for the default
         // interval (30 minutes) to skip the next one
-        let path = URL.cachesDirectory.appendingPathComponent("DataCacheScheduledSweepTests-\(UUID().uuidString)", isDirectory: true)
+        let path = makeUniqueCachesDirectoryURL()
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: path) }
         try JSONEncoder().encode(SweepMetadata(lastSweepDate: Date(timeIntervalSinceNow: -60))).write(to: metadataURL(at: path))
-
-        // WHEN the interval is shortened before the first sweep runs
-        let expectation = TestExpectation()
+        let lastSweep = try #require(lastSweepDate(at: path))
         let cache = try DataCache(
             name: path.lastPathComponent,
-            sweepDelay: .seconds(1), // Long enough for the change below to land first
-            onSweepCompleted: { expectation.fulfill() }
+            sweepDelay: .seconds(100), // The test performs the sweeps itself
+            onSweepCompleted: {}
         )
+        await cache.performScheduledSweepForTesting()
+        #expect(lastSweepDate(at: path) == lastSweep)
+
+        // WHEN the interval is shortened after the cache is created
         cache.sweepInterval = 10
+        await cache.performScheduledSweepForTesting()
 
         // THEN the sweep is due
-        await expectation.wait()
-        cache.isSweepEnabled = false
+        let date = try #require(lastSweepDate(at: path))
+        #expect(date > lastSweep)
     }
 }

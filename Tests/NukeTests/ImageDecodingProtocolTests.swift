@@ -62,12 +62,13 @@ struct ImageDecodingProtocolTests {
     }
 
     @Test func completedContextNeverAsksForAPreview() throws {
-        let decoder = RoutingRecordingDecoder(preview: ImageContainer(image: PlatformImage(), isPreview: true))
+        let decoder = MockScriptedDecoder()
 
         let response = try decoder.decode(ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: true))
 
         #expect(!response.container.isPreview)
-        #expect(decoder.calls == ["decode"])
+        #expect(decoder.finalDecodeCount == 1)
+        #expect(decoder.partialDecodeCount == 0)
     }
 
     @Test func incompleteContextProducesAPreviewResponse() throws {
@@ -83,12 +84,13 @@ struct ImageDecodingProtocolTests {
     @Test func incompleteContextWithNoPreviewThrowsWithoutDecodingTheData() {
         // The partial data must never reach `decode(_:)`: a decoder that can
         // read a truncated file would hand back a final image that isn't one.
-        let decoder = RoutingRecordingDecoder(preview: nil)
+        let decoder = MockScriptedDecoder(failingPartialDecodes: [1])
 
         #expect(throws: ImageDecodingError.unknown) {
             try decoder.decode(ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: false))
         }
-        #expect(decoder.calls == ["preview"])
+        #expect(decoder.partialDecodeCount == 1)
+        #expect(decoder.finalDecodeCount == 0)
     }
 
     @Test func errorsThrownByTheDecoderPropagateUnchanged() {
@@ -102,7 +104,7 @@ struct ImageDecodingProtocolTests {
     @Test func asyncDecoderDecodesACompletedContext() async throws {
         let context = ImageDecodingContext(request: Test.request, data: Test.data, urlResponse: Test.urlResponse, cacheType: .memory)
 
-        let response = try await RoutingAsyncDecoder(preview: nil).decode(context)
+        let response = try await MockAsyncDecoder().decode(context)
 
         #expect(!response.container.isPreview)
         #expect(response.urlResponse === Test.urlResponse)
@@ -110,7 +112,7 @@ struct ImageDecodingProtocolTests {
     }
 
     @Test func asyncDecoderProducesAPreviewForAnIncompleteContext() async throws {
-        let decoder = RoutingAsyncDecoder(preview: ImageContainer(image: PlatformImage(), isPreview: true))
+        let decoder = MockAsyncDecoder(decodePreview: { _ in ImageContainer(image: PlatformImage(), isPreview: true) })
 
         let response = try await decoder.decode(ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: false))
 
@@ -118,7 +120,7 @@ struct ImageDecodingProtocolTests {
     }
 
     @Test func asyncDecoderThrowsForAnIncompleteContextWithNoPreview() async {
-        let decoder = RoutingAsyncDecoder(preview: nil)
+        let decoder = MockAsyncDecoder()
 
         await #expect(throws: ImageDecodingError.unknown) {
             try await decoder.decode(ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: false))
@@ -156,45 +158,5 @@ struct ImageDecodingProtocolTests {
 private struct ProtocolDefaultsDecoder: ImageDecoding {
     func decode(_ data: Data) throws -> ImageContainer {
         ImageContainer(image: PlatformImage())
-    }
-}
-
-/// Records which of the two decoding methods the context was routed to.
-private final class RoutingRecordingDecoder: ImageDecoding, @unchecked Sendable {
-    private let preview: ImageContainer?
-    private let lock = NSLock()
-    private var _calls: [String] = []
-
-    var calls: [String] { lock.withLock { _calls } }
-
-    init(preview: ImageContainer?) {
-        self.preview = preview
-    }
-
-    func decode(_ data: Data) throws -> ImageContainer {
-        lock.withLock { _calls.append("decode") }
-        return ImageContainer(image: PlatformImage())
-    }
-
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        lock.withLock { _calls.append("preview") }
-        return preview
-    }
-}
-
-private final class RoutingAsyncDecoder: AsyncImageDecoding, @unchecked Sendable {
-    private let preview: ImageContainer?
-
-    init(preview: ImageContainer?) {
-        self.preview = preview
-    }
-
-    func decode(_ data: Data) async throws -> ImageContainer {
-        await Task.yield()
-        return ImageContainer(image: PlatformImage())
-    }
-
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        preview
     }
 }

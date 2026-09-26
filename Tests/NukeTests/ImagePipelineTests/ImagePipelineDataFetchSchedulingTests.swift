@@ -80,6 +80,37 @@ struct ImagePipelineDataFetchSchedulingTests {
         closure?.unsubscribe()
     }
 
+    /// The pipeline's rate limiter lets a burst of 25 fetches through at once
+    /// and holds the rest until its bucket refills.
+    @Test func pipelineRateLimiterUsesTheDefaultBurstOf25() async throws {
+        // GIVEN
+        let pipeline = makePipeline()
+        let limiter = try #require(pipeline.rateLimiter)
+        let queue = pipeline.configuration.dataLoadingQueue
+        dataLoader.isSuspended = true
+        let requests = (0..<26).map { ImageRequest(url: URL(string: "https://example.com/image-\($0).jpeg")) }
+
+        // WHEN one more fetch than the burst starts in one turn
+        let clock = ContinuousClock()
+        let start = clock.now
+        for request in requests {
+            _ = subscribe(to: pipeline, request)
+        }
+        let elapsed = clock.now - start
+
+        // THEN the burst goes to the data loading queue right away. At the
+        // default rate of 100 a second, the bucket gains a token every 10 ms,
+        // so the last fetch is certain to be held only if the turn took less.
+        #expect(queue.operationCount >= 25)
+        if elapsed < .milliseconds(10) {
+            #expect(queue.operationCount == 25)
+        }
+
+        // THEN the last one follows once the bucket refills
+        await drain(limiter)
+        #expect(queue.operationCount == 26)
+    }
+
     /// With the rate limiter off, even more fetches than it lets through in
     /// a burst go to the data loading queue right away.
     @Test func fetchesWithoutTheRateLimiterStartImmediately() async throws {
@@ -97,6 +128,37 @@ struct ImagePipelineDataFetchSchedulingTests {
         #expect(pipeline.configuration.dataLoadingQueue.operationCount == 30)
     }
 
+    // MARK: - Data Loading Queue
+
+    @Test func lowPriorityRequestsLeaveReservedDataLoadingSlotFree() async {
+        // GIVEN a data loading queue with two slots, one of them reserved
+        let queue = TaskQueue(maxConcurrentTaskCount: 2, reservedTaskCount: 1)
+        let pipeline = makePipeline { $0.dataLoadingQueue = queue }
+        dataLoader.isSuspended = true
+
+        // WHEN two low-priority requests start
+        _ = await queue.waitForOperations(count: 2) {
+            for index in 0..<2 {
+                var request = ImageRequest(url: URL(string: "https://example.com/\(index).jpeg"))
+                request.priority = .low
+                _ = pipeline.imageTask(with: request)
+            }
+        }
+
+        // THEN only one of them takes a slot
+        #expect(queue.runningCount == 1)
+        #expect(queue.pendingCount == 1)
+
+        // WHEN a normal-priority request starts
+        _ = await queue.waitForOperations(count: 1) {
+            _ = pipeline.imageTask(with: ImageRequest(url: URL(string: "https://example.com/2.jpeg")))
+        }
+
+        // THEN it takes the reserved slot
+        #expect(queue.runningCount == 2)
+        #expect(queue.pendingCount == 1)
+    }
+
     // MARK: - Skip Data Loading Queue
 
     /// With `.skipDataLoadingQueue`, the fetch runs in a `Task` of its own –
@@ -112,9 +174,31 @@ struct ImagePipelineDataFetchSchedulingTests {
         subscription?.unsubscribe()
 
         // THEN
-        await Task { @ImagePipelineActor in }.value
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
+        await drainPipeline()
         #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    /// Once the fetch that skips the queue reaches the data loader, cancelling
+    /// the task cancels the download.
+    @Test func imageTaskSkippingTheQueueIsCancelledWhileLoading() async throws {
+        // GIVEN a download that skipped a suspended data loading queue and is
+        // now in flight
+        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        dataLoader.isSuspended = true
+        let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.imageTask(with: ImageRequest(url: Test.url, options: [.skipDataLoadingQueue]))
+        await didStartLoading.wait()
+
+        // WHEN/THEN
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
+            task.cancel()
+        }
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        #expect(pipeline.taskCount == 0)
     }
 
     /// A fetch that skips the queue doesn't join an equivalent fetch waiting

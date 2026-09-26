@@ -9,7 +9,7 @@ import Testing
 final class TestExpectation: @unchecked Sendable {
     private let lock = NSLock()
     private var state: State = .idle
-    fileprivate var recorder: AnyObject?
+    fileprivate var recorder: TaskQueueObserver?
 
     private enum State {
         case idle
@@ -108,35 +108,17 @@ extension TestExpectation {
     /// to be enqueued on the given `TaskQueue`.
     @ImagePipelineActor convenience init(queue: TaskQueue, count: Int) {
         self.init()
-        let recorder = TaskQueueOperationRecorder()
-        self.recorder = recorder
-        queue.onEvent = { [weak self] event in
-            if case .enqueued(let op) = event {
-                recorder.record(op)
-                if recorder.operations.count >= count {
-                    self?.fulfill()
-                }
+        recorder = TaskQueueObserver(queue: queue) { [weak self] enqueuedCount in
+            if enqueuedCount >= count {
+                self?.fulfill()
             }
         }
     }
 
+    /// The operations enqueued since the expectation was created with
+    /// ``init(queue:count:)``.
     var operations: [TaskQueue.Operation] {
-        (recorder as? TaskQueueOperationRecorder)?.operations ?? []
-    }
-}
-
-private final class TaskQueueOperationRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _operations = [TaskQueue.Operation]()
-
-    var operations: [TaskQueue.Operation] {
-        lock.withLock { _operations }
-    }
-
-    func record(_ operation: TaskQueue.Operation) {
-        lock.withLock {
-            _operations.append(operation)
-        }
+        recorder?.operations ?? []
     }
 }
 
@@ -180,67 +162,44 @@ extension TaskQueue {
 
     /// Waits for the specified number of operations to be enqueued.
     func waitForOperations(count: Int, while action: () -> Void) async -> [TaskQueue.Operation] {
+        let previous = onEvent
         let expectation = TestExpectation(queue: self, count: count)
         action()
         await expectation.wait()
+        onEvent = previous
         return expectation.operations
-    }
-
-    /// Waits for a priority change on a TaskQueue.Operation managed by this queue.
-    func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
-        if operation.priority == target { action(); return }
-        let expectation = TestExpectation()
-        let previous = onEvent
-        onEvent = { event in
-            previous?(event)
-            if case .priorityChanged(let op) = event, op === operation, op.priority == target {
-                expectation.fulfill()
-            }
-        }
-        action()
-        await expectation.wait()
-        onEvent = previous
-    }
-
-    /// Waits for an operation managed by this queue to be cancelled.
-    func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
-        if operation.isCancelled { action(); return }
-        let expectation = TestExpectation()
-        let previous = onEvent
-        onEvent = { event in
-            previous?(event)
-            if case .cancelled(let op) = event, op === operation {
-                expectation.fulfill()
-            }
-        }
-        action()
-        await expectation.wait()
-        onEvent = previous
     }
 }
 
-/// Waits for a priority change on a standalone TaskQueue.Operation (not in a queue).
+/// Waits until the priority of the operation changes to the given one. The
+/// operation reports the change whether or not it is in a queue.
 @ImagePipelineActor
 func waitForPriorityChange(of operation: TaskQueue.Operation, to target: TaskPriority = .high, while action: () -> Void) async {
     if operation.priority == target { action(); return }
     let expectation = TestExpectation()
+    let previous = operation.onPriorityChanged
     operation.onPriorityChanged = { priority in
+        previous?(priority)
         if priority == target { expectation.fulfill() }
     }
     action()
     await expectation.wait()
-    operation.onPriorityChanged = nil
+    operation.onPriorityChanged = previous
 }
 
-/// Waits for a standalone TaskQueue.Operation to be cancelled (not in a queue).
+/// Waits until the operation is cancelled, whether or not it is in a queue.
 @ImagePipelineActor
 func waitForCancellation(of operation: TaskQueue.Operation, while action: () -> Void) async {
     if operation.isCancelled { action(); return }
     let expectation = TestExpectation()
-    operation.onCancelled = { expectation.fulfill() }
+    let previous = operation.onCancelled
+    operation.onCancelled = {
+        previous?()
+        expectation.fulfill()
+    }
     action()
     await expectation.wait()
-    operation.onCancelled = nil
+    operation.onCancelled = previous
 }
 
 /// Polls `condition` until it holds or the timeout elapses, giving the run loop
@@ -341,15 +300,18 @@ final class LockedArray<Element>: @unchecked Sendable {
 }
 
 extension TaskQueue {
-    /// Waits until all enqueued operations have finished executing.
-    /// Modeled after `OperationQueue.waitUntilAllOperationsAreFinished()`.
+    /// Waits until all enqueued operations have finished executing, or were
+    /// cancelled before they started. Modeled after
+    /// `OperationQueue.waitUntilAllOperationsAreFinished()`.
     func waitUntilAllOperationsAreFinished() async {
         guard operationCount > 0 else { return }
         let expectation = TestExpectation()
         let previous = onEvent
         onEvent = { [weak self] event in
             previous?(event)
-            if case .finished = event, let self, self.operationCount == 0 {
+            // An operation leaves the queue when it finishes, or when it is
+            // cancelled while it waits.
+            if let self, self.operationCount == 0 {
                 expectation.fulfill()
             }
         }
@@ -358,17 +320,31 @@ extension TaskQueue {
     }
 }
 
-/// Passively records operations enqueued on a TaskQueue.
-/// Use only when you need to observe operations during execution without waiting.
-@ImagePipelineActor
-final class TaskQueueObserver: Sendable {
-    private(set) var operations = [TaskQueue.Operation]()
+/// Records the operations enqueued on a `TaskQueue`, in order.
+///
+/// It chains the queue's `onEvent` handler instead of replacing it, so the
+/// observers and expectations installed before it keep working.
+final class TaskQueueObserver: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _operations = [TaskQueue.Operation]()
 
-    init(queue: TaskQueue) {
+    var operations: [TaskQueue.Operation] {
+        lock.withLock { _operations }
+    }
+
+    /// - parameter onEnqueued: Called with the number of operations enqueued
+    ///   so far, each time one is.
+    @ImagePipelineActor
+    init(queue: TaskQueue, onEnqueued: @escaping (Int) -> Void = { _ in }) {
+        let previous = queue.onEvent
         queue.onEvent = { [weak self] event in
-            if case .enqueued(let op) = event {
-                self?.operations.append(op)
+            previous?(event)
+            guard case .enqueued(let operation) = event, let self else { return }
+            let count = self.lock.withLock {
+                self._operations.append(operation)
+                return self._operations.count
             }
+            onEnqueued(count)
         }
     }
 }

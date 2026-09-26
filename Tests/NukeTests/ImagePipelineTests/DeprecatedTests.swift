@@ -85,12 +85,7 @@ struct DeprecationTests {
     @Test func loadImageProgressReportsPreviews() async {
         // Given
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-        }
+        let pipeline = dataLoader.makePipeline()
 
         // When
         let previews = Ref<[(response: ImageResponse, completed: Int64)]>([])
@@ -159,7 +154,7 @@ struct DeprecationTests {
         }
         task.cancel()
         // Wait for the pipeline actor to process cancellation and dispatch events
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
         // Simulate data arriving after cancellation
         dataLoader.isSuspended = false
         // Flush any DispatchQueue.main.async callbacks

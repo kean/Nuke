@@ -88,7 +88,7 @@ struct ThreadSafetyTests {
             let streams = await makeStreamsOnManyThreads(for: task)
 
             // Then
-            await Task { @ImagePipelineActor in }.value // `onEvent` is called after the streams get the event
+            await drainPipeline() // `onEvent` is called after the streams get the event
             let events = sent.withLock { $0 }.map(EventKey.init)
             #expect(events.contains { if case .preview = $0 { true } else { false } })
             for stream in streams {
@@ -209,7 +209,7 @@ struct ThreadSafetyTests {
     // MARK: - DataCache
 
     @Test func dataCacheThreadSafety() async throws {
-        let cache = try DataCache(name: UUID().uuidString, filenameGenerator: { $0 })
+        let cache = try DataCache(path: makeUniqueDirectoryURL(), filenameGenerator: { $0 })
 
         let data = Data(repeating: 1, count: 256 * 1024)
 
@@ -246,10 +246,15 @@ struct ThreadSafetyTests {
                 running += 1
             }
         }
+
+        // Flush first: a drain that runs after the directory is removed would
+        // re-create it.
+        await cache.flush()
+        try? FileManager.default.removeItem(at: cache.path)
     }
 
     @Test func dataCacheMultipleThreadAccess() async throws {
-        let cache = try DataCache(name: UUID().uuidString)
+        let cache = try DataCache(path: makeUniqueDirectoryURL())
 
         let aURL = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageData = Test.data(name: "fixture", extension: "jpeg")
@@ -276,6 +281,9 @@ struct ThreadSafetyTests {
 
         await expectation.wait()
 
+        // The stored data is still staged: flush it before removing the
+        // directory, or the drain re-creates it.
+        await cache.flush()
         try? FileManager.default.removeItem(at: cache.path)
     }
 }

@@ -180,34 +180,6 @@ struct TaskQueueTests {
         #expect(item3Started.value)
     }
 
-    @Test func settingSameMaxConcurrentTaskCountDoesNotDrain() async {
-        // Given – capacity 1, one item running, one pending
-        let queue = TaskQueue(maxConcurrentTaskCount: 1)
-        let item1Started = TestExpectation()
-        let item2Started = Ref(false)
-        let gate = TestExpectation()
-
-        queue.add {
-            item1Started.fulfill()
-            await gate.wait()
-        }
-        queue.add {
-            item2Started.value = true
-        }
-
-        await item1Started.wait()
-
-        // When – set to the same value
-        queue.maxConcurrentTaskCount = 1
-
-        // Then – no extra drain, item 2 still pending
-        #expect(!item2Started.value)
-
-        // Cleanup
-        gate.fulfill()
-        await queue.waitUntilAllOperationsAreFinished()
-    }
-
     // MARK: - Priority
 
     @Test func highPriorityItemExecutesFirst() async {
@@ -315,28 +287,6 @@ struct TaskQueueTests {
         await queue.waitUntilAllOperationsAreFinished()
 
         // Then – A was once higher priority, so it leads the normal bucket
-        #expect(order.value == ["A", "B", "C"])
-    }
-
-    @Test func decreasedPriorityPrependsAcrossMultipleDrops() async {
-        // Given – A(veryHigh), B(normal), C(normal)
-        let queue = TaskQueue(maxConcurrentTaskCount: 1)
-        queue.isSuspended = true
-        let order = Ref<[String]>([])
-
-        let opA = queue.add { order.value.append("A") }
-        opA.priority = .veryHigh
-
-        queue.add { order.value.append("B") }
-        queue.add { order.value.append("C") }
-
-        // When – drop A from veryHigh to normal
-        opA.priority = .normal
-
-        queue.isSuspended = false
-        await queue.waitUntilAllOperationsAreFinished()
-
-        // Then – A prepended into normal bucket, ahead of B and C
         #expect(order.value == ["A", "B", "C"])
     }
 

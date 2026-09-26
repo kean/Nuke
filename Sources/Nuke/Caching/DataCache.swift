@@ -160,7 +160,7 @@ public final class DataCache: DataCaching, Sendable {
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws {
-        try self.init(path: path, filenameGenerator: filenameGenerator, sweepDelay: .seconds(5), sweepInterval: nil, onSweepCompleted: nil)
+        try self.init(path: path, filenameGenerator: filenameGenerator, sweepDelay: .seconds(5), sweepInterval: nil, isSweepEnabled: true, onSweepCompleted: nil)
     }
 
     convenience init(
@@ -168,9 +168,10 @@ public final class DataCache: DataCaching, Sendable {
         filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:),
         sweepDelay: DispatchTimeInterval,
         sweepInterval: TimeInterval? = nil,
+        isSweepEnabled: Bool = true,
         onSweepCompleted: @escaping @Sendable () -> Void
     ) throws {
-        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, sweepInterval: sweepInterval, onSweepCompleted: onSweepCompleted)
+        try self.init(path: URL.cachesDirectory.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator, sweepDelay: sweepDelay, sweepInterval: sweepInterval, isSweepEnabled: isSweepEnabled, onSweepCompleted: onSweepCompleted)
     }
 
     private init(
@@ -178,6 +179,7 @@ public final class DataCache: DataCaching, Sendable {
         filenameGenerator: @escaping FilenameGenerator,
         sweepDelay: DispatchTimeInterval,
         sweepInterval: TimeInterval?,
+        isSweepEnabled: Bool,
         onSweepCompleted: (@Sendable () -> Void)?
     ) throws {
         self.path = path
@@ -185,6 +187,9 @@ public final class DataCache: DataCaching, Sendable {
         self.onSweepCompleted = onSweepCompleted
         if let sweepInterval { // Testing only
             state.withLock { $0.sweepInterval = sweepInterval }
+        }
+        if !isSweepEnabled { // Testing only, set before the first sweep is scheduled
+            state.withLock { $0.isSweepEnabled = false }
         }
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
         scheduleSweep(deadline: .now() + sweepDelay)
@@ -547,6 +552,12 @@ public final class DataCache: DataCaching, Sendable {
         guard isSweepEnabled, isSweepNeeded() else { return }
         performSweepAndRecordIt()
         onSweepCompleted?()
+    }
+
+    /// Performs what the sweep timer does when it fires, except for scheduling
+    /// the next one, and waits for it to finish (testing only).
+    func performScheduledSweepForTesting() async {
+        await performIO { self.performScheduledSweep() }
     }
 
     /// Performs the sweep and records its completion in the metadata file so

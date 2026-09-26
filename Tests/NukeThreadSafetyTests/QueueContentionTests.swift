@@ -169,17 +169,7 @@ struct ImagePrefetcherContentionTests {
 
         // And stopping everything leaves no work behind
         prefetcher.stopPrefetching()
-        await waitUntilIdle(prefetcher.queue)
+        await prefetcher.queue.waitUntilAllOperationsAreFinished()
         #expect(await pipeline.taskCount == 0)
-    }
-}
-
-/// Waits until the queue has neither pending nor running operations. The
-/// queue reports the operations it finishes but not the ones it drops when
-/// they are cancelled, hence polling.
-@ImagePipelineActor
-private func waitUntilIdle(_ queue: TaskQueue) async {
-    await waitUntil(timeout: .seconds(60)) {
-        queue.pendingCount == 0 && queue.runningCount == 0
     }
 }

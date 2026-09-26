@@ -11,12 +11,13 @@ struct ImagePipelineDelegateTests {
     private let dataLoader: MockDataLoader
     private let dataCache: MockDataCache
     private let pipeline: ImagePipeline
-    private let delegate: MockImagePipelineDelegate
+    private let delegate: MockCachingDelegate
 
     init() {
         let dataLoader = MockDataLoader()
         let dataCache = MockDataCache()
-        let delegate = MockImagePipelineDelegate()
+        let delegate = MockCachingDelegate()
+        delegate.cacheKey = { $0.userInfo["imageId"] as? String }
         self.dataLoader = dataLoader
         self.dataCache = dataCache
         self.delegate = delegate
@@ -73,7 +74,7 @@ struct ImagePipelineDelegateTests {
 
     @Test func dataIsStoredInCacheWhenCacheDisabled() async throws {
         // WHEN
-        delegate.isCacheEnabled = false
+        delegate.willCacheTransform = { _ in nil }
         _ = try await pipeline.image(for: Test.request)
         await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
 
@@ -151,24 +152,26 @@ struct ImagePipelineDelegateTests {
     // MARK: - willLoadData
 
     @Test func willLoadDataIsCalled() async throws {
+        // GIVEN
+        let delegate = MockWillLoadDataDelegate()
+        let pipeline = pipeline.reconfigured(delegate: delegate)
+
         // WHEN
         _ = try await pipeline.image(for: Test.request)
 
         // THEN
-        #expect(delegate.willLoadDataCallCount == 1)
-        #expect(delegate.willLoadDataRequest?.url == Test.url)
+        #expect(delegate.requests.map(\.url) == [Test.url])
     }
 
     @Test func willLoadDataCanModifyRequest() async throws {
         // GIVEN
-        let trackingLoader = TrackingDataLoader(wrapping: dataLoader)
-        delegate.urlRequestModifier = { request in
+        let delegate = MockWillLoadDataDelegate { request in
             var request = request
             request.setValue("Bearer token123", forHTTPHeaderField: "Authorization")
             return request
         }
         let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = trackingLoader
+            $0.dataLoader = dataLoader
             $0.dataCache = dataCache
             $0.imageCache = nil
         }
@@ -177,13 +180,15 @@ struct ImagePipelineDelegateTests {
         _ = try await pipeline.image(for: Test.request)
 
         // THEN the data loader received the modified request
-        #expect(trackingLoader.lastRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer token123")
+        #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Authorization") == "Bearer token123")
     }
 
     @Test func willLoadDataThrowingCancelsWithDataLoadingFailed() async throws {
         // GIVEN
         struct TokenRefreshError: Error {}
-        delegate.willLoadDataError = TokenRefreshError()
+        let pipeline = pipeline.reconfigured(delegate: MockWillLoadDataDelegate { _ in
+            throw TokenRefreshError()
+        })
 
         // WHEN
         do {
@@ -203,8 +208,11 @@ struct ImagePipelineDelegateTests {
     func cancellationDuringWillLoadDataPreventsDataLoading(skipDataLoadingQueue: Bool) async throws {
         // GIVEN a delegate that suspends inside `willLoadData`
         let entered = AsyncGate(), proceed = AsyncGate()
-        delegate.willLoadDataEntered = entered
-        delegate.willLoadDataProceed = proceed
+        let pipeline = pipeline.reconfigured(delegate: MockWillLoadDataDelegate { request in
+            entered.open()
+            await proceed.wait()
+            return request
+        })
 
         var request = Test.request
         if skipDataLoadingQueue {
@@ -228,8 +236,51 @@ struct ImagePipelineDelegateTests {
         #expect(await pipeline.configuration.dataLoadingQueue.operationCount == 0)
     }
 
+    /// The delegate runs in the task that loads the data, which is cancelled
+    /// along with the request, so a delegate that supports cancellation (for
+    /// example, one that refreshes a token) stops early.
+    @Test(arguments: [false, true])
+    func willLoadDataSeesTheTaskCancellation(skipDataLoadingQueue: Bool) async throws {
+        // GIVEN a delegate that suspends inside `willLoadData` until it is cancelled
+        let entered = TestExpectation()
+        let cancelled = TestExpectation()
+        let gate = AsyncGate()
+        defer { gate.open() }
+        let delegate = MockWillLoadDataDelegate { urlRequest in
+            await withTaskCancellationHandler {
+                entered.fulfill()
+                await gate.wait()
+            } onCancel: {
+                cancelled.fulfill()
+                gate.open()
+            }
+            return urlRequest
+        }
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        var request = Test.request
+        if skipDataLoadingQueue {
+            request.options.insert(.skipDataLoadingQueue)
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: request)
+        await entered.wait()
+        task.cancel()
+
+        // THEN
+        await cancelled.wait()
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+    }
+
     @Test func willLoadDataIsNotCalledForCustomDataFetch() async throws {
         // GIVEN a request using a custom data fetch closure
+        let delegate = MockWillLoadDataDelegate()
+        let pipeline = pipeline.reconfigured(delegate: delegate)
         let request = ImageRequest(id: "test", data: {
             Test.data
         })
@@ -238,59 +289,6 @@ struct ImagePipelineDelegateTests {
         _ = try await pipeline.image(for: request)
 
         // THEN willLoadData is NOT called (custom fetch bypasses URL loading)
-        #expect(delegate.willLoadDataCallCount == 0)
-    }
-}
-
-private final class MockImagePipelineDelegate: ImagePipeline.Delegate, @unchecked Sendable {
-    var isCacheEnabled = true
-
-    /// Applied to the data passed to `willCache`. Return `nil` to prevent caching.
-    var willCacheTransform: ((Data) -> Data?)?
-
-    // willLoadData tracking
-    var willLoadDataCallCount = 0
-    var willLoadDataRequest: URLRequest?
-    var urlRequestModifier: ((URLRequest) -> URLRequest)?
-    var willLoadDataError: Error?
-    var willLoadDataEntered: AsyncGate?
-    var willLoadDataProceed: AsyncGate?
-
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
-        request.userInfo["imageId"] as? String
-    }
-
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
-        guard isCacheEnabled else { return nil }
-        return willCacheTransform.map { $0(data) } ?? data
-    }
-
-    func willLoadData(
-        for request: ImageRequest,
-        urlRequest: URLRequest,
-        pipeline: ImagePipeline
-    ) async throws -> URLRequest {
-        willLoadDataCallCount += 1
-        willLoadDataRequest = urlRequest
-        willLoadDataEntered?.open()
-        await willLoadDataProceed?.wait()
-        if let error = willLoadDataError { throw error }
-        return urlRequestModifier?(urlRequest) ?? urlRequest
-    }
-}
-
-private final class TrackingDataLoader: DataLoading, @unchecked Sendable {
-    private let wrapped: MockDataLoader
-    var lastRequest: URLRequest?
-
-    init(wrapping loader: MockDataLoader) {
-        self.wrapped = loader
-    }
-
-    func loadData(with request: URLRequest,
-                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
-                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        lastRequest = request
-        return wrapped.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
+        #expect(delegate.requests.isEmpty)
     }
 }

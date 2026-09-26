@@ -80,7 +80,15 @@ public final class AnimatedImageFramePool {
     /// bytes. ``defaultCostLimit`` by default.
     public init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit) {
         self.costLimit = costLimit
-        registerForApplicationNotifications()
+        registerForApplicationNotifications(on: .default)
+    }
+
+    /// Creates a pool that listens for the application notifications on the
+    /// given center, which is how the tests post them to a pool of their own
+    /// without reaching the shared one.
+    init(costLimit: Int, notificationCenter: NotificationCenter) {
+        self.costLimit = costLimit
+        registerForApplicationNotifications(on: notificationCenter)
     }
 
     // No `deinit`: the pool every player uses lives for the process, so the
@@ -148,9 +156,8 @@ public final class AnimatedImageFramePool {
         rebalance()
     }
 
-    private func registerForApplicationNotifications() {
+    private func registerForApplicationNotifications(on center: NotificationCenter) {
 #if os(iOS) || os(tvOS) || os(visionOS)
-        let center = NotificationCenter.default
         center.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.reduceMemoryUsage() }
         }

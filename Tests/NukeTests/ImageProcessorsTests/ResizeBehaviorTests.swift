@@ -138,7 +138,7 @@ struct ImageProcessorsResizeBehaviorTests {
     /// expected to survive a square crop.
     @Test func cropKeepsTheCenterOfLandscapeImage() throws {
         // Given a 600x200 image with red, green, and blue vertical stripes
-        let input = stripedImage(width: 600, height: 200, isVertical: true)
+        let input = Test.stripedImage(width: 600, height: 200, isVertical: true)
         let processor = ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, crop: true)
 
         // When
@@ -158,7 +158,7 @@ struct ImageProcessorsResizeBehaviorTests {
 
     @Test func cropKeepsTheCenterOfPortraitImage() throws {
         // Given a 200x600 image with red, green, and blue horizontal stripes
-        let input = stripedImage(width: 200, height: 600, isVertical: false)
+        let input = Test.stripedImage(width: 200, height: 600, isVertical: false)
         let processor = ImageProcessors.Resize(size: CGSize(width: 100, height: 100), unit: .pixels, crop: true)
 
         // When
@@ -196,7 +196,7 @@ struct ImageProcessorsResizeBehaviorTests {
 
     @Test func resizingKeepsTheTransparencyOfTransparentImages() throws {
         // Given an 80x80 transparent image with an opaque square in the middle
-        let input = transparentImageWithOpaqueSquare(size: 80, square: 40)
+        let input = Test.imageWithOpaqueSquare(size: 80, square: 40)
 
         // When
         let output = try #require(ImageProcessors.Resize(size: CGSize(width: 40, height: 40), unit: .pixels).process(input))
@@ -227,7 +227,7 @@ struct ImageProcessorsResizeBehaviorTests {
 
     @Test func resizing16BitImage() throws {
         // Given an image with 16 bits per component
-        let input = try #require(makeImage(width: 40, height: 30, bitsPerComponent: 16, colorSpace: CGColorSpaceCreateDeviceRGB(), alphaInfo: .premultipliedLast))
+        let input = PlatformImage(cgImage: try #require(Test.makeImage(width: 40, height: 30, bitsPerComponent: 16, color: CGColor(red: 1, green: 0, blue: 0, alpha: 1))))
 
         // When
         let output = try #require(ImageProcessors.Resize(size: CGSize(width: 20, height: 20), unit: .pixels).process(input))
@@ -266,39 +266,4 @@ struct ImageProcessorsResizeBehaviorTests {
         #expect(output.size == CGSize(width: 100, height: 100))
     }
 #endif
-}
-
-// MARK: - Helpers
-
-private func transparentImageWithOpaqueSquare(size: Int, square: Int) -> PlatformImage {
-    let context = CGContext(
-        data: nil,
-        width: size,
-        height: size,
-        bitsPerComponent: 8,
-        bytesPerRow: 0,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    )!
-    context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
-    let origin = (size - square) / 2
-    context.fill(CGRect(x: origin, y: origin, width: square, height: square))
-    return PlatformImage(cgImage: context.makeImage()!)
-}
-
-private func makeImage(width: Int, height: Int, bitsPerComponent: Int, colorSpace: CGColorSpace, alphaInfo: CGImageAlphaInfo) -> PlatformImage? {
-    guard let context = CGContext(
-        data: nil,
-        width: width,
-        height: height,
-        bitsPerComponent: bitsPerComponent,
-        bytesPerRow: 0,
-        space: colorSpace,
-        bitmapInfo: alphaInfo.rawValue
-    ) else {
-        return nil
-    }
-    context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
-    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-    return context.makeImage().map { PlatformImage(cgImage: $0) }
 }

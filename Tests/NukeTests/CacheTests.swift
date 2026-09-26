@@ -11,16 +11,6 @@ import Foundation
 /// explicit costs on every platform.
 @Suite(.timeLimit(.minutes(5)))
 struct InternalCacheTests {
-    private func makeCache(
-        costLimit: Int = 1000,
-        countLimit: Int = 100,
-        entryCostLimit: Double = 1
-    ) -> Cache<String, String> {
-        let cache = Cache<String, String>(costLimit: costLimit, countLimit: countLimit)
-        cache.conf.entryCostLimit = entryCostLimit
-        return cache
-    }
-
     // MARK: - Basics
 
     @Test func storingAndRetrievingValues() {

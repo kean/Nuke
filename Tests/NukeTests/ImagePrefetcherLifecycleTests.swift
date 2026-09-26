@@ -512,7 +512,7 @@ struct ImagePrefetcherLifecycleTests {
 
         // THEN
         await cancelled.wait(for: 2)
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
         #expect(operations.allSatisfy { $0.value == nil })
     }
 
@@ -522,39 +522,5 @@ struct ImagePrefetcherLifecycleTests {
 
     private static func makeURLs(count: Int) -> [URL] {
         (0..<count).map { URL(string: "http://test.com/lifecycle-\($0).jpeg")! }
-    }
-}
-
-/// Counts events, such as `didComplete` calls, and lets the test wait for the
-/// n-th one.
-private final class EventCounter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _count = 0
-    private var waiters: [(count: Int, expectation: TestExpectation)] = []
-
-    var count: Int { lock.withLock { _count } }
-
-    func increment() {
-        let ready = lock.withLock {
-            _count += 1
-            let ready = waiters.filter { $0.count <= _count }
-            waiters.removeAll { $0.count <= _count }
-            return ready
-        }
-        for waiter in ready {
-            waiter.expectation.fulfill()
-        }
-    }
-
-    func wait(for count: Int) async {
-        let expectation = TestExpectation()
-        let isReached = lock.withLock {
-            guard _count < count else { return true }
-            waiters.append((count, expectation))
-            return false
-        }
-        if !isReached {
-            await expectation.wait()
-        }
     }
 }

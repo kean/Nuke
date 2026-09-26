@@ -113,7 +113,7 @@ struct ImagePipelineDecompressionStageTests {
         let operation = try #require(expectation.operations.first)
 
         // WHEN
-        await queue.waitForCancellation(of: operation) {
+        await waitForCancellation(of: operation) {
             task.cancel()
         }
 
@@ -138,7 +138,7 @@ struct ImagePipelineDecompressionStageTests {
         #expect(operation.priority == .normal)
 
         // WHEN/THEN
-        await queue.waitForPriorityChange(of: operation, to: .high) {
+        await waitForPriorityChange(of: operation, to: .high) {
             task.priority = .high
         }
         queue.isSuspended = false
@@ -147,7 +147,7 @@ struct ImagePipelineDecompressionStageTests {
 
     @Test func decompressionIsRecordedInTheDiagnostics() async throws {
         // GIVEN
-        let pipeline = pipeline.reconfiguredKeepingDelegate(delegate) {
+        let pipeline = pipeline.reconfigured(delegate: delegate) {
             $0.isDiagnosticsEnabled = true
         }
 
@@ -184,7 +184,7 @@ struct ImagePipelineDecompressionStageTests {
         // GIVEN
         let dataCache = MockDataCache()
         dataCache.store[Test.url.absoluteString] = Test.data
-        let pipeline = pipeline.reconfiguredKeepingDelegate(delegate) {
+        let pipeline = pipeline.reconfigured(delegate: delegate) {
             $0.dataCache = dataCache
         }
 
@@ -205,12 +205,8 @@ struct ImagePipelineDecompressionStageTests {
         // GIVEN a decoder that marks the previews as needing decompression too,
         // and a suspended decompressing queue
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
+        let pipeline = dataLoader.makePipeline(delegate: delegate) {
             $0.isDecompressionEnabled = true
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
             $0.makeImageDecoder = { DecompressionFlaggingDecoder(context: $0, isFlaggingPreviews: true) }
         }
         let queue = pipeline.configuration.imageDecompressingQueue
@@ -242,12 +238,7 @@ struct ImagePipelineDecompressionStageTests {
     @Test func defaultDecoderDoesNotOfferPreviewsForDecompression() async throws {
         // GIVEN the default decoder
         let dataLoader = MockProgressiveDataLoader()
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-        }
+        let pipeline = dataLoader.makePipeline(delegate: delegate)
 
         // WHEN
         let previews = LockedArray<ImageResponse>()
@@ -265,6 +256,25 @@ struct ImagePipelineDecompressionStageTests {
         #expect(delegate.decompressedResponses.count == 1)
         #expect(response.container.userInfo[.isDecompressedKey] as? Bool == true)
     }
+
+    /// ImageIO creates the thumbnails already decoded, so the default decoder
+    /// doesn't offer them for decompression either.
+    @Test func defaultDecoderDoesNotOfferThumbnailsForDecompression() async throws {
+        // GIVEN the default decoder
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
+        #expect(delegate.consultedResponses.isEmpty)
+        #expect(delegate.decompressedResponses.isEmpty)
+    }
 #endif
 }
 
@@ -272,14 +282,6 @@ struct ImagePipelineDecompressionStageTests {
 
 private extension ImageContainer.UserInfoKey {
     static let isDecompressedKey: ImageContainer.UserInfoKey = "ImagePipelineDecompressionStageTests.isDecompressed"
-}
-
-private extension ImagePipeline {
-    nonisolated func reconfiguredKeepingDelegate(_ delegate: any ImagePipeline.Delegate, _ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
-        var configuration = self.configuration
-        configure(&configuration)
-        return ImagePipeline(configuration: configuration, delegate: delegate)
-    }
 }
 
 /// Records the decompression requests and performs them the way the default

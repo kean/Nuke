@@ -33,13 +33,9 @@ struct ImagePipelineProgressiveDecodingTests {
         // 2. Each data chunk produced by a data loader always results in a new
         // scan. The way we split the data guarantees that.
 
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
+        self.pipeline = dataLoader.makePipeline {
             $0.imageCache = cache
-            $0.isProgressiveDecodingEnabled = true
             $0.isStoringPreviewsInMemoryCache = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 1)
         }
     }
 
@@ -82,16 +78,11 @@ struct ImagePipelineProgressiveDecodingTests {
     }
 
     @Test func failedPartialImagesAreIgnored() async throws {
-        // Given
-        class FailingPartialsDecoder: ImageDecoding, @unchecked Sendable {
-            func decode(_ data: Data) throws -> ImageContainer {
-                try ImageDecoders.Default().decode(data)
-            }
-        }
-
+        // Given a decoder that fails to decode either of the two chunks of
+        // partial data
         let registry = ImageDecoderRegistry()
         registry.register { _ in
-            FailingPartialsDecoder()
+            MockScriptedDecoder(failingPartialDecodes: [1, 2])
         }
 
         let pipeline = pipeline.reconfigured {
@@ -302,19 +293,10 @@ struct ImagePipelineProgressiveDecodingTests {
     /// task, holding on to the decoded preview until the queue drained past it.
     @Test @ImagePipelineActor func pendingProcessingIsCancelledWhenTheTaskFails() async throws {
         // Given a decoder that produces previews, but fails on the final image
-        final class FailingFinalImageDecoder: ImageDecoding, @unchecked Sendable {
-            private let decoder = ImageDecoders.Default()
-
-            func decode(_ data: Data) throws -> ImageContainer {
-                throw MockError(description: "decoder-failed")
-            }
-
-            func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-                decoder.decodePartiallyDownloadedData(data)
-            }
-        }
         let pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { _ in FailingFinalImageDecoder() }
+            $0.makeImageDecoder = { _ in
+                MockScriptedDecoder { _ in throw MockError(description: "decoder-failed") }
+            }
         }
 
         // Given a suspended processing queue that keeps the preview processing pending
@@ -367,19 +349,6 @@ struct ImagePipelineProgressiveDecodingTests {
         #expect(recordedPreviews.count == 1)
         #expect(recordedPreviews.first?.image.nk_test_processorIDs == ["2"])
         #expect(recordedPreviews.first?.container.isPreview == true)
-    }
-
-    // MARK: - Cancellation
-
-    @Test func cancelBeforeLoadingStartedIsHandledGracefully() async {
-        // GIVEN a task that is cancelled synchronously before the response is awaited
-        let task = pipeline.imageTask(with: Test.request)
-        task.cancel()
-
-        // THEN awaiting the response either throws (most likely) or succeeds
-        // without crashing. We do NOT record a failure if it succeeds, since
-        // timing means the loading may have already completed.
-        _ = try? await task.response
     }
 
     // MARK: Scale

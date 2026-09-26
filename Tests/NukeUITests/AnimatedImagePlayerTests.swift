@@ -321,12 +321,8 @@ struct AnimatedImagePlayerTests {
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 4, delays: Array(repeating: 0.1, count: 4), options: .twoFrameBuffer
         )
-        let first = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await first.value
-        let second = try #require(player.store.currentDecode)
-        await decoder.release(1)
-        await second.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
+        try await AnimatedImageTest.decode(1, of: player, with: decoder)
         player.play()
         clock.tick(0.1)
         #expect(player.currentFrameIndex == 1)
@@ -347,24 +343,18 @@ struct AnimatedImagePlayerTests {
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 4, delays: Array(repeating: 0.1, count: 4), options: .twoFrameBuffer
         )
-        let first = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await first.value
-        let second = try #require(player.store.currentDecode)
-        await decoder.release(1)
-        await second.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
+        try await AnimatedImageTest.decode(1, of: player, with: decoder)
         player.play()
         clock.tick(0.1)
         clock.tick(0.1)
-        let stale = AnimatedImageTest.firstPixel(of: player.image)
+        let stale = Test.firstPixel(of: player.image)
         #expect(player.diagnostics.bufferMissCount == 1)
 
-        let late = try #require(player.store.currentDecode)
-        await decoder.release(2)
-        await late.value
+        try await AnimatedImageTest.decode(2, of: player, with: decoder)
 
         #expect(player.currentFrameIndex == 2)
-        #expect(AnimatedImageTest.firstPixel(of: player.image) != stale)
+        #expect(Test.firstPixel(of: player.image) != stale)
         #expect(player.diagnostics.displayedFrameCount == 3)
     }
 
@@ -374,9 +364,7 @@ struct AnimatedImagePlayerTests {
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
         )
-        let first = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await first.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
 
         // WHEN a frame takes three frames' time to decode
         player.play()
@@ -403,9 +391,7 @@ struct AnimatedImagePlayerTests {
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
         )
-        let first = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await first.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
         player.play()
         let late = try #require(player.store.currentDecode)
         clock.tick(0.1)
@@ -442,13 +428,13 @@ struct AnimatedImagePlayerTests {
     @Test func showsADifferentImageForEachFrame() async {
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3)
         await player.waitUntilFull()
-        let first = AnimatedImageTest.firstPixel(of: player.image)
+        let first = Test.firstPixel(of: player.image)
         #expect(first != nil)
 
         player.play()
         clock.tick(0.1)
 
-        #expect(AnimatedImageTest.firstPixel(of: player.image) != first)
+        #expect(Test.firstPixel(of: player.image) != first)
     }
 
     @Test func callsOnFrameForEveryDisplayedFrame() async {
@@ -557,15 +543,21 @@ struct AnimatedImagePlayerTests {
 
     // MARK: Seeking
 
-    @Test func seekMovesToTheFrame() async {
+    @Test func seekMovesToTheFrame() async throws {
         let (player, _) = AnimatedImageTest.makePlayer(frameCount: 5)
         await player.waitUntilFull()
 
         player.seek(toFrame: 3)
         await player.waitUntilFull()
 
+        // A player that isn't playing holds only the first frames, so the
+        // seek lands on a frame that isn't decoded yet, and the frame goes on
+        // screen when its decode arrives.
         #expect(player.currentFrameIndex == 3)
-        #expect(player.image != nil)
+        let frame = try #require(player.store.frame(at: 3))
+        #expect(Test.firstPixel(of: player.image) == Test.firstPixel(of: frame))
+        #expect(player.diagnostics.displayedFrameCount == 2)
+        #expect(player.diagnostics.bufferMissCount == 1)
     }
 
     @Test func seekClampsToTheAnimation() async {
@@ -595,10 +587,8 @@ struct AnimatedImagePlayerTests {
         let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
         )
-        let poster = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await poster.value
-        let firstFrame = AnimatedImageTest.firstPixel(of: player.image)
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
+        let firstFrame = Test.firstPixel(of: player.image)
         player.play()
         let interrupted = try #require(player.store.currentDecode)
 
@@ -610,16 +600,55 @@ struct AnimatedImagePlayerTests {
         // THEN the player is where it was asked to go, still showing the frame
         // it had: frame 1 is not the frame it is waiting on any more.
         #expect(player.currentFrameIndex == 5)
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == firstFrame)
+        #expect(Test.firstPixel(of: player.image) == firstFrame)
+    }
+
+    @Test func aSeekToAFrameStillDecodingHoldsTheOldFrameAndGivesTheNewOneItsWholeDelay() async throws {
+        // GIVEN a playing animation whose window holds two frames, on its
+        // first frame
+        let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
+            frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
+        )
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
+        let firstFrame = Test.firstPixel(of: player.image)
+        player.play()
+
+        // WHEN a scrubber moves the playhead to a frame that isn't decoded,
+        // and the clock keeps ticking while it decodes
+        player.seek(toFrame: 5)
+        let target = try #require(player.store.currentDecode)
+        clock.tick(0.3)
+
+        // THEN the frame it had stays on screen, and the wait isn't playback
+        #expect(player.currentFrameIndex == 5)
+        #expect(Test.firstPixel(of: player.image) == firstFrame)
+        #expect(player.diagnostics.playbackTime == 0)
+        #expect(player.diagnostics.bufferMissCount == 1)
+
+        // WHEN the frame arrives
+        await decoder.release(5)
+        await target.value
+
+        // THEN it is shown at once...
+        let frame = try #require(player.store.frame(at: 5))
+        #expect(Test.firstPixel(of: frame) != firstFrame)
+        #expect(Test.firstPixel(of: player.image) == Test.firstPixel(of: frame))
+        #expect(player.diagnostics.displayedFrameCount == 2)
+
+        // ...for its whole delay from then, however long the wait was
+        try await AnimatedImageTest.decode(6, of: player, with: decoder)
+        clock.tick(0.09)
+        #expect(player.currentFrameIndex == 5)
+        clock.tick(0.02)
+        #expect(player.currentFrameIndex == 6)
+        #expect(player.diagnostics.bufferMissCount == 1)
     }
 
     @Test func restartSurvivesTheDecodeItInterrupts() async throws {
         let (player, _, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 8, delays: Array(repeating: 0.1, count: 8), options: .twoFrameBuffer
         )
-        let poster = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await poster.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
         player.play()
         player.seek(toFrame: 3)
         let interrupted = try #require(player.store.currentDecode)
@@ -656,9 +685,7 @@ struct AnimatedImagePlayerTests {
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 3, delays: Array(repeating: 0.1, count: 3), options: options
         )
-        let poster = try #require(player.store.currentDecode)
-        await decoder.release(0)
-        await poster.value
+        try await AnimatedImageTest.decode(0, of: player, with: decoder)
 
         // WHEN the clock runs past the end of the loop before its frames arrive
         player.play()
@@ -815,9 +842,7 @@ struct AnimatedImagePlayerTests {
         // and come back is waiting for something that mostly doesn't happen,
         // and an animation that is up all session – a sticker, a spinner –
         // would re-decode every frame of every loop for the rest of it.
-        for _ in 0..<200 where player.diagnostics.bufferCapacity == 2 {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
+        await waitUntil { player.diagnostics.bufferCapacity != 2 }
         #expect(player.diagnostics.bufferCapacity == 8)
         await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)

@@ -120,6 +120,10 @@ struct VideoPlayerViewConfigurationTests {
         // When
         view.play()
         view.restart()
+        // ...and the view is added to a window, which resumes a player the
+        // view has, and there is none to resume
+        let host = TestWindow()
+        host.add(view)
 
         // Then not even the player layer is created
         #expect(sublayers(of: view).isEmpty)
@@ -267,7 +271,7 @@ struct VideoPlayerViewFinishNotificationTests {
         let player = try #require(view.playerLayer.player)
         // The view seeks the item back to the start, which it can only do once
         // the item is ready.
-        try await waitUntil { player.status == .readyToPlay }
+        await waitUntil { player.status == .readyToPlay }
 
         // When
         postDidPlayToEnd(try #require(player.currentItem))
@@ -398,7 +402,7 @@ struct VideoPlayerViewFinishNotificationTests {
 /// documentation pairs the two – to the end.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct VideoPlayerViewPlaybackTests {
-    let host = WindowHost()
+    let host = TestWindow()
 
     @Test func playsDecodedVideoToEndAndReportsFinish() async throws {
         // Given
@@ -412,7 +416,7 @@ struct VideoPlayerViewPlaybackTests {
         // When
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { finishedCount > 0 }
+        await waitUntil { finishedCount > 0 }
 
         // Then the player stops at the end
         #expect(finishedCount == 1)
@@ -434,7 +438,7 @@ struct VideoPlayerViewPlaybackTests {
         defer { ends.invalidate() }
 
         // When
-        try await waitUntil { ends.count >= 2 }
+        await waitUntil { ends.count >= 2 }
 
         // Then the video reached its end again after the first time, so it
         // started over, and the view didn't report it as finished
@@ -451,14 +455,14 @@ struct VideoPlayerViewPlaybackTests {
         view.onVideoFinished = { finishedCount += 1 }
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { finishedCount == 1 }
+        await waitUntil { finishedCount == 1 }
 
         // When
         view.restart()
 
         // Then it plays and finishes again
         #expect(player.rate != 0)
-        try await waitUntil { finishedCount == 2 }
+        await waitUntil { finishedCount == 2 }
         #expect(player.rate == 0)
     }
 
@@ -472,7 +476,7 @@ struct VideoPlayerViewPlaybackTests {
         view.onVideoFinished = { finishedCount += 1 }
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { finishedCount == 1 }
+        await waitUntil { finishedCount == 1 }
         let ends = EndOfItemCounter(item: try #require(player.currentItem))
         defer { ends.invalidate() }
 
@@ -482,7 +486,7 @@ struct VideoPlayerViewPlaybackTests {
         // Then it plays again, and keeps playing past the end
         #expect(player.rate != 0)
         #expect(player.actionAtItemEnd == .none)
-        try await waitUntil { ends.count >= 1 }
+        await waitUntil { ends.count >= 1 }
         #expect(finishedCount == 1)
     }
 
@@ -494,14 +498,14 @@ struct VideoPlayerViewPlaybackTests {
         view.onVideoFinished = { finishedCount += 1 }
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { player.rate != 0 }
+        await waitUntil { player.rate != 0 }
 
         // When
         view.isLooping = false
 
         // Then it doesn't restart it, and it stops at the end
         #expect(player.rate != 0)
-        try await waitUntil { finishedCount == 1 }
+        await waitUntil { finishedCount == 1 }
         #expect(player.rate == 0)
     }
 
@@ -513,7 +517,7 @@ struct VideoPlayerViewPlaybackTests {
         view.asset = try await makeLongAsset()
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { player.rate != 0 }
+        await waitUntil { player.rate != 0 }
         player.pause()
 
         // When
@@ -531,7 +535,7 @@ struct VideoPlayerViewPlaybackTests {
         host.add(view)
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { player.rate != 0 }
+        await waitUntil { player.rate != 0 }
         view.removeFromSuperview()
         player.pause()
 
@@ -549,7 +553,7 @@ struct VideoPlayerViewPlaybackTests {
         host.add(view)
         view.play()
         let player = try #require(view.playerLayer.player)
-        try await waitUntil { player.rate != 0 }
+        await waitUntil { player.rate != 0 }
         player.pause()
 
         // When
@@ -574,7 +578,7 @@ struct VideoPlayerViewPlaybackTests {
             host.add(view)
             view.play()
             let player = try #require(view.playerLayer.player)
-            try await waitUntil { player.rate != 0 }
+            await waitUntil { player.rate != 0 }
             weakView = view
             weakPlayer = player
             lastItem = player.currentItem
@@ -584,7 +588,7 @@ struct VideoPlayerViewPlaybackTests {
         }
 
         // Then
-        try await waitUntil { weakView == nil && weakPlayer == nil }
+        await waitUntil { weakView == nil && weakPlayer == nil }
 
         // Then the end of the item it played no longer reaches it
         postDidPlayToEnd(try #require(lastItem))
@@ -598,7 +602,7 @@ struct VideoPlayerViewPlaybackTests {
         weak var weakPlayer: AVPlayer?
         do {
             let player = try #require(view.playerLayer.player)
-            try await waitUntil { player.rate != 0 }
+            await waitUntil { player.rate != 0 }
             weakPlayer = player
         }
 
@@ -606,9 +610,77 @@ struct VideoPlayerViewPlaybackTests {
         view.reset()
 
         // Then
-        try await waitUntil { weakPlayer == nil }
+        await waitUntil { weakPlayer == nil }
     }
 }
+
+// MARK: - Foreground
+
+#if os(iOS) || os(tvOS)
+/// The system pauses the videos of an app in the background, and a looping one
+/// resumes when the app comes back. The view observes the notification from
+/// any object, so these tests post it one at a time.
+@Suite(.serialized, .timeLimit(.minutes(5))) @MainActor
+struct VideoPlayerViewForegroundTests {
+    let host = TestWindow()
+
+    @Test func resumesLoopingVideoWhenAppEntersForeground() async throws {
+        // Given a looping video that was paused while the app was in the
+        // background
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate != 0)
+    }
+
+    @Test func doesNotResumeNonLoopingVideoWhenAppEntersForeground() async throws {
+        // Given a video that doesn't loop, paused while the app was in the
+        // background
+        let view = VideoPlayerView()
+        view.isLooping = false
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate == 0)
+    }
+
+    @Test func doesNotResumeTheVideoOfAViewResetInTheBackground() async throws {
+        // Given a looping video that was paused while the app was in the
+        // background, and a view that was reset since
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+        view.reset()
+
+        // When
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        // Then
+        #expect(player.rate == 0)
+    }
+}
+#endif
 
 // MARK: - Helpers
 
@@ -624,7 +696,7 @@ private func makeLongAsset() async throws -> AVAsset {
 
 private func makeDecodedAsset(_ fixture: VideoFixture) async throws -> AVAsset {
     let data = try await fixture.makeData()
-    let decoder = try #require(ImageDecoders.Video(context: makeContext(data)))
+    let decoder = try #require(ImageDecoders.Video(context: .mock(data: data)))
     return try #require(decoder.decode(data).userInfo[.videoAssetKey] as? AVAsset)
 }
 

@@ -163,12 +163,7 @@ struct ImagePipelineTaskDelegateTests {
         // GIVEN a pipeline with progressive decoding
         let dataLoader = MockProgressiveDataLoader()
         dataLoader.servesFirstChunkAutomatically = false
-        let pipeline = ImagePipeline(delegate: delegate) {
-            $0.dataLoader = dataLoader
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
-            $0.imageCache = nil
-        }
+        let pipeline = dataLoader.makePipeline(delegate: delegate)
 
         // WHEN
         let task = pipeline.imageTask(with: Test.url)

@@ -31,13 +31,9 @@ struct ImagePipelineProgressiveDecodingTests {
         // 2. Each data chunk produced by a data loader always results in a new
         // scan. The way we split the data guarantees that.
 
-        self.pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
+        self.pipeline = dataLoader.makePipeline {
             $0.imageCache = cache
-            $0.isProgressiveDecodingEnabled = true
-            $0.progressiveDecodingInterval = 0
             $0.isStoringPreviewsInMemoryCache = true
-            $0.imageProcessingQueue.maxConcurrentTaskCount = 1
         }
     }
 

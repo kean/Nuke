@@ -4,6 +4,15 @@
 
 import Foundation
 
+// The suites in this target must run one at a time: a benchmark that shares
+// the machine with another one measures both. `.serialized` only orders the
+// tests within a suite, so the NukePerformanceTests scheme turns parallel
+// execution off for the whole target ("Execute in parallel" unchecked,
+// `parallelizable = "NO"` on its testable). Swift Testing honors it without
+// `-parallel-testing-enabled NO`; keep it off in any scheme or test plan that
+// runs these suites. In parallel, `asyncAwaitPerformance` samples ranged from
+// 69 ms to 967 ms in one run; run serially, they stay within a few percent.
+
 func measure<T>(
     _ name: String = #function,
     iterations: Int = 5,
@@ -14,6 +23,28 @@ func measure<T>(
     try runSamples(name: name, iterations: iterations, warmup: warmup) {
         var result: T?
         let duration = try clock.measure { result = try body() }
+        blackHole(result)
+        return duration
+    }
+}
+
+/// Measures `body` with a fresh input from `setup` for every sample.
+///
+/// `setup` runs before each sample, the warmup included, and isn't timed: use
+/// it for an input that a cache would otherwise remember from one sample to
+/// the next.
+func measure<Input, T>(
+    _ name: String = #function,
+    iterations: Int = 5,
+    warmup: Int = 1,
+    setup: () throws -> Input,
+    _ body: (Input) throws -> T
+) rethrows {
+    let clock = ContinuousClock()
+    try runSamples(name: name, iterations: iterations, warmup: warmup) {
+        let input = try setup()
+        var result: T?
+        let duration = try clock.measure { result = try body(input) }
         blackHole(result)
         return duration
     }

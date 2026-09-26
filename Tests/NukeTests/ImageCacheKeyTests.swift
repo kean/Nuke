@@ -117,8 +117,7 @@ struct ImageCacheKeyTests {
         // Then
         #expect(none != small)
         #expect(small != large)
-        #expect(small == smallAgain)
-        #expect(small.hashValue == smallAgain.hashValue)
+        assertHashableEqual(small, smallAgain)
     }
 
     /// The key copies what it needs from the request, so changing the request

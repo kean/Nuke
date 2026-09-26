@@ -15,7 +15,7 @@ import QuartzCore
 @Suite(.timeLimit(.minutes(1))) @MainActor
 struct DisplayLinkClockTests {
     @Test func givesTheLinkBackWhenTheClockIsReleasedOffTheMainThread() async throws {
-        let link = WeakBox()
+        let link = WeakRef<CADisplayLink>()
 
         // A player nobody is watching sits on a paused clock, and a background
         // task can be the one to drop the last reference to it – which is the
@@ -32,17 +32,9 @@ struct DisplayLinkClockTests {
 
         // The link is handed to the main queue, and invalidating it there is
         // what takes it out of the run loop that was holding it.
-        for _ in 0..<100 where link.value != nil {
-            await Task.yield()
-        }
+        await waitUntil { link.value == nil }
         #expect(link.value == nil)
     }
-}
-
-/// Holds a weak reference for a test that watches an object go, across the
-/// threads the object is released on.
-private final class WeakBox: @unchecked Sendable {
-    weak var value: AnyObject?
 }
 
 #endif

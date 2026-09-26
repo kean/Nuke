@@ -11,10 +11,8 @@ import Testing
 /// What ``AnimatedImageFrameTransform`` is handed, how often it runs, and what
 /// its identifier does and doesn't share.
 @Suite(.timeLimit(.minutes(5))) @MainActor
-struct AnimatedImageFrameTransformTests {
-    /// A pool of its own for every test: which players share frames is what
-    /// several of these assert, and the suite runs beside every other one.
-    private let pool = AnimatedImageFramePool()
+struct AnimatedImageFrameTransformTests: AnimatedImagePoolSuite {
+    let pool = AnimatedImageFramePool()
 
     // MARK: The Transformer
 
@@ -24,7 +22,7 @@ struct AnimatedImageFrameTransformTests {
         // makes of nothing.
         let log = TransformLog()
         let transformer = AnimatedImageFrameTransformer(
-            decoder: RefusingFrameDecoder(refused: [1]),
+            decoder: GatedFrameDecoder(source: Test.animatedGIFSource(), refusing: [1], isGated: false),
             transform: log.recording(identifier: "recording")
         )
 
@@ -71,7 +69,7 @@ struct AnimatedImageFrameTransformTests {
         let player = makePlayer(source: source, options: options)
         await player.waitUntilFull()
 
-        #expect(AnimatedImageTest.firstPixel(of: player.image) == SolidColor.blue.pixel)
+        #expect(Test.firstPixel(of: player.image) == SolidColor.blue.pixel)
     }
 
     // MARK: How Often It Runs
@@ -80,7 +78,7 @@ struct AnimatedImageFrameTransformTests {
         let log = TransformLog()
         var options = AnimatedImagePlayer.Options()
         options.frameTransform = log.recording(identifier: "recording")
-        let (player, clock) = makeTickingPlayer(frameCount: 4, options: options)
+        let (player, clock) = makeIdlePlayer(source: Test.animatedGIFSource(frameCount: 4), options: options)
         player.play()
         await player.waitUntilFull()
 
@@ -99,7 +97,7 @@ struct AnimatedImageFrameTransformTests {
         let log = TransformLog()
         var options = AnimatedImagePlayer.Options.twoFrameBuffer
         options.frameTransform = log.recording(identifier: "recording")
-        let (player, clock) = makeTickingPlayer(frameCount: 4, options: options)
+        let (player, clock) = makeIdlePlayer(source: Test.animatedGIFSource(frameCount: 4), options: options)
         player.play()
         await player.waitUntilFull()
 
@@ -154,8 +152,8 @@ struct AnimatedImageFrameTransformTests {
         await tinted.waitUntilFull()
 
         #expect(pool.animationCount == 2)
-        #expect(AnimatedImageTest.firstPixel(of: tinted.image) == SolidColor.blue.pixel)
-        #expect(AnimatedImageTest.firstPixel(of: plain.image) != SolidColor.blue.pixel)
+        #expect(Test.firstPixel(of: tinted.image) == SolidColor.blue.pixel)
+        #expect(Test.firstPixel(of: plain.image) != SolidColor.blue.pixel)
     }
 
     @Test func theIdentifierAndNotTheClosureDecidesWhatIsShared() async throws {
@@ -172,7 +170,7 @@ struct AnimatedImageFrameTransformTests {
         #expect(pool.animationCount == 1)
         #expect(blue.diagnostics.decodedFrameCount == 0)
         let frame = try #require(blue.store.frame(at: 0))
-        #expect(AnimatedImageTest.firstPixel(of: frame) == SolidColor.red.pixel)
+        #expect(Test.firstPixel(of: frame) == SolidColor.red.pixel)
     }
 
     // MARK: Helpers
@@ -184,48 +182,27 @@ struct AnimatedImageFrameTransformTests {
         }
         return options
     }
-
-    /// A player that is playing, which is what makes it ask for every frame.
-    private func makePlayer(
-        source: AnimatedImageSource,
-        options: AnimatedImagePlayer.Options = AnimatedImagePlayer.Options()
-    ) -> AnimatedImagePlayer {
-        let player = AnimatedImagePlayer(
-            source: source,
-            options: options,
-            clock: ManualClock(),
-            pool: pool,
-            power: AnimatedImagePowerMonitor(isThrottling: false)
-        )
-        player.play()
-        return player
-    }
-
-    private func makeTickingPlayer(frameCount: Int, options: AnimatedImagePlayer.Options) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        AnimatedImageTest.makePlayer(frameCount: frameCount, options: options, pool: pool)
-    }
 }
 
 /// What a transform was handed, from whatever thread it ran on.
-private final class TransformLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var handed: [CGSize] = []
-    private var produced: [Int] = []
+private final class TransformLog: Sendable {
+    private let handed = LockedArray<CGSize>()
+    private let produced = LockedArray<Int>()
 
-    var count: Int { lock.withLock { handed.count } }
-    var sizes: [CGSize] { lock.withLock { handed } }
+    var count: Int { handed.count }
+    var sizes: [CGSize] { handed.values }
 
     /// The memory each image the transform returned occupies.
-    var byteCounts: [Int] { lock.withLock { produced } }
+    var byteCounts: [Int] { produced.values }
 
     func record(_ output: CGImage) {
-        lock.withLock { produced.append(output.bytesPerRow * output.height) }
+        produced.append(output.bytesPerRow * output.height)
     }
 
     /// A transform that leaves the frames alone and writes down what it saw.
     func recording(identifier: String) -> AnimatedImageFrameTransform {
-        AnimatedImageFrameTransform(identifier: identifier) { [self] image in
-            lock.withLock { handed.append(CGSize(width: image.width, height: image.height)) }
+        AnimatedImageFrameTransform(identifier: identifier) { [handed] image in
+            handed.append(CGSize(width: image.width, height: image.height))
             return image
         }
     }

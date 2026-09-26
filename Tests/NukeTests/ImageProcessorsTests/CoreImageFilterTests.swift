@@ -16,30 +16,6 @@ import CoreImage
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsCoreImageFilterTests {
-    @Test func applySepia() throws {
-        // GIVEN
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
-
-        // WHEN
-        let output = try #require(processor.process(input))
-
-        // THEN
-        _ = output // image was produced successfully
-    }
-
-    @Test func applySepiaWithParameters() throws {
-        // GIVEN
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
-
-        // WHEN
-        let output = try #require(processor.process(input))
-
-        // THEN
-        _ = output // image was produced successfully
-    }
-
     @Test func applyFilterWithAnImageParameter() throws {
         // GIVEN a filter that takes a `CIImage` parameter
         let input = Test.image(named: "fixture-tiny.jpeg")
@@ -50,7 +26,7 @@ struct ImageProcessorsCoreImageFilterTests {
         let output = try #require(processor.process(input))
 
         // THEN
-        _ = output // image was produced successfully
+        #expect(output.sizeInPixels == input.sizeInPixels)
     }
 
     @Test func applyFilterWithInvalidName() throws {
@@ -73,8 +49,9 @@ struct ImageProcessorsCoreImageFilterTests {
         // WHEN
         let output = try #require(processor.process(input))
 
-        // THEN
-        _ = output // image was produced successfully
+        // THEN the output is rendered at the size of the image backing the
+        // input, which has no `CGImage` of its own to compare to
+        #expect(output.sizeInPixels == Test.image.sizeInPixels)
     }
 #endif
 
@@ -189,19 +166,6 @@ struct ImageProcessorsCoreImageFilterTests {
         #expect(description == "Failed to create filter named yo with parameters: [\"inputIntensity\": 0.5]")
     }
 
-    @Test func applyCustomFilter() throws {
-        // GIVEN
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let filter = try #require(CIFilter(name: "CISepiaTone", parameters: nil))
-        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
-
-        // WHEN
-        let output = try #require(processor.process(input))
-
-        // THEN
-        _ = output // image was produced successfully
-    }
-
     @Test func applyCustomFilterDoesNotModifyTheGivenFilter() throws {
         // GIVEN
         let input = Test.image(named: "fixture-tiny.jpeg")
@@ -227,7 +191,7 @@ struct ImageProcessorsCoreImageFilterTests {
         let outputs = await withTaskGroup(of: (Int, Int?).self) { group in
             for width in widths {
                 group.addTask {
-                    let input = Self.makeImage(width: width, height: 10)
+                    let input = Test.rgbImage(width: width, height: 10, color: CGColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 1), alphaInfo: .premultipliedLast)
                     return (width, processor.process(input)?.cgImage?.width)
                 }
             }
@@ -243,42 +207,6 @@ struct ImageProcessorsCoreImageFilterTests {
         for width in widths {
             #expect(outputs[width] == width)
         }
-    }
-
-    private static func makeImage(width: Int, height: Int) -> PlatformImage {
-        let ctx = CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
-        ctx.setFillColor(CGColor(red: 0.5, green: 0.25, blue: 0.75, alpha: 1))
-        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        let cgImage = ctx.makeImage()!
-#if os(macOS)
-        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
-#else
-        return UIImage(cgImage: cgImage)
-#endif
-    }
-
-    // MARK: - Composition
-
-    @Test func compositionOfTwoCIFiltersProducesOutput() throws {
-        // GIVEN two CoreImage filters composed in sequence
-        let input = Test.image(named: "fixture-tiny.jpeg")
-        let filter1 = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
-        let filter2 = ImageProcessors.CoreImageFilter(name: "CIColorInvert")
-        let composition = ImageProcessors.Composition([filter1, filter2])
-
-        // WHEN
-        let output = try #require(composition.process(input))
-
-        // THEN a valid image is produced
-        _ = output
     }
 
     // MARK: - Identifiers

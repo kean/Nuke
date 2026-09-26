@@ -40,21 +40,29 @@ struct ImageProcessorsAnimatedImageDataTests {
         #expect(output.type == .gif)
     }
 
-    @Test func processorCanKeepTheDataByImplementingTheContainerMethod() throws {
-        // GIVEN a processor that knows the data still matches the image
-        struct KeepsData: ImageProcessing {
-            func process(_ image: PlatformImage) -> PlatformImage? { image }
-            func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-                container
-            }
-            var identifier: String { "test.keeps-data" }
+    @Test func processorCanKeepTheDataByImplementingTheContainerMethod() async throws {
+        // GIVEN a processor that knows the data still matches the image it
+        // returns, the way one that processes every frame does
+        let processor = MockDataPreservingProcessor(id: "test.keeps-data")
+        let data = Test.animatedGIF(frameCount: 3)
+        let dataLoader = MockDataLoader()
+        dataLoader.results[Test.url] = .success(
+            (data, URLResponse(url: Test.url, mimeType: "gif", expectedContentLength: 0, textEncodingName: nil))
+        )
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
         }
-        let container = animatedContainer()
 
-        let output = try KeepsData().process(container, context: .mock)
+        // WHEN
+        let request = ImageRequest(url: Test.url, processors: [processor])
+        let response = try await pipeline.imageTask(with: request).response
 
-        #expect(output.data != nil)
-        #expect(output.animation != nil)
+        // THEN the pipeline calls the container method and delivers what it
+        // returns: the processed still, with the data and the animation intact
+        #expect(response.image.nk_test_processorIDs == ["test.keeps-data"])
+        #expect(response.container.data == data)
+        #expect(response.container.animation?.frameCount == 3)
     }
 
     /// A container shaped the way the pipeline hands one over: the encoded

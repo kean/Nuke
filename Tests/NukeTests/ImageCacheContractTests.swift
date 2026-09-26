@@ -9,13 +9,6 @@ import os
 
 // MARK: - Helpers
 
-/// An image without a bitmap costs `1` plus the size of its data, which makes
-/// the cost of an entry exact and the same on every platform.
-private func container(cost: Int) -> ImageContainer {
-    precondition(cost >= 1)
-    return ImageContainer(image: PlatformImage(), data: Data(count: cost - 1))
-}
-
 private func key(_ name: String) -> ImageCacheKey {
     ImageCacheKey(key: name)
 }
@@ -371,12 +364,6 @@ struct ImageCacheExpirationTests {
 
 @Suite(.timeLimit(.minutes(5)))
 struct InternalCacheSweepTests {
-    private func makeCache(costLimit: Int = 1000, countLimit: Int = 100) -> Cache<String, String> {
-        let cache = Cache<String, String>(costLimit: costLimit, countLimit: countLimit)
-        cache.conf.entryCostLimit = 1
-        return cache
-    }
-
     @Test func trimWithANegativeLimitEmptiesTheCache() {
         // Given
         let cache = makeCache()

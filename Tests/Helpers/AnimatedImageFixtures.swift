@@ -147,18 +147,8 @@ extension Test {
     /// I/O reports a frame count for a page stack and publishes no container
     /// dictionary for it, and neither does a multi-image HEIC.
     static func multiPageTIFF(pageCount: Int = 2, size: CGSize = CGSize(width: 8, height: 8)) -> Data {
-        let data = NSMutableData()
-        let destination = CGImageDestinationCreateWithData(
-            data as CFMutableData,
-            UTType.tiff.identifier as CFString,
-            pageCount,
-            nil
-        )! // Image I/O writes TIFF on every platform
-        for index in 0..<pageCount {
-            CGImageDestinationAddImage(destination, makeFrame(index: index, size: size), nil)
-        }
-        CGImageDestinationFinalize(destination)
-        return data as Data
+        let pages = (0..<pageCount).map { makeFrame(index: $0, size: size) }
+        return encode(pages, as: UTType.tiff.identifier)! // Image I/O writes TIFF on every platform
     }
 
     /// The color the frame at the given index is filled with, so that a test

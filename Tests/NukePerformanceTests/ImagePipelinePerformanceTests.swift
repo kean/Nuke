@@ -198,14 +198,6 @@ private struct DataCacheMiss: DataCaching {
 }
 
 private func makePipeline(_ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
-    struct MockDecoder: ImageDecoding {
-        static let container = ImageContainer(image: Test.image)
-
-        func decode(_ data: Data) throws -> ImageContainer {
-            MockDecoder.container
-        }
-    }
-
     let pipeline = ImagePipeline {
         $0.imageCache = nil
 

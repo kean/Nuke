@@ -14,9 +14,11 @@ final class DataCachePeformanceTests {
     let count = 1000
 
     init() throws {
-        cache = try DataCache(name: UUID().uuidString)
+        cache = try DataCache(path: makeUniqueDirectoryURL())
     }
 
+    /// Every test leaves the cache flushed: a drain that runs after the
+    /// directory is removed would re-create it.
     deinit {
         try? FileManager.default.removeItem(at: cache.path)
     }
@@ -50,7 +52,7 @@ final class DataCachePeformanceTests {
     }
 
     @Test
-    func writeWithoutFlush() {
+    func writeWithoutFlush() async {
         let data = Array(0..<count).map { _ in generateRandomData() }
 
         measure {
@@ -58,6 +60,8 @@ final class DataCachePeformanceTests {
                 cache["\(index)"] = data[index]
             }
         }
+
+        await cache.flush()
     }
 
     // MARK: - Read
@@ -91,7 +95,7 @@ final class DataCachePeformanceTests {
 
     /// Reads that the staging area serves without going to the disk.
     @Test
-    func readFromStaging() {
+    func readFromStaging() async {
         // Small payloads: the staging lookup is the subject, not the blobs it
         // holds on to until the automatic drain gets to them.
         let data = Array(0..<count).map { _ in generateRandomData(count: 1024) }
@@ -104,6 +108,8 @@ final class DataCachePeformanceTests {
                 _ = cache["\(index)"]
             }
         }
+
+        await cache.flush()
     }
 
     /// The existence check that skips reading the file in.

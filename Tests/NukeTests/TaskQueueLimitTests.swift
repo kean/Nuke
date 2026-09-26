@@ -73,7 +73,7 @@ struct TaskQueueLimitTests {
 
         // When
         queue.maxConcurrentTaskCount = 1
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // Then
         #expect(!didRun.value)
@@ -98,7 +98,7 @@ struct TaskQueueLimitTests {
         // When
         queue.isSuspended = false
         queue.isSuspended = true
-        await Task { @ImagePipelineActor in }.value
+        await drainPipeline()
 
         // Then
         #expect(!didRun.value)

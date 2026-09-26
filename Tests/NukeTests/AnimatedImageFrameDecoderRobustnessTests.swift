@@ -92,7 +92,7 @@ struct AnimatedImageFrameDecoderRobustnessTests {
         let reference = try #require(source.makeImageSource())
         let expected = try (0..<frameCount).map { index in
             let frame = try #require(CGImageSourceCreateImageAtIndex(reference, index, nil))
-            return try #require(uniformFrameColor(of: frame))
+            return try #require(Test.firstPixel(of: frame))
         }
         let decoder = AnimatedImageFrameDecoder(source: source)
 
@@ -101,7 +101,7 @@ struct AnimatedImageFrameDecoderRobustnessTests {
                 let index = (request * 5) % frameCount
                 group.addTask {
                     let frame = await decoder.decode(at: index)
-                    return (index, frame.flatMap(uniformFrameColor))
+                    return (index, frame.flatMap(Test.firstPixel))
                 }
             }
             return await group.reduce(into: [(Int, [UInt8]?)]()) { $0.append($1) }
@@ -112,26 +112,4 @@ struct AnimatedImageFrameDecoderRobustnessTests {
             #expect(pixel == expected[index], "Frame \(index)")
         }
     }
-}
-
-/// The RGBA components of a frame of a single solid color.
-private func uniformFrameColor(of image: CGImage) -> [UInt8]? {
-    var pixel = [UInt8](repeating: 0, count: 4)
-    let drawn = pixel.withUnsafeMutableBytes { buffer -> Bool in
-        guard let context = CGContext(
-            data: buffer.baseAddress,
-            width: 1,
-            height: 1,
-            bitsPerComponent: 8,
-            bytesPerRow: 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            return false
-        }
-        context.interpolationQuality = .none
-        context.draw(image, in: CGRect(x: 0, y: 0, width: 1, height: 1))
-        return true
-    }
-    return drawn ? pixel : nil
 }

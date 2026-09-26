@@ -15,10 +15,6 @@ import Testing
 /// follow it compare against whatever state the machine is in.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImagePowerMonitorTests {
-    /// A pool of its own, so that nothing these players hold shows up in the
-    /// suites that measure the shared one.
-    private let pool = AnimatedImageFramePool()
-
     // MARK: A Monitor of Your Own
 
     @Test func startsInTheStateItIsGiven() {
@@ -99,9 +95,7 @@ struct AnimatedImagePowerMonitorTests {
         // WHEN the system says so. Every monitor that follows the system reads
         // it again, which for one already in step changes nothing.
         NotificationCenter.default.post(name: name, object: ProcessInfo.processInfo)
-        for _ in 0..<100 where monitor.isThrottling != expected {
-            await Task.yield()
-        }
+        await waitUntil { monitor.isThrottling == expected }
 
         // THEN it is back in step, and so are its players
         #expect(monitor.isThrottling == expected)
@@ -118,9 +112,7 @@ struct AnimatedImagePowerMonitorTests {
         witness.setThrottling(!expected)
 
         NotificationCenter.default.post(name: .NSProcessInfoPowerStateDidChange, object: ProcessInfo.processInfo)
-        for _ in 0..<100 where witness.isThrottling != expected {
-            await Task.yield()
-        }
+        await waitUntil { witness.isThrottling == expected }
 
         #expect(witness.isThrottling == expected)
         #expect(monitor.isThrottling == !expected)
@@ -140,6 +132,6 @@ struct AnimatedImagePowerMonitorTests {
 
     /// A player of an animation whose every frame lasts the given delay.
     private func makePlayer(delay: TimeInterval, power: AnimatedImagePowerMonitor) -> (player: AnimatedImagePlayer, clock: ManualClock) {
-        AnimatedImageTest.makePlayer(delays: Array(repeating: delay, count: 4), pool: pool, power: power)
+        AnimatedImageTest.makePlayer(delays: Array(repeating: delay, count: 4), power: power)
     }
 }

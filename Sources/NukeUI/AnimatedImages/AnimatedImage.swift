@@ -116,12 +116,26 @@ public struct AnimatedImage: View {
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *)
 private struct AutoPlayReader<Content: View>: View {
     @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
+    @Environment(\.accessibilityPlayAnimatedImagesOverride) private var playAnimatedImagesOverride
 
     let content: (Bool) -> Content
 
     var body: some View {
-        content(playAnimatedImages)
+        content(playAnimatedImagesOverride ?? playAnimatedImages)
     }
+}
+
+extension EnvironmentValues {
+    /// Overrides `accessibilityPlayAnimatedImages` when set. The tests use it
+    /// because the system value is read-only.
+    var accessibilityPlayAnimatedImagesOverride: Bool? {
+        get { self[AutoPlayOverrideKey.self] }
+        set { self[AutoPlayOverrideKey.self] = newValue }
+    }
+}
+
+private struct AutoPlayOverrideKey: EnvironmentKey {
+    static let defaultValue: Bool? = nil
 }
 
 /// The size an ``AnimatedImage`` reports for a proposal.
