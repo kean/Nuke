@@ -119,4 +119,36 @@ struct ImagePipelineConfigurationTests {
         let config = ImagePipeline.Configuration()
         #expect(config.isLocalResourcesSupportEnabled == true)
     }
+
+    // MARK: - Incremental Delivery
+
+    /// Copies of a configuration share the data loader: a pipeline derived
+    /// from a progressive one must not take the increments away from it.
+    @Test func derivedPipelineKeepsIncrementalDeliveryOfTheSharedDataLoader() {
+        // GIVEN a progressive pipeline
+        let dataLoader = DataLoader()
+        let progressive = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // WHEN another pipeline is derived from its configuration
+        var configuration = progressive.configuration
+        configuration.isProgressiveDecodingEnabled = false
+        _ = ImagePipeline(configuration: configuration)
+
+        // THEN the first pipeline still gets partial response bodies
+        #expect(progressive.configuration.isProgressiveDecodingEnabled == true)
+        #expect(dataLoader.prefersIncrementalDelivery == true)
+    }
+
+    @Test func pipelineKeepsIncrementalDeliveryConfiguredOnTheDataLoader() {
+        let dataLoader = DataLoader()
+        dataLoader.prefersIncrementalDelivery = true
+        _ = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = false
+        }
+        #expect(dataLoader.prefersIncrementalDelivery == true)
+    }
 }

@@ -119,9 +119,18 @@ struct DataLoaderSessionContractTests {
         #expect(observed.withLock { $0 } == [true, false])
     }
 
-    @Test func pipelineRequestsIncrementalDeliveryOnlyForProgressiveDecoding() {
+    @Test func pipelineTurnsOnIncrementalDeliveryForProgressiveDecoding() {
         // Given
         let loader = makeStubLoader()
+
+        // When
+        _ = ImagePipeline {
+            $0.dataLoader = loader
+            $0.isProgressiveDecodingEnabled = false
+        }
+
+        // Then
+        #expect(!loader.prefersIncrementalDelivery)
 
         // When
         _ = ImagePipeline {
@@ -132,14 +141,14 @@ struct DataLoaderSessionContractTests {
         // Then
         #expect(loader.prefersIncrementalDelivery)
 
-        // When
+        // When another pipeline without progressive decoding shares the loader
         _ = ImagePipeline {
             $0.dataLoader = loader
             $0.isProgressiveDecodingEnabled = false
         }
 
-        // Then
-        #expect(!loader.prefersIncrementalDelivery)
+        // Then it is left on
+        #expect(loader.prefersIncrementalDelivery)
     }
 
     @Test func dataURLIsLoadedWithoutHTTPValidation() async throws {
