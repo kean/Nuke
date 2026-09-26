@@ -86,7 +86,8 @@ extension ImagePipeline.Diagnostics {
         /// The job this one subscribed to, which makes the chain
         /// reconstructible from a flat list.
         public internal(set) var parentID: UInt64?
-        /// The task whose request created the job.
+        /// The task whose request created the job. `0` if that task wasn't
+        /// recorded, because the runtime switch was off when it started.
         public internal(set) var createdByTaskID: UInt64
         /// Every task that reached the job, in the order they did.
         public internal(set) var taskIDs: [UInt64] = []
