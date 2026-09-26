@@ -41,10 +41,16 @@ struct ImageProcessingExtensions {
             return nil // Nothing to draw, and NaN would slip past the scale check
         }
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
+        guard scale > 0 else {
+            return nil // A zero or negative target has nothing to draw in
+        }
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
-        let size = cgImage.size.scaled(by: scale).rounded()
+        // A side that scales below half a pixel rounds to zero, but a thin
+        // image – a separator, a progress bar – is still drawable at 1 px, as
+        // Image I/O draws it when it downsamples.
+        let size = cgImage.size.scaled(by: scale).rounded().clampedToOnePixel()
         return image.draw(inCanvasWithSize: size)
     }
 
@@ -64,7 +70,7 @@ struct ImageProcessingExtensions {
         var scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         var canvasSize = targetSize
         if scale > 1 && !upscale {
-            canvasSize = targetSize.scaled(by: 1 / scale).rounded()
+            canvasSize = targetSize.scaled(by: 1 / scale).rounded().clampedToOnePixel()
             scale = 1
         }
         let scaledSize = cgImage.size.scaled(by: scale)
@@ -400,6 +406,11 @@ extension CGSize {
 
     func rounded() -> CGSize {
         CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
+    }
+
+    /// Returns the size with each side raised to at least one pixel.
+    func clampedToOnePixel() -> CGSize {
+        CGSize(width: max(1, width), height: max(1, height))
     }
 }
 
