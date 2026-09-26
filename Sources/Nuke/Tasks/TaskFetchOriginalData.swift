@@ -19,7 +19,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var dataLoadCancellable: (any Cancellable)?
     private var dataLoadTask: Task<Void, Never>?
     /// The diagnostics stage of the download, from the moment it is enqueued.
+    /// With a custom delegate, the queue admits `willLoadData` and the download
+    /// together, so it is the delegate's stage that waits for the queue, and
+    /// the download's begins once the delegate returns.
     private var downloadStage: Int?
+    private var willLoadDataStage: Int?
 
     override func start() {
         if case .data(let closure) = request.resource {
@@ -125,7 +129,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
         do {
-            let willLoadDataStage = pipeline.isDefaultDelegate ? nil : diagnostics?.beginStage(.willLoadData)
+            diagnostics?.startStage(willLoadDataStage)
             do {
                 urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
             } catch {
@@ -137,7 +141,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             // `onCancelled` already ran, so there is nothing left to clean up.
             guard !isDisposed else { return }
 
-            diagnostics?.startStage(downloadStage)
+            if pipeline.isDefaultDelegate {
+                diagnostics?.startStage(downloadStage)
+            } else {
+                downloadStage = diagnostics?.beginStage(.download)
+            }
             try await loadData(with: urlRequest, dataLoader: dataLoader)
             await dataTaskDidFinish()
         } catch {

@@ -210,6 +210,10 @@ extension ImagePipeline.Diagnostics {
             /// The time the request spent in the rate limiter.
             case rateLimit
             /// ``ImagePipeline/Delegate/willLoadData(for:urlRequest:pipeline:)``.
+            /// The data loading queue admits the delegate call and the
+            /// download together, so with a custom delegate it is this stage
+            /// that waits for the queue, and ``download`` starts once the
+            /// delegate returns.
             case willLoadData
             case download
             case diskStore
