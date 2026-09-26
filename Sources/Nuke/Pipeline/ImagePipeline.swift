@@ -93,7 +93,11 @@ public final class ImagePipeline: Sendable {
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
         self.isDefaultDelegate = delegate == nil
-        (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
+        // Only ever turned on: the loader can be shared with a pipeline that
+        // needs the increments, or configured by the app.
+        if configuration.isProgressiveDecodingEnabled {
+            (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = true
+        }
 
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
         self.tasksLoadData = TaskPool(isCoalescingEnabled)
