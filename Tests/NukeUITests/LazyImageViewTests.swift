@@ -545,6 +545,51 @@ struct LazyImageViewTests {
         #expect(view.imageView.image == nil)
     }
 
+    @Test func memoryCacheHitDisplayedByCustomViewClearsImageView() async {
+        // Given a view displaying an image in its built-in image view
+        let expectation = TestExpectation()
+        view.onCompletion = { _ in expectation.fulfill() }
+        view.request = Test.request
+        await expectation.wait()
+        #expect(!view.imageView.isHidden)
+
+        // When the next image is a memory cache hit displayed by a custom view
+        let otherRequest = ImageRequest(url: URL(string: "https://example.com/other.jpg")!)
+        pipeline.cache[otherRequest] = Test.container
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+        view.request = otherRequest
+
+        // Then the previous image is neither visible nor retained
+        #expect(customView.superview === view)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
+    @Test func deferredResetForCustomViewClearsImageView() async {
+        // Given a view displaying an image in its built-in image view
+        let firstExpectation = TestExpectation()
+        view.onCompletion = { _ in firstExpectation.fulfill() }
+        view.request = Test.request
+        await firstExpectation.wait()
+        #expect(!view.imageView.isHidden)
+
+        // When the next image, loaded with the reset deferred, is displayed
+        // by a custom view
+        view.isResetEnabled = false
+        let customView = _PlatformBaseView()
+        view.makeImageView = { _ in customView }
+        let secondExpectation = TestExpectation()
+        view.onCompletion = { _ in secondExpectation.fulfill() }
+        view.url = URL(string: "https://example.com/other.jpg")!
+        await secondExpectation.wait()
+
+        // Then the previous image is neither visible nor retained
+        #expect(customView.superview === view)
+        #expect(view.imageView.isHidden)
+        #expect(view.imageView.image == nil)
+    }
+
     @Test func makeImageViewReturningNilFallsBackToDefault() async {
         view.makeImageView = { _ in nil }
 

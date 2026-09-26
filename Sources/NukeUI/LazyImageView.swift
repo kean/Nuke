@@ -373,6 +373,11 @@ public final class LazyImageView: _PlatformBaseView {
         removeCustomImageView()
 
         if let view = makeImageView?(container) {
+            // A memory cache hit and a deferred reset skip clearing the built-in
+            // image view so that the new image can overwrite it directly, but
+            // a custom view leaves it untouched.
+            if imageView.image != nil { imageView.prepareForReuse() }
+            if !imageView.isHidden { imageView.isHidden = true }
             addSubview(view)
             view.pinToSuperview()
             customImageView = view
