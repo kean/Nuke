@@ -67,46 +67,50 @@ struct ImagePipelineDecodingTests {
 
     // MARK: - Decoder Errors
 
-    @Test func decoderReturningNilResultsInDecodingFailedError() async throws {
-        // GIVEN a decoder whose _decode closure returns nil (causes decode() to throw)
-        let decoder = MockExperimentalDecoder()
-        decoder._decode = { _ in nil }
-
+    @Test func decoderErrorIsWrapped() async {
+        // Given
+        let decoder = MockFailingDecoder()
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in decoder }
         }
 
-        // WHEN
+        // When/Then
         do {
-            _ = try await pipeline.imageTask(with: Test.request).response
-            Issue.record("Expected a decoding error")
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
         } catch {
-            // THEN the pipeline wraps it in a decodingFailed error
-            if case .decodingFailed = error {
-                // Expected
+            if case let .decodingFailed(failedDecoder, context, error) = error {
+                #expect((failedDecoder as? MockFailingDecoder) === decoder)
+                #expect(context.request.url == Test.request.url)
+                #expect(context.data == Test.data)
+                #expect(context.isCompleted)
+                #expect(context.urlResponse?.url == Test.url)
+                #expect(error as? MockError == MockError(description: "decoder-failed"))
             } else {
-                Issue.record("Expected decodingFailed, got \(error)")
+                Issue.record("Unexpected error: \(error)")
             }
         }
     }
 
-    @Test func whenDecoderFactoryReturnsNilPipelineErrors() async throws {
-        // GIVEN a pipeline where no decoder can handle the content
+    @Test func missingDecoderFailsWithDecoderNotRegistered() async {
+        // Given a pipeline where no decoder can handle the data
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in nil }
         }
 
-        // WHEN
+        // When/Then
         do {
-            _ = try await pipeline.imageTask(with: Test.request).response
-            Issue.record("Expected decoderNotRegistered error")
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Expected failure")
         } catch {
-            // THEN
-            if case .decoderNotRegistered = error {
-                // Expected
-            } else {
-                Issue.record("Expected decoderNotRegistered, got \(error)")
+            guard case let .decoderNotRegistered(context) = error else {
+                Issue.record("Expected .decoderNotRegistered")
+                return
             }
+            #expect(context.request.url == Test.request.url)
+            #expect(context.data.count == 22789)
+            #expect(context.isCompleted)
+            #expect(context.urlResponse?.url == Test.url)
         }
     }
 

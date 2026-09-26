@@ -17,6 +17,32 @@ struct ImagePipelineCacheKeyTests {
     }
     private var cache: ImagePipeline.Cache { pipeline.cache }
 
+    // MARK: Data Key Format
+
+    /// The data key names the file in the disk cache: a change to its format
+    /// orphans every image that is already on disk.
+    @Test(arguments: [
+        (ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) },
+         "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue"),
+        (ImageRequest(url: Test.url).with { $0.thumbnail = .init(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit) },
+         "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue"),
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Circle()]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle"),
+        // A composition adds the identifiers of its processors as is
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Composition([ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Circle()]), ImageProcessors.Anonymous(id: "1", { $0 })]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=falsecom.github.kean/nuke/circle1"),
+        // An empty identifier adds nothing
+        (ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "", { $0 }), ImageProcessors.Resize(width: 320, unit: .pixels), ImageProcessors.Anonymous(id: "", { $0 })]),
+         "http://test.com/example.jpegcom.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false"),
+        // Without a URL, only the processors are left
+        (ImageRequest(url: nil, processors: [ImageProcessors.Resize(width: 320, unit: .pixels)]),
+         "com.github.kean/nuke/resize?s=(320.0, 9999.0),cm=.aspectFit,crop=false,upscale=false"),
+        (ImageRequest(url: nil), "")
+    ])
+    func dataKeyFormat(request: ImageRequest, key: String) {
+        #expect(cache.makeDataCacheKey(for: request) == key)
+    }
+
     // MARK: Default Keys
 
     @Test func dataCacheKeyAppendsTheThumbnailBeforeTheProcessors() {

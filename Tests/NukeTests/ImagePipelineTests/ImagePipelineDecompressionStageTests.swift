@@ -265,6 +265,25 @@ struct ImagePipelineDecompressionStageTests {
         #expect(delegate.decompressedResponses.count == 1)
         #expect(response.container.userInfo[.isDecompressedKey] as? Bool == true)
     }
+
+    /// ImageIO creates the thumbnails already decoded, so the default decoder
+    /// doesn't offer them for decompression either.
+    @Test func defaultDecoderDoesNotOfferThumbnailsForDecompression() async throws {
+        // GIVEN the default decoder
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 400) }
+
+        // WHEN
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.sizeInPixels == CGSize(width: 400, height: 300))
+        #expect(delegate.consultedResponses.isEmpty)
+        #expect(delegate.decompressedResponses.isEmpty)
+    }
 #endif
 }
 

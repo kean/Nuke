@@ -171,6 +171,22 @@ struct ImagePipelineLoadImageTaskTests {
         #expect(imageCache[intermediateRequest] == nil)
     }
 
+    /// The same for a processed image in the memory cache.
+    @Test func processedImageInMemoryIsReusedForALongerProcessorChain() async throws {
+        // GIVEN
+        let processors = MockProcessorFactory()
+        imageCache[ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])] = Test.container
+
+        // WHEN
+        let request = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2"), processors.make(id: "3")])
+        let response = try await pipeline.imageTask(with: request).response
+
+        // THEN
+        #expect(response.image.nk_test_processorIDs == ["3"])
+        #expect(dataLoader.createdTaskCount == 0)
+        #expect(processors.numberOfProcessorsApplied == 1)
+    }
+
     @Test func thumbnailWithProcessorsIsGeneratedFromCachedOriginalData() async throws {
         // GIVEN only the original image data in the disk cache
         dataCache.store[Test.url.absoluteString] = Test.data
@@ -366,6 +382,44 @@ struct ImagePipelineLoadImageTaskTests {
         #expect(imageCache[request]?.image === response.image)
         #expect(dataCache.writeCount == 0)
         #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func processorsAreAppliedToTheImageFromTheClosure() async throws {
+        // GIVEN
+        let image = try #require(PlatformImage(data: Test.data))
+        let container = ImageContainer(image: image)
+
+        // WHEN
+        let request = ImageRequest(
+            id: "closure-image",
+            image: { container },
+            processors: [.resize(size: CGSize(width: 160, height: 120), unit: .pixels)]
+        )
+        let result = try await pipeline.image(for: request)
+
+        // THEN the image is resized (the original is 640x480)
+        #expect(result.sizeInPixels == CGSize(width: 160, height: 120))
+    }
+
+    /// The error of the closure is reported as is – even a cancellation
+    /// error, since the task itself wasn't cancelled.
+    @Test func imageClosureErrorIsReportedAsDataLoadingFailed() async throws {
+        // GIVEN
+        let request = ImageRequest(id: "closure-image", image: {
+            throw URLError(.cancelled)
+        })
+
+        // WHEN/THEN
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record("Expected failure")
+        } catch {
+            if case let .dataLoadingFailed(error) = error {
+                #expect((error as? URLError)?.code == .cancelled)
+            } else {
+                Issue.record("Unexpected error type")
+            }
+        }
     }
 
     @Test func imageClosureIsNotCalledWhenLoadingIsNotAllowed() async throws {
