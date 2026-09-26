@@ -129,13 +129,16 @@ struct ImageProcessingExtensions {
         if let border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
-            ctx.setLineWidth(border.width)
+            // The stroke is centered on the path and the context is clipped to
+            // it, so only the inner half is drawn – twice the width makes the
+            // visible part as wide as requested.
+            ctx.setLineWidth(border.width * 2)
             ctx.strokePath()
         }
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return PlatformImage.make(cgImage: outputCGImage, source: image)
+        return PlatformImage.make(cgImage: outputCGImage, source: image, sourceCGImage: cgImage)
     }
 }
 

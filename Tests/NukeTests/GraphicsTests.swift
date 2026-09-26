@@ -86,6 +86,9 @@ struct GraphicsTests {
         let pixels = try #require(RGBABitmap(image: output))
         #expect(pixels.alpha(atX: 0, y: 0) == 0)
         #expect(pixels.alpha(atX: 30, y: 30) == 255)
+        // ...and the border is as wide as requested where the circle touches the edge
+        #expect((0..<4).allSatisfy { pixels.red(atX: 30, y: $0) > 200 })
+        #expect(pixels.red(atX: 30, y: 4) < 50)
     }
 
     // MARK: - Rounded Corners
@@ -112,11 +115,32 @@ struct GraphicsTests {
         // When
         let output = try #require(input.processed.byAddingRoundedCorners(radius: 4, border: border))
 
-        // Then the border is stroked along the edge
+        // Then the border is stroked along the edge, as wide as requested
+        // (the stroke is centered on the clip, so only its inner half shows)
         let pixels = try #require(RGBABitmap(image: output))
-        #expect(pixels.red(atX: 30, y: 1) > 100)
+        let column = (0..<8).map { pixels.red(atX: 30, y: $0) }
+        #expect(column.prefix(6).allSatisfy { $0 > 200 }, "\(column)")
+        #expect(column.suffix(2).allSatisfy { $0 < 50 }, "\(column)")
         // ...and the center is left untouched
         #expect(pixels.red(atX: 30, y: 30) < 100)
+    }
+
+    /// A one-pixel border is a solid line, not half a pixel blended with the
+    /// image.
+    @Test func addingRoundedCornersWithOnePixelBorder() throws {
+        // Given
+        let input = Test.rgbImage(width: 60, height: 60, color: CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+        let border = ImageProcessingOptions.Border(color: .red, width: 1, unit: .pixels)
+
+        // When
+        let output = try #require(input.processed.byAddingRoundedCorners(radius: 4, border: border))
+
+        // Then
+        let pixels = try #require(RGBABitmap(image: output))
+        #expect(pixels.red(atX: 30, y: 0) > 200)
+        #expect(pixels.red(atX: 30, y: 1) < 50)
+        #expect(pixels.red(atX: 0, y: 30) > 200)
+        #expect(pixels.red(atX: 1, y: 30) < 50)
     }
 
     /// Rounding the corners requires an alpha channel, which the monochrome
