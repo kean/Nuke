@@ -396,6 +396,38 @@ struct AnimatedImageFrameSharingTests {
         #expect(second.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
     }
 
+    @Test func aPausedCopyElsewhereLeavesThePlayingOneItsReadAhead() throws {
+        // Five frames of pool: a window of the read-ahead for the copy that is
+        // playing and the two frames a copy nobody is watching holds, which is
+        // exactly what the store asked for. Measured at one length for both
+        // playheads, the two windows wouldn't fit, and the playing copy would
+        // be cut to two frames with one of the five never used.
+        let pool = makePool(frames: 5)
+        let source = try makeSource(frameCount: 20)
+        let playing = makePlayer(source: source, pool: pool)
+        let (paused, _) = makeIdlePlayer(source: source, pool: pool)
+        paused.seek(toFrame: 10)
+
+        #expect(playing.store.allotment == 5 * Self.bytesPerFrame)
+        #expect(paused.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+        #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+    }
+
+    @Test func aPausedCopyElsewhereLeavesThePlayingOneItsOwnBudget() throws {
+        // The same with room to spare: the playing copy is held to a window by
+        // its own `maxBufferSize`, and the copy nobody is watching must not
+        // take a frame of that window.
+        let pool = makePool(frames: 1000)
+        let source = try makeSource(frameCount: 20)
+        var options = AnimatedImagePlayer.Options()
+        options.maxBufferSize = 5 * Self.bytesPerFrame
+        let playing = makePlayer(source: source, options: options, pool: pool)
+        let (paused, _) = makeIdlePlayer(source: source, pool: pool)
+        paused.seek(toFrame: 10)
+
+        #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.readAheadFrameCount + 1)
+    }
+
     @Test func copiesInStepAskForOneWindowBetweenThem() throws {
         // Sixteen frames of pool. The four copies play in step, so what they
         // need is one window of the read-ahead – three frames – and the other
