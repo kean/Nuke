@@ -93,6 +93,12 @@ public final class DataCache: DataCaching, Sendable {
     /// The generated filename must be a single path component: it must not
     /// contain "/" or a NUL character. Return `nil` for the keys that can't be
     /// mapped to a filename; "", ".", and ".." are treated the same way.
+    ///
+    /// Keep the filename at most 250 bytes long in UTF-8. A write goes through
+    /// a temporary file whose name adds 5 bytes to it (a "." prefix and a
+    /// ".tmp" suffix), so a longer filename that still fits the file system
+    /// limit makes the write fail and the entry is dropped. The default
+    /// generator produces 40 characters and is not affected.
     public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
     /// All of the mutable state, guarded by a single lock.
@@ -572,7 +578,10 @@ public final class DataCache: DataCaching, Sendable {
         guard let lastSweepDate = getMetadata().lastSweepDate else {
             return true
         }
-        return Date().timeIntervalSince(lastSweepDate) >= sweepInterval
+        let elapsed = Date().timeIntervalSince(lastSweepDate)
+        // A date ahead of the clock was recorded while the clock was wrong and
+        // must not hold the sweeps back until the clock catches up with it.
+        return elapsed < 0 || elapsed >= sweepInterval
     }
 
     private func performSweep() {
