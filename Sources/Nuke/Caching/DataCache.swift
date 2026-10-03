@@ -93,6 +93,12 @@ public final class DataCache: DataCaching, Sendable {
     /// The generated filename must be a single path component: it must not
     /// contain "/" or a NUL character. Return `nil` for the keys that can't be
     /// mapped to a filename; "", ".", and ".." are treated the same way.
+    ///
+    /// Keep the filename at most 250 bytes long in UTF-8. A write goes through
+    /// a temporary file whose name adds 5 bytes to it (a "." prefix and a
+    /// ".tmp" suffix), so a longer filename that still fits the file system
+    /// limit makes the write fail and the entry is dropped. The default
+    /// generator produces 40 characters and is not affected.
     public typealias FilenameGenerator = @Sendable (_ key: String) -> String?
 
     /// All of the mutable state, guarded by a single lock.
@@ -510,7 +516,7 @@ public final class DataCache: DataCaching, Sendable {
     /// most one behind per key and the next write to that key reclaims it.
     private func write(_ data: Data, to url: URL) throws {
         let tempURL = url.deletingLastPathComponent()
-            .appendingPathComponent(temporaryFilename(for: url.lastPathComponent), isDirectory: false)
+            .appendingPathComponent("." + url.lastPathComponent + ".tmp", isDirectory: false)
         try data.write(to: tempURL)
         let didRename = tempURL.withUnsafeFileSystemRepresentation { source in
             url.withUnsafeFileSystemRepresentation { destination in
@@ -522,17 +528,6 @@ public final class DataCache: DataCaching, Sendable {
             try? FileManager.default.removeItem(at: tempURL)
             throw CocoaError(.fileWriteUnknown)
         }
-    }
-
-    /// The name of the temporary file that a write to `filename` goes through.
-    ///
-    /// The prefix and the suffix add 5 bytes that a filename near the limit
-    /// of the file system (255 bytes in APFS) has no room for, and the write
-    /// would fail with `fileWriteInvalidFileName`. Such a name is hashed into a
-    /// fixed-length one instead, which is still derived from the destination.
-    private func temporaryFilename(for filename: String) -> String {
-        let name = filename.utf8.count + 5 <= 255 ? filename : filename.sha1
-        return "." + name + ".tmp"
     }
 
     private func performRemoveAll() {
