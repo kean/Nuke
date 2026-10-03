@@ -327,7 +327,7 @@ LazyImage(url: url) { state in
 | `.processors(nil)` | Removes the request's processors | Keeps the request's processors |
 | `.priority(nil)` | Sets the priority to `.normal` | Keeps the request's priority |
 
-A non-nil value still replaces the request's value. If you relied on `nil` to remove the request's processors, pass `[]` instead:
+A non-nil value still replaces the request's value, and the last call wins: `.processors([a]).processors(nil)` leaves the request's own processors, so `nil` also takes back an earlier call. If you relied on `nil` to remove the request's processors, pass `[]` instead:
 
 ```swift
 // Nuke 13
