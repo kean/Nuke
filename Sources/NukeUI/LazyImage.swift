@@ -323,7 +323,7 @@ private struct LazyImageDemoView: View {
 
             LazyImage(url: url) { state in
                 if let image = state.image {
-                    image.resizable().aspectRatio(contentMode: .fit)
+                    image.resizable().scaledToFit()
                 }
             }
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)

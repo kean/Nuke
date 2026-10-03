@@ -21,6 +21,6 @@ extension FetchImage {
 extension FetchImage {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `load(_:)` with an async closure, for example `load { try await pipeline.image(for: url) }`.")
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
-        fatalError()
+        fatalError("Removed in Nuke 14")
     }
 }
