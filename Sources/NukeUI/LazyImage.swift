@@ -19,6 +19,7 @@ public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
     private var context: LazyImageContext?
+    private var overrides = Overrides()
     private var makeContent: ((LazyImageState) -> Content)?
     private var transaction: Transaction
     private var pipeline: ImagePipeline = .shared
@@ -101,20 +102,22 @@ public struct LazyImage<Content: View>: View {
     /// Sets processors to be applied to the image.
     ///
     /// These processors replace any processors defined in the request, and
-    /// `[]` removes them. `nil` keeps the request's own processors. This
-    /// differs from ``FetchImage/processors`` and ``LazyImageView/processors``,
-    /// which only apply when the request has no processors of its own.
+    /// `[]` removes them. `nil` keeps the request's own processors, and it
+    /// also takes back an earlier call: the last call wins. This differs from
+    /// ``FetchImage/processors`` and ``LazyImageView/processors``, which only
+    /// apply when the request has no processors of its own.
     public consuming func processors(_ processors: [any ImageProcessing]?) -> Self {
-        map { if let processors { $0.context?.request.processors = processors } }
+        map { $0.overrides.processors = processors }
     }
 
     /// Sets the priority of the requests, replacing the request's own
-    /// priority. `nil` keeps the request's own priority.
+    /// priority. `nil` keeps the request's own priority, and it also takes
+    /// back an earlier call: the last call wins.
     ///
     /// A change updates the priority of the request that is already running
     /// instead of restarting it.
     public consuming func priority(_ priority: ImageRequest.Priority?) -> Self {
-        map { if let priority { $0.context?.request.priority = priority } }
+        map { $0.overrides.priority = priority }
     }
 
     /// Changes the underlying pipeline used for image loading.
@@ -156,6 +159,8 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
+        // The request with the modifiers applied, made once per update.
+        let context = overrides.applied(to: context)
         ZStack {
             if let makeContent {
                 makeContent(viewModel)
@@ -163,7 +168,7 @@ public struct LazyImage<Content: View>: View {
                 makeDefaultContent(for: viewModel)
             }
         }
-        .onAppear { onAppear() }
+        .onAppear { onAppear(context) }
         .onDisappear { onDisappear() }
         .onChange(of: context) { onChange(of: $0) }
     }
@@ -182,7 +187,7 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onAppear() {
+    private func onAppear(_ context: LazyImageContext?) {
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
         let isStillLoading = viewModel.isLoading && viewModel.pipeline === pipeline && isLoaded(context)
@@ -221,6 +226,22 @@ public struct LazyImage<Content: View>: View {
         case .lowerPriority:
             viewModel.priority = .veryLow
         }
+    }
+}
+
+/// What the `processors` and `priority` modifiers set. `nil` leaves the
+/// request's own value. The modifiers store their arguments here instead of
+/// writing them into the request, so that the last call wins and a later
+/// `nil` takes back an earlier value.
+private struct Overrides {
+    var processors: [any ImageProcessing]?
+    var priority: ImageRequest.Priority?
+
+    func applied(to context: LazyImageContext?) -> LazyImageContext? {
+        guard var context, processors != nil || priority != nil else { return context }
+        if let processors { context.request.processors = processors }
+        if let priority { context.request.priority = priority }
+        return context
     }
 }
 
