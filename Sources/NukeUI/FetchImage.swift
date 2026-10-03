@@ -39,6 +39,10 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// The progress of the current image download.
     ///
+    /// Returns `ImageTask.Progress`, the same struct the pipeline reports.
+    /// `NukeUI` no longer has a progress type of its own: `FetchImage.Progress`
+    /// is a deprecated typealias for it.
+    ///
     /// - note: The updates are only published to the observers if you read the
     /// property, so the views that don't display the progress aren't
     /// invalidated every time a chunk of data arrives.

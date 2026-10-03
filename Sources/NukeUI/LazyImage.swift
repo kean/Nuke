@@ -19,6 +19,7 @@ public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
     private var context: LazyImageContext?
+    private var overrides = Overrides()
     private var makeContent: ((LazyImageState) -> Content)?
     private var transaction: Transaction
     private var pipeline: ImagePipeline = .shared
@@ -101,20 +102,22 @@ public struct LazyImage<Content: View>: View {
     /// Sets processors to be applied to the image.
     ///
     /// These processors replace any processors defined in the request, and
-    /// `nil` or `[]` removes them. This differs from ``FetchImage/processors``
-    /// and ``LazyImageView/processors``, which only apply when the request has
-    /// no processors of its own.
+    /// `[]` removes them. `nil` keeps the request's own processors, and it
+    /// also takes back an earlier call: the last call wins. This differs from
+    /// ``FetchImage/processors`` and ``LazyImageView/processors``, which only
+    /// apply when the request has no processors of its own.
     public consuming func processors(_ processors: [any ImageProcessing]?) -> Self {
-        map { $0.context?.request.processors = processors ?? [] }
+        map { $0.overrides.processors = processors }
     }
 
     /// Sets the priority of the requests, replacing the request's own
-    /// priority. `nil` keeps the request's own priority.
+    /// priority. `nil` keeps the request's own priority, and it also takes
+    /// back an earlier call: the last call wins.
     ///
     /// A change updates the priority of the request that is already running
     /// instead of restarting it.
     public consuming func priority(_ priority: ImageRequest.Priority?) -> Self {
-        map { if let priority { $0.context?.request.priority = priority } }
+        map { $0.overrides.priority = priority }
     }
 
     /// Changes the underlying pipeline used for image loading.
@@ -165,7 +168,27 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) { onChange(of: $0) }
+        .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context) }
+    }
+
+    /// The view as of an update, compared by what it loads. The action of
+    /// `onChange(of:perform:)` is the closure from the previous update, so the
+    /// view reads its current options from here and not from that `self`.
+    private struct Update: Equatable {
+        let view: LazyImage
+        /// The request with the modifiers applied, made once per update. It
+        /// has to be a snapshot: a processor's identifier can change in place,
+        /// and reading it again in `==` would see the new one on both sides.
+        let context: LazyImageContext?
+
+        init(view: LazyImage) {
+            self.view = view
+            self.context = view.overrides.applied(to: view.context)
+        }
+
+        static func == (lhs: Update, rhs: Update) -> Bool {
+            lhs.context == rhs.context && lhs.view.pipeline === rhs.view.pipeline
+        }
     }
 
     @ViewBuilder
@@ -183,13 +206,11 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
+        let context = overrides.applied(to: context)
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
-        let isStillLoading = viewModel.isLoading && viewModel.pipeline === pipeline && isLoaded(context)
-        viewModel.transaction = transaction
-        viewModel.pipeline = pipeline
-        viewModel.onStart = onStart
-        viewModel.onCompletion = onCompletion
+        let isStillLoading = viewModel.isLoading && isLoaded(context)
+        configure()
         // Undo the priority lowered by the `.lowerPriority` disappear behavior.
         viewModel.priority = context?.request.priority
         if !isStillLoading {
@@ -197,20 +218,29 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onChange(of context: LazyImageContext?) {
-        if let context, isLoaded(context) {
+    private func onChange(to context: LazyImageContext?) {
+        let isAlreadyLoaded = isLoaded(context)
+        configure()
+        if isAlreadyLoaded {
             // Only the priority changed, which doesn't need a new request.
-            viewModel.priority = context.request.priority
+            viewModel.priority = context?.request.priority
         } else {
             viewModel.load(context?.request)
         }
     }
 
-    /// Returns `true` if the view model has loaded, or is loading, the request
-    /// of the given context, whatever its priority.
+    private func configure() {
+        viewModel.transaction = transaction
+        viewModel.pipeline = pipeline
+        viewModel.onStart = onStart
+        viewModel.onCompletion = onCompletion
+    }
+
+    /// Returns `true` if the view model has loaded, or is loading, the given
+    /// request from the view's pipeline, whatever its priority.
     private func isLoaded(_ context: LazyImageContext?) -> Bool {
         guard let context, let request = viewModel.currentRequest else { return false }
-        return context.loadsSameImage(as: LazyImageContext(request: request))
+        return viewModel.pipeline === pipeline && context.loadsSameImage(as: LazyImageContext(request: request))
     }
 
     private func onDisappear() {
@@ -221,6 +251,22 @@ public struct LazyImage<Content: View>: View {
         case .lowerPriority:
             viewModel.priority = .veryLow
         }
+    }
+}
+
+/// What the `processors` and `priority` modifiers set. `nil` leaves the
+/// request's own value. The modifiers store their arguments here instead of
+/// writing them into the request, so that the last call wins and a later
+/// `nil` takes back an earlier value.
+private struct Overrides {
+    var processors: [any ImageProcessing]?
+    var priority: ImageRequest.Priority?
+
+    func applied(to context: LazyImageContext?) -> LazyImageContext? {
+        guard var context, processors != nil || priority != nil else { return context }
+        if let processors { context.request.processors = processors }
+        if let priority { context.request.priority = priority }
+        return context
     }
 }
 
@@ -277,7 +323,7 @@ private struct LazyImageDemoView: View {
 
             LazyImage(url: url) { state in
                 if let image = state.image {
-                    image.resizable().aspectRatio(contentMode: .fit)
+                    image.resizable().scaledToFit()
                 }
             }
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)

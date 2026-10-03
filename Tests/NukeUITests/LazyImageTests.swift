@@ -292,8 +292,30 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
-    /// Replacing the request's processors with `nil` removes them.
-    @Test func nilProcessorsClearRequestProcessors() async {
+    /// Replacing the request's processors with `[]` removes them.
+    @Test func emptyProcessorsClearRequestProcessors() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors([])
+                .onCompletion {
+                    response.value = $0.value
+                    completed.fulfill()
+                }
+        }
+        await completed.wait()
+
+        #expect(response.value?.image.nk_test_processorIDs == [])
+        withExtendedLifetime(host) {}
+    }
+
+    /// `nil` keeps the request's processors.
+    @Test func nilProcessorsKeepRequestProcessors() async {
         let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
 
         let completed = TestExpectation()
@@ -310,8 +332,78 @@ struct LazyImageTests {
         }
         await completed.wait()
 
-        #expect(response.value?.image.nk_test_processorIDs == [])
+        #expect(response.value?.image.nk_test_processorIDs == ["p1"])
         withExtendedLifetime(host) {}
+    }
+
+    /// The last call wins: `nil` takes back an earlier call and leaves the
+    /// request's own processors.
+    @Test func nilProcessorsTakeBackAnEarlierCall() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors([MockImageProcessor(id: "p2")])
+                .processors(nil)
+                .onCompletion {
+                    response.value = $0.value
+                    completed.fulfill()
+                }
+        }
+        await completed.wait()
+
+        #expect(response.value?.image.nk_test_processorIDs == ["p1"])
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func newRequestStartedWhenProcessorsChangeToNil() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+        let responses = Ref<[ImageResponse]>([])
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost([MockImageProcessor(id: "p2")] as [any ImageProcessing]?) { processors in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors(processors)
+                .onCompletion {
+                    responses.value.append(contentsOf: $0.value.map { [$0] } ?? [])
+                    if responses.value.count == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        await host.update(nil)
+        await second.wait()
+
+        #expect(responses.value.map(\.image.nk_test_processorIDs) == [["p2"], ["p1"]])
+    }
+
+    @Test func newRequestStartedWhenProcessorsChangeFromNil() async {
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+        let responses = Ref<[ImageResponse]>([])
+        let first = TestExpectation()
+        let second = TestExpectation()
+
+        let host = ViewHost(nil as [any ImageProcessing]?) { processors in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .processors(processors)
+                .onCompletion {
+                    responses.value.append(contentsOf: $0.value.map { [$0] } ?? [])
+                    if responses.value.count == 1 { first.fulfill() } else { second.fulfill() }
+                }
+        }
+        await first.wait()
+
+        await host.update([MockImageProcessor(id: "p2")])
+        await second.wait()
+
+        #expect(responses.value.map(\.image.nk_test_processorIDs) == [["p1"], ["p2"]])
     }
 
     // MARK: - Priority
@@ -347,6 +439,31 @@ struct LazyImageTests {
         let host = ViewHost(request) { request in
             LazyImage(request: request)
                 .pipeline(pipeline)
+                .priority(nil)
+                .onStart {
+                    task.value = $0
+                    started.fulfill()
+                }
+        }
+        await started.wait()
+
+        #expect(try #require(task.value).priority == .high)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The last call wins: `nil` takes back an earlier call and leaves the
+    /// request's own priority.
+    @Test func nilPriorityTakesBackAnEarlierCall() async throws {
+        dataLoader.isSuspended = true
+
+        let started = TestExpectation()
+        let task = Ref<ImageTask?>(nil)
+
+        let request = ImageRequest(url: Test.url, priority: .high)
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .priority(.low)
                 .priority(nil)
                 .onStart {
                     task.value = $0
@@ -589,6 +706,56 @@ struct LazyImageTests {
 
         #expect(completions.value == 2)
         #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    /// A new request reports to the callbacks the view has now, not to the
+    /// ones it had when it appeared.
+    @Test func newRequestUsesTheCurrentCallbacks() async {
+        let starts = Ref<[Int]>([])
+        let completions = Ref<[Int]>([])
+        let first = TestExpectation()
+
+        let otherURL = URL(string: "https://example.com/other.jpeg")!
+        let host = ViewHost(1) { version in
+            LazyImage(url: version == 1 ? Test.url : otherURL)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value.append(version) }
+                .onCompletion { _ in
+                    completions.value.append(version)
+                    first.fulfill()
+                }
+        }
+        await first.wait()
+
+        await host.update(2, until: { completions.value.count == 2 })
+
+        #expect(starts.value == [1, 2])
+        #expect(completions.value == [1, 2])
+    }
+
+    @Test func newRequestStartedWhenPipelineChanges() async {
+        let otherDataLoader = MockDataLoader()
+        let otherPipeline = ImagePipeline {
+            $0.dataLoader = otherDataLoader
+            $0.imageCache = nil
+        }
+        let completions = Ref(0)
+        let first = TestExpectation()
+
+        let host = ViewHost(pipeline) { pipeline in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .onCompletion { _ in
+                    completions.value += 1
+                    first.fulfill()
+                }
+        }
+        await first.wait()
+
+        await host.update(otherPipeline, until: { completions.value == 2 })
+
+        #expect(completions.value == 2)
+        #expect(otherDataLoader.createdTaskCount == 1)
     }
 
     @Test func noNewRequestWhenRequestIsUnchanged() async {
