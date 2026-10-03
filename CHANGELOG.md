@@ -64,6 +64,7 @@
 - Add `TaskQueue/reservedTaskCount`: the number of slots that the work with a priority lower than `.normal` can't take – https://github.com/kean/Nuke/pull/981
 - Replace the global `ImagePipeline/Configuration/isSignpostLoggingEnabled` with the per-pipeline `ImagePipeline/Configuration-swift.struct/signpostLog`: the pipeline sends a signpost for every task, job, and stage while diagnostics are on, unless it's set to `nil` – https://github.com/kean/Nuke/pull/995
 - `LazyImage/priority(_:)` with `nil` now keeps the request's own priority instead of resetting it to `.normal` – https://github.com/kean/Nuke/pull/1034
+- `LazyImage/processors(_:)` with `nil` now keeps the request's own processors; pass `[]` to remove them. `nil` in `processors(_:)` and `priority(_:)` also takes back an earlier call – https://github.com/kean/Nuke/pull/1035
 
 **Performance**
 

@@ -317,3 +317,24 @@ LazyImage(url: url) { state in
 ```
 
 `FetchImage.load(_:)` still takes an untyped async closure. An error that isn't already an `ImagePipeline.Error` is reported as `dataLoadingFailed(error:)` wrapping it, the same way the pipeline reports the errors thrown by the async `ImageRequest` sources.
+
+## `nil` in `LazyImage` modifiers keeps the request's value
+
+`LazyImage.processors(_:)` and `LazyImage.priority(_:)` used to treat `nil` as an empty or default value that replaced the request's own. It now leaves the request's value alone.
+
+| Modifier | Nuke 13 | Nuke 14 |
+|---|---|---|
+| `.processors(nil)` | Removes the request's processors | Keeps the request's processors |
+| `.priority(nil)` | Sets the priority to `.normal` | Keeps the request's priority |
+
+A non-nil value still replaces the request's value, and the last call wins: `.processors([a]).processors(nil)` leaves the request's own processors, so `nil` also takes back an earlier call. If you relied on `nil` to remove the request's processors, pass `[]` instead:
+
+```swift
+// Nuke 13
+LazyImage(request: request)
+    .processors(isBlurred ? [ImageProcessors.GaussianBlur()] : nil)
+
+// Nuke 14
+LazyImage(request: request)
+    .processors(isBlurred ? [ImageProcessors.GaussianBlur()] : [])
+```
