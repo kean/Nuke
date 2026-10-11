@@ -123,21 +123,26 @@ public final class LazyImageView: _PlatformBaseView {
     ///
     /// If you pass an image request with a non-empty list of processors as
     /// a source, your processors will be applied instead.
-    public var processors: [any ImageProcessing]?
+    public var processors: [any ImageProcessing]? {
+        didSet { loader.processors = processors ?? [] }
+    }
 
     /// Overrides the priority of the request. `nil` by default, which uses the
     /// request's own priority. The priority can be changed dynamically.
     public var priority: ImageRequest.Priority? {
-        didSet {
-            imageTask?.priority = priority ?? request?.priority ?? .normal
-        }
+        didSet { loader.priority = priority }
     }
 
     /// Current image task.
-    public var imageTask: ImageTask?
+    public var imageTask: ImageTask? { loader.task }
 
     /// The pipeline to be used for download. `shared` by default.
-    public var pipeline: ImagePipeline = .shared
+    public var pipeline: ImagePipeline {
+        get { loader.pipeline }
+        set { loader.pipeline = newValue }
+    }
+
+    private let loader = ImageLoader()
 
     // MARK: Callbacks
 
@@ -177,10 +182,6 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Initializers
 
-    deinit {
-        imageTask?.cancel()
-    }
-
     override public init(frame: CGRect) {
         super.init(frame: frame)
         didInit()
@@ -192,6 +193,8 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func didInit() {
+        loader.onUpdate = { [weak self] in self?.render($0) }
+
         imageView.isHidden = true
         addSubview(imageView)
         imageView.pinToSuperview()
@@ -238,14 +241,10 @@ public final class LazyImageView: _PlatformBaseView {
 
     /// Cancels current request and prepares the view for reuse.
     public func reset() {
-        reset(clearImage: true)
+        loader.reset()
     }
 
-    private func reset(clearImage: Bool, shouldCancel: Bool = true) {
-        if shouldCancel {
-            cancel()
-        }
-
+    private func resetViews(clearImage: Bool) {
         if clearImage {
             if imageView.image != nil { imageView.prepareForReuse() }
             if !imageView.isHidden { imageView.isHidden = true }
@@ -261,7 +260,7 @@ public final class LazyImageView: _PlatformBaseView {
 
     private func resetOrDefer(clearImage: Bool = true) {
         if isResetEnabled {
-            reset(clearImage: clearImage)
+            resetViews(clearImage: clearImage)
         } else {
             isResetNeeded = true
         }
@@ -269,8 +268,7 @@ public final class LazyImageView: _PlatformBaseView {
 
     /// Cancels current request.
     public func cancel() {
-        imageTask?.cancel()
-        imageTask = nil
+        loader.cancel()
     }
 
     // MARK: Loading Images
@@ -278,65 +276,41 @@ public final class LazyImageView: _PlatformBaseView {
     /// Loads an image with the given request.
     private func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
-
-        cancel()
-
-        guard var request else {
-            resetOrDefer()
-            handle(result: .failure(ImagePipeline.Error.imageRequestMissing), isSync: true)
-            return
-        }
-
-        if let processors, !processors.isEmpty, request.processors.isEmpty {
-            request.processors = processors
-        }
-        if let priority {
-            request.priority = priority
-        }
-
-        // Check cache before `reset()` so a hit can overwrite `imageView.image` directly.
-        let cachedImage = pipeline.cache[request]
-        if let image = cachedImage, !image.isPreview {
-            resetOrDefer(clearImage: false)
-            let response = ImageResponse(container: image, request: request, cacheType: .memory)
-            handle(result: .success(response), isSync: true)
-            return
-        }
-
-        resetOrDefer()
-
-        if let image = cachedImage, image.isPreview {
-            display(image, isFromMemory: true)
-        }
-
-        setPlaceholderViewHidden(false)
-
-        let task = pipeline.loadImage(
-            with: request,
-            progress: { [weak self] response, completed, total in
-                guard let self else { return }
-                let progress = ImageTask.Progress(completed: completed, total: total)
-                if let response {
-                    self.handle(preview: response)
-                    self.onPreview?(response)
-                } else {
-                    self.onProgress?(progress)
-                }
-            },
-            completion: { [weak self] result in
-                self?.handle(result: result, isSync: false)
-            }
-        )
-        imageTask = task
-        onStart?(task)
+        loader.load(request)
     }
 
-    private func handle(preview: ImageResponse) {
-        guard isProgressiveImageRenderingEnabled else {
-            return
+    private func render(_ state: ImageLoader.State) {
+        switch state.event {
+        case .started(let task):
+            resetOrDefer()
+            if let container = state.imageContainer {
+                display(container, isFromMemory: true) // A preview found in the memory cache
+            }
+            setPlaceholderViewHidden(false)
+            onStart?(task)
+        case .progress(let progress):
+            onProgress?(progress)
+        case .preview(let response):
+            if isProgressiveImageRenderingEnabled {
+                setPlaceholderViewHidden(true)
+                display(response.container, isFromMemory: false)
+            }
+            onPreview?(response)
+        case let .finished(result, isSync):
+            if isSync {
+                // A hit overwrites `imageView.image` directly, without clearing it first.
+                if case .success = result {
+                    resetOrDefer(clearImage: false)
+                } else {
+                    resetOrDefer()
+                }
+            }
+            handle(result: result, isSync: isSync)
+        case .reset:
+            resetViews(clearImage: true)
+        case .cancelled:
+            break
         }
-        setPlaceholderViewHidden(true)
-        display(preview.container, isFromMemory: false)
     }
 
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool) {
@@ -357,7 +331,6 @@ public final class LazyImageView: _PlatformBaseView {
             }
         }
 
-        imageTask = nil
         switch result {
         case .success(let response): onSuccess?(response)
         case .failure(let error): onFailure?(error)
@@ -366,7 +339,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
-        resetIfNeeded(clearImage: false, shouldCancel: !container.isPreview)
+        resetIfNeeded(clearImage: false)
 
         // Remove the view created for the previous response (a progressive
         // preview or a cached preview) before displaying the new one.
@@ -499,9 +472,9 @@ public final class LazyImageView: _PlatformBaseView {
         case fill
     }
 
-    private func resetIfNeeded(clearImage: Bool = true, shouldCancel: Bool = true) {
+    private func resetIfNeeded(clearImage: Bool = true) {
         if isResetNeeded {
-            reset(clearImage: clearImage, shouldCancel: shouldCancel)
+            resetViews(clearImage: clearImage)
         }
     }
 }
