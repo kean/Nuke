@@ -340,6 +340,329 @@ struct ImageLoaderTests {
         #expect(task.request.processors.count == 1)
     }
 
+    // MARK: - Loading From a Closure
+
+    @Test func closureLoadReportsStartedAndFinished() async throws {
+        // When
+        let handle = loader.load { Test.response }
+
+        // Then it has started, and has neither a task nor a request
+        #expect(recorder.events == ["started"])
+        let started = try #require(recorder.states.first)
+        #expect(started.isLoading)
+        #expect(started.task == nil)
+        #expect(started.request == nil)
+        #expect(handle.task == nil)
+        if case .started(let task) = started.event {
+            #expect(task == nil)
+        } else {
+            Issue.record("Expected the started event")
+        }
+
+        // When
+        let response = try await handle.response
+
+        // Then
+        #expect(recorder.events == ["started", "finished(success)"])
+        let finished = try #require(recorder.states.last)
+        #expect(!finished.isLoading)
+        #expect(finished.image === response.image)
+        #expect(finished.result?.error == nil)
+    }
+
+    @Test func closureLoadStartsAfterTheLoadReturns() async throws {
+        // Given
+        let ran = Ref(false)
+
+        // When
+        let handle = loader.load {
+            ran.value = true
+            return Test.response
+        }
+
+        // Then
+        #expect(!ran.value)
+        #expect(loader.state.isLoading)
+        _ = try await handle.response
+        #expect(ran.value)
+    }
+
+    @Test func closureLoadWrapsAnyError() async {
+        // Given
+        struct LoadError: Error {}
+
+        // When
+        let result = await loader.load { throw LoadError() }.result
+
+        // Then
+        guard case .dataLoadingFailed(let error) = result.error else {
+            Issue.record("Expected dataLoadingFailed, got \(String(describing: result.error))")
+            return
+        }
+        #expect(error is LoadError)
+        #expect(loader.state.error == result.error)
+        #expect(recorder.events == ["started", "finished(failure)"])
+    }
+
+    @Test func closureLoadPreservesPipelineError() async {
+        // When
+        let result = await loader.load { throw ImagePipeline.Error.dataDownloadExceededMaximumSize }.result
+
+        // Then
+        #expect(result.error == .dataDownloadExceededMaximumSize)
+    }
+
+    @Test func cancelStopsAClosureLoad() async {
+        // Given
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let handle = loader.load {
+            started.fulfill()
+            await gate.wait()
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        loader.cancel()
+
+        // Then
+        #expect(recorder.events == ["started", "cancelled"])
+        #expect(!loader.state.isLoading)
+        #expect(await handle.result.error == .cancelled)
+        gate.open()
+    }
+
+    @Test func cancelCancelsTheSwiftTaskOfAClosureLoad() async throws {
+        // Given an action that stops when it's cancelled
+        let started = TestExpectation()
+        let stopped = Ref<Bool?>(nil)
+        loader.load {
+            started.fulfill()
+            do {
+                try await Task.sleep(for: .seconds(60))
+                stopped.value = false
+            } catch {
+                stopped.value = true
+                throw error
+            }
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        loader.cancel()
+        await drainPendingWork()
+
+        // Then
+        #expect(stopped.value == true)
+        #expect(recorder.events == ["started", "cancelled"])
+    }
+
+    @Test func closureLoadDeliversNoResultAfterCancel() async {
+        // Given an action that ignores cancellation, like most non-Nuke async work
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let actionReturned = TestExpectation()
+        loader.load {
+            started.fulfill()
+            await gate.wait()
+            actionReturned.fulfill()
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        loader.cancel()
+        gate.open()
+        await actionReturned.wait()
+        await drainPendingWork()
+
+        // Then
+        #expect(recorder.events == ["started", "cancelled"])
+        #expect(loader.state.result == nil)
+        #expect(loader.state.imageContainer == nil)
+    }
+
+    @Test func resetDiscardsAClosureLoad() async {
+        // Given
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let actionReturned = TestExpectation()
+        let handle = loader.load {
+            started.fulfill()
+            await gate.wait()
+            actionReturned.fulfill()
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        loader.reset()
+        gate.open()
+        await actionReturned.wait()
+        await drainPendingWork()
+
+        // Then
+        #expect(recorder.events == ["started", "reset"])
+        #expect(loader.state.result == nil)
+        #expect(await handle.result.error == .cancelled)
+    }
+
+    @Test func newLoadReplacesAClosureLoad() async throws {
+        // Given
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let actionReturned = TestExpectation()
+        let first = loader.load {
+            started.fulfill()
+            await gate.wait()
+            actionReturned.fulfill()
+            return ImageResponse(container: ImageContainer(image: PlatformImage()), request: Test.request)
+        }
+        await started.wait()
+
+        // When
+        let second = loader.load { Test.response }
+        let response = try await second.response
+        gate.open()
+        await actionReturned.wait()
+        await drainPendingWork()
+
+        // Then the late result of the first load doesn't overwrite the second
+        #expect(await first.result.error == .cancelled)
+        #expect(loader.state.image === response.image)
+        #expect(recorder.events == ["started", "started", "finished(success)"])
+    }
+
+    @Test func pipelineLoadReplacesAClosureLoad() async throws {
+        // Given
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let first = loader.load {
+            started.fulfill()
+            await gate.wait()
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        let response = try await loader.load(Test.request).response
+        gate.open()
+        await drainPendingWork()
+
+        // Then
+        #expect(await first.result.error == .cancelled)
+        #expect(loader.state.image === response.image)
+        #expect(loader.state.request?.url == Test.url)
+    }
+
+    @Test func closureLoadReplacesAPipelineLoad() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+
+        // When
+        let response = try await loader.load { Test.response }.response
+
+        // Then
+        #expect(first.task?.isCancelled == true)
+        #expect(await first.result.error == .cancelled)
+        #expect(loader.state.image === response.image)
+        #expect(loader.state.request == nil)
+        #expect(loader.task == nil)
+    }
+
+    @Test func cancellingTheAwaitingTaskCancelsAClosureLoad() async {
+        // Given
+        let gate = AsyncGate()
+        let started = TestExpectation()
+        let handle = loader.load {
+            started.fulfill()
+            await gate.wait()
+            return Test.response
+        }
+        await started.wait()
+
+        // When
+        let task = Task { await handle.result }
+        task.cancel()
+        let result = await task.value
+
+        // Then
+        #expect(result.error == .cancelled)
+        #expect(!loader.state.isLoading)
+        #expect(recorder.events == ["started", "cancelled"])
+        gate.open()
+    }
+
+    @Test func deallocatingTheLoaderCancelsAClosureLoad() async throws {
+        // Given
+        let started = TestExpectation()
+        let stopped = TestExpectation()
+        var loader: ImageLoader? = ImageLoader(pipeline: pipeline)
+        let handle = try #require(loader?.load {
+            started.fulfill()
+            do {
+                try await Task.sleep(for: .seconds(60))
+            } catch {
+                stopped.fulfill()
+                throw error
+            }
+            return Test.response
+        })
+        await started.wait()
+
+        // When
+        loader = nil
+
+        // Then
+        await stopped.wait()
+        #expect(await handle.result.error == .cancelled)
+    }
+
+    @Test func previousImageIsKeptWhileAClosureLoads() async throws {
+        // Given
+        loader.keepsPreviousImage = true
+        imageCache[Test.request] = Test.container
+        loader.load(Test.request)
+        let previous = try #require(loader.state.image)
+
+        // When
+        let gate = AsyncGate()
+        let handle = loader.load {
+            await gate.wait()
+            return ImageResponse(container: ImageContainer(image: PlatformImage()), request: Test.request)
+        }
+
+        // Then
+        #expect(loader.state.image === previous)
+        #expect(loader.state.isPreviousImage)
+
+        // When the new image arrives
+        gate.open()
+        let response = try await handle.response
+
+        // Then it replaces the previous one
+        #expect(loader.state.image === response.image)
+        #expect(!loader.state.isPreviousImage)
+    }
+
+    @Test func previousImageIsDroppedWhenAClosureLoadFails() async {
+        // Given
+        struct LoadError: Error {}
+        loader.keepsPreviousImage = true
+        imageCache[Test.request] = Test.container
+        loader.load(Test.request)
+
+        // When
+        _ = await loader.load { throw LoadError() }.result
+
+        // Then
+        #expect(loader.state.imageContainer == nil)
+        #expect(!loader.state.isPreviousImage)
+    }
+
     // MARK: - Delegate
 
     @Test func loadStartedFromTheDelegateIsNotFollowedByAStaleState() async throws {
