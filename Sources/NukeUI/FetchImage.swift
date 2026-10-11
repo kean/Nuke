@@ -67,17 +67,22 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// (the default), the request's own priority is used. Can be updated while
     /// a task is already running.
     public var priority: ImageRequest.Priority? {
-        didSet {
-            imageTask?.priority = priority ?? currentRequest?.priority ?? .normal
-        }
+        get { loader.priority }
+        set { loader.priority = newValue }
     }
 
     /// A pipeline used for performing image requests.
-    public var pipeline: ImagePipeline = .shared
+    public var pipeline: ImagePipeline {
+        get { loader.pipeline }
+        set { loader.pipeline = newValue }
+    }
 
     /// Image processors to be applied unless the processors are provided in the
     /// request. `[]` by default.
-    public var processors: [any ImageProcessing] = []
+    public var processors: [any ImageProcessing] {
+        get { loader.processors }
+        set { loader.processors = newValue }
+    }
 
     /// Gets called when the request is started.
     public var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
@@ -85,121 +90,31 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Gets called when the current request is completed.
     public var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
 
-    private var imageTask: ImageTask?
-    private var asyncTask: Task<Void, Never>?
+    // The load logic: cancellation, the memory cache lookup, the options, and
+    // the stale results. `FetchImage` publishes what the loader reports.
+    private let loader = ImageLoader()
 
     /// The request passed to the last `load(_:)` call, before
-    /// ``priority`` and ``processors`` are applied to it.
-    private(set) var currentRequest: ImageRequest?
-
-    /// Incremented every time the current request is cancelled or superseded.
-    /// Used to discard the results of the async/await-based loads: `Task`
-    /// cancellation is cooperative, so the action can complete long after the
-    /// load it belongs to is no longer current.
-    private var loadGeneration = 0
-
-    deinit {
-        imageTask?.cancel()
-        asyncTask?.cancel()
-    }
+    /// ``priority`` and ``processors`` are applied to it. `nil` for a load
+    /// from an async function.
+    var currentRequest: ImageRequest? { loader.state.request }
 
     /// Initializes the image. To load an image, use one of the `load()` methods.
-    public init() {}
+    public init() {
+        loader.onUpdate = { [weak self] in self?.apply($0) }
+    }
 
     // MARK: Loading Images
 
     /// Loads an image with the given URL.
     public func load(_ url: URL?) {
-        if let url {
-            load(ImageRequest(url: url))
-        } else {
-            load(nil as ImageRequest?)
-        }
+        load(url.map { ImageRequest(url: $0) })
     }
 
     /// Loads an image with the given request.
     public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
-
-        cancel()
-        currentRequest = request
-
-        guard var request else {
-            reset()
-            handle(result: .failure(.imageRequestMissing))
-            return
-        }
-
-        if !processors.isEmpty && request.processors.isEmpty {
-            request.processors = processors
-        }
-        if let priority {
-            request.priority = priority
-        }
-
-        // Quick synchronous memory cache lookup
-        let cached = pipeline.cache[request]
-        if let image = cached, !image.isPreview {
-            // Set imageContainer and result directly to avoid a nil flicker.
-            clearLoadingState()
-            let response = ImageResponse(container: image, request: request, cacheType: .memory)
-            imageContainer = image
-            result = .success(response)
-            onCompletion?(.success(response))
-            return
-        }
-
-        reset()
-
-        if let image = cached {
-            imageContainer = image // Display progressive image
-        }
-
-        isLoading = true
-
-        let task = pipeline.imageTask(with: request) { [weak self] event, task in
-            self?.handle(event, of: task)
-        }
-        imageTask = task
-        onStart?(task)
-    }
-
-    private func handle(_ event: ImageTask.Event, of task: ImageTask) {
-        guard task === imageTask else {
-            return // The load was cancelled or replaced
-        }
-        switch event {
-        case .progress(let progress):
-            _progress = progress
-        case .preview(let response):
-            withTransaction(transaction) {
-                handle(preview: response)
-            }
-        case .finished(let result):
-            if task.isCancelled, case .failure(.cancelled) = result {
-                cancel() // The task was cancelled directly
-            } else {
-                withTransaction(transaction) {
-                    handle(result: result)
-                }
-            }
-        }
-    }
-
-    private func handle(preview: ImageResponse) {
-        // Display progressively decoded image
-        self.imageContainer = preview.container
-    }
-
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
-        isLoading = false
-        imageTask = nil
-
-        if case .success(let response) = result {
-            self.imageContainer = response.container
-        }
-        self.result = result
-        self.onCompletion?(result)
+        loader.load(request)
     }
 
     // MARK: Load (Async/Await)
@@ -212,57 +127,81 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// way the pipeline reports the errors thrown by the async
     /// ``ImageRequest`` sources.
     public func load(_ action: @escaping () async throws -> ImageResponse) {
-        reset()
-        currentRequest = nil
-        isLoading = true
-
-        let generation = loadGeneration
-        asyncTask = Task { [weak self] in
-            do {
-                let response = try await action()
-                guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
-                withTransaction(transaction) {
-                    handle(result: .success(response))
-                }
-            } catch {
-                guard let self, generation == loadGeneration else { return } // Released, cancelled, or superseded
-                let failure = error as? ImagePipeline.Error ?? .dataLoadingFailed(error: error)
-                handle(result: .failure(failure))
-            }
-        }
+        loader.load(action)
     }
 
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded image.
     public func cancel() {
-        // pipeline-based
-        imageTask?.cancel() // Its remaining events are ignored
-        imageTask = nil
-
-        // async/await-based (`Task` cancellation is cooperative, so the action
-        // isn't guaranteed to stop and its result has to be discarded)
-        asyncTask?.cancel()
-        asyncTask = nil
-        loadGeneration &+= 1
-
-        // The cancelled load never reaches `handle(result:)`
-        if isLoading { isLoading = false }
+        loader.cancel()
     }
 
     /// Resets the `FetchImage` instance by cancelling the request and removing
     /// all of the state including the loaded image.
     public func reset() {
-        cancel()
-
-        // Avoid publishing unchanged values
-        clearLoadingState()
-        if imageContainer != nil { imageContainer = nil }
-        if result != nil { result = nil }
+        loader.reset()
     }
 
-    private func clearLoadingState() {
-        if isLoading { isLoading = false }
+    // MARK: Applying the State
+
+    // Each case publishes only what changed, and calls the callbacks last, so
+    // that a callback can start a new load.
+    private func apply(_ state: ImageLoader.State) {
+        switch state.event {
+        case .started(let task):
+            handleStart(state, task: task)
+        case .progress(let progress):
+            _progress = progress
+        case .preview:
+            withTransaction(transaction) {
+                imageContainer = state.imageContainer
+            }
+        case let .finished(result, isSync):
+            // An image found in the memory cache has no progress, which also
+            // clears the one of a load it replaced.
+            if _progress != state.progress { _progress = state.progress }
+            if isSync {
+                // Animation isn't used when the image is available in the memory cache.
+                finish(with: result, container: state.imageContainer)
+            } else {
+                withTransaction(transaction) {
+                    finish(with: result, container: state.imageContainer)
+                }
+            }
+        case .cancelled:
+            if isLoading { isLoading = false }
+        case .reset:
+            clearState()
+        }
+    }
+
+    private func handleStart(_ state: ImageLoader.State, task: ImageTask?) {
         if _progress != Self.noProgress { _progress = Self.noProgress }
+        if result != nil { result = nil }
+        // A preview found in the memory cache, or `nil`
+        if imageContainer != nil || state.imageContainer != nil {
+            imageContainer = state.imageContainer
+        }
+        if !isLoading { isLoading = true }
+        if let task {
+            onStart?(task)
+        }
+    }
+
+    private func finish(with result: Result<ImageResponse, ImagePipeline.Error>, container: ImageContainer?) {
+        if isLoading { isLoading = false }
+        // Set together with the result to avoid a nil flicker.
+        imageContainer = container
+        self.result = result
+        onCompletion?(result)
+    }
+
+    // Avoids publishing unchanged values
+    private func clearState() {
+        if _progress != Self.noProgress { _progress = Self.noProgress }
+        if isLoading { isLoading = false }
+        if imageContainer != nil { imageContainer = nil }
+        if result != nil { result = nil }
     }
 }
