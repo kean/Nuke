@@ -14,30 +14,6 @@ The minimum supported platforms have been raised.
 
 Apps that need to support earlier OS versions can stay on Nuke 13.x, which continues to receive fixes.
 
-## `NukeExtensions` Folded into `NukeUI`
-
-The image view extensions – `loadImage(with:into:)`, `cancelRequest(for:)`, `ImageLoadingOptions`, and the display protocol – moved from `NukeExtensions` to `NukeUI`, which is where the other UIKit and AppKit views already lived. The package now ships three modules: `Nuke`, `NukeUI`, and `NukeVideo`.
-
-`NukeExtensions` still exists as an empty module that re-exports `NukeUI`, so existing code keeps compiling. It will be removed in Nuke 15.
-
-```swift
-// Before
-import NukeExtensions
-
-// After
-import NukeUI
-```
-
-If you referenced the functions by module name, update the prefix:
-
-```swift
-// Before
-NukeExtensions.loadImage(with: url, into: imageView)
-
-// After
-NukeUI.loadImage(with: url, into: imageView)
-```
-
 ## `Nuke_ImageDisplaying` is now `ImageDisplaying`
 
 The protocol lost its `@objc`, its prefix, and its two-argument method. It now takes the whole `ImageContainer`, which is where the animated images the pipeline parses live:

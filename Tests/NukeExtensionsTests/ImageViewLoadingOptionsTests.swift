@@ -5,7 +5,7 @@
 import Testing
 import Foundation
 @testable import Nuke
-@testable import NukeUI
+@testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
@@ -67,7 +67,7 @@ struct ImageViewLoadingOptionsTests {
         options.placeholder = placeholder
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.image == placeholder)
@@ -136,7 +136,7 @@ struct ImageViewLoadingOptionsTests {
 
         // When
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
 
@@ -158,7 +158,7 @@ struct ImageViewLoadingOptionsTests {
         mockCache[Test.request] = Test.container
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.contentMode == .scaleAspectFill)
@@ -203,7 +203,7 @@ struct ImageViewLoadingOptionsTests {
 
         // When
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
 
@@ -226,7 +226,7 @@ struct ImageViewLoadingOptionsTests {
         mockCache[Test.request] = Test.container
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.tintColor == .blue)

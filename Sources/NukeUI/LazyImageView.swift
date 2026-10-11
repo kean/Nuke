@@ -377,9 +377,9 @@ public final class LazyImageView: _PlatformBaseView {
             view.pinToSuperview()
             customImageView = view
         } else {
-            // Goes through `nuke_display` rather than setting `image` so that
-            // an animated response starts playing.
-            imageView.nuke_display(container)
+            // Goes through `display` rather than setting `image` so that an
+            // animated response starts playing.
+            imageView.display(container)
             if imageView.isHidden {
                 imageView.isHidden = false
             }

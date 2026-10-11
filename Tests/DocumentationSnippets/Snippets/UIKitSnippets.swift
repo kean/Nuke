@@ -7,7 +7,7 @@
 #if canImport(UIKit) && !os(watchOS)
 
 import UIKit
-import NukeUI
+import NukeExtensions
 
 private struct Item {
     var imageURL: URL
@@ -26,7 +26,7 @@ private final class UIKitSnippets {
     // MARK: - Loading Images into UIImageView
 
     func loadingIntoImageView() {
-        NukeUI.loadImage(with: url, into: imageView)
+        NukeExtensions.loadImage(with: url, into: imageView)
     }
 
     // MARK: - Cell Reuse
@@ -34,7 +34,7 @@ private final class UIKitSnippets {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! ImageCell
         // Any previous request on this cell's imageView is cancelled automatically.
-        NukeUI.loadImage(with: items[indexPath.item].imageURL, into: cell.imageView)
+        NukeExtensions.loadImage(with: items[indexPath.item].imageURL, into: cell.imageView)
         return cell
     }
 
@@ -45,7 +45,7 @@ private final class UIKitSnippets {
         options.placeholder = UIImage(named: "placeholder")
         options.failureImage = UIImage(named: "error")
 
-        NukeUI.loadImage(with: url, options: options, into: imageView)
+        NukeExtensions.loadImage(with: url, options: options, into: imageView)
     }
 
     // MARK: - Transitions
@@ -54,7 +54,7 @@ private final class UIKitSnippets {
         var options = ImageLoadingOptions()
         options.transition = .fadeIn(duration: 0.3)
 
-        NukeUI.loadImage(with: url, options: options, into: imageView)
+        NukeExtensions.loadImage(with: url, options: options, into: imageView)
     }
 
     func sharedTransition() {
@@ -68,13 +68,13 @@ private final class UIKitSnippets {
             url: url,
             processors: [.resize(width: 320)]
         )
-        NukeUI.loadImage(with: request, into: imageView)
+        NukeExtensions.loadImage(with: request, into: imageView)
     }
 
     // MARK: - Tracking Progress and Completion
 
     func completion() {
-        NukeUI.loadImage(with: url, into: imageView) { result in
+        NukeExtensions.loadImage(with: url, into: imageView) { result in
             switch result {
             case .success(let response):
                 print("Loaded image from: \(response.urlResponse?.url?.absoluteString ?? "cache")")

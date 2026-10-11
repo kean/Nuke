@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import NukeExtensions
 import NukeUI
 import NukeVideo
 import SwiftUI

@@ -8,7 +8,7 @@ import Foundation
 import UIKit
 #endif
 @testable import Nuke
-@testable import NukeUI
+@testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
@@ -46,7 +46,7 @@ struct ImageViewIntegrationTests {
 
     @Test func imageLoadedWithURL() async {
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: url, options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: url, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
         await expectation.wait()
@@ -57,7 +57,7 @@ struct ImageViewIntegrationTests {
 
     @Test func loadImageWithInvalidURLString() async {
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: URL(string: ""), options: options, into: imageView) { result in
+        NukeExtensions.loadImage(with: URL(string: ""), options: options, into: imageView) { result in
             #expect(result.error == .imageRequestMissing)
             expectation.fulfill()
         }
@@ -72,7 +72,7 @@ struct ImageViewIntegrationTests {
 
         // WHEN
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: ImageRequest(urlRequest: urlRequest), options: options, into: imageView) { result in
+        NukeExtensions.loadImage(with: ImageRequest(urlRequest: urlRequest), options: options, into: imageView) { result in
             // THEN
             #expect(result.error?.dataLoadingError != nil)
             expectation.fulfill()
@@ -122,7 +122,7 @@ struct ImageViewIntegrationTests {
 
         // WHEN
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: Test.url, options: options, into: imageView) { result in
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { result in
             #expect(result.value != nil)
             #expect(result.value?.container.data != nil)
             expectation.fulfill()

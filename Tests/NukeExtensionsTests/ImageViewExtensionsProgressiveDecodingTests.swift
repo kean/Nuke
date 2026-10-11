@@ -5,7 +5,7 @@
 import Testing
 import Foundation
 @testable import Nuke
-@testable import NukeUI
+@testable import NukeExtensions
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineProgressiveDecodingTests {
@@ -52,7 +52,7 @@ struct ImagePipelineProgressiveDecodingTests {
         let expectedFinalLoaded = TestExpectation()
 
         // When/Then
-        NukeUI.loadImage(
+        NukeExtensions.loadImage(
             with: Test.request,
             options: options,
             into: imageView,
@@ -90,7 +90,7 @@ struct ImagePipelineProgressiveDecodingTests {
         let expectedFinalLoaded = TestExpectation()
 
         // When/Then
-        NukeUI.loadImage(
+        NukeExtensions.loadImage(
             with: Test.request,
             options: options,
             into: imageView,

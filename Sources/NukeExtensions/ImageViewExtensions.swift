@@ -3,7 +3,11 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Nuke
+
+// NukeExtensions' API is written in Nuke types, so `import NukeExtensions` is enough to use it.
+@_exported import Nuke
+// An `AnimatedImageView` plays the animation of the image it is given.
+import NukeUI
 
 #if !os(macOS)
 import UIKit.UIImage
@@ -41,7 +45,7 @@ import AppKit.NSImage
 /// platform image views get theirs – cannot be overridden by a subclass.
 /// Conform your own view directly, as above, rather than subclassing
 /// `UIImageView`. To play animated images without writing a renderer, use
-/// ``AnimatedImageView``.
+/// `AnimatedImageView` from NukeUI.
 @MainActor
 public protocol ImageDisplaying {
     /// Displays the image the pipeline produced, or clears the view when the
@@ -66,7 +70,7 @@ public typealias ImageDisplayingView = UIView & ImageDisplaying
 
 extension UIImageView: ImageDisplaying {
     /// Displays the still image, and plays it when the view is an
-    /// ``AnimatedImageView``.
+    /// `AnimatedImageView` from NukeUI.
     public func nuke_display(_ container: ImageContainer?) {
         displayContainer(container)
     }
@@ -79,26 +83,12 @@ public typealias ImageDisplayingView = NSObject & ImageDisplaying
 
 extension NSImageView: ImageDisplaying {
     /// Displays the still image, and plays it when the view is an
-    /// ``AnimatedImageView``.
+    /// `AnimatedImageView` from NukeUI.
     public func nuke_display(_ container: ImageContainer?) {
         displayContainer(container)
     }
 }
 #endif
-
-extension _PlatformImageView {
-    /// ``AnimatedImageView`` inherits its ``ImageDisplaying`` conformance from
-    /// the extension above, and a witness declared in an extension is resolved
-    /// statically, so the subclass has nothing to override. This is where it
-    /// gets the whole container instead of the still image.
-    fileprivate func displayContainer(_ container: ImageContainer?) {
-        if let view = self as? AnimatedImageView {
-            view.display(container)
-        } else {
-            self.image = container?.image
-        }
-    }
-}
 
 #if os(tvOS)
 import TVUIKit
