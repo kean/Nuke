@@ -62,14 +62,14 @@ struct ImageLoaderImageViewTests {
         dataLoader.isSuspended = true
 
         // When
-        let load = ImageLoader.load(Test.request, into: imageView, presentation: .init(placeholder: placeholder), pipeline: pipeline)
+        let handle = ImageLoader.load(Test.request, into: imageView, presentation: .init(placeholder: placeholder), pipeline: pipeline)
 
         // Then
         #expect(imageView.image === placeholder)
 
         // When the image arrives
         dataLoader.isSuspended = false
-        let response = try await load.response
+        let response = try await handle.response
 
         // Then it replaces the placeholder
         #expect(imageView.image === response.image)

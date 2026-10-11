@@ -44,7 +44,7 @@ import Nuke
 ///
 /// Starting a load is synchronous, so an image found in the memory cache is
 /// displayed before `load` returns. To wait for the outcome, await the
-/// returned ``Load``:
+/// returned ``Handle``:
 ///
 /// ```swift
 /// let response = try await ImageLoader.load(url, into: imageView).response
@@ -121,9 +121,9 @@ public final class ImageLoader {
     /// Loads an image with the given URL, and cancels what was loading
     /// before it.
     ///
-    /// - returns: The load, which can be awaited for its outcome.
+    /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
-    public func load(_ url: URL?) -> Load {
+    public func load(_ url: URL?) -> Handle {
         load(url.map { ImageRequest(url: $0) })
     }
 
@@ -135,9 +135,9 @@ public final class ImageLoader {
     /// request, with ``ImagePipeline/Error/imageRequestMissing``. In both
     /// cases the only state is ``Event/finished(_:isSync:)``.
     ///
-    /// - returns: The load, which can be awaited for its outcome.
+    /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
-    public func load(_ request: ImageRequest?) -> Load {
+    public func load(_ request: ImageRequest?) -> Handle {
         let previousImage = keepsPreviousImage ? state.imageContainer : nil
         cancelTask()
 
@@ -150,7 +150,7 @@ public final class ImageLoader {
             state.event = .finished(result, isSync: true)
             state.result = result
             finish(state)
-            return Load(task: nil, outcome: outcome)
+            return Handle(task: nil, outcome: outcome)
         }
 
         var resolved = request
@@ -171,7 +171,7 @@ public final class ImageLoader {
             state.imageContainer = container
             state.result = .success(response)
             finish(state)
-            return Load(task: nil, outcome: outcome)
+            return Handle(task: nil, outcome: outcome)
         }
 
         let task = pipeline.loadImage(
@@ -193,7 +193,7 @@ public final class ImageLoader {
         state.imageContainer = cached ?? previousImage
         state.isPreviousImage = cached == nil && previousImage != nil
         update(state)
-        return Load(task: task, outcome: outcome)
+        return Handle(task: task, outcome: outcome)
     }
 
     /// Cancels the current load. The image it displayed so far stays in the
@@ -360,15 +360,15 @@ public protocol ImageLoaderDelegate: AnyObject {
     func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)
 }
 
-// MARK: - Load
+// MARK: - Handle
 
 extension ImageLoader {
-    /// A load started by an ``ImageLoader``, which can be awaited for its
-    /// outcome.
+    /// A handle to a load started by an ``ImageLoader``, to await its outcome
+    /// or cancel it.
     ///
     /// A load that is cancelled, or replaced by a new load into the same
     /// loader, finishes with ``ImagePipeline/Error/cancelled``.
-    public struct Load: Sendable {
+    public struct Handle: Sendable {
         /// The task of the load, or `nil` if it finished synchronously.
         public let task: ImageTask?
 
@@ -477,7 +477,7 @@ extension ImageLoader {
         into target: Target,
         pipeline: ImagePipeline? = nil,
         render: @escaping @MainActor (Target, State) -> Void
-    ) -> Load {
+    ) -> Handle {
         load(url.map { ImageRequest(url: $0) }, into: target, pipeline: pipeline, render: render)
     }
 
@@ -501,14 +501,14 @@ extension ImageLoader {
     ///   pipeline of the attached loader, ``ImagePipeline/shared`` by default.
     ///   - render: Called with every change of the state, including the
     ///   synchronous ones made before this method returns.
-    /// - returns: The load, which can be awaited for its outcome.
+    /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public static func load<Target: AnyObject>(
         _ request: ImageRequest?,
         into target: Target,
         pipeline: ImagePipeline? = nil,
         render: @escaping @MainActor (Target, State) -> Void
-    ) -> Load {
+    ) -> Handle {
         let loader = Self.loader(for: target)
         if let pipeline {
             loader.pipeline = pipeline

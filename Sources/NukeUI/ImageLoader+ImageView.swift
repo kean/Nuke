@@ -23,7 +23,7 @@ extension ImageLoader {
         into imageView: _PlatformImageView,
         presentation: Presentation = Presentation(),
         pipeline: ImagePipeline? = nil
-    ) -> Load {
+    ) -> Handle {
         load(url.map { ImageRequest(url: $0) }, into: imageView, presentation: presentation, pipeline: pipeline)
     }
 
@@ -47,14 +47,14 @@ extension ImageLoader {
     /// - parameters:
     ///   - pipeline: The pipeline to load the image with. `nil` keeps the
     ///   pipeline of the attached loader, ``ImagePipeline/shared`` by default.
-    /// - returns: The load, which can be awaited for its outcome.
+    /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public static func load(
         _ request: ImageRequest?,
         into imageView: _PlatformImageView,
         presentation: Presentation = Presentation(),
         pipeline: ImagePipeline? = nil
-    ) -> Load {
+    ) -> Handle {
         load(request, into: imageView, pipeline: pipeline) { imageView, state in
             presentation.render(state, in: imageView)
         }

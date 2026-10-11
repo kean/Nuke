@@ -35,8 +35,8 @@ struct ImageLoaderTests {
 
     @Test func loadReportsStartedAndFinished() async throws {
         // When
-        let load = loader.load(Test.request)
-        let response = try await load.response
+        let handle = loader.load(Test.request)
+        let response = try await handle.response
 
         // Then
         #expect(recorder.events.filter { $0 != "progress" } == ["started", "finished(success)"])
@@ -44,7 +44,7 @@ struct ImageLoaderTests {
         let started = try #require(recorder.states.first)
         #expect(started.isLoading)
         #expect(started.task != nil)
-        #expect(started.task === load.task)
+        #expect(started.task === handle.task)
         #expect(started.imageContainer == nil)
 
         let finished = try #require(recorder.states.last)
@@ -56,13 +56,13 @@ struct ImageLoaderTests {
 
     @Test func nilRequestFinishesSynchronously() async throws {
         // When
-        let load = loader.load(nil as ImageRequest?)
+        let handle = loader.load(nil as ImageRequest?)
 
         // Then
         #expect(recorder.events == ["finished(failure, sync)"])
-        #expect(load.task == nil)
+        #expect(handle.task == nil)
         #expect(loader.state.error == .imageRequestMissing)
-        let result = await load.result
+        let result = await handle.result
         #expect(result.error == .imageRequestMissing)
     }
 
@@ -71,14 +71,14 @@ struct ImageLoaderTests {
         imageCache[Test.request] = Test.container
 
         // When
-        let load = loader.load(Test.request)
+        let handle = loader.load(Test.request)
 
         // Then
         #expect(recorder.events == ["finished(success, sync)"])
-        #expect(load.task == nil)
+        #expect(handle.task == nil)
         #expect(loader.state.image != nil)
         #expect(dataLoader.createdTaskCount == 0)
-        let response = try await load.response
+        let response = try await handle.response
         #expect(response.cacheType == .memory)
     }
 
@@ -153,7 +153,7 @@ struct ImageLoaderTests {
     @Test func cancelReportsCancelled() async throws {
         // Given
         dataLoader.isSuspended = true
-        let load = loader.load(Test.request)
+        let handle = loader.load(Test.request)
 
         // When
         loader.cancel()
@@ -162,8 +162,8 @@ struct ImageLoaderTests {
         #expect(recorder.events == ["started", "cancelled"])
         #expect(!loader.state.isLoading)
         #expect(loader.task == nil)
-        #expect(load.task?.isCancelled == true)
-        #expect(await load.result.error == .cancelled)
+        #expect(handle.task?.isCancelled == true)
+        #expect(await handle.result.error == .cancelled)
     }
 
     @Test func cancelWithoutLoadDoesNothing() {
@@ -177,16 +177,16 @@ struct ImageLoaderTests {
     @Test func cancellingTheAwaitingTaskCancelsTheLoad() async throws {
         // Given
         dataLoader.isSuspended = true
-        let load = loader.load(Test.request)
+        let handle = loader.load(Test.request)
 
         // When
-        let task = Task { await load.result }
+        let task = Task { await handle.result }
         task.cancel()
         let result = await task.value
 
         // Then
         #expect(result.error == .cancelled)
-        #expect(load.task?.isCancelled == true)
+        #expect(handle.task?.isCancelled == true)
         #expect(!loader.state.isLoading)
         #expect(recorder.events == ["started", "cancelled"])
     }
@@ -224,14 +224,14 @@ struct ImageLoaderTests {
         // Given
         dataLoader.isSuspended = true
         var loader: ImageLoader? = ImageLoader(pipeline: pipeline)
-        let load = try #require(loader?.load(Test.request))
+        let handle = try #require(loader?.load(Test.request))
 
         // When
         loader = nil
 
         // Then
-        #expect(load.task?.isCancelled == true)
-        #expect(await load.result.error == .cancelled)
+        #expect(handle.task?.isCancelled == true)
+        #expect(await handle.result.error == .cancelled)
     }
 
     // MARK: - Keeping the Previous Image
@@ -383,20 +383,20 @@ struct ImageLoaderTests {
         // Given
         dataLoader.isSuspended = true
         weak var weakTarget: Target?
-        var load: ImageLoader.Load?
+        var handle: ImageLoader.Handle?
 
         // When
         do {
             let target = Target()
             weakTarget = target
-            load = ImageLoader.load(Test.request, into: target, pipeline: pipeline) { target, _ in
+            handle = ImageLoader.load(Test.request, into: target, pipeline: pipeline) { target, _ in
                 target.events.append("update")
             }
         }
 
         // Then the target is gone, and so is its load
         #expect(weakTarget == nil)
-        let task = try #require(load?.task)
+        let task = try #require(handle?.task)
         #expect(task.isCancelled)
     }
 }

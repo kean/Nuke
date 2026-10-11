@@ -64,13 +64,13 @@ private struct ImageLoaderPreview: View {
         loader.keepsPreviousImage = keepsPreviousImage
         loader.delegate = PreviewLogger.shared
         PreviewLogger.shared.begin(url)
-        let load = ImageLoader.load(url, into: imageView, presentation: .init(
+        let handle = ImageLoader.load(url, into: imageView, presentation: .init(
             placeholder: PreviewImages.swatch(.systemGray4),
             transition: .fadeIn(duration: 0.33),
             failureImage: PreviewImages.swatch(.systemRed)
         ), pipeline: isSlow ? PreviewPipelines.slow : PreviewPipelines.fast)
         Task {
-            let result = await load.result
+            let result = await handle.result
             PreviewLogger.shared.log("await: \(PreviewLogger.describe(result))")
         }
     }
