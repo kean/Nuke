@@ -82,6 +82,22 @@ struct ImageLoaderTests {
         #expect(response.cacheType == .memory)
     }
 
+    @Test func cancellingTheHandleOfASynchronousLoadChangesNothing() async throws {
+        // Given
+        imageCache[Test.request] = Test.container
+        let handle = loader.load(Test.request)
+        let events = recorder.events
+
+        // When
+        handle.cancel()
+
+        // Then
+        #expect(recorder.events == events)
+        #expect(loader.state.image != nil)
+        let response = try await handle.response
+        #expect(response.cacheType == .memory)
+    }
+
     @Test func cachedPreviewIsTheImageWhileLoading() throws {
         // Given
         dataLoader.isSuspended = true
