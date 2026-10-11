@@ -21,6 +21,116 @@
 
 ## WIP
 
+Nuke 14 plays animated images, records where every image task spent its time, and loads images into any view with `ImageLoader`. It also fixes more than 30 bugs and raises the minimum platforms by one major version.
+
+**Animated Images**
+
+`LazyImage` and `LazyImageView` play GIF, APNG, animated WebP, and HEIC and AVIF sequences with no setup. Nuke plays them itself because the pipeline has something to contribute in terms of performance, and most of it is about caching:
+
+- The animation is parsed once, on the decoding queue, and cached with the image, so a cell that scrolls back is ready the moment it appears
+- An animation that fits in memory is decoded once and replayed. One that doesn't plays out of a window of three frames. The shared frame pool takes a quarter of one memory budget, with `ImageCache` taking the rest, and holds the smallest animations whole first
+- Views showing the same animation share one decoder and one set of frames, at the same size or close to it, and start on the same frame
+- Frames are decoded no larger than the view displays them, and a view nobody is watching holds two frames
+
+WebKit, more than any other player, was the reference for how playback behaves. Frames are never skipped, so a stalled main thread stretches the animation instead of making it jump. A delay under 11 ms becomes 0.1 s, and a file with no loop count plays once. The clock is held to 30 Hz in Low Power Mode, for the same reasons WebKit does it. See the [Animated Images](https://kean-docs.github.io/nukeui/documentation/nukeui/animatedimages) article.
+
+```swift
+LazyImage(url: URL(string: "https://example.com/cat.gif"))
+```
+
+The repository now includes a demo app: open `Nuke.xcodeproj` and run the `NukeDemo` scheme. Its **Animated Images** screen shows the frame buffer, decode times, and dropped frames over a live animation, and **Animation Lab** plays up to 36 animations at once against the pool's budget.
+
+- Add `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageFramePool`, and `LazyImageState/animatedImage` to `NukeUI`, and `ImageContainer/animation` to `Nuke` – https://github.com/kean/Nuke/pull/958
+- `ImageDecoders/Default` parses every animated image it recognizes once, and attaches the result along with the encoded `ImageContainer/data`. `ImagePipeline/Configuration/isAnimatedImageParsingEnabled` turns it off – https://github.com/kean/Nuke/pull/958
+- A decoder registered with `ImageDecoderRegistry` can attach an `AnimatedImageSource` and an `AnimatedImageFrameDecoding` to play a format Image I/O can't read – https://github.com/kean/Nuke/pull/958
+
+**Diagnostics**
+
+Set `isDiagnosticsEnabled` and every task finishes with an `ImageTask/metrics` record: where the image came from, how long each stage took and how long it waited for a queue, what the download cost, and whether another task shared the work. The record is `Codable`, and printing it gives a timeline of the load. While diagnostics are on, the pipeline also sends the tasks, jobs, and stages as `os_signpost` intervals. See the [Performance Guide](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide).
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isDiagnosticsEnabled = true
+}
+
+let task = pipeline.imageTask(with: url)
+let image = try await task.image
+print(task.metrics!)
+```
+
+A feed image, resized for the cell, on a host the app hadn't talked to yet:
+
+```
+ImageTask #2 "feed" · success · 140.9 ms · from network
+url:         https://cdn.example.com/photos/1024.jpg
+processors:  com.github.kean/nuke/resize?s=(900.0, 900.0),cm=.aspectFill,crop=false,upscale=false
+priority:    normal
+image:       1350×900 · jpeg · 4.9 MB in memory
+transfer:    317 KB
+pipeline:    44A3F653
+time:        network 93.6 ms (66%) · process 42.5 ms (30%) · cache 0.5 ms · decode 0.3 ms · queue 0.1 ms · other 3.8 ms (3%)
+
+pending                              <0.1 ms  ▏                          started at 17:24:14.677
+j4 loadImage [resize]               139.5 ms  ████████████████████  99%
+├─ memoryLookup                      <0.1 ms  ▏                          miss · key aa429747
+├─ diskLookup                         0.3 ms  ▏                          miss · key f6d8540b
+├─ j5 loadImage                      96.3 ms  ██████████████        68%
+│  ├─ memoryLookup                   <0.1 ms  ▏                          miss · key 38c326ae
+│  ├─ diskLookup                      0.1 ms  ▏                          miss · key 19d1c77c
+│  └─ j6 fetchOriginalImage          96.0 ms  ██████████████        68%
+│     ├─ j7 fetchOriginalData        95.2 ms  ██████████████        68%
+│     │  ├─ download                 93.6 ms  ██████████████        66%  network · 317 KB · HTTP 200 · first byte 50.3 ms · session #2
+│     │  │  └─ networkLoad           93.1 ms  ██████████████        66%  HTTP 200 · h2 · TLS 1.3 · 151.101.1.1 · sent 164 bytes · received 318 KB
+│     │  │     ├─ blocked             1.4 ms  ░                      1%
+│     │  │     ├─ domainLookup        1.0 ms   ▏                     1%
+│     │  │     ├─ connect            10.0 ms   █                     7%
+│     │  │     ├─ secureConnection   21.0 ms    ███                 15%
+│     │  │     ├─ request            <0.1 ms       ▏
+│     │  │     ├─ waiting            16.1 ms       ░░               11%
+│     │  │     └─ response           43.3 ms         ███████        31%
+│     │  └─ diskStore                <0.1 ms                ▏            317 KB · key 19d1c77c
+│     └─ decode                       0.3 ms                ▏            ImageDecoders.Default · jpeg 1440×960
+├─ process                           42.6 ms                ██████  30%  jpeg 1350×900
+└─ memoryStore                        0.1 ms                     ▕       key aa429747
+total                               140.9 ms                             finished at 17:24:14.818
+```
+
+The `queue` share of `time:` shows whether images wait for a slot, and several changes in this release are about that wait and the work around it:
+
+- `dataLoadingQueue` runs the requests below `.normal` priority in at most 3 of its 6 slots (`TaskQueue/reservedTaskCount`), so prefetching can't take every slot from the images on screen – https://github.com/kean/Nuke/pull/981
+- `imageDecodingQueue` runs 2 concurrent tasks instead of 1, matching `imageDecompressingQueue` – https://github.com/kean/Nuke/pull/962
+- Decompression is up to 45% faster on iOS, tvOS, and visionOS: `isUsingPrepareForDisplay` is now enabled by default – https://github.com/kean/Nuke/pull/990
+- Each processor is boxed into its identity once, which makes cache lookups, coalescing, and the other operations that compare processors up to 2× faster – https://github.com/kean/Nuke/pull/972
+
+- Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, what `URLSession` measured for the download, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set – https://github.com/kean/Nuke/pull/960
+- `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
+- Add `ImageRequest/UserInfoKey/labelKey`: a short name for the role of a request in the app, such as `"feed"`, that the pipeline records in `ImageTask/Metrics/label` – https://github.com/kean/Nuke/pull/960
+- Add `ImageDiagnosticsStringEnum`: the `Codable` conformance the diagnostics enums share, which decodes a name it doesn't know as `unknown` – https://github.com/kean/Nuke/pull/960
+- Replace the global `ImagePipeline/Configuration/isSignpostLoggingEnabled` with the per-pipeline `ImagePipeline/Configuration-swift.struct/signpostLog`: the pipeline sends a signpost for every task, job, and stage while diagnostics are on, unless it's set to `nil` – https://github.com/kean/Nuke/pull/995
+
+**ImageLoader**
+
+`ImageLoader` in `NukeUI` loads images into `UIImageView` and `NSImageView`, or into any object that draws its state. It replaces `NukeExtensions`, which is now soft-deprecated.
+
+```swift
+ImageLoader.load(url, into: imageView)
+```
+
+- Add `ImageLoader` to `NukeUI`: it loads images into `UIImageView` and `NSImageView`, or into any object that draws its `ImageLoader/State`, and replaces `NukeExtensions`, which is now soft-deprecated – https://github.com/kean/Nuke/pull/1039
+
+**Quality**
+
+The test suite more than doubled, and writing it uncovered many of the bugs fixed in this release. NukeUI went from 63% to 95% line coverage.
+
+| Version         | Source lines | Tests | Test lines | Coverage |
+|-----------------|--------------|-------|------------|----------|
+| Nuke 14         | 7,358        | 1,698 | 21,562     | 98.6%    |
+| Nuke 13.2       | 5,011        | 937   | 10,740     | 96.4%    |
+| NukeUI 14       | 3,006        | 540   | 7,600      | 94.7%    |
+| NukeUI 13.2     | 804          | 80    | 978        | 63.4%    |
+
+Measured on macOS. Source and test lines exclude blank lines and comments.
+
 **Requirements**
 
 - Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
@@ -49,22 +159,13 @@
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 - `FetchImage/progress` and `LazyImageState/progress` now return `ImageTask/Progress`, which `FetchImage` publishes itself, instead of the nested `FetchImage.Progress` observable object that needed its own `@ObservedObject`. The old type is deprecated – https://github.com/kean/Nuke/pull/953
 - Add `ImagePipeline/Error/isCancelled` – https://github.com/kean/Nuke/pull/952
-- `NukeUI` now plays animated images: `LazyImage` and `LazyImageView` animate GIF, APNG, animated WebP, and HEIC and AVIF sequences with no setup. Adds `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageFramePool`, and `LazyImageState/animatedImage` – https://github.com/kean/Nuke/pull/958
-- `ImageDecoders/Default` now parses every animated image it recognizes, once per image on the decoding queue, and attaches the result to the new `ImageContainer/animation` along with the encoded `ImageContainer/data` – which was previously attached to GIFs only. Processing an image, or requesting a thumbnail, clears both. `AnimatedImageSource` moves from `NukeUI` to `Nuke`. Adds `ImagePipeline/Configuration/isAnimatedImageParsingEnabled` – https://github.com/kean/Nuke/pull/958
-- An animated format Image I/O can't read can be played too: a decoder registered with `ImageDecoderRegistry` attaches an `AnimatedImageSource` it describes itself, along with the `AnimatedImageFrameDecoding` that produces its frames – https://github.com/kean/Nuke/pull/958
 - `Nuke_ImageDisplaying` is renamed to `ImageDisplaying`, is no longer `@objc`, and takes an `ImageContainer`: `nuke_display(image:data:)` becomes `nuke_display(_:)`. A conformance declared in an extension can no longer be overridden by a subclass – https://github.com/kean/Nuke/pull/958
 - `ImagePipeline/Configuration/imageDecodingQueue` now runs 2 concurrent tasks instead of 1, matching `imageDecompressingQueue`. It carries the pixel work of a thumbnail request, which decodes and downsamples in one step and skips decompression – https://github.com/kean/Nuke/pull/962
-- Add `ImageTask/metrics`: a `Codable` record of where the image came from, what each stage cost, what `URLSession` measured for the download, and whether another task shared the work, recorded when `ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled` is set – https://github.com/kean/Nuke/pull/960
-- `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
-- Add `ImageRequest/UserInfoKey/labelKey`: a short name for the role of a request in the app, such as `"feed"`, that the pipeline records in `ImageTask/Metrics/label` – https://github.com/kean/Nuke/pull/960
-- Add `ImageDiagnosticsStringEnum`: the `Codable` conformance the diagnostics enums share, which decodes a name it doesn't know as `unknown` – https://github.com/kean/Nuke/pull/960
 - The default `ImagePipeline/Configuration-swift.struct/rateLimiter` rate goes from 80 to 100 requests per second – https://github.com/kean/Nuke/pull/960
 - `ImageTask` and `ImageDecoders/Video` are now `Sendable` instead of `@unchecked Sendable` – https://github.com/kean/Nuke/pull/965
 - Add `TaskQueue/reservedTaskCount`: the number of slots that the work with a priority lower than `.normal` can't take – https://github.com/kean/Nuke/pull/981
-- Replace the global `ImagePipeline/Configuration/isSignpostLoggingEnabled` with the per-pipeline `ImagePipeline/Configuration-swift.struct/signpostLog`: the pipeline sends a signpost for every task, job, and stage while diagnostics are on, unless it's set to `nil` – https://github.com/kean/Nuke/pull/995
 - `LazyImage/priority(_:)` with `nil` now keeps the request's own priority instead of resetting it to `.normal` – https://github.com/kean/Nuke/pull/1034
 - `LazyImage/processors(_:)` with `nil` now keeps the request's own processors; pass `[]` to remove them. `nil` in `processors(_:)` and `priority(_:)` also takes back an earlier call – https://github.com/kean/Nuke/pull/1035
-- Add `ImageLoader` to `NukeUI`: it loads images into `UIImageView` and `NSImageView`, or into any object that draws its `ImageLoader/State`, and replaces `NukeExtensions`, which is now soft-deprecated – https://github.com/kean/Nuke/pull/1039
 - `LazyImageView/imageTask` is now read-only – https://github.com/kean/Nuke/pull/1039
 
 **Performance**
