@@ -625,4 +625,69 @@ struct FetchImageTests {
             localImage = nil
         }
     }
+
+    // MARK: Loader Integration
+
+    @Test func onStartIsNotCalledForAsyncLoad() async {
+        var startCount = 0
+        image.onStart = { _ in startCount += 1 }
+
+        await image.loadAndWait { Test.response }
+
+        #expect(startCount == 0)
+    }
+
+    @Test func currentRequestIsKeptWhenLoadIsCancelled() {
+        dataLoader.isSuspended = true
+
+        image.load(Test.request)
+        #expect(image.currentRequest?.imageID == Test.request.imageID)
+
+        image.cancel()
+
+        #expect(image.currentRequest?.imageID == Test.request.imageID)
+    }
+
+    @Test func currentRequestIsNilForAsyncLoad() async {
+        image.load(Test.request)
+        await image.loadAndWait { Test.response }
+
+        #expect(image.currentRequest == nil)
+    }
+
+    @Test func memoryCacheHitReplacesLoadInFlight() async throws {
+        dataLoader.isSuspended = true
+        let cachedRequest = ImageRequest(url: URL(string: "http://test.com/cached.jpeg")!)
+        pipeline.cache[cachedRequest] = Test.container
+
+        image.load(Test.request)
+        #expect(image.isLoading)
+
+        var completions = 0
+        image.onCompletion = { _ in completions += 1 }
+        image.load(cachedRequest)
+
+        // Finished synchronously, and the load it replaced no longer reports
+        #expect(!image.isLoading)
+        #expect(image.image != nil)
+        #expect(try #require(image.result).isSuccess)
+        #expect(completions == 1)
+
+        dataLoader.isSuspended = false
+        try await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(completions == 1)
+        #expect(image.currentRequest?.imageID == cachedRequest.imageID)
+    }
+
+    @Test func failureKeepsTheProgressivePreview() async throws {
+        let preview = ImageContainer(image: Test.image, isPreview: true)
+        pipeline.cache[Test.request] = preview
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        await image.loadAndWait(Test.request)
+
+        #expect(image.result?.isSuccess == false)
+        #expect(image.imageContainer?.isPreview == true)
+    }
 }
