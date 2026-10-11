@@ -113,6 +113,7 @@
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
 - Fix `DataCache` skipping the scheduled sweeps when the recorded last sweep date is in the future, e.g. after the device clock was corrected – https://github.com/kean/Nuke/pull/1024
 - Fix `LazyImage` starting a new request with the `pipeline`, `onStart`, and `onCompletion` from when the view last appeared, and ignoring a change of the pipeline alone – https://github.com/kean/Nuke/pull/1037
+- Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 
 **Documentation**
 

@@ -205,6 +205,22 @@ struct ImageLoaderTests {
         #expect(second.task?.isCancelled == false)
     }
 
+    @Test func cancellingTheImageTaskCancelsTheLoad() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let handle = loader.load(Test.request)
+
+        // When
+        handle.task?.cancel()
+        let result = await handle.result
+
+        // Then
+        #expect(result.error == .cancelled)
+        #expect(!loader.state.isLoading)
+        #expect(loader.task == nil)
+        #expect(recorder.events == ["started", "cancelled"])
+    }
+
     @Test func resetClearsTheState() {
         // Given
         imageCache[Test.request] = Test.container

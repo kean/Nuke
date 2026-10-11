@@ -109,7 +109,7 @@ public final class ImageLoader {
 
     deinit {
         state.task?.cancel()
-        // The pipeline doesn't call back after cancellation, so whoever awaits
+        // The events of the task no longer reach the loader, so whoever awaits
         // the outcome has to be told here.
         if let outcome {
             Task { @MainActor in outcome.resolve(.failure(.cancelled)) }
@@ -174,15 +174,22 @@ public final class ImageLoader {
             return Handle(task: nil, outcome: outcome)
         }
 
-        let task = pipeline.loadImage(
-            with: resolved,
-            progress: { [weak self] response, completed, total in
-                self?.handle(preview: response, progress: ImageTask.Progress(completed: completed, total: total))
-            },
-            completion: { [weak self] result in
-                self?.handle(result: result)
-            }
-        )
+        // A callback rather than the public async/await API. The difference
+        // is tiny, about 0.5 µs per load on the main thread, which goes to
+        // creating the `AsyncStream` and the Swift task that reads it, but
+        // it adds up with a load per cell. The async/await version:
+        //
+        //     let task = pipeline.imageTask(with: resolved)
+        //     let events = task.events
+        //     Task { [weak self] in
+        //         for await event in events {
+        //             guard let self else { return }
+        //             self.handle(event, of: task)
+        //         }
+        //     }
+        let task = pipeline.imageTask(with: resolved) { [weak self] event, task in
+            self?.handle(event, of: task)
+        }
 
         var state = State()
         state.event = .started(task)
@@ -214,7 +221,7 @@ public final class ImageLoader {
     }
 
     private func cancelTask() {
-        state.task?.cancel() // The pipeline guarantees no callbacks will be delivered after cancellation
+        state.task?.cancel() // Its remaining events are ignored
         state.task = nil
         if let outcome {
             self.outcome = nil
@@ -224,18 +231,30 @@ public final class ImageLoader {
 
     // MARK: Handling Events
 
-    private func handle(preview: ImageResponse?, progress: ImageTask.Progress) {
-        var state = self.state
-        if let preview {
+    private func handle(_ event: ImageTask.Event, of task: ImageTask) {
+        guard task === state.task else {
+            return // The load was cancelled or replaced
+        }
+        switch event {
+        case .progress(let progress):
+            var state = self.state
+            state.event = .progress(progress)
+            state.progress = progress
+            update(state)
+        case .preview(let preview):
             guard isProgressiveRenderingEnabled else { return }
+            var state = self.state
             state.event = .preview(preview)
             state.imageContainer = preview.container
             state.isPreviousImage = false
-        } else {
-            state.event = .progress(progress)
+            update(state)
+        case .finished(let result):
+            if task.isCancelled, case .failure(.cancelled) = result {
+                cancel() // The task was cancelled directly
+            } else {
+                handle(result: result)
+            }
         }
-        state.progress = progress
-        update(state)
     }
 
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
@@ -343,7 +362,8 @@ extension ImageLoader {
         /// `load` returned: the image was in the memory cache, or the request
         /// was `nil`.
         case finished(Result<ImageResponse, ImagePipeline.Error>, isSync: Bool)
-        /// The load was cancelled with ``ImageLoader/cancel()``.
+        /// The load was cancelled with ``ImageLoader/cancel()``, or its task
+        /// was cancelled.
         case cancelled
         /// The state was cleared with ``ImageLoader/reset()``. It is also the
         /// event of a loader that hasn't loaded anything.
@@ -370,6 +390,7 @@ extension ImageLoader {
     /// loader, finishes with ``ImagePipeline/Error/cancelled``.
     public struct Handle: Sendable {
         /// The task of the load, or `nil` if it finished synchronously.
+        /// Cancelling it cancels the load.
         public let task: ImageTask?
 
         let outcome: Outcome
