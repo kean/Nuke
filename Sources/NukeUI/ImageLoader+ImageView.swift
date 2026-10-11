@@ -55,9 +55,8 @@ extension ImageLoader {
         presentation: Presentation = Presentation(),
         pipeline: ImagePipeline? = nil
     ) -> Load {
-        let presenter = ImageViewPresenter(presentation: presentation)
-        return load(request, into: imageView, pipeline: pipeline) { imageView, state in
-            presenter.render(state, in: imageView)
+        load(request, into: imageView, pipeline: pipeline) { imageView, state in
+            presentation.render(state, in: imageView)
         }
     }
 }
@@ -120,17 +119,11 @@ enum ImageViewTransitionStyle: Sendable {
     case custom(@MainActor @Sendable (_PlatformImageView, ImageContainer) -> Void)
 }
 
-// MARK: - ImageViewPresenter
+// MARK: - Displaying
 
 /// Displays the states of a load in an image view.
 @MainActor
-private final class ImageViewPresenter {
-    private let presentation: ImageLoader.Presentation
-
-    init(presentation: ImageLoader.Presentation) {
-        self.presentation = presentation
-    }
-
+private extension ImageLoader.Presentation {
     func render(_ state: ImageLoader.State, in imageView: _PlatformImageView) {
         switch state.event {
         case .started:
@@ -144,7 +137,7 @@ private final class ImageViewPresenter {
                 displayPlaceholder(in: imageView)
             }
         case .preview(let response):
-            display(response.container, transition: presentation.transition, in: imageView)
+            display(response.container, transition: transition, in: imageView)
         case let .finished(result, isSync):
             if isSync {
                 removeAnimations(from: imageView)
@@ -157,13 +150,13 @@ private final class ImageViewPresenter {
         }
     }
 
-    private func render(_ result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool, state: ImageLoader.State, in imageView: _PlatformImageView) {
+    func render(_ result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool, state: ImageLoader.State, in imageView: _PlatformImageView) {
         switch result {
         case .success(let response):
-            display(response.container, transition: isSync ? nil : presentation.transition, in: imageView)
+            display(response.container, transition: isSync ? nil : transition, in: imageView)
         case .failure:
-            if let failureImage = presentation.failureImage {
-                let transition = isSync ? nil : presentation.failureImageTransition
+            if let failureImage {
+                let transition = isSync ? nil : failureImageTransition
                 display(ImageContainer(image: failureImage), transition: transition, in: imageView)
             } else if state.imageContainer == nil {
                 displayPlaceholder(in: imageView)
@@ -171,11 +164,11 @@ private final class ImageViewPresenter {
         }
     }
 
-    private func displayPlaceholder(in imageView: _PlatformImageView) {
-        imageView.displayContainer(presentation.placeholder.map { ImageContainer(image: $0) })
+    func displayPlaceholder(in imageView: _PlatformImageView) {
+        imageView.displayContainer(placeholder.map { ImageContainer(image: $0) })
     }
 
-    private func display(_ container: ImageContainer, transition: ImageLoader.Presentation.Transition?, in imageView: _PlatformImageView) {
+    func display(_ container: ImageContainer, transition: ImageLoader.Presentation.Transition?, in imageView: _PlatformImageView) {
         guard let transition else {
             imageView.displayContainer(container)
             return
@@ -189,20 +182,20 @@ private final class ImageViewPresenter {
     }
 
 #if os(macOS)
-    private func removeAnimations(from imageView: _PlatformImageView) {
+    func removeAnimations(from imageView: _PlatformImageView) {
         imageView.layer?.removeAllAnimations()
     }
 
-    private func runFadeIn(_ container: ImageContainer, duration: TimeInterval, in imageView: _PlatformImageView) {
+    func runFadeIn(_ container: ImageContainer, duration: TimeInterval, in imageView: _PlatformImageView) {
         imageView.displayContainer(container)
         imageView.layer?.animateOpacity(duration: duration)
     }
 #else
-    private func removeAnimations(from imageView: _PlatformImageView) {
+    func removeAnimations(from imageView: _PlatformImageView) {
         imageView.layer.removeAllAnimations()
     }
 
-    private func runFadeIn(_ container: ImageContainer, duration: TimeInterval, in imageView: _PlatformImageView) {
+    func runFadeIn(_ container: ImageContainer, duration: TimeInterval, in imageView: _PlatformImageView) {
         UIView.transition(
             with: imageView,
             duration: duration,
