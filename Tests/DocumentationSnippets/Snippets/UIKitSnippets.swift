@@ -7,7 +7,7 @@
 #if canImport(UIKit) && !os(watchOS)
 
 import UIKit
-import NukeExtensions
+import NukeUI
 
 private struct Item {
     var imageURL: URL
@@ -26,39 +26,37 @@ private final class UIKitSnippets {
     // MARK: - Loading Images into UIImageView
 
     func loadingIntoImageView() {
-        NukeExtensions.loadImage(with: url, into: imageView)
+        ImageLoader.load(url, into: imageView)
     }
 
     // MARK: - Cell Reuse
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! ImageCell
-        // Any previous request on this cell's imageView is cancelled automatically.
-        NukeExtensions.loadImage(with: items[indexPath.item].imageURL, into: cell.imageView)
+        // Any previous load into this cell's imageView is cancelled automatically.
+        ImageLoader.load(items[indexPath.item].imageURL, into: cell.imageView)
         return cell
     }
 
     // MARK: - Placeholder and Failure Images
 
     func placeholderAndFailureImage() {
-        var options = ImageLoadingOptions()
-        options.placeholder = UIImage(named: "placeholder")
-        options.failureImage = UIImage(named: "error")
-
-        NukeExtensions.loadImage(with: url, options: options, into: imageView)
+        ImageLoader.load(url, into: imageView, presentation: .init(
+            placeholder: UIImage(named: "placeholder"),
+            failureImage: UIImage(named: "error")
+        ))
     }
 
     // MARK: - Transitions
 
     func transitions() {
-        var options = ImageLoadingOptions()
-        options.transition = .fadeIn(duration: 0.3)
-
-        NukeExtensions.loadImage(with: url, options: options, into: imageView)
+        ImageLoader.load(url, into: imageView, presentation: .init(
+            transition: .fadeIn(duration: 0.3)
+        ))
     }
 
-    func sharedTransition() {
-        ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.25)
+    func namedPresentation() {
+        ImageLoader.load(url, into: imageView, presentation: .thumbnail)
     }
 
     // MARK: - Processors and Request Options
@@ -68,32 +66,65 @@ private final class UIKitSnippets {
             url: url,
             processors: [.resize(width: 320)]
         )
-        NukeExtensions.loadImage(with: request, into: imageView)
+        ImageLoader.load(request, into: imageView)
     }
 
-    // MARK: - Tracking Progress and Completion
+    func attachedLoader() {
+        let loader = ImageLoader.loader(for: imageView)
+        loader.keepsPreviousImage = true
+        loader.priority = .high
+    }
 
-    func completion() {
-        NukeExtensions.loadImage(with: url, into: imageView) { result in
-            switch result {
-            case .success(let response):
+    // MARK: - Awaiting the Outcome
+
+    func awaitingTheOutcome() {
+        let handle = ImageLoader.load(url, into: imageView)
+        Task {
+            do {
+                let response = try await handle.response
                 print("Loaded image from: \(response.urlResponse?.url?.absoluteString ?? "cache")")
-            case .failure(let error):
+            } catch {
                 print("Failed to load image: \(error)")
             }
         }
     }
+
+    // MARK: - Drawing the State Yourself
+
+    func render(into cell: CaptionedCell) {
+        ImageLoader.load(url, into: cell) { cell, state in
+            cell.posterView.image = state.image
+            cell.spinner.isHidden = !state.isLoading
+        }
+    }
 }
 
-// MARK: - Custom Views
-
-private final class MyImageView: UIView {
-    var image: UIImage?
+extension ImageLoader.Presentation {
+    static let thumbnail = ImageLoader.Presentation(
+        placeholder: UIImage(named: "placeholder"),
+        transition: .fadeIn(duration: 0.25)
+    )
 }
 
-extension MyImageView: ImageDisplaying {
-    func nuke_display(_ container: ImageContainer?) {
-        self.image = container?.image
+private final class CaptionedCell: UICollectionViewCell {
+    let posterView = UIImageView()
+    let spinner = UIActivityIndicatorView()
+}
+
+private final class PosterCell: UICollectionViewCell, ImageLoaderDelegate {
+    private let loader = ImageLoader()
+    private let posterView = UIImageView()
+    private let progressView = UIProgressView()
+
+    func configure(with url: URL) {
+        loader.delegate = self
+        loader.load(url)
+    }
+
+    func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State) {
+        posterView.image = state.image
+        progressView.progress = state.progress.fraction
+        progressView.isHidden = !state.isLoading
     }
 }
 

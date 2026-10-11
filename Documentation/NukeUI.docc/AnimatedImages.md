@@ -45,12 +45,12 @@ let imageView = LazyImageView()
 imageView.url = url
 ```
 
-``AnimatedImageView`` is a `UIImageView` (an `NSImageView` on macOS) that plays animated images, so it also works with the image view extensions of `NukeExtensions` and anywhere else a platform image view does:
+``AnimatedImageView`` is a `UIImageView` (an `NSImageView` on macOS) that plays animated images, so it also works with ``ImageLoader`` and anywhere else a platform image view does:
 
 ```swift
 let imageView = AnimatedImageView()
 imageView.contentMode = .scaleAspectFill
-NukeExtensions.loadImage(with: url, into: imageView)
+ImageLoader.load(url, into: imageView)
 ```
 
 A plain `UIImageView` shows the still frame instead.

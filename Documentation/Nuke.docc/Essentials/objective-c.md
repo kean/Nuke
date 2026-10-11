@@ -16,7 +16,7 @@ Add a Swift file to your app target. Mark the entry points `@objc` and give them
 import Foundation
 import UIKit
 import Nuke
-import NukeExtensions
+import NukeUI
 
 /// An Objective-C facade over the parts of Nuke this app uses.
 ///
@@ -25,11 +25,11 @@ import NukeExtensions
 @MainActor
 public final class NKImageLoader: NSObject {
 
-    /// Loads an image into a view, cancelling any previous request on that view.
+    /// Loads an image into a view, cancelling any previous load into that view.
     @objc(loadImageWithURL:intoView:)
     @discardableResult
-    public static func loadImage(with url: URL, into view: UIImageView) -> NKImageTask? {
-        NukeExtensions.loadImage(with: url, into: view).map(NKImageTask.init)
+    public static func loadImage(with url: URL, into view: UIImageView) -> NKImageTask {
+        NKImageTask(ImageLoader.load(url, into: view))
     }
 
     /// Loads an image with a placeholder and a fade-in, reporting the outcome.
@@ -40,21 +40,23 @@ public final class NKImageLoader: NSObject {
         into view: UIImageView,
         completion: (@MainActor @Sendable (UIImage?, Error?) -> Void)?
     ) {
-        var options = ImageLoadingOptions()
-        options.placeholder = placeholder
-        options.transition = .fadeIn(duration: 0.25)
-        NukeExtensions.loadImage(with: url, options: options, into: view) { result in
-            switch result {
-            case .success(let response): completion?(response.image, nil)
-            case .failure(let error): completion?(nil, error.asNSError)
+        let handle = ImageLoader.load(url, into: view, presentation: .init(
+            placeholder: placeholder,
+            transition: .fadeIn(duration: 0.25)
+        ))
+        guard let completion else { return }
+        Task {
+            switch await handle.result {
+            case .success(let response): completion(response.image, nil)
+            case .failure(let error): completion(nil, error.asNSError)
             }
         }
     }
 
-    /// Cancels the outstanding request associated with the view.
+    /// Cancels the load into the view.
     @objc(cancelRequestForView:)
     public static func cancelRequest(for view: UIImageView) {
-        NukeExtensions.cancelRequest(for: view)
+        ImageLoader.loader(for: view).cancel()
     }
 
     /// Fetches an image without displaying it in a view.
@@ -84,23 +86,20 @@ public final class NKImageLoader: NSObject {
 }
 ```
 
-``ImageTask`` is a Swift class that doesn't inherit from `NSObject`, so it can't cross into Objective-C directly. Wrap it if callers need to cancel:
+The `ImageLoader.Handle` that `load` returns is a Swift struct, so it can't cross into Objective-C directly. Wrap it if callers need to cancel:
 
 ```swift
 @objc(NKImageTask)
+@MainActor
 public final class NKImageTask: NSObject {
-    private let task: ImageTask
+    private let handle: ImageLoader.Handle
 
-    init(_ task: ImageTask) {
-        self.task = task
+    init(_ handle: ImageLoader.Handle) {
+        self.handle = handle
     }
 
     @objc public func cancel() {
-        task.cancel()
-    }
-
-    @objc public var isCancelled: Bool {
-        task.isCancelled
+        handle.cancel()
     }
 }
 ```
@@ -117,7 +116,7 @@ Import your app's generated Swift header and call the facade:
 }
 ```
 
-Cell reuse needs no extra bookkeeping — starting a new request on a view cancels the previous one:
+Cell reuse needs no extra bookkeeping — starting a new load into a view cancels the previous one:
 
 ```objc
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView
@@ -185,7 +184,7 @@ private extension Error {
 
 ## Threading
 
-The view-loading functions are `@MainActor`, so the facade is too. Objective-C has no way to enforce that, and a call from a background thread is a crash rather than a compile error. Keep every call on the main thread, or hop inside the bridge if your callers can't guarantee it.
+`ImageLoader` is `@MainActor`, so the facade is too. Objective-C has no way to enforce that, and a call from a background thread is a crash rather than a compile error. Keep every call on the main thread, or hop inside the bridge if your callers can't guarantee it.
 
 ## What Doesn't Bridge
 
@@ -197,7 +196,8 @@ The view-loading functions are `@MainActor`, so the facade is too. Objective-C h
 | `ImageTask.progress`, `.previews`, `.events` | `AsyncStream` | A progress block |
 | `ImagePipeline.Error` | Enum with associated values | `NSError`, as above |
 | ``ImageResponse``, ``ImageContainer`` | Structs | Pass out `UIImage` and the fields you need |
-| `ImageLoadingOptions` | Struct | Individual parameters |
+| `ImageLoader.Handle` | Struct | An `NSObject` wrapper |
+| `ImageLoader.Presentation` | Struct | Individual parameters |
 | `[any ImageProcessing]` | Non-`@objc` existential | Build the request in Swift |
 
 Anything not listed here follows the same rule: keep it in Swift and expose only the result.

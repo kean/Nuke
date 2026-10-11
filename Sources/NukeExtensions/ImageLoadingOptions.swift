@@ -13,6 +13,9 @@ import AppKit.NSImage
 #endif
 
 /// A set of options that control how the image is loaded and displayed.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.Presentation` from
+/// NukeUI.
 public struct ImageLoadingOptions: Sendable {
     /// Shared options.
     @MainActor public static var shared = ImageLoadingOptions()

@@ -595,6 +595,22 @@ struct FetchImageTests {
         #expect(!image.isLoading)
     }
 
+    @Test func isLoadingClearedWhenTheImageTaskIsCancelled() async throws {
+        dataLoader.isSuspended = true
+
+        let task = Ref<ImageTask?>(nil)
+        image.onStart = { task.value = $0 }
+        image.load(Test.request)
+        #expect(image.isLoading)
+
+        try #require(task.value).cancel()
+        for await isLoading in image.$isLoading.values where !isLoading {
+            break
+        }
+
+        #expect(image.result == nil)
+    }
+
     @Test func requestCancelledWhenTargetGetsDeallocated() async {
         dataLoader.isSuspended = true
 

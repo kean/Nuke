@@ -174,6 +174,28 @@ public final class ImagePipeline: Sendable {
         return (response.container.data ?? Data(), response.urlResponse)
     }
 
+    // MARK: - Loading Images (Callbacks)
+
+    /// Creates a task with the given request, and calls `onEvent` with its
+    /// events on the main queue. The task starts executing the moment it is
+    /// created.
+    ///
+    /// Unlike the closure-based `loadImage(with:completion:)`, it also
+    /// delivers the `finished` event of a cancelled task. Unlike
+    /// `ImageTask/events`, it doesn't need a stream and a Swift task to read
+    /// the events, which adds up in the UI code that starts a load per cell.
+    nonisolated package func imageTask(
+        with request: ImageRequest,
+        onEvent: @escaping @MainActor @Sendable (ImageTask.Event, ImageTask) -> Void
+    ) -> ImageTask {
+        makeStartedImageTask(with: request) { event, task in
+            let work: @MainActor @Sendable () -> Void = {
+                onEvent(event, task)
+            }
+            DispatchQueue.main.async(execute: work)
+        }
+    }
+
     // MARK: - ImageTask (Internal)
 
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {

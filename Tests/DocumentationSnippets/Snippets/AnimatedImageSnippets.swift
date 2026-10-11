@@ -7,7 +7,6 @@
 // This target exists only to make the hand-written samples in the articles
 // compile. If a snippet here stops building, the article is out of date.
 
-import NukeExtensions
 import NukeUI
 import SwiftUI
 import UIKit
@@ -51,7 +50,7 @@ private func makeLazyImageView(url: URL) -> LazyImageView {
 private func makeAnimatedImageView(url: URL) -> AnimatedImageView {
     let imageView = AnimatedImageView()
     imageView.contentMode = .scaleAspectFill
-    NukeExtensions.loadImage(with: url, into: imageView)
+    ImageLoader.load(url, into: imageView)
     return imageView
 }
 

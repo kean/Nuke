@@ -157,27 +157,33 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         isLoading = true
 
-        let task = pipeline.loadImage(
-            with: request,
-            progress: { [weak self] response, completed, total in
-                guard let self else { return }
-                if let response {
-                    withTransaction(self.transaction) {
-                        self.handle(preview: response)
-                    }
-                } else {
-                    self._progress = ImageTask.Progress(completed: completed, total: total)
-                }
-            },
-            completion: { [weak self] result in
-                guard let self else { return }
-                withTransaction(self.transaction) {
-                    self.handle(result: result)
-                }
-            }
-        )
+        let task = pipeline.imageTask(with: request) { [weak self] event, task in
+            self?.handle(event, of: task)
+        }
         imageTask = task
         onStart?(task)
+    }
+
+    private func handle(_ event: ImageTask.Event, of task: ImageTask) {
+        guard task === imageTask else {
+            return // The load was cancelled or replaced
+        }
+        switch event {
+        case .progress(let progress):
+            _progress = progress
+        case .preview(let response):
+            withTransaction(transaction) {
+                handle(preview: response)
+            }
+        case .finished(let result):
+            if task.isCancelled, case .failure(.cancelled) = result {
+                cancel() // The task was cancelled directly
+            } else {
+                withTransaction(transaction) {
+                    handle(result: result)
+                }
+            }
+        }
     }
 
     private func handle(preview: ImageResponse) {
@@ -231,7 +237,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Marks the request as being cancelled. Continues to display a downloaded image.
     public func cancel() {
         // pipeline-based
-        imageTask?.cancel() // Guarantees that no more callbacks will be delivered
+        imageTask?.cancel() // Its remaining events are ignored
         imageTask = nil
 
         // async/await-based (`Task` cancellation is cooperative, so the action

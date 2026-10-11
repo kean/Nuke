@@ -62,6 +62,8 @@ final class MyImageView: UIView, ImageDisplaying {
 
 If the subclass existed to play animated images, `AnimatedImageView` does it already.
 
+`NukeExtensions` itself is soft-deprecated, and its replacement doesn't need the protocol – see [`ImageLoader` Replaces `NukeExtensions`](#imageloader-replaces-nukeextensions).
+
 ## The Pipeline Parses Animated Images
 
 `ImageDecoders.Default` already attached the encoded bytes of an animated image to `ImageContainer.data`. It now also parses them and attaches the result to the new `ImageContainer.animation`.
@@ -314,3 +316,88 @@ LazyImage(request: request)
 LazyImage(request: request)
     .processors(isBlurred ? [ImageProcessors.GaussianBlur()] : [])
 ```
+
+## `ImageLoader` Replaces `NukeExtensions`
+
+`NukeExtensions` is soft-deprecated. It keeps working in Nuke 14, but its replacement is `ImageLoader` in `NukeUI`. Like `loadImage(with:into:)`, it starts the load synchronously, so an image found in the memory cache is displayed before it returns, and a new load into the same view cancels the previous one.
+
+```swift
+// NukeExtensions
+import NukeExtensions
+
+let options = ImageLoadingOptions(
+    placeholder: UIImage(named: "placeholder"),
+    transition: .fadeIn(duration: 0.33),
+    failureImage: UIImage(named: "error")
+)
+loadImage(with: url, options: options, into: imageView)
+
+// NukeUI
+import NukeUI
+
+let presentation = ImageLoader.Presentation(
+    placeholder: UIImage(named: "placeholder"),
+    transition: .fadeIn(duration: 0.33),
+    failureImage: UIImage(named: "error")
+)
+ImageLoader.load(url, into: imageView, presentation: presentation)
+```
+
+`load` returns an `ImageLoader.Handle` instead of taking a completion closure. Await it where you need the outcome:
+
+```swift
+// NukeExtensions
+loadImage(with: url, into: imageView) { result in
+    if case .failure(let error) = result {
+        print(error)
+    }
+}
+
+// NukeUI
+let handle = ImageLoader.load(url, into: imageView)
+Task {
+    if case .failure(let error) = await handle.result {
+        print(error)
+    }
+}
+```
+
+The options that applied to every load into a view now live on the loader attached to it, which `ImageLoader.loader(for:)` returns.
+
+| NukeExtensions | NukeUI |
+|---|---|
+| `loadImage(with:options:into:)` | `ImageLoader.load(_:into:presentation:pipeline:)` |
+| `ImageLoadingOptions.placeholder`, `failureImage`, `transition`, `failureImageTransition` | `ImageLoader.Presentation`, same names |
+| `ImageLoadingOptions.shared` | A `Presentation` of your own, passed to every load |
+| `ImageLoadingOptions.pipeline` | The `pipeline` parameter |
+| `ImageLoadingOptions.processors`, `isProgressiveRenderingEnabled` | `ImageLoader.loader(for: imageView)`, same names |
+| `ImageLoadingOptions.isPrepareForReuseEnabled = false` | `ImageLoader.loader(for: imageView).keepsPreviousImage = true` |
+| The `progress` closure | The `delegate` of `ImageLoader.loader(for: imageView)` |
+| The `completion` closure | `await` the returned `ImageLoader.Handle` |
+| The returned `ImageTask?` | `ImageLoader.Handle.task` |
+| `cancelRequest(for:)` | `ImageLoader.loader(for: imageView).cancel()` |
+| `ImageDisplaying`, `contentModes`, `tintColors`, `alwaysTransition` | `ImageLoader.load(_:into:render:)` |
+
+`ImageLoader` has no shared options: a `Presentation` is a value, so define the ones your app uses once and pass them by name.
+
+To display the image in a view of your own – one that used to conform to `ImageDisplaying` – or to change the content mode or the tint color with the state, pass a closure that draws the `ImageLoader.State`:
+
+```swift
+// NukeExtensions
+extension PosterView: ImageDisplaying {
+    func nuke_display(_ container: ImageContainer?) {
+        self.image = container?.image
+    }
+}
+
+loadImage(with: url, into: posterView)
+
+// NukeUI
+ImageLoader.load(url, into: posterView) { posterView, state in
+    posterView.image = state.image
+}
+```
+
+## `LazyImageView.imageTask` is read-only
+
+`LazyImageView` now loads with an `ImageLoader`, which owns the task. Call `cancel()` to cancel the load, and `reset()` to also clear the view.
