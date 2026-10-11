@@ -49,6 +49,13 @@ import Nuke
 /// ```swift
 /// let response = try await ImageLoader.load(url, into: imageView).response
 /// ```
+///
+/// An image doesn't have to come from the pipeline. To report the states of
+/// any async function, pass it to ``load(_:)-(()->ImageResponse)``:
+///
+/// ```swift
+/// loader.load { try await pipeline.image(for: url) }
+/// ```
 @MainActor
 public final class ImageLoader {
 
@@ -98,6 +105,9 @@ public final class ImageLoader {
     /// finishes, is cancelled, or is replaced by a new load.
     fileprivate var outcome: Outcome?
 
+    /// The Swift task of the current load from a closure.
+    private var asyncTask: Task<Void, Never>?
+
     /// Incremented on every update, so that an update started from a callback
     /// isn't followed by a stale one.
     private var updateCount = 0
@@ -109,6 +119,7 @@ public final class ImageLoader {
 
     deinit {
         state.task?.cancel()
+        asyncTask?.cancel()
         // The events of the task no longer reach the loader, so whoever awaits
         // the outcome has to be told here.
         if let outcome {
@@ -203,10 +214,61 @@ public final class ImageLoader {
         return Handle(task: task, outcome: outcome)
     }
 
+    /// Loads an image with the given async function, and cancels what was
+    /// loading before it.
+    ///
+    /// The load is reported like any other, but it has no pipeline task and no
+    /// request: ``State/task`` and ``State/request`` are `nil`, and so is
+    /// the task of ``Event/started(_:)``. It reports no progress or previews,
+    /// and doesn't use ``pipeline``, ``processors`` or ``priority``.
+    ///
+    /// Cancelling the load cancels the Swift task that runs `action`. The
+    /// function isn't guaranteed to stop, and if it returns anyway, its
+    /// result is discarded.
+    ///
+    /// - parameter action: Fetches the image. An error that isn't already an
+    /// ``ImagePipeline/Error`` is reported as
+    /// ``ImagePipeline/Error/dataLoadingFailed(error:)`` wrapping it, the same
+    /// way the pipeline reports the errors thrown by the async
+    /// ``ImageRequest`` sources.
+    /// - returns: A handle to the load, to await its outcome or cancel it.
+    @discardableResult
+    public func load(_ action: @escaping () async throws -> ImageResponse) -> Handle {
+        let previousImage = keepsPreviousImage ? state.imageContainer : nil
+        cancelTask()
+
+        let outcome = Outcome(loader: self)
+        self.outcome = outcome
+
+        // The task can't start before this method returns, so it never
+        // finishes before the `started` state is reported.
+        asyncTask = Task { [weak self] in
+            let result: Result<ImageResponse, ImagePipeline.Error>
+            do {
+                result = .success(try await action())
+            } catch {
+                result = .failure(error as? ImagePipeline.Error ?? .dataLoadingFailed(error: error))
+            }
+            guard let self, self.outcome === outcome else {
+                return // Released, cancelled, or replaced
+            }
+            asyncTask = nil
+            handle(result: result)
+        }
+
+        var state = State()
+        state.event = .started(nil)
+        state.isLoading = true
+        state.imageContainer = previousImage
+        state.isPreviousImage = previousImage != nil
+        update(state)
+        return Handle(task: nil, outcome: outcome)
+    }
+
     /// Cancels the current load. The image it displayed so far stays in the
     /// state.
     public func cancel() {
-        guard state.task != nil else { return }
+        guard state.isLoading else { return }
         cancelTask()
         var state = self.state
         state.event = .cancelled
@@ -223,6 +285,8 @@ public final class ImageLoader {
     private func cancelTask() {
         state.task?.cancel() // Its remaining events are ignored
         state.task = nil
+        asyncTask?.cancel() // Its result is ignored
+        asyncTask = nil
         if let outcome {
             self.outcome = nil
             outcome.resolve(.failure(.cancelled))
@@ -309,7 +373,8 @@ extension ImageLoader {
         /// before the processors and the priority of the loader are applied.
         public internal(set) var request: ImageRequest?
 
-        /// The task of the load, while it runs.
+        /// The task of the load, while it runs. `nil` for a load from a
+        /// closure.
         public internal(set) var task: ImageTask?
 
         /// The image to display: the final image, a progressive preview, or
@@ -343,16 +408,17 @@ extension ImageLoader {
 
     /// What changed in a ``State``.
     ///
-    /// A load that starts a task reports ``started(_:)``, any number of
-    /// ``progress(_:)`` and ``preview(_:)``, and then
+    /// A load that starts a task, or runs a closure, reports ``started(_:)``,
+    /// any number of ``progress(_:)`` and ``preview(_:)``, and then
     /// ``finished(_:isSync:)``. A `nil` request and an image found in the
     /// memory cache report ``finished(_:isSync:)`` only, before `load`
     /// returns, so a reused cell is never cleared before it gets its image.
     public enum Event: Sendable {
         /// The load started a task, and the previous load is cancelled.
         /// ``State/imageContainer`` is a preview found in the memory cache, the
-        /// previous image, or `nil`.
-        case started(ImageTask)
+        /// previous image, or `nil`. The task is `nil` for a load from a
+        /// closure.
+        case started(ImageTask?)
         /// The download progressed.
         case progress(ImageTask.Progress)
         /// The pipeline produced a progressive preview, which is now the
@@ -389,8 +455,8 @@ extension ImageLoader {
     /// A load that is cancelled, or replaced by a new load into the same
     /// loader, finishes with ``ImagePipeline/Error/cancelled``.
     public struct Handle: Sendable {
-        /// The task of the load, or `nil` if it finished synchronously.
-        /// Cancelling it cancels the load.
+        /// The task of the load, or `nil` if it finished synchronously or runs
+        /// a closure. Cancelling it cancels the load.
         public let task: ImageTask?
 
         let outcome: Outcome

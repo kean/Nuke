@@ -282,12 +282,7 @@ public final class LazyImageView: _PlatformBaseView {
     private func render(_ state: ImageLoader.State) {
         switch state.event {
         case .started(let task):
-            resetOrDefer()
-            if let container = state.imageContainer {
-                display(container, isFromMemory: true) // A preview found in the memory cache
-            }
-            setPlaceholderViewHidden(false)
-            onStart?(task)
+            handleStart(state, task: task)
         case .progress(let progress):
             onProgress?(progress)
         case .preview(let response):
@@ -310,6 +305,17 @@ public final class LazyImageView: _PlatformBaseView {
             resetViews(clearImage: true)
         case .cancelled:
             break
+        }
+    }
+
+    private func handleStart(_ state: ImageLoader.State, task: ImageTask?) {
+        resetOrDefer()
+        if let container = state.imageContainer {
+            display(container, isFromMemory: true) // A preview found in the memory cache
+        }
+        setPlaceholderViewHidden(false)
+        if let task {
+            onStart?(task)
         }
     }
 
