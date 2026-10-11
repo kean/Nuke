@@ -152,16 +152,15 @@ public final class ImageLoader {
         let previousImage = keepsPreviousImage ? state.imageContainer : nil
         cancelTask()
 
-        let outcome = Outcome(loader: self)
-        self.outcome = outcome
-
+        // A load that finishes before this method returns needs no `Outcome`:
+        // its handle just holds the result.
         guard let request else {
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
             var state = State()
             state.event = .finished(result, isSync: true)
             state.result = result
             finish(state)
-            return Handle(task: nil, outcome: outcome)
+            return Handle(result: result)
         }
 
         var resolved = request
@@ -182,8 +181,11 @@ public final class ImageLoader {
             state.imageContainer = container
             state.result = .success(response)
             finish(state)
-            return Handle(task: nil, outcome: outcome)
+            return Handle(result: .success(response))
         }
+
+        let outcome = Outcome(loader: self)
+        self.outcome = outcome
 
         // A callback rather than the public async/await API. The difference
         // is tiny, about 0.5 µs per load on the main thread, which goes to
@@ -459,7 +461,23 @@ extension ImageLoader {
         /// a closure. Cancelling it cancels the load.
         public let task: ImageTask?
 
-        let outcome: Outcome
+        private let source: Source
+
+        private enum Source: Sendable {
+            /// The load finished before it returned.
+            case finished(Result<ImageResponse, ImagePipeline.Error>)
+            case pending(Outcome)
+        }
+
+        init(task: ImageTask?, outcome: Outcome) {
+            self.task = task
+            self.source = .pending(outcome)
+        }
+
+        init(result: Result<ImageResponse, ImagePipeline.Error>) {
+            self.task = nil
+            self.source = .finished(result)
+        }
 
         /// Returns the response of the load.
         ///
@@ -477,7 +495,13 @@ extension ImageLoader {
         /// Cancelling the Swift task that awaits the result cancels the load.
         public var result: Result<ImageResponse, ImagePipeline.Error> {
             get async {
-                let outcome = self.outcome
+                let outcome: Outcome
+                switch source {
+                case .finished(let result):
+                    return result
+                case .pending(let pending):
+                    outcome = pending
+                }
                 return await withTaskCancellationHandler {
                     await outcome.value()
                 } onCancel: {
@@ -489,7 +513,9 @@ extension ImageLoader {
         /// Cancels the load, unless it has already finished or was replaced.
         @MainActor
         public func cancel() {
-            outcome.cancel()
+            if case .pending(let outcome) = source {
+                outcome.cancel()
+            }
         }
     }
 
