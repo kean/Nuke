@@ -2,11 +2,12 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import NukeExtensions
 import NukeUI
 import UIKit
 
 /// A grid of photos that loads images into `UIImageView` using the
-/// `loadImage(with:options:into:)` extension from NukeUI.
+/// `loadImage(with:options:into:)` extension from NukeExtensions.
 ///
 /// The screens that demonstrate prefetching and the behavior of the pipeline
 /// under stress subclass it and change the pipeline or the requests.

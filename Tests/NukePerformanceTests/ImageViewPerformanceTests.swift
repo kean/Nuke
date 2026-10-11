@@ -5,7 +5,7 @@
 import Testing
 import Foundation
 import Nuke
-import NukeUI
+import NukeExtensions
 
 @Suite(.serialized)
 @MainActor
@@ -22,7 +22,7 @@ final class ImageViewPerformanceTests {
 
         measure {
             for url in urls {
-                NukeUI.loadImage(with: url, into: view)
+                NukeExtensions.loadImage(with: url, into: view)
             }
         }
     }
@@ -38,7 +38,7 @@ final class ImageViewPerformanceTests {
 
         measure {
             for request in requests {
-                NukeUI.loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }
@@ -52,7 +52,7 @@ final class ImageViewPerformanceTests {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
-                NukeUI.loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }
@@ -66,7 +66,7 @@ final class ImageViewPerformanceTests {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
-                NukeUI.loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }

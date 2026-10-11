@@ -17,13 +17,12 @@ import UIKit
 ///
 /// It is a drop-in replacement for the platform image view: everything that
 /// works with `UIImageView` or `NSImageView` – content modes, layout, the
-/// ``loadImage(with:options:into:completion:)-(URL?,_,_,_)`` extensions – works
-/// with it, and an image that turns out to be animated plays instead of showing
-/// its first frame.
+/// `NukeExtensions` image loading functions – works with it, and an image that
+/// turns out to be animated plays instead of showing its first frame.
 ///
 /// ```swift
 /// let imageView = AnimatedImageView()
-/// NukeUI.loadImage(with: url, into: imageView)
+/// NukeExtensions.loadImage(with: url, into: imageView)
 /// ```
 ///
 /// Set ``animatedImage`` to play an image you already have:
@@ -205,11 +204,10 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Displays the image, playing it if the pipeline parsed an animation out
     /// of it.
     ///
-    /// This is what ``ImageDisplaying/nuke_display(_:)`` reaches for a view of
-    /// this type, and so the entry point the
-    /// ``loadImage(with:options:into:completion:)-(URL?,_,_,_)`` extensions
-    /// use. The still the decoder produced only goes on screen while there is
-    /// no decoded frame to cover it.
+    /// This is what ``LazyImageView`` displays a response with, and what the
+    /// `NukeExtensions` image loading functions reach for a view of this type,
+    /// through `displayContainer(_:)`. The still the decoder produced only goes
+    /// on screen while there is no decoded frame to cover it.
     func display(_ container: ImageContainer?) {
         let poster = container?.image
         // Passed in rather than read back from the view: `self.image` is still
@@ -519,6 +517,24 @@ public final class AnimatedImageView: _PlatformImageView {
                 // place keeps them: resuming shouldn't stall.
                 player.keepsFullBuffer = false
             }
+        }
+    }
+}
+
+extension _PlatformImageView {
+    /// Displays the container in a platform image view: an
+    /// ``AnimatedImageView`` plays the animation the pipeline parsed, and any
+    /// other view gets the still.
+    ///
+    /// The `NukeExtensions` image loading functions display through a
+    /// conformance declared in an extension of the platform image views, which
+    /// a subclass has nothing to override. This is where an
+    /// ``AnimatedImageView`` gets the whole container instead of the still.
+    package func displayContainer(_ container: ImageContainer?) {
+        if let view = self as? AnimatedImageView {
+            view.display(container)
+        } else {
+            self.image = container?.image
         }
     }
 }

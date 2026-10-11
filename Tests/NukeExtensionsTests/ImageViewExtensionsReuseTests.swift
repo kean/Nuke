@@ -5,6 +5,7 @@
 import Testing
 import Foundation
 @testable import Nuke
+@testable import NukeExtensions
 @testable import NukeUI
 
 #if os(iOS) || os(tvOS) || os(visionOS)
@@ -38,7 +39,7 @@ struct ImageViewExtensionsReuseTests {
         // thread is busy, so its completion can't run yet
         var firstCompletionCount = 0
         try runWhileMainThreadIsBlocked(untilTaskCompletes: observer) {
-            NukeUI.loadImage(with: request(id: "a"), options: options, into: imageView) { _ in
+            NukeExtensions.loadImage(with: request(id: "a"), options: options, into: imageView) { _ in
                 firstCompletionCount += 1
             }
         }
@@ -46,7 +47,7 @@ struct ImageViewExtensionsReuseTests {
         // When the view is reused before the main queue drains
         let expectation = TestExpectation()
         var secondResult: Result<ImageResponse, ImagePipeline.Error>?
-        NukeUI.loadImage(with: request(id: "b"), options: options, into: imageView) {
+        NukeExtensions.loadImage(with: request(id: "b"), options: options, into: imageView) {
             secondResult = $0
             expectation.fulfill()
         }
@@ -65,16 +66,16 @@ struct ImageViewExtensionsReuseTests {
         // Given
         var chainedTask: ImageTask?
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: request(id: "a"), options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: request(id: "a"), options: options, into: imageView) { _ in
             dataLoader.isSuspended = true
-            chainedTask = NukeUI.loadImage(with: request(id: "b"), options: options, into: imageView)
+            chainedTask = NukeExtensions.loadImage(with: request(id: "b"), options: options, into: imageView)
             expectation.fulfill()
         }
         await expectation.wait()
         let task = try #require(chainedTask)
 
         // When
-        NukeUI.cancelRequest(for: imageView)
+        NukeExtensions.cancelRequest(for: imageView)
 
         // Then
         #expect(task.isCancelled)
@@ -91,7 +92,7 @@ struct ImageViewExtensionsReuseTests {
         options.failureImage = Test.image
 
         var callbackCount = 0
-        let imageTask = NukeUI.loadImage(
+        let imageTask = NukeExtensions.loadImage(
             with: Test.request,
             options: options,
             into: imageView,
@@ -102,7 +103,7 @@ struct ImageViewExtensionsReuseTests {
 
         // When
         await notification(ImagePipelineObserver.didCancelTask, object: observer) {
-            NukeUI.cancelRequest(for: imageView)
+            NukeExtensions.cancelRequest(for: imageView)
         }
         #expect(task.isCancelled)
         dataLoader.isSuspended = false
@@ -120,7 +121,7 @@ struct ImageViewExtensionsReuseTests {
         imageView.image = image
 
         // When
-        NukeUI.cancelRequest(for: imageView)
+        NukeExtensions.cancelRequest(for: imageView)
 
         // Then it keeps its content and can still load images
         #expect(imageView.image === image)
@@ -172,7 +173,7 @@ struct ImageViewExtensionsReuseTests {
         var result: Result<ImageResponse, ImagePipeline.Error>?
 
         // When
-        let task = NukeUI.loadImage(with: nil as URL?, options: options, into: imageView) {
+        let task = NukeExtensions.loadImage(with: nil as URL?, options: options, into: imageView) {
             result = $0
         }
 
@@ -191,7 +192,7 @@ struct ImageViewExtensionsReuseTests {
 
         // When
         var result: Result<ImageResponse, ImagePipeline.Error>?
-        NukeUI.loadImage(with: nil as ImageRequest?, options: options, into: imageView) {
+        NukeExtensions.loadImage(with: nil as ImageRequest?, options: options, into: imageView) {
             result = $0
         }
 
@@ -209,7 +210,7 @@ struct ImageViewExtensionsReuseTests {
         options.failureImageTransition = .custom { _, _ in isTransitionPerformed = true }
 
         // When
-        NukeUI.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
+        NukeExtensions.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
 
         // Then the failure is known immediately, so it's treated like a memory
         // cache hit
@@ -227,7 +228,7 @@ struct ImageViewExtensionsReuseTests {
         options.failureImageTransition = .custom { _, image in transitionImage = image }
 
         // When
-        NukeUI.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
+        NukeExtensions.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
 
         // Then
         #expect(transitionImage === failureImage)
@@ -243,7 +244,7 @@ struct ImageViewExtensionsReuseTests {
         options.transition = .custom { _, _ in isTransitionPerformed = true }
 
         // When
-        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(task == nil)
@@ -262,7 +263,7 @@ struct ImageViewExtensionsReuseTests {
 
         // When
         var result: Result<ImageResponse, ImagePipeline.Error>?
-        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView) {
+        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) {
             result = $0
         }
 
@@ -282,7 +283,7 @@ struct ImageViewExtensionsReuseTests {
 
         // When
         var result: Result<ImageResponse, ImagePipeline.Error>?
-        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView) {
+        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) {
             result = $0
         }
 
@@ -319,7 +320,7 @@ struct ImageViewExtensionsReuseTests {
         options.transition = .custom { _, _ in isTransitionPerformed = true }
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.image === placeholder)
@@ -336,7 +337,7 @@ struct ImageViewExtensionsReuseTests {
         options.isPrepareForReuseEnabled = false
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(imageView.image === placeholder)
@@ -366,7 +367,7 @@ struct ImageViewExtensionsReuseTests {
         try #require(layer.animation(forKey: "test") != nil)
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(layer.animationKeys() == nil)
@@ -381,7 +382,7 @@ struct ImageViewExtensionsReuseTests {
         options.isPrepareForReuseEnabled = false
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         #expect(layer.animation(forKey: "test") != nil)
@@ -400,7 +401,7 @@ struct ImageViewExtensionsReuseTests {
         // When
         var response: ImageResponse?
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: Test.request, options: options, into: view) {
+        NukeExtensions.loadImage(with: Test.request, options: options, into: view) {
             response = $0.value
             expectation.fulfill()
         }
@@ -467,7 +468,7 @@ struct ImageViewExtensionsReuseTests {
         // next commit.
         var animation: CAAnimation?
         let expectation = TestExpectation()
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
             animation = imageView.layer?.animation(forKey: "imageTransition")
             expectation.fulfill()
         }
@@ -494,7 +495,7 @@ struct ImageViewExtensionsReuseTests {
         let expectation = TestExpectation()
 
         // When
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView) { _ in
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView) { _ in
             expectation.fulfill()
         }
 
@@ -511,7 +512,7 @@ struct ImageViewExtensionsReuseTests {
         options.contentModes = .init(success: .scaleAspectFill, failure: .center, placeholder: .scaleAspectFit)
 
         // When
-        NukeUI.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
+        NukeExtensions.loadImage(with: nil as ImageRequest?, options: options, into: imageView)
 
         // Then
         #expect(imageView.contentMode == .center)

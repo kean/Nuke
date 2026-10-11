@@ -22,10 +22,10 @@ struct AnimatedImageViewTests {
     /// Displays the image the way the pipeline does: in a container carrying
     /// the animation it parsed, rather than data for the view to find one in.
     private func display(_ data: Data?, image: PlatformImage? = Test.image) {
-        guard let image else { return view.nuke_display(nil) }
+        guard let image else { return view.display(nil) }
         var container = ImageContainer(image: image, data: data)
         container.animation = data.flatMap(AnimatedImageSource.init(data:))
-        view.nuke_display(container)
+        view.display(container)
     }
 
     /// Asks the view to cover itself with the frames, which only UIKit has a
@@ -223,13 +223,13 @@ struct AnimatedImageViewTests {
         layOut(CGSize(width: 100, height: 100))
         let data = Test.animatedGIF()
         let source = try #require(AnimatedImageSource(data: data))
-        view.nuke_display(makeContainer(poster: Test.image, data: data, animation: source))
+        view.display(makeContainer(poster: Test.image, data: data, animation: source))
         let player = try #require(view.player)
         await player.waitUntilFull()
         let frame = try #require(player.image)
         #expect(view.image === frame)
 
-        view.nuke_display(makeContainer(poster: Test.image, data: data, animation: source))
+        view.display(makeContainer(poster: Test.image, data: data, animation: source))
 
         #expect(view.player === player)
         #expect(view.image === frame)
@@ -241,7 +241,7 @@ struct AnimatedImageViewTests {
         let player = try #require(view.player)
         await player.waitUntilFull()
 
-        view.nuke_display(nil)
+        view.display(nil)
 
         #expect(view.player == nil)
         #expect(view.animatedImage == nil)

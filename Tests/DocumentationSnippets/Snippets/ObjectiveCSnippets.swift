@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 import Nuke
-import NukeUI
+import NukeExtensions
 
 /// An Objective-C facade over the parts of Nuke this app uses.
 ///
@@ -22,7 +22,7 @@ public final class NKImageLoader: NSObject {
     @objc(loadImageWithURL:intoView:)
     @discardableResult
     public static func loadImage(with url: URL, into view: UIImageView) -> NKImageTask? {
-        NukeUI.loadImage(with: url, into: view).map(NKImageTask.init)
+        NukeExtensions.loadImage(with: url, into: view).map(NKImageTask.init)
     }
 
     /// Loads an image with a placeholder and a fade-in, reporting the outcome.
@@ -36,7 +36,7 @@ public final class NKImageLoader: NSObject {
         var options = ImageLoadingOptions()
         options.placeholder = placeholder
         options.transition = .fadeIn(duration: 0.25)
-        NukeUI.loadImage(with: url, options: options, into: view) { result in
+        NukeExtensions.loadImage(with: url, options: options, into: view) { result in
             switch result {
             case .success(let response): completion?(response.image, nil)
             case .failure(let error): completion?(nil, error.asNSError)
@@ -47,7 +47,7 @@ public final class NKImageLoader: NSObject {
     /// Cancels the outstanding request associated with the view.
     @objc(cancelRequestForView:)
     public static func cancelRequest(for view: UIImageView) {
-        NukeUI.cancelRequest(for: view)
+        NukeExtensions.cancelRequest(for: view)
     }
 
     /// Fetches an image without displaying it in a view.

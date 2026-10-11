@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import NukeExtensions
 import NukeUI
 import os
 import SwiftUI
@@ -593,7 +594,7 @@ private final class DecompressionGridViewController: DemoAutoScrollGridViewContr
     /// still running.
     override func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
         guard let cell = cell as? PhotoCell else { return }
-        NukeUI.cancelRequest(for: cell.imageView)
+        NukeExtensions.cancelRequest(for: cell.imageView)
         cell.imageView.image = nil
         clearedCells.insert(ObjectIdentifier(cell))
     }

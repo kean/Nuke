@@ -46,7 +46,6 @@
 - `ImagePipeline/Delegate/willCache(data:image:for:pipeline:)` is now `async` and returns the data to store instead of taking a completion closure. Return `nil` to prevent caching – https://github.com/kean/Nuke/pull/943
 - `NukeUI`, `NukeExtensions`, and `NukeVideo` now re-export `Nuke`, so importing them is enough. The `NukeUI.ImageRequest` typealias is removed – https://github.com/kean/Nuke/pull/946
 - `ImagePipeline/Delegate` now declares the isolation of every method instead of documenting it: `willLoadData`, `willCache`, `imageTaskDidStart`, and `imageTask(_:didReceiveEvent:pipeline:)` run on `ImagePipelineActor`, and the rest are `nonisolated` – https://github.com/kean/Nuke/pull/945
-- `NukeExtensions` is folded into `NukeUI`. The image view extensions now ship in `NukeUI`, and `NukeExtensions` is an empty module that re-exports it, scheduled for removal in Nuke 15 – https://github.com/kean/Nuke/pull/947
 - `NukeUI` now surfaces the typed `ImagePipeline/Error` instead of `any Error`: `FetchImage/result`, `LazyImageState/result`, `LazyImageState/error`, and the `onCompletion` and `onFailure` callbacks – https://github.com/kean/Nuke/pull/949
 - `FetchImage/progress` and `LazyImageState/progress` now return `ImageTask/Progress`, which `FetchImage` publishes itself, instead of the nested `FetchImage.Progress` observable object that needed its own `@ObservedObject`. The old type is deprecated – https://github.com/kean/Nuke/pull/953
 - Add `ImagePipeline/Error/isCancelled` – https://github.com/kean/Nuke/pull/952
