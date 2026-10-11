@@ -68,8 +68,8 @@ The package ships with four modules that you can install depending on your needs
 |Module|Description|
 |--|--|
 |[**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke)|The lean core framework with `ImagePipeline`, `ImageRequest`, and more|
-|[**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/)|The UI components: `LazyImage` (SwiftUI) and `LazyImageView` (UIKit, AppKit)|
-|[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit)|
+|[**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/)|The UI components: `LazyImage` (SwiftUI), `LazyImageView` and `ImageLoader` (UIKit, AppKit)|
+|[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit). Soft-deprecated: use `ImageLoader` from NukeUI|
 |[**NukeVideo**](https://kean-docs.github.io/nukevideo/documentation/nukevideo/)|The components for decoding and playing short videos|
 
 ## Extensions

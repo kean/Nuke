@@ -497,6 +497,9 @@ extension ImageLoader {
     /// ```
     ///
     /// - parameters:
+    ///   - request: The image request. A `nil` request fails with
+    ///   ``ImagePipeline/Error/imageRequestMissing``.
+    ///   - target: The object to load the image into. It is held weakly.
     ///   - pipeline: The pipeline to load the image with. `nil` keeps the
     ///   pipeline of the attached loader, ``ImagePipeline/shared`` by default.
     ///   - render: Called with every change of the state, including the

@@ -64,6 +64,8 @@
 - Replace the global `ImagePipeline/Configuration/isSignpostLoggingEnabled` with the per-pipeline `ImagePipeline/Configuration-swift.struct/signpostLog`: the pipeline sends a signpost for every task, job, and stage while diagnostics are on, unless it's set to `nil` – https://github.com/kean/Nuke/pull/995
 - `LazyImage/priority(_:)` with `nil` now keeps the request's own priority instead of resetting it to `.normal` – https://github.com/kean/Nuke/pull/1034
 - `LazyImage/processors(_:)` with `nil` now keeps the request's own processors; pass `[]` to remove them. `nil` in `processors(_:)` and `priority(_:)` also takes back an earlier call – https://github.com/kean/Nuke/pull/1035
+- Add `ImageLoader` to `NukeUI`: it loads images into `UIImageView` and `NSImageView`, or into any object that draws its `ImageLoader/State`, and replaces `NukeExtensions`, which is now soft-deprecated – https://github.com/kean/Nuke/pull/1039
+- `LazyImageView/imageTask` is now read-only – https://github.com/kean/Nuke/pull/1039
 
 **Performance**
 

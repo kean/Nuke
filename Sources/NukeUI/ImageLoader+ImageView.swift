@@ -45,6 +45,12 @@ extension ImageLoader {
     /// ``loader(for:)``), so it cancels the previous load into the same view.
     ///
     /// - parameters:
+    ///   - request: The image request. A `nil` request displays the failure
+    ///   image.
+    ///   - imageView: The image view to load the image into. It is held
+    ///   weakly.
+    ///   - presentation: The placeholder, the failure image, and the
+    ///   transitions.
     ///   - pipeline: The pipeline to load the image with. `nil` keeps the
     ///   pipeline of the attached loader, ``ImagePipeline/shared`` by default.
     /// - returns: A handle to the load, to await its outcome or cancel it.

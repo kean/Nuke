@@ -46,6 +46,9 @@ import AppKit.NSImage
 /// Conform your own view directly, as above, rather than subclassing
 /// `UIImageView`. To play animated images without writing a renderer, use
 /// `AnimatedImageView` from NukeUI.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.load(_:into:render:)`
+/// from NukeUI to display images in any object.
 @MainActor
 public protocol ImageDisplaying {
     /// Displays the image the pipeline produced, or clears the view when the
@@ -106,6 +109,9 @@ extension TVPosterView: ImageDisplaying {
 /// Loads an image with the given request and displays it in the view.
 ///
 /// See the complete method signature for more information.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.load(_:into:presentation:pipeline:)`
+/// from NukeUI.
 @MainActor
 @discardableResult public func loadImage(
     with url: URL?,
@@ -139,6 +145,9 @@ extension TVPosterView: ImageDisplaying {
 ///   the memory cache.
 ///
 /// - returns: An image task or `nil` if the image was found in the memory cache.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.load(_:into:presentation:pipeline:)`
+/// from NukeUI.
 @MainActor
 @discardableResult public func loadImage(
     with url: URL?,
@@ -160,6 +169,9 @@ extension TVPosterView: ImageDisplaying {
 /// Loads an image with the given request and displays it in the view.
 ///
 /// See the complete method signature for more information.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.load(_:into:presentation:pipeline:)`
+/// from NukeUI.
 @MainActor
 @discardableResult public func loadImage(
     with request: ImageRequest?,
@@ -193,6 +205,9 @@ extension TVPosterView: ImageDisplaying {
 ///   the memory cache.
 ///
 /// - returns: An image task or `nil` if the image was found in the memory cache.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.load(_:into:presentation:pipeline:)`
+/// from NukeUI.
 @MainActor
 @discardableResult public func loadImage(
     with request: ImageRequest?,
@@ -206,6 +221,9 @@ extension TVPosterView: ImageDisplaying {
 }
 
 /// Cancels an outstanding request associated with the view.
+///
+/// - warning: Soft-deprecated in Nuke 14. Use `ImageLoader.loader(for:)` from
+/// NukeUI, and call `cancel()` on the loader it returns.
 @MainActor
 public func cancelRequest(for view: ImageDisplayingView) {
     ImageViewController.controller(for: view).cancelOutstandingTask()

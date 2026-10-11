@@ -6,7 +6,7 @@ Learn about extensions for image views.
 
 Nuke provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using Nuke's `ImagePipeline` directly.
 
-> Tip: For SwiftUI support, check out **NukeUI** module. It also includes custom image views for UIKit and AppKit designed to be a better replacement for global functions in `NukeExtensions`.
+> Warning: These extensions are soft-deprecated. Use `ImageLoader` from **NukeUI** instead, which loads images into the same image views, awaits the outcome instead of taking a completion closure, and can draw the loading state into any object.
 
 ## Image View
 
