@@ -393,7 +393,9 @@ extension ImagePipeline.Diagnostics {
         /// durations are clamped to.
         func makeSnapshot(for task: TaskRecord, at taskEnd: TimeInterval) -> Job {
             var copy = job
-            copy.createdByTaskID = joins.first?.taskID ?? 0
+            // The first join is the creator only if it didn't join: the task
+            // that created the job may not have been recorded.
+            copy.createdByTaskID = joins.first.flatMap { $0.joinedAt == nil ? $0.taskID : nil } ?? 0
             copy.taskIDs = joins.map(\.taskID)
             copy.joinedAt = joins.first { $0.taskID == task.taskID }?.joinedAt
             copy.stages = job.stages.map { $0.attributed(joinedAt: copy.joinedAt, taskEnd: taskEnd) }

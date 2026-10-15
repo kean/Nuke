@@ -647,6 +647,43 @@ struct DataLoaderSessionContractTests {
         #expect(code == .networkConnectionLost)
         #expect(metrics?.transactionMetrics.first?.request.url == url)
     }
+
+    /// The session collects the metrics only after the response is rejected,
+    /// so the completion waits for them – and is still called exactly once,
+    /// with the validation error rather than the cancellation it led to.
+    @Test func metricsAreDeliveredForARejectedResponse() async throws {
+        // Given
+        let url = StubURLProtocol.register { $0.respond(statusCode: 404, chunks: [Data("not found".utf8)]) }
+        let loader = makeStubLoader()
+        let delegate = EventLoggingDelegate()
+        loader.delegate = delegate
+        let completions = OSAllocatedUnfairLock<[(error: (any Error)?, metrics: URLSessionTaskMetrics?)]>(uncheckedState: [])
+        let completed = TestExpectation()
+
+        // When
+        _ = loader.loadData(
+            with: URLRequest(url: url),
+            didReceiveData: { _, _ in Issue.record("Unexpected data for a rejected response") },
+            completion: { error, metrics in
+                completions.withLockUnchecked { $0.append((error, metrics)) }
+                completed.fulfill()
+            }
+        )
+        await completed.wait()
+        await delegate.didComplete.wait()
+        await loader.drainDelegateQueue()
+
+        // Then the completion is called exactly once, with the validation error
+        let completion = try #require(completions.withLockUnchecked { $0.count == 1 ? $0.first : nil })
+        guard case .statusCodeUnacceptable(404)? = completion.error as? DataLoader.Error else {
+            Issue.record("Unexpected error: \(String(describing: completion.error))")
+            return
+        }
+
+        // Then it carries the metrics the session collected after the rejection
+        let metrics = try #require(completion.metrics)
+        #expect(metrics.transactionMetrics.first?.request.url == url)
+    }
 }
 
 // MARK: - Delegate Forwarding
