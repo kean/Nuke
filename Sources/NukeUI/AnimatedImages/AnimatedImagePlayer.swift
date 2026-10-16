@@ -371,12 +371,13 @@ public final class AnimatedImagePlayer: ObservableObject {
         }
 
         let step = min(delta, Self.maxTimeStep) * options.playbackRate
-        guard step > 0 else { return }
+        guard step > 0, step.isFinite else { return }
         counters.playbackTime += step
         elapsed += step
 
         var advanced = false
         var didLoop = false
+        var advanceCount = 0
         while elapsed >= source.delays[currentFrameIndex] {
             guard let next = nextFrameIndex else {
                 finish()
@@ -406,6 +407,16 @@ public final class AnimatedImagePlayer: ObservableObject {
             // the display couldn't have shown for longer anyway.
             elapsed = min(remainder, clock.period * options.playbackRate)
             advanced = true
+            // A loop per tick at most. The display shows one frame per tick
+            // whatever the rate, and a rate large enough to run the animation
+            // round more than once in one would otherwise spin here for as
+            // long as it is large – forever, once the subtraction above rounds
+            // to nothing.
+            advanceCount += 1
+            if advanceCount >= source.frameCount {
+                elapsed = 0
+                break
+            }
         }
         guard advanced else { return }
 
@@ -562,6 +573,10 @@ extension AnimatedImagePlayer {
         public var repeatCount: RepeatCount = .image
 
         /// The speed multiplier. `1` by default.
+        ///
+        /// A rate that isn't a positive finite number holds the current frame,
+        /// and a rate large enough to run the animation round more than once
+        /// per clock tick plays at most a loop per tick.
         public var playbackRate: Double = 1
 
         /// The most memory this player's decoded frames may occupy, in bytes.
