@@ -53,7 +53,12 @@ final class AnimatedImageFrameStore {
     let frameCount: Int
 
     /// The memory one decoded frame occupies, in bytes.
-    let bytesPerFrame: Int
+    ///
+    /// Estimated from the canvas until a frame lands, and what the largest
+    /// frame decoded so far occupies after that: a transform may draw into a
+    /// bitmap of its own, and the budget has to be divided by what the frames
+    /// really cost or the pool holds several times its limit.
+    private(set) var bytesPerFrame: Int
 
     /// Weak: the players hold the animation strongly, so the frames outlive
     /// the last player only as long as something else – ``ImageCache``, by
@@ -247,11 +252,16 @@ final class AnimatedImageFrameStore {
 
     // MARK: Budget
 
-    /// What the store would use if the pool had it to spare: every frame its
-    /// members' windows cover between them, and never more than the whole
-    /// animation.
+    /// What the store would use if the pool had it to spare: the whole
+    /// animation while a member wants every frame, and otherwise the windows.
+    ///
+    /// Not the union of what the members want, because a window short of the
+    /// whole animation is capped at the read-ahead: a share between the two
+    /// would be handed out and never used, and taken from an animation that
+    /// could have been held whole in it.
     var demand: Int {
-        claimedFrameCount(upTo: frameCount) * bytesPerFrame
+        let wantsEveryFrame = members.contains { ($0.player?.wantedFrameCount ?? 0) >= frameCount }
+        return wantsEveryFrame ? frameCount * bytesPerFrame : leastDemand
     }
 
     /// The least the store can play from: a window of the read-ahead at every
@@ -275,13 +285,21 @@ final class AnimatedImageFrameStore {
     /// anything is held whole, so the over-claim comes out of the animations
     /// that could have been held whole in it.
     private func claimedFrameCount(upTo limit: Int) -> Int {
+        let lengths = wantedFrameCounts(upTo: limit)
+        let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
+        return min(frameCount, total)
+    }
+
+    /// The number of frames the members on each playhead want between them,
+    /// none of them more than the given number.
+    private func wantedFrameCounts(upTo limit: Int) -> [Int: Int] {
         var lengths: [Int: Int] = [:]
-        for player in liveMembers {
+        for member in members {
+            guard let player = member.player else { continue }
             let index = player.currentFrameIndex
             lengths[index] = max(lengths[index] ?? 0, min(player.wantedFrameCount, limit))
         }
-        let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
-        return min(frameCount, total)
+        return lengths
     }
 
     /// Takes the share of the pool the store holds its frames in.
@@ -334,17 +352,22 @@ final class AnimatedImageFrameStore {
             return frameCount
         }
         let floor = AnimatedImagePlayer.idleFrameCount
-        let playheads = Set(members.compactMap { $0.player?.currentFrameIndex }).sorted()
-        guard playheads.count > 1 else {
+        // Each playhead measured at what the members on it want, the way the
+        // share was asked for: a member nobody is watching holds two frames
+        // however long the window is, and measured at the full length it
+        // would cut the members that are playing short of the read-ahead.
+        let wanted = wantedFrameCounts(upTo: capacity)
+        guard wanted.count > 1 else {
             return max(floor, capacity)
         }
+        let playheads = wanted.keys.sorted()
         // The union grows with the window, so the largest window that fits is
         // a binary search away.
         var low = floor
         var high = max(floor, capacity)
         while low < high {
             let middle = (low + high + 1) / 2
-            if unionSize(of: playheads, length: { _ in middle }) <= capacity {
+            if unionSize(of: playheads, length: { min(middle, wanted[$0] ?? middle) }) <= capacity {
                 low = middle
             } else {
                 high = middle - 1
@@ -373,7 +396,10 @@ final class AnimatedImageFrameStore {
     /// the pool reclaims those frames when it needs the room, and drops them
     /// on a memory warning.
     private func evict(_ windows: [MemberWindow]) {
-        guard !members.isEmpty, !frames.isEmpty else { return }
+        // The windows rather than the members: a released player's entry stays
+        // in `members` until the next sweep, and a frame landing in between
+        // would otherwise take every frame the store holds with it.
+        guard !windows.isEmpty, !frames.isEmpty else { return }
         guard !windows.contains(where: { $0.length >= frameCount }) else {
             return // Some window covers the whole animation: nothing to evict
         }
@@ -390,7 +416,7 @@ final class AnimatedImageFrameStore {
     /// Drops the frames outside every member's window, for the pool to call
     /// when it is over its limit.
     func reclaim() {
-        if members.isEmpty {
+        if isIdle {
             removeAllFrames()
         } else {
             evict(memberWindows())
@@ -477,6 +503,14 @@ final class AnimatedImageFrameStore {
             let cost = image.bytesPerRow * image.height
             frames[index] = Frame(image: image, byteCount: cost)
             byteCount += cost
+            // The budget was divided by the canvas estimate; a frame that
+            // costs more has it divided again by what the frames really cost,
+            // or an animation held whole on the estimate would keep the pool
+            // over its limit for as long as it plays.
+            if cost > bytesPerFrame {
+                bytesPerFrame = cost
+                pool?.rebalance()
+            }
         }
         for player in liveMembers where requesters.contains(ObjectIdentifier(player)) {
             // Offered even if the window moved past the frame: the player is
