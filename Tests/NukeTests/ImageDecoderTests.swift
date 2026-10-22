@@ -379,6 +379,23 @@ struct ImageDecoderTests {
     }
 #endif
 
+    // MARK: - JPEG XL
+
+    /// A naked codestream and the same codestream wrapped in the ISO BMFF
+    /// container: the two forms `AssetType` sniffs.
+    @Test(arguments: ["baseline", "container"])
+    func decodeJPEGXL(name: String) throws {
+        guard #available(iOS 17, macOS 14, tvOS 17, watchOS 10, visionOS 1, *) else { return }
+        let data = Test.data(name: name, extension: "jxl")
+
+        let container = try ImageDecoders.Default().decode(data)
+
+        #expect(container.type == .jxl)
+        #expect(container.image.sizeInPixels == CGSize(width: 96, height: 54))
+        #expect(container.data == nil)
+        #expect(!container.isPreview)
+    }
+
     // MARK: - Invalid / Corrupted Data
 
     @Test func decodeEmptyDataThrows() {
