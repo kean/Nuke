@@ -113,6 +113,9 @@ public final class ImageLoader {
     /// The Swift task of the current load from a closure.
     private var asyncTask: Task<Void, Never>?
 
+    /// The pipeline that runs the ``task``.
+    private weak var taskPipeline: ImagePipeline?
+
     /// Incremented on every update, so that an update started from a callback
     /// isn't followed by a stale one.
     private var updateCount = 0
@@ -146,6 +149,13 @@ public final class ImageLoader {
     /// Loads an image with the given request, and cancels what was loading
     /// before it.
     ///
+    /// If the loader is already loading the same image – a request that
+    /// differs only in priority, from the same pipeline – the task keeps
+    /// running, because restarting it would discard what it has downloaded.
+    /// The new request only updates its priority, no state is reported, and
+    /// the returned handle is to that load. A load that has finished starts
+    /// over, which is quick if the image is in the memory cache.
+    ///
     /// The memory cache is checked synchronously: if it has the final image,
     /// the load finishes before this method returns, and so does a `nil`
     /// request, with ``ImagePipeline/Error/imageRequestMissing``. In both
@@ -154,12 +164,10 @@ public final class ImageLoader {
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public func load(_ request: ImageRequest?) -> Handle {
-        let previousImage = keepsPreviousImage ? state.imageContainer : nil
-        cancelTask()
-
         // A load that finishes before this method returns needs no `Outcome`:
         // its handle just holds the result.
         guard let request else {
+            cancelTask()
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
             var state = State()
             state.event = .finished(result, isSync: true)
@@ -168,13 +176,13 @@ public final class ImageLoader {
             return Handle(result: result)
         }
 
-        var resolved = request
-        if !processors.isEmpty && resolved.processors.isEmpty {
-            resolved.processors = processors
+        let resolved = resolve(request)
+        if let handle = continueTask(loading: resolved, request: request) {
+            return handle
         }
-        if let priority {
-            resolved.priority = priority
-        }
+
+        let previousImage = keepsPreviousImage ? state.imageContainer : nil
+        cancelTask()
 
         // Quick synchronous memory cache lookup.
         let cached = pipeline.cache[resolved]
@@ -208,6 +216,7 @@ public final class ImageLoader {
         let task = pipeline.imageTask(with: resolved) { [weak self] event, task in
             self?.handle(event, of: task)
         }
+        taskPipeline = pipeline
 
         var state = State()
         state.event = .started(task)
@@ -218,6 +227,31 @@ public final class ImageLoader {
         state.imageContainer = cached ?? previousImage
         state.isPreviousImage = cached == nil && previousImage != nil
         update(state)
+        return Handle(task: task, outcome: outcome)
+    }
+
+    /// Applies the processors and the priority of the loader to the request.
+    private func resolve(_ request: ImageRequest) -> ImageRequest {
+        var resolved = request
+        if !processors.isEmpty && resolved.processors.isEmpty {
+            resolved.processors = processors
+        }
+        if let priority {
+            resolved.priority = priority
+        }
+        return resolved
+    }
+
+    /// Returns a handle to the running task if it loads the same image as the
+    /// resolved request, and gives the task its priority.
+    private func continueTask(loading resolved: ImageRequest, request: ImageRequest) -> Handle? {
+        guard let task = state.task, !task.isCancelled, let outcome,
+              taskPipeline === pipeline,
+              resolved.loadsSameImage(as: task.request) else {
+            return nil
+        }
+        state.request = request
+        task.priority = resolved.priority
         return Handle(task: task, outcome: outcome)
     }
 
@@ -564,6 +598,25 @@ extension ImageLoader {
     }
 }
 
+// MARK: - Comparing Requests
+
+extension ImageRequest {
+    /// Returns `true` if the requests load the same image, whatever their
+    /// priority.
+    func loadsSameImage(as other: ImageRequest) -> Bool {
+        // A request that is passed again is often a copy of the same one, and
+        // that is equal without comparing the processors.
+        if isIdentical(to: other) {
+            return true
+        }
+        return imageID == other.imageID &&
+        processorsIdentity == other.processorsIdentity &&
+        options == other.options &&
+        scale == other.scale &&
+        thumbnail == other.thumbnail
+    }
+}
+
 // MARK: - Loading Into Objects
 
 extension ImageLoader {
@@ -604,8 +657,10 @@ extension ImageLoader {
     ///
     /// The load uses the loader attached to the target (see
     /// ``loader(for:)``), so it cancels the previous load into the same
-    /// target. The target is held weakly, and passed to `render` rather than
-    /// captured by it, which keeps the load from retaining it.
+    /// target. A load of the image that is already loading keeps running
+    /// instead (see ``load(_:)-(ImageRequest?)``), and `render` receives the
+    /// rest of its states. The target is held weakly, and passed to `render`
+    /// rather than captured by it, which keeps the load from retaining it.
     ///
     /// ```swift
     /// ImageLoader.load(request, into: cell) { cell, state in
