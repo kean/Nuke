@@ -127,10 +127,26 @@ enum ImageViewTransitionStyle: Sendable {
 
 // MARK: - Displaying
 
-/// Displays the states of a load in an image view.
-@MainActor
-private extension ImageLoader.Presentation {
-    func render(_ state: ImageLoader.State, in imageView: _PlatformImageView) {
+extension ImageLoader.Presentation {
+    /// Displays the state in the image view: the placeholder while the image
+    /// loads, the loaded image or a progressive preview with the
+    /// ``transition``, or the failure image.
+    ///
+    /// ``ImageLoader/load(_:into:presentation:pipeline:)-(ImageRequest?,_,_,_)``
+    /// calls it with every change of the state. To change something else
+    /// along with the image, such as the content mode, call it from a closure
+    /// of your own:
+    ///
+    /// ```swift
+    /// let presentation = ImageLoader.Presentation(placeholder: UIImage(named: "placeholder"))
+    ///
+    /// ImageLoader.load(url, into: imageView) { imageView, state in
+    ///     presentation.render(state, in: imageView)
+    ///     imageView.contentMode = state.image == nil ? .center : .scaleAspectFill
+    /// }
+    /// ```
+    @MainActor
+    public func render(_ state: ImageLoader.State, in imageView: _PlatformImageView) {
         switch state.event {
         case .started:
             removeAnimations(from: imageView)
@@ -155,7 +171,10 @@ private extension ImageLoader.Presentation {
             break
         }
     }
+}
 
+@MainActor
+private extension ImageLoader.Presentation {
     func render(_ result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool, state: ImageLoader.State, in imageView: _PlatformImageView) {
         switch result {
         case .success(let response):

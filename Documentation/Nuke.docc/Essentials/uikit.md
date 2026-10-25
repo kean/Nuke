@@ -118,6 +118,15 @@ ImageLoader.load(url, into: cell) { cell, state in
 
 The target is held weakly and passed to the closure, so the closure doesn't need to capture it.
 
+To keep the placeholder, the failure image, and the transitions of a `Presentation`, and change something else with the state, such as the content mode, call its `render(_:in:)` from the closure.
+
+```swift
+ImageLoader.load(url, into: imageView) { imageView, state in
+    presentation.render(state, in: imageView)
+    imageView.contentMode = state.image == nil ? .center : .scaleAspectFill
+}
+```
+
 To receive the states in a delegate instead – the `event` of each state says what changed – create a loader and keep it.
 
 ```swift
