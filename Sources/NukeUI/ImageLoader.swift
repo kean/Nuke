@@ -36,6 +36,11 @@ import Nuke
 /// final class PosterCell: UICollectionViewCell, ImageLoaderDelegate {
 ///     private let loader = ImageLoader()
 ///
+///     func configure(with url: URL) {
+///         loader.delegate = self
+///         loader.load(url)
+///     }
+///
 ///     func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State) {
 ///         posterView.image = state.image
 ///     }
