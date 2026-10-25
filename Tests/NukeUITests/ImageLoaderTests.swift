@@ -989,6 +989,61 @@ struct ImageLoaderTests {
         #expect(!loader.state.isPreviousImage)
     }
 
+    // MARK: - Creating States
+
+    @Test func createdStateIsEmptyByDefault() {
+        // When
+        let state = ImageLoader.State()
+
+        // Then
+        #expect(state.event.tag == "reset")
+        #expect(state.request == nil)
+        #expect(state.task == nil)
+        #expect(state.imageContainer == nil)
+        #expect(!state.isPreviousImage)
+        #expect(!state.isLoading)
+        #expect(state.progress == ImageTask.Progress(completed: 0, total: 0))
+        #expect(state.result == nil)
+    }
+
+    @Test func createdStateHasTheGivenValues() {
+        // Given
+        let error = ImagePipeline.Error.imageRequestMissing
+        let container = Test.container
+
+        // When
+        let state = ImageLoader.State(
+            event: .finished(.failure(error), isSync: false),
+            request: Test.request,
+            imageContainer: container,
+            isPreviousImage: true,
+            isLoading: true,
+            progress: ImageTask.Progress(completed: 1, total: 2),
+            result: .failure(error)
+        )
+
+        // Then
+        #expect(state.event.tag == "finished(failure)")
+        #expect(state.request?.url == Test.url)
+        #expect(state.image === container.image)
+        #expect(state.isPreviousImage)
+        #expect(state.isLoading)
+        #expect(state.progress == ImageTask.Progress(completed: 1, total: 2))
+        #expect(state.error == error)
+    }
+
+    @Test func createdStateHasTheGivenTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        let task = try #require(loader.load(Test.request).task)
+
+        // When
+        let state = ImageLoader.State(event: .started(task), task: task, isLoading: true)
+
+        // Then
+        #expect(state.task === task)
+    }
+
     // MARK: - Delegate
 
     @Test func loadStartedFromTheDelegateIsNotFollowedByAStaleState() async throws {
