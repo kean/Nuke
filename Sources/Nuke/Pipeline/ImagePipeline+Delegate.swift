@@ -54,6 +54,15 @@ extension ImagePipeline {
         @ImagePipelineActor
         func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest
 
+        /// Observes an encoded-data buffer operation before Nuke reserves or appends.
+        ///
+        /// Called synchronously on `ImagePipelineActor`, once per underlying data fetch
+        /// rather than per coalesced image-task subscriber. Return quickly and sample
+        /// before collecting expensive metrics. No body bytes are exposed. An append
+        /// reports logical byte counts, not allocator capacity.
+        @ImagePipelineActor
+        func willUpdateDataBuffer(for request: ImageRequest, context: ImagePipeline.DataBufferUpdateContext, pipeline: ImagePipeline)
+
         // MARK: Caching
 
         /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
@@ -126,6 +135,9 @@ extension ImagePipeline.Delegate {
     public func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
         urlRequest
     }
+
+    @ImagePipelineActor
+    public func willUpdateDataBuffer(for request: ImageRequest, context: ImagePipeline.DataBufferUpdateContext, pipeline: ImagePipeline) {}
 
     public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
         pipeline.configuration.dataCache
@@ -206,3 +218,24 @@ extension ImagePipeline {
 }
 
 final class ImagePipelineDefaultDelegate: ImagePipeline.Delegate {}
+
+extension ImagePipeline {
+    /// Metadata for an upcoming encoded-data buffer operation; does not retain body bytes.
+    public struct DataBufferUpdateContext: Sendable {
+        public enum Operation: Sendable {
+            case initialReservation
+            case resumedReservation
+            case append
+        }
+
+        public let operation: Operation
+        /// Logical bytes held before the operation, not physical allocation capacity.
+        public let bufferedByteCount: Int
+        /// Bytes being appended; zero for a reservation of an existing buffer.
+        public let incomingByteCount: Int
+        /// The argument to reserveCapacity; absent for append because Data hides capacity.
+        public let requestedCapacity: Int?
+        /// expectedContentLength is the remaining body length for a resumed HTTP response.
+        public let response: URLResponse
+    }
+}
