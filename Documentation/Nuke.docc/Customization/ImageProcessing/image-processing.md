@@ -20,7 +20,7 @@ Custom processors need to implement ``ImageProcessing`` protocol. For the basic 
 
 ```swift
 public protocol ImageProcessing {
-    func process(image: UIImage) -> UIImage? // NSImage on macOS
+    func process(_ image: PlatformImage) -> PlatformImage?
     var identifier: String { get }
 }
 ```
