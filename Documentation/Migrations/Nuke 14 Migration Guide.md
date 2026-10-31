@@ -313,6 +313,22 @@ let pipeline = ImagePipeline {
 }
 ```
 
+## Removed the Rate Limiter
+
+The pipeline no longer rate limits the requests it starts. The limiter held them in a single queue ahead of `dataLoadingQueue`, which already runs requests in priority order and cancels the pending ones for free, so all it could do was delay work or run a prefetch ahead of an image on screen. `ImagePrefetcher` caps its own requests at 2.
+
+`isRateLimiterEnabled` is deprecated, and setting it does nothing. Delete the line.
+
+```swift
+// Nuke 13
+let pipeline = ImagePipeline {
+    $0.isRateLimiterEnabled = false
+}
+
+// Nuke 14
+let pipeline = ImagePipeline()
+```
+
 ## `ImagePipeline.Delegate` declares its isolation
 
 The protocol used to describe where its methods run in a doc comment – "performed on the pipeline queue in the background" – which was true for only half of them. The isolation is now part of each signature.
@@ -565,7 +581,6 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `imageDecodingQueue` | 1 task at a time | 2 |
 | `dataLoadingQueue` | Requests below `.normal` can take all 6 slots | At most 3, see `TaskQueue.reservedTaskCount` |
 | `isUsingPrepareForDisplay` | `false` | `true` |
-| Requests per second the rate limiter allows | 80 | 100 |
 | An animated image in `LazyImage` and `LazyImageView` | First frame | Plays |
 | Memory for decoded animation frames | None | Up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache` |
 | `ImageContainer.data` | GIF only | Also APNG, animated WebP, and HEIC and AVIF sequences, and it counts against the `ImageCache` limit |

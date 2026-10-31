@@ -33,7 +33,6 @@ import OSLog
 //   no task hook hears of; their downloads and disk reads are still counted.
 // - Memory cache hits without a task, beyond the ones on the main thread (see
 //   `DemoPipelineDiagnostics.memoryHitWithoutTaskCount`).
-// - The rate limiter. A download it holds back is counted once it starts.
 // - The decoders of a pipeline that records diagnostics. The record names the
 //   decoder's type, which a wrapper would replace, so they aren't wrapped and
 //   their times come from the finished tasks' metrics, without failures or a

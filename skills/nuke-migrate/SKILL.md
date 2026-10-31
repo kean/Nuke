@@ -116,7 +116,7 @@ final class PosterView: UIView, ImageDisplaying {
 }
 ```
 
-These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
+These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
 
 ```swift
 // Nuke 13
@@ -268,7 +268,7 @@ ImagePipeline.shared = ImagePipeline {
 - `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
 - `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
 
-Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, and the rate limiter allows 100 requests a second instead of 80. The cache keys didn't change, so users keep what's on disk.
+Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
 
 ## 6. Verify
 

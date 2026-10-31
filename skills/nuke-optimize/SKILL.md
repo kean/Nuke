@@ -32,7 +32,7 @@ Go through the slow screen twice: once on a fresh install, and again after relau
 | `MB in memory` over width × height × 4 of the cell, in pixels | The image is bigger than what's displayed | [Decode less](#decode-less) |
 | The same URL twice, with no `coalesced` | Two requests that differ, so nothing is shared | [Cache keys](#cache-keys), [Prefetching](#prefetching) |
 | More lines than cells on screen, on open | Everything loads at once | [Load only what's on screen](#load-only-whats-on-screen) |
-| A long list of `cancelled` | Normal while scrolling fast, and the rate limiter is handling it | Nothing |
+| A long list of `cancelled` | Normal while scrolling fast: the cells cancel the loads they scrolled past | Nothing |
 
 For where the time of a slow task went:
 
@@ -52,7 +52,6 @@ time:  network 93.6 ms (66%) · process 42.5 ms (30%) · cache 0.5 ms · decode 
 | `network` | The file is too big, it wasn't cached, or the app opened a new connection |
 | `process`, `decode`, `decompress` | The image is bigger than it needs to be |
 | `queue` | The task waited for a slot. Prefetching, or too many images at once |
-| `rateLimit` | The app starts and cancels requests faster than 100 a second |
 
 `isDiagnosticsEnabled` costs a few microseconds a task, and it sends signposts, so the same stages show up in Instruments under os_signpost. For a task that hangs, `po ImagePipeline.shared.diagnostics` in the debugger prints the queues and the memory cache.
 
@@ -68,7 +67,7 @@ grep -rnE 'cachedData\(|cachedImage\(|containsCachedImage|containsData\(|storeCa
 # Prefetchers, and whether they build the same request as the views
 grep -rn 'ImagePrefetcher' --include='*.swift' .
 # Defaults someone changed: find out why before you keep or remove them
-grep -rnE 'isRateLimiterEnabled|isTaskCoalescingEnabled|isDecompressionEnabled|skipDecompression|isProgressiveDecodingEnabled|isResumableDataEnabled|TaskQueue\(|maxConcurrentTaskCount|costLimit|sizeLimit' --include='*.swift' .
+grep -rnE 'isTaskCoalescingEnabled|isDecompressionEnabled|skipDecompression|isProgressiveDecodingEnabled|isResumableDataEnabled|TaskQueue\(|maxConcurrentTaskCount|costLimit|sizeLimit' --include='*.swift' .
 # Processors of your own: is the identifier stable?
 grep -rnE ': ImageProcessing\b' --include='*.swift' .
 ```
@@ -307,7 +306,6 @@ Each of these has been measured, or exists for a reason. If the code has changed
 | Setting | Don't |
 |---|---|
 | `isTaskCoalescingEnabled` | Turn it off. It's why two views of one image make one download |
-| `isRateLimiterEnabled` | Turn it off. It only acts when requests start and cancel at a high rate |
 | `isResumableDataEnabled` | Turn it off. It costs nothing unless a download is interrupted |
 | `isDecompressionEnabled`, `.skipDecompression` | Disable them on iOS. The decode moves to the main thread, at the first draw |
 | `isUsingPrepareForDisplay` | Disable it. It made decoding 41–45% faster on an iOS simulator |

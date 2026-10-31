@@ -124,7 +124,6 @@ struct ImagePipelineSchedulingOrderTests {
             $0.imageCache = nil
             $0.dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 1)
             // Hands every request to the queue immediately
-            $0.isRateLimiterEnabled = false
         }
     }
 

@@ -30,7 +30,6 @@ extension ImagePipeline.Diagnostics.Stage.Kind {
         switch self {
         case .memoryLookup: "MemoryLookup"
         case .diskLookup: "DiskLookup"
-        case .rateLimit: "RateLimit"
         case .willLoadData: "WillLoadData"
         case .download: "Download"
         case .diskStore: "DiskStore"

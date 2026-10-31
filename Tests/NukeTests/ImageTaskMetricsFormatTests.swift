@@ -277,7 +277,7 @@ struct ImageTaskMetricsFormatTests {
         #expect(metrics.timeShares.prefix(2).map(\.category) == [.network, .process])
         #expect(metrics.timeShares.last?.category == .other)
         // "Lower wins, and it is the order they are declared in"
-        #expect(ImageTask.Metrics.Category.allCases == [.network, .queue, .rateLimit, .process, .decompress, .decode, .cache, .other])
+        #expect(ImageTask.Metrics.Category.allCases == [.network, .queue, .process, .decompress, .decode, .cache, .other])
     }
 
     @Test func otherIsLastEvenWhenItIsTheLargest() {
@@ -659,14 +659,13 @@ struct ImageTaskMetricsFormatTests {
         var draft = _Draft(duration: 1)
         draft.startedAt = nil
         draft.jobs = [_job(1, .fetchOriginalData, from: 0, to: 1, stages: [
-            _stage(.rateLimit, from: 0, duration: 0.25),
-            _stage(.download, from: 0.5, duration: 0.25)
+            _stage(.download, queued: 0, from: 0.5, duration: 0.25)
         ])]
         let lines = draft.make().formatted([.timeline, .chart]).split(separator: "\n").map(String.init)
 
         // THEN
         #expect(try _chart(lines, "j1 fetchOriginalData") == String(repeating: "█", count: 20))
-        #expect(try _chart(lines, "─ rateLimit ") == String(repeating: "░", count: 5) + String(repeating: " ", count: 15))
+        #expect(try _chart(lines, "─ dataLoadingQueue ") == String(repeating: "░", count: 10) + String(repeating: " ", count: 10))
         #expect(try _chart(lines, "─ download ") == String(repeating: " ", count: 10) + String(repeating: "█", count: 5) + String(repeating: " ", count: 5))
         #expect(try _chart(lines, "total ") == String(repeating: " ", count: 20))
     }

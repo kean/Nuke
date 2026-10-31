@@ -57,7 +57,7 @@ struct DiagnosticsSignpostsTests {
         #expect(download.signpostMessage == "network · \(Formatter.bytes(2048)) · \(Formatter.bytes(1024)) resumed · HTTP 206")
         #expect(decode.signpostMessage == "preview · ImageDecoders.Default · jpeg · 640×480")
         #expect(lookup.signpostMessage == "miss")
-        #expect(ImagePipeline.Diagnostics.Stage(kind: .rateLimit, queuedAt: nil, startedAt: 0).signpostMessage == "")
+        #expect(ImagePipeline.Diagnostics.Stage(kind: .willLoadData, queuedAt: nil, startedAt: 0).signpostMessage == "")
     }
 
     @Test func requestMessage() {

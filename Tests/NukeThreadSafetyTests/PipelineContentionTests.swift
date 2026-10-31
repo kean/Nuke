@@ -151,7 +151,6 @@ struct ImagePipelineContentionTests {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isRateLimiterEnabled = false
         }
         let cancellations = NotificationCounter(MockDataLoader.DidCancelTask, object: dataLoader)
 
@@ -185,7 +184,6 @@ struct ImagePipelineContentionTests {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isRateLimiterEnabled = false
         }
         let urls = (0..<20).map { URL(string: "https://example.com/\($0).jpeg")! }
         let resize = ImageProcessors.Resize(size: CGSize(width: 40, height: 40), unit: .pixels)
@@ -266,7 +264,6 @@ struct ImagePipelineContentionTests {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isRateLimiterEnabled = false
         }
         let tasks = (0..<40).map { index in
             pipeline.imageTask(with: URL(string: "https://example.com/\(index % 10).jpeg")!)
@@ -350,7 +347,6 @@ struct ImagePipelineDiagnosticsContentionTests {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isRateLimiterEnabled = false
             $0.isDiagnosticsEnabled = true
         }
         let isDone = OSAllocatedUnfairLock(initialState: false)

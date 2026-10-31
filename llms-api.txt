@@ -341,7 +341,6 @@
 - `var isUsingPrepareForDisplay: Bool = true`: Uses the native `preparingForDisplay()` method for decompression on iOS, tvOS, and visionOS.
 - `var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData`: Determines what images are stored in the disk cache (`DataCaching`).
 - `var isTaskCoalescingEnabled = true`: Enables task coalescing.
-- `var isRateLimiterEnabled = true`: Enables the rate limiter.
 - `var isProgressiveDecodingEnabled = false`: Enables progressive decoding.
 - `var progressiveDecodingInterval: TimeInterval = 0.5`: The minimum interval between progressive decoding attempts, in seconds.
 - `var isStoringPreviewsInMemoryCache = true`: Stores progressively generated previews in the memory cache.
@@ -543,7 +542,6 @@
 - `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of work a stage performs.
 - `case memoryLookup`
 - `case diskLookup`
-- `case rateLimit`: The time the request spent in the rate limiter.
 - `case willLoadData`: `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)`.
 - `case download`
 - `case diskStore`
@@ -957,7 +955,6 @@
 - `enum Category: String, Sendable, CaseIterable`: A kind of work the time of a task goes into.
 - `case network`: A download, whatever it took its bytes from.
 - `case queue`: The wait for one of the queues in `ImagePipeline.Configuration`, which is where the time goes when the pipeline is busy.
-- `case rateLimit`: The wait in `ImagePipeline.Configuration.rateLimiter`.
 - `case process`
 - `case decompress`
 - `case decode`

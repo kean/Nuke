@@ -130,7 +130,6 @@ struct ImagePrefetcherContentionTests {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = imageCache
-            $0.isRateLimiterEnabled = false
         }
         let prefetcher = ImagePrefetcher(pipeline: pipeline, maxConcurrentRequestCount: 3)
         let stormURLs = (0..<30).map { URL(string: "https://example.com/storm/\($0).jpeg")! }

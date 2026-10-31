@@ -29,7 +29,6 @@ struct ImagePrefetcherPerformanceTests {
         configuration.imageCache = ImageCache()
         // The limiter paces the downloads by the clock, which would time the
         // limiter rather than the prefetcher.
-        configuration.isRateLimiterEnabled = false
         let pipeline = ImagePipeline(configuration: configuration)
 
         // Scrolled from the pipeline's actor rather than the main thread: the

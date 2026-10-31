@@ -7,8 +7,8 @@ import Foundation
 @testable import Nuke
 
 /// What happens to the fetch of the original data (`TaskFetchOriginalData`)
-/// before it reaches the data loader: the rate limiter and the data loading
-/// queue, and the cancellation while it waits for either of them.
+/// before it reaches the data loader: the data loading queue, and the
+/// cancellation while it waits for it.
 ///
 /// The tests drive the pipeline on its actor, so that the work they queue up
 /// and the fetch they start are in the same turn, with nothing in between.
@@ -16,50 +16,13 @@ import Foundation
 struct ImagePipelineDataFetchSchedulingTests {
     private let dataLoader = MockDataLoader()
 
-    // MARK: - Rate Limiter
+    // MARK: - Starting
 
-    @Test func fetchCancelledWhileRateLimitedNeverReachesTheDataLoader() async throws {
-        // GIVEN a fetch held by the rate limiter
+    /// The work that doesn't go through the data loader is not held by the
+    /// data loading queue.
+    @Test func closuresAndLocalResourcesAreFetchedWithoutTheDataLoader() async throws {
+        // GIVEN
         let pipeline = makePipeline()
-        let limiter = try #require(pipeline.rateLimiter)
-        exhaust(limiter)
-        let subscription = subscribe(to: pipeline, Test.request)
-        let isSubscribed = subscription._isPresent
-        #expect(isSubscribed)
-
-        // WHEN it is cancelled
-        subscription?.unsubscribe()
-
-        // THEN it doesn't start when the limiter lets it through
-        await drain(limiter)
-        #expect(dataLoader.createdTaskCount == 0)
-    }
-
-    @Test func fetchHeldByTheRateLimiterStartsWhenItsTurnComes() async throws {
-        // GIVEN a fetch held by the rate limiter
-        let pipeline = makePipeline()
-        let limiter = try #require(pipeline.rateLimiter)
-        exhaust(limiter)
-        let finished = TestExpectation()
-        let subscription = subscribe(to: pipeline, Test.request) {
-            if case let .value(_, isCompleted) = $0, isCompleted { finished.fulfill() }
-        }
-        let isSubscribed = subscription._isPresent
-        #expect(isSubscribed)
-        #expect(dataLoader.createdTaskCount == 0)
-
-        // WHEN/THEN
-        await finished.wait()
-        #expect(dataLoader.createdTaskCount == 1)
-    }
-
-    /// The rate limiter protects `URLSession`: the work that doesn't go
-    /// through the data loader isn't held by it.
-    @Test func closuresAndLocalResourcesAreNotRateLimited() async throws {
-        // GIVEN a rate limiter that is out of tokens
-        let pipeline = makePipeline()
-        let limiter = try #require(pipeline.rateLimiter)
-        exhaust(limiter)
 
         // WHEN
         var localEvents: [AsyncTask<(Data, URLResponse?), ImagePipeline.Error>.Event] = []
@@ -80,45 +43,13 @@ struct ImagePipelineDataFetchSchedulingTests {
         closure?.unsubscribe()
     }
 
-    /// The pipeline's rate limiter lets a burst of 25 fetches through at once
-    /// and holds the rest until its bucket refills.
-    @Test func pipelineRateLimiterUsesTheDefaultBurstOf25() async throws {
+    /// Nothing holds a fetch in front of the data loading queue, however many
+    /// start in one turn.
+    @Test func fetchesStartImmediately() async throws {
         // GIVEN
         let pipeline = makePipeline()
-        let limiter = try #require(pipeline.rateLimiter)
-        let queue = pipeline.configuration.dataLoadingQueue
-        dataLoader.isSuspended = true
-        let requests = (0..<26).map { ImageRequest(url: URL(string: "https://example.com/image-\($0).jpeg")) }
 
-        // WHEN one more fetch than the burst starts in one turn
-        let clock = ContinuousClock()
-        let start = clock.now
-        for request in requests {
-            _ = subscribe(to: pipeline, request)
-        }
-        let elapsed = clock.now - start
-
-        // THEN the burst goes to the data loading queue right away. At the
-        // default rate of 100 a second, the bucket gains a token every 10 ms,
-        // so the last fetch is certain to be held only if the turn took less.
-        #expect(queue.operationCount >= 25)
-        if elapsed < .milliseconds(10) {
-            #expect(queue.operationCount == 25)
-        }
-
-        // THEN the last one follows once the bucket refills
-        await drain(limiter)
-        #expect(queue.operationCount == 26)
-    }
-
-    /// With the rate limiter off, even more fetches than it lets through in
-    /// a burst go to the data loading queue right away.
-    @Test func fetchesWithoutTheRateLimiterStartImmediately() async throws {
-        // GIVEN
-        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
-        #expect(pipeline.rateLimiter == nil)
-
-        // WHEN more fetches start in one turn than the limiter's burst (25)
+        // WHEN
         for index in 0..<30 {
             let url = try #require(URL(string: "https://example.com/image-\(index).jpeg"))
             _ = subscribe(to: pipeline, ImageRequest(url: url))
@@ -165,7 +96,7 @@ struct ImagePipelineDataFetchSchedulingTests {
     /// cancelling the fetch before that task gets to run has to stop it.
     @Test func fetchSkippingTheQueueCancelledBeforeItRunsNeverReachesTheDataLoader() async throws {
         // GIVEN a fetch that skips the data loading queue
-        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
+        let pipeline = makePipeline()
         let request = ImageRequest(url: Test.url, options: [.skipDataLoadingQueue])
         let subscription = subscribe(to: pipeline, request)
         #expect(pipeline.configuration.dataLoadingQueue.operationCount == 0)
@@ -184,7 +115,7 @@ struct ImagePipelineDataFetchSchedulingTests {
     @Test func imageTaskSkippingTheQueueIsCancelledWhileLoading() async throws {
         // GIVEN a download that skipped a suspended data loading queue and is
         // now in flight
-        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
+        let pipeline = makePipeline()
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         dataLoader.isSuspended = true
         let didStartLoading = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
@@ -205,7 +136,7 @@ struct ImagePipelineDataFetchSchedulingTests {
     /// in it: it gets a fetch of its own.
     @Test func fetchSkippingTheQueueDoesNotJoinAQueuedFetch() async throws {
         // GIVEN a fetch waiting in a suspended data loading queue
-        let pipeline = makePipeline { $0.isRateLimiterEnabled = false }
+        let pipeline = makePipeline()
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         let queued = subscribe(to: pipeline, Test.request)
@@ -230,7 +161,6 @@ struct ImagePipelineDataFetchSchedulingTests {
         // GIVEN the only slot taken and a request for "a" waiting for it
         let queue = TaskQueue(maxConcurrentTaskCount: 1)
         let pipeline = makePipeline {
-            $0.isRateLimiterEnabled = false
             $0.dataLoadingQueue = queue
         }
         let enqueued = TestExpectation(queue: queue, count: 2)
@@ -266,7 +196,6 @@ struct ImagePipelineDataFetchSchedulingTests {
         ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isRateLimiterEnabled = true
             configure(&$0)
         }
     }
@@ -282,32 +211,6 @@ struct ImagePipelineDataFetchSchedulingTests {
 
     /// The subscriptions reference the subscribers weakly.
     private let subscribers = LockedArray<ImageTask>()
-}
-
-/// Takes every token out of the bucket and leaves a request waiting, so that
-/// the work that comes next is held until the bucket refills.
-@ImagePipelineActor
-private func exhaust(_ limiter: RateLimiter) {
-    var isHeld = false
-    while !isHeld {
-        var didRun = false
-        limiter.execute {
-            didRun = true
-            return true
-        }
-        isHeld = !didRun
-    }
-}
-
-/// Waits until the limiter executes everything submitted before the call.
-@ImagePipelineActor
-private func drain(_ limiter: RateLimiter) async {
-    let expectation = TestExpectation()
-    limiter.execute {
-        expectation.fulfill()
-        return true
-    }
-    await expectation.wait()
 }
 
 extension Optional where Wrapped: ~Copyable {
