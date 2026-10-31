@@ -275,9 +275,11 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 
 The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
 
-> Warning: **The Nuke 13 method still compiles, and the pipeline never calls it.** Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code. A delegate that used `willCache` to keep private images off the disk stops doing so, silently. Search your code for `completion: @escaping (Data?) -> Void`.
+The Nuke 13 method is soft-deprecated, and it keeps working: the default implementation of the new method calls it, so a delegate that uses it to keep private images off the disk still does. If a delegate implements both, the pipeline calls the new one. Nuke 13 didn't wait for the completion closure, and now the image waits for it when the pipeline stores the original data, so call it right away.
 
-The same goes for every other delegate method whose signature doesn't match, such as the Nuke 12 `imageTaskDidCancel(_:pipeline:)`. Declare the conformance in an extension, not on the class:
+> Warning: **Every other delegate method whose signature doesn't match still compiles, and the pipeline never calls it,** such as the Nuke 12 `imageTaskDidCancel(_:pipeline:)`. Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code.
+
+Declare the conformance in an extension, not on the class:
 
 ```swift
 final class MyDelegate: Sendable {}
@@ -290,7 +292,7 @@ extension MyDelegate: ImagePipeline.Delegate {
 }
 ```
 
-The compiler only compares a method to the requirements of the protocol the extension declares, and only if the number of parameters is the same. So the warning catches the method above, but not the old `willCache`, which has one more parameter.
+The compiler only compares a method to the requirements of the protocol the extension declares, and only if the number of parameters is the same. So the warning catches the method above, but not one with a different number of parameters.
 
 ## Renamed `TaskQueue.maxConcurrentOperationCount`
 

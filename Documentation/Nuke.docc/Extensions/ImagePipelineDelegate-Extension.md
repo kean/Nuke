@@ -19,6 +19,7 @@
 - ``dataCache(for:pipeline:)``
 - ``cacheKey(for:pipeline:)``
 - ``willCache(data:image:for:pipeline:)``
+- ``willCache(data:image:for:pipeline:completion:)``
 
 ### Decompression
 
