@@ -24,6 +24,9 @@ struct VideoFixture: Sendable {
     /// Moves the movie header in front of the samples, the way a video meant
     /// for progressive download is laid out.
     var isFastStart = false
+    /// The transform the track asks players to apply. A phone records portrait
+    /// video as landscape pixels with a 90° transform.
+    var transform: CGAffineTransform = .identity
     /// The color of each frame as (red, green, blue). The first frame is red
     /// and the rest are blue, so a test can tell which one a thumbnail shows.
     var color: @Sendable (_ frame: Int) -> (UInt8, UInt8, UInt8) = { $0 == 0 ? (255, 0, 0) : (0, 0, 255) }
@@ -53,6 +56,7 @@ struct VideoFixture: Sendable {
             AVVideoHeightKey: height
         ])
         input.expectsMediaDataInRealTime = false
+        input.transform = transform
         writer.add(input)
         let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
@@ -105,6 +109,25 @@ struct VideoFixture: Sendable {
             }
         }
     }
+}
+
+/// A context for decoding the given data, the way the pipeline creates one.
+func makeContext(_ data: Data, isCompleted: Bool = true) -> ImageDecodingContext {
+    ImageDecodingContext(request: ImageRequest(url: URL(string: "https://example.com/video.mp4")), data: data, isCompleted: isCompleted)
+}
+
+/// The first 16 bytes of an ISO base media file: a box length, the `ftyp`
+/// box type, the four-character major brand, and a minor version.
+func makeFileTypeBox(brand: String) -> Data {
+    Data([0x00, 0x00, 0x00, 0x10]) + Data("ftyp".utf8) + Data(brand.utf8) + Data(repeating: 0x00, count: 4)
+}
+
+func cgImage(of image: PlatformImage) -> CGImage? {
+#if os(macOS)
+    image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+#else
+    image.cgImage
+#endif
 }
 
 #endif

@@ -30,6 +30,26 @@ struct VideoPipelineTests {
         #expect(try await asset.load(.isPlayable))
     }
 
+    /// `ImageRequest(id:data:)` hands the decoder the data it returns as is,
+    /// and so does the pipeline with the first chunk a data loader sends. Both
+    /// may be slices, whose indices don't start at 0.
+    @Test func loadsVideoReturnedAsDataSlice() async throws {
+        // Given a request whose data closure returns a slice
+        let video = try await VideoFixture(width: 32, height: 16).makeData()
+        let buffer = Data(repeating: 0, count: 100) + video
+        let pipeline = makePipeline(decoders: .video)
+        let request = ImageRequest(id: "video", data: { buffer[100...] })
+
+        // When
+        let response = try await pipeline.imageTask(with: request).response
+
+        // Then
+        #expect(cgImage(of: response.image)?.width == 32)
+        #expect(cgImage(of: response.image)?.height == 16)
+        let asset = try #require(response.container.userInfo[.videoAssetKey] as? AVAsset)
+        #expect(try await asset.load(.isPlayable))
+    }
+
     /// "Video types are recognized without `NukeVideo`, but only
     /// `ImageDecoders.Video` can decode them, and you have to register it yourself."
     @Test func failsToDecodeVideoWithoutVideoDecoder() async throws {
@@ -123,6 +143,36 @@ struct VideoPipelineTests {
         #expect(preview.container.userInfo[.videoAssetKey] is AVAsset)
         #expect(preview.image.cgImage?.width == 32)
         #expect(!response.container.isPreview)
+        #expect(response.container.data == data)
+    }
+
+    /// The default policy for a video is `.disabled`, and a delegate can
+    /// return it for anything: either way, no preview is delivered.
+    @Test(arguments: [ImagePipeline.PreviewPolicy?.none, .disabled])
+    func deliversNoPreviewWhenPolicyIsDisabled(previewPolicy: ImagePipeline.PreviewPolicy?) async throws {
+        // Given
+        let data = try await VideoFixture(frameCount: 90, isFastStart: true).makeData()
+        #expect(ImagePipeline.PreviewPolicy.default(for: data) == .disabled)
+        let dataLoader = GatedDataLoader(data: data, firstChunkCount: data.count * 9 / 10)
+        let pipeline = makePipeline(decoders: .video, previewPolicy: previewPolicy, didDecodePartialData: dataLoader.sendRemainingData) {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // When
+        let task = pipeline.imageTask(with: URL(string: "https://example.com/video.mp4")!)
+        var previews: [ImageResponse] = []
+        for await event in task.events {
+            if case .preview(let response) = event {
+                previews.append(response)
+            }
+        }
+        let response = try await task.response
+
+        // Then
+        #expect(previews.isEmpty, "Got \(previews.count) preview(s) with a .disabled preview policy")
+        #expect(cgImage(of: response.image)?.width == 32)
         #expect(response.container.data == data)
     }
 }

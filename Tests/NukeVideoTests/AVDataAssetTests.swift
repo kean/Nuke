@@ -61,6 +61,40 @@ struct AVDataAssetTests {
         #expect(samples == expected)
     }
 
+    /// AVFoundation's offsets count from the start of the resource, while the
+    /// indices of a `Data` slice count from its `startIndex`. Slices are what
+    /// `dropFirst`, `suffix(from:)`, and the like return, and they reach the
+    /// decoder unchanged through `ImageRequest(id:data:)`.
+    @Test func servesDataSlice() async throws {
+        // Given the bytes of a video that start 100 bytes into a buffer
+        let video = try await VideoFixture(frameCount: 3).makeData()
+        let buffer = Data(repeating: 0, count: 100) + video
+        let slice = buffer[100...]
+        #expect(slice.startIndex == 100 && slice == video)
+
+        // When
+        let asset = AVDataAsset(data: slice, type: .mp4)
+
+        // Then
+        #expect(try await asset.load(.isPlayable))
+        #expect(try await asset.load(.duration) == CMTime(value: 3, timescale: 30))
+        #expect(try await readSamples(of: asset) == readSamples(of: AVDataAsset(data: video, type: .mp4)))
+    }
+
+    /// A byte range past the end of the data is answered with the bytes there
+    /// are, the way a server answers a range request it can't fill.
+    @Test(arguments: [0, 1])
+    func servesDataShorterThanFirstByteRangeRequest(count: Int) async throws {
+        // Given fewer bytes than AVFoundation asks for in its first request
+        let asset = AVDataAsset(data: makeFileTypeBox(brand: "isom").prefix(count), type: .mp4)
+
+        // When
+        let isPlayable = try? await asset.load(.isPlayable)
+
+        // Then
+        #expect(isPlayable != true)
+    }
+
     /// The content type is derived from the asset type, and anything that
     /// isn't a known video container is served as MP4.
     @Test(arguments: [AssetType?.none, .jpeg])

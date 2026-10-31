@@ -71,12 +71,13 @@ private final class DataAssetResourceLoader: NSObject, AVAssetResourceLoaderDele
         }
 
         if let dataRequest = loadingRequest.dataRequest {
-            if dataRequest.requestsAllDataToEndOfResource {
-                dataRequest.respond(with: data[dataRequest.requestedOffset...])
-            } else {
-                let range = dataRequest.requestedOffset..<(dataRequest.requestedOffset + Int64(dataRequest.requestedLength))
-                dataRequest.respond(with: data[range])
-            }
+            // The offsets count from the start of the resource, while the indices
+            // of `data` start at `startIndex` when it is a slice. The range is
+            // clamped because the first request asks for two bytes whatever the
+            // content length, and there may be fewer.
+            let start = min(Int(dataRequest.requestedOffset), data.count)
+            let end = dataRequest.requestsAllDataToEndOfResource ? data.count : min(start + dataRequest.requestedLength, data.count)
+            dataRequest.respond(with: data[(data.startIndex + start)..<(data.startIndex + end)])
         }
 
         loadingRequest.finishLoading()
