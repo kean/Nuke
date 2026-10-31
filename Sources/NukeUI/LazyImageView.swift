@@ -294,8 +294,8 @@ public final class LazyImageView: _PlatformBaseView {
                 display(response.container, isFromMemory: false)
             }
             onPreview?(response)
-        case let .finished(result, isSync):
-            if isSync {
+        case let .finished(result, isSynchronous):
+            if isSynchronous {
                 // A hit overwrites `imageView.image` directly, without clearing it first.
                 if case .success = result {
                     resetOrDefer(clearImage: false)
@@ -303,7 +303,7 @@ public final class LazyImageView: _PlatformBaseView {
                     resetOrDefer()
                 }
             }
-            handle(result: result, isSync: isSync)
+            handle(result: result, isSynchronous: isSynchronous)
         case .reset:
             resetViews(clearImage: true)
         case .cancelled:
@@ -322,7 +322,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
     }
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSynchronous: Bool) {
         switch result {
         case .success: resetIfNeeded(clearImage: false)
         case .failure: resetIfNeeded()
@@ -331,7 +331,7 @@ public final class LazyImageView: _PlatformBaseView {
 
         switch result {
         case let .success(response):
-            display(response.container, isFromMemory: isSync)
+            display(response.container, isFromMemory: isSynchronous)
         case .failure:
             if showPlaceholderOnFailure {
                 setPlaceholderViewHidden(false)

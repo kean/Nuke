@@ -101,8 +101,8 @@ private final class PreviewLogger: ImageLoader.Delegate {
             log("progress \(progress.completed)/\(progress.total)")
         case .preview:
             log("preview")
-        case let .finished(result, isSync):
-            log("finished: \(Self.describe(result))\(isSync ? ", sync" : "")")
+        case let .finished(result, isSynchronous):
+            log("finished: \(Self.describe(result))\(isSynchronous ? ", sync" : "")")
         case .cancelled:
             log("cancelled")
         case .reset:

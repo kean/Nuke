@@ -166,11 +166,11 @@ public final class FetchImage: ObservableObject, Identifiable {
             withTransaction(transaction) {
                 imageContainer = state.imageContainer
             }
-        case let .finished(result, isSync):
+        case let .finished(result, isSynchronous):
             // An image found in the memory cache has no progress, which also
             // clears the one of a load it replaced.
             if _progress != state.progress { _progress = state.progress }
-            if isSync {
+            if isSynchronous {
                 // Animation isn't used when the image is available in the memory cache.
                 finish(with: result, container: state.imageContainer)
             } else {

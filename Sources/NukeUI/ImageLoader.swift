@@ -163,7 +163,7 @@ public final class ImageLoader {
     /// The memory cache is checked synchronously: if it has the final image,
     /// the load finishes before this method returns, and so does a `nil`
     /// request, with ``ImagePipeline/Error/imageRequestMissing``. In both
-    /// cases the only state is ``Event/finished(_:isSync:)``.
+    /// cases the only state is ``Event/finished(_:isSynchronous:)``.
     ///
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
@@ -174,7 +174,7 @@ public final class ImageLoader {
             cancelTask()
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.imageRequestMissing)
             var state = State()
-            state.event = .finished(result, isSync: true)
+            state.event = .finished(result, isSynchronous: true)
             state.result = result
             finish(state)
             return Handle(result: result)
@@ -193,7 +193,7 @@ public final class ImageLoader {
         if let container = cached, !container.isPreview {
             let response = ImageResponse(container: container, request: resolved, cacheType: .memory)
             var state = State()
-            state.event = .finished(.success(response), isSync: true)
+            state.event = .finished(.success(response), isSynchronous: true)
             state.request = request
             state.imageContainer = container
             state.result = .success(response)
@@ -394,7 +394,7 @@ public final class ImageLoader {
 
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
         var state = self.state
-        state.event = .finished(result, isSync: false)
+        state.event = .finished(result, isSynchronous: false)
         state.task = nil
         state.isLoading = false
         state.result = result
@@ -492,8 +492,8 @@ extension ImageLoader {
         /// ```
         ///
         /// The values aren't checked against each other, so the state can be
-        /// one a loader never reports, such as a ``Event/finished(_:isSync:)``
-        /// event with no ``result``.
+        /// one a loader never reports, such as a
+        /// ``Event/finished(_:isSynchronous:)`` event with no ``result``.
         public init(
             event: Event = .reset,
             request: ImageRequest? = nil,
@@ -519,9 +519,10 @@ extension ImageLoader {
     ///
     /// A load that starts a task, or runs a closure, reports ``started(_:)``,
     /// any number of ``progress(_:)`` and ``preview(_:)``, and then
-    /// ``finished(_:isSync:)``. A `nil` request and an image found in the
-    /// memory cache report ``finished(_:isSync:)`` only, before `load`
-    /// returns, so a reused cell is never cleared before it gets its image.
+    /// ``finished(_:isSynchronous:)``. A `nil` request and an image found in
+    /// the memory cache report ``finished(_:isSynchronous:)`` only, before
+    /// `load` returns, so a reused cell is never cleared before it gets its
+    /// image.
 #if hasAttribute(nonexhaustive)
     @nonexhaustive
 #endif
@@ -536,10 +537,10 @@ extension ImageLoader {
         /// The pipeline produced a progressive preview, which is now the
         /// ``State/imageContainer``.
         case preview(ImageResponse)
-        /// The load finished. `isSync` is `true` when it finished before
+        /// The load finished. `isSynchronous` is `true` when it finished before
         /// `load` returned: the image was in the memory cache, or the request
         /// was `nil`.
-        case finished(Result<ImageResponse, ImagePipeline.Error>, isSync: Bool)
+        case finished(Result<ImageResponse, ImagePipeline.Error>, isSynchronous: Bool)
         /// The load was cancelled with ``ImageLoader/cancel()``, or its task
         /// was cancelled.
         case cancelled

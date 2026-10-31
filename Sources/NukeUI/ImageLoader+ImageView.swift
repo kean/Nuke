@@ -161,11 +161,11 @@ extension ImageLoader.Presentation {
             }
         case .preview(let response):
             display(response.container, transition: transition, in: imageView)
-        case let .finished(result, isSync):
-            if isSync {
+        case let .finished(result, isSynchronous):
+            if isSynchronous {
                 removeAnimations(from: imageView)
             }
-            render(result, isSync: isSync, state: state, in: imageView)
+            render(result, isSynchronous: isSynchronous, state: state, in: imageView)
         case .reset:
             imageView.displayContainer(nil)
         case .progress, .cancelled:
@@ -176,13 +176,13 @@ extension ImageLoader.Presentation {
 
 @MainActor
 private extension ImageLoader.Presentation {
-    func render(_ result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool, state: ImageLoader.State, in imageView: _PlatformImageView) {
+    func render(_ result: Result<ImageResponse, ImagePipeline.Error>, isSynchronous: Bool, state: ImageLoader.State, in imageView: _PlatformImageView) {
         switch result {
         case .success(let response):
-            display(response.container, transition: isSync ? nil : transition, in: imageView)
+            display(response.container, transition: isSynchronous ? nil : transition, in: imageView)
         case .failure:
             if let failureImage {
-                let transition = isSync ? nil : failureImageTransition
+                let transition = isSynchronous ? nil : failureImageTransition
                 display(ImageContainer(image: failureImage), transition: transition, in: imageView)
             } else if state.imageContainer == nil {
                 displayPlaceholder(in: imageView)

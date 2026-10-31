@@ -1013,7 +1013,7 @@ struct ImageLoaderTests {
 
         // When
         let state = ImageLoader.State(
-            event: .finished(.failure(error), isSync: false),
+            event: .finished(.failure(error), isSynchronous: false),
             request: Test.request,
             imageContainer: container,
             isPreviousImage: true,
@@ -1166,8 +1166,8 @@ extension ImageLoader.Event {
         case .started: "started"
         case .progress: "progress"
         case .preview: "preview"
-        case let .finished(result, isSync):
-            "finished(\(result.error == nil ? "success" : "failure")\(isSync ? ", sync" : ""))"
+        case let .finished(result, isSynchronous):
+            "finished(\(result.error == nil ? "success" : "failure")\(isSynchronous ? ", sync" : ""))"
         case .cancelled: "cancelled"
         case .reset: "reset"
         @unknown default: "unknown"
