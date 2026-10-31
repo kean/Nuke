@@ -1,4 +1,4 @@
-.PHONY: ci ci-list test test-one build lint spm snippets llms release-check help
+.PHONY: ci ci-list test test-one build lint spm snippets llms release-check docs help
 
 CI := bash .scripts/ci.sh
 
@@ -48,6 +48,10 @@ llms:
 ## Fail if the generated llms files are stale, to run before tagging a release
 release-check:
 	@python3 .scripts/generate-llms.py --check --fresh
+
+## Build the site for kean-docs.github.io in .build/docs, or in OUTPUT. Deploys nothing
+docs:
+	@bash .scripts/publish-docs.sh $(OUTPUT)
 
 ## Show available targets
 help:
