@@ -54,6 +54,54 @@ struct LazyImageViewTests {
         #expect(view.imageView.isHidden == false)
     }
 
+    @Test func reloadRetriesAFailedLoad() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let failed = TestExpectation()
+        view.onCompletion = { _ in failed.fulfill() }
+        view.url = Test.url
+        await failed.wait()
+
+        // When
+        dataLoader.results[Test.url] = nil
+        let succeeded = TestExpectation()
+        view.onSuccess = { _ in succeeded.fulfill() }
+        view.reload()
+        await succeeded.wait()
+
+        // Then
+        #expect(view.imageView.image != nil)
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    @Test func reloadLoadsTheRequestAfterAReset() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        view.url = Test.url
+        view.reset()
+        #expect(view.request != nil)
+
+        // When
+        dataLoader.isSuspended = false
+        let succeeded = TestExpectation()
+        view.onSuccess = { _ in succeeded.fulfill() }
+        view.reload()
+        await succeeded.wait()
+
+        // Then
+        #expect(view.imageView.image != nil)
+    }
+
+    @Test func reloadDoesNothingWithoutARequest() {
+        let started = EventCounter()
+        view.onStart = { _ in started.increment() }
+
+        view.reload()
+
+        #expect(started.count == 0)
+        #expect(view.imageTask == nil)
+    }
+
     @Test func imageLoadedViaRequest() async {
         let expectation = TestExpectation()
         view.onCompletion = { _ in expectation.fulfill() }
