@@ -72,6 +72,21 @@ The package ships with four modules that you can install depending on your needs
 |[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit). Soft-deprecated: use `ImageLoader` from NukeUI|
 |[**NukeVideo**](https://kean-docs.github.io/nukevideo/documentation/nukevideo/)|The components for decoding and playing short videos|
 
+## AI Agents
+
+Nuke ships with what a coding agent needs to use its current API, and not the one it remembers.
+
+- **Skill**: which API to use, working samples, exact delegate signatures, and what changed in Nuke 14. In Claude Code, run the commands below. For other agents, copy [`skills/nuke`](skills/nuke) to `.agents/skills/` in your project.
+
+  ```
+  /plugin marketplace add kean/Nuke
+  /plugin install nuke@nuke
+  ```
+
+- **Docs**: [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt), and [`llms-api.txt`](llms-api.txt). They're also in your project's checkout of the package, at the version you resolved.
+- **Debugging**: launch with `NUKE_DIAGNOSTICS_LOG=1` to get a line in the console for every task, or run `po ImagePipeline.shared.diagnostics` in the debugger. See [Troubleshooting](Documentation/Nuke.docc/Essentials/troubleshooting.md).
+- **Contributing**: [`AGENTS.md`](AGENTS.md) has the commands and the traps of working on Nuke itself.
+
 ## Extensions
 
 The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community.
