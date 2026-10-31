@@ -891,8 +891,8 @@
 - `var priority: ImageRequest.Priority`: The priority of the task.
 - `var isCancelled: Bool`: Returns `true` if the task was cancelled from the outside
 - `var status: Status`: Returns a snapshot of everything about the task that can change while it runs.
-- `var image: PlatformImage`: Returns the response image.
-- `var response: ImageResponse`: Returns the image response.
+- `var image: PlatformImage { get async throws(ImagePipeline.Error) }`: Returns the response image.
+- `var response: ImageResponse { get async throws(ImagePipeline.Error) }`: Returns the image response.
 - `var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress>`: The stream of progress updates.
 - `var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse>`: The stream of image previews generated for images that support progressive decoding.
 - `var events: AsyncStream<Event>`: The events sent by the pipeline during the task execution.
@@ -1218,8 +1218,8 @@
 
 - `struct Handle: Sendable`: A handle to a load started by an `ImageLoader`, to await its outcome or cancel it.
 - `let task: ImageTask?`: The task of the load, or `nil` if it finished synchronously or runs a closure.
-- `var response: ImageResponse`: Returns the response of the load.
-- `var result: Result<ImageResponse, ImagePipeline.Error>`: Returns the outcome of the load.
+- `var response: ImageResponse { get async throws(ImagePipeline.Error) }`: Returns the response of the load.
+- `var result: Result<ImageResponse, ImagePipeline.Error> { get async }`: Returns the outcome of the load.
 - `func cancel()`: Cancels the load, unless it has already finished or was replaced.
 
 ### ImageLoader.Presentation
@@ -1419,7 +1419,7 @@
 
 ### ImagePipeline
 
-- `nonisolated static func stubbed(_ dataLoader: StubDataLoader = StubDataLoader(), configure: (inout ImagePipeline.Configuration) -> Void =`: Creates a pipeline for tests and previews
+- `nonisolated static func stubbed(_ dataLoader: StubDataLoader = StubDataLoader(), configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline`: Creates a pipeline for tests and previews
 
 ### StubDataLoader
 

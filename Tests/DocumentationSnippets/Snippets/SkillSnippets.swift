@@ -132,11 +132,9 @@ private func setup() {
 }
 
 private func customPipeline() {
-    ImagePipeline.shared = ImagePipeline {
-        $0.dataCache = try? DataCache(name: "com.example.images")
-        $0.dataCachePolicy = .automatic
-        $0.imageCache = ImageCache.shared
-    }
+    var configuration = ImagePipeline.Configuration.withDataCache(name: "com.example.images", sizeLimit: 500 * 1024 * 1024)
+    configuration.imageCache = ImageCache(costLimit: 100 * 1024 * 1024)
+    ImagePipeline.shared = ImagePipeline(configuration: configuration)
 }
 
 // MARK: Requests
@@ -144,7 +142,7 @@ private func customPipeline() {
 private func requests(url: URL) {
     var request = ImageRequest(url: url, processors: [.resize(width: 320)], priority: .high)
     request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 400) // Decodes small, without the full image
-    request.imageID = "avatar-42" // The cache key, for a URL with a changing token
+    request.imageID = "avatar-42" // Replaces the URL in the cache key, for a URL with a changing token
     request.options = [.disableDiskCacheWrites]
     _ = request
 }
@@ -199,9 +197,7 @@ extension PipelineDelegate: ImagePipeline.Delegate {
 }
 
 private func installDelegate() {
-    ImagePipeline.shared = ImagePipeline(delegate: PipelineDelegate()) {
-        $0.dataCache = try? DataCache(name: "com.example.images")
-    }
+    ImagePipeline.shared = ImagePipeline(configuration: .withDataCache, delegate: PipelineDelegate())
 }
 
 // MARK: Debugging
@@ -233,10 +229,13 @@ private func testing(url: URL, brokenURL: URL, offlineURL: URL, slowURL: URL, pa
 #if canImport(UIKit)
 private struct PreviewSample: View {
     let pipeline: ImagePipeline
+    let previewData: Data
 
     var body: some View {
         LazyImage(url: URL(string: "https://example.com/image.jpeg"))
             .pipeline(pipeline) // Only this view; `ImagePipeline.shared` is left alone
+
+        LazyImage(request: ImageRequest(id: "preview", data: { previewData }))
     }
 }
 #endif

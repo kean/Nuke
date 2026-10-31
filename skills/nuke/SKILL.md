@@ -118,7 +118,7 @@ image = try await task.image
 
 A task starts the moment it's created. `task.previews` streams progressive previews, and `task.response` gives you the `ImageResponse`.
 
-The errors are typed:
+The errors are typed, and the compiler infers the type in `catch` when everything in the `do` throws it:
 
 ```swift
 do {
@@ -141,14 +141,12 @@ There is one pipeline in an app. Set it once at launch, and never create one per
 ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 ```
 
-By default, the pipeline has no `DataCache`, and relies on the `URLCache` of `DataLoader`, which follows the `cache-control` headers of the server. `.withDataCache` caches on disk whatever they say. To configure it yourself:
+By default, the pipeline has no `DataCache`, and relies on the `URLCache` of `DataLoader`, which follows the `cache-control` headers of the server. `.withDataCache` caches on disk whatever they say. To set the sizes:
 
 ```swift
-ImagePipeline.shared = ImagePipeline {
-    $0.dataCache = try? DataCache(name: "com.example.images")
-    $0.dataCachePolicy = .automatic
-    $0.imageCache = ImageCache.shared
-}
+var configuration = ImagePipeline.Configuration.withDataCache(name: "com.example.images", sizeLimit: 500 * 1024 * 1024)
+configuration.imageCache = ImageCache(costLimit: 100 * 1024 * 1024)
+ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
 ## Requests and processing
@@ -156,7 +154,7 @@ ImagePipeline.shared = ImagePipeline {
 ```swift
 var request = ImageRequest(url: url, processors: [.resize(width: 320)], priority: .high)
 request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 400) // Decodes small, without the full image
-request.imageID = "avatar-42" // The cache key, for a URL with a changing token
+request.imageID = "avatar-42" // Replaces the URL in the cache key, for a URL with a changing token
 request.options = [.disableDiskCacheWrites]
 ```
 
@@ -239,12 +237,10 @@ extension PipelineDelegate: ImagePipeline.Delegate {
 
 The events are `.progress`, `.preview`, and `.finished`. There is no `.started` or `.cancelled`, and a cancelled task finishes with `.failure(.cancelled)`. The old `willCache(…completion:)` is the worst trap: it gets no warning, even in an extension.
 
-Pass the delegate to the pipeline, and it has to be `Sendable`. `willCache` runs only if the pipeline has a disk cache, so it needs a `DataCache`:
+Pass the delegate to the pipeline, and it has to be `Sendable`. `willCache` only controls the `DataCache`, and the `URLCache` of the default pipeline stores responses on disk regardless. `.withDataCache` has the first and turns off the second:
 
 ```swift
-ImagePipeline.shared = ImagePipeline(delegate: PipelineDelegate()) {
-    $0.dataCache = try? DataCache(name: "com.example.images")
-}
+ImagePipeline.shared = ImagePipeline(configuration: .withDataCache, delegate: PipelineDelegate())
 ```
 
 ## Debugging
@@ -278,11 +274,11 @@ print(task.metrics!) // A timeline of the load
 print(await ImagePipeline.shared.diagnostics.snapshot())
 ```
 
-`Documentation/Nuke.docc/Essentials/troubleshooting.md` in the checkout maps each failure to its cause.
+The Troubleshooting section of `llms-full.txt` maps each failure to its cause.
 
 ## Tests and previews
 
-The `NukeTesting` library, in the same package, loads with no network. Add it to the test target, not to the app:
+The `NukeTesting` library, in the same package, loads with no network. Add it to the test target:
 
 ```swift
 let dataLoader = StubDataLoader() // Every URL gets a generated image by default
@@ -296,11 +292,17 @@ let image = try await pipeline.image(for: url)
 let requests = dataLoader.requests // What the code under test asked for
 ```
 
-Pass it to the view under test, not to `ImagePipeline.shared`:
+`.status(404)` fails with `ImagePipeline.Error.dataLoadingFailed`, wrapping `DataLoader.Error.statusCodeUnacceptable(404)`, like a real server. Pass the pipeline to the view under test, not to `ImagePipeline.shared`:
 
 ```swift
 LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .pipeline(pipeline) // Only this view; `ImagePipeline.shared` is left alone
+```
+
+A SwiftUI preview is part of the app, so it can't use a test-only library. Give it a request that loads no URL:
+
+```swift
+LazyImage(request: ImageRequest(id: "preview", data: { previewData }))
 ```
 
 On Nuke 13, implement `DataLoading` yourself, and set it as `dataLoader` in the configuration.

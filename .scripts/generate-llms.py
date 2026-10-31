@@ -148,6 +148,20 @@ def strip_strings_and_comments(line):
     return re.sub(r"//.*$", "", line)
 
 
+def before_body(text):
+    """The signature, up to the brace of the body. A default value can hold a
+    closure, and that brace is inside of the parentheses."""
+    depth = 0
+    for index, character in enumerate(text):
+        if character in "([":
+            depth += 1
+        elif character in ")]":
+            depth -= 1
+        elif character == "{" and depth == 0:
+            return text[:index]
+    return text
+
+
 class Scope:
     def __init__(self, name, kind, is_public, depth):
         self.name, self.kind, self.is_public, self.depth = name, kind, is_public, depth
@@ -255,9 +269,14 @@ def parse_file(path):
                     # A type opens the group of its own members.
                     path_names = [s.name for s in scopes if s.name] + ([name] if kind in TYPE_KINDS else [])
                     owner = ".".join(path_names) or "Global"
-                    signature = text.split("{")[0] if kind != "case" else text
+                    signature = before_body(text) if kind != "case" else text
                     if kind in ("var", "let", "subscript"):
                         signature = re.sub(r"\s*\{.*$", "", text)
+                        # Whether a property is `async` or throws is in its
+                        # accessor, and it's part of how it's called.
+                        accessor = re.search(r"\bget\s+((?:async|throws)[^{]*?)\s*(?:\{|$)", lines[index].strip() if index < len(lines) else "")
+                        if accessor:
+                            signature += " { get " + accessor.group(1) + " }"
                     declarations.append((owner, clean_signature(signature), first_sentence(docs), kind))
                 if kind in TYPE_KINDS and "{" in code:
                     scopes.append(Scope(name, kind, exposed, depth))
