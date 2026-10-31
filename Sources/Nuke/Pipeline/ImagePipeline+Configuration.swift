@@ -222,7 +222,9 @@ extension ImagePipeline {
         /// it for a thumbnail request, where the decode also downsamples the
         /// image and no decompression follows it, so the count matches
         /// ``imageDecompressingQueue``: the pixel work of a request costs the
-        /// same whichever of the two paths it takes.
+        /// same whichever of the two paths it takes. It runs the final decode
+        /// of an animation here too, because the parse takes as long as the
+        /// file has frames.
         public var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 2)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.

@@ -848,8 +848,9 @@ struct ImageTaskTests {
             }
         }
 
-        /// The default decoder decodes on the pipeline's actor unless it's
-        /// asked for a thumbnail, so the decoding stage needs one that doesn't.
+        /// The default decoder decodes a still image on the pipeline's actor
+        /// unless it's asked for a thumbnail, so the decoding stage needs one
+        /// that doesn't.
         func pipeline(from pipeline: ImagePipeline) -> ImagePipeline {
             switch self {
             case .dataLoading, .processing: pipeline

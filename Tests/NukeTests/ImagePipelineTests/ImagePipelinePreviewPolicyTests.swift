@@ -201,6 +201,39 @@ struct ImagePipelinePreviewPolicyTests {
         _ = try await task.image
     }
 
+    /// The preview is decoded on the pipeline's actor and the final image on
+    /// the decoding queue, by a decoder created from the first chunk.
+    @Test @ImagePipelineActor func gifPreviewArrivesBeforeTheAnimationParsedOnTheDecodingQueue() async throws {
+        // GIVEN
+        let dataLoader = MockAutoDataLoader(
+            data: Test.data(name: "cat", extension: "gif"),
+            chunkCount: 8
+        )
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.imageCache = nil
+        }
+        let queue = pipeline.configuration.imageDecodingQueue
+        let recorder = TaskQueueObserver(queue: queue)
+
+        // WHEN
+        let task = pipeline.imageTask(with: Test.url)
+        var events: [String] = []
+        for await event in task.events {
+            switch event {
+            case .preview(let response): events.append("preview(animation: \(response.container.animation != nil))")
+            case .finished(.success(let response)): events.append("image(animation: \(response.container.animation != nil))")
+            default: break
+            }
+        }
+
+        // THEN
+        #expect(events == ["preview(animation: false)", "image(animation: true)"])
+        #expect(recorder.operations.count == 1)
+    }
+
     @Test func gifWithDisabledPolicyDeliversNoPreviews() async throws {
         // GIVEN a delegate that disables previews and a GIF served in chunks
         let delegate = MockPreviewPolicyDelegate(policy: .disabled)

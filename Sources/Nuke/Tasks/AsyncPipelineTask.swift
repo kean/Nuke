@@ -76,7 +76,9 @@ extension AsyncPipelineTask {
                 .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
             return (result, start.map { (ContinuousClock.now - $0).timeInterval })
         }
-        guard decoder.isAsynchronous else {
+        let isAsynchronous = decoder.isAsynchronous
+            || (decoder as? ImageDecoders.Default)?.parsesAnimation(in: context) == true
+        guard isAsynchronous else {
             let stage = diagnostics?.beginStage(.decode)
             let (result, workDuration) = decode()
             diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
