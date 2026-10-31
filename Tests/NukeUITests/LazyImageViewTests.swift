@@ -626,10 +626,19 @@ struct LazyImageViewTests {
 
     // MARK: - Progressive Rendering
 
+    @available(*, deprecated)
+    @Test func deprecatedProgressiveRenderingNameForwardsToTheNewOne() {
+        view.isProgressiveImageRenderingEnabled = false
+        #expect(!view.isProgressiveRenderingEnabled)
+
+        view.isProgressiveRenderingEnabled = true
+        #expect(view.isProgressiveImageRenderingEnabled)
+    }
+
     @Test func progressivePreviewsIgnoredWhenRenderingDisabled() async {
         let progressiveLoader = MockProgressiveDataLoader()
         view.pipeline = progressiveLoader.makePipeline()
-        view.isProgressiveImageRenderingEnabled = false
+        view.isProgressiveRenderingEnabled = false
 
         var imageWasSetDuringPreview = false
         var previewCount = 0

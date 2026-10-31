@@ -28,7 +28,7 @@
 - ``failureImage``
 - ``failureView``
 - ``failureViewPosition``
-- ``isProgressiveImageRenderingEnabled``
+- ``isProgressiveRenderingEnabled``
 - ``isResetEnabled``
 - ``transition-swift.property``
 

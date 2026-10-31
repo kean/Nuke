@@ -1309,7 +1309,7 @@
 - `var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?`: Gets called when the request finishes successfully.
 - `var onFailure: (@MainActor @Sendable (ImagePipeline.Error) -> Void)?`: Gets called when the request fails.
 - `var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?`: Gets called when the request is completed.
-- `var isProgressiveImageRenderingEnabled = true`: `true` by default.
+- `var isProgressiveRenderingEnabled = true`: `true` by default.
 - `var isResetEnabled = true`: `true` by default.
 - `override init(frame: CGRect)`
 - `required init?(coder: NSCoder)`

@@ -13,6 +13,17 @@ extension FetchImage {
     public typealias Progress = ImageTask.Progress
 }
 
+#if !os(watchOS)
+extension LazyImageView {
+    /// - warning: Deprecated in Nuke 14.0. Use ``isProgressiveRenderingEnabled`` instead.
+    @available(*, deprecated, renamed: "isProgressiveRenderingEnabled", message: "Deprecated in Nuke 14.0. Use `isProgressiveRenderingEnabled` instead.")
+    public var isProgressiveImageRenderingEnabled: Bool {
+        get { isProgressiveRenderingEnabled }
+        set { isProgressiveRenderingEnabled = newValue }
+    }
+}
+#endif
+
 // MARK: - Removed in Nuke 14
 //
 // Removed APIs are kept as unavailable stubs that name their replacement: the
