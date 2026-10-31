@@ -41,6 +41,11 @@ extension ImagePipeline {
 }
 
 extension ImagePipeline.Error {
+    /// Wraps an error thrown while loading data, unless it is already wrapped.
+    init(loadingError error: Swift.Error) {
+        self = error as? ImagePipeline.Error ?? .dataLoadingFailed(error: error)
+    }
+
     /// Returns `true` if the request was cancelled.
     ///
     /// Cancellation is an expected outcome, not a failure: every image view

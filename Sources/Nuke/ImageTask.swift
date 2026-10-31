@@ -125,6 +125,16 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         /// - seealso: ``ImageTask/Progress-swift.struct``
         public internal(set) var progress = Progress(completed: 0, total: 0)
 
+        /// The number of times the load started over while the task waited
+        /// for it. `0` unless an attempt failed and the
+        /// ``ImageRequest/retryPolicy`` asked for a retry.
+        ///
+        /// A retry counts when it starts, not during the wait before it, which
+        /// can end with the task being cancelled or failing. Tasks that share a
+        /// load share its retries, but a task that joins it only counts the
+        /// ones that come after.
+        public internal(set) var retryCount = 0
+
         /// Where the time of the task went. Recorded before the task finishes,
         /// like ``result``, and only when diagnostics are on.
         ///
@@ -265,6 +275,9 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
+    /// `true` while the fetch the task waits for is waiting to start over. A
+    /// task that joins during the wait isn't marked.
+    @ImagePipelineActor var _isWaitingForRetry = false
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
@@ -333,6 +346,11 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     /// external event such as session invalidation.
     @ImagePipelineActor func _cancel() {
         _finish(.failure(.cancelled))
+    }
+
+    /// Gets called when the fetch the task waits for starts over.
+    @ImagePipelineActor func _didRetry() {
+        _status.withLock { $0.retryCount += 1 }
     }
 
     /// Gets called when the associated task sends a new event.

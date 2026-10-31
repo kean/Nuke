@@ -277,7 +277,7 @@ struct ImageTaskMetricsFormatTests {
         #expect(metrics.timeShares.prefix(2).map(\.category) == [.network, .process])
         #expect(metrics.timeShares.last?.category == .other)
         // "Lower wins, and it is the order they are declared in"
-        #expect(ImageTask.Metrics.Category.allCases == [.network, .queue, .process, .decompress, .decode, .cache, .other])
+        #expect(ImageTask.Metrics.Category.allCases == [.network, .queue, .retry, .process, .decompress, .decode, .cache, .other])
     }
 
     @Test func otherIsLastEvenWhenItIsTheLargest() {

@@ -69,6 +69,7 @@ public final class ImagePipeline: Sendable {
     nonisolated let recorder: Diagnostics.Recorder?
     nonisolated let id: UUID
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
+    nonisolated(unsafe) var connectivityMonitor = ConnectivityMonitor.shared // Replaced in tests
 
     /// The number of image tasks the pipeline currently retains. Debug purposes.
     var taskCount: Int { tasks.count }
