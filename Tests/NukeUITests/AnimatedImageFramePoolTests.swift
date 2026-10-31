@@ -263,7 +263,7 @@ struct AnimatedImageFramePoolTests {
         #expect(playing.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
     }
 
-    @Test func givesBackTheFramesNobodyIsPlayingWhenTheAppGoesToTheBackground() async throws {
+    @Test func removingIdleAnimationsGivesBackTheFramesNobodyIsPlaying() async throws {
         let pool = makePool(frames: 24)
         let scrolledPast = Test.animatedGIFSource(frameCount: 8, size: Self.frameSize)
         var released: AnimatedImagePlayer? = makePlayer(source: scrolledPast, pool: pool)
@@ -276,9 +276,7 @@ struct AnimatedImageFramePoolTests {
 
         pool.removeIdleAnimations()
 
-        // Nothing is on screen, so the frames kept for a view that might come
-        // back are a cache the app isn't using. The player that is still around
-        // keeps what it is holding.
+        // The player that is still around keeps what it is holding.
         #expect(pool.animationCount == 1)
         #expect(pool.totalCost == 8 * Self.bytesPerFrame)
     }
@@ -382,6 +380,48 @@ struct AnimatedImageFramePoolTests {
         #expect(pool.animationCount == 0)
         #expect(pool.totalCost == 0)
         withExtendedLifetime(source) {} // Still held, the way the cache holds it
+    }
+
+    @Test func theAppEnteringTheBackgroundHoldsEveryAnimationAtTheFloor() async {
+        // A view on screen stays in its window in the background, so nothing
+        // else makes its player let go of its frames.
+        let center = NotificationCenter()
+        let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
+        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        player.play()
+        await player.waitUntilFull()
+        #expect(pool.totalCost == 8 * Self.bytesPerFrame)
+
+        await post(UIApplication.didEnterBackgroundNotification, to: center)
+
+        #expect(pool.isUnderMemoryPressure)
+        #expect(pool.totalCost == AnimatedImagePlayer.idleFrameCount * Self.bytesPerFrame)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+    }
+
+    @Test func theFramesStayShedUntilTheAppBecomesActive() async {
+        let center = NotificationCenter()
+        let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
+        pool.memoryPressureGracePeriod = 0.01
+        let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
+        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        player.play()
+        await player.waitUntilFull()
+
+        await post(UIApplication.didEnterBackgroundNotification, to: center)
+        // A warning in the background must not end it on its own timer, or
+        // the frames would come back with nothing on screen to show them.
+        pool.reduceMemoryUsage()
+        try? await Task.sleep(for: .milliseconds(100))
+
+        #expect(pool.isUnderMemoryPressure)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+
+        await post(UIApplication.didBecomeActiveNotification, to: center)
+
+        #expect(!pool.isUnderMemoryPressure)
+        #expect(player.diagnostics.bufferCapacity == 8)
     }
 
     /// Posts the notification the way the system does, from a block on the
