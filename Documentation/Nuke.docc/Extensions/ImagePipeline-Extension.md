@@ -121,6 +121,14 @@ do {
 - ``configuration-swift.property``
 - ``Configuration-swift.struct``
 
+### Retries
+
+To learn more, see <doc:retrying-requests>.
+
+- ``RetryPolicy``
+- ``RetryDecision``
+- ``RetryContext``
+
 ### Loading Images (Async/Await)
 
 - ``image(for:)-(URL)``

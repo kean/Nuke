@@ -28,6 +28,12 @@ To learn more about caching, see <doc:caching>.
 - ``ImagePipeline/DataCachePolicy``
 - ``isStoringPreviewsInMemoryCache``
 
+### Retries
+
+To learn more, see <doc:retrying-requests>.
+
+- ``retryPolicy``
+
 ### Other Options
 
 - ``isDecompressionEnabled``
