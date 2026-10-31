@@ -1099,7 +1099,6 @@
 ### AnimatedImagePlayer.Diagnostics
 
 - `struct Diagnostics: Sendable`: What the player is doing, for logging, tests, and the diagnostics overlay in the demo app.
-- `init()`: Creates an empty snapshot.
 - `var frameCount = 0`: The number of frames in the animation.
 - `var currentFrameIndex = 0`: The frame currently on screen.
 - `var completedLoopCount = 0`: The number of completed loops.
