@@ -34,7 +34,8 @@ extension ImageDecoders {
         }
 
         /// Decodes the complete video data and returns an ``ImageContainer`` with a
-        /// thumbnail preview and an ``AVDataAsset`` stored in ``ImageContainer/userInfo``.
+        /// thumbnail preview and an `AVAsset` stored in ``ImageContainer/userInfo``
+        /// under ``ImageContainer/UserInfoKey/videoAssetKey``.
         public func decode(_ data: Data) throws -> ImageContainer {
             let image = makePreview(for: data, type: type) ?? PlatformImage()
             return ImageContainer(image: image, type: type, data: data, userInfo: [

@@ -12,7 +12,7 @@ Nothing needs to be enabled. ``LazyImage`` and ``LazyImageView`` play animations
 LazyImage(url: URL(string: "https://example.com/cat.gif"))
 ```
 
-The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and HEIC and AVIF sequences. There is no per-format code – ``Nuke/AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest is the same for all of them. A format Image I/O doesn't read is added the way any other format is, with an ``Nuke/ImageDecoding`` of your own: see [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding).
+The formats are whatever Image I/O can read and the decoder recognizes as animated: GIF, APNG, animated WebP, and HEIC and AVIF sequences. There is no per-format code – ``AnimatedImageSource`` reads the frame count, the delays, and the loop count from the container, and the rest is the same for all of them. A format Image I/O doesn't read is added the way any other format is, with an ``ImageDecoding`` of your own: see [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding).
 
 ## Displaying Animations
 
@@ -99,7 +99,7 @@ Two settings in Accessibility › Motion do the same on their own: Auto-Play Ani
 
 Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the two after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
 
-Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB – a quarter of the one budget decoded images get, with ``Nuke/ImageCache`` taking the other three quarters, so what an app's images may cost in memory is one figure whether its animations play or not. An animation alone may take all of the pool's share:
+Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB – a quarter of the one budget decoded images get, with ``ImageCache`` taking the other three quarters, so what an app's images may cost in memory is one figure whether its animations play or not. An animation alone may take all of the pool's share:
 
 ```swift
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
@@ -125,7 +125,7 @@ imageView.playerOptions = options
 
 **Raise the limit.** ``AnimatedImageFramePool/costLimit`` decides how many animations fit, and trades memory for CPU: one that fits is decoded once and never again, one that doesn't is decoded for as long as it plays. ``AnimatedImagePlayer/Options/maxBufferSize`` goes the other way: it is a ceiling on one player, for an animation that should play out of a window however much room the pool has.
 
-Memory is bounded either way. On a memory warning the pool gives back the frames of every animation nobody is playing – the cache it keeps for a view that comes back – and holds the ones on screen at two frames, giving the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. Going to the background does the same, the way ``Nuke/ImageCache`` trims itself there, and lasts until the app is active again. ``AnimatedImageFramePool/removeIdleAnimations()`` gives back only that cache, on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
+Memory is bounded either way. On a memory warning the pool gives back the frames of every animation nobody is playing – the cache it keeps for a view that comes back – and holds the ones on screen at two frames, giving the windows back a minute later, or sooner if the app is backgrounded and returns; ``AnimatedImageFramePool/reduceMemoryUsage()`` does the same on demand. Going to the background does the same, the way ``ImageCache`` trims itself there, and lasts until the app is active again. ``AnimatedImageFramePool/removeIdleAnimations()`` gives back only that cache, on demand. A player nobody is watching gives its window back too, so the animations a list has scrolled past cost almost nothing.
 
 ### Sharing
 
@@ -141,7 +141,7 @@ The frames outlive the players holding them: a cell that scrolls off screen and 
 
 - **Is the animation fully buffered?** ``AnimatedImagePlayer/Diagnostics/isFullyBuffered``, along with ``AnimatedImagePlayer/Diagnostics/bufferedFrameCount`` and ``AnimatedImagePlayer/Diagnostics/bufferedByteCount``, says whether the whole thing is in memory or the window is sliding.
 - **What does a frame cost?** ``AnimatedImagePlayer/Diagnostics/averageDecodeDuration`` and ``AnimatedImagePlayer/Diagnostics/maxDecodeDuration``. ``AnimatedImagePlayer/Diagnostics/decodedFrameCount`` climbing past the frame count means frames are being evicted and decoded again.
-- **Is playback keeping up?** ``AnimatedImagePlayer/Diagnostics/effectiveFrameRate`` against ``Nuke/AnimatedImageSource/nominalFrameRate``, and ``AnimatedImagePlayer/Diagnostics/bufferMissCount``, which counts the frames that were due before they finished decoding – each one held the frame before it on screen past its delay.
+- **Is playback keeping up?** ``AnimatedImagePlayer/Diagnostics/effectiveFrameRate`` against ``AnimatedImageSource/nominalFrameRate``, and ``AnimatedImagePlayer/Diagnostics/bufferMissCount``, which counts the frames that were due before they finished decoding – each one held the frame before it on screen past its delay.
 - **How much is shared?** ``AnimatedImagePlayer/Diagnostics/sharingPlayerCount`` reports how many players are drawing from the same frames, and ``AnimatedImageFramePool/animationCount`` how many distinct sets of frames the pool is holding.
 
 The **Animated Images** screen in the demo app puts all of it on screen, with a map of the window, over a real animation.
@@ -162,7 +162,7 @@ imageView.playerOptions = options
 
 The identifier is what the frames are shared by: players that ask for the same one draw from a single set of transformed frames, players that ask for different ones each get a set of their own. The transform runs once per decoded frame, which for an animation too large to hold in memory is once per frame per loop, so it is worth keeping to what a frame's worth of time affords.
 
-**Produce the frames yourself.** ``Nuke/AnimatedImageFrameDecoding`` is where every frame comes from, and an animation carries the one that produces its own. It is handed over where the animation is described – in an ``Nuke/ImageDecoding``, beside the frame count and the delays – so the place to reach for it is [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding), whether or not Image I/O can read the format. Everything on this page is unchanged for it: the frames are windowed, shared between the views showing the animation, and counted against the pool exactly as Image I/O's are, and the decoder is asked for one frame at a time, off the main actor.
+**Produce the frames yourself.** ``AnimatedImageFrameDecoding`` is where every frame comes from, and an animation carries the one that produces its own. It is handed over where the animation is described – in an ``ImageDecoding``, beside the frame count and the delays – so the place to reach for it is [Image Decoding](https://kean-docs.github.io/nuke/documentation/nuke/image-decoding), whether or not Image I/O can read the format. Everything on this page is unchanged for it: the frames are windowed, shared between the views showing the animation, and counted against the pool exactly as Image I/O's are, and the decoder is asked for one frame at a time, off the main actor.
 
 ## What Isn't Animated
 
@@ -175,7 +175,7 @@ Also worth knowing: GIF is not an efficient format for what it is usually asked 
 
 ## Under the Hood
 
-``Nuke/AnimatedImageSource`` describes the animation – the frame count, the delays, the loop count, the canvas size – and answers with what produces its frames. It decodes nothing itself. For the formats Image I/O reads, the pipeline parses that description out of the container while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``Nuke/ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
+``AnimatedImageSource`` describes the animation – the frame count, the delays, the loop count, the canvas size – and answers with what produces its frames. It decodes nothing itself. For the formats Image I/O reads, the pipeline parses that description out of the container while it decodes the image, on the decoding queue, once, with the result cached alongside the image, so a view is handed an animation rather than data to find one in. Set ``ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled`` to `false` to skip it in an app that plays animations some other way.
 
 Playback never skips a frame. Each one is shown for at least its delay, and the next one appears when that delay is up and the frame is decoded, whichever comes later – so under load the animation stretches rather than jumps. A stall on the main thread or a frame that is slow to decode holds the frame on screen for longer, and the time lost isn't made up afterwards; what gives is how long the animation takes, not which of its frames are seen. This is what a browser does, and the trade is the right one for images: an animation that is never seen to jump, for one that can't be relied on to take three seconds when it says it does. The one thing passed over is a frame shorter than a tick of the clock, which the display couldn't have shown for longer anyway. Two corrections are applied to the delays the file declares, both of them what browsers do: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s, which was written by a tool that meant "as fast as you can".
 
@@ -195,12 +195,12 @@ In Low Power Mode, or on a device hot enough that the system is already throttli
 ### Playback
 
 - ``AnimatedImagePlayer``
-- ``Nuke/AnimatedImageSource``
+- ``AnimatedImageSource``
 
 ### Frames
 
 - ``AnimatedImageFrameTransform``
-- ``Nuke/AnimatedImageFrameDecoding``
+- ``AnimatedImageFrameDecoding``
 
 ### Memory
 

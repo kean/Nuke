@@ -15,7 +15,7 @@ import Nuke
 /// }
 /// ```
 ///
-/// A ``Nuke/ImageProcessing`` processor doesn't reach the frames: it produces
+/// A ``ImageProcessing`` processor doesn't reach the frames: it produces
 /// a new image the encoded animation no longer describes, and the pipeline
 /// drops the animation along with the data – see <doc:AnimatedImages>. This is
 /// the hook for the case where the frames themselves should be tinted,
@@ -33,7 +33,7 @@ public struct AnimatedImageFrameTransform: Sendable {
     /// whose identifiers differ each get a set of their own, decoded and held
     /// separately. Give two transforms the same identifier only when they
     /// produce the same pixels, and fold the parameters into it – a corner
-    /// radius, a tint – the way ``Nuke/ImageProcessing/identifier`` does.
+    /// radius, a tint – the way ``ImageProcessing/identifier`` does.
     public let identifier: String
 
     /// Returns the image to display in place of the decoded frame, or `nil` to
