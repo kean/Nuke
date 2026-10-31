@@ -650,3 +650,15 @@ The cache keys didn't change, so the images your users have on disk survive the 
 ## `LazyImageView.imageTask` is read-only
 
 `LazyImageView` now loads with an `ImageLoader`, which owns the task. Call `cancel()` to cancel the load, and `reset()` to also clear the view.
+
+## Renamed `LazyImageView.isProgressiveImageRenderingEnabled`
+
+`LazyImageView` now has the same name for it as `ImageLoader` and `ImageLoadingOptions`. The old name is deprecated and keeps working.
+
+```swift
+// Nuke 13
+lazyImageView.isProgressiveImageRenderingEnabled = false
+
+// Nuke 14
+lazyImageView.isProgressiveRenderingEnabled = false
+```

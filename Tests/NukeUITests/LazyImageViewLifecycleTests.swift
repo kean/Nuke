@@ -57,7 +57,7 @@ struct LazyImageViewLifecycleTests {
         #expect(view.placeholderViewPosition == .fill)
         #expect(view.failureViewPosition == .fill)
         #expect(!view.showPlaceholderOnFailure)
-        #expect(view.isProgressiveImageRenderingEnabled)
+        #expect(view.isProgressiveRenderingEnabled)
         #expect(view.isResetEnabled)
         #expect(view.priority == nil)
         #expect(view.processors == nil)

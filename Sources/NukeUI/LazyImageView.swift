@@ -169,7 +169,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Other Options
 
     /// `true` by default. If disabled, progressive image scans will be ignored.
-    public var isProgressiveImageRenderingEnabled = true
+    public var isProgressiveRenderingEnabled = true
 
     /// `true` by default. If enabled, the image view will be cleared before the
     /// new download is started. You can disable it if you want to keep the
@@ -289,7 +289,7 @@ public final class LazyImageView: _PlatformBaseView {
         case .progress(let progress):
             onProgress?(progress)
         case .preview(let response):
-            if isProgressiveImageRenderingEnabled {
+            if isProgressiveRenderingEnabled {
                 setPlaceholderViewHidden(true)
                 display(response.container, isFromMemory: false)
             }

@@ -116,7 +116,7 @@ final class PosterView: UIView, ImageDisplaying {
 }
 ```
 
-These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
+These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
 
 ```swift
 // Nuke 13

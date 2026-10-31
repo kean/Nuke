@@ -2740,7 +2740,7 @@ final class PosterView: UIView, ImageDisplaying {
 }
 ```
 
-These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
+These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
 
 ```swift
 // Nuke 13
@@ -3603,3 +3603,15 @@ The cache keys didn't change, so the images your users have on disk survive the 
 ### `LazyImageView.imageTask` is read-only
 
 `LazyImageView` now loads with an `ImageLoader`, which owns the task. Call `cancel()` to cancel the load, and `reset()` to also clear the view.
+
+### Renamed `LazyImageView.isProgressiveImageRenderingEnabled`
+
+`LazyImageView` now has the same name for it as `ImageLoader` and `ImageLoadingOptions`. The old name is deprecated and keeps working.
+
+```swift
+// Nuke 13
+lazyImageView.isProgressiveImageRenderingEnabled = false
+
+// Nuke 14
+lazyImageView.isProgressiveRenderingEnabled = false
+```
