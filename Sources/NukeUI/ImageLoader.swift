@@ -33,7 +33,7 @@ import Nuke
 /// create one and keep it:
 ///
 /// ```swift
-/// final class PosterCell: UICollectionViewCell, ImageLoaderDelegate {
+/// final class PosterCell: UICollectionViewCell, ImageLoader.Delegate {
 ///     private let loader = ImageLoader()
 ///
 ///     func configure(with url: URL) {
@@ -101,7 +101,7 @@ public final class ImageLoader {
     public var task: ImageTask? { state.task }
 
     /// Receives every change of the ``state``.
-    public weak var delegate: (any ImageLoaderDelegate)?
+    public weak var delegate: (any ImageLoader.Delegate)?
 
     /// Receives every change of the ``state``, before the ``delegate``.
     var onUpdate: (@MainActor (State) -> Void)?
@@ -543,11 +543,13 @@ extension ImageLoader {
 
 // MARK: - Delegate
 
-/// Receives the states of an ``ImageLoader``.
-@MainActor
-public protocol ImageLoaderDelegate: AnyObject {
-    /// Called every time the state of the loader changes.
-    func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)
+extension ImageLoader {
+    /// Receives the states of an ``ImageLoader``.
+    @MainActor
+    public protocol Delegate: AnyObject {
+        /// Called every time the state of the loader changes.
+        func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)
+    }
 }
 
 // MARK: - Handle

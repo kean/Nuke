@@ -1144,7 +1144,7 @@ struct ImageLoaderTests {
 // MARK: - Helpers
 
 @MainActor
-private final class StateRecorder: ImageLoaderDelegate {
+private final class StateRecorder: ImageLoader.Delegate {
     var states: [ImageLoader.State] = []
     var onUpdate: ((ImageLoader.State) -> Void)?
 
