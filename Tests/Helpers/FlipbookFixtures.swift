@@ -182,8 +182,8 @@ struct FlipbookImageDecoder: ImageDecoding {
             delays: flipbook.delays,
             loopCount: flipbook.loopCount,
             size: flipbook.size,
-            makeFrameDecoder: { maxPixelSize in
-                FlipbookFrameDecoder(flipbook, maxPixelSize: maxPixelSize)
+            makeFrameDecoder: { context in
+                FlipbookFrameDecoder(flipbook, maxPixelSize: context.maxPixelSize)
             }
         )
         return container

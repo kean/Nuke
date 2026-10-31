@@ -11,6 +11,12 @@
 - `protocol AnimatedImageFrameDecoding: Sendable`: Produces the frames of an animated image.
 - `func decode(at index: Int) async -> CGImage?`: Returns the frame at the given index, or `nil` if it can't be produced.
 
+### AnimatedImageFrameDecodingContext
+
+- `struct AnimatedImageFrameDecodingContext: Sendable`: What a frame decoder is being made for.
+- `var maxPixelSize: CGFloat?`: The longest side, in pixels, the frames may have, or `nil` for the size the animation is stored at.
+- `init(maxPixelSize: CGFloat? = nil)`: Creates a context.
+
 ### AnimatedImageSource
 
 - `final class AnimatedImageSource: Sendable`: An animated image – a GIF, an APNG, an animated WebP, HEIC, or AVIF – described by the metadata parsed from its encoded data.
@@ -25,8 +31,8 @@
 - `static let defaultDelay: TimeInterval = 0.1`: The delay used for frames that don't declare a usable one
 - `static let minimumDelay: TimeInterval = 0.011`: Delays below this value are replaced with `defaultDelay`
 - `init?(data: Data)`: Creates a source from the encoded image data.
-- `init?(data: Data, delays: [TimeInterval], loopCount: Int = 0, size: CGSize, makeFrameDecoder: @escaping @Sendable (_ maxPixelSize: CGFloat?) -> any AnimatedImageFrameDecoding)`: Creates a source for an animation described by the caller.
-- `func makeFrameDecoder(maxPixelSize: CGFloat? = nil) -> any AnimatedImageFrameDecoding`: Returns what produces the frames of this animation, no larger than the given size in pixels.
+- `init?(data: Data, delays: [TimeInterval], loopCount: Int = 0, size: CGSize, makeFrameDecoder: @escaping @Sendable (AnimatedImageFrameDecodingContext) -> any AnimatedImageFrameDecoding)`: Creates a source for an animation described by the caller.
+- `func makeFrameDecoder(context: AnimatedImageFrameDecodingContext = AnimatedImageFrameDecodingContext()) -> any AnimatedImageFrameDecoding`: Returns what produces the frames of this animation for the given context.
 - `func makeImageSource() -> CGImageSource?`: Creates an image source over `data` for decoding the frames.
 
 ### AssetType

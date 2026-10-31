@@ -13,7 +13,7 @@ import ImageIO
 /// per-frame delays, the loop count, and the canvas size, all of which Image I/O
 /// answers from the container without decompressing a pixel. The frames are
 /// decoded later, on demand, by `AnimatedImagePlayer` in `NukeUI` – or by a
-/// renderer of your own, built on ``makeFrameDecoder(maxPixelSize:)``.
+/// renderer of your own, built on ``makeFrameDecoder(context:)``.
 ///
 /// ``init(data:)`` describes the animation with Image I/O and decodes it with
 /// Image I/O. For a format Image I/O can't read, describe the animation
@@ -80,7 +80,7 @@ public final class AnimatedImageSource: Sendable {
     /// ``ImageCache`` with nothing playing it must not hold one. The players
     /// make one when the first of them needs a frame and drop it with the
     /// last.
-    private let customFrameDecoder: (@Sendable (CGFloat?) -> any AnimatedImageFrameDecoding)?
+    private let customFrameDecoder: (@Sendable (AnimatedImageFrameDecodingContext) -> any AnimatedImageFrameDecoding)?
 
     /// The average number of frames per second across one loop.
     public var nominalFrameRate: Double {
@@ -159,7 +159,7 @@ public final class AnimatedImageSource: Sendable {
     ///     delays: webp.delays,
     ///     loopCount: webp.loopCount,
     ///     size: webp.size,
-    ///     makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0) }
+    ///     makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0.maxPixelSize) }
     /// )
     /// ```
     ///
@@ -172,10 +172,10 @@ public final class AnimatedImageSource: Sendable {
     /// - parameter loopCount: The number of times the animation repeats, `0`
     /// for "forever".
     /// - parameter size: The size of the animation canvas, in pixels.
-    /// - parameter makeFrameDecoder: Returns what produces the frames, no
-    /// larger than the given size in pixels. Called once per animation and
-    /// size, off the main actor's critical path but on the main actor, so make
-    /// it cheap and leave the container indexing to the decoder itself.
+    /// - parameter makeFrameDecoder: Returns what produces the frames for the
+    /// given context. Called once per animation and context, off the main
+    /// actor's critical path but on the main actor, so make it cheap and leave
+    /// the container indexing to the decoder itself.
     ///
     /// - returns: `nil` if the animation has a single frame or a canvas that
     /// is empty or too large for a frame of it to be counted in bytes, none of
@@ -185,7 +185,7 @@ public final class AnimatedImageSource: Sendable {
         delays: [TimeInterval],
         loopCount: Int = 0,
         size: CGSize,
-        makeFrameDecoder: @escaping @Sendable (_ maxPixelSize: CGFloat?) -> any AnimatedImageFrameDecoding
+        makeFrameDecoder: @escaping @Sendable (AnimatedImageFrameDecodingContext) -> any AnimatedImageFrameDecoding
     ) {
         // The size is what a decoder parsed out of a header, and a damaged one
         // can declare 32-bit dimensions, or nothing finite: ``bytesPerFrame``
@@ -205,20 +205,19 @@ public final class AnimatedImageSource: Sendable {
         self.customFrameDecoder = makeFrameDecoder
     }
 
-    /// Returns what produces the frames of this animation, no larger than the
-    /// given size in pixels.
+    /// Returns what produces the frames of this animation for the given
+    /// context.
     ///
     /// The players call it when the first of them needs a frame; call it to
     /// decode the frames yourself, from a renderer of your own.
     ///
-    /// - parameter maxPixelSize: The longest side, in pixels, the frames may
-    /// have. Larger frames are scaled down. `nil` – the size the animation is
-    /// stored at – by default.
-    public func makeFrameDecoder(maxPixelSize: CGFloat? = nil) -> any AnimatedImageFrameDecoding {
+    /// - parameter context: What the frames are for. By default, they are
+    /// produced at the size the animation is stored at.
+    public func makeFrameDecoder(context: AnimatedImageFrameDecodingContext = AnimatedImageFrameDecodingContext()) -> any AnimatedImageFrameDecoding {
         if let customFrameDecoder {
-            return customFrameDecoder(maxPixelSize)
+            return customFrameDecoder(context)
         }
-        return AnimatedImageFrameDecoder(source: self, maxPixelSize: maxPixelSize)
+        return AnimatedImageFrameDecoder(source: self, maxPixelSize: context.maxPixelSize)
     }
 
     /// Applies the two corrections ``delays`` describes.

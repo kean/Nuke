@@ -55,7 +55,7 @@ struct AnimatedImageMetadataTests {
         // No canvas and no limit: the one case with no size to ask for, and
         // no frame to draw either.
         #expect(await source.makeFrameDecoder().decode(at: 0) == nil)
-        #expect(await source.makeFrameDecoder(maxPixelSize: 8).decode(at: 1) == nil)
+        #expect(await source.makeFrameDecoder(context: .init(maxPixelSize: 8)).decode(at: 1) == nil)
     }
 
     @Test func zeroDelaysPlayAtTheDefault() throws {
@@ -215,15 +215,15 @@ struct AnimatedImageMetadataTests {
             data: Data(),
             delays: flipbook.delays,
             size: flipbook.size,
-            makeFrameDecoder: { maxPixelSize in
-                requests.append(maxPixelSize)
-                return FlipbookFrameDecoder(flipbook, maxPixelSize: maxPixelSize)
+            makeFrameDecoder: { context in
+                requests.append(context.maxPixelSize)
+                return FlipbookFrameDecoder(flipbook, maxPixelSize: context.maxPixelSize)
             }
         )
         let source = try #require(made)
         #expect(requests.values.isEmpty)
 
-        _ = source.makeFrameDecoder(maxPixelSize: 4)
+        _ = source.makeFrameDecoder(context: .init(maxPixelSize: 4))
         _ = source.makeFrameDecoder()
 
         #expect(requests.values == [4, nil])
@@ -236,7 +236,7 @@ struct AnimatedImageMetadataTests {
             delays: [0.1, 0.1],
             loopCount: -3,
             size: CGSize(width: 8, height: 8),
-            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
         )
 
         #expect(try #require(made).loopCount == 0)
@@ -248,7 +248,7 @@ struct AnimatedImageMetadataTests {
             data: Data(),
             delays: [.nan, 0.2, -.infinity],
             size: CGSize(width: 8, height: 8),
-            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
         )
         let source = try #require(made)
 
@@ -263,7 +263,7 @@ struct AnimatedImageMetadataTests {
                 data: Data(),
                 delays: [0.1, 0.1],
                 size: size,
-                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
             )
             #expect(made == nil)
         }
@@ -279,7 +279,7 @@ struct AnimatedImageMetadataTests {
                 data: Data(),
                 delays: [0.1, 0.1],
                 size: size,
-                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+                makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
             )
             #expect(made == nil)
         }
@@ -290,7 +290,7 @@ struct AnimatedImageMetadataTests {
     @Test func imageIOFrameDecoderHonorsTheLimitItIsMadeWith() async throws {
         let source = try #require(AnimatedImageSource(data: Test.data(name: "cat", extension: "gif")))
 
-        let frame = try #require(await source.makeFrameDecoder(maxPixelSize: 100).decode(at: 1))
+        let frame = try #require(await source.makeFrameDecoder(context: .init(maxPixelSize: 100)).decode(at: 1))
 
         #expect(frame.width == 100)
         #expect(frame.height == 56)
