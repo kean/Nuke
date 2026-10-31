@@ -204,19 +204,16 @@ extension DemoPipelineProbe {
 
         // MARK: Decoding
 
-        func decodeStarted(isAsynchronous: Bool) {
-            guard isAsynchronous else { return }
+        func decodeStarted() {
             state.withLock { $0.figures.decodingQueue.inFlightCount? += 1 }
         }
 
         /// - parameter isFinalImage: whether the decode produced a final
         ///   image, the only kind ``DemoPipelineDiagnostics/decoding`` times.
-        func decodeFinished(isAsynchronous: Bool, startedAt: ContinuousClock.Instant, isFinalImage: Bool) {
+        func decodeFinished(startedAt: ContinuousClock.Instant, isFinalImage: Bool) {
             let now = ContinuousClock.now
             state.withLock { state in
-                if isAsynchronous {
-                    state.figures.decodingQueue.inFlightCount? -= 1
-                }
+                state.figures.decodingQueue.inFlightCount? -= 1
                 if isFinalImage {
                     state.figures.decoding.record((now - startedAt).demoTimeInterval, at: now)
                 }

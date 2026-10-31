@@ -14,10 +14,9 @@ struct ImageDecodingProtocolTests {
 
     // MARK: Defaults
 
-    @Test func aDecoderThatOnlyDecodesIsAsynchronousAndHasNoPreviews() {
+    @Test func aDecoderThatOnlyDecodesHasNoPreviews() {
         let decoder = ProtocolDefaultsDecoder()
 
-        #expect(decoder.isAsynchronous)
         #expect(decoder.decodePartiallyDownloadedData(Test.data) == nil)
     }
 

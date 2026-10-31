@@ -256,7 +256,7 @@ Don't remove a GIF dependency that the app uses for anything but Nuke's images.
 
 Most apps have nothing to do here. Check these:
 
-- A custom `ImageDecoding` runs on `imageDecodingQueue` unless it sets `isAsynchronous` to `false`, and two of them can now run at once. Look for `static` or global mutable state, and put it behind a lock.
+- Every decode runs on `imageDecodingQueue`, and two of them can run at once. A custom `ImageDecoding` that declares `isAsynchronous` still compiles and the pipeline ignores it: delete the property. Look for `static` or global mutable state in the decoder, and put it behind a lock.
 - `ImageDecoders.Video` follows the preview policy now, and the default one for a video is `.disabled`. An app with `isProgressiveDecodingEnabled` that shows the first frame while a video downloads has to return another policy from `previewPolicy(for:pipeline:)`. The first frame also comes out upright, so remove any rotation the app applies to it.
 - `dataLoadingQueue` runs requests below `.normal` in 3 of its 6 slots, so a prefetcher with `maxConcurrentRequestCount` above 3 slows down. If prefetching has to keep up with fast scrolling, restore it:
 

@@ -11,8 +11,6 @@ extension ImageDecoders {
         public let isProgressive: Bool
         public let assetType: AssetType?
 
-        public var isAsynchronous: Bool { false }
-
         /// Initializes the decoder.
         ///
         /// - parameters:

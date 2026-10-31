@@ -201,9 +201,10 @@ struct ImagePipelinePreviewPolicyTests {
         _ = try await task.image
     }
 
-    /// The preview is decoded on the pipeline's actor and the final image on
-    /// the decoding queue, by a decoder created from the first chunk.
-    @Test @ImagePipelineActor func gifPreviewArrivesBeforeTheAnimationParsedOnTheDecodingQueue() async throws {
+    /// Both are decoded on the decoding queue, by a decoder created from the
+    /// first chunk. A preview that the final image overtakes is dropped, so
+    /// whichever arrive are in order.
+    @Test @ImagePipelineActor func gifPreviewNeverArrivesAfterTheAnimation() async throws {
         // GIVEN
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "cat", extension: "gif"),
@@ -215,8 +216,6 @@ struct ImagePipelinePreviewPolicyTests {
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
         }
-        let queue = pipeline.configuration.imageDecodingQueue
-        let recorder = TaskQueueObserver(queue: queue)
 
         // WHEN
         let task = pipeline.imageTask(with: Test.url)
@@ -230,8 +229,8 @@ struct ImagePipelinePreviewPolicyTests {
         }
 
         // THEN
-        #expect(events == ["preview(animation: false)", "image(animation: true)"])
-        #expect(recorder.operations.count == 1)
+        #expect(events.last == "image(animation: true)")
+        #expect(events.dropLast().allSatisfy { $0 == "preview(animation: false)" })
     }
 
     @Test func gifWithDisabledPolicyDeliversNoPreviews() async throws {
@@ -330,9 +329,9 @@ struct ImagePipelinePreviewPolicyTests {
 
     @Test func previewPolicyIsReevaluatedOnlyWhenTheDataDoubles() async throws {
         // GIVEN a policy that never resolves to anything other than `.disabled`
-        // and data served in 20 chunks of the same size. The default decoder
-        // looks at partial data on the pipeline's actor, so no chunk is
-        // skipped while another one is being decoded.
+        // and data served in 20 chunks of the same size, each after the
+        // previous one was decoded: a chunk that arrives during a decode is
+        // skipped.
         let delegate = MockPreviewPolicyDelegate(policy: .disabled)
         let dataLoader = MockAutoDataLoader(
             data: Test.data(name: "progressive", extension: "jpeg"),
@@ -400,14 +399,18 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
                   completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        let chunks = Array(_createChunks(for: data, size: data.count / chunkCount))
+        var chunks = Array(_createChunks(for: data, size: data.count / chunkCount))[...]
         let response = urlResponse
-        DispatchQueue.main.async {
-            for chunk in chunks {
-                didReceiveData(chunk, response)
+        // The pipeline decodes a chunk on its decoding queue and skips the ones
+        // that arrive meanwhile, so a chunk waits for the previous one's decode.
+        nonisolated(unsafe) func serve() {
+            guard let chunk = chunks.popFirst() else {
+                return completion(nil)
             }
-            completion(nil)
+            didReceiveData(chunk, response)
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(5), execute: serve)
         }
+        DispatchQueue.main.async(execute: serve)
         return AnonymousCancellable {}
     }
 }

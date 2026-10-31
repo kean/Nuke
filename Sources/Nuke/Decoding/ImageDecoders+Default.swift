@@ -46,15 +46,6 @@ extension ImageDecoders {
         let isAnimatedImageParsingEnabled: Bool
         private let lock = NSLock()
 
-        /// Returns `true` when thumbnail decoding is requested, because
-        /// thumbnail generation requires reading image dimensions from disk and
-        /// must run on the decoding queue rather than blocking the pipeline queue.
-        ///
-        /// The final decode of an animation runs on the decoding queue as well,
-        /// which the pipeline finds out for each decode: the data this property
-        /// would have to look at isn't complete until the last one.
-        public var isAsynchronous: Bool { thumbnail != nil }
-
         /// Initializes the decoder with default settings.
         public init() {
             self.scale = 1.0
@@ -70,23 +61,6 @@ extension ImageDecoders {
             self.thumbnail = context.request.thumbnail
             self.previewPolicy = context.previewPolicy
             self.isAnimatedImageParsingEnabled = context.isAnimatedImageParsingEnabled
-        }
-
-        /// Returns `true` if the final decode walks every frame of an animation.
-        /// That can't happen on the pipeline's actor: a parse takes as long as the
-        /// file has frames, and every image load in the process waits for it.
-        ///
-        /// It's asked of each decode, not at `init`, because the decoder of a
-        /// progressive download is created from the first chunk, and a preview
-        /// stays synchronous so that the final decode doesn't overtake it.
-        func parsesAnimation(in context: ImageDecodingContext) -> Bool {
-            guard context.isCompleted, thumbnail == nil, isAnimatedImageParsingEnabled else {
-                return false
-            }
-            // Every completed decode asks, and most of them are JPEGs. No format
-            // that animates starts with this byte, so they skip the sniff.
-            let data = context.data
-            return data.first != 0xFF && AssetType.isAnimated(data, type: AssetType(data))
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
@@ -112,9 +86,8 @@ extension ImageDecoders {
             if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
                 // The sniff reads a header; this walks the delay of every frame,
-                // so it runs here – once per image, on the decoding queue, which
-                // `parsesAnimation(in:)` sees to – rather than in every view
-                // that displays it.
+                // so it runs here – once per image, on the decoding queue – rather
+                // than in every view that displays it.
                 if isAnimatedImageParsingEnabled {
                     container.animation = AnimatedImageSource(data: data)
                 }

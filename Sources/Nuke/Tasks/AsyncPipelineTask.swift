@@ -46,10 +46,9 @@ extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
     ///
-    /// If the decoding is scheduled on the decoding queue, the operation is
-    /// stored in ``AsyncTask/operation`` – it also serves as a back-pressure
-    /// flag for the progressive decoding – and is cleared before the completion
-    /// is called, so the callers never see a stale handle.
+    /// The operation is stored in ``AsyncTask/operation`` – it also serves as a
+    /// back-pressure flag for the progressive decoding – and is cleared before
+    /// the completion is called, so the callers never see a stale handle.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping @ImagePipelineActor (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         if let decoder = decoder as? any AsyncImageDecoding {
             let stage = diagnostics?.beginStage(.decode, queued: true)
@@ -75,14 +74,6 @@ extension AsyncPipelineTask {
             let result: Result<ImageResponse, ImagePipeline.Error> = Result { try decoder.decode(context) }
                 .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
             return (result, start.map { (ContinuousClock.now - $0).timeInterval })
-        }
-        let isAsynchronous = decoder.isAsynchronous
-            || (decoder as? ImageDecoders.Default)?.parsesAnimation(in: context) == true
-        guard isAsynchronous else {
-            let stage = diagnostics?.beginStage(.decode)
-            let (result, workDuration) = decode()
-            diagnostics?.endDecodeStage(stage, result: result, decoder: decoder, context: context, workDuration: workDuration)
-            return completion(result)
         }
         let stage = diagnostics?.beginStage(.decode, queued: true)
         operation = pipeline.configuration.imageDecodingQueue.add(priority: priority) { [weak self] in

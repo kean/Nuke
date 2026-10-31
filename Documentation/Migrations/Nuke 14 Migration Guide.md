@@ -604,6 +604,33 @@ if status.result == nil, !status.isCancelled {
 }
 ```
 
+## Every Decode Runs on `imageDecodingQueue`
+
+`ImageDecoding.isAsynchronous` is removed. The pipeline used to decode on its own actor when a decoder said `false`, and every image load in the process waited for the decode. Now no decode runs there, whatever the decoder.
+
+A decoder that still declares the property compiles, and the pipeline ignores it. Calling it is an error.
+
+```swift
+// Nuke 13
+struct PixDecoder: ImageDecoding {
+    var isAsynchronous: Bool { false }
+    func decode(_ data: Data) throws -> ImageContainer { /* ... */ }
+}
+
+// Nuke 14
+struct PixDecoder: ImageDecoding {
+    func decode(_ data: Data) throws -> ImageContainer { /* ... */ }
+}
+```
+
+A decode that took microseconds now waits for a free slot of `imageDecodingQueue`, which has two. Behind a slow decode, such as an animation with many frames, a quick one waits too. If that matters, give the pipeline a queue with more slots:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 4)
+}
+```
+
 ## Changed Defaults
 
 These compile without changes. Most apps have nothing to do, but they do change what the pipeline does.
@@ -623,7 +650,7 @@ These compile without changes. Most apps have nothing to do, but they do change 
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
-A custom decoder with `isAsynchronous` set to `true` can now run alongside another one, so state it shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
+Two decoders can now run at the same time, so state that a custom decoder shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
 
 ```swift
 ImagePipeline.shared = ImagePipeline {

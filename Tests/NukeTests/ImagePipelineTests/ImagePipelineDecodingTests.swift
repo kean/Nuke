@@ -184,72 +184,57 @@ struct ImagePipelineDecodingTests {
         #expect(response.container.animation != nil)
     }
 
-    /// A still image costs little to decode, and a hop to the queue would be
-    /// what it spends the most time on.
-    @Test @ImagePipelineActor func stillImageSkipsTheDecodingQueue() async throws {
+    /// Not only an animation: a decoder can't be trusted to be quick, and a
+    /// decode on the pipeline's actor would hold up every image load.
+    @Test @ImagePipelineActor func stillImageIsDecodedOnTheDecodingQueue() async throws {
         // Given
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
         // When
-        let response = try await pipeline.imageTask(with: Test.url).response
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: Test.url)
+        await expectation.wait(timeout: .seconds(5))
 
         // Then
-        #expect(response.container.type == .jpeg)
-        #expect(queue.operationCount == 0)
-    }
-
-    /// The decision is per decode because the decoder of a progressive download
-    /// is created from the first chunk, and a preview has to stay synchronous:
-    /// otherwise the final decode overtakes it.
-    @Test func onlyTheFinalDecodeOfAnAnimationLeavesTheActor() throws {
-        // Given
-        let gif = Test.data(name: "cat", extension: "gif")
-        let decoder = try #require(ImageDecoders.Default(context: .mock(data: gif.prefix(1000), isCompleted: false)))
-
-        // Then
-        #expect(!decoder.parsesAnimation(in: .mock(data: gif.prefix(1000), isCompleted: false)))
-        #expect(decoder.parsesAnimation(in: .mock(data: gif)))
+        #expect(expectation.operations.count == 1)
+        queue.isSuspended = false
+        #expect(try await task.response.container.type == .jpeg)
     }
 
     @Test func thumbnailOfAnAnimationParsesNothing() throws {
         // Given
         let gif = Test.data(name: "cat", extension: "gif")
         let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 100) }
-        let context = ImageDecodingContext(request: request, data: gif)
-        let decoder = try #require(ImageDecoders.Default(context: context))
+        let decoder = try #require(ImageDecoders.Default(context: ImageDecodingContext(request: request, data: gif)))
 
-        // Then it's on the queue, where it's already asynchronous
-        #expect(decoder.isAsynchronous)
-        #expect(!decoder.parsesAnimation(in: context))
+        // Then
+        #expect(try decoder.decode(gif).animation == nil)
     }
 
-    /// Every completed decode asks, so the answer has to come from a header.
     @Test(arguments: [
         ("fixture", "jpeg", false), ("fixture", "png", false), ("baseline", "webp", false), ("img_751", "heic", false),
         ("cat", "gif", true), ("animated", "webp", true), ("animated", "avif", true)
-    ]) func parsesAnimationOnlyWhenTheDataHoldsOne(fixture: (name: String, extension: String, isAnimated: Bool)) throws {
+    ]) func animationIsParsedOnlyWhenTheDataHoldsOne(fixture: (name: String, extension: String, isAnimated: Bool)) throws {
         // Given
         let data = Test.data(name: fixture.name, extension: fixture.extension)
-        let decoder = ImageDecoders.Default()
 
         // Then
-        #expect(decoder.parsesAnimation(in: .mock(data: data)) == fixture.isAnimated)
+        let animation = try ImageDecoders.Default().decode(data).animation
+        #expect((animation != nil) == fixture.isAnimated)
     }
 
-    @Test @ImagePipelineActor func animationSkipsTheDecodingQueueWhenParsingIsDisabled() async throws {
+    @Test @ImagePipelineActor func animationIsNotParsedWhenParsingIsDisabled() async throws {
         // Given
         dataLoader.results[Test.url] = .success((Test.data(name: "cat", extension: "gif"), Test.urlResponse))
         let pipeline = pipeline.reconfigured { $0.isAnimatedImageParsingEnabled = false }
-        let queue = pipeline.configuration.imageDecodingQueue
-        queue.isSuspended = true
 
         // When
         let response = try await pipeline.imageTask(with: Test.url).response
 
         // Then
         #expect(response.container.animation == nil)
-        #expect(queue.operationCount == 0)
+        #expect(response.container.data != nil)
     }
 
     // MARK: - Async Decoders (Previews)

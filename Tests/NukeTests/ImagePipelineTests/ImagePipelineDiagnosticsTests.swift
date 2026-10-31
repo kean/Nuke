@@ -187,8 +187,7 @@ struct ImagePipelineDiagnosticsTests {
         #expect(decode.format == "jpeg")
         #expect(decode.pixels == .init(width: 640, height: 480))
         #expect(decode.isProgressive == false)
-        // `ImageDecoders.Default` decodes on the actor: Image I/O is lazy.
-        #expect(decode.queuedAt == nil)
+        #expect(decode.queuedAt != nil)
         let workDuration = try #require(decode.workDuration)
         let duration = try #require(decode.duration)
         #expect(workDuration <= duration)

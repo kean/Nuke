@@ -51,10 +51,6 @@ struct NukePixDecoder: ImageDecoding {
         }
     }
 
-    /// `false`: a few kilobytes of runs decode in microseconds, on the
-    /// pipeline's actor, with no hop to the decoding queue.
-    var isAsynchronous: Bool { false }
-
     func decode(_ data: Data) throws -> ImageContainer {
         let bytes = [UInt8](data)
         guard bytes.count >= 8 else {

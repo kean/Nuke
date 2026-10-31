@@ -97,6 +97,12 @@ extension DataCache {
     public func flush(for key: String) { fatalError() }
 }
 
+extension ImageDecoding {
+    // A decoder that still declares it compiles, and the pipeline ignores it.
+    @available(*, unavailable, message: "Removed in Nuke 14. Every decode runs on `imageDecodingQueue`, so delete the property.")
+    public var isAsynchronous: Bool { fatalError() }
+}
+
 extension ImagePipeline {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
     nonisolated public func imagePublisher(with url: URL) -> Never { fatalError() }
