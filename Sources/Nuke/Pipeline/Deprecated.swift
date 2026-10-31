@@ -89,6 +89,14 @@ extension ImageDecodingContext {
     }
 }
 
+extension DataCache {
+    @available(*, unavailable, message: "Removed in Nuke 14. The disk I/O runs on a private queue. To wait for it, use `await flush()`.")
+    public var queue: DispatchQueue { fatalError() }
+
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `await flush()`, which writes everything that's staged.")
+    public func flush(for key: String) { fatalError() }
+}
+
 extension ImagePipeline {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
     nonisolated public func imagePublisher(with url: URL) -> Never { fatalError() }
