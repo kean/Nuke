@@ -350,7 +350,7 @@ final class AnimationLabModel {
         options.scale = animation.poster.scale
         options.isSynchronizationEnabled = isSynchronized
         nextCellID += 1
-        return Cell(id: nextCellID, animation: animation, player: AnimatedImagePlayer(source: animation.source, options: options))
+        return Cell(id: nextCellID, animation: animation, player: AnimatedImagePlayer(animation: animation.source, options: options))
     }
 }
 

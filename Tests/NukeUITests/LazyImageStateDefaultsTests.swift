@@ -24,7 +24,7 @@ struct LazyImageStateDefaultsTests {
         let state = StaticState()
         #expect(state.image == nil)
         #expect(state.error == nil)
-        #expect(state.animatedImage == nil)
+        #expect(state.animation == nil)
     }
 
     @Test func imageIsReadFromTheContainerEvenWithoutAResult() {
@@ -34,10 +34,10 @@ struct LazyImageStateDefaultsTests {
         #expect(state.error == nil)
     }
 
-    @Test func animatedImageIsReadFromTheContainer() {
+    @Test func animationIsReadFromTheContainer() {
         let source = Test.animatedGIFSource(frameCount: 3)
         let container = ImageContainer(image: Test.image, animation: source)
         let state = StaticState(imageContainer: container)
-        #expect(state.animatedImage === source)
+        #expect(state.animation === source)
     }
 }

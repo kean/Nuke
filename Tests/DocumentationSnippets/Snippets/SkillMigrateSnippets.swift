@@ -132,7 +132,7 @@ private func keepStills() {
 @MainActor
 private func play(_ response: ImageResponse, in imageView: AnimatedImageView) {
     if let animation = response.container.animation {
-        imageView.animatedImage = animation
+        imageView.animation = animation
     }
 }
 
@@ -140,7 +140,7 @@ private func play(_ response: ImageResponse, in imageView: AnimatedImageView) {
 private func playOriginal(url: URL, in imageView: AnimatedImageView) async throws {
     let response = try await ImagePipeline.shared.imageTask(with: ImageRequest(url: url)).response
     if let animation = response.container.animation {
-        imageView.animatedImage = animation
+        imageView.animation = animation
     }
 }
 

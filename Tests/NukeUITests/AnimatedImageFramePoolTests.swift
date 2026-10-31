@@ -339,7 +339,7 @@ struct AnimatedImageFramePoolTests {
         let center = NotificationCenter()
         let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
         let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
-        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        let player = AnimatedImagePlayer(animation: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
         player.play()
         #expect(player.diagnostics.bufferCapacity == 8)
 
@@ -353,7 +353,7 @@ struct AnimatedImageFramePoolTests {
         let center = NotificationCenter()
         let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
         let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
-        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        let player = AnimatedImagePlayer(animation: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
         player.play()
         pool.reduceMemoryUsage() // With a grace period of a minute
         #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
@@ -368,7 +368,7 @@ struct AnimatedImageFramePoolTests {
         let center = NotificationCenter()
         let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
         let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
-        var player: AnimatedImagePlayer? = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        var player: AnimatedImagePlayer? = AnimatedImagePlayer(animation: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
         player?.play()
         await player?.waitUntilFull()
 
@@ -421,7 +421,7 @@ struct AnimatedImageFramePoolTests {
         let source = Test.animatedGIFSource(frameCount: 4, size: Self.frameSize)
         let count = AnimatedImageFramePool.shared.playerCount
 
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
 
         #expect(AnimatedImageFramePool.shared.playerCount == count + 1)
         #expect(player.diagnostics.bufferByteLimit > 0)

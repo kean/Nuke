@@ -90,7 +90,7 @@ struct AnimatedImageViewTests {
         display(Test.animatedGIF())
 
         let player = try #require(view.player)
-        #expect(player.source.frameCount == 4)
+        #expect(player.animation.frameCount == 4)
         await player.waitUntilFull()
         #expect(view.image != nil)
     }
@@ -99,7 +99,7 @@ struct AnimatedImageViewTests {
         display(nil)
 
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         #expect(view.image != nil)
     }
 
@@ -131,7 +131,7 @@ struct AnimatedImageViewTests {
 
         let second = try #require(view.player)
         #expect(first !== second)
-        #expect(second.source.frameCount == 6)
+        #expect(second.animation.frameCount == 6)
         #expect(first.isPlaying == false)
     }
 
@@ -155,10 +155,10 @@ struct AnimatedImageViewTests {
     @Test func keepsThePlayerWhenTheSameSourceIsSetAgain() throws {
         layOut(CGSize(width: 100, height: 100))
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        view.animatedImage = source
+        view.animation = source
         let player = try #require(view.player)
 
-        view.animatedImage = source
+        view.animation = source
 
         #expect(view.player === player)
     }
@@ -171,7 +171,7 @@ struct AnimatedImageViewTests {
         view.prepareForReuse()
 
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         #expect(view.image == nil)
         #expect(player.isPlaying == false)
     }
@@ -211,7 +211,7 @@ struct AnimatedImageViewTests {
         #expect(view.image === placeholder)
         #expect(view.isPlaying == false)
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         host.close()
     }
 
@@ -244,13 +244,13 @@ struct AnimatedImageViewTests {
         view.display(nil)
 
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         #expect(view.image == nil)
     }
 
     @Test func settingAnImageForgetsAnAnimationWaitingForASize() {
-        view.animatedImage = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
-        #expect(view.animatedImage != nil)
+        view.animation = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
+        #expect(view.animation != nil)
         let still = Test.image
 
         view.image = still
@@ -259,25 +259,25 @@ struct AnimatedImageViewTests {
         // The first layout would otherwise build a player for the animation
         // and paint it over the still.
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         #expect(view.image === still)
     }
 
     @Test func prepareForReuseForgetsAnAnimationWaitingForASize() {
         display(Test.animatedGIF(size: CGSize(width: 200, height: 200)))
-        #expect(view.animatedImage != nil)
+        #expect(view.animation != nil)
 
         view.prepareForReuse()
         layOut(CGSize(width: 20, height: 20))
 
         #expect(view.player == nil)
-        #expect(view.animatedImage == nil)
+        #expect(view.animation == nil)
         #expect(view.image == nil)
     }
 
     @Test func newOptionsApplyFromTheNextAnimation() throws {
         layOut(CGSize(width: 100, height: 100))
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         let first = try #require(view.player)
 
         view.playerOptions.playbackRate = 2
@@ -285,7 +285,7 @@ struct AnimatedImageViewTests {
         #expect(view.player === first)
         #expect(first.options.playbackRate == 1)
 
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.player !== first)
         #expect(view.player?.options.playbackRate == 2)
@@ -293,7 +293,7 @@ struct AnimatedImageViewTests {
 
     @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
         await player.waitUntilFull()
         view.player = player
 
@@ -301,7 +301,7 @@ struct AnimatedImageViewTests {
 
         #expect(view.image != nil)
         #expect(view.player === player)
-        #expect(view.animatedImage === source)
+        #expect(view.animation === source)
     }
 
     // MARK: Downsampling
@@ -362,7 +362,7 @@ struct AnimatedImageViewTests {
         // thrown away at the first layout. A frame of a large animation is a
         // decode and a bitmap the size of the whole canvas, per cell.
         #expect(view.player == nil)
-        #expect(view.animatedImage != nil)
+        #expect(view.animation != nil)
 
         layOut(CGSize(width: 20, height: 20))
 
@@ -453,7 +453,7 @@ struct AnimatedImageViewTests {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF(frameCount: 2, size: CGSize(width: 400, height: 400))))
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 32
-        let player = AnimatedImagePlayer(source: source, options: options)
+        let player = AnimatedImagePlayer(animation: source, options: options)
         view.player = player
 
         layOut(CGSize(width: 200, height: 200))
@@ -515,7 +515,7 @@ struct AnimatedImageViewTests {
 #else
             view.contentMode = mode
 #endif
-            view.animatedImage = source
+            view.animation = source
 
             let player = try #require(view.player)
             #expect(player.options.maxPixelSize == expected, "\(mode.rawValue)")
@@ -527,10 +527,10 @@ struct AnimatedImageViewTests {
         // each cell would decode the animation at a size of its own.
         let source = Test.animatedGIFSource(frameCount: 2, size: CGSize(width: 400, height: 400))
         layOut(CGSize(width: 20, height: 20))
-        view.animatedImage = source
+        view.animation = source
         let other = AnimatedImageView(frame: CGRect(x: 0, y: 0, width: 20.4, height: 20.4))
 
-        other.animatedImage = source
+        other.animation = source
 
         let size = try #require(view.player?.options.maxPixelSize)
         #expect(size.truncatingRemainder(dividingBy: 32) == 0)
@@ -568,11 +568,11 @@ struct AnimatedImageViewTests {
     }
 
     @Test func aPlayerItIsGivenWinsOverAnAnimationWaitingForASize() throws {
-        view.animatedImage = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
+        view.animation = Test.animatedGIFSource(size: CGSize(width: 200, height: 200))
         // Larger than the view, so that a layout still waiting would derive a
         // size for it and build a downsampled player in place of this one.
         let source = Test.animatedGIFSource(size: CGSize(width: 400, height: 400))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
 
         view.player = player
         layOut(CGSize(width: 20, height: 20))
@@ -580,7 +580,7 @@ struct AnimatedImageViewTests {
         // The layout that was going to build a player for the animation
         // waiting on it finds one it was handed instead.
         #expect(view.player === player)
-        #expect(view.animatedImage === source)
+        #expect(view.animation === source)
     }
 
     @Test func aSizeOfYourOwnWins() async throws {
@@ -597,14 +597,14 @@ struct AnimatedImageViewTests {
     // MARK: Playback and Visibility
 
     @Test func doesNotPlayOutsideAWindow() {
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.isPlaying == false)
     }
 
     @Test func playsOnceItIsInAWindow() {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
         host.close()
@@ -612,7 +612,7 @@ struct AnimatedImageViewTests {
 
     @Test func pausesWhenItLeavesTheWindow() {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         view.removeFromSuperview()
@@ -623,7 +623,7 @@ struct AnimatedImageViewTests {
 
     @Test func releasesTheBufferWhenItLeavesTheWindow() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
@@ -637,7 +637,7 @@ struct AnimatedImageViewTests {
 
     @Test func keepsTheBufferWhenPlaybackIsPausedInPlace() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
 
@@ -651,7 +651,7 @@ struct AnimatedImageViewTests {
 
     @Test func pausesWhileHidden() {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         view.isHidden = true
@@ -665,7 +665,7 @@ struct AnimatedImageViewTests {
 
     @Test func pausesWhileFullyTransparent() {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         #expect(view.isPlaying)
 
         setOpacity(0)
@@ -679,7 +679,7 @@ struct AnimatedImageViewTests {
 
     @Test func keepsPlayingWhileBarelyVisible() {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         setOpacity(0.01)
 
@@ -692,7 +692,7 @@ struct AnimatedImageViewTests {
         let host = TestWindow(view: view)
         view.isHidden = true
 
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.isPlaying == false)
         host.close()
@@ -700,7 +700,7 @@ struct AnimatedImageViewTests {
 
     @Test func releasesTheBufferWhenItIsHidden() async throws {
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         await player.waitUntilFull()
         #expect(player.diagnostics.bufferedFrameCount == 8)
@@ -714,7 +714,7 @@ struct AnimatedImageViewTests {
     @Test func playsOutsideAWindowWhenAsked() {
         layOut(CGSize(width: 100, height: 100))
         view.isPlaybackPausedWhenOffscreen = false
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
     }
@@ -724,7 +724,7 @@ struct AnimatedImageViewTests {
         view.isPlaybackPausedWhenOffscreen = false
         view.isHidden = true
 
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
 
         #expect(view.isPlaying)
         host.close()
@@ -733,7 +733,7 @@ struct AnimatedImageViewTests {
     @Test func playbackCanBeDisabled() {
         let host = TestWindow(view: view)
         view.isPlaybackEnabled = false
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         #expect(view.isPlaying == false)
 
         view.isPlaybackEnabled = true
@@ -747,7 +747,7 @@ struct AnimatedImageViewTests {
         // each one is a still, not a window of decoded frames.
         let host = TestWindow(view: view)
         view.isPlaybackEnabled = false
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
 
         await player.waitUntilFull()
@@ -764,11 +764,11 @@ struct AnimatedImageViewTests {
         // memory: nothing is left to decode, and no poster to fall back on.
         let host = TestWindow(view: view)
         let source = Test.animatedGIFSource(frameCount: 8)
-        let other = AnimatedImagePlayer(source: source)
+        let other = AnimatedImagePlayer(animation: source)
         await other.waitUntilFull()
 
         view.isPlaybackEnabled = false
-        view.animatedImage = source
+        view.animation = source
 
         #expect(view.image != nil)
         #expect(view.image === view.player?.image)
@@ -779,7 +779,7 @@ struct AnimatedImageViewTests {
         // A cell that scrolls off screen and back: the same player, on the
         // frame it stopped on, with its window of frames back.
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         player.seek(toFrame: 5)
         let superview = try #require(view.superview)
@@ -798,7 +798,7 @@ struct AnimatedImageViewTests {
 
     @Test func startsPlayingOutsideAWindowWhenToldTo() async throws {
         layOut(CGSize(width: 100, height: 100))
-        view.animatedImage = Test.animatedGIFSource(frameCount: 8)
+        view.animation = Test.animatedGIFSource(frameCount: 8)
         let player = try #require(view.player)
         #expect(view.isPlaying == false)
 
@@ -816,17 +816,17 @@ struct AnimatedImageViewTests {
 
     @Test func adoptsAPlayerItIsGiven() throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
 
         view.player = player
 
-        #expect(view.animatedImage === source)
+        #expect(view.animation === source)
         #expect(view.player === player)
     }
 
     @Test func displaysTheFramesOfThePlayerItIsGiven() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
         await player.waitUntilFull()
 
         view.player = player
@@ -837,7 +837,7 @@ struct AnimatedImageViewTests {
 
     @Test func leavesTheFrameHandlerOfThePlayerItIsGivenAlone() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
         var frames = 0
         player.onFrame = { _ in frames += 1 }
 
@@ -852,7 +852,7 @@ struct AnimatedImageViewTests {
 
     @Test func keepsTheFrameHandlerOfAPlayerItHasLetGoOf() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: source)
         var frames = 0
         player.onFrame = { _ in frames += 1 }
         view.player = player
@@ -868,10 +868,10 @@ struct AnimatedImageViewTests {
     }
 
     @Test func stopsShowingTheFramesOfAPlayerItHasLetGoOf() async throws {
-        let first = AnimatedImagePlayer(source: Test.animatedGIFSource())
+        let first = AnimatedImagePlayer(animation: Test.animatedGIFSource())
         await first.waitUntilFull()
         view.player = first
-        let second = AnimatedImagePlayer(source: Test.animatedGIFSource(frameCount: 6))
+        let second = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 6))
         await second.waitUntilFull()
         view.player = second
         let shown = try #require(view.image)
@@ -910,7 +910,7 @@ struct AnimatedImageViewTests {
         #expect(view.accessibilityIgnoresInvertColors)
 #endif
         let host = TestWindow(view: view)
-        view.animatedImage = Test.animatedGIFSource()
+        view.animation = Test.animatedGIFSource()
         #expect(view.isPlaying)
         host.close()
     }

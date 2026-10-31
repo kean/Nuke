@@ -28,17 +28,14 @@ public protocol LazyImageState {
     /// `NukeUI` no longer has a progress type of its own: `FetchImage.Progress`
     /// is a deprecated typealias for it.
     var progress: ImageTask.Progress { get }
+}
 
+extension LazyImageState {
     /// Returns the fetched image as an animation, if it is one.
     ///
     /// Pass it to ``AnimatedImage`` to play it. The value is `nil` for every
     /// image that isn't animated, which is the signal to display ``image``.
-    var animatedImage: AnimatedImageSource? { get }
-}
-
-extension LazyImageState {
-    /// The animation the pipeline parsed while it decoded the image.
-    public var animatedImage: AnimatedImageSource? {
+    public var animation: AnimatedImageSource? {
         imageContainer?.animation
     }
 

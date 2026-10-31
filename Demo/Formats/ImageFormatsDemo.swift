@@ -97,7 +97,7 @@ private enum ImageFormat: CaseIterable, Identifiable {
         case .png: "Transparency is preserved"
         case .webp: "Supported natively since iOS 14"
         case .heic: "A photo as an iPhone camera writes it"
-        case .gif: "state.animatedImage, played by NukeUI"
+        case .gif: "state.animation, played by NukeUI"
         case .apng: "The default LazyImage content plays animations on its own"
         }
     }
@@ -146,8 +146,8 @@ private struct ImageFormatTile: View {
         switch format {
         case .gif:
             LazyImage(request: request) { state in
-                if let animatedImage = state.animatedImage {
-                    AnimatedImage(animatedImage).resizable().scaledToFill()
+                if let animation = state.animation {
+                    AnimatedImage(animation).resizable().scaledToFill()
                 } else if let image = state.image {
                     image.resizable().scaledToFill()
                 } else {

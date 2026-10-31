@@ -53,7 +53,7 @@ struct LazyImageRequestLifecycleTests {
         // The default content plays the animation instead of showing the still,
         // and is never blank: the still is on screen until the first frame is.
         let animatedView = try #require(host.firstView(ofType: AnimatedImageView.self))
-        #expect(animatedView.animatedImage?.frameCount == 3)
+        #expect(animatedView.animation?.frameCount == 3)
         #expect(animatedView.image != nil)
 
         // A still image that replaces it leaves no player behind.

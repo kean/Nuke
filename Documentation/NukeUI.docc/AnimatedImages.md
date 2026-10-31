@@ -32,7 +32,7 @@ LazyImage(url: url) { state in
 }
 ```
 
-``AnimatedImage/init(container:)`` returns `nil` for everything that isn't animated, which is the signal to display the still image. It also carries the still the decoder produced, which holds the place until the first frame is decoded – without one the view is blank every time an animation appears. ``LazyImageState/animatedImage`` is the animation on its own, for a view you build yourself.
+``AnimatedImage/init(container:)`` returns `nil` for everything that isn't animated, which is the signal to display the still image. It also carries the still the decoder produced, which holds the place until the first frame is decoded – without one the view is blank every time an animation appears. ``LazyImageState/animation`` is the animation on its own, for a view you build yourself.
 
 Like `Image`, ``AnimatedImage`` displays at its natural size until you call ``AnimatedImage/resizable()``, and it lays out the way an `Image` does after that – `scaledToFit()`, `scaledToFill()`, `frame(width:height:)`, and the rest.
 
@@ -62,7 +62,7 @@ The view plays only while it is in a window, so an animation in a cell that scro
 Create the player yourself when you want to control it – or read its diagnostics:
 
 ```swift
-let player = AnimatedImagePlayer(source: source)
+let player = AnimatedImagePlayer(animation: animation)
 player.play()
 ```
 

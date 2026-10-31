@@ -141,7 +141,7 @@ enum AnimatedImageTest {
         power: AnimatedImagePowerMonitor = AnimatedImagePowerMonitor(isThrottling: false)
     ) -> (player: AnimatedImagePlayer, clock: ManualClock) {
         let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: options, clock: clock, pool: pool, power: power, decoder: decoder)
+        let player = AnimatedImagePlayer(animation: source, options: options, clock: clock, pool: pool, power: power, decoder: decoder)
         return (player, clock)
     }
 

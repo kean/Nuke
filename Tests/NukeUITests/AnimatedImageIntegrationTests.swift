@@ -33,8 +33,8 @@ struct AnimatedImageIntegrationTests {
 
         try await load(image)
 
-        let animatedImage = try #require(image.animatedImage)
-        #expect(animatedImage.frameCount == 5)
+        let animation = try #require(image.animation)
+        #expect(animation.frameCount == 5)
         #expect(image.imageContainer?.data != nil)
     }
 
@@ -47,7 +47,7 @@ struct AnimatedImageIntegrationTests {
 
         // Reading it twice returns the value parsed when the response arrived,
         // not a fresh parse of the container.
-        #expect(image.animatedImage === image.animatedImage)
+        #expect(image.animation === image.animation)
     }
 
     @Test func fetchImageHasNoAnimationForAStillImage() async throws {
@@ -58,7 +58,7 @@ struct AnimatedImageIntegrationTests {
         try await load(image)
 
         #expect(image.imageContainer != nil)
-        #expect(image.animatedImage == nil)
+        #expect(image.animation == nil)
     }
 
     @Test func fetchImageClearsTheAnimationOnReset() async throws {
@@ -66,11 +66,11 @@ struct AnimatedImageIntegrationTests {
         let image = FetchImage()
         image.pipeline = pipeline
         try await load(image)
-        #expect(image.animatedImage != nil)
+        #expect(image.animation != nil)
 
         image.reset()
 
-        #expect(image.animatedImage == nil)
+        #expect(image.animation == nil)
     }
 
     @Test func fetchImageHasTheAnimationTheMomentTheResponseArrives() async throws {
@@ -86,7 +86,7 @@ struct AnimatedImageIntegrationTests {
         image.load(Test.request)
         await expectation.wait()
 
-        #expect(image.animatedImage?.frameCount == 18)
+        #expect(image.animation?.frameCount == 18)
     }
 
     // MARK: Processing
@@ -102,7 +102,7 @@ struct AnimatedImageIntegrationTests {
         try await load(image)
 
         #expect(image.imageContainer != nil)
-        #expect(image.animatedImage == nil)
+        #expect(image.animation == nil)
     }
 
     // MARK: LazyImageView
@@ -134,7 +134,7 @@ struct AnimatedImageIntegrationTests {
         layOut(view)
 
         let player = try #require(view.imageView.player)
-        #expect(player.source.frameCount == 3)
+        #expect(player.animation.frameCount == 3)
     }
 
     @Test func lazyImageViewShowsStillImagesAsStills() async throws {
