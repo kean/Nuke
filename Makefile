@@ -1,6 +1,9 @@
-.PHONY: ci ci-list test build lint spm snippets help
+.PHONY: ci ci-list test test-one build lint spm snippets help
 
 CI := bash .scripts/ci.sh
+
+SCHEME ?= Nuke
+PLATFORM ?= macOS
 
 ## Run every CI job (build, test, lint) for every scheme and platform
 ci:
@@ -17,6 +20,10 @@ ci-%:
 ## Run all unit tests (iOS, tvOS, macOS)
 test:
 	@$(CI) test
+
+## Run one test and print how many ran, e.g. make test-one TEST=ImageRequestTests/testInit [SCHEME=NukeUI] [PLATFORM=iOS]
+test-one:
+	@bash .scripts/test-one.sh "$(TEST)" "$(SCHEME)" "$(PLATFORM)"
 
 ## Compile every scheme for every platform (no tests)
 build:
