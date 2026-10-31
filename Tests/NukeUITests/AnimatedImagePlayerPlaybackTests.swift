@@ -75,7 +75,7 @@ struct AnimatedImagePlayerPlaybackTests {
         let data = Test.animatedGIF(frameCount: 3, loopCount: nil)
         let source = try #require(AnimatedImageSource(data: data))
         let clock = ManualClock()
-        let player = AnimatedImagePlayer(source: source, options: .init(), clock: clock, pool: pool, power: noThrottling)
+        let player = AnimatedImagePlayer(animation: source, options: .init(), clock: clock, pool: pool, power: noThrottling)
         player.play()
         await player.waitUntilFull()
 
@@ -400,7 +400,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // WHEN its frames are decoded again at another size
         var options = AnimatedImagePlayer.Options()
         options.maxPixelSize = 4
-        let player = AnimatedImagePlayer(source: previous.source, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
+        let player = AnimatedImagePlayer(animation: previous.animation, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
         player.resume(from: previous)
 
         // THEN it is the same animation, in the same place
@@ -421,7 +421,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
         // WHEN it is taken over at another size
         options.maxPixelSize = 4
-        let player = AnimatedImagePlayer(source: previous.source, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
+        let player = AnimatedImagePlayer(animation: previous.animation, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
         player.resume(from: previous)
 
         // THEN a view that grows doesn't play an animation that was over
@@ -445,11 +445,11 @@ struct AnimatedImagePlayerPlaybackTests {
         let source = Test.animatedGIFSource(frameCount: 8)
         var options = AnimatedImagePlayer.Options()
         options.maxBufferSize = 8 * source.bytesPerFrame
-        let whole = AnimatedImagePlayer(source: source, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
+        let whole = AnimatedImagePlayer(animation: source, options: options, clock: ManualClock(), pool: pool, power: noThrottling)
         whole.play()
 
         options.maxBufferSize = 8 * source.bytesPerFrame - 1
-        let sliding = AnimatedImagePlayer(source: Test.animatedGIFSource(frameCount: 8), options: options, clock: ManualClock(), pool: pool, power: noThrottling)
+        let sliding = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 8), options: options, clock: ManualClock(), pool: pool, power: noThrottling)
         sliding.play()
 
         #expect(whole.diagnostics.isFullyBuffered)
@@ -468,16 +468,16 @@ struct AnimatedImagePlayerPlaybackTests {
         full.play()
         downsampled.play()
 
-        #expect(full.diagnostics.bufferByteLimit == full.diagnostics.bufferCapacity * full.source.bytesPerFrame)
-        #expect(downsampled.diagnostics.bufferByteLimit == downsampled.diagnostics.bufferCapacity * downsampled.source.bytesPerFrame / 4)
+        #expect(full.diagnostics.bufferByteLimit == full.diagnostics.bufferCapacity * full.animation.bytesPerFrame)
+        #expect(downsampled.diagnostics.bufferByteLimit == downsampled.diagnostics.bufferCapacity * downsampled.animation.bytesPerFrame / 4)
     }
 
     @Test func countsThePlayersSharingItsFrames() {
         let source = Test.animatedGIFSource(frameCount: 4)
-        let first = AnimatedImagePlayer(source: source, options: .init(), clock: ManualClock(), pool: pool, power: noThrottling)
+        let first = AnimatedImagePlayer(animation: source, options: .init(), clock: ManualClock(), pool: pool, power: noThrottling)
         #expect(first.diagnostics.sharingPlayerCount == 1)
 
-        var second: AnimatedImagePlayer? = AnimatedImagePlayer(source: source, options: .init(), clock: ManualClock(), pool: pool, power: noThrottling)
+        var second: AnimatedImagePlayer? = AnimatedImagePlayer(animation: source, options: .init(), clock: ManualClock(), pool: pool, power: noThrottling)
         #expect(first.diagnostics.sharingPlayerCount == 2)
         #expect(second?.diagnostics.sharingPlayerCount == 2)
 
@@ -554,7 +554,7 @@ struct AnimatedImagePlayerPlaybackTests {
         weak var weakPlayer: AnimatedImagePlayer?
         do {
             let source = Test.animatedGIFSource(frameCount: 4)
-            let player = AnimatedImagePlayer(source: source, options: .init(), clock: clock, pool: pool, power: noThrottling)
+            let player = AnimatedImagePlayer(animation: source, options: .init(), clock: clock, pool: pool, power: noThrottling)
             player.play()
             await player.waitUntilFull()
             weakPlayer = player
@@ -574,7 +574,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // player built through the public initializer gets – a display link on
         // UIKit, a timer on AppKit – however late its ticks arrive.
         let source = Test.animatedGIFSource(frameCount: 4, delays: Array(repeating: 0.05, count: 4))
-        let player = AnimatedImagePlayer(source: source, options: .init(), clock: makeAnimatedImageClock(), pool: pool, power: noThrottling)
+        let player = AnimatedImagePlayer(animation: source, options: .init(), clock: makeAnimatedImageClock(), pool: pool, power: noThrottling)
         await player.waitUntilFull()
 
         let shown: [Int] = await withCheckedContinuation { continuation in
@@ -613,7 +613,7 @@ struct AnimatedImagePlayerPlaybackTests {
     /// The pixel the frame of the player's animation at the given index reads
     /// back as.
     private static func framePixel(at index: Int, of player: AnimatedImagePlayer) -> [UInt8]? {
-        let frame = CGImageSourceCreateImageAtIndex(player.source.makeImageSource()!, index, nil)!
+        let frame = CGImageSourceCreateImageAtIndex(player.animation.makeImageSource()!, index, nil)!
         return Test.firstPixel(of: frame)
     }
 }

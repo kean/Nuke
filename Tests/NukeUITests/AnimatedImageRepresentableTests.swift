@@ -39,7 +39,7 @@ struct AnimatedImageRepresentableTests {
         await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player != nil })
 
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
-        #expect(view.animatedImage === source)
+        #expect(view.animation === source)
         #expect(view.image === poster)
 
         for index in 0..<4 { await decoder.release(index) }
@@ -62,7 +62,7 @@ struct AnimatedImageRepresentableTests {
         let source = Test.animatedGIFSource(size: CGSize(width: 40, height: 20))
         var options = AnimatedImagePlayer.Options()
         options.scale = 2
-        let player = AnimatedImagePlayer(source: source, options: options)
+        let player = AnimatedImagePlayer(animation: source, options: options)
         let expected = CGSize(width: 20, height: 10)
 
         let host = ViewHost(player) { AnimatedImage(player: $0) }
@@ -97,10 +97,10 @@ struct AnimatedImageRepresentableTests {
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         let replaced = try #require(view.player)
 
-        await host.update(second, until: { view.player?.source === second })
+        await host.update(second, until: { view.player?.animation === second })
 
         #expect(host.firstView(ofType: AnimatedImageView.self) === view)
-        #expect(view.player?.source === second)
+        #expect(view.player?.animation === second)
         #expect(replaced.isPlaying == false)
     }
 
@@ -145,7 +145,7 @@ struct AnimatedImageRepresentableTests {
 
         await host.update(secondPoster)
 
-        #expect(view.animatedImage === source)
+        #expect(view.animation === source)
         #expect(view.image === frame)
     }
 

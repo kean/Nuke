@@ -120,7 +120,7 @@ func loadDemoAnimations(
             // `AnimatedImageView` does this for the players it makes; without
             // it the animation changes size when it takes over from the still.
             options.scale = poster.scale
-            let player = AnimatedImagePlayer(source: source, options: options)
+            let player = AnimatedImagePlayer(animation: source, options: options)
             player.play()
             load.animations.append(DemoLoadedAnimation(
                 id: index,
@@ -263,7 +263,7 @@ struct DemoDiagnosticsPanel: View {
                 DemoDiagnosticsRow("decode", "\(demoMilliseconds(diagnostics.lastDecodeDuration)) · \(demoMilliseconds(diagnostics.averageDecodeDuration)) avg · \(demoMilliseconds(diagnostics.maxDecodeDuration)) max")
             }
             VStack(spacing: 4) {
-                DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.source.nominalFrameRate)) · \(frameRatePercent)%")
+                DemoDiagnosticsRow("fps", "\(rate(diagnostics.effectiveFrameRate)) of \(rate(player.animation.nominalFrameRate)) · \(frameRatePercent)%")
                 DemoDiagnosticsRow("shown", "\(diagnostics.displayedFrameCount) frames in \(demoSeconds(diagnostics.playbackTime))")
                 DemoDiagnosticsRow(
                     "late",
@@ -286,7 +286,7 @@ struct DemoDiagnosticsPanel: View {
     }
 
     private var currentDelay: TimeInterval {
-        let delays = player.source.delays
+        let delays = player.animation.delays
         return delays.indices.contains(diagnostics.currentFrameIndex) ? delays[diagnostics.currentFrameIndex] : 0
     }
 
@@ -297,7 +297,7 @@ struct DemoDiagnosticsPanel: View {
     /// The frame rate as a share of the one the animation asks for. Below a
     /// hundred means the animation is being stretched.
     private var frameRatePercent: Int {
-        let nominal = player.source.nominalFrameRate
+        let nominal = player.animation.nominalFrameRate
         guard nominal > 0 else { return 0 }
         return min(999, Int((diagnostics.effectiveFrameRate / nominal * 100).rounded()))
     }
@@ -305,9 +305,9 @@ struct DemoDiagnosticsPanel: View {
     /// The canvas the animation declares, and – when the frames are being
     /// scaled down – the size they are actually decoded at, with the scale.
     private var size: String {
-        let canvas = demoPixels(player.source.size)
+        let canvas = demoPixels(player.animation.size)
         guard let decodedSize else { return "\(canvas) px" }
-        let scale = decodedSize.width / max(1, player.source.size.width)
+        let scale = decodedSize.width / max(1, player.animation.size.width)
         return "\(canvas) → \(demoPixels(decodedSize)) px · \(Int((scale * 100).rounded()))%"
     }
 
@@ -334,7 +334,7 @@ struct DemoDiagnosticsPanel: View {
     private var decodedSize: CGSize? {
         guard let image = player.image?.cgImage else { return nil }
         let size = CGSize(width: image.width, height: image.height)
-        return size == player.source.size ? nil : size
+        return size == player.animation.size ? nil : size
     }
 
     /// What one frame costs in memory. Measured off the buffer when it holds
@@ -342,7 +342,7 @@ struct DemoDiagnosticsPanel: View {
     /// doesn't know about.
     private var bytesPerDecodedFrame: Int {
         guard diagnostics.bufferedFrameCount > 0 else {
-            return player.source.bytesPerFrame
+            return player.animation.bytesPerFrame
         }
         return diagnostics.bufferedByteCount / diagnostics.bufferedFrameCount
     }
@@ -490,7 +490,7 @@ struct DemoAnimationDetails: View {
     }
 
     private var source: AnimatedImageSource {
-        player.source
+        player.animation
     }
 
     private var format: String {

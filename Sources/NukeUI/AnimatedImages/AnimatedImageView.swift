@@ -25,10 +25,10 @@ import UIKit
 /// ImageLoader.load(url, into: imageView)
 /// ```
 ///
-/// Set ``animatedImage`` to play an image you already have:
+/// Set ``animation`` to play an image you already have:
 ///
 /// ```swift
-/// imageView.animatedImage = AnimatedImageSource(data: data)
+/// imageView.animation = AnimatedImageSource(data: data)
 /// ```
 ///
 /// The view plays only while it is on screen – in a window, not hidden, not
@@ -41,15 +41,15 @@ public final class AnimatedImageView: _PlatformImageView {
     ///
     /// Setting it replaces the current animation and starts playing, unless
     /// ``isPlaybackEnabled`` is off.
-    public var animatedImage: AnimatedImageSource? {
-        get { player?.source ?? sourcePendingDownsampling }
-        set { setAnimatedImage(newValue, scale: scale(of: image)) }
+    public var animation: AnimatedImageSource? {
+        get { player?.animation ?? animationPendingDownsampling }
+        set { setAnimation(newValue, scale: scale(of: image)) }
     }
 
-    /// The player driving ``animatedImage``, or `nil` when there is nothing to
+    /// The player driving ``animation``, or `nil` when there is nothing to
     /// play.
     ///
-    /// A new one is created every time ``animatedImage`` is set, or at the
+    /// A new one is created every time ``animation`` is set, or at the
     /// first layout for a view that has no size to decode the frames for yet.
     /// Assign your own to control playback from outside the view or to read
     /// ``AnimatedImagePlayer/diagnostics``; the view starts and stops it as it
@@ -59,7 +59,7 @@ public final class AnimatedImageView: _PlatformImageView {
             guard oldValue !== player else { return }
             // A player set from outside wins over anything on its way, and is
             // not one the view may replace when it grows.
-            sourcePendingDownsampling = nil
+            animationPendingDownsampling = nil
             ownsPlayer = false
             oldValue?.pause()
             oldValue?.onFrameForDisplay = nil
@@ -80,9 +80,9 @@ public final class AnimatedImageView: _PlatformImageView {
 
     /// The animation the view is waiting for a size to decode the frames at.
     ///
-    /// It is what ``animatedImage`` reports until the player exists, and what
+    /// It is what ``animation`` reports until the player exists, and what
     /// the layout pass builds the player from.
-    private var sourcePendingDownsampling: AnimatedImageSource?
+    private var animationPendingDownsampling: AnimatedImageSource?
 
     /// Whether ``player`` is one the view made, and so one it may replace when
     /// the view outgrows the size its frames were decoded for. A player set
@@ -91,7 +91,7 @@ public final class AnimatedImageView: _PlatformImageView {
 
     /// The options the view creates its players with.
     ///
-    /// Changing them takes effect the next time ``animatedImage`` is set.
+    /// Changing them takes effect the next time ``animation`` is set.
     public var playerOptions = AnimatedImagePlayer.Options()
 
     /// Whether animations play. `true` by default.
@@ -184,12 +184,12 @@ public final class AnimatedImageView: _PlatformImageView {
     ///
     /// Setting it stops the animation and forgets it: an animation left
     /// playing would paint over the new image on its next frame. Set
-    /// ``animatedImage`` to play a new one, or ``isPlaybackEnabled`` to hold
+    /// ``animation`` to play a new one, or ``isPlaybackEnabled`` to hold
     /// the one that is playing still.
     override public var image: PlatformImage? {
         get { super.image }
         set {
-            animatedImage = nil
+            animation = nil
             super.image = newValue
         }
     }
@@ -212,7 +212,7 @@ public final class AnimatedImageView: _PlatformImageView {
         let poster = container?.image
         // Passed in rather than read back from the view: `self.image` is still
         // whatever the view was showing before this call.
-        setAnimatedImage(container?.animation, scale: scale(of: poster))
+        setAnimation(container?.animation, scale: scale(of: poster))
         // Only while there is no frame to cover, so that an animation already
         // on screen doesn't flash its poster.
         if player?.image == nil {
@@ -233,7 +233,7 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
 
     private func reset() {
-        animatedImage = nil
+        animation = nil
         image = nil
     }
 
@@ -259,14 +259,14 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
 
     private func applyAutomaticDownsamplingIfNeeded() {
-        guard let source = animatedImage else { return }
+        guard let source = animation else { return }
         let derived = automaticMaxPixelSize(for: source)
         // A size worth having is one the animation is actually bigger than.
         var maxPixelSize = derived
         if let size = maxPixelSize, size >= max(source.size.width, source.size.height) {
             maxPixelSize = nil
         }
-        if sourcePendingDownsampling != nil {
+        if animationPendingDownsampling != nil {
             // Nothing to derive a size from – the view has none, or its content
             // mode draws the frames as they are – and a player already playing
             // them at full size. Keep waiting, in case the content mode changes.
@@ -278,7 +278,7 @@ public final class AnimatedImageView: _PlatformImageView {
         }
         setPlayer(for: source, scale: player?.options.scale ?? scale(of: image), maxPixelSize: maxPixelSize)
         // Set after the player, whose `didSet` clears it.
-        sourcePendingDownsampling = maxPixelSize == nil ? source : nil
+        animationPendingDownsampling = maxPixelSize == nil ? source : nil
     }
 
     /// Whether the view has grown far enough past the size its frames were
@@ -444,8 +444,8 @@ public final class AnimatedImageView: _PlatformImageView {
 
     // MARK: Private
 
-    private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
-        guard animatedImage !== source else { return }
+    private func setAnimation(_ source: AnimatedImageSource?, scale: CGFloat?) {
+        guard animation !== source else { return }
         let maxPixelSize: CGFloat? = if let source { automaticMaxPixelSize(for: source) } else { nil }
         let isPending = source != nil && maxPixelSize == nil && wantsAutomaticDownsampling
         // A view with no size of its own has nothing to decode for yet, and a
@@ -453,7 +453,7 @@ public final class AnimatedImageView: _PlatformImageView {
         // full-size frame it never shows. Wait for the layout instead.
         if isPending, bounds.width == 0 || bounds.height == 0 {
             player = nil
-            sourcePendingDownsampling = source
+            animationPendingDownsampling = source
 #if os(macOS)
             needsLayout = true
 #else
@@ -463,7 +463,7 @@ public final class AnimatedImageView: _PlatformImageView {
         }
         setPlayer(for: source, scale: scale, maxPixelSize: maxPixelSize)
         // Set after the player, whose `didSet` clears it.
-        sourcePendingDownsampling = isPending ? source : nil
+        animationPendingDownsampling = isPending ? source : nil
     }
 
     private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {
@@ -484,12 +484,12 @@ public final class AnimatedImageView: _PlatformImageView {
         // Built with a clock of the view's, which is what gets a display link
         // out of AppKit: there, one is asked of the view being drawn into
         // rather than made out of nothing.
-        let player = AnimatedImagePlayer(source: source, options: options, clock: makeAnimatedImageClock(for: self))
+        let player = AnimatedImagePlayer(animation: source, options: options, clock: makeAnimatedImageClock(for: self))
         // Decoding the frames again at another size is not a new animation: a
         // view that grows carries on from the frame it was showing, in the
         // loop it was on. Read before the assignment below, which is what lets
         // go of the player it reads.
-        if let previous = self.player, previous.source === source {
+        if let previous = self.player, previous.animation === source {
             player.resume(from: previous)
         }
         self.player = player

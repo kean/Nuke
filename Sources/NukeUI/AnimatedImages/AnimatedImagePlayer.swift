@@ -19,7 +19,7 @@ import AppKit
 /// bounded number of them in memory, and hands them to a view on time.
 ///
 /// ```swift
-/// let player = AnimatedImagePlayer(source: source)
+/// let player = AnimatedImagePlayer(animation: animation)
 /// player.onFrame = { imageView.image = $0 }
 /// player.play()
 /// ```
@@ -37,7 +37,7 @@ import AppKit
 @MainActor
 public final class AnimatedImagePlayer: ObservableObject {
     /// The image being played.
-    public let source: AnimatedImageSource
+    public let animation: AnimatedImageSource
 
     /// The options the player was created with.
     public let options: Options
@@ -90,7 +90,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// decoded at the size it is decoded at, or every frame when the player
     /// has no ceiling of its own.
     private var affordableFrameCount: Int {
-        guard let maxBufferSize = options.maxBufferSize, store.bytesPerFrame > 0 else { return source.frameCount }
+        guard let maxBufferSize = options.maxBufferSize, store.bytesPerFrame > 0 else { return animation.frameCount }
         return maxBufferSize / store.bytesPerFrame
     }
 
@@ -104,25 +104,25 @@ public final class AnimatedImagePlayer: ObservableObject {
     private var counters = Counters()
 
     /// Creates a player for the given image.
-    public convenience init(source: AnimatedImageSource, options: Options = Options()) {
-        self.init(source: source, options: options, clock: makeAnimatedImageClock())
+    public convenience init(animation: AnimatedImageSource, options: Options = Options()) {
+        self.init(animation: animation, options: options, clock: makeAnimatedImageClock())
     }
 
     init(
-        source: AnimatedImageSource,
+        animation: AnimatedImageSource,
         options: Options,
         clock: any AnimatedImageClock,
         pool: AnimatedImageFramePool = .shared,
         power: AnimatedImagePowerMonitor = .shared,
         decoder: (any AnimatedImageFrameDecoding)? = nil
     ) {
-        self.source = source
+        self.animation = animation
         self.options = options
         self.clock = clock
         self.pool = pool
         self.power = power
         self.store = pool.store(
-            for: source,
+            for: animation,
             maxPixelSize: options.maxPixelSize,
             transform: options.frameTransform,
             decoder: decoder
@@ -192,7 +192,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// itself appears as soon as it is ready. A player that has played all of
     /// its loops can be seeked and played again.
     public func seek(toFrame index: Int) {
-        let index = min(max(0, index), source.frameCount - 1)
+        let index = min(max(0, index), animation.frameCount - 1)
         // Assigned on every seek, whether or not it changes: a `@Published`
         // property publishes on assignment, and this is what publishes the
         // move to observers. `currentFrameIndex` can't do it itself without
@@ -256,7 +256,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// square of the number of players drawing from the animation.
     func bufferCapacity(windowLength: Int) -> Int {
         let granted = min(windowLength, wantedFrameCount)
-        let capacity = granted >= source.frameCount ? granted : min(granted, Self.readAheadFrameCount + 1)
+        let capacity = granted >= animation.frameCount ? granted : min(granted, Self.readAheadFrameCount + 1)
         return max(Self.idleFrameCount, capacity)
     }
 
@@ -268,7 +268,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     var wantedFrameCount: Int {
         guard keepsFullBuffer, !pool.isUnderMemoryPressure else { return Self.idleFrameCount }
         let affordable = affordableFrameCount
-        guard affordable < source.frameCount else { return source.frameCount }
+        guard affordable < animation.frameCount else { return animation.frameCount }
         return max(Self.idleFrameCount, min(Self.readAheadFrameCount + 1, affordable))
     }
 
@@ -280,7 +280,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
     /// `true` when the player is claiming the frame at the given index.
     func wants(_ index: Int) -> Bool {
-        (index - currentFrameIndex + source.frameCount) % source.frameCount < bufferCapacity
+        (index - currentFrameIndex + animation.frameCount) % animation.frameCount < bufferCapacity
     }
 
     /// What a player holds while nobody is watching, and the floor for every
@@ -319,7 +319,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// A snapshot of what the player is doing.
     public var diagnostics: Diagnostics {
         var diagnostics = Diagnostics()
-        diagnostics.frameCount = source.frameCount
+        diagnostics.frameCount = animation.frameCount
         diagnostics.currentFrameIndex = currentFrameIndex
         diagnostics.completedLoopCount = completedLoopCount
         diagnostics.bufferedFrameCount = store.decodedFrameCount(in: window)
@@ -377,7 +377,7 @@ public final class AnimatedImagePlayer: ObservableObject {
 
         var advanced = false
         var didLoop = false
-        while elapsed >= source.delays[currentFrameIndex] {
+        while elapsed >= animation.delays[currentFrameIndex] {
             guard let next = nextFrameIndex else {
                 finish()
                 break
@@ -395,7 +395,7 @@ public final class AnimatedImagePlayer: ObservableObject {
                 }
                 break
             }
-            let remainder = elapsed - source.delays[currentFrameIndex]
+            let remainder = elapsed - animation.delays[currentFrameIndex]
             didLoop = advance(to: next) || didLoop
             // What is left of a tick that came on time carries over, so that a
             // 70 ms frame on a 50 ms clock averages 70 ms and not 100. What is
@@ -419,7 +419,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// the last one of the last loop.
     private var nextFrameIndex: Int? {
         let next = currentFrameIndex + 1
-        guard next >= source.frameCount else { return next }
+        guard next >= animation.frameCount else { return next }
         if let limit = loopLimit, completedLoopCount + 1 >= limit {
             return nil
         }
@@ -451,7 +451,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// The number of loops to play, or `nil` for "forever".
     private var loopLimit: Int? {
         switch options.loopCount {
-        case .image: source.loopCount > 0 ? source.loopCount : nil
+        case .image: animation.loopCount > 0 ? animation.loopCount : nil
         case .infinite: nil
         case .finite(let count): max(1, count)
         }
@@ -513,7 +513,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// while the animation is playing.
     func updateClockRate() {
         let isThrottling = options.isPowerThrottlingEnabled && power.isThrottling
-        clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: source, options: options, isThrottling: isThrottling)
+        clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: animation, options: options, isThrottling: isThrottling)
     }
 
     /// The rate to run the clock at, or `0` to let it use its own.
@@ -529,9 +529,9 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// is clamped to it rather than dropped: a fast animation is deliberately
     /// run on a clock too coarse for it, which stretches its frames by up to a
     /// tick and skips none. See ``Options/isPowerThrottlingEnabled``.
-    private static func preferredFrameRate(for source: AnimatedImageSource, options: Options, isThrottling: Bool) -> Double {
+    private static func preferredFrameRate(for animation: AnimatedImageSource, options: Options, isThrottling: Bool) -> Double {
         let ceiling: Double = isThrottling ? 30 : 60
-        guard let shortest = source.delays.min(), shortest > 0 else {
+        guard let shortest = animation.delays.min(), shortest > 0 else {
             return isThrottling ? ceiling : 0
         }
         let ticksPerSecond = (1 / shortest) * max(options.playbackRate, 1) * 2

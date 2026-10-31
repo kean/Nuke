@@ -26,8 +26,8 @@ private struct AnimatedContentView: View {
 
     var body: some View {
         LazyImage(url: url) { state in
-            if let animatedImage = state.animatedImage {
-                AnimatedImage(animatedImage).resizable().scaledToFill()
+            if let animation = state.animation {
+                AnimatedImage(animation).resizable().scaledToFill()
             } else if let image = state.image {
                 image.resizable().scaledToFill()
             } else {
@@ -71,8 +71,8 @@ private func downsample(_ imageView: AnimatedImageView) {
 // MARK: - Controlling Playback
 
 @MainActor
-private func makePlayer(source: AnimatedImageSource) -> AnimatedImagePlayer {
-    let player = AnimatedImagePlayer(source: source)
+private func makePlayer(animation: AnimatedImageSource) -> AnimatedImagePlayer {
+    let player = AnimatedImagePlayer(animation: animation)
     player.play()
     return player
 }

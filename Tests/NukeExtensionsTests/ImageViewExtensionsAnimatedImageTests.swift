@@ -31,7 +31,7 @@ struct ImageViewExtensionsAnimatedImageTests {
         layOut(view)
 
         let player = try #require(view.player)
-        #expect(player.source.frameCount == 3)
+        #expect(player.animation.frameCount == 3)
     }
 
     @Test func loadImageIntoAnAnimatedImageViewShowsAStillAsAStill() async throws {

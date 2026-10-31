@@ -129,7 +129,7 @@ if response.container.type == .gif, let data = response.container.data {
 
 // Nuke 14
 if let animation = response.container.animation {
-    imageView.animatedImage = animation
+    imageView.animation = animation
 }
 ```
 
@@ -152,7 +152,7 @@ gifView.animate(withGIFData: response.container.data!) // Now `nil`
 // Nuke 14
 let response = try await ImagePipeline.shared.imageTask(with: ImageRequest(url: url)).response
 if let animation = response.container.animation {
-    imageView.animatedImage = animation
+    imageView.animation = animation
 }
 ```
 

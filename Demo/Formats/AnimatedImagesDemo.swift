@@ -248,7 +248,7 @@ struct AnimatedImagesDemo: View {
     /// The animation at the given zoom, in points, rounded so that a change
     /// that doesn't move a pixel doesn't count as one.
     private func displaySize(of animation: DemoLoadedAnimation, in canvas: CGSize, zoom: DisplayZoom) -> CGSize {
-        let size = animation.player.source.size
+        let size = animation.player.animation.size
         guard size.width > 0, size.height > 0, canvas.width > 0, canvas.height > 0 else {
             return .zero
         }
@@ -272,7 +272,7 @@ struct AnimatedImagesDemo: View {
     /// The zoom in effect, read off what is drawn so that "fit" has a number.
     private var zoomScale: Double {
         guard let animation, displayedSize.width > 0 else { return 1 }
-        let size = animation.player.source.size
+        let size = animation.player.animation.size
         guard size.width > 0 else { return 1 }
         return displayedSize.width / size.width * max(animation.player.options.scale, 1)
     }
@@ -321,7 +321,7 @@ struct AnimatedImagesDemo: View {
                     HStack {
                         Text("Image")
                         Spacer(minLength: 8)
-                        DemoMonoLabel("\(infos[image]?.formatName ?? image.title) · \(animation.player.source.frameCount) frames · \(demoSeconds(animation.player.source.duration))")
+                        DemoMonoLabel("\(infos[image]?.formatName ?? image.title) · \(animation.player.animation.frameCount) frames · \(demoSeconds(animation.player.animation.duration))")
                             .lineLimit(1)
                     }
                 }
@@ -394,7 +394,7 @@ struct AnimatedImagesDemo: View {
     /// Computed from the setting rather than measured, so it answers before
     /// the player is built.
     private var frameSizeEffect: String {
-        guard let source = animation?.player.source else { return " " }
+        guard let source = animation?.player.animation else { return " " }
         let canvas = source.size
         let longest = max(canvas.width, canvas.height)
         let maxPixelSize = settings.maxPixelSize(viewPixelSize: viewPixelSize) ?? longest
@@ -440,7 +440,7 @@ struct AnimatedImagesDemo: View {
         animation = load.animations.first
         status = load.status
         sample()
-        if infos[image] == nil, let source = load.animations.first?.player.source {
+        if infos[image] == nil, let source = load.animations.first?.player.animation {
             infos[image] = await DemoAnimationInfo.parse(source)
         }
     }
@@ -453,7 +453,7 @@ struct AnimatedImagesDemo: View {
     /// Wraps around either end.
     private func step(by delta: Int) {
         guard let player = animation?.player else { return }
-        let count = player.source.frameCount
+        let count = player.animation.frameCount
         scrub(to: (player.currentFrameIndex + delta + count) % count)
     }
 
@@ -590,7 +590,7 @@ struct AnimatedImagesDemo: View {
         LazyImage(url: url)
 
         // Or, for control and diagnostics
-        let player = AnimatedImagePlayer(source: source)
+        let player = AnimatedImagePlayer(animation: animation)
         AnimatedImage(player: player, poster: response.image)
         """,
         points: [

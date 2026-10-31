@@ -49,7 +49,7 @@ struct AnimatedImageFrameDecodingTests: AnimatedImagePoolSuite {
         player.play()
         await player.waitUntilFull()
 
-        #expect(player.source.frameCount == 4)
+        #expect(player.animation.frameCount == 4)
         #expect(Test.firstPixel(of: player.image) == flipbook.frames[0].pixel)
 
         // And it goes on playing: the frames are windowed and handed over on
