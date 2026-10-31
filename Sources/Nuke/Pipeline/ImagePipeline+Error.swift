@@ -6,6 +6,9 @@ import Foundation
 
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable {
         // The cases that carry a decoding or processing context are `indirect`:
         // stored inline, the context would make every error – and every `Result`

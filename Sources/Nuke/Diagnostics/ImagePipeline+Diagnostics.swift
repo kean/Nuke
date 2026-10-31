@@ -115,6 +115,9 @@ extension ImagePipeline.Diagnostics {
         public internal(set) var stages: [Stage] = []
 
         /// The kind of work a job performs.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             /// Produces the processed, decompressed image the request asks for.
             case loadImage
@@ -211,6 +214,9 @@ extension ImagePipeline.Diagnostics {
         public internal(set) var urlSessionMetrics: URLSessionMetrics?
 
         /// The kind of work a stage performs.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             case memoryLookup
             case diskLookup
@@ -230,6 +236,9 @@ extension ImagePipeline.Diagnostics {
         }
 
         /// The result of a cache lookup.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum LookupResult: String, Sendable, ImageDiagnosticsStringEnum {
             case hit
             case miss
@@ -315,6 +324,9 @@ extension ImagePipeline.Diagnostics {
         }
 
         /// `URLSessionTaskMetrics.ResourceFetchType`.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum FetchType: String, Sendable, ImageDiagnosticsStringEnum {
             case networkLoad
             /// The `URLCache` of the session.
@@ -372,6 +384,9 @@ extension ImagePipeline.Diagnostics.URLSessionMetrics.Transaction {
 
 extension ImagePipeline.Diagnostics {
     /// How a task or a job ended.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Outcome: String, Sendable, ImageDiagnosticsStringEnum {
         case success
         case failure
@@ -380,6 +395,9 @@ extension ImagePipeline.Diagnostics {
     }
 
     /// Where an image or its data came from.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Source: String, Sendable, ImageDiagnosticsStringEnum {
         /// The memory cache (``ImageCaching``).
         case memory

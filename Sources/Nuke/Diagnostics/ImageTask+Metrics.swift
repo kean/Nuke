@@ -121,6 +121,9 @@ extension ImageTask {
         }
 
         /// The kind of a task.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum Kind: String, Sendable, ImageDiagnosticsStringEnum {
             /// The image loading methods, such as `imageTask(with:)`.
             case image
@@ -230,6 +233,9 @@ extension ImageTask.Metrics {
     /// a progressive decode that runs during the download it reads from, the
     /// time counts once, for the category declared first here. So the shares
     /// of a task always add up to its ``ImageTask/Metrics/duration``.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Category: String, Sendable, CaseIterable {
         /// A download, whatever it took its bytes from.
         case network
