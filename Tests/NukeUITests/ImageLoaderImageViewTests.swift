@@ -243,7 +243,7 @@ struct ImageLoaderImageViewTests {
         #expect(imageView.image === placeholder)
 
         // When
-        presentation.render(ImageLoader.State(event: .finished(.failure(error), isSync: true), result: .failure(error)), in: imageView)
+        presentation.render(ImageLoader.State(event: .finished(.failure(error), isSynchronous: true), result: .failure(error)), in: imageView)
 
         // Then
         #expect(imageView.image === failureImage)

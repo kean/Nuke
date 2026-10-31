@@ -1206,7 +1206,7 @@
 - `case started(ImageTask?)`: The load started a task, and the previous load is cancelled.
 - `case progress(ImageTask.Progress)`: The download progressed.
 - `case preview(ImageResponse)`: The pipeline produced a progressive preview, which is now the `State.imageContainer`.
-- `case finished(Result<ImageResponse, ImagePipeline.Error>, isSync: Bool)`: The load finished.
+- `case finished(Result<ImageResponse, ImagePipeline.Error>, isSynchronous: Bool)`: The load finished.
 - `case cancelled`: The load was cancelled with `ImageLoader.cancel()`, or its task was cancelled.
 - `case reset`: The state was cleared with `ImageLoader.reset()`.
 
