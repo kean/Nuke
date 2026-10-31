@@ -28,17 +28,28 @@ protocol ImageTaskSubscribers: AnyObject {
     /// The callers only ask whether there is one, so the walk stops at the
     /// first match instead of collecting the image tasks into an array.
     func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool
+
+    /// Calls `body` for every one of the image tasks.
+    func forEachImageTask(_ body: (ImageTask) -> Void)
 }
 
 extension ImageTask: ImageTaskSubscribers {
     func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
         predicate(self)
     }
+
+    func forEachImageTask(_ body: (ImageTask) -> Void) {
+        body(self)
+    }
 }
 
 extension AsyncTask: ImageTaskSubscribers {
     func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
         containsSubscriber { $0.containsImageTask(where: predicate) }
+    }
+
+    func forEachImageTask(_ body: (ImageTask) -> Void) {
+        forEachSubscriber { $0.forEachImageTask(body) }
     }
 }
 

@@ -221,10 +221,7 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             data = resumableData.data
             resumedDataCount = Int64(resumableData.data.count)
         } else if retryCount > 0 {
-            _ = containsSubscriber {
-                ($0 as? TaskFetchOriginalImage)?.originalDataDidStartOver()
-                return false // Reaches every subscriber
-            }
+            forEachSubscriber { ($0 as? TaskFetchOriginalImage)?.originalDataDidStartOver() }
         }
         resumableData = nil // Get rid of resumable data
 

@@ -38,6 +38,8 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
             return send(error: error)
         }
         let context = ImagePipeline.RetryContext(request: request, error: error, response: response, retryCount: retryCount, policy: policy)
+        // Replaces the attempt's own: it cancels the data task and saves the
+        // resumable data, and the attempt is over. The next one installs its own.
         onCancelled = { [weak self] in
             self?.retryTask?.cancel()
         }
@@ -80,13 +82,6 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
         retryCount += 1
         forEachImageTask { $0._didRetry() }
         start()
-    }
-
-    private func forEachImageTask(_ body: (ImageTask) -> Void) {
-        _ = containsImageTask {
-            body($0)
-            return false // Reaches every task
-        }
     }
 
     /// Returns the policy that allows the most retries among the requests that
