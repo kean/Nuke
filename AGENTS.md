@@ -25,6 +25,7 @@ make ci-macos                                   # One CI group; `make ci-list` l
 make snippets                                   # Compile the documentation samples
 make llms                                       # Regenerate llms.txt, llms-full.txt, and llms-api.txt (at the release)
 make release-check                              # Fail if those three are stale
+make docs                                       # Build the docs site in .build/docs. It deploys nothing
 make lint                                       # SwiftLint
 ```
 
