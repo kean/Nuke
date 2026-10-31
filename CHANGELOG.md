@@ -98,6 +98,11 @@ j4 loadImage [resize]               139.5 ms  ███████████�
 total                               140.9 ms                             finished at 17:24:14.818
 ```
 
+To see what the tasks are doing without changing any code, launch with `NUKE_DIAGNOSTICS_LOG=1`, and every task that finishes logs a line to the console. To find out why a task hasn't finished, `pipeline.diagnostics.snapshot()` reports the tasks in flight, the queues, and the memory cache, with diagnostics on or off, and `po ImagePipeline.shared.diagnostics` prints it at a breakpoint. The new Troubleshooting article explains what the lines mean.
+
+- Add `ImagePipeline/Configuration-swift.struct/isDiagnosticsLoggingEnabled`, which launching with `NUKE_DIAGNOSTICS_LOG` also sets, and `ImageTask/Metrics/summary`, the line it logs – https://github.com/kean/Nuke/pull/1048
+- Add `ImagePipeline/Diagnostics-swift.struct/snapshot()` – https://github.com/kean/Nuke/pull/1048
+
 ### ImageLoader
 
 `ImageLoader` in `NukeUI` loads images into `UIImageView` and `NSImageView`, or into any object that draws its state. It replaces `NukeExtensions`, which is now soft-deprecated.
@@ -138,6 +143,8 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 ```
 
 - Add the `nuke-migrate` and `nuke-optimize` skills – https://github.com/kean/Nuke/pull/1048
+- Add `llms.txt`, `llms-full.txt`, and `llms-api.txt`, generated from the articles, the skills, and the sources, and included in every checkout at the version it resolved – https://github.com/kean/Nuke/pull/1048
+- Add `AGENTS.md` and `make test-one` for working on Nuke itself – https://github.com/kean/Nuke/pull/1048
 
 ### Requirements
 
@@ -176,6 +183,9 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - `LazyImage/processors(_:)` with `nil` now keeps the request's own processors; pass `[]` to remove them. `nil` in `processors(_:)` and `priority(_:)` also takes back an earlier call – https://github.com/kean/Nuke/pull/1035
 - `LazyImageView/imageTask` is now read-only – https://github.com/kean/Nuke/pull/1039
 - `FetchImage/load(_:)` and `LazyImageView/request` keep the running task when they load the same image again, instead of restarting the download – https://github.com/kean/Nuke/pull/1043
+- `ImagePipeline/Error` and `DataLoader/Error` now conform to `LocalizedError`: `localizedDescription` returns their `description`, a technical English message, instead of a generic one – https://github.com/kean/Nuke/pull/1048
+- `ImagePipeline/Error` descriptions now say what was received, such as a `text/html` page sent with a `200`, along with a redacted URL – https://github.com/kean/Nuke/pull/1048
+- Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 
 ### Performance
 
@@ -230,6 +240,9 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - Add an article on using Nuke from Objective-C – https://github.com/kean/Nuke/pull/948
 - Fix the code samples in the SwiftUI, UIKit, Objective-C, and Performance articles, and compile them in CI – https://github.com/kean/Nuke/pull/955
 - Add an article on animated images and update the format documentation – https://github.com/kean/Nuke/pull/958
+- Add a Troubleshooting article – https://github.com/kean/Nuke/pull/1048
+- Fix the samples that drifted from the API in the image processing, SwiftUI, and caching articles, and in the `LazyImage` documentation – https://github.com/kean/Nuke/pull/1048
+- Correct the Performance Guide: thumbnails save peak memory on formats other than JPEG, not time – https://github.com/kean/Nuke/pull/1048
 
 # Nuke 13
 
