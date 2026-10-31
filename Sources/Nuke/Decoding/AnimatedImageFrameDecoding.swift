@@ -36,6 +36,25 @@ public protocol AnimatedImageFrameDecoding: Sendable {
     func decode(at index: Int) async -> CGImage?
 }
 
+/// What a frame decoder is being made for.
+///
+/// One decoder is made per animation and context, and shared by every player
+/// that asks for the same one.
+public struct AnimatedImageFrameDecodingContext: Sendable {
+    /// The longest side, in pixels, the frames may have, or `nil` for the size
+    /// the animation is stored at. Larger frames are scaled down.
+    public var maxPixelSize: CGFloat?
+
+    // A new field has to join `AnimatedImageFrameKey` in NukeUI too, next to
+    // `maxPixelSize` and the transform identifier. Players that differ in it
+    // want different frames, and the key is what keeps them from sharing.
+
+    /// Creates a context.
+    public init(maxPixelSize: CGFloat? = nil) {
+        self.maxPixelSize = maxPixelSize
+    }
+}
+
 /// Decodes the frames of an animated image with Image I/O, one at a time, off
 /// the main thread.
 ///

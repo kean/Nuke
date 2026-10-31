@@ -199,7 +199,7 @@ struct AnimatedImageSourceTests {
             delays: flipbook.delays,
             loopCount: flipbook.loopCount,
             size: flipbook.size,
-            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
         )
         let source = try #require(made)
 
@@ -220,7 +220,7 @@ struct AnimatedImageSourceTests {
             data: Data(),
             delays: [0, -1, 0.005, 0.2],
             size: CGSize(width: 8, height: 8),
-            makeFrameDecoder: { FlipbookFrameDecoder(Flipbook(data: Flipbook.encode())!, maxPixelSize: $0) }
+            makeFrameDecoder: { FlipbookFrameDecoder(Flipbook(data: Flipbook.encode())!, maxPixelSize: $0.maxPixelSize) }
         )
         let source = try #require(made)
 

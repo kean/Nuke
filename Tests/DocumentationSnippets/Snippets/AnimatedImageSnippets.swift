@@ -124,7 +124,7 @@ private struct WebPDecoder: ImageDecoding {
             delays: webp.delays,
             loopCount: webp.loopCount,
             size: webp.size,
-            makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0) }
+            makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0.maxPixelSize) }
         )
         return container
     }

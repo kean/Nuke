@@ -146,7 +146,7 @@ struct ImagePipelineFormatsTests {
         #expect(animation.loopCount == 2)
         #expect(response.container.data == data)
 
-        let decoder = animation.makeFrameDecoder(maxPixelSize: 4)
+        let decoder = animation.makeFrameDecoder(context: .init(maxPixelSize: 4))
         let frame = try #require(await decoder.decode(at: 1))
         #expect(frame.width == 4) // The size the frames were asked for
         #expect(await (decoder as? FlipbookFrameDecoder)?.requestedIndexes == [1])

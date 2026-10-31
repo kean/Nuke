@@ -516,7 +516,7 @@ final class AnimatedImageFrameStore {
         if let decoder { return decoder }
         guard let source else { return nil }
         let decoder = AnimatedImageFrameStore.transforming(
-            source.makeFrameDecoder(maxPixelSize: key.maxPixelSize),
+            source.makeFrameDecoder(context: AnimatedImageFrameDecodingContext(maxPixelSize: key.maxPixelSize)),
             with: transform
         )
         self.decoder = decoder

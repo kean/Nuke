@@ -41,7 +41,7 @@ struct AnimatedImageFrameDecodingTests: AnimatedImagePoolSuite {
             data: data,
             delays: flipbook.delays,
             size: flipbook.size,
-            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0) }
+            makeFrameDecoder: { FlipbookFrameDecoder(flipbook, maxPixelSize: $0.maxPixelSize) }
         )
         let source = try #require(made)
 
@@ -67,8 +67,8 @@ struct AnimatedImageFrameDecodingTests: AnimatedImagePoolSuite {
             data: Data(),
             delays: Array(repeating: 0.1, count: 4),
             size: CGSize(width: 64, height: 64),
-            makeFrameDecoder: { maxPixelSize in
-                sizes.append(maxPixelSize)
+            makeFrameDecoder: { context in
+                sizes.append(context.maxPixelSize)
                 return SolidColorFrameDecoder(id: "red", color: .red)
             }
         )
@@ -90,8 +90,8 @@ struct AnimatedImageFrameDecodingTests: AnimatedImagePoolSuite {
             data: Data(),
             delays: Array(repeating: 0.1, count: 4),
             size: CGSize(width: 8, height: 8),
-            makeFrameDecoder: { maxPixelSize in
-                sizes.append(maxPixelSize)
+            makeFrameDecoder: { context in
+                sizes.append(context.maxPixelSize)
                 return SolidColorFrameDecoder(id: "red", color: .red)
             }
         )
@@ -104,6 +104,36 @@ struct AnimatedImageFrameDecodingTests: AnimatedImagePoolSuite {
 
         #expect(sizes.values == [nil])
         #expect(second.diagnostics.decodedFrameCount == 0)
+    }
+
+    @Test func keysTheFramesOnTheContextTheDecoderIsMadeFor() async throws {
+        // A decoder produces what its context asks for, so the frames of two
+        // contexts are not interchangeable: the key has to tell them apart.
+        let contexts = LockedArray<AnimatedImageFrameDecodingContext>()
+        let made = AnimatedImageSource(
+            data: Data(),
+            delays: Array(repeating: 0.1, count: 4),
+            size: CGSize(width: 64, height: 64),
+            makeFrameDecoder: { context in
+                contexts.append(context)
+                return SolidColorFrameDecoder(id: "red", color: .red)
+            }
+        )
+        let source = try #require(made)
+        var small = AnimatedImagePlayer.Options()
+        small.maxPixelSize = 16
+        var large = AnimatedImagePlayer.Options()
+        large.maxPixelSize = 32
+
+        let first = makeIdlePlayer(source: source, options: small).player
+        await first.waitUntilFull()
+        let second = makeIdlePlayer(source: source, options: large).player
+        await second.waitUntilFull()
+
+        #expect(first.store.key.maxPixelSize == 16)
+        #expect(second.store.key.maxPixelSize == 32)
+        #expect(first.store !== second.store)
+        #expect(contexts.values.map(\.maxPixelSize) == [16, 32])
     }
 
     // MARK: Per-Frame Transform

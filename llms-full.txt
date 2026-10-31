@@ -1835,7 +1835,7 @@ struct WebPDecoder: ImageDecoding {
             delays: webp.delays,
             loopCount: webp.loopCount,
             size: webp.size,
-            makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0) }
+            makeFrameDecoder: { WebPFrameDecoder(webp, maxPixelSize: $0.maxPixelSize) }
         )
         return container
     }
@@ -1857,8 +1857,8 @@ actor WebPFrameDecoder: AnimatedImageFrameDecoding {
 A few things are worth knowing about how it is used:
 
 - **It is asked for one frame at a time, in playback order**, and stops being asked when the player's window of frames is full. Returning `nil` is remembered: a frame the decoder refuses is not asked for again, so a truncated animation plays the frames it has.
-- **It is made once per animation and size** – when the first view showing the animation needs a frame – and released with the last view. A decoder holds the container it reads from, which costs about what a decoded frame does, so that is where the indexing belongs, not in the closure that makes it.
-- **`maxPixelSize` is the longest side, in pixels, the frames are wanted at**, or `nil` for the size the animation is stored at. It comes from `AnimatedImagePlayer.Options.maxPixelSize`, and a decoder is expected to honor it: the player has budgeted memory for frames of that size.
+- **It is made once per animation and context** – when the first view showing the animation needs a frame – and released with the last view. A decoder holds the container it reads from, which costs about what a decoded frame does, so that is where the indexing belongs, not in the closure that makes it.
+- **The closure receives an `AnimatedImageFrameDecodingContext`.** Its `maxPixelSize` is the longest side, in pixels, the frames are wanted at, or `nil` for the size the animation is stored at. It comes from `AnimatedImagePlayer.Options.maxPixelSize`, and a decoder is expected to honor it: the player has budgeted memory for frames of that size.
 - **The player is on the main actor and awaits the frames.** Produce them on an actor or a queue of your own; an implementation isolated to the main actor decodes on it. An `actor`, as above, is the shape that gets this right by default.
 
 The frame count comes from `delays.count`, and the delays are corrected the same way the ones read from a container are: a missing or non-positive delay becomes 0.1 s, and so does a delay below 0.011 s. `AnimatedImageSource.init(data:delays:loopCount:size:makeFrameDecoder:)` returns `nil` for a single frame or an empty canvas, neither of which is something to play – attach nothing in that case and let the still image stand on its own.
