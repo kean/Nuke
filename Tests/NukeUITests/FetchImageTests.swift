@@ -30,6 +30,80 @@ struct FetchImageTests {
         self.image.pipeline = pipeline
     }
 
+    // MARK: Reload
+
+    @Test func reloadRetriesAFailedLoad() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        await image.loadAndWait(Test.request)
+        #expect(image.result?.isFailure == true)
+
+        // When
+        dataLoader.results[Test.url] = nil
+        await image.reloadAndWait()
+
+        // Then
+        #expect(image.result?.isSuccess == true)
+        #expect(image.image != nil)
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    @Test func reloadThroughTheStateOfTheViewRetriesAFailedLoad() async throws {
+        // Given the object that `LazyImage` passes to its content
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        await image.loadAndWait(Test.request)
+        let state: any LazyImageState = image
+
+        // When
+        dataLoader.results[Test.url] = nil
+        let completed = TestExpectation()
+        image.onCompletion = { _ in completed.fulfill() }
+        state.reload()
+        await completed.wait()
+
+        // Then
+        #expect(state.image != nil)
+    }
+
+    @Test func reloadRestartsACancelledLoad() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        image.load(Test.request)
+        image.cancel()
+        #expect(!image.isLoading)
+
+        // When
+        dataLoader.isSuspended = false
+        await image.reloadAndWait()
+
+        // Then
+        #expect(image.result?.isSuccess == true)
+    }
+
+    @Test func reloadKeepsTheRunningLoad() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let starts = EventCounter()
+        image.onStart = { _ in starts.increment() }
+        image.load(Test.request)
+
+        // When
+        image.reload()
+
+        // Then
+        #expect(starts.count == 1)
+        #expect(image.isLoading)
+    }
+
+    @Test func reloadDoesNothingWithoutARequest() async throws {
+        // When
+        image.reload()
+
+        // Then
+        #expect(!image.isLoading)
+        #expect(image.result == nil)
+    }
+
     @Test func imageLoaded() async throws {
         await image.loadAndWait(Test.request)
 

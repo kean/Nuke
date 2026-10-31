@@ -27,6 +27,12 @@ struct LazyImageStateDefaultsTests {
         #expect(state.animation == nil)
     }
 
+    @Test func reloadDoesNothingWithoutALoaderBehindTheState() {
+        let state: any LazyImageState = StaticState()
+        state.reload()
+        #expect(!state.isLoading)
+    }
+
     @Test func imageIsReadFromTheContainerEvenWithoutAResult() {
         // A progressive preview arrives before any result.
         let state = StaticState(imageContainer: ImageContainer(image: Test.image, isPreview: true), isLoading: true)
