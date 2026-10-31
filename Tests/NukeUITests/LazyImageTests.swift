@@ -525,6 +525,32 @@ struct LazyImageTests {
         #expect(tasks.value.count == 1)
     }
 
+    /// A view reused for another image starts that image at its own priority,
+    /// not the one the previous request left behind.
+    @Test func newRequestLoadsAtItsOwnPriority() async throws {
+        dataLoader.isSuspended = true
+
+        let tasks = Ref<[ImageTask]>([])
+        let started = TestExpectation()
+        let host = ViewHost(ImageRequest(url: Test.url, priority: .high)) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart {
+                    tasks.value.append($0)
+                    started.fulfill()
+                }
+        }
+        await started.wait()
+        #expect(tasks.value.first?.priority == .high)
+
+        let url = URL(string: "https://example.com/other.jpeg")
+        await host.update(ImageRequest(url: url, priority: .low), until: { tasks.value.count == 2 })
+
+        let task = try #require(tasks.value.last)
+        #expect(task.request.url == url)
+        #expect(task.priority == .low)
+    }
+
     // MARK: - Disappear Behavior
 
     @Test func requestCancelledOnDisappearByDefault() async throws {

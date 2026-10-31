@@ -221,10 +221,11 @@ public struct LazyImage<Content: View>: View {
     private func onChange(to context: LazyImageContext?) {
         let isAlreadyLoaded = isLoaded(context)
         configure()
-        if isAlreadyLoaded {
-            // Only the priority changed, which doesn't need a new request.
-            viewModel.priority = context?.request.priority
-        } else {
+        // Before the load, which would otherwise start with the priority of
+        // the previous request. If it's only the priority that changed, this
+        // is all there is to do.
+        viewModel.priority = context?.request.priority
+        if !isAlreadyLoaded {
             viewModel.load(context?.request)
         }
     }
