@@ -134,11 +134,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         var continuations = ContiguousArray<AsyncStream<Event>.Continuation>()
 
         /// Initializes the status describing a task that has just started.
-        ///
-        /// The pipeline creates the status for you – use this initializer to
-        /// construct one for tests and SwiftUI previews of the code that
-        /// consumes it.
-        public init() {}
+        init() {}
 
         init(priority: ImageRequest.Priority) {
             self.priority = priority

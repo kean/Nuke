@@ -48,14 +48,14 @@ extension ImagePipeline {
         /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``
         /// defaults to it, so a scheme's environment variable turns diagnostics
         /// on for every pipeline without touching app code.
-        public static let isEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment)
+        static let isEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment)
 
         /// `true` if the process was launched with `NUKE_DIAGNOSTICS_LOG` set
         /// to anything but `0`, `no`, `false`, or nothing at all.
         /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsLoggingEnabled``
         /// defaults to it, so the tasks of a running app can be read from the
         /// console without touching app code.
-        public static let isLoggingEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment, key: "NUKE_DIAGNOSTICS_LOG")
+        static let isLoggingEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment, key: "NUKE_DIAGNOSTICS_LOG")
 
         /// Reads the flag out of an environment, where a variable that spells
         /// "off" is off and everything else is on.
@@ -466,7 +466,7 @@ extension ImagePipeline.Diagnostics {
 /// An enum that encodes as its case name and decodes any name it doesn't
 /// know as `.unknown`, so a consumer built against an older schema still opens
 /// a newer file.
-public protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String {
+package protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String {
     static var unknown: Self { get }
 }
 

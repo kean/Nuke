@@ -52,7 +52,7 @@ public final class AnimatedImageFramePool {
     ///
     /// The rest are the ones nobody is watching, which hold the frame they are
     /// showing and the one after it.
-    public var activePlayerCount: Int {
+    var activePlayerCount: Int {
         stores.values.reduce(0) { $0 + $1.activeMemberCount }
     }
 
@@ -78,7 +78,7 @@ public final class AnimatedImageFramePool {
     ///
     /// - parameter costLimit: The memory the decoded frames may occupy, in
     /// bytes. ``defaultCostLimit`` by default.
-    public init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit) {
+    init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit) {
         self.costLimit = costLimit
         registerForApplicationNotifications(on: .default)
     }
