@@ -44,10 +44,17 @@ extension ImagePipeline {
         /// on for every pipeline without touching app code.
         public static let isEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment)
 
+        /// `true` if the process was launched with `NUKE_DIAGNOSTICS_LOG` set
+        /// to anything but `0`, `no`, `false`, or nothing at all.
+        /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsLoggingEnabled``
+        /// defaults to it, so the tasks of a running app can be read from the
+        /// console without touching app code.
+        public static let isLoggingEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment, key: "NUKE_DIAGNOSTICS_LOG")
+
         /// Reads the flag out of an environment, where a variable that spells
         /// "off" is off and everything else is on.
-        static func isEnabled(in environment: [String: String]) -> Bool {
-            guard let value = environment["NUKE_DIAGNOSTICS_ENABLED"] else {
+        static func isEnabled(in environment: [String: String], key: String = "NUKE_DIAGNOSTICS_ENABLED") -> Bool {
+            guard let value = environment[key] else {
                 return false
             }
             return !["", "0", "no", "false"].contains(value.lowercased())

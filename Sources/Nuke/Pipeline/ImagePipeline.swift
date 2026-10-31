@@ -64,7 +64,8 @@ public final class ImagePipeline: Sendable {
 
     let rateLimiter: RateLimiter?
     /// Records the diagnostics. `nil` unless
-    /// ``Configuration-swift.struct/isDiagnosticsEnabled`` is set, so a
+    /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
+    /// ``Configuration-swift.struct/isDiagnosticsLoggingEnabled`` is set, so a
     /// recording point costs one nil-check when they are off.
     nonisolated let recorder: Diagnostics.Recorder?
     nonisolated let id: UUID
@@ -100,7 +101,8 @@ public final class ImagePipeline: Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
-        self.recorder = configuration.isDiagnosticsEnabled ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog) : nil
+        let isRecording = configuration.isDiagnosticsEnabled || configuration.isDiagnosticsLoggingEnabled
+        self.recorder = isRecording ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog, isLoggingEnabled: configuration.isDiagnosticsLoggingEnabled) : nil
 
         Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }

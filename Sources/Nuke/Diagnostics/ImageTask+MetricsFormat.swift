@@ -134,6 +134,53 @@ extension ImageTask.Metrics {
         return blocks.map { $0.joined(separator: "\n") }.joined(separator: "\n\n")
     }
 
+    // MARK: Summary
+
+    /// The task in one line: how it ended, what it asked for, and what it
+    /// produced or why it failed.
+    ///
+    /// ```
+    /// ImageTask #12 · success · 18.2 ms · from disk · https://example.com/a.jpeg · 1200×800 · jpeg · 5.5 MB in memory
+    /// ImageTask #13 · failure · 212.4 ms · https://example.com/b.jpeg?… · dataLoadingFailed · NSURLErrorDomain -1009
+    /// ```
+    ///
+    /// Unlike ``formatted(_:)``, it's safe to send to a log: a URL has no
+    /// query, which can carry a token. It's what
+    /// ``ImagePipeline/Configuration-swift.struct/isDiagnosticsLoggingEnabled``
+    /// logs.
+    public var summary: String {
+        var parts = [title]
+        if kind != .image {
+            parts.append(kind.rawValue)
+        }
+        let resource = request.url.flatMap(URL.init(string:))?.redactedDescription ?? request.imageID
+        if let error {
+            let message = summaryText(of: error)
+            // The errors that say what was received name the URL already.
+            if let resource, !message.contains(resource) {
+                parts.append(resource)
+            }
+            parts.append(message)
+        } else {
+            parts += resource.map { [$0] } ?? []
+            parts += image.flatMap { text(of: $0) }.map { [$0] } ?? []
+            parts += bytes.map { [text(of: $0)] } ?? []
+            if isCoalesced {
+                parts.append("coalesced")
+            }
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// A `URLError` prints its user info, which has the failing URL with its
+    /// query, and takes more than a line to do it. Its code says as much.
+    private func summaryText(of error: ImagePipeline.Diagnostics.ErrorSummary) -> String {
+        if error.underlyingDomain == NSURLErrorDomain, let code = error.underlyingCode {
+            return "\(error.code) · \(NSURLErrorDomain) \(code)"
+        }
+        return text(of: error)
+    }
+
     // MARK: Header
 
     /// What a reader scans a log for: the task, how it ended, what it cost,

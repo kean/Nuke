@@ -40,6 +40,7 @@ To learn more about caching, see <doc:caching>.
 ### Diagnostics
 
 - ``isDiagnosticsEnabled``
+- ``isDiagnosticsLoggingEnabled``
 - ``signpostLog``
 
 ### Operation Queues
