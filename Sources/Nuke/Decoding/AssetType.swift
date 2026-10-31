@@ -198,7 +198,7 @@ extension AssetType {
         // file with a damaged size still names itself. The declared size is
         // trusted up to a bound: a real `ftyp` box is a few dozen bytes, and a
         // damaged one must not turn a header sniff into a walk of the file.
-        let end = max(12, min(Int(_uint32(at: 0, in: data) ?? 0), data.count, _maxFileTypeBoxSize))
+        let end = max(12, min(Int(clamping: _uint32(at: 0, in: data) ?? 0), data.count, _maxFileTypeBoxSize))
         var brands: [String] = []
         for offset in stride(from: 8, to: end, by: 4) where offset != 12 {
             guard let brand = _string(at: offset, count: 4, in: data) else { break }
@@ -280,8 +280,12 @@ extension AssetType {
             }
             // A chunk is a length, a name, the payload, and a CRC. A length
             // that doesn't fit means the file is damaged, not that it animates.
-            guard length <= UInt32(Int32.max) else { return false }
-            offset += Int(length) + 12
+            // Compared with what's left rather than added up first: on a 32-bit
+            // `Int`, the sum is what doesn't fit.
+            guard let length = Int(exactly: length), length <= data.count - offset - 12 else {
+                return false
+            }
+            offset += length + 12
         }
         return false
     }

@@ -234,13 +234,33 @@ struct AssetTypeSniffingBoundaryTests {
         #expect(AssetType.isAnimated(data, type: .png) == false)
     }
 
-    @Test(arguments: [UInt32(Int32.max), UInt32(Int32.max) + 1])
+    // These are the headers that trap on a 32-bit `Int`, which only a real watch
+    // has: `arm64_32` is a device architecture, and the simulators are 64-bit.
+    // On this machine they say what the answer has to be. The arithmetic itself
+    // is checked by building for `generic/platform=watchOS`.
+
+    @Test(arguments: [UInt32(Int32.max) - 12, UInt32(Int32.max) - 11, UInt32(Int32.max), UInt32(Int32.max) + 1, UInt32.max])
     func pngChunkLengthAtTheLimitEndsTheWalk(length: UInt32) {
         var data = Test.png(chunks: [("IHDR", Data(count: 13))])
         data += Test.pngChunk("tEXt", Data(count: 12), declaredLength: length)
         data += Test.pngChunk("acTL", Data(count: 8))
 
         #expect(AssetType.isAnimated(data, type: .png) == false)
+    }
+
+    @Test func pngChunkThatEndsWithTheDataEndsTheWalk() {
+        let data = Test.png(chunks: [("IHDR", Data(count: 13)), ("tEXt", Data(count: 12))])
+
+        #expect(AssetType.isAnimated(data, type: .png) == false)
+        #expect(AssetType.isAnimated(data.dropLast(), type: .png) == false)
+    }
+
+    @Test(arguments: [UInt32(0x7FFF_FFFF), 0x8000_0000, 0x8000_000C, 0xFFFF_FFFF])
+    func fileTypeBoxSizeAtTheLimitStillNamesTheFile(size: UInt32) {
+        let data = Test.fileTypeBox(brands: ["msf1", "heic"], declaredSize: size)
+
+        #expect(AssetType(data) == .heic)
+        #expect(AssetType.isAnimated(data, type: .heic))
     }
 
     @Test func animationDetectionTrustsTheTypeItIsGiven() {
