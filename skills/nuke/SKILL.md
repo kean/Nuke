@@ -15,7 +15,7 @@ grep -A6 '"identity" : "nuke"' Package.resolved
 grep -A6 '"identity" : "nuke"' *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 ```
 
-The guide describes Nuke 14. If the app is on 13.x, these differ:
+The guide describes Nuke 14. To upgrade an app, use the `nuke-migrate` skill, which is at <https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-migrate/SKILL.md>. If the app stays on 13.x, these differ:
 
 | | Nuke 13 | Nuke 14 |
 |---|---|---|
