@@ -83,6 +83,42 @@ extension ImagePipeline {
     nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError() }
 }
 
+// MARK: - Removed in Nuke 12 and 13
+//
+// These are not for migrations. Most of the Swift that mentions Nuke was written
+// against older versions, and that is the code people remember and models learned
+// from. Without a stub, an old name fails with "no member", which says nothing
+// about what to use instead.
+//
+// They have no removal date, because they don't show up in code completion or in
+// the documentation. Limited to the names removed in Nuke 12 or 13 with at least
+// 20 matches in the Swift code on GitHub.
+
+@available(*, unavailable, message: "Removed in Nuke 12. Pass a `URL` or an `ImageRequest`.")
+public typealias ImageRequestConvertible = ImageRequest
+
+extension ImagePipeline.Configuration {
+    @available(*, unavailable, message: "Removed in Nuke 13. The closure-based APIs call back on the main actor.")
+    public var callbackQueue: DispatchQueue {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 13. `DataCache` schedules its own writes.")
+    public var dataCachingQueue: TaskQueue {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+}
+
+extension ImageTask {
+    @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.completed`, or observe `progress`.")
+    public var completedUnitCount: Int64 { fatalError("Removed") }
+
+    @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.total`, or observe `progress`.")
+    public var totalUnitCount: Int64 { fatalError("Removed") }
+}
+
 // MARK: - Soft-deprecated in Nuke 12.9
 
 extension ImagePipeline {

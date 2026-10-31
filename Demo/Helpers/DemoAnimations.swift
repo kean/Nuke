@@ -84,8 +84,8 @@ enum DemoAnimationError: Error {
         case .unavailable(let image): "There is no \(image.title) image on this platform."
         case .notAnimated(let image): "\(image.title) loaded, but it isn't an animated image."
         case .failed(let image, let error as ImagePipeline.Error):
-            // Not `localizedDescription`: the pipeline's error isn't a
-            // `LocalizedError`, and reads "The operation couldn't be completed".
+            // Not `localizedDescription`: it's written for a log, not for a
+            // person looking at the screen.
             "\(image.title) failed to load: \(error.demoSummary).\n\(error.demoMessage)"
         case .failed(let image, let error): "\(image.title) failed to load: \(error.localizedDescription)"
         }

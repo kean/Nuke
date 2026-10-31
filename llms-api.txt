@@ -1,0 +1,1418 @@
+# Nuke API
+
+> Every public declaration of Nuke, NukeUI, NukeVideo, and NukeExtensions, generated from the sources, grouped by the type that owns it. Deprecated and unavailable declarations are left out. For how to use them, see llms-full.txt.
+
+
+## Nuke
+
+
+### AnimatedImageFrameDecoding
+
+- `protocol AnimatedImageFrameDecoding: Sendable`: Produces the frames of an animated image.
+- `func decode(at index: Int) async -> CGImage?`: Returns the frame at the given index, or `nil` if it can't be produced.
+
+### AnimatedImageSource
+
+- `final class AnimatedImageSource: Sendable`: An animated image – a GIF, an APNG, an animated WebP, HEIC, or AVIF – described by the metadata parsed from its encoded data.
+- `let data: Data`: The encoded image data
+- `let frameCount: Int`: The number of frames.
+- `let delays: [TimeInterval]`: The display duration of every frame, in seconds.
+- `let duration: TimeInterval`: The duration of a single loop
+- `let loopCount: Int`: The number of times the animation repeats.
+- `let size: CGSize`: The size of the animation canvas, in pixels, with the orientation the container declares applied
+- `var nominalFrameRate: Double`: The average number of frames per second across one loop.
+- `var bytesPerFrame: Int`: The number of bytes one decoded frame occupies in memory.
+- `static let defaultDelay: TimeInterval = 0.1`: The delay used for frames that don't declare a usable one
+- `static let minimumDelay: TimeInterval = 0.011`: Delays below this value are replaced with `defaultDelay`
+- `init?(data: Data)`: Creates a source from the encoded image data.
+- `init?(data: Data, delays: [TimeInterval], loopCount: Int = 0, size: CGSize, makeFrameDecoder: @escaping @Sendable (_ maxPixelSize: CGFloat?) -> any AnimatedImageFrameDecoding)`: Creates a source for an animation described by the caller.
+- `func makeFrameDecoder(maxPixelSize: CGFloat? = nil) -> any AnimatedImageFrameDecoding`: Returns what produces the frames of this animation, no larger than the given size in pixels.
+- `func makeImageSource() -> CGImageSource?`: Creates an image source over `data` for decoding the frames.
+
+### AssetType
+
+- `struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable`: A uniform type identifier (UTI).
+- `let rawValue: String`
+- `init(rawValue: String)`
+- `init(stringLiteral value: String)`
+- `static let png: AssetType = "public.png"`: PNG (Portable Network Graphics).
+- `static let jpeg: AssetType = "public.jpeg"`: JPEG.
+- `static let gif: AssetType = "com.compuserve.gif"`: GIF (Graphics Interchange Format).
+- `static let heic: AssetType = "public.heic"`: HEIF (High Efficiency Image Format) by Apple.
+- `static let webp: AssetType = "org.webmproject.webp"`: WebP.
+- `static let mp4: AssetType = "public.mpeg-4"`: MPEG-4 video.
+- `static let m4v: AssetType = "com.apple.m4v-video"`: M4V video container developed by Apple, similar to MP4.
+- `static let mov: AssetType = "com.apple.quicktime-movie"`: QuickTime movie.
+- `static let ico: AssetType = "com.microsoft.ico"`: ICO (Windows icon format).
+- `static let bmp: AssetType = "com.microsoft.bmp"`: BMP (Windows bitmap).
+- `static let tiff: AssetType = "public.tiff"`: TIFF (Tagged Image File Format).
+- `static let jpeg2000: AssetType = "public.jpeg-2000"`: JPEG 2000.
+- `static let jxl: AssetType = "public.jpeg-xl"`: JPEG XL.
+- `static let avif: AssetType = "public.avif"`: AVIF (AV1 Image File Format).
+- `var utType: UTType?`: The uniform type that `rawValue` identifies, or `nil` if the system doesn't recognize the identifier.
+- `init(_ type: UTType)`: Initializes the asset type with the identifier of the given uniform type.
+- `init?(_ data: Data)`: Determines a type of the image based on the given data.
+
+### AsyncImageDecoding
+
+- `protocol AsyncImageDecoding: ImageDecoding`: An image decoder that performs decoding asynchronously.
+- `func decode(_ data: Data) async throws -> ImageContainer`: Asynchronously produces an image from the given image data.
+- `func decode(_ data: Data) throws -> ImageContainer`: The default synchronous implementation always throws.
+
+### Cancellable
+
+- `protocol Cancellable: Sendable`: A unit of work that can be cancelled.
+- `func cancel()`
+
+### DataCache
+
+- `final class DataCache: DataCaching, Sendable`: An LRU disk cache that stores data in separate files.
+- `let path: URL`: The path for the directory managed by the cache.
+- `var sizeLimit: Int`: Size limit in bytes.
+- `var sweepInterval: TimeInterval`: The time interval between cache sweeps.
+- `var isSweepEnabled: Bool`: If `false`, the automatic LRU sweep is disabled.
+- `typealias FilenameGenerator = @Sendable (_ key: String) -> String?`: A function that generates a filename for the given key.
+- `convenience init(name: String, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws`: Creates a cache instance with a given `name`.
+- `convenience init(path: URL, filenameGenerator: @escaping FilenameGenerator = DataCache.filename(for:)) throws`: Creates a cache instance with a given path.
+- `static func filename(for key: String) -> String?`: A `FilenameGenerator` implementation that uses SHA1 to generate a filename from the given key.
+- `func cachedData(for key: String) -> Data?`: Retrieves data for the given key.
+- `func containsData(for key: String) -> Bool`: Returns `true` if the cache contains the data for the given key.
+- `func storeData(_ data: Data, for key: String)`: Stores data for the given key.
+- `func removeData(for key: String)`: Removes data for the given key.
+- `func removeAll()`: Removes all items.
+- `subscript(key: String) -> Data?`: Accesses the data associated with the given key for reading and writing.
+- `func filename(for key: String) -> String?`: Uses the filename generator that the cache was initialized with to generate and return a filename for the given key.
+- `func url(for key: String) -> URL?`: Returns `url` for the given cache key, or `nil` if there is no filename for it.
+- `func flush() async`: Writes the changes staged so far and waits for them to reach the disk.
+- `func sweep() async`: Performs a cache sweep, removing the least recently used items that no longer fit in the cache, and waits for it to finish.
+- `var totalCount: Int`: The total number of items in the cache.
+- `var totalSize: Int`: The total file size of items written on disk.
+- `var totalAllocatedSize: Int`: The total file allocated size of all the items written on disk.
+
+### DataCaching
+
+- `protocol DataCaching: Sendable`: Data cache.
+- `func cachedData(for key: String) -> Data?`: Retrieves data from cache for the given key.
+- `func containsData(for key: String) -> Bool`: Returns `true` if the cache contains data for the given key.
+- `func storeData(_ data: Data, for key: String)`: Stores data for the given key.
+- `func removeData(for key: String)`: Removes data for the given key.
+- `func removeAll()`: Removes all items.
+
+### DataLoader
+
+- `final class DataLoader: DataLoading, Sendable`: Provides basic networking using `URLSession`.
+- `let session: URLSession`: The underlying `URLSession` used for loading data.
+- `var prefersIncrementalDelivery: Bool`: Determines whether to deliver a partial response body in increments.
+- `var delegate: URLSessionDelegate?`: The delegate that gets called for the callbacks handled by the data loader.
+- `init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @Sendable @escaping (URLResponse) -> Swift.Error? = DataLoader.validate)`: Initializes `DataLoader` with the given configuration.
+- `static var defaultConfiguration: URLSessionConfiguration`: Returns a default configuration which has a `sharedUrlCache` set as a `urlCache`.
+- `static func validate(response: URLResponse) -> Swift.Error?`: Validates `HTTP` responses by checking that the status code is 2xx.
+- `static let sharedUrlCache: URLCache =`: Shared URL cache used by a default `DataLoader`.
+- `func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Swift.Error?) -> Void) -> any Cancellable`
+
+### DataLoader.Error
+
+- `enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable`: Errors produced by `DataLoader`.
+- `case statusCodeUnacceptable(Int)`: Validation failed.
+- `var errorDescription: String?`: The same as `description`, so that `localizedDescription` prints it.
+- `var description: String`
+
+### DataLoading
+
+- `protocol DataLoading: Sendable`: Fetches original image data.
+- `func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable`
+
+### Global
+
+- `typealias PlatformImage = UIImage`: Alias for `UIImage`.
+- `typealias PlatformColor = UIColor`: Alias for `UIColor`.
+- `typealias PlatformImage = NSImage`: Alias for `NSImage`.
+- `typealias PlatformColor = NSColor`: Alias for `NSColor`.
+
+### ImageCache
+
+- `final class ImageCache: ImageCaching`: An LRU memory cache.
+- `var costLimit: Int`: The maximum total cost that the cache can hold.
+- `var countLimit: Int`: The maximum number of items that the cache can hold.
+- `var ttl: TimeInterval?`: Default TTL (time to live) for each entry.
+- `var entryCostLimit: Double`: The maximum cost of an entry in proportion to the `costLimit`.
+- `var totalCount: Int`: The total number of items in the cache.
+- `var totalCost: Int`: The total cost of items in the cache.
+- `static let shared = ImageCache()`: The shared `ImageCache` instance.
+- `init(costLimit: Int = ImageCache.defaultCostLimit, countLimit: Int = Int.max)`: Initializes an `ImageCache` instance.
+- `static var defaultCostLimit: Int`: Returns a cost limit computed based on the amount of the physical memory available on the device
+- `static var defaultMemoryBudget: Int`: The memory decoded images may occupy overall, in bytes
+- `subscript(key: ImageCacheKey) -> ImageContainer?`
+- `func removeAll()`: Removes all cached images.
+- `func trim(toCost limit: Int)`: Removes least recently used items from the cache until the total cost of the remaining items is less than the given cost limit.
+- `func trim(toCount limit: Int)`: Removes least recently used items from the cache until the total count of the remaining items is less than the given count limit.
+
+### ImageCacheKey
+
+- `struct ImageCacheKey: Hashable, Sendable`: An opaque container that acts as a memory cache key.
+- `init(key: String)`
+- `init(request: ImageRequest)`
+- `func hash(into hasher: inout Hasher)`
+- `static func == (lhs: ImageCacheKey, rhs: ImageCacheKey) -> Bool`
+
+### ImageCaching
+
+- `protocol ImageCaching: AnyObject, Sendable`: In-memory image cache.
+- `subscript(key: ImageCacheKey) -> ImageContainer?`: Access the image cached for the given request.
+- `func removeAll()`: Removes all cached items.
+
+### ImageContainer
+
+- `struct ImageContainer: Sendable`: An image container with an image and associated metadata.
+- `var image: NSImage`: The fetched image.
+- `var image: UIImage`
+- `var type: AssetType?`: The detected format of the image data, such as JPEG, PNG, or GIF.
+- `var isPreview: Bool`: Returns `true` if the image is a progressive preview rather than the final decoded image.
+- `var data: Data?`: Contains the original image `data`, but only if the decoder decides to attach it to the image.
+- `var animation: AnimatedImageSource?`: The animation the image data describes, if the image is an animated one.
+- `var userInfo: [UserInfoKey: any Sendable]`: Metadata provided by the user.
+- `init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, animation: AnimatedImageSource? = nil, userInfo: [UserInfoKey: any Sendable] = [:])`: Initializes the container with the given image.
+
+### ImageContainer.UserInfoKey
+
+- `struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable`: A key used in `userInfo`.
+- `let rawValue: String`
+- `init(_ rawValue: String)`
+- `init(stringLiteral value: String)`
+- `static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"`: A user info key to get the index of the preview (`Int`), starting with `1`.
+
+### ImageDecoderRegistry
+
+- `final class ImageDecoderRegistry: Sendable`: A registry of image codecs.
+- `static let shared = ImageDecoderRegistry()`: A shared registry.
+- `init()`: Initializes a custom registry.
+- `func decoder(for context: ImageDecodingContext) -> (any ImageDecoding)?`: Returns a decoder that matches the given context.
+- `func register(_ match: @escaping @Sendable (ImageDecodingContext) -> (any ImageDecoding)?) -> RegistrationToken`: Registers a decoder to be used in a given decoding context.
+- `func unregister(_ token: RegistrationToken)`: Removes the decoder registered with the given token.
+- `func clear()`: Removes all registered decoders, including the default one.
+
+### ImageDecoderRegistry.RegistrationToken
+
+- `struct RegistrationToken: Hashable, Sendable`: An opaque token that identifies a registered decoder.
+
+### ImageDecoders
+
+- `enum ImageDecoders`: A namespace with all available decoders.
+
+### ImageDecoders.Default
+
+- `final class Default: ImageDecoding, Sendable`: A decoder that supports all of the formats natively supported by the system.
+- `var isAsynchronous: Bool`: Returns `true` when thumbnail decoding is requested, because thumbnail generation requires reading image dimensions from disk and must run on the decoding queue rather than blocking the pipeline queue.
+- `init()`: Initializes the decoder with default settings.
+- `init?(context: ImageDecodingContext)`: Initializes the decoder from the given decoding context, reading the request's scale, thumbnail options, and preview policy.
+- `func decode(_ data: Data) throws -> ImageContainer`
+- `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`
+
+### ImageDecoders.Empty
+
+- `struct Empty: ImageDecoding, Sendable`: A decoder that returns an empty placeholder image and attaches image data to the image container.
+- `let isProgressive: Bool`
+- `let assetType: AssetType?`
+- `var isAsynchronous: Bool`
+- `init(assetType: AssetType? = nil, isProgressive: Bool = false)`: Initializes the decoder.
+- `func decode(_ data: Data) throws -> ImageContainer`
+- `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`
+
+### ImageDecoding
+
+- `protocol ImageDecoding: Sendable`: An image decoder.
+- `var isAsynchronous: Bool`: Returns `true` if you want the decoding to be performed on the decoding queue (see `ImagePipeline.Configuration.imageDecodingQueue`).
+- `func decode(_ data: Data) throws -> ImageContainer`: Produces an image from the given image data.
+- `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`: Produces an image from the given partially downloaded image data.
+
+### ImageDecodingContext
+
+- `struct ImageDecodingContext: Sendable`: Image decoding context used when selecting which decoder to use.
+- `var request: ImageRequest`
+- `var data: Data`
+- `var isCompleted: Bool`: Returns `true` if the download was completed.
+- `var urlResponse: URLResponse?`
+- `var cacheType: ImageResponse.CacheType?`
+- `var previewPolicy: ImagePipeline.PreviewPolicy`: The strategy a decoder uses to produce previews from the partially downloaded data.
+- `var isAnimatedImageParsingEnabled: Bool`: Whether a decoder parses the metadata of the animated images it recognizes and attaches it to `ImageContainer.animation`.
+- `init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil, previewPolicy: ImagePipeline.PreviewPolicy = .incremental, isAnimatedImageParsingEnabled: Bool = true)`
+
+### ImageDecodingError
+
+- `enum ImageDecodingError: Error, CustomStringConvertible, Sendable`
+- `case unknown`
+- `case synchronousDecodingUnsupported`
+- `var description: String`
+
+### ImageDiagnosticsStringEnum
+
+- `protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String`: An enum that encodes as its lowercase name and decodes any name it doesn't know as `.unknown`, so a consumer built against an older schema still opens a newer file.
+- `static var unknown: Self`
+- `init(from decoder: any Decoder) throws`
+- `func encode(to encoder: any Encoder) throws`
+
+### ImageEncoders
+
+- `enum ImageEncoders`: A namespace with all available encoders.
+
+### ImageEncoders.Default
+
+- `struct Default: ImageEncoding`: A default adaptive encoder which uses best encoder available depending on the input image and its configuration.
+- `var compressionQuality: Float`
+- `var isHEIFPreferred = false`: Set to `true` to switch to HEIF when it is available on the current hardware.
+- `init(compressionQuality: Float = 0.8)`
+- `func encode(_ image: PlatformImage) -> Data?`
+
+### ImageEncoders.ImageIO
+
+- `struct ImageIO: ImageEncoding`: An Image I/O based encoder.
+- `let type: AssetType`
+- `let compressionRatio: Float`
+- `init(type: AssetType, compressionRatio: Float = 0.8)`
+- `static func isSupported(type: AssetType) -> Bool`: Returns `true` if the encoding is available for the given format on the current hardware.
+- `func encode(_ image: PlatformImage) -> Data?`
+
+### ImageEncoding
+
+- `protocol ImageEncoding: Sendable`: An image encoder.
+- `static func `default`(compressionQuality: Float = 0.8) -> ImageEncoders.Default`
+- `static func imageIO(type: AssetType, compressionRatio: Float = 0.8) -> ImageEncoders.ImageIO`
+- `func encode(_ image: PlatformImage) -> Data?`: Encodes the given image.
+- `func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data?`: An optional method which encodes the given image container.
+
+### ImageEncodingContext
+
+- `struct ImageEncodingContext: Sendable`: Image encoding context used when selecting which encoder to use.
+- `let request: ImageRequest`
+- `let image: PlatformImage`
+- `let urlResponse: URLResponse?`
+
+### ImagePipeline
+
+- `final class ImagePipeline: Sendable`: Downloads, decodes, processes, and caches images.
+- `nonisolated var diagnostics: Diagnostics`: Records where the time of every image task went.
+- `nonisolated static var shared: ImagePipeline`: Returns the shared image pipeline.
+- `nonisolated let configuration: Configuration`: The pipeline configuration.
+- `nonisolated var cache: ImagePipeline.Cache`: Provides access to the underlying caching subsystems.
+- `nonisolated init(configuration: Configuration = Configuration(), delegate: (any ImagePipeline.Delegate)? = nil)`: Initializes the instance with the given configuration.
+- `nonisolated convenience init(delegate: (any ImagePipeline.Delegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void)`: A convenient way to initialize the pipeline with a closure.
+- `nonisolated func invalidate()`: Invalidates the pipeline and cancels all outstanding tasks.
+- `nonisolated func imageTask(with url: URL) -> ImageTask`: Creates a task with the given URL.
+- `nonisolated func imageTask(with request: ImageRequest) -> ImageTask`: Creates a task with the given request.
+- `nonisolated func image(for url: URL) async throws(ImagePipeline.Error) -> PlatformImage`: Returns an image for the given URL.
+- `nonisolated func image(for request: ImageRequest) async throws(ImagePipeline.Error) -> PlatformImage`: Returns an image for the given request.
+- `nonisolated func data(for request: ImageRequest) async throws(ImagePipeline.Error) -> (Data, URLResponse?)`: Returns image data for the given request.
+
+### ImagePipeline.Cache
+
+- `struct Cache: Sendable`: Provides a set of convenience APIs for managing the pipeline cache layers, including `ImageCaching` (memory cache) and `DataCaching` (disk cache).
+- `subscript(url: URL) -> ImageContainer?`: Returns an image from the memory cache for the given URL.
+- `subscript(request: ImageRequest) -> ImageContainer?`: Returns an image from the memory cache for the given request.
+- `func cachedImage(for request: ImageRequest, caches: Caches = [.all]) -> ImageContainer?`: Returns a cached image from any of the caches.
+- `func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.all])`: Stores the image in all caches.
+- `func removeCachedImage(for request: ImageRequest, caches: Caches = [.all])`: Removes the image from all caches.
+- `func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool`: Returns `true` if any of the caches contain the image.
+- `func cachedData(for request: ImageRequest) -> Data?`: Returns cached data for the given request.
+- `func storeCachedData(_ data: Data, for request: ImageRequest)`: Stores data for the given request.
+- `func containsData(for request: ImageRequest) -> Bool`: Returns `true` if the data cache contains data for the given image.
+- `func removeCachedData(for request: ImageRequest)`: Removes cached data for the given request.
+- `func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey`: Returns image cache (memory cache) key for the given request.
+- `func makeDataCacheKey(for request: ImageRequest) -> String`: Returns data cache (disk cache) key for the given request.
+- `func removeAll(caches: Caches = [.all])`: Removes both images and data from all cache layers.
+
+### ImagePipeline.Cache.Caches
+
+- `struct Caches: OptionSet`: Describes a set of cache layers to use.
+- `let rawValue: Int`
+- `init(rawValue: Int)`
+- `static let memory = Caches(rawValue: 1 << 0)`: In-memory image cache (see `ImageCaching`).
+- `static let disk = Caches(rawValue: 1 << 1)`: Disk data cache (see `DataCaching`).
+- `static let all: Caches = [.memory, .disk]`: Both memory and disk caches.
+
+### ImagePipeline.Configuration
+
+- `struct Configuration: Sendable`: The pipeline configuration.
+- `var dataLoader: any DataLoading`: Data loader used by the pipeline.
+- `var dataCache: (any DataCaching)?`: Data cache used by the pipeline.
+- `var imageCache: (any ImageCaching)?`: Image cache used by the pipeline.
+- `var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any ImageDecoding)? =`: Default implementation uses shared `ImageDecoderRegistry` to create a decoder that matches the context.
+- `var makeImageEncoder: @Sendable (ImageEncodingContext) -> any ImageEncoding =`: Returns `ImageEncoders.Default()` by default.
+- `var isDecompressionEnabled: Bool`: Decompresses the loaded images.
+- `var isUsingPrepareForDisplay: Bool = true`: Uses the native `preparingForDisplay()` method for decompression on iOS, tvOS, and visionOS.
+- `var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData`: Determines what images are stored in the disk cache (`DataCaching`).
+- `var isTaskCoalescingEnabled = true`: Enables task coalescing.
+- `var isRateLimiterEnabled = true`: Enables the rate limiter.
+- `var isProgressiveDecodingEnabled = false`: Enables progressive decoding.
+- `var progressiveDecodingInterval: TimeInterval = 0.5`: The minimum interval between progressive decoding attempts, in seconds.
+- `var isStoringPreviewsInMemoryCache = true`: Stores progressively generated previews in the memory cache.
+- `var isAnimatedImageParsingEnabled = true`: Parses the metadata of the images the decoder recognizes as animated and attaches it to `ImageContainer.animation`.
+- `var isResumableDataEnabled = true`: If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it left off.
+- `var isLocalResourcesSupportEnabled = true`: If enabled, the pipeline will load the local resources (`file` and `data` schemes) inline without using the data loader.
+- `var isDiagnosticsEnabled = ImagePipeline.Diagnostics.isEnabledByEnvironment`: Records `ImageTask.Metrics` for every task.
+- `var isDiagnosticsLoggingEnabled = ImagePipeline.Diagnostics.isLoggingEnabledByEnvironment`: Logs a line for every task that finishes
+- `var signpostLog: OSLog? = ImagePipeline.Diagnostics.defaultSignpostLog`: The log the pipeline sends `os_signpost` intervals to while diagnostics are on
+- `var maximumResponseDataSize: Int? =`: The maximum response data size in bytes allowed before the download is automatically cancelled.
+- `var dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6, reservedTaskCount: 3)`: Data loading queue.
+- `var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 2)`: Image decoding queue.
+- `var imageEncodingQueue = TaskQueue(maxConcurrentTaskCount: 1)`: Image encoding queue.
+- `var imageProcessingQueue = TaskQueue(maxConcurrentTaskCount: 2)`: Image processing queue.
+- `var imageDecompressingQueue = TaskQueue(maxConcurrentTaskCount: 2)`: Image decompressing queue.
+- `init(dataLoader: any DataLoading = DataLoader())`: Instantiates a pipeline configuration.
+- `static var withURLCache: Configuration`: A configuration with an HTTP disk cache (`URLCache`) with a size limit of 150 MB.
+- `static var withDataCache: Configuration`: A configuration with an aggressive disk cache (`DataCache`) with a size limit of 150 MB.
+- `static func withDataCache(name: String = "com.github.kean.Nuke.DataCache", sizeLimit: Int? = nil) -> Configuration`: A configuration with an aggressive disk cache (`DataCache`) with a size limit of 150 MB by default.
+
+### ImagePipeline.DataCachePolicy
+
+- `enum DataCachePolicy: Sendable`: Determines what images are stored in the disk cache.
+- `case automatic`: Store original image data for requests with no processors.
+- `case storeOriginalData`: Store only original image data.
+- `case storeEncodedImages`: Encode and store images.
+- `case storeAll`: Stores both processed images and the original image data.
+
+### ImagePipeline.Delegate
+
+- `protocol Delegate: AnyObject, Sendable`: A delegate that allows you to customize the pipeline dynamically on a per-request basis.
+- `nonisolated func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?`: Returns image decoder for the given context.
+- `nonisolated func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding`: Returns image encoder for the given context.
+- `nonisolated func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy`: Returns the preview policy for progressive decoding of the given request.
+- `nonisolated func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading`: Returns data loader for the given request.
+- `func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest`: Intercepts the URL request just before data loading begins, allowing you to modify or replace it.
+- `nonisolated func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?`: Returns in-memory image cache for the given request.
+- `nonisolated func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?`: Returns disk cache for the given request.
+- `nonisolated func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?`: Returns a cache key identifying the image produced for the given request (including image processors).
+- `func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data?`: Gets called when the pipeline is about to save data for the given request.
+- `nonisolated func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool`: Returns `true` if the pipeline should decompress the given response.
+- `nonisolated func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse`: Decompresses the given image response.
+- `nonisolated func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)`: Gets called when the task is created.
+- `func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)`: Gets called when the task is started by the pipeline.
+- `func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)`: Gets called when the task receives an event.
+
+### ImagePipeline.Diagnostics
+
+- `struct Diagnostics: Sendable`: The diagnostics of a pipeline.
+- `static let isEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment)`: `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED` set to anything but `0`, `no`, `false`, or nothing at all.
+- `static let isLoggingEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment, key: "NUKE_DIAGNOSTICS_LOG")`: `true` if the process was launched with `NUKE_DIAGNOSTICS_LOG` set to anything but `0`, `no`, `false`, or nothing at all.
+- `var isEnabled: Bool`: A runtime switch.
+- `func snapshot() async -> Snapshot`: What the pipeline is doing right now
+- `var debugDescription: String`: The `ImagePipeline.Diagnostics.snapshot()` for a place that can't `await`, which is where it's needed most
+
+### ImagePipeline.Diagnostics.ErrorSummary
+
+- `struct ErrorSummary: Codable, Sendable`: A `Codable` summary of an `ImagePipeline.Error`.
+- `let code: String`: The name of the error case, such as `"dataLoadingFailed"`.
+- `let description: String`
+- `let underlyingDomain: String?`: The domain of the underlying `NSError`, if the error wraps one.
+- `let underlyingCode: Int?`: The code of the underlying `NSError`, if the error wraps one.
+
+### ImagePipeline.Diagnostics.Job
+
+- `struct Job: Codable, Sendable`: One piece of work the pipeline performs for a task and shares with the other tasks that need the same thing.
+- `let id: UInt64`: Unique within the pipeline.
+- `let kind: Kind`
+- `let processors: [String]`: The identifiers of the processors the job applies.
+- `var parentID: UInt64?`: The job this one subscribed to, which makes the chain reconstructible from a flat list.
+- `var createdByTaskID: UInt64`: The task whose request created the job.
+- `var taskIDs: [UInt64] = []`: Every task that reached the job, in the order they did.
+- `let createdAt: TimeInterval`: Seconds since 1970.
+- `var endedAt: TimeInterval?`: Seconds since 1970.
+- `var outcome: Outcome?`: `nil` while the job is running.
+- `var error: ErrorSummary?`
+- `var joinedAt: TimeInterval?`: When the task the copy belongs to reached the job, in seconds since 1970.
+- `var priorityHistory: [PriorityChange] = []`: The priority of the job over time.
+- `var stages: [Stage] = []`
+- `var duration: TimeInterval?`: `nil` while the job is running.
+- `var createdDate: Date`
+- `var endedDate: Date?`
+- `var joinedDate: Date?`
+
+### ImagePipeline.Diagnostics.Job.Kind
+
+- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of work a job performs.
+- `case loadImage`: Produces the processed, decompressed image the request asks for.
+- `case fetchOriginalImage`: Decodes the original image.
+- `case fetchOriginalData`: Fetches the original image data.
+- `case loadData`: Produces the data `ImagePipeline.data(for:)` asks for.
+- `case unknown`
+
+### ImagePipeline.Diagnostics.Outcome
+
+- `enum Outcome: String, Sendable, ImageDiagnosticsStringEnum`: How a task or a job ended.
+- `case success`
+- `case failure`
+- `case cancelled`
+- `case unknown`
+
+### ImagePipeline.Diagnostics.PixelSize
+
+- `struct PixelSize: Hashable, Sendable, Codable`: A size in pixels.
+- `let width: Int`
+- `let height: Int`
+- `init(width: Int, height: Int)`
+- `init(from decoder: any Decoder) throws`
+- `func encode(to encoder: any Encoder) throws`
+
+### ImagePipeline.Diagnostics.PriorityChange
+
+- `struct PriorityChange: Codable, Sendable`: A change of priority.
+- `let at: TimeInterval`: Seconds since 1970.
+- `let priority: ImageRequest.Priority`
+- `var date: Date`
+
+### ImagePipeline.Diagnostics.Snapshot
+
+- `struct Snapshot: Sendable, CustomStringConvertible`: See `ImagePipeline.Diagnostics.snapshot()`.
+- `let pipelineID: UUID`: The pipeline it was taken from.
+- `let isInvalidated: Bool`: `true` if the pipeline was invalidated, and fails every new task.
+- `let tasks: [ActiveTask]`: The tasks that haven't finished, oldest first.
+- `let queues: [Queue]`: The queues in `ImagePipeline.Configuration`.
+- `let memoryCache: MemoryCache?`: `nil` if the pipeline has no memory cache, or if it's a custom one.
+- `let hasDataCache: Bool`: `true` if the pipeline has a `ImagePipeline.Configuration.dataCache`.
+- `var description: String`: A report to read in a console or in the debugger.
+
+### ImagePipeline.Diagnostics.Snapshot.ActiveTask
+
+- `struct ActiveTask: Sendable`: A task that hasn't finished.
+- `let taskID: UInt64`: `ImageTask.taskId`.
+- `let kind: ImageTask.Metrics.Kind`
+- `let resource: String?`: The URL with no query, which can carry a token, or the `ImageRequest.imageID` of a request that has no URL.
+- `let priority: ImageRequest.Priority`
+- `let progress: ImageTask.Progress`
+- `let age: TimeInterval?`: The time since the task was created.
+
+### ImagePipeline.Diagnostics.Snapshot.MemoryCache
+
+- `struct MemoryCache: Sendable`: How full an `ImageCache` is.
+- `let count: Int`
+- `let cost: Int`
+- `let countLimit: Int`
+- `let costLimit: Int`
+
+### ImagePipeline.Diagnostics.Snapshot.Queue
+
+- `struct Queue: Sendable`: One of the queues in `ImagePipeline.Configuration`.
+- `let name: String`: The name of the property, such as `"dataLoadingQueue"`.
+- `let runningCount: Int`
+- `let pendingCount: Int`
+- `let limit: Int`: `TaskQueue.maxConcurrentTaskCount`.
+- `let isSuspended: Bool`: `TaskQueue.isSuspended`.
+
+### ImagePipeline.Diagnostics.Source
+
+- `enum Source: String, Sendable, ImageDiagnosticsStringEnum`: Where an image or its data came from.
+- `case memory`: The memory cache (`ImageCaching`).
+- `case disk`: The disk cache (`DataCaching`).
+- `case network`: The data loader (`DataLoading`).
+- `case httpCache`: The `URLCache` of the `DataLoader`
+- `case file`: A local `file` or `data` URL.
+- `case closure`: The `data` or `image` closure of the request.
+- `case unknown`
+
+### ImagePipeline.Diagnostics.Stage
+
+- `struct Stage: Codable, Sendable`: A bracketed piece of work inside a job
+- `let kind: Kind`
+- `let queuedAt: TimeInterval?`: When the work was enqueued, in seconds since 1970.
+- `var startedAt: TimeInterval?`: Seconds since 1970.
+- `var duration: TimeInterval?`: Measured on the pipeline actor, so it includes the hop to and from a background queue.
+- `var workDuration: TimeInterval?`: Measured inside the work closure for decoding, processing, and decompression.
+- `var attributedDuration: TimeInterval?`: `duration` clamped to the lifetime of the task the copy belongs to, so the stages a task didn't wait for attribute zero.
+- `var result: LookupResult?`: The result of a lookup.
+- `var cacheKey: String?`: A short digest of the key a cache stage looked up or wrote, such as `"4f2a91c3"`.
+- `var isProgressive: Bool?`: `true` if the stage produced or handled a progressive preview.
+- `var decoder: String?`: The type of the decoder.
+- `var processor: String?`: The identifier of the processor.
+- `var format: String?`: The format of the image the stage produced, such as `"jpeg"`.
+- `var pixels: PixelSize?`: The size of the image the stage produced.
+- `var source: Source?`: Where a download got the data from.
+- `var bytes: Int64?`: The bytes downloaded, read, or written.
+- `var resumedBytes: Int64?`: The bytes a download reused from a previous attempt.
+- `var expectedBytes: Int64?`: The bytes a download expected, including the resumed ones.
+- `var statusCode: Int?`: The HTTP status code of a download.
+- `var firstByteAt: TimeInterval?`: When the first chunk of a download arrived, in seconds since 1970.
+- `var urlSessionTaskID: Int?`: The `taskIdentifier` of the `URLSessionTask` that performed the download.
+- `var urlSessionMetrics: URLSessionMetrics?`: What `URLSession` measured for the download
+- `var queueWait: TimeInterval?`: The time the work waited for its queue.
+- `var endedAt: TimeInterval?`: Seconds since 1970.
+- `var queuedDate: Date?`
+- `var startedDate: Date?`
+- `var endedDate: Date?`
+
+### ImagePipeline.Diagnostics.Stage.Kind
+
+- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of work a stage performs.
+- `case memoryLookup`
+- `case diskLookup`
+- `case rateLimit`: The time the request spent in the rate limiter.
+- `case willLoadData`: `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)`.
+- `case download`
+- `case diskStore`
+- `case decode`
+- `case process`
+- `case decompress`
+- `case memoryStore`
+- `case unknown`
+
+### ImagePipeline.Diagnostics.Stage.LookupResult
+
+- `enum LookupResult: String, Sendable, ImageDiagnosticsStringEnum`: The result of a cache lookup.
+- `case hit`
+- `case miss`
+- `case unknown`
+
+### ImagePipeline.Diagnostics.URLSessionMetrics
+
+- `struct URLSessionMetrics: Codable, Sendable`: The `Codable` subset of `URLSessionTaskMetrics`.
+- `let urlSessionTaskID: Int`: The `taskIdentifier` of the `URLSessionTask`, which the download stage carries too, as `ImagePipeline.Diagnostics.Stage.urlSessionTaskID`.
+- `let startedAt: TimeInterval`: When the task was resumed, in seconds since 1970.
+- `let endedAt: TimeInterval`: When the task completed, in seconds since 1970.
+- `let redirectCount: Int`
+- `let transactions: [Transaction]`: One per request the session made, in the order it made them.
+- `var duration: TimeInterval`: The time from the resume of the task to its completion.
+- `var startedDate: Date`
+- `var endedDate: Date`
+- `var isServedFromCache: Bool`: `true` if the session served the response out of its `URLCache`, so the bytes the pipeline received are not the bytes that crossed the network.
+- `var isRevalidated: Bool`: `true` if the session revalidated a cached response with a conditional request the server answered `304 Not Modified`.
+- `var networkBytesReceived: Int64`: The bytes the session took off the network, headers and body, across every request it made.
+- `var networkBytesSent: Int64`: The bytes the session put on the network, headers and body, across every request it made.
+
+### ImagePipeline.Diagnostics.URLSessionMetrics.FetchType
+
+- `enum FetchType: String, Sendable, ImageDiagnosticsStringEnum`: `URLSessionTaskMetrics.ResourceFetchType`.
+- `case networkLoad`
+- `case localCache`: The `URLCache` of the session.
+- `case serverPush`
+- `case unknown`
+
+### ImagePipeline.Diagnostics.URLSessionMetrics.Transaction
+
+- `struct Transaction: Codable, Sendable`: The `Codable` subset of `URLSessionTaskTransactionMetrics`.
+- `let url: String?`
+- `let statusCode: Int?`
+- `let fetchType: FetchType`
+- `let networkProtocol: String?`: The name of the protocol, such as `"h2"`.
+- `let tlsVersion: String?`: The version the connection negotiated, such as `"TLS 1.3"`.
+- `let remoteAddress: String?`
+- `let isReusedConnection: Bool`
+- `let isProxyConnection: Bool`
+- `let isCellular: Bool`
+- `let isExpensive: Bool`
+- `let isConstrained: Bool`
+- `let requestBytes: Int64`: The bytes of the request, headers and body.
+- `let responseBytes: Int64`: The bytes of the response, headers and body.
+- `let fetchStartedAt: TimeInterval?`: Seconds since 1970.
+- `let domainLookupStartedAt: TimeInterval?`
+- `let domainLookupEndedAt: TimeInterval?`
+- `let connectStartedAt: TimeInterval?`
+- `let secureConnectionStartedAt: TimeInterval?`
+- `let secureConnectionEndedAt: TimeInterval?`
+- `let connectEndedAt: TimeInterval?`
+- `let requestStartedAt: TimeInterval?`
+- `let requestEndedAt: TimeInterval?`
+- `let responseStartedAt: TimeInterval?`
+- `let responseEndedAt: TimeInterval?`
+- `var endedAt: TimeInterval?`: The last of the timestamps the session recorded.
+
+### ImagePipeline.Error
+
+- `enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable`: Represents all possible image pipeline errors.
+- `case dataMissingInCache`: Returned if data is not cached and `ImageRequest.Options.returnCacheDataDontLoad` option is specified.
+- `case dataLoadingFailed(error: Swift.Error)`: Data loader failed to load image data with a wrapped error.
+- `case dataIsEmpty`: Data loader returned empty data.
+- `indirect case decoderNotRegistered(context: ImageDecodingContext)`: No decoder registered for the given data.
+- `indirect case decodingFailed(decoder: any ImageDecoding, context: ImageDecodingContext, error: Swift.Error)`: Decoder failed to produce a final image.
+- `indirect case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)`: Processor failed to produce a final image.
+- `case imageRequestMissing`: Load image method was called with no image request or no URL.
+- `case pipelineInvalidated`: Image pipeline is invalidated and no requests can be made.
+- `case dataDownloadExceededMaximumSize`: The downloaded data exceeded `ImagePipeline.Configuration.maximumResponseDataSize`.
+- `case cancelled`: The image task was cancelled.
+- `var isCancelled: Bool`: Returns `true` if the request was cancelled.
+- `var dataLoadingError: Swift.Error?`: Returns underlying data loading error.
+- `var errorDescription: String?`: The same as `description`.
+- `var description: String`
+
+### ImagePipeline.PreviewPolicy
+
+- `enum PreviewPolicy: Sendable, Equatable`: Determines how progressive (partial) image previews are generated during downloads.
+- `case incremental`: Use Image I/O incremental decoding to produce progressive previews.
+- `case thumbnail`: Extract the embedded EXIF thumbnail if available, then stop.
+- `case disabled`: No previews are generated for partially downloaded data.
+- `static func `default`(for data: Data) -> PreviewPolicy`: Returns the default policy for the given data
+
+### ImagePipelineActor
+
+- `actor ImagePipelineActor`: A global actor that serializes access to `ImagePipeline` and its internal task graph.
+- `static let shared = ImagePipelineActor()`
+
+### ImagePrefetcher
+
+- `final class ImagePrefetcher: Sendable`: Prefetches and caches images to eliminate delays when requesting the same images later.
+- `nonisolated var isPaused: Bool`: Pauses the prefetching.
+- `nonisolated var priority: ImageRequest.Priority`: The priority of the requests.
+- `nonisolated var didComplete: (@MainActor @Sendable () -> Void)?`: The closure that gets called when the prefetching completes for all the scheduled requests.
+- `nonisolated init(pipeline: ImagePipeline = ImagePipeline.shared, destination: Destination = .memoryCache, maxConcurrentRequestCount: Int = 2)`: Initializes the `ImagePrefetcher` instance.
+- `nonisolated func startPrefetching(with urls: [URL])`: Starts prefetching images for the given URL.
+- `nonisolated func startPrefetching(with requests: [ImageRequest])`: Starts prefetching images for the given requests.
+- `nonisolated func stopPrefetching(with urls: [URL])`: Stops prefetching images for the given URLs and cancels outstanding requests.
+- `nonisolated func stopPrefetching(with requests: [ImageRequest])`: Stops prefetching images for the given requests and cancels outstanding requests.
+- `nonisolated func stopPrefetching()`: Stops all prefetching tasks.
+
+### ImagePrefetcher.Destination
+
+- `enum Destination: Sendable`: Prefetching destination.
+- `case memoryCache`: Prefetches the image and stores it in both the memory and the disk cache (make sure to enable it).
+- `case diskCache`: Prefetches the image data and stores it in disk caches.
+
+### ImageProcessing
+
+- `protocol ImageProcessing: Sendable`: Transforms an image as part of the pipeline processing step.
+- `func process(_ image: PlatformImage) -> PlatformImage?`: Returns a processed image.
+- `func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer`: Optional method.
+- `var identifier: String`: Returns a string that uniquely identifies the processor.
+- `var hashableIdentifier: AnyHashable`: Returns a unique processor identifier.
+- `static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize`: Scales an image to a specified size.
+- `static func resize(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) -> ImageProcessors.Resize`: Scales an image to the given width preserving aspect ratio.
+- `static func resize(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) -> ImageProcessors.Resize`: Scales an image to the given height preserving aspect ratio.
+- `static func circle(border: ImageProcessingOptions.Border? = nil) -> ImageProcessors.Circle`: Rounds the corners of an image into a circle.
+- `static func roundedCorners(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) -> ImageProcessors.RoundedCorners`: Rounds the corners of an image to the specified radius.
+- `static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous`: Creates a custom processor with a given closure.
+- `static func coreImageFilter(name: String, parameters: [String: any Sendable], identifier: String) -> ImageProcessors.CoreImageFilter`: Applies Core Image filter – `CIFilter` – to the image.
+- `static func coreImageFilter(name: String) -> ImageProcessors.CoreImageFilter`: Applies Core Image filter – `CIFilter` – to the image.
+- `static func coreImageFilter(_ filter: CIFilter, identifier: String) -> ImageProcessors.CoreImageFilter`
+- `static func gaussianBlur(radius: Int = 8) -> ImageProcessors.GaussianBlur`: Blurs an image using `CIGaussianBlur` filter.
+
+### ImageProcessingContext
+
+- `struct ImageProcessingContext: Sendable`: Context passed to an `ImageProcessing` implementation.
+- `var request: ImageRequest`: The request that initiated the image load.
+- `var response: ImageResponse`: The current image response being processed.
+- `var isCompleted: Bool`: `true` when this is the final (fully downloaded) image; `false` for progressive previews.
+- `init(request: ImageRequest, response: ImageResponse, isCompleted: Bool)`
+
+### ImageProcessingError
+
+- `enum ImageProcessingError: Error, CustomStringConvertible, Sendable`: An error thrown by an `ImageProcessing` implementation.
+- `case unknown`: The processor failed for an unspecified reason.
+- `var description: String`
+
+### ImageProcessingOptions
+
+- `enum ImageProcessingOptions: Sendable`: A namespace with shared image processing options.
+
+### ImageProcessingOptions.Border
+
+- `struct Border: Hashable, CustomStringConvertible, Sendable`: Draws a border.
+- `let width: CGFloat`
+- `let color: UIColor`
+- `init(color: UIColor, width: CGFloat = 1, unit: Unit = .points)`
+- `let color: NSColor`
+- `init(color: NSColor, width: CGFloat = 1, unit: Unit = .points)`
+- `var description: String`
+
+### ImageProcessingOptions.ContentMode
+
+- `enum ContentMode: CustomStringConvertible, Sendable`: An option for how to resize the image.
+- `case aspectFill`: Scales the image so that it completely fills the target area.
+- `case aspectFit`: Scales the image so that it fits the target size.
+- `var description: String`
+
+### ImageProcessingOptions.Unit
+
+- `enum Unit: CustomStringConvertible, Sendable`: A unit for size and radius values used in image processors.
+- `case points`: Points, automatically scaled to the screen's pixel density.
+- `case pixels`: Pixels, used as-is without any scaling.
+- `var description: String`
+
+### ImageProcessors
+
+- `enum ImageProcessors`: A namespace for all processors that implement `ImageProcessing` protocol.
+
+### ImageProcessors.Anonymous
+
+- `struct Anonymous: ImageProcessing, CustomStringConvertible`: Processes an image using a specified closure.
+- `let identifier: String`
+- `init(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?)`
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var description: String`
+
+### ImageProcessors.Circle
+
+- `struct Circle: ImageProcessing, Hashable, CustomStringConvertible`: Rounds the corners of an image into a circle.
+- `init(border: ImageProcessingOptions.Border? = nil)`
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.Composition
+
+- `struct Composition: ImageProcessing, Hashable, CustomStringConvertible`: Composes multiple processors.
+- `init(_ processors: [any ImageProcessing])`: Composes multiple processors.
+- `func process(_ image: PlatformImage) -> PlatformImage?`: Processes the given image by applying each processor in an order in which they were added.
+- `func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer`: Processes the given image by applying each processor in an order in which they were added.
+- `var identifier: String`: Returns combined identifier of all the underlying processors.
+- `func hash(into hasher: inout Hasher)`: Creates a combined hash of all the given processors.
+- `static func == (lhs: Composition, rhs: Composition) -> Bool`: Compares all the underlying processors for equality.
+- `var description: String`
+
+### ImageProcessors.CoreImageFilter
+
+- `struct CoreImageFilter: ImageProcessing, CustomStringConvertible, Sendable`: Applies Core Image filter (`CIFilter`) to the image.
+- `let identifier: String`
+- `init(name: String, parameters: [String: any Sendable], identifier: String)`: Initializes the processor with a name of the `CIFilter` and its parameters.
+- `init(name: String)`: Initializes the processor with a name of the `CIFilter`.
+- `init(_ filter: CIFilter, identifier: String)`: Initializes the processor with the given `CIFilter`.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer`
+- `static var context: CIContext`: A default context shared between all Core Image filters.
+- `static func apply(filter: CIFilter, to image: PlatformImage) throws -> PlatformImage`: Applies filter to the given image.
+- `var description: String`
+
+### ImageProcessors.CoreImageFilter.Error
+
+- `enum Error: Swift.Error, CustomStringConvertible, Sendable`: Errors produced by `CoreImageFilter`.
+- `case failedToCreateFilter(name: String, parameters: String)`: Failed to create a `CIFilter` with the given name and parameters.
+- `case inputImageIsEmpty(inputImage: String)`: The input image has neither a `CIImage` nor a `CGImage` representation.
+- `case failedToApplyFilter(name: String)`: The filter with the given name produced no output image.
+- `case failedToCreateOutputCGImage(extent: CGRect, image: String)`: Failed to render the output image with the given extent into a `CGImage`.
+- `var description: String`
+
+### ImageProcessors.GaussianBlur
+
+- `struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible`: Blurs an image using a simulated Gaussian blur.
+- `init(radius: Int = 8)`: Initializes the receiver with a blur radius.
+- `func process(_ image: PlatformImage) -> PlatformImage?`: Applies a Gaussian blur to the image.
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.Resize
+
+- `struct Resize: ImageProcessing, Hashable, CustomStringConvertible`: Scales an image to a specified size.
+- `init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false)`: Initializes the processor with the given size.
+- `init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false)`: Scales an image to the given width preserving aspect ratio.
+- `init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false)`: Scales an image to the given height preserving aspect ratio.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.RoundedCorners
+
+- `struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible`: Rounds the corners of an image to the specified radius.
+- `init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil)`: Initializes the processor with the given radius.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var identifier: String`
+- `var description: String`
+
+### ImageRequest
+
+- `struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStringLiteral`: Represents an image request that specifies what images to download, how to process them, set the request priority, and more.
+- `var priority: Priority`: The relative priority of the request.
+- `var processors: [any ImageProcessing]`: Processors to be applied to the image.
+- `var options: Options`: The request options.
+- `var userInfo: [UserInfoKey: any Sendable]`: Custom info passed alongside the request.
+- `var urlRequest: URLRequest?`: Returns the request `URLRequest`.
+- `var url: URL?`: Returns the request `URL`.
+- `var imageID: String?`: The image identifier used for caching and task coalescing.
+- `var scale: CGFloat`: The display scale of the image.
+- `var thumbnail: ThumbnailOptions?`: Thumbnail options.
+- `var description: String`: Returns a debug request description.
+- `init(stringLiteral value: String)`: Initializes the request with the given string.
+- `init(url: URL?, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [])`: Initializes a request with the given `URL`.
+- `init(urlRequest: URLRequest, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [])`: Initializes a request with the given `URLRequest`.
+- `init(id: String, data: @Sendable @escaping () async throws -> Data, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [])`: Initializes a request with the given async function.
+- `init(id: String, image: @Sendable @escaping () async throws -> ImageContainer, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [])`: Initializes a request with the given async function that returns an image container directly.
+
+### ImageRequest.Options
+
+- `struct Options: OptionSet, Hashable, Sendable`: Image request options.
+- `let rawValue: UInt16`: Returns a raw value.
+- `init(rawValue: UInt16)`: Initializes options with a given raw value.
+- `static let disableMemoryCacheReads = Options(rawValue: 1 << 0)`: Disables memory cache reads (see `ImageCaching`).
+- `static let disableMemoryCacheWrites = Options(rawValue: 1 << 1)`: Disables memory cache writes (see `ImageCaching`).
+- `static let disableMemoryCache: Options = [.disableMemoryCacheReads, .disableMemoryCacheWrites]`: Disables both memory cache reads and writes (see `ImageCaching`).
+- `static let disableDiskCacheReads = Options(rawValue: 1 << 2)`: Disables disk cache reads (see `DataCaching`).
+- `static let disableDiskCacheWrites = Options(rawValue: 1 << 3)`: Disables disk cache writes (see `DataCaching`).
+- `static let disableDiskCache: Options = [.disableDiskCacheReads, .disableDiskCacheWrites]`: Disables both disk cache reads and writes (see `DataCaching`).
+- `static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]`: The image should be loaded only from the originating source.
+- `static let returnCacheDataDontLoad = Options(rawValue: 1 << 4)`: Use existing cache data and fail if no cached data is available.
+- `static let skipDecompression = Options(rawValue: 1 << 5)`: Skip decompression ("bitmapping") for the given image.
+- `static let skipDataLoadingQueue = Options(rawValue: 1 << 6)`: Perform data loading immediately, ignoring `ImagePipeline.Configuration.dataLoadingQueue`.
+
+### ImageRequest.Priority
+
+- `enum Priority: Int, Comparable, Sendable`: The priority affecting the order in which the requests are performed.
+- `init(from decoder: any Decoder) throws`: Decodes the priority from its name, such as `"normal"`.
+- `func encode(to encoder: any Encoder) throws`: Encodes the priority as its name, such as `"normal"`.
+- `case veryLow = 0, low, normal, high, veryHigh`
+- `static func < (lhs: Priority, rhs: Priority) -> Bool`
+
+### ImageRequest.ThumbnailOptions
+
+- `struct ThumbnailOptions: Hashable, Sendable`: Thumbnail options.
+- `var createThumbnailFromImageIfAbsent: Bool`: Whether a thumbnail should be automatically created for an image if a thumbnail isn't present in the image source file.
+- `var createThumbnailFromImageAlways: Bool`: Whether a thumbnail should be created from the full image even if a thumbnail is present in the image source file.
+- `var createThumbnailWithTransform: Bool`: Whether the thumbnail should be rotated and scaled according to the orientation and pixel aspect ratio of the full image.
+- `var shouldCacheImmediately: Bool`: Specifies whether image decoding and caching should happen at image creation time.
+- `init(maxPixelSize: CGFloat)`: Initializes the options with the given pixel size.
+- `init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill)`: Initializes the options with the given size.
+- `func makeThumbnail(with data: Data) -> PlatformImage?`: Generates a thumbnail from the given image data.
+
+### ImageRequest.UserInfoKey
+
+- `struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable`: A key used in `userInfo` for providing custom request options.
+- `let rawValue: String`: Returns a key raw value.
+- `init(_ rawValue: String)`: Initializes the key with a raw value.
+- `init(stringLiteral value: String)`: Initializes the key with a raw value.
+- `static let labelKey: UserInfoKey = "com.github.kean/nuke/label"`: A short name for the role of the request in the app, such as `"feed"` or `"avatar"`.
+
+### ImageResponse
+
+- `struct ImageResponse: Sendable`: An image response that contains a fetched image and some metadata.
+- `var container: ImageContainer`: An image container with an image and associated metadata.
+- `var image: NSImage`: The image from the response container.
+- `var image: UIImage`
+- `var isPreview: Bool`: Returns `true` if the image is a progressive preview rather than the final decoded image.
+- `var request: ImageRequest`: The request for which the response was created.
+- `var urlResponse: URLResponse?`: A response.
+- `var cacheType: CacheType?`: Contains a cache type in case the image was returned from one of the pipeline caches (not including any of the HTTP caches if enabled).
+- `init(container: ImageContainer, request: ImageRequest, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil)`: Initializes the response with the given image.
+
+### ImageResponse.CacheType
+
+- `enum CacheType: Sendable`: A cache type.
+- `case memory`: Memory cache (see `ImageCaching`).
+- `case disk`: Disk cache (see `DataCaching`).
+
+### ImageTask
+
+- `final class ImageTask: Hashable, Identifiable, CustomStringConvertible, Sendable`: A task performed by the `ImagePipeline`.
+- `var metrics: Metrics?`: Where the time of the task went.
+- `let taskId: UInt64`: An identifier that uniquely identifies the task within a given pipeline.
+- `let request: ImageRequest`: The original request that the task was created with.
+- `var priority: ImageRequest.Priority`: The priority of the task.
+- `var isCancelled: Bool`: Returns `true` if the task was cancelled from the outside
+- `var status: Status`: Returns a snapshot of everything about the task that can change while it runs.
+- `var image: PlatformImage { get async throws(ImagePipeline.Error) }`: Returns the response image.
+- `var response: ImageResponse { get async throws(ImagePipeline.Error) }`: Returns the image response.
+- `var progress: AsyncCompactMapSequence<AsyncStream<Event>, Progress>`: The stream of progress updates.
+- `var previews: AsyncCompactMapSequence<AsyncStream<Event>, ImageResponse>`: The stream of image previews generated for images that support progressive decoding.
+- `var events: AsyncStream<Event>`: The events sent by the pipeline during the task execution.
+- `func cancel()`: Marks task as being cancelled.
+- `var id: ObjectIdentifier`: An identifier that uniquely identifies the task.
+- `func hash(into hasher: inout Hasher)`
+- `static func == (lhs: ImageTask, rhs: ImageTask) -> Bool`
+- `var description: String`
+
+### ImageTask.Event
+
+- `enum Event: Sendable`: An event produced during the runtime of the task.
+- `case progress(Progress)`: The download progress was updated.
+- `case preview(ImageResponse)`: The pipeline generated a progressive scan of the image.
+- `case finished(Result<ImageResponse, ImagePipeline.Error>)`: The task finished with the given response.
+
+### ImageTask.Metrics
+
+- `final class Metrics: Codable, Sendable, CustomStringConvertible`: A record of one task
+- `let schemaVersion: Int`: The version of the JSON the record encodes to.
+- `let pipelineID: UUID`: The pipeline that performed the task.
+- `let taskID: UInt64`: `ImageTask.taskId`.
+- `let kind: Kind`
+- `let label: String?`: The `ImageRequest.UserInfoKey.labelKey` of the request.
+- `let request: RequestSummary`
+- `let createdAt: TimeInterval`: When the task was created, in seconds since 1970.
+- `let startedAt: TimeInterval?`: When the pipeline started working on the task, in seconds since 1970.
+- `let endedAt: TimeInterval`: When the task finished, in seconds since 1970.
+- `let duration: TimeInterval`: The time from creation to the finish.
+- `let outcome: ImagePipeline.Diagnostics.Outcome`
+- `let error: ImagePipeline.Diagnostics.ErrorSummary?`: The error the task failed with.
+- `let source: ImagePipeline.Diagnostics.Source?`: Where the final image came from.
+- `let isCoalesced: Bool`: `true` if the task attached to a job that already existed, that is, if another task started the work.
+- `let rootJobID: UInt64?`: The job the task subscribed to.
+- `let previewCount: Int`: The progressive previews the task delivered.
+- `let priorityHistory: [ImagePipeline.Diagnostics.PriorityChange]`: The changes made to `ImageTask.priority` while the task ran.
+- `let bytes: Bytes?`: The bytes of the download the task waited on, if any.
+- `let image: ImageSummary?`: The image the task produced.
+- `let jobs: [ImagePipeline.Diagnostics.Job]`: Every job the task waited on, root first.
+- `var createdDate: Date`
+- `var startedDate: Date?`
+- `var endedDate: Date`
+- `var sharedTaskIDs: [UInt64]`: The tasks that shared a job with this one.
+- `var urlSessionMetrics: ImagePipeline.Diagnostics.URLSessionMetrics?`: What `URLSession` measured for the download the task waited on
+- `var wireBytes: Int64?`: The bytes the session took off the network for the download the task waited on, which is far less than `bytes` when the response came out of the `URLCache`.
+- `var isServedFromHTTPCache: Bool`: `true` if the download the task waited on was answered out of the `URLCache` of the `DataLoader`, so `bytes` is what the pipeline received and not what the network carried.
+- `var isRevalidated: Bool`: `true` if the download the task waited on was a conditional request the server answered with `304 Not Modified`, so only the headers crossed the network and the bytes came out of the `URLCache`.
+- `var timeShares: [TimeShare]`: Where the time of the task went, largest first, and `ImageTask.Metrics.Category.other` last.
+- `var description: String`: `formatted(_:)` with everything
+- `func formatted(_ options: Options = .all) -> String`: A text report of the task
+- `var summary: String`: The task in one line
+
+### ImageTask.Metrics.Bytes
+
+- `struct Bytes: Codable, Sendable`: The bytes of a download.
+- `let downloaded: Int64`
+- `let resumed: Int64`: The bytes reused from a previous attempt.
+- `let expected: Int64`: The bytes the server announced, including the resumed ones.
+
+### ImageTask.Metrics.Category
+
+- `enum Category: String, Sendable, CaseIterable`: A kind of work the time of a task goes into.
+- `case network`: A download, whatever it took its bytes from.
+- `case queue`: The wait for one of the queues in `ImagePipeline.Configuration`, which is where the time goes when the pipeline is busy.
+- `case rateLimit`: The wait in `ImagePipeline.Configuration.rateLimiter`.
+- `case process`
+- `case decompress`
+- `case decode`
+- `case cache`: A cache lookup or a cache write, in memory or on disk.
+- `case other`: What the stages don't account for
+
+### ImageTask.Metrics.ImageSummary
+
+- `struct ImageSummary: Codable, Sendable`: The image a task produced.
+- `let width: Int`
+- `let height: Int`
+- `let format: String?`: The format of the image data, such as `"jpeg"`.
+- `let isAnimated: Bool`
+- `let memoryCost: Int?`: What the image costs in memory, which is what `ImageCache` charges it
+
+### ImageTask.Metrics.Kind
+
+- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of a task.
+- `case image`: The image loading methods, such as `imageTask(with:)`.
+- `case data`: `ImagePipeline.data(for:)`.
+- `case prefetch`: `ImagePrefetcher`.
+- `case unknown`
+
+### ImageTask.Metrics.Options
+
+- `struct Options: OptionSet, Sendable`: What `ImageTask.Metrics.formatted(_:)` prints
+- `let rawValue: Int`
+- `init(rawValue: Int)`
+- `static let header = Options(rawValue: 1 << 0)`: A title with the outcome, then a field per fact of the request and the result.
+- `static let breakdown = Options(rawValue: 1 << 1)`: A field that says where the time of the task went, by `ImageTask.Metrics.Category`, largest first.
+- `static let timeline = Options(rawValue: 1 << 2)`: The tree of the jobs the task waited on, with the time the task spent on every row.
+- `static let urlSession = Options(rawValue: 1 << 3)`: The requests `URLSession` made, under the row of the download that made them.
+- `static let chart = Options(rawValue: 1 << 8)`: The chart
+- `static let percentages = Options(rawValue: 1 << 9)`: The share of the task every row took, and the share of every category in `breakdown`
+- `static let timestamps = Options(rawValue: 1 << 10)`: The time of day the task started and finished, to line the task up with the log around it.
+- `static let cacheKeys = Options(rawValue: 1 << 11)`: The digest of the key on the rows of the cache stages, so two tasks that were expected to hit the same entry can be compared.
+- `static let all: Options = [.header, .breakdown, .timeline, .urlSession, .chart, .percentages, .timestamps, .cacheKeys]`: Every section and every column
+- `static let plain: Options = [.header, .breakdown, .timeline]`: The header, the breakdown, and the timeline, with none of the columns
+
+### ImageTask.Metrics.RequestSummary
+
+- `struct RequestSummary: Codable, Sendable`: The `Codable` subset of the `ImageRequest`.
+- `let url: String?`
+- `let imageID: String?`
+- `let processors: [String]`: The identifiers of the processors.
+- `let thumbnail: String?`: The identifier of `ImageRequest.thumbnail`.
+- `let options: [String]`: The names of the `ImageRequest.Options`.
+- `let priority: ImageRequest.Priority`: The priority the request was created with.
+
+### ImageTask.Metrics.TimeShare
+
+- `struct TimeShare: Sendable`: How much of a task one `Category` took.
+- `let category: Category`
+- `let duration: TimeInterval`: Seconds.
+- `let share: Double`: The share of `ImageTask.Metrics.duration`, from 0 to 1.
+
+### ImageTask.Progress
+
+- `struct Progress: Hashable, Sendable`: The download progress.
+- `let completed: Int64`: The number of bytes that the task has received.
+- `let total: Int64`: A best-guess upper bound on the number of bytes of the resource.
+- `var fraction: Float`: Returns the fraction of the completion.
+- `init(completed: Int64, total: Int64)`: Initializes progress with the given byte counts.
+
+### ImageTask.Status
+
+- `struct Status: Sendable`: A snapshot of the task state, captured at a single point in time.
+- `var result: Result<ImageResponse, ImagePipeline.Error>?`: The result the task finished with, or `nil` if it is still running.
+- `var isCancelled = false`: Returns `true` if the task was cancelled from the outside.
+- `var priority: ImageRequest.Priority = .normal`: The priority of the task.
+- `var progress = Progress(completed: 0, total: 0)`: The download progress.
+- `var metrics: Metrics?`: Where the time of the task went.
+- `init()`: Initializes the status describing a task that has just started.
+
+### TaskQueue
+
+- `final class TaskQueue: Sendable`: A priority-aware, concurrency-limited work queue that runs on `@ImagePipelineActor`.
+- `nonisolated var isSuspended: Bool`: Controls whether the queue drains pending work.
+- `nonisolated var maxConcurrentTaskCount: Int`: The default value matches the number of cores on the machine.
+- `nonisolated var reservedTaskCount: Int`: The number of slots that the work with a priority lower than `.normal`, such as prefetching, can't take, so that the work added at a higher priority finds a free slot even when there is more low-priority work than slots.
+- `nonisolated init(maxConcurrentTaskCount: Int = ProcessInfo.processInfo.processorCount)`: Initializes the queue.
+- `nonisolated init(maxConcurrentTaskCount: Int, reservedTaskCount: Int)`: Initializes the queue.
+
+## NukeUI
+
+
+### AnimatedImage
+
+- `struct AnimatedImage: View`: A SwiftUI view that plays an animated image.
+- `init(_ source: AnimatedImageSource, poster: PlatformImage? = nil)`: Plays the given animated image.
+- `init(player: AnimatedImagePlayer, poster: PlatformImage? = nil)`: Displays the frames of a player you own.
+- `init?(container: ImageContainer)`: Plays the image if the pipeline recognized it as animated, showing the still image the decoder produced until the first frame is decoded.
+- `consuming func resizable() -> Self`: Lets the animation be resized to the space it is given.
+- `var body: some View`
+
+### AnimatedImageFramePool
+
+- `final class AnimatedImageFramePool`: The memory every animation on screen shares for its decoded frames.
+- `static let shared = AnimatedImageFramePool()`: The pool every player uses.
+- `var costLimit: Int`: The memory the decoded frames of every player may occupy, in bytes.
+- `var totalCost: Int`: The memory the decoded frames occupy right now, in bytes.
+- `var playerCount: Int`: The number of players drawing from the pool.
+- `var activePlayerCount: Int`: The number of players filling a window of frames.
+- `var animationCount: Int`: The number of animations the players are drawing from, including the ones nobody is playing any more but whose frames are still kept.
+- `static var defaultCostLimit: Int`: Returns a limit computed from the amount of physical memory on the device
+- `init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit)`: Creates a pool with the given limit.
+- `func reduceMemoryUsage()`: Gives back the frames of every animation nobody is playing and holds the ones being played at the two frames playback needs.
+- `func removeIdleAnimations()`: Gives back the frames of every animation nobody is playing.
+
+### AnimatedImageFrameTransform
+
+- `struct AnimatedImageFrameTransform: Sendable`: A transformation applied to every frame of an animation as it is decoded.
+- `let identifier: String`: Identifies what the transform produces.
+- `let transform: @Sendable (CGImage) -> CGImage?`: Returns the image to display in place of the decoded frame, or `nil` to display the decoded frame unchanged.
+- `init(identifier: String, transform: @escaping @Sendable (CGImage) -> CGImage?)`: Creates a transform.
+
+### AnimatedImagePlayer
+
+- `final class AnimatedImagePlayer: ObservableObject`: Plays an animated image
+- `let source: AnimatedImageSource`: The image being played.
+- `let options: Options`: The options the player was created with.
+- `var currentFrameIndex = 0`: The frame currently on screen.
+- `var image: PlatformImage?`: The image of the current frame, or `nil` until the first frame is decoded.
+- `var isPlaying = false`: Whether the clock is running.
+- `var isFinished = false`: `true` when the animation has played the number of loops it was asked to and stopped on its last frame.
+- `var completedLoopCount = 0`: The number of loops completed since the player was created.
+- `var onFrame: ((PlatformImage) -> Void)?`: Called every time a new frame is ready to be displayed.
+- `var onLoop: ((Int) -> Void)?`: Called with the number of completed loops every time the animation wraps around.
+- `var onFinish: (() -> Void)?`: Called when the animation stops because it has played all of its loops.
+- `convenience init(source: AnimatedImageSource, options: Options = Options())`: Creates a player for the given image.
+- `func play()`: Starts or resumes playback.
+- `func pause()`: Pauses playback on the current frame.
+- `func restart()`: Returns to the first frame and starts playing.
+- `func seek(toFrame index: Int)`: Displays the frame at the given index.
+- `var diagnostics: Diagnostics`: A snapshot of what the player is doing.
+- `func isFrameBuffered(_ index: Int) -> Bool`: Returns `true` if the frame at the given index is decoded and in memory.
+
+### AnimatedImagePlayer.Diagnostics
+
+- `struct Diagnostics: Sendable`: What the player is doing, for logging, tests, and the diagnostics overlay in the demo app.
+- `init()`: Creates an empty snapshot.
+- `var frameCount = 0`: The number of frames in the animation.
+- `var currentFrameIndex = 0`: The frame currently on screen.
+- `var completedLoopCount = 0`: The number of completed loops.
+- `var bufferedFrameCount = 0`: The number of decoded frames held in memory.
+- `var bufferCapacity = 0`: The number of frames the buffer is allowed to hold.
+- `var bufferedByteCount = 0`: The memory those frames occupy, in bytes.
+- `var bufferByteLimit = 0`: The memory the window is allowed to use, in bytes
+- `var sharingPlayerCount = 0`: The number of players drawing from the same decoded frames, this one included.
+- `var decodedFrameCount = 0`: The number of frames this player waited for a decode of since it was created.
+- `var lastDecodeDuration: TimeInterval = 0`: How long the most recent frame took to decode, in seconds.
+- `var averageDecodeDuration: TimeInterval = 0`: The mean decode time across every frame decoded so far.
+- `var maxDecodeDuration: TimeInterval = 0`: The slowest frame decode so far.
+- `var displayedFrameCount = 0`: The number of frames actually shown.
+- `var bufferMissCount = 0`: The number of frames that were due before they finished decoding.
+- `var playbackTime: TimeInterval = 0`: The time the player has spent playing, in seconds.
+- `var effectiveFrameRate: Double`: The number of frames shown per second of playback.
+- `var isFullyBuffered: Bool`: `true` when every frame of the animation fits in the buffer, so each one is decoded exactly once.
+
+### AnimatedImagePlayer.Options
+
+- `struct Options: Sendable`: The options that change how an animation is played and how much memory it is allowed to use.
+- `var repeatCount: RepeatCount = .image`: How many times to play the animation.
+- `var playbackRate: Double = 1`: The speed multiplier.
+- `var maxBufferSize: Int?`: The most memory this player's decoded frames may occupy, in bytes.
+- `var maxPixelSize: CGFloat?`: The longest side, in pixels, the decoded frames may have.
+- `var scale: CGFloat = 1`: The scale of the images the player produces.
+- `var frameTransform: AnimatedImageFrameTransform?`: A transformation applied to every frame as it is decoded – a tint, a rounded corner, a filter.
+- `var isSynchronizationEnabled = true`: Whether the player starts on the frame the other players of the same animation are showing, rather than on the first one.
+- `var isPowerThrottlingEnabled = true`: Whether the clock slows down while the system is asking for less work.
+- `init()`
+
+### AnimatedImagePlayer.RepeatCount
+
+- `enum RepeatCount: Hashable, Sendable`: How many times an animation should play.
+- `case image`: Whatever the image asks for, which is almost always forever.
+- `case infinite`: Play forever, whatever the image asks for.
+- `case finite(Int)`: Play a set number of times, then stop on the last frame.
+
+### AnimatedImageView
+
+- `final class AnimatedImageView: _PlatformImageView`: An image view that plays animated images.
+- `var animatedImage: AnimatedImageSource?`: The image being played, or `nil` if the view is showing a still image.
+- `var player: AnimatedImagePlayer?`: The player driving `animatedImage`, or `nil` when there is nothing to play.
+- `var playerOptions = AnimatedImagePlayer.Options()`: The options the view creates its players with.
+- `var isPlaybackEnabled = true`: Whether animations play.
+- `var isAutomaticDownsamplingEnabled = true`: Whether the frames are decoded no larger than the view displays them.
+- `var isPlaying: Bool`: `true` while the animation is running.
+- `convenience init()`: Creates a view with a zero frame.
+- `override init(frame frameRect: CGRect)`
+- `required init?(coder: NSCoder)`
+- `override var image: PlatformImage?`: The image on screen
+- `override func prepareForReuse()`: Stops the animation and clears the view.
+- `func prepareForReuse()`
+- `override func layout()`
+- `override func layoutSubviews()`
+- `override func viewDidMoveToWindow()`
+- `override func didMoveToWindow()`
+- `override var isHidden: Bool`
+- `override var alphaValue: CGFloat`
+- `override var alpha: CGFloat`
+
+### FetchImage
+
+- `final class FetchImage: ObservableObject, Identifiable`: An observable object that simplifies image loading in SwiftUI.
+- `var result: Result<ImageResponse, ImagePipeline.Error>?`: Returns the current fetch result.
+- `var image: Image?`: Returns the fetched image.
+- `var imageContainer: ImageContainer?`: Returns the fetched image.
+- `var isLoading = false`: Returns `true` if the image is being loaded.
+- `var transaction = Transaction(animation: nil)`: Animations to be used when displaying the loaded images.
+- `var progress: ImageTask.Progress`: The progress of the current image download.
+- `var priority: ImageRequest.Priority?`: Overrides the priority of the current and future requests.
+- `var pipeline: ImagePipeline`: A pipeline used for performing image requests.
+- `var processors: [any ImageProcessing]`: Image processors to be applied unless the processors are provided in the request.
+- `var onStart: (@MainActor @Sendable (ImageTask) -> Void)?`: Gets called when the request is started.
+- `var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?`: Gets called when the current request is completed.
+- `init()`: Initializes the image.
+- `func load(_ url: URL?)`: Loads an image with the given URL.
+- `func load(_ request: ImageRequest?)`: Loads an image with the given request.
+- `func load(_ action: @escaping () async throws -> ImageResponse)`: Loads and displays an image using the given async function.
+- `func cancel()`: Marks the request as being cancelled.
+- `func reset()`: Resets the `FetchImage` instance by cancelling the request and removing all of the state including the loaded image.
+
+### ImageLoader
+
+- `final class ImageLoader`: Loads images and reports every change of a load as a `State`.
+- `static func load(_ url: URL?, into imageView: _PlatformImageView, presentation: Presentation = Presentation(), pipeline: ImagePipeline? = nil) -> Handle`: Loads an image with the given URL into the image view.
+- `static func load(_ request: ImageRequest?, into imageView: _PlatformImageView, presentation: Presentation = Presentation(), pipeline: ImagePipeline? = nil) -> Handle`: Loads an image with the given request into the image view.
+- `var pipeline: ImagePipeline`: The pipeline used for loading images.
+- `var processors: [any ImageProcessing] = []`: Processors to be applied to the requests that have none of their own.
+- `var priority: ImageRequest.Priority?`: Overrides the priority of the requests.
+- `var isProgressiveRenderingEnabled = true`: If `false`, the progressive previews produced by the pipeline aren't reported.
+- `var keepsPreviousImage = false`: If `true`, a new load keeps the previous image in `State.imageContainer` until it has an image of its own
+- `var state = State()`: The current state.
+- `var task: ImageTask?`: The task of the current load, while it runs.
+- `weak var delegate: (any ImageLoaderDelegate)?`: Receives every change of the `state`.
+- `init(pipeline: ImagePipeline = .shared)`: Creates a loader.
+- `func load(_ url: URL?) -> Handle`: Loads an image with the given URL, and cancels what was loading before it.
+- `func load(_ request: ImageRequest?) -> Handle`: Loads an image with the given request, and cancels what was loading before it.
+- `func load(_ action: @escaping () async throws -> ImageResponse) -> Handle`: Loads an image with the given async function, and cancels what was loading before it.
+- `func reload() -> Handle?`: Loads the request of the last load again, with the current options of the loader.
+- `func cancel()`: Cancels the current load.
+- `func reset()`: Cancels the current load and clears the state.
+- `static func loader(for object: AnyObject) -> ImageLoader`: Returns the loader attached to the object, and attaches a new one on first use.
+- `static func load<Target: AnyObject>(_ url: URL?, into target: Target, pipeline: ImagePipeline? = nil, render: @escaping @MainActor (Target, State) -> Void) -> Handle`: Loads an image with the given URL into the target, and calls `render` with every change of the state.
+- `static func load<Target: AnyObject>(_ request: ImageRequest?, into target: Target, pipeline: ImagePipeline? = nil, render: @escaping @MainActor (Target, State) -> Void) -> Handle`: Loads an image with the given request into the target, and calls `render` with every change of the state.
+
+### ImageLoader.Event
+
+- `enum Event: Sendable`: What changed in a `State`.
+- `case started(ImageTask?)`: The load started a task, and the previous load is cancelled.
+- `case progress(ImageTask.Progress)`: The download progressed.
+- `case preview(ImageResponse)`: The pipeline produced a progressive preview, which is now the `State.imageContainer`.
+- `case finished(Result<ImageResponse, ImagePipeline.Error>, isSync: Bool)`: The load finished.
+- `case cancelled`: The load was cancelled with `ImageLoader.cancel()`, or its task was cancelled.
+- `case reset`: The state was cleared with `ImageLoader.reset()`.
+
+### ImageLoader.Handle
+
+- `struct Handle: Sendable`: A handle to a load started by an `ImageLoader`, to await its outcome or cancel it.
+- `let task: ImageTask?`: The task of the load, or `nil` if it finished synchronously or runs a closure.
+- `var response: ImageResponse { get async throws(ImagePipeline.Error) }`: Returns the response of the load.
+- `var result: Result<ImageResponse, ImagePipeline.Error> { get async }`: Returns the outcome of the load.
+- `func cancel()`: Cancels the load, unless it has already finished or was replaced.
+
+### ImageLoader.Presentation
+
+- `struct Presentation: Sendable`: How an image view displays a load.
+- `var placeholder: PlatformImage?`: The image to display while the image loads.
+- `var failureImage: PlatformImage?`: The image to display when the load fails.
+- `var transition: Transition?`: The transition to run when a loaded image or a progressive preview is displayed.
+- `var failureImageTransition: Transition?`: The transition to run when the failure image is displayed.
+- `init(placeholder: PlatformImage? = nil, transition: Transition? = nil, failureImage: PlatformImage? = nil, failureImageTransition: Transition? = nil)`: Creates a presentation.
+- `func render(_ state: ImageLoader.State, in imageView: _PlatformImageView)`: Displays the state in the image view
+
+### ImageLoader.Presentation.Transition
+
+- `struct Transition: Sendable`: An animated image transition.
+- `static func fadeIn(duration: TimeInterval) -> Transition`: A cross-dissolve from the image that is displayed.
+- `static func custom(_ closure: @escaping @MainActor @Sendable (_PlatformImageView, ImageContainer) -> Void) -> Transition`: A custom transition.
+
+### ImageLoader.State
+
+- `struct State: Sendable`: A snapshot of a load
+- `var event: Event = .reset`: What changed since the previous state.
+- `var request: ImageRequest?`: The request of the load, as it was passed to `ImageLoader.load(_:)`, before the processors and the priority of the loader are applied.
+- `var task: ImageTask?`: The task of the load, while it runs.
+- `var imageContainer: ImageContainer?`: The image to display
+- `var isPreviousImage = false`: `true` when `imageContainer` is the image of a previous load, kept by `ImageLoader.keepsPreviousImage`.
+- `var isLoading = false`: `true` while the task runs.
+- `var progress = ImageTask.Progress(completed: 0, total: 0)`: The progress of the download.
+- `var result: Result<ImageResponse, ImagePipeline.Error>?`: The outcome of the load, once it finishes.
+- `var image: PlatformImage?`: The image to display.
+- `var error: ImagePipeline.Error?`: The error the load failed with, if it failed.
+- `init(event: Event = .reset, request: ImageRequest? = nil, task: ImageTask? = nil, imageContainer: ImageContainer? = nil, isPreviousImage: Bool = false, isLoading: Bool = false, progress: ImageTask.Progress = ImageTask.Progress(completed: 0, total: 0), result: Result<ImageResponse, ImagePipeline.Error>? = nil)`: Creates a state, to test or preview the code that draws the states of a loader
+
+### ImageLoaderDelegate
+
+- `protocol ImageLoaderDelegate: AnyObject`: Receives the states of an `ImageLoader`.
+- `func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)`: Called every time the state of the loader changes.
+
+### LazyImage
+
+- `struct LazyImage<Content: View>: View`: A view that asynchronously loads and displays an image.
+- `init(url: URL?) where Content == Image`: Loads and displays an image using `SwiftUI.Image`.
+- `init(request: ImageRequest?) where Content == Image`: Loads and displays an image using `SwiftUI.Image`.
+- `init(url: URL?, transaction: Transaction = Transaction(animation: nil), @ViewBuilder content: @escaping (LazyImageState) -> Content)`: Loads an image and displays custom content for each state.
+- `init(request: ImageRequest?, transaction: Transaction = Transaction(animation: nil), @ViewBuilder content: @escaping (LazyImageState) -> Content)`: Loads an image and displays custom content for each state.
+- `consuming func processors(_ processors: [any ImageProcessing]?) -> Self`: Sets processors to be applied to the image.
+- `consuming func priority(_ priority: ImageRequest.Priority?) -> Self`: Sets the priority of the requests, replacing the request's own priority.
+- `consuming func pipeline(_ pipeline: ImagePipeline) -> Self`: Changes the underlying pipeline used for image loading.
+- `consuming func onStart(_ closure: @escaping @MainActor @Sendable (ImageTask) -> Void) -> Self`: Gets called when the request is started.
+- `consuming func onDisappear(_ behavior: DisappearBehavior?) -> Self`: Changes the behavior when the view disappears.
+- `consuming func onCompletion(_ closure: @escaping @MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void) -> Self`: Gets called when the current request is completed.
+- `var body: some View`
+
+### LazyImage.DisappearBehavior
+
+- `enum DisappearBehavior`: Defines the behavior when the view disappears.
+- `case cancel`: Cancels the current request but keeps the presentation state of the already displayed image.
+- `case lowerPriority`: Lowers the request's priority to very low.
+
+### LazyImageState
+
+- `protocol LazyImageState`: Describes the current image state.
+- `var result: Result<ImageResponse, ImagePipeline.Error>?`: Returns the current fetch result.
+- `var imageContainer: ImageContainer?`: Returns the fetched image.
+- `var isLoading: Bool`: Returns `true` if the image is being loaded.
+- `var progress: ImageTask.Progress`: The progress of the image download.
+- `var animatedImage: AnimatedImageSource?`: Returns the fetched image as an animation, if it is one.
+- `var error: ImagePipeline.Error?`: Returns the current error.
+- `var image: Image?`: Returns an image view.
+
+### LazyImageView
+
+- `final class LazyImageView: _PlatformBaseView`: Lazily loads and displays images.
+- `var placeholderImage: PlatformImage?`: An image to be shown while the request is in progress.
+- `var placeholderView: _PlatformBaseView?`: A view to be shown while the request is in progress.
+- `var placeholderViewPosition: SubviewPosition = .fill`: The position of the placeholder.
+- `var showPlaceholderOnFailure = false`: Displays the placeholder image or view in the case of a failure.
+- `var failureImage: PlatformImage?`: An image to be shown if the request fails.
+- `var failureView: _PlatformBaseView?`: A view to be shown if the request fails.
+- `var failureViewPosition: SubviewPosition = .fill`: The position of the failure view.
+- `var transition: Transition?`: An animated transition to be performed when displaying a loaded image.
+- `let imageView = AnimatedImageView()`: Returns the underlying image view.
+- `var makeImageView: ((ImageContainer) -> _PlatformBaseView?)?`: Creates a custom view for displaying the given image response.
+- `var processors: [any ImageProcessing]?`: Processors to be applied to the image.
+- `var priority: ImageRequest.Priority?`: Overrides the priority of the request.
+- `var imageTask: ImageTask?`: Current image task.
+- `var pipeline: ImagePipeline`: The pipeline to be used for download.
+- `var onStart: (@MainActor @Sendable (ImageTask) -> Void)?`: Gets called when the request is started.
+- `var onPreview: (@MainActor @Sendable (ImageResponse) -> Void)?`: Gets called when a progressive image preview is produced.
+- `var onProgress: (@MainActor @Sendable (ImageTask.Progress) -> Void)?`: Gets called when the request progress is updated.
+- `var onSuccess: (@MainActor @Sendable (ImageResponse) -> Void)?`: Gets called when the request finishes successfully.
+- `var onFailure: (@MainActor @Sendable (ImagePipeline.Error) -> Void)?`: Gets called when the request fails.
+- `var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?`: Gets called when the request is completed.
+- `var isProgressiveImageRenderingEnabled = true`: `true` by default.
+- `var isResetEnabled = true`: `true` by default.
+- `override init(frame: CGRect)`
+- `required init?(coder: NSCoder)`
+- `var url: URL?`: Sets the given URL and immediately starts the download.
+- `var request: ImageRequest?`: Sets the given request and immediately starts the download.
+- `override func updateConstraints()`
+- `func reset()`: Cancels current request and prepares the view for reuse.
+- `func cancel()`: Cancels current request.
+
+### LazyImageView.SubviewPosition
+
+- `enum SubviewPosition`
+- `case center`: Center in the superview.
+- `case fill`: Fill the superview.
+
+### LazyImageView.Transition
+
+- `enum Transition`: An animated transition.
+- `case fadeIn(duration: TimeInterval)`: Fade-in transition.
+- `case custom(closure: (LazyImageView, ImageContainer) -> Void)`: A custom image view transition.
+
+## NukeVideo
+
+
+### AssetType
+
+- `var isVideo: Bool`: Returns `true` if the asset represents a video file.
+
+### ImageContainer.UserInfoKey
+
+- `static let videoAssetKey: ImageContainer.UserInfoKey = "com.github/kean/nuke/video-asset"`: A key for a video asset (`AVAsset`).
+
+### ImageDecoders.Video
+
+- `final class Video: ImageDecoding, Sendable`: The video decoder.
+- `var isAsynchronous: Bool`: Always `true` — decoding is performed asynchronously to avoid blocking the pipeline.
+- `init?(context: ImageDecodingContext)`: Returns `nil` if the data is not a recognized video format (MP4, M4V, or MOV).
+- `func decode(_ data: Data) throws -> ImageContainer`: Decodes the complete video data and returns an `ImageContainer` with a thumbnail preview and an `AVDataAsset` stored in `ImageContainer.userInfo`.
+- `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`: Returns a single thumbnail preview for the first frame of partially downloaded video data, or `nil` if the data is not yet decodable or a preview was already produced.
+
+### VideoPlayerView
+
+- `final class VideoPlayerView: _PlatformBaseView`: A view that plays video content using AVKit.
+- `var videoGravity: AVLayerVideoGravity = .resizeAspectFill`: The video gravity.
+- `var animatesFrameChanges = true`: `true` by default.
+- `var isLooping = true`: `true` by default.
+- `var onVideoFinished: (() -> Void)?`: A closure called when the video finishes playing.
+- `var playerLayer: AVPlayerLayer`: The underlying player layer.
+- `override func layoutSubviews()`
+- `override func layout()`
+- `func reset()`: Stops playback and removes the current player, releasing associated resources.
+- `var asset: AVAsset?`: The video asset to play.
+- `func restart()`: Seeks to the beginning and resumes playback.
+- `func play()`: Creates a player for the current `asset` and starts playback.
+- `override func willMove(toWindow newWindow: UIWindow?)`
+- `override func viewWillMove(toWindow newWindow: NSWindow?)`
+
+## NukeExtensions
+
+
+### Global
+
+- `typealias ImageDisplayingView = UIView & ImageDisplaying`: A `UIView` that implements the `ImageDisplaying` protocol.
+- `typealias ImageDisplayingView = NSObject & ImageDisplaying`: An `NSObject` that implements the `ImageDisplaying` protocol.
+
+### ImageDisplaying
+
+- `var layer: CALayer?`
+
+### ImageLoadingOptions.ContentModes
+
+- `var success: UIView.ContentMode`: Content mode to be used for the loaded image.
+- `var failure: UIView.ContentMode`: Content mode to be used when displaying a `failureImage`.
+- `var placeholder: UIView.ContentMode`: Content mode to be used when displaying a `placeholder`.
+- `init(success: UIView.ContentMode, failure: UIView.ContentMode, placeholder: UIView.ContentMode)`
+
+### ImageLoadingOptions.TintColors
+
+- `var success: UIColor?`: Tint color to be used for the loaded image.
+- `var failure: UIColor?`: Tint color to be used when displaying a `failureImage`.
+- `var placeholder: UIColor?`: Tint color to be used when displaying a `placeholder`.
+- `init(success: UIColor?, failure: UIColor?, placeholder: UIColor?)`
+
+### ImageLoadingOptions.Transition
+
+- `static func fadeIn(duration: TimeInterval, options: UIView.AnimationOptions = .allowUserInteraction) -> Transition`: Fade-in transition (cross-fade in case the image view is already displaying an image).
+- `static func custom(_ closure: @escaping @MainActor @Sendable (ImageDisplayingView, UIImage) -> Void) -> Transition`: Custom transition.
+- `static func fadeIn(duration: TimeInterval) -> Transition`: Fade-in transition.
+- `static func custom(_ closure: @escaping @MainActor @Sendable (ImageDisplayingView, NSImage) -> Void) -> Transition`: Custom transition.
+
+### NSImageView
+
+- `func nuke_display(_ container: ImageContainer?)`: Displays the still image, and plays it when the view is an `AnimatedImageView` from NukeUI.
+
+### TVPosterView
+
+- `func nuke_display(_ container: ImageContainer?)`: Displays an image.
+
+### UIImageView
+
+- `func nuke_display(_ container: ImageContainer?)`: Displays the still image, and plays it when the view is an `AnimatedImageView` from NukeUI.

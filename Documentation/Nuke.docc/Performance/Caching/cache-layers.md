@@ -25,9 +25,9 @@ ImageCache.shared.countLimit = 100
 ImageCache.shared.ttl = 120 // Invalidate image after 120 sec
 
 // Read and write images
-let request = ImageRequest(url: url)
-ImageCache.shared[request] = ImageContainer(image: image)
-let image = ImageCache.shared[request]
+let key = ImageCacheKey(request: ImageRequest(url: url))
+ImageCache.shared[key] = ImageContainer(image: image)
+let image = ImageCache.shared[key]
 
 // Clear cache
 ImageCache.shared.removeAll()

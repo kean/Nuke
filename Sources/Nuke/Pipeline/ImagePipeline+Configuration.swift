@@ -161,6 +161,25 @@ extension ImagePipeline {
         /// recording at runtime.
         public var isDiagnosticsEnabled = ImagePipeline.Diagnostics.isEnabledByEnvironment
 
+        /// Logs a line for every task that finishes: how it ended, how long it
+        /// took, and where the image came from or why it failed. It's what to
+        /// turn on when an image doesn't show up. `false` by default, unless
+        /// the process was launched with `NUKE_DIAGNOSTICS_LOG`, which
+        /// ``ImagePipeline/Diagnostics-swift.struct/isLoggingEnabledByEnvironment``
+        /// reflects.
+        ///
+        /// The lines are ``ImageTask/Metrics/summary``, and they go to the
+        /// unified logging system, which is the Xcode console, or:
+        ///
+        /// ```bash
+        /// log stream --predicate 'subsystem == "com.github.kean.Nuke.ImagePipeline"'
+        /// ```
+        ///
+        /// A failure is logged as an error, and the rest as notices. It turns
+        /// on the recording that ``isDiagnosticsEnabled`` controls, which is
+        /// what the lines are made from.
+        public var isDiagnosticsLoggingEnabled = ImagePipeline.Diagnostics.isLoggingEnabledByEnvironment
+
         /// The log the pipeline sends `os_signpost` intervals to while
         /// diagnostics are on: one per task, one per job, and one per stage –
         /// a cache lookup, a download, a decode – so they can be seen in the

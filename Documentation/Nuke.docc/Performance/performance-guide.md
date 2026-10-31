@@ -66,7 +66,7 @@ Ideally, the app should download the images optimized for the target device scre
 let request = ImageRequest(url: url, processors: [.resize(width: 320)])
 ```
 
-> Tip: Some image formats, such as jpeg, can have thumbnails embedded in the original image data. If you are working with a large image and want to show only a thumbnail, consider using ``ImageRequest/ThumbnailOptions``. If the thumbnails aren't available, they are generated. It can be up to 4x faster than using ``ImageProcessors/Resize`` for high-resolution images. 
+> Tip: ``ImageProcessors/Resize`` decodes the whole image first, except for a JPEG, which it can scale as it decodes. For a large image in another format, such as a HEIC photo, use ``ImageRequest/ThumbnailOptions``, which decodes at the target size. With 12 MP images loading 16 at a time on an iOS simulator, the peak memory for HEIC was 191 MB with ``ImageProcessors/Resize`` and 7 MB with a thumbnail, and for JPEG they were the same.
 
 ## Main Thread Performance
 
@@ -256,10 +256,14 @@ print(metrics.formatted(.all.subtracting([.chart, .percentages])))
 print(metrics.formatted([.header, .breakdown]))
 ```
 
+To read one line per task from the console instead, without changing the app, see <doc:troubleshooting>.
+
 The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
 
 ```swift
-final class Telemetry: ImagePipeline.Delegate, Sendable {
+final class Telemetry: Sendable {}
+
+extension Telemetry: ImagePipeline.Delegate {
     @ImagePipelineActor
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
         guard case .finished = event, let metrics = task.metrics else { return }

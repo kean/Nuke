@@ -37,6 +37,23 @@ extension String {
 private let sha1HexChars: [UInt8] = Array("0123456789abcdef".utf8)
 
 extension URL {
+    /// The URL with nothing that could carry a secret, for an error message or
+    /// a log: no credentials, and the query and the fragment are replaced with
+    /// a mark, so the reader knows they were there. A `data` URL is the image
+    /// itself, so it's only the scheme.
+    var redactedDescription: String {
+        guard scheme != "data" else { return "data:…" }
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
+            return "<url>"
+        }
+        let isTruncated = components.query != nil || components.fragment != nil
+        components.user = nil
+        components.password = nil
+        components.query = nil
+        components.fragment = nil
+        return (components.string ?? "<url>") + (isTruncated ? "?…" : "")
+    }
+
     var isLocalResource: Bool {
         // URI schemes are case-insensitive (RFC 3986).
         guard let scheme = scheme?.lowercased() else { return false }

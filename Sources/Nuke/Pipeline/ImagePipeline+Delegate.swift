@@ -15,6 +15,13 @@ extension ImagePipeline {
     /// delegate run on ``ImagePipelineActor``, where a delegate can keep state
     /// without a lock. ``Delegate/imageTaskCreated(_:pipeline:)`` is the exception:
     /// it is called immediately, in the context that created the task.
+    ///
+    /// - important: Every method has a default implementation, so a method with
+    /// the wrong signature compiles, and the pipeline never calls it. Declare
+    /// the conformance in an extension, where the compiler warns about a method
+    /// that nearly matches a requirement. It doesn't warn about a method with
+    /// a different number of parameters, so check those against the signatures
+    /// here.
     public protocol Delegate: AnyObject, Sendable {
         // MARK: Misc
 

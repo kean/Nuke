@@ -103,6 +103,8 @@ The APIs deprecated in Nuke 13 have been removed.
 | `ImageRequest.UserInfoKey.thumbnailKey` | `ImageRequest.thumbnail` |
 | `ImagePipeline.Configuration.maximumDecodedImageSize` | `ImageRequest.ThumbnailOptions` |
 | `ImageDecodingContext.maximumDecodedImageSize` | `ImageRequest.ThumbnailOptions` |
+| `ImagePipeline.Configuration.isSignpostLoggingEnabled` | `ImagePipeline.Configuration.isDiagnosticsEnabled` and `signpostLog` |
+| `NukeUI.ImageRequest` | `ImageRequest`, which `NukeUI` re-exports from `Nuke` |
 
 The automatic downscaling implementation behind `maximumDecodedImageSize` was removed in Nuke 13, so setting it already had no effect. Use `ImageRequest.ThumbnailOptions` to control the decoded image size on a per-request basis instead.
 
@@ -141,6 +143,8 @@ imageView.image = try await ImagePipeline.shared.image(for: url)
 
 To observe progressively decoded previews, which the publisher used to emit as intermediate values, use `ImageTask.previews`.
 
+The compiler can only say so if `imagePublisher(with:)` stands alone. When a call to `sink` follows it, the error reads `value of type 'Never' has no member 'sink'`.
+
 `FetchImage` remains an `ObservableObject`, so observing it from SwiftUI is unchanged.
 
 ## Removed `ImageTask.Event.started`
@@ -161,6 +165,8 @@ func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
     handleStart(task)
 }
 ```
+
+Swift can't attach a message to a removed enum case, so the compiler doesn't name the replacement. The error reads `binary operator '~=' cannot be applied to two 'ImageTask.Event' operands`, `reference to member 'started' cannot be resolved without a contextual type`, or `type 'ImageTask.Event' has no member 'started'`.
 
 ## `Float` to `CGFloat`
 
@@ -198,6 +204,23 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 ```
 
 The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
+
+> Warning: **The Nuke 13 method still compiles, and the pipeline never calls it.** Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code. A delegate that used `willCache` to keep private images off the disk stops doing so, silently. Search your code for `completion: @escaping (Data?) -> Void`.
+
+The same goes for every other delegate method whose signature doesn't match, such as the Nuke 12 `imageTaskDidCancel(_:pipeline:)`. Declare the conformance in an extension, not on the class:
+
+```swift
+final class MyDelegate: Sendable {}
+
+extension MyDelegate: ImagePipeline.Delegate {
+    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) -> URLRequest? {
+        // warning: instance method 'willLoadData(for:urlRequest:pipeline:)' nearly matches
+        // defaulted requirement 'willLoadData(for:urlRequest:pipeline:)' of protocol 'Delegate'
+    }
+}
+```
+
+The compiler only compares a method to the requirements of the protocol the extension declares, and only if the number of parameters is the same. So the warning catches the method above, but not the old `willCache`, which has one more parameter.
 
 ## Renamed `TaskQueue.maxConcurrentOperationCount`
 
@@ -381,6 +404,8 @@ The options that applied to every load into a view now live on the loader attach
 
 `ImageLoader` has no shared options: a `Presentation` is a value, so define the ones your app uses once and pass them by name.
 
+If you stay on `NukeExtensions`, a closure passed to `ImageLoadingOptions.Transition.custom(_:)` is now `@MainActor @Sendable`.
+
 To display the image in a view of your own – one that used to conform to `ImageDisplaying` – pass a closure that draws the `ImageLoader.State`:
 
 ```swift
@@ -416,6 +441,75 @@ ImageLoader.load(url, into: imageView) { imageView, state in
     imageView.contentMode = state.image == nil ? .center : .scaleAspectFill
 }
 ```
+
+## `DataCache` Waits With `async`
+
+`DataCache.flush()` and `DataCache.sweep()` are now `async`, and they return when the work is done. `DataCache.queue` and `flush(for:)` are gone: the cache no longer has a queue of its own to hand out, and a flush writes everything that's staged.
+
+```swift
+// Nuke 13
+dataCache.storeData(data, for: "key")
+dataCache.flush(for: "key")
+
+// Nuke 14
+dataCache.storeData(data, for: "key")
+await dataCache.flush()
+```
+
+## `CoreImageFilter` Is `Sendable`
+
+`ImageProcessors.CoreImageFilter` and `coreImageFilter(name:parameters:identifier:)` now take `[String: any Sendable]`. A parameter value that isn't `Sendable` has to go through a filter you create yourself, with `coreImageFilter(_:identifier:)`.
+
+The cases of its `Error` carry descriptions rather than the Core Image objects.
+
+| Nuke 13 | Nuke 14 |
+|---|---|
+| `.failedToCreateFilter(name:parameters:)`, with `[String: Any]` | `.failedToCreateFilter(name:parameters:)`, with a `String` |
+| `.inputImageIsEmpty(inputImage:)`, with a `PlatformImage` | `.inputImageIsEmpty(inputImage:)`, with a `String` |
+| `.failedToApplyFilter(filter:)` | `.failedToApplyFilter(name:)` |
+| `.failedToCreateOutputCGImage(image:)` | `.failedToCreateOutputCGImage(extent:image:)` |
+
+## `ImageTask.status` Replaces `state` and `currentProgress`
+
+`ImageTask.State` and `ImageTask.currentProgress` are deprecated and keep working. `ImageTask.status` is one snapshot of everything that changes while a task runs, so the values agree with each other.
+
+```swift
+// Nuke 13
+if task.state == .running {
+    print(task.currentProgress.fraction)
+}
+
+// Nuke 14
+let status = task.status
+if status.result == nil, !status.isCancelled {
+    print(status.progress.fraction)
+}
+```
+
+## Changed Defaults
+
+These compile without changes. Most apps have nothing to do, but they do change what the pipeline does.
+
+| Setting | Nuke 13 | Nuke 14 |
+|---|---|---|
+| `imageDecodingQueue` | 1 task at a time | 2 |
+| `dataLoadingQueue` | Requests below `.normal` can take all 6 slots | At most 3, see `TaskQueue.reservedTaskCount` |
+| `isUsingPrepareForDisplay` | `false` | `true` |
+| Requests per second the rate limiter allows | 80 | 100 |
+
+A custom decoder with `isAsynchronous` set to `true` can now run alongside another one, so state it shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6, reservedTaskCount: 0)
+}
+```
+
+The cache keys didn't change, so the images your users have on disk survive the update.
+
+## `localizedDescription` Describes the Failure
+
+`ImagePipeline.Error` and `DataLoader.Error` now conform to `LocalizedError`. `localizedDescription` used to return the system's generic "The operation couldn't be completed", and it now returns the same technical English sentence as `description`, which can include a URL. If you show it to people, show a message of your own.
 
 ## `LazyImageView.imageTask` is read-only
 

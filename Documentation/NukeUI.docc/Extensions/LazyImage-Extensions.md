@@ -39,8 +39,9 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
 When the image is loaded, it is displayed with no animation, which is a recommended option. If you add an animation, it's automatically applied when the image is downloaded, but not when it's retrieved from the memory cache. 
 
 ```swift
-LazyImage(url: URL(string: "https://example.com/image.jpeg"))
-    .animation(.default)
+LazyImage(url: URL(string: "https://example.com/image.jpeg"), transaction: Transaction(animation: .default)) { state in
+    state.image?.resizable().scaledToFit()
+}
 ```
 
 `LazyImage` can be instantiated with an `ImageRequest` or configured using convenience modifiers.

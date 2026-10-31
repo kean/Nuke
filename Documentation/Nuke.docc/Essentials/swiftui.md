@@ -74,7 +74,7 @@ LazyImage(request: ImageRequest(
 ))
 ```
 
-You can also set them on the view, in which case they only apply if the request doesn't define its own.
+You can also set them on the view, in which case they replace the ones the request defines.
 
 ```swift
 LazyImage(url: url)

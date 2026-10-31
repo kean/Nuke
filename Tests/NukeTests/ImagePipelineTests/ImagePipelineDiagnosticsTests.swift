@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
@@ -52,6 +53,85 @@ struct ImagePipelineDiagnosticsTests {
         #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "0"]))
         #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "false"]))
         #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": ""]))
+    }
+
+    @Test func theLogEnvironmentVariableIsReadAsAFlag() {
+        let key = "NUKE_DIAGNOSTICS_LOG"
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: [:], key: key))
+        #expect(ImagePipeline.Diagnostics.isEnabled(in: [key: "1"], key: key))
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: [key: "0"], key: key))
+        // The two flags are independent
+        #expect(!ImagePipeline.Diagnostics.isEnabled(in: ["NUKE_DIAGNOSTICS_ENABLED": "1"], key: key))
+    }
+
+    // MARK: - Logging
+
+    /// Logs what a pipeline with a given configuration logs, and returns it.
+    private func logs(of pipeline: ImagePipeline, load: () async throws -> Void) async throws -> [String] {
+        let lines = OSAllocatedUnfairLock<[String]>(initialState: [])
+        await Task { @ImagePipelineActor in
+            pipeline.recorder?.onLog = { line in lines.withLock { $0.append(line) } }
+        }.value
+        try await load()
+        return lines.withLock { $0 }
+    }
+
+    @Test func loggingRecordsAndLogsWithoutDiagnostics() async throws {
+        // GIVEN a pipeline that only asked for the log
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsEnabled = false
+            $0.isDiagnosticsLoggingEnabled = true
+        }
+
+        // WHEN
+        let lines = try await logs(of: pipeline) {
+            _ = try await pipeline.image(for: Test.request)
+        }
+
+        // THEN
+        #expect(lines.count == 1)
+        #expect(lines.first?.contains(" · success · ") == true)
+        #expect(lines.first?.contains(Test.url.absoluteString) == true)
+    }
+
+    @Test func logsTheTaskThatFailed() async throws {
+        // GIVEN a server that answers with an error page
+        let url = URL(string: "https://example.com/image.jpeg?token=secret")!
+        let dataLoader = MockDataLoader()
+        let response = HTTPURLResponse(url: url, mimeType: "text/html", expectedContentLength: -1, textEncodingName: nil)
+        dataLoader.results[url] = .success((Data("<html>Oops</html>".utf8), response))
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+            $0.isDiagnosticsLoggingEnabled = true
+        }
+
+        // WHEN
+        let lines = try await logs(of: pipeline) {
+            _ = try? await pipeline.image(for: url)
+        }
+
+        // THEN the line says what came back, and leaves out the token
+        let line = try #require(lines.first)
+        #expect(line.contains(" · failure · "))
+        #expect(line.contains("decodingFailed"))
+        #expect(line.contains("text/html"))
+        #expect(line.contains("<html>Oops</html>"))
+        #expect(line.contains("https://example.com/image.jpeg?…"))
+        #expect(!line.contains("secret"))
+    }
+
+    @Test func logsNothingWhenLoggingIsOff() async throws {
+        // GIVEN diagnostics that are on, and logging that isn't
+        let lines = try await logs(of: pipeline) {
+            _ = try await pipeline.image(for: Test.request)
+        }
+
+        #expect(lines.isEmpty)
     }
 
     // MARK: - Sources and Stages

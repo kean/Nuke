@@ -23,6 +23,17 @@ final class LinkedList<Element> {
     /// The number of elements in the list.
     ///
     /// - note: O(n). Testing and debug purposes.
+    /// The elements, in order. O(n).
+    var elements: [Element] {
+        var elements: [Element] = []
+        var node = first
+        while let current = node {
+            elements.append(current.value)
+            node = current.next
+        }
+        return elements
+    }
+
     var count: Int {
         var count = 0
         var node = first

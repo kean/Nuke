@@ -6,7 +6,7 @@ import Foundation
 
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
-    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+    public enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable {
         // The cases that carry a decoding or processing context are `indirect`:
         // stored inline, the context would make every error – and every `Result`
         // and task event that holds one – about a hundred bytes.
@@ -62,6 +62,10 @@ extension ImagePipeline.Error {
         }
     }
 
+    /// The same as ``description``. Without it, `localizedDescription` would
+    /// print "The operation couldn't be completed", which says nothing.
+    public var errorDescription: String? { description }
+
     public var description: String {
         switch self {
         case .dataMissingInCache:
@@ -70,14 +74,15 @@ extension ImagePipeline.Error {
             return "Failed to load image data. Underlying error: \(error)."
         case .dataIsEmpty:
             return "Data loader returned empty data."
-        case .decoderNotRegistered:
-            return "No decoders registered for the downloaded data."
-        case let .decodingFailed(decoder, _, error):
+        case let .decoderNotRegistered(context):
+            return "No decoders registered for the downloaded data. \(context.receivedDescription)."
+        case let .decodingFailed(decoder, context, error):
             let underlying = error is ImageDecodingError ? "" : " Underlying error: \(error)."
-            return "Failed to decode image data using decoder \(decoder).\(underlying)"
-        case let .processingFailed(processor, _, error):
+            return "Failed to decode image data using decoder \(decoder).\(underlying) \(context.receivedDescription)."
+        case let .processingFailed(processor, context, error):
             let underlying = error is ImageProcessingError ? "" : " Underlying error: \(error)."
-            return "Failed to process the image using processor \(processor).\(underlying)"
+            let source = context.request.url.map { " Image URL: \($0.redactedDescription)." } ?? ""
+            return "Failed to process the image using processor \(processor).\(underlying)\(source)"
         case .imageRequestMissing:
             return "Load image method was called with no image request or no URL."
         case .pipelineInvalidated:
@@ -87,5 +92,38 @@ extension ImagePipeline.Error {
         case .cancelled:
             return "The image task was cancelled."
         }
+    }
+}
+
+extension ImageDecodingContext {
+    /// What the pipeline received, which is what tells a corrupted image from
+    /// the HTML page a server sent back with a `200`: `Received 1.4 KB of
+    /// text/html (HTTP 200) from https://example.com/image.jpeg, starting with
+    /// "<!DOCTYPE html>"`.
+    fileprivate var receivedDescription: String {
+        var text = "Received \(Formatter.bytes(data.count))"
+        if let type = AssetType(data)?.diagnosticsName ?? urlResponse?.mimeType {
+            text += " of \(type)"
+        }
+        if let statusCode = (urlResponse as? HTTPURLResponse)?.statusCode {
+            text += " (HTTP \(statusCode))"
+        }
+        if let url = request.url {
+            text += " from \(url.redactedDescription)"
+        }
+        return text + ", starting with \(data.preview)"
+    }
+}
+
+extension Data {
+    /// The first bytes of the data: the text, if they are text, and hex
+    /// otherwise.
+    fileprivate var preview: String {
+        let head = prefix(32)
+        let isText = !head.isEmpty && head.allSatisfy { (0x20...0x7E).contains($0) || [0x09, 0x0A, 0x0D].contains($0) }
+        guard isText, let text = String(bytes: head, encoding: .ascii) else {
+            return prefix(8).map { String(format: "%02x", $0) }.joined(separator: " ")
+        }
+        return "\"\(text.split(whereSeparator: \.isWhitespace).joined(separator: " "))\""
     }
 }

@@ -1,6 +1,9 @@
-.PHONY: ci ci-list test build lint spm snippets help
+.PHONY: ci ci-list test test-one build lint spm snippets llms help
 
 CI := bash .scripts/ci.sh
+
+SCHEME ?= Nuke
+PLATFORM ?= macOS
 
 ## Run every CI job (build, test, lint) for every scheme and platform
 ci:
@@ -18,6 +21,10 @@ ci-%:
 test:
 	@$(CI) test
 
+## Run one test and print how many ran, e.g. make test-one TEST=ImageRequestTests/testInit [SCHEME=NukeUI] [PLATFORM=iOS]
+test-one:
+	@bash .scripts/test-one.sh "$(TEST)" "$(SCHEME)" "$(PLATFORM)"
+
 ## Compile every scheme for every platform (no tests)
 build:
 	@$(CI) build
@@ -33,6 +40,10 @@ spm:
 ## Compile the code samples from the DocC articles
 snippets:
 	@$(CI) snippets
+
+## Regenerate llms.txt, llms-full.txt, and llms-api.txt
+llms:
+	@python3 .scripts/generate-llms.py
 
 ## Show available targets
 help:

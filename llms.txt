@@ -1,0 +1,50 @@
+# Nuke
+
+> Nuke is an image loading system for iOS, macOS, tvOS, watchOS, and visionOS: `ImagePipeline` loads, processes, and caches images, and NukeUI displays them with `LazyImage` in SwiftUI and `ImageLoader` in UIKit and AppKit.
+
+These files describe the `main` branch, which is Nuke 14. The latest stable release is Nuke 13, so check `Package.resolved` first: the [migration guide](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Migrations/Nuke%2014%20Migration%20Guide.md) lists what differs. A project's own checkout has the same files for the version it uses, at the root of `.build/checkouts/Nuke`, or `SourcePackages/checkouts/Nuke` in Xcode's DerivedData.
+
+What you remember about Nuke is likely out of date. In particular:
+
+- A pipeline delegate method with the wrong signature compiles, and is never called. The Nuke 13 `willCache(data:image:for:pipeline:completion:)` is one. Copy the signatures from `llms-api.txt`.
+- `LazyImage` plays GIFs with no setup, and `AnimatedImageView` does in UIKit. Don't decode the frames yourself. A custom `LazyImage` content closure needs `AnimatedImage`.
+- Load into an image view with `ImageLoader.load(_:into:)` from NukeUI, not `loadImage(with:into:)` from NukeExtensions, which is soft-deprecated.
+- To find out why an image doesn't load, launch with `NUKE_DIAGNOSTICS_LOG=1` and read the log.
+
+## Guides
+
+- [Optimizing Nuke](https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
+- [Migrating to Nuke 14](https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
+- [Everything in one file](https://raw.githubusercontent.com/kean/Nuke/main/llms-full.txt): The guides, every article, and the migration guide
+- [API reference](https://raw.githubusercontent.com/kean/Nuke/main/llms-api.txt): The signature and the summary of every public declaration
+- [Nuke 14 Migration Guide](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Migrations/Nuke%2014%20Migration%20Guide.md): What changed since Nuke 13
+
+## Docs
+
+- [Getting Started](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Essentials/getting-started.md): Learn about the main features and APIs.
+- [SwiftUI](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Essentials/swiftui.md): Display images in SwiftUI using the NukeUI module.
+- [UIKit and AppKit](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Essentials/uikit.md): Load images into UIImageView and NSImageView using ImageLoader from NukeUI.
+- [Animated Images](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/NukeUI.docc/AnimatedImages.md): Play GIF, APNG, animated WebP, and HEIC and AVIF sequences.
+- [Troubleshooting](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Essentials/troubleshooting.md): Find out why an image doesn't show up, or takes too long.
+- [Image Processing](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/ImageProcessing/image-processing.md): Learn how to use existing image filters and create custom ones.
+- [Loading Data](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/LoadingData/loading-data.md): Learn how pipeline loads data.
+- [Caching](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Performance/Caching/caching.md): Learn about the cache layers and how to configure them.
+- [Cache Layers](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Performance/Caching/cache-layers.md): Learn about the memory and disk cache layers.
+- [Access Cached Images](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Performance/Caching/accessing-caches.md): Learn how to access cached images and data.
+- [Prefetching](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Performance/prefetching.md): Learn how to prefetch images to improve user experience.
+- [Performance Guide](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Performance/performance-guide.md): Learn about the performance features and how to make the most of them.
+- [Image Formats](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/ImageFormats/image-formats.md): Learn about the supported image formats and how to extend them.
+- [Supported Formats](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/ImageFormats/supported-image-formats.md): Learn which image formats the framework decodes, encodes, and displays out of the box.
+- [Image Decoding](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/ImageFormats/image-decoding.md): At the core of the decoding infrastructure is the ``ImageDecoding`` protocol.
+- [Image Encoding](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Customization/ImageFormats/image-encoding.md): To encode images, use types conforming to the ``ImageEncoding`` protocol:
+- [ImagePipeline](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Extensions/ImagePipeline-Extension.md): You can start using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer:
+- [LazyImage](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/NukeUI.docc/Extensions/LazyImage-Extensions.md): The view is instantiated with a [`URL`](https://developer.apple.com/documentation/foundation/url) or an ``ImageRequest``.
+- [FetchImage](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/NukeUI.docc/Extensions/FetchImage-Extensions.md): ``FetchImage`` is an observable object ([`ObservableObject`](https://developer.apple.com/documentation/combine/observableobject)) that allows you to manage the download of an image and observe the download status. It acts as a ViewModel that manages the image download state making it easy to add image loading to your custom SwiftUI views.
+- [ImageRequest](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Extensions/ImageRequest-Extension.md): Set ``ImageRequest/processors`` to apply one of the built-in processors that can be found in ``ImageProcessors`` namespace or a custom one.
+- [Objective-C](https://raw.githubusercontent.com/kean/Nuke/main/Documentation/Nuke.docc/Essentials/objective-c.md): Call Nuke from Objective-C by adding a small bridge to your app.
+
+## Optional
+
+- [Changelog](https://raw.githubusercontent.com/kean/Nuke/main/CHANGELOG.md): The release notes of every version
+- [Older migration guides](https://github.com/kean/Nuke/tree/main/Documentation/Migrations): Their samples are for the old versions, not for current code
+- [Contributing](https://raw.githubusercontent.com/kean/Nuke/main/AGENTS.md): For working on Nuke itself

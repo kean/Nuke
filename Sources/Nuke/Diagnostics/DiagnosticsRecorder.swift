@@ -27,11 +27,17 @@ extension ImagePipeline.Diagnostics {
 
         /// `nil` if the pipeline sends no signposts.
         private let signposter: OSSignposter?
+        /// `nil` if the pipeline logs nothing.
+        private let logger: Logger?
         private var nextJobID: UInt64 = 0
 
-        nonisolated init(pipelineID: UUID, signpostLog: OSLog?) {
+        /// Test hook.
+        var onLog: ((String) -> Void)?
+
+        nonisolated init(pipelineID: UUID, signpostLog: OSLog?, isLoggingEnabled: Bool = false) {
             self.pipelineID = pipelineID
             self.signposter = signpostLog.map(OSSignposter.init(logHandle:))
+            self.logger = isLoggingEnabled ? Logger(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Tasks") : nil
         }
 
         /// The runtime switch, which the app reaches from any thread.
@@ -60,6 +66,21 @@ extension ImagePipeline.Diagnostics {
             // The jobs are recorded with the switch off, but not signposted.
             let signposter = signposter.flatMap { isEnabled ? $0 : nil }
             return JobRecord(id: nextJobID, kind: kind, request: request, recorder: self, signposter: signposter)
+        }
+
+        /// Logs the line of a task that finished. It's public in the log:
+        /// the system would otherwise print `<private>` to everyone but an
+        /// attached debugger, and ``ImageTask/Metrics/summary`` leaves out
+        /// what can't be public.
+        func log(_ metrics: ImageTask.Metrics) {
+            guard let logger else { return }
+            let summary = metrics.summary
+            onLog?(summary)
+            if metrics.outcome == .failure {
+                logger.error("\(summary, privacy: .public)")
+            } else {
+                logger.notice("\(summary, privacy: .public)")
+            }
         }
     }
 }
@@ -145,7 +166,7 @@ extension ImagePipeline.Diagnostics {
                 signposter?.endInterval("ImageTask", signpostInterval, "\(outcome.rawValue, privacy: .public) \(source?.rawValue ?? "", privacy: .public)")
             }
 
-            return ImageTask.Metrics(
+            let metrics = ImageTask.Metrics(
                 schemaVersion: ImagePipeline.Diagnostics.schemaVersion,
                 pipelineID: recorder.pipelineID,
                 taskID: taskID,
@@ -167,6 +188,8 @@ extension ImagePipeline.Diagnostics {
                 image: image,
                 jobs: jobs
             )
+            recorder.log(metrics)
+            return metrics
         }
 
         /// The deepest stage that produced the image or its data decides:

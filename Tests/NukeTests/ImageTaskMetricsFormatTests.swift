@@ -947,6 +947,68 @@ struct ImageTaskMetricsFormatTests {
 // MARK: - Builders
 
 /// A fixed moment the records are written against.
+// MARK: - Summary
+
+extension ImageTaskMetricsFormatTests {
+    @Test func summaryOfASuccess() {
+        var draft = _Draft()
+        draft.source = .disk
+        draft.image = .init(width: 1200, height: 800, format: "jpeg", isAnimated: false, memoryCost: nil)
+
+        #expect(draft.make().summary == "ImageTask #1 · success · 100.0 ms · from disk · https://example.com/image.jpeg · 1200×800 · jpeg")
+    }
+
+    @Test func summaryIsOneLine() {
+        var draft = _Draft()
+        draft.outcome = .failure
+        draft.error = .init(code: "decodingFailed", description: "Failed to decode", underlyingDomain: nil, underlyingCode: nil)
+
+        #expect(!draft.make().summary.contains("\n"))
+    }
+
+    @Test func summaryOfAFailure() {
+        var draft = _Draft()
+        draft.outcome = .failure
+        draft.error = .init(code: "dataLoadingFailed", description: "Failed to load image data. Underlying error: Response status code was unacceptable: 404.", underlyingDomain: "Nuke.DataLoader.Error", underlyingCode: 0)
+
+        #expect(draft.make().summary == "ImageTask #1 · failure · 100.0 ms · https://example.com/image.jpeg · dataLoadingFailed · Failed to load image data. Underlying error: Response status code was unacceptable: 404.")
+    }
+
+    @Test func summaryDoesNotRepeatTheURLTheErrorNames() {
+        var draft = _Draft()
+        draft.outcome = .failure
+        draft.error = .init(code: "decodingFailed", description: "Received 12 bytes from https://example.com/image.jpeg, starting with \"x\".", underlyingDomain: nil, underlyingCode: nil)
+
+        #expect(draft.make().summary.components(separatedBy: "https://example.com/image.jpeg").count == 2)
+    }
+
+    @Test func summaryOfAURLErrorLeavesOutItsUserInfo() {
+        // `URLError` prints the failing URL, with the query
+        var draft = _Draft()
+        draft.url = "https://example.com/image.jpeg?token=secret"
+        draft.outcome = .failure
+        draft.error = .init(code: "dataLoadingFailed", description: "Failed to load image data. Underlying error: Error Domain=NSURLErrorDomain Code=-1009 UserInfo={NSErrorFailingURLStringErrorKey=https://example.com/image.jpeg?token=secret}.", underlyingDomain: NSURLErrorDomain, underlyingCode: -1009)
+
+        #expect(draft.make().summary == "ImageTask #1 · failure · 100.0 ms · https://example.com/image.jpeg?… · dataLoadingFailed · NSURLErrorDomain -1009")
+    }
+
+    @Test func summaryNamesTheKindAndTheCoalescing() {
+        var draft = _Draft()
+        draft.kind = .prefetch
+        draft.isCoalesced = true
+
+        #expect(draft.make().summary == "ImageTask #1 · success · 100.0 ms · prefetch · https://example.com/image.jpeg · coalesced")
+    }
+
+    @Test func summaryFallsBackToTheImageID() {
+        var draft = _Draft()
+        draft.url = nil
+        draft.imageID = "avatar-42"
+
+        #expect(draft.make().summary == "ImageTask #1 · success · 100.0 ms · avatar-42")
+    }
+}
+
 private let _t0: TimeInterval = 1_000_000
 
 /// A record with sensible defaults: a 100 ms successful image task that

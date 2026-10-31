@@ -52,7 +52,7 @@ public final class ImagePipeline: Sendable {
     private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
     private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
-    private var isInvalidated = false
+    private(set) var isInvalidated = false
 
     private nonisolated var nextTaskId: UInt64 {
         _nextTaskId.withLock { value in
@@ -64,7 +64,8 @@ public final class ImagePipeline: Sendable {
 
     let rateLimiter: RateLimiter?
     /// Records the diagnostics. `nil` unless
-    /// ``Configuration-swift.struct/isDiagnosticsEnabled`` is set, so a
+    /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
+    /// ``Configuration-swift.struct/isDiagnosticsLoggingEnabled`` is set, so a
     /// recording point costs one nil-check when they are off.
     nonisolated let recorder: Diagnostics.Recorder?
     nonisolated let id: UUID
@@ -72,6 +73,9 @@ public final class ImagePipeline: Sendable {
 
     /// The number of image tasks the pipeline currently retains. Debug purposes.
     var taskCount: Int { tasks.count }
+
+    /// The image tasks the pipeline currently retains, oldest first. Debug purposes.
+    var activeTasks: [ImageTask] { tasks.elements }
 
     nonisolated deinit {
         let id = self.id
@@ -100,7 +104,8 @@ public final class ImagePipeline: Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
-        self.recorder = configuration.isDiagnosticsEnabled ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog) : nil
+        let isRecording = configuration.isDiagnosticsEnabled || configuration.isDiagnosticsLoggingEnabled
+        self.recorder = isRecording ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog, isLoggingEnabled: configuration.isDiagnosticsLoggingEnabled) : nil
 
         Task { @ImagePipelineActor in ResumableDataStorage.shared.register(id) }
     }

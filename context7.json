@@ -1,0 +1,33 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Nuke",
+  "description": "Image loading system for iOS, macOS, tvOS, watchOS, and visionOS: ImagePipeline, LazyImage, ImageLoader, and animated images.",
+  "folders": ["Documentation", "skills"],
+  "excludeFolders": ["Documentation/NukeExtensions.docc"],
+  "excludeFiles": [
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "Nuke 4 Migration Guide.md",
+    "Nuke 5 Migration Guide.md",
+    "Nuke 6 Migration Guide.md",
+    "Nuke 7 Migration Guide.md",
+    "Nuke 8 Migration Guide.md",
+    "Nuke 9 Migration Guide.md",
+    "Nuke 10 Migration Guide.md",
+    "Nuke 11 Migration Guide.md",
+    "Nuke 12 Migration Guide.md",
+    "Nuke 13 Migration Guide.md"
+  ],
+  "rules": [
+    "Check the Nuke version in Package.resolved first: these docs describe Nuke 14, and the latest stable release is Nuke 13.",
+    "Use LazyImage from NukeUI in SwiftUI, and ImageLoader.load(_:into:) from NukeUI in UIKit and AppKit. Don't use NukeExtensions in new code.",
+    "LazyImage plays animated images with no setup. A custom content closure needs AnimatedImage(container:), and UIKit needs AnimatedImageView. Don't decode the frames yourself.",
+    "A pipeline delegate method with the wrong signature compiles and is never called. Declare the conformance in an extension, and check the signatures. In Nuke 14, willCache is async and takes no completion closure.",
+    "Keep one ImagePipeline for the app, set on ImagePipeline.shared at launch. Never create one per view.",
+    "To find out why an image doesn't load, launch with NUKE_DIAGNOSTICS_LOG=1 and read the log."
+  ],
+  "previousVersions": [
+    { "tag": "13.2.0" }
+  ]
+}

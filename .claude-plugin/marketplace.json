@@ -1,0 +1,15 @@
+{
+  "name": "nuke",
+  "owner": {
+    "name": "Alexander Grebenyuk",
+    "url": "https://github.com/kean"
+  },
+  "description": "Skills for Nuke, the image loading system for Apple platforms",
+  "plugins": [
+    {
+      "name": "nuke",
+      "source": "./",
+      "description": "Optimize and migrate code that uses Nuke: how to measure and fix slow images, and how to upgrade to Nuke 14."
+    }
+  ]
+}
