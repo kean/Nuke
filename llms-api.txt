@@ -813,6 +813,7 @@
 - `var url: URL?`: Returns the request `URL`.
 - `var imageID: String?`: The image identifier used for caching and task coalescing.
 - `var scale: CGFloat`: The display scale of the image.
+- `var label: String?`: A short name for the role of the request in the app, such as `"feed"` or `"avatar"`.
 - `var thumbnail: ThumbnailOptions?`: Thumbnail options.
 - `var description: String`: Returns a debug request description.
 - `init(stringLiteral value: String)`: Initializes the request with the given string.
@@ -862,7 +863,6 @@
 - `let rawValue: String`: Returns a key raw value.
 - `init(_ rawValue: String)`: Initializes the key with a raw value.
 - `init(stringLiteral value: String)`: Initializes the key with a raw value.
-- `static let labelKey: UserInfoKey = "com.github.kean/nuke/label"`: A short name for the role of the request in the app, such as `"feed"` or `"avatar"`.
 
 ### ImageResponse
 
@@ -916,7 +916,7 @@
 - `let pipelineID: UUID`: The pipeline that performed the task.
 - `let taskID: UInt64`: `ImageTask.taskId`.
 - `let kind: Kind`
-- `let label: String?`: The `ImageRequest.UserInfoKey.labelKey` of the request.
+- `let label: String?`: The `ImageRequest.label` of the request.
 - `let request: RequestSummary`
 - `let createdAt: TimeInterval`: When the task was created, in seconds since 1970.
 - `let startedAt: TimeInterval?`: When the pipeline started working on the task, in seconds since 1970.

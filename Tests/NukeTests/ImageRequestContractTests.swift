@@ -563,11 +563,57 @@ struct ImageRequestUserInfoTests {
     @Test func userInfoDoesNotAffectKeys() {
         // Given
         let lhs = ImageRequest(url: Test.url)
-        let rhs = ImageRequest(url: Test.url).with { $0.userInfo[.labelKey] = "avatar" }
+        let rhs = ImageRequest(url: Test.url).with { $0.label = "avatar" }
 
         // Then
         #expect(MemoryCacheKey(lhs) == MemoryCacheKey(rhs))
         #expect(TaskLoadImageKey(lhs) == TaskLoadImageKey(rhs))
         #expect(TaskFetchOriginalDataKey(lhs) == TaskFetchOriginalDataKey(rhs))
+    }
+
+    @Test func labelCanBeSetAndCleared() {
+        // Given
+        var request = ImageRequest(url: Test.url)
+        #expect(request.label == nil)
+
+        // When
+        request.label = "feed"
+
+        // Then
+        #expect(request.label == "feed")
+
+        // When
+        request.label = nil
+
+        // Then
+        #expect(request.label == nil)
+        #expect(request.userInfo.isEmpty)
+    }
+
+    @Test func labelIsCopiedOnWrite() {
+        // Given
+        var lhs = ImageRequest(url: Test.url)
+        lhs.label = "feed"
+
+        // When
+        var rhs = lhs
+        rhs.label = "avatar"
+
+        // Then
+        #expect(lhs.label == "feed")
+        #expect(rhs.label == "avatar")
+    }
+
+    /// It's stored there, which the property documents.
+    @Test func assigningUserInfoClearsLabel() {
+        // Given
+        var request = ImageRequest(url: Test.url)
+        request.label = "feed"
+
+        // When
+        request.userInfo = [:]
+
+        // Then
+        #expect(request.label == nil)
     }
 }

@@ -114,6 +114,22 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.scale = Float(newValue) } }
     }
 
+    /// A short name for the role of the request in the app, such as `"feed"`
+    /// or `"avatar"`. The pipeline records it in ``ImageTask/Metrics/label``,
+    /// and does nothing else with it.
+    ///
+    /// - note: It's stored in ``userInfo``, so assigning a new dictionary to
+    /// ``userInfo`` clears it.
+    public var label: String? {
+        // Not a field of `Container`: few requests set it, and the 16 bytes
+        // doubled the median of `storingRequestInCollections`. It reads
+        // `userInfo` rather than `ref.userInfo`: holding the access to the
+        // field across the lookup brings back the dynamic exclusivity checks
+        // the compiler otherwise removes, which every copy of a request pays.
+        get { userInfo[.label] as? String }
+        set { userInfo[.label] = newValue }
+    }
+
     /// Thumbnail options. When set, the pipeline generates a thumbnail instead
     /// of a full image. Thumbnail creation is generally significantly more
     /// efficient, especially in terms of memory usage, than image resizing
@@ -358,11 +374,6 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         public init(stringLiteral value: String) {
             self.rawValue = value
         }
-
-        /// A short name for the role of the request in the app, such as
-        /// `"feed"` or `"avatar"`. The pipeline records it in
-        /// ``ImageTask/Metrics/label``, and does nothing else with it.
-        public static let labelKey: UserInfoKey = "com.github.kean/nuke/label"
     }
 
     /// Thumbnail options.
@@ -506,6 +517,11 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 }
 
 // MARK: - ImageRequest (Private)
+
+extension ImageRequest.UserInfoKey {
+    /// The key of ``ImageRequest/label``.
+    static let label: ImageRequest.UserInfoKey = "com.github.kean/nuke/label"
+}
 
 extension ImageRequest {
     /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to

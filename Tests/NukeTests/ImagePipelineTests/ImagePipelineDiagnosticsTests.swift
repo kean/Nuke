@@ -412,7 +412,7 @@ struct ImagePipelineDiagnosticsTests {
     @Test func labelIsRecorded() async throws {
         // GIVEN
         var request = Test.request
-        request.userInfo[.labelKey] = "feed"
+        request.label = "feed"
 
         // WHEN
         let task = pipeline.imageTask(with: request)
@@ -822,7 +822,7 @@ struct ImagePipelineDiagnosticsTests {
     @Test func descriptionPrintsTheHeader() async throws {
         // GIVEN
         var request = ImageRequest(url: Test.url, processors: [.resize(width: 100)])
-        request.userInfo[.labelKey] = "avatar"
+        request.label = "avatar"
 
         // WHEN
         let task = pipeline.imageTask(with: request)

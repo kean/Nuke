@@ -193,7 +193,7 @@ struct ImageRequestPipelineContractTests {
     @Test func responseCarriesRequestItWasCreatedFor() async throws {
         // Given
         var request = ImageRequest(url: Test.url, priority: .high)
-        request.userInfo[.labelKey] = "feed"
+        request.label = "feed"
         request.imageID = "custom-id"
 
         // When
@@ -203,7 +203,7 @@ struct ImageRequestPipelineContractTests {
         #expect(response.request.url == Test.url)
         #expect(response.request.imageID == "custom-id")
         #expect(response.request.priority == .high)
-        #expect(response.request.userInfo[.labelKey] as? String == "feed")
+        #expect(response.request.label == "feed")
     }
 
     @Test func memoryCacheHitCarriesRequestWithProcessors() async throws {
