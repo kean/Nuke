@@ -22,7 +22,7 @@ struct AnimatedImagesDemo: View {
     @State private var infos: [DemoAnimation: DemoAnimationInfo] = [:]
     /// Sampled on a timer rather than observed: the diagnostics change on every
     /// frame, and a view that redrew that often would be measuring itself.
-    @State private var diagnostics = AnimatedImagePlayer.Diagnostics()
+    @State private var diagnostics: AnimatedImagePlayer.Diagnostics?
     /// The shared pool, sampled on the same timer.
     @State private var pool = DemoPoolDiagnostics()
     @State private var status: String?
@@ -302,7 +302,7 @@ struct AnimatedImagesDemo: View {
     /// The live figures, and under them what the container declares.
     @ViewBuilder
     private var diagnosticsSection: some View {
-        if let animation {
+        if let animation, let diagnostics {
             Section {
                 DemoDiagnosticsPanel(
                     player: animation.player,
@@ -353,7 +353,7 @@ struct AnimatedImagesDemo: View {
                 ), in: 1...Self.maxBudgetMB) {
                     Text("Budget")
                 }
-                DemoMonoLabel(budgetEffect, tint: diagnostics.isFullyBuffered ? nil : .orange)
+                DemoMonoLabel(budgetEffect, tint: diagnostics?.isFullyBuffered == false ? .orange : nil)
             }
             VStack(alignment: .leading, spacing: 8) {
                 LabeledContent("Frame size") {
@@ -376,7 +376,7 @@ struct AnimatedImagesDemo: View {
     }
 
     private var budgetEffect: String {
-        guard diagnostics.frameCount > 0 else { return " " }
+        guard let diagnostics, diagnostics.frameCount > 0 else { return " " }
         guard diagnostics.isFullyBuffered else {
             return "holds \(diagnostics.bufferCapacity) of \(diagnostics.frameCount) frames · window slides"
         }
@@ -446,7 +446,7 @@ struct AnimatedImagesDemo: View {
     }
 
     private func sample() {
-        diagnostics = animation?.player.diagnostics ?? AnimatedImagePlayer.Diagnostics()
+        diagnostics = animation?.player.diagnostics
         pool = DemoPoolDiagnostics(pool: .shared)
     }
 

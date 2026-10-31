@@ -640,30 +640,27 @@ extension AnimatedImagePlayer {
     /// What the player is doing, for logging, tests, and the diagnostics
     /// overlay in the demo app.
     public struct Diagnostics: Sendable {
-        /// Creates an empty snapshot.
-        public init() {}
-
         /// The number of frames in the animation.
-        public var frameCount = 0
+        public internal(set) var frameCount = 0
         /// The frame currently on screen.
-        public var currentFrameIndex = 0
+        public internal(set) var currentFrameIndex = 0
         /// The number of completed loops.
-        public var completedLoopCount = 0
+        public internal(set) var completedLoopCount = 0
 
         /// The number of decoded frames held in memory.
-        public var bufferedFrameCount = 0
+        public internal(set) var bufferedFrameCount = 0
         /// The number of frames the buffer is allowed to hold.
-        public var bufferCapacity = 0
+        public internal(set) var bufferCapacity = 0
         /// The memory those frames occupy, in bytes.
-        public var bufferedByteCount = 0
+        public internal(set) var bufferedByteCount = 0
         /// The memory the window is allowed to use, in bytes: the share of
         /// ``AnimatedImageFramePool`` the player has been given.
-        public var bufferByteLimit = 0
+        public internal(set) var bufferByteLimit = 0
 
         /// The number of players drawing from the same decoded frames, this
         /// one included. More than one means the animation is on screen more
         /// than once and is being decoded and held once.
-        public var sharingPlayerCount = 0
+        public internal(set) var sharingPlayerCount = 0
 
         /// The number of frames this player waited for a decode of since it
         /// was created.
@@ -671,24 +668,24 @@ extension AnimatedImagePlayer {
         /// Larger than ``frameCount`` when the buffer can't hold the whole
         /// animation and frames are decoded again on every loop. Smaller when
         /// another player had already decoded them.
-        public var decodedFrameCount = 0
+        public internal(set) var decodedFrameCount = 0
         /// How long the most recent frame took to decode, in seconds.
-        public var lastDecodeDuration: TimeInterval = 0
+        public internal(set) var lastDecodeDuration: TimeInterval = 0
         /// The mean decode time across every frame decoded so far.
-        public var averageDecodeDuration: TimeInterval = 0
+        public internal(set) var averageDecodeDuration: TimeInterval = 0
         /// The slowest frame decode so far.
-        public var maxDecodeDuration: TimeInterval = 0
+        public internal(set) var maxDecodeDuration: TimeInterval = 0
 
         /// The number of frames actually shown.
-        public var displayedFrameCount = 0
+        public internal(set) var displayedFrameCount = 0
         /// The number of frames that were due before they finished decoding.
         ///
         /// No frame is skipped: each of these held the frame before it on
         /// screen past its delay. Steadily rising is the sign of a decoder
         /// that cannot keep up with the animation.
-        public var bufferMissCount = 0
+        public internal(set) var bufferMissCount = 0
         /// The time the player has spent playing, in seconds.
-        public var playbackTime: TimeInterval = 0
+        public internal(set) var playbackTime: TimeInterval = 0
 
         /// The number of frames shown per second of playback.
         ///
