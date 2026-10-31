@@ -170,8 +170,102 @@ struct ImagePipelineErrorTests {
 
         // Then the message names the processor and the underlying error, and
         // it's what string interpolation produces
-        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\"). Image URL: \(Test.url.absoluteString)."
         #expect(error.description == expected)
         #expect("\(error)" == expected)
+    }
+
+    // MARK: - What Was Received
+
+    /// A server that answers `200` with an error page is the most common way
+    /// to end up with a broken image. The message has to say so.
+    @Test func decodingFailedDescriptionShowsWhatWasReceived() {
+        let url = URL(string: "https://example.com/image.jpeg")!
+        let response = HTTPURLResponse(url: url, mimeType: "text/html", expectedContentLength: 2048, textEncodingName: nil)
+        let context = ImageDecodingContext(request: ImageRequest(url: url), data: Data("<!DOCTYPE html>\n<html><body>Not Found</body></html>".utf8), urlResponse: response)
+
+        let error = ImagePipeline.Error.decodingFailed(decoder: ImageDecoders.Default(), context: context, error: ImageDecodingError.unknown)
+
+        #expect(error.description.contains("of text/html"))
+        #expect(error.description.contains("from https://example.com/image.jpeg"))
+        #expect(error.description.contains(#"starting with "<!DOCTYPE html> <html><body>Not""#))
+    }
+
+    @Test func decoderNotRegisteredDescriptionShowsWhatWasReceived() {
+        let context = ImageDecodingContext.mock(data: Data("not an image".utf8))
+
+        let error = ImagePipeline.Error.decoderNotRegistered(context: context)
+
+        #expect(error.description.hasPrefix("No decoders registered for the downloaded data. Received 12 bytes from "))
+        #expect(error.description.hasSuffix(#", starting with "not an image"."#))
+    }
+
+    @Test func descriptionShowsStatusCode() {
+        let url = URL(string: "https://example.com/image.jpeg")!
+        let response = HTTPURLResponse(url: url, statusCode: 203, httpVersion: nil, headerFields: nil)
+        let context = ImageDecodingContext(request: ImageRequest(url: url), data: Data("x".utf8), urlResponse: response)
+
+        #expect(ImagePipeline.Error.decoderNotRegistered(context: context).description.contains("(HTTP 203)"))
+    }
+
+    @Test func descriptionNamesRecognizedFormat() {
+        let context = ImageDecodingContext.mock(data: Test.data)
+
+        // The data decides, not the response, which can be wrong.
+        #expect(ImagePipeline.Error.decoderNotRegistered(context: context).description.contains(" of jpeg from "))
+    }
+
+    @Test func descriptionPrintsBinaryDataAsHex() {
+        let context = ImageDecodingContext.mock(data: Data([0x00, 0x01, 0xFE, 0xFF, 0x10, 0x20, 0x30, 0x40, 0x50]))
+
+        let description = ImagePipeline.Error.decoderNotRegistered(context: context).description
+
+        #expect(description.hasSuffix(", starting with 00 01 fe ff 10 20 30 40."))
+    }
+
+    @Test(arguments: [
+        ("https://example.com/a.jpeg?token=secret#fragment", "https://example.com/a.jpeg?…"),
+        ("https://user:password@example.com/a.jpeg", "https://example.com/a.jpeg"),
+        ("https://example.com/a.jpeg", "https://example.com/a.jpeg"),
+        ("data:image/png;base64,iVBORw0KGgo=", "data:…")
+    ])
+    func descriptionRedactsURL(input: String, expected: String) throws {
+        let request = ImageRequest(url: URL(string: input))
+        let context = ImageDecodingContext(request: request, data: Data("x".utf8))
+
+        let description = ImagePipeline.Error.decoderNotRegistered(context: context).description
+
+        #expect(description.contains(" from \(expected), "))
+        #expect(!description.contains("secret"))
+        #expect(!description.contains("password"))
+        #expect(!description.contains("iVBORw0KGgo"))
+    }
+
+    @Test func processingFailedDescriptionRedactsURL() {
+        let request = ImageRequest(url: URL(string: "https://example.com/a.jpeg?token=secret"))
+        let context = ImageProcessingContext(request: request, response: Test.response, isCompleted: true)
+
+        let error = ImagePipeline.Error.processingFailed(processor: ImageProcessors.Resize(width: 100), context: context, error: ImageProcessingError.unknown)
+
+        #expect(error.description.hasSuffix(" Image URL: https://example.com/a.jpeg?…."))
+    }
+
+    @Test func pipelineReportsTheErrorPageItReceived() async throws {
+        let url = URL(string: "https://example.com/image.jpeg")!
+        let dataLoader = MockDataLoader()
+        let response = HTTPURLResponse(url: url, mimeType: "text/html", expectedContentLength: -1, textEncodingName: nil)
+        dataLoader.results[url] = .success((Data("<html>Oops</html>".utf8), response))
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = nil
+        }
+
+        await #expect {
+            _ = try await pipeline.image(for: url)
+        } throws: { error in
+            let description = "\(error)"
+            return description.contains("text/html") && description.contains(#""<html>Oops</html>""#)
+        }
     }
 }
