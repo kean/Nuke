@@ -31,9 +31,10 @@ import SwiftUI
 ///
 /// Playback stops while the view is off screen and picks up where it left off
 /// when it comes back, and it never starts on its own while Accessibility ›
-/// Motion › Auto-Play Animated Images is off – the view shows the first frame
-/// as a still instead. To control it yourself – or to read the diagnostics –
-/// create an ``AnimatedImagePlayer`` and use ``init(player:poster:)``.
+/// Motion › Auto-Play Animated Images is off or Reduce Motion is on – the view
+/// shows the first frame as a still instead. To control it yourself – or to
+/// read the diagnostics – create an ``AnimatedImagePlayer`` and use
+/// ``init(player:poster:)``.
 @MainActor
 public struct AnimatedImage: View {
     private let animation: AnimatedImageSource
@@ -94,7 +95,7 @@ public struct AnimatedImage: View {
         if #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, *) {
             AutoPlayReader { renderer(isPlaybackEnabled: $0) }
         } else {
-            renderer(isPlaybackEnabled: true)
+            ReduceMotionReader { renderer(isPlaybackEnabled: $0) }
         }
     }
 
@@ -108,7 +109,11 @@ public struct AnimatedImage: View {
     }
 }
 
-/// Hands its content Accessibility › Motion › Auto-Play Animated Images.
+/// Hands its content whether Accessibility › Motion lets the animation play:
+/// Auto-Play Animated Images is on, and Reduce Motion is off.
+///
+/// `AnimatedImageView` reads the same two settings on its own. These are for
+/// the watch, which has no such view.
 ///
 /// A view of its own because the environment value needs iOS 17 and the
 /// deployment target is iOS 16: an `@Environment` property can't be declared
@@ -117,11 +122,23 @@ public struct AnimatedImage: View {
 private struct AutoPlayReader<Content: View>: View {
     @Environment(\.accessibilityPlayAnimatedImages) private var playAnimatedImages
     @Environment(\.accessibilityPlayAnimatedImagesOverride) private var playAnimatedImagesOverride
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let content: (Bool) -> Content
 
     var body: some View {
-        content(playAnimatedImagesOverride ?? playAnimatedImages)
+        content((playAnimatedImagesOverride ?? playAnimatedImages) && !reduceMotion)
+    }
+}
+
+/// ``AutoPlayReader`` for the systems with no Auto-Play setting.
+private struct ReduceMotionReader<Content: View>: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let content: (Bool) -> Content
+
+    var body: some View {
+        content(!reduceMotion)
     }
 }
 

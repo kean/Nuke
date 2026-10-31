@@ -35,12 +35,15 @@ import UIKit
 /// transparent – so an animation in a cell that scrolls out of view stops
 /// decoding frames and starts again when it comes back. ``player`` exposes the
 /// playback controls and the diagnostics.
+///
+/// It also follows Accessibility › Motion: while Auto-Play Animated Images is
+/// off or Reduce Motion is on, it shows a still.
 @MainActor
 public final class AnimatedImageView: _PlatformImageView {
     /// The image being played, or `nil` if the view is showing a still image.
     ///
     /// Setting it replaces the current animation and starts playing, unless
-    /// ``isPlaybackEnabled`` is off.
+    /// ``isPlaybackEnabled`` or the accessibility settings say otherwise.
     public var animation: AnimatedImageSource? {
         get { player?.animation ?? animationPendingDownsampling }
         set { setAnimation(newValue, scale: scale(of: image)) }
@@ -71,6 +74,12 @@ public final class AnimatedImageView: _PlatformImageView {
             // `layer.contents`. Frames whose size changes cost 55-99µs each
             // and a layout pass every one.
             player?.onFrameForDisplay = { [weak self] in self?.setImageKeepingAnimation($0) }
+            // Here rather than at creation: a `LazyImageView` has one of these
+            // for every image, and few of them ever get anything to play.
+            if player != nil, !isFollowingAutoPlaySettings {
+                isFollowingAutoPlaySettings = true
+                autoPlaySettings.add(self)
+            }
             if let image = player?.image {
                 setImageKeepingAnimation(image)
             }
@@ -100,15 +109,23 @@ public final class AnimatedImageView: _PlatformImageView {
     /// still, which is what a table full of animations should do until the
     /// user asks to see them move.
     ///
-    /// It is also the hook for Accessibility › Motion › Auto-Play Animated
-    /// Images. Only SwiftUI publishes that setting, so ``AnimatedImage`` reads
-    /// it and sets this itself; a view used directly has to be told.
+    /// This is what the app wants, and `true` doesn't override what the user
+    /// asked for: the view also holds still while Accessibility › Motion ›
+    /// Auto-Play Animated Images is off or Reduce Motion is on, and follows
+    /// both as they change. To play anyway, because the user asked to see this
+    /// one, call ``AnimatedImagePlayer/play()`` on ``player``.
     public var isPlaybackEnabled = true {
         didSet {
             guard isPlaybackEnabled != oldValue else { return }
             updatePlaybackState()
         }
     }
+
+    /// The accessibility settings the view follows. The tests give it their
+    /// own, before it has anything to play.
+    var autoPlaySettings = AnimatedImageAutoPlaySettings.shared
+
+    private var isFollowingAutoPlaySettings = false
 
     /// Whether playback pauses while the view is not on screen – outside a
     /// window, hidden, or fully transparent. `true` by default.
@@ -506,10 +523,12 @@ public final class AnimatedImageView: _PlatformImageView {
 #endif
     }
 
-    private func updatePlaybackState() {
+    /// Called when something about the view changes, and not for a new frame,
+    /// so what it reads doesn't add up with the frame rate.
+    func updatePlaybackState() {
         guard let player else { return }
         let isOnScreen = isVisible || !isPlaybackPausedWhenOffscreen
-        if isPlaybackEnabled && isOnScreen {
+        if isPlaybackEnabled && autoPlaySettings.allowsPlayback && isOnScreen {
             player.play()
         } else {
             player.pause()

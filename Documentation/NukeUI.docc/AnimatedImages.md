@@ -93,7 +93,7 @@ What is published is the playback state changing – it starts, stops, finishes 
 
 To show an animation as a still – a list where animations play only after the user asks for them – set ``AnimatedImageView/isPlaybackEnabled`` to `false`. The first frame is displayed and no frames beyond it are ever decoded.
 
-That is also where Accessibility › Motion › Auto-Play Animated Images lands. ``AnimatedImage`` reads it from the SwiftUI environment and holds the animation on its first frame while the setting is off. A player you own still plays when something asks it to, so a play button of your own keeps working. UIKit and AppKit publish no equivalent, so an ``AnimatedImageView`` used outside SwiftUI has to be told.
+Two settings in Accessibility › Motion do the same on their own: Auto-Play Animated Images, from iOS 17, macOS 14, tvOS 17, and watchOS 10, and Reduce Motion. While the first is off or the second is on, ``AnimatedImage``, ``LazyImage``, ``LazyImageView``, and ``AnimatedImageView`` all show a still. There is nothing to set up. An animation already playing pauses on the frame it is on when a setting changes, and carries on from there when it changes back. A player you own still plays when something asks it to, so a play button of your own keeps working: an ``AnimatedImagePlayer`` on its own doesn't read either setting, and neither does ``AnimatedImagePlayer/play()``.
 
 ## Memory
 

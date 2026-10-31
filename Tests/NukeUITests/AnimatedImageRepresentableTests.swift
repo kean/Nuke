@@ -189,6 +189,30 @@ struct AnimatedImageRepresentableTests {
         #expect(view.player === player)
         #expect(view.isPlaying)
     }
+
+    /// Accessibility › Motion › Reduce Motion, which `AnimatedImageView` also
+    /// reads on its own, but a watch has no such view to read it for it.
+    @Test func anAnimatedImageHoldsStillWhenReduceMotionIsOn() async throws {
+        let source = Test.animatedGIFSource(frameCount: 8)
+        let host = ViewHost(true) { isReduceMotionOn in
+            AnimatedImage(source)
+                .environment(\._accessibilityReduceMotion, isReduceMotionOn)
+                .environment(\.accessibilityPlayAnimatedImagesOverride, true)
+        }
+        await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player?.image != nil })
+        let view = try #require(host.firstView(ofType: AnimatedImageView.self))
+        let player = try #require(view.player)
+
+        #expect(view.isPlaybackEnabled == false)
+        #expect(view.isPlaying == false)
+        #expect(player.currentFrameIndex == 0)
+
+        await host.update(false, until: { view.isPlaying })
+
+        #expect(view.isPlaybackEnabled)
+        #expect(view.player === player)
+        #expect(view.isPlaying)
+    }
 }
 
 #endif
