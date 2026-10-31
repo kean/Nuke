@@ -3,7 +3,7 @@
 
 Usage: generate-llms.py [--check]
   (no args)  Writes the files to the repository root.
-  --check    Writes nothing, and fails if the files are stale, if the skill isn't
+  --check    Writes nothing, and fails if the files are stale, if a skill isn't
              valid, or if one of its code samples isn't compiled.
 
 The hosted documentation only renders with JavaScript, so a fetch gets an empty
@@ -23,8 +23,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_URL = "https://raw.githubusercontent.com/kean/Nuke/main"
-SKILL = ROOT / "skills/nuke/SKILL.md"
-SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets/SkillSnippets.swift"
+SKILLS = ROOT / "skills"
+SKILL = SKILLS / "nuke/SKILL.md"
+# The skills that aren't the guide, which go after the articles in llms-full.txt.
+MORE_SKILLS = []
+SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets"
+DELEGATE = ROOT / "Sources/Nuke/Pipeline/ImagePipeline+Delegate.swift"
 MIGRATION_GUIDE = "Documentation/Migrations/Nuke 14 Migration Guide.md"
 MODULES = ["Nuke", "NukeUI", "NukeVideo", "NukeExtensions", "NukeTesting"]
 
@@ -128,8 +132,8 @@ def abstract_of(text):
     return ""
 
 
-def skill_body():
-    return re.sub(r"\A---\n.*?\n---\n+", "", SKILL.read_text(encoding="utf-8"), flags=re.S)
+def skill_body(path=SKILL):
+    return re.sub(r"\A---\n.*?\n---\n+", "", path.read_text(encoding="utf-8"), flags=re.S)
 
 
 # MARK: - API
@@ -329,12 +333,14 @@ def llms_full():
     output = [
         "# Nuke\n",
         "> The documentation of Nuke, an image loading system for Apple platforms, in one file. "
-        "Generated from the skill, the DocC articles, and the migration guide, for the version of Nuke it was checked out with. "
+        "Generated from the skills, the DocC articles, and the migration guide, for the version of Nuke it was checked out with. "
         "The signatures of every public declaration are in llms-api.txt.\n",
         skill_body().replace("# Nuke\n", "# Using Nuke\n", 1).replace("\n## ", "\n### ").replace("# Using Nuke", "## Using Nuke", 1),
     ]
     for path, text in sources:
         output.append(plain_markdown(text, titles))
+    for name in MORE_SKILLS:
+        output.append(plain_markdown(skill_body(SKILLS / name / "SKILL.md"), titles))
     guide = (ROOT / MIGRATION_GUIDE).read_text(encoding="utf-8")
     output.append(plain_markdown(guide, titles))
     return "\n".join(output)
@@ -366,7 +372,7 @@ What you remember about Nuke is likely out of date. In particular:
 ## Guides
 
 - [Using Nuke]({RAW_URL}/skills/nuke/SKILL.md): Which API to use, working code for the common tasks, the exact delegate signatures, debugging, testing, and the mistakes that compile
-- [Everything in one file]({RAW_URL}/llms-full.txt): The guide, every article, and the migration guide
+- [Everything in one file]({RAW_URL}/llms-full.txt): The guides, every article, and the migration guide
 - [API reference]({RAW_URL}/llms-api.txt): The signature and the summary of every public declaration
 - [{title_of(guide)}]({migration_url}): What changed since Nuke 13
 
@@ -384,36 +390,50 @@ What you remember about Nuke is likely out of date. In particular:
 
 # MARK: - Checks
 
-def check_skill():
+def check_skill(path):
     errors = []
-    text = SKILL.read_text(encoding="utf-8")
+    name = path.relative_to(ROOT).as_posix()
+    text = path.read_text(encoding="utf-8")
     frontmatter = re.match(r"\A---\n(.*?)\n---\n", text, flags=re.S)
     if not frontmatter:
-        return ["skills/nuke/SKILL.md has no frontmatter"]
+        return [f"{name} has no frontmatter"]
     fields = dict(line.split(": ", 1) for line in frontmatter.group(1).splitlines() if ": " in line)
-    if fields.get("name") != SKILL.parent.name:
-        errors.append("the name in the skill's frontmatter has to match its directory")
+    if fields.get("name") != path.parent.name:
+        errors.append(f"the name in the frontmatter of {name} has to match its directory")
     if not 1 <= len(fields.get("description", "")) <= 1024:
-        errors.append("the description of the skill has to be 1-1024 characters")
+        errors.append(f"the description of {name} has to be 1-1024 characters")
     if len(text.splitlines()) > 500:
-        errors.append("the skill has to stay under 500 lines")
+        errors.append(f"{name} has to stay under 500 lines")
 
     # An agent copies these as they are, so each one has to be compiled.
     def normalized(block):
-        return [line.strip() for line in block.splitlines() if line.strip()]
+        return [line.strip() for line in block.splitlines() if line.strip() and not line.startswith("import ")]
 
-    compiled = "\n".join(normalized(SNIPPETS.read_text(encoding="utf-8")))
+    compiled = "\n".join("\n".join(normalized(p.read_text(encoding="utf-8"))) for p in sorted(SNIPPETS.glob("Skill*Snippets.swift")))
+    # Whole lines: `-> String` is a substring of `-> String?`.
+    delegate = {re.sub(r"\s*\{.*$", "", re.sub(r"^(?:public |nonisolated )+", "", line.strip())) for line in DELEGATE.read_text(encoding="utf-8").splitlines()}
     for block in re.findall(r"^```swift\n(.*?)^```$", text, flags=re.M | re.S):
+        # The `// Nuke 13` half of a sample can't compile, which is why it's there.
+        if "// Nuke 13" in block:
+            if "// Nuke 14" not in block:
+                continue
+            block = block.split("// Nuke 14\n")[1]
         lines = normalized(block)
         # Declared `private` in the snippets, which the guide can leave out.
         if "\n".join(lines) not in compiled and "\n".join(lines) not in compiled.replace("private ", ""):
-            errors.append(f"a sample in the skill isn't in {SNIPPETS.relative_to(ROOT)}:\n    {lines[0]}")
+            errors.append(f"a sample in {name} isn't in {SNIPPETS.relative_to(ROOT)}:\n    {lines[0]}")
+        # A delegate method with the wrong signature compiles, and is never called,
+        # so compiling the sample doesn't prove anything about these.
+        for line in lines:
+            signature = re.match(r"func .*pipeline: ImagePipeline[,)][^{]*", line)
+            if signature and signature.group(0).strip() not in delegate:
+                errors.append(f"a delegate method in {name} doesn't match the protocol:\n    {line}")
     return errors
 
 
 def main():
     outputs = {"llms.txt": llms_index(), "llms-full.txt": llms_full(), "llms-api.txt": api_reference()}
-    errors = check_skill()
+    errors = [error for path in sorted(SKILLS.glob("*/SKILL.md")) for error in check_skill(path)]
 
     if "--check" in sys.argv:
         for name, text in outputs.items():

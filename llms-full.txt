@@ -1,6 +1,6 @@
 # Nuke
 
-> The documentation of Nuke, an image loading system for Apple platforms, in one file. Generated from the skill, the DocC articles, and the migration guide, for the version of Nuke it was checked out with. The signatures of every public declaration are in llms-api.txt.
+> The documentation of Nuke, an image loading system for Apple platforms, in one file. Generated from the skills, the DocC articles, and the migration guide, for the version of Nuke it was checked out with. The signatures of every public declaration are in llms-api.txt.
 
 ## Using Nuke
 
