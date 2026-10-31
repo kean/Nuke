@@ -46,6 +46,16 @@ private func diagnostics(url: URL) async throws {
     _ = image
 }
 
+// Snippets from `Documentation/Nuke.docc/Essentials/troubleshooting.md`.
+
+private func troubleshooting(pipeline: ImagePipeline, url: URL) async throws {
+    print(await ImagePipeline.shared.diagnostics.snapshot())
+
+    let task = pipeline.imageTask(with: url)
+    _ = try await task.image
+    print(task.metrics!)
+}
+
 private final class Telemetry: Sendable {}
 
 extension Telemetry: ImagePipeline.Delegate {

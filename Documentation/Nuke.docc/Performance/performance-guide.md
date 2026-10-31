@@ -256,6 +256,8 @@ print(metrics.formatted(.all.subtracting([.chart, .percentages])))
 print(metrics.formatted([.header, .breakdown]))
 ```
 
+To read one line per task from the console instead, without changing the app, see <doc:troubleshooting>.
+
 The record also reaches the pipeline delegate, with the ``ImageTask/Event/finished(_:)`` event, on the pipeline actor. That is where a logger picks it up:
 
 ```swift
