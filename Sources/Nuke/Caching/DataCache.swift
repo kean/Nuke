@@ -46,7 +46,8 @@ public final class DataCache: DataCaching, Sendable {
         set { state.withLock { $0.sizeLimit = newValue } }
     }
 
-    /// The time interval between cache sweeps. The default value is 30 minutes.
+    /// The time interval between cache sweeps. The default value is 30 minutes,
+    /// which is also what a value that isn't positive falls back to.
     ///
     /// The first sweep runs shortly after the initialization and is skipped if
     /// one was already performed within the interval, e.g. by the previous launch.
@@ -548,7 +549,9 @@ public final class DataCache: DataCaching, Sendable {
         ioQueue.asyncAfter(deadline: deadline, qos: .utility) { [weak self] in
             guard let self else { return }
             performScheduledSweep()
-            scheduleSweep(deadline: .now() + sweepInterval) // Also when skipped
+            // Also when skipped. A value that isn't an interval must not turn this
+            // into a loop: it had no effect in 13.2, which read it once, at `init`.
+            scheduleSweep(deadline: .now() + (sweepInterval > 0 ? sweepInterval : 1800))
         }
     }
 
