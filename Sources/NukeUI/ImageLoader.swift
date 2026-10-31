@@ -143,7 +143,11 @@ public final class ImageLoader {
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public func load(_ url: URL?) -> Handle {
-        load(url.map { ImageRequest(url: $0) })
+        if let url {
+            load(ImageRequest(url: url))
+        } else {
+            load(nil as ImageRequest?)
+        }
     }
 
     /// Loads an image with the given request, and cancels what was loading
@@ -328,7 +332,8 @@ public final class ImageLoader {
     public func reload() -> Handle? {
         // The async function of a load isn't kept for a reload: it often
         // captures the object that owns the loader.
-        state.request.map { load($0) }
+        guard let request = state.request else { return nil }
+        return load(request)
     }
 
     /// Cancels the current load. The image it displayed so far stays in the
@@ -715,7 +720,8 @@ extension ImageLoader {
         pipeline: ImagePipeline? = nil,
         render: @escaping @MainActor (Target, State) -> Void
     ) -> Handle {
-        load(url.map { ImageRequest(url: $0) }, into: target, pipeline: pipeline, render: render)
+        let request: ImageRequest? = if let url { ImageRequest(url: url) } else { nil }
+        return load(request, into: target, pipeline: pipeline, render: render)
     }
 
     /// Loads an image with the given request into the target, and calls

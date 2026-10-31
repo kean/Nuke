@@ -151,7 +151,7 @@ final class AnimatedImageFrameStore {
         self.transform = transform
         self.frameCount = source.frameCount
         self.bytesPerFrame = AnimatedImageFrameStore.bytesPerFrame(for: source, maxPixelSize: key.maxPixelSize)
-        self.decoder = decoder.map { AnimatedImageFrameStore.transforming($0, with: transform) }
+        self.decoder = if let decoder { AnimatedImageFrameStore.transforming(decoder, with: transform) } else { nil }
     }
 
     /// Returns the memory one frame occupies when decoded no larger than the
@@ -398,6 +398,7 @@ final class AnimatedImageFrameStore {
     }
 
     private func indexes(in window: Range<Int>) -> [Int] {
+        // swiftlint:disable:next optional_map_in_nukeui - not an Optional
         window.map { $0 % frameCount }
     }
 
@@ -424,6 +425,7 @@ final class AnimatedImageFrameStore {
             return
         }
         decodingIndex = index
+        // swiftlint:disable:next optional_map_in_nukeui - not an Optional
         decodingRequesters = Set(windows.filter { covers(index, $0) }.map { ObjectIdentifier($0.player) })
         currentDecode = Task(priority: .medium) { [weak self] in
             // Measured here rather than inside the decoder: what a frame costs

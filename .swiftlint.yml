@@ -41,4 +41,25 @@ identifier_name:
     min_length:
         warning: 1
 
+# NukeUI is built in Swift 6 mode and called by apps in Swift 5 mode, which can
+# reach a `@MainActor` method off the main thread without a diagnostic. A closure
+# passed to `map` inherits the actor and checks for it, so `url.map { ... }` traps
+# where `if let` doesn't. 13.0.6 fixed this, and 14 brought it back.
+#
+# `error`, because warnings don't fail `swiftlint lint`. `included` is matched
+# against the absolute path, so it can't start with `^`. This needs SourceKit:
+# without it 0.65 skips a custom rule, and `execution_mode: swiftsyntax` crashes.
+custom_rules:
+    optional_map_in_nukeui:
+        name: "Optional.map in NukeUI"
+        message: "A closure passed to map inherits the main actor and traps when Swift 5 code gets here off the main thread. Use if let. On a collection, disable the rule for the line."
+        regex: '\.(map|flatMap)\s*(\{|\((?!\s*(\\|[A-Z])))'
+        included: 'Sources/NukeUI/'
+        excluded: 'ImageLoader\+Previews\.swift' # Runs in Xcode previews only
+        excluded_match_kinds:
+            - comment
+            - doccomment
+            - string
+        severity: error
+
 reporter: "xcode"

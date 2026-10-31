@@ -24,7 +24,8 @@ extension ImageLoader {
         presentation: Presentation = Presentation(),
         pipeline: ImagePipeline? = nil
     ) -> Handle {
-        load(url.map { ImageRequest(url: $0) }, into: imageView, presentation: presentation, pipeline: pipeline)
+        let request: ImageRequest? = if let url { ImageRequest(url: url) } else { nil }
+        return load(request, into: imageView, presentation: presentation, pipeline: pipeline)
     }
 
     /// Loads an image with the given request into the image view.
@@ -190,7 +191,11 @@ private extension ImageLoader.Presentation {
     }
 
     func displayPlaceholder(in imageView: _PlatformImageView) {
-        imageView.displayContainer(placeholder.map { ImageContainer(image: $0) })
+        if let placeholder {
+            imageView.displayContainer(ImageContainer(image: placeholder))
+        } else {
+            imageView.displayContainer(nil)
+        }
     }
 
     func display(_ container: ImageContainer, transition: ImageLoader.Presentation.Transition?, in imageView: _PlatformImageView) {

@@ -446,7 +446,7 @@ public final class AnimatedImageView: _PlatformImageView {
 
     private func setAnimatedImage(_ source: AnimatedImageSource?, scale: CGFloat?) {
         guard animatedImage !== source else { return }
-        let maxPixelSize = source.flatMap(automaticMaxPixelSize(for:))
+        let maxPixelSize: CGFloat? = if let source { automaticMaxPixelSize(for: source) } else { nil }
         let isPending = source != nil && maxPixelSize == nil && wantsAutomaticDownsampling
         // A view with no size of its own has nothing to decode for yet, and a
         // player built now is one the first layout replaces – after decoding a
@@ -467,31 +467,33 @@ public final class AnimatedImageView: _PlatformImageView {
     }
 
     private func setPlayer(for source: AnimatedImageSource?, scale: CGFloat?, maxPixelSize: CGFloat?) {
-        let player = source.map { source -> AnimatedImagePlayer in
-            var options = playerOptions
-            // Match the scale of the still image the decoder produced, or the
-            // animation changes size the moment it starts playing.
-            if options.scale == 1, let scale, scale != 1 {
-                options.scale = scale
-            }
-            if options.maxPixelSize == nil {
-                options.maxPixelSize = maxPixelSize
-            }
-            // Built with a clock of the view's, which is what gets a display
-            // link out of AppKit: there, one is asked of the view being drawn
-            // into rather than made out of nothing.
-            let player = AnimatedImagePlayer(source: source, options: options, clock: makeAnimatedImageClock(for: self))
-            // Decoding the frames again at another size is not a new animation:
-            // a view that grows carries on from the frame it was showing, in
-            // the loop it was on. Read before the assignment below, which is
-            // what lets go of the player it reads.
-            if let previous = self.player, previous.source === source {
-                player.resume(from: previous)
-            }
-            return player
+        guard let source else {
+            player = nil
+            ownsPlayer = false
+            return
+        }
+        var options = playerOptions
+        // Match the scale of the still image the decoder produced, or the
+        // animation changes size the moment it starts playing.
+        if options.scale == 1, let scale, scale != 1 {
+            options.scale = scale
+        }
+        if options.maxPixelSize == nil {
+            options.maxPixelSize = maxPixelSize
+        }
+        // Built with a clock of the view's, which is what gets a display link
+        // out of AppKit: there, one is asked of the view being drawn into
+        // rather than made out of nothing.
+        let player = AnimatedImagePlayer(source: source, options: options, clock: makeAnimatedImageClock(for: self))
+        // Decoding the frames again at another size is not a new animation: a
+        // view that grows carries on from the frame it was showing, in the
+        // loop it was on. Read before the assignment below, which is what lets
+        // go of the player it reads.
+        if let previous = self.player, previous.source === source {
+            player.resume(from: previous)
         }
         self.player = player
-        ownsPlayer = player != nil
+        ownsPlayer = true
     }
 
     /// The scale of the image the animation is replacing, or `nil` where the

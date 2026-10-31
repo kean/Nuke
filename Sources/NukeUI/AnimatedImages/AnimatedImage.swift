@@ -230,7 +230,7 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
         // Before the animation, and only for a new one or while there is no
         // frame to cover: the still holds the place until the first frame is
         // decoded, and it is what the view reads the image scale from.
-        let isNewAnimation = player.map { view.player !== $0 } ?? (view.animatedImage !== source)
+        let isNewAnimation = if let player { view.player !== player } else { view.animatedImage !== source }
         if let poster, isNewAnimation || view.player?.image == nil {
             // Not `image`, which would stop the animation.
             view.setImageKeepingAnimation(poster)
