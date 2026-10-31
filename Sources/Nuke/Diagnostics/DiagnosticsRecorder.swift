@@ -108,7 +108,7 @@ extension ImagePipeline.Diagnostics {
 
         init(task: ImageTask, recorder: Recorder, signposter: OSSignposter?) {
             self.recorder = recorder
-            self.taskID = task.taskId
+            self.taskID = task.taskID
             self.kind = task._kind
             self.label = task.request.label
             self.request = ImageTask.Metrics.RequestSummary(task.request)
@@ -116,7 +116,7 @@ extension ImagePipeline.Diagnostics {
             self.signposter = signposter
             if let signposter {
                 let request = task.request
-                signpostInterval = signposter.beginInterval("ImageTask", id: signposter.makeSignpostID(), "#\(task.taskId) \(request.signpostMessage, privacy: .public)")
+                signpostInterval = signposter.beginInterval("ImageTask", id: signposter.makeSignpostID(), "#\(task.taskID) \(request.signpostMessage, privacy: .public)")
             }
         }
 

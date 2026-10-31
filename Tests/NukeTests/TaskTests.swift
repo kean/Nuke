@@ -184,7 +184,7 @@ struct TaskTests {
     @Test func containsImageTaskVisitsEverySubscriber() {
         // Given a task with no subscribers
         let pipeline = ImagePipeline()
-        let imageTask = ImageTask(taskId: 1, request: ImageRequest(url: Test.url), isDataTask: false, pipeline: pipeline, onEvent: nil)
+        let imageTask = ImageTask(taskID: 1, request: ImageRequest(url: Test.url), isDataTask: false, pipeline: pipeline, onEvent: nil)
         let task = SimpleTask<Int, MyError>()
         #expect(!task.containsImageTask { _ in true })
 
