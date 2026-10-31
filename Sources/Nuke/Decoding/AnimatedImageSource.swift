@@ -91,8 +91,16 @@ public final class AnimatedImageSource: Sendable {
     ///
     /// Frames are decoded into bitmaps with 8 bits per component, so the figure
     /// depends only on the canvas size, not on how well the image compresses.
+    /// `Int.max` if the frame takes more than that.
     public var bytesPerFrame: Int {
-        Int(size.width) * Int(size.height) * 4
+        AnimatedImageSource.bytesPerFrame(for: size)
+    }
+
+    /// In `Double`: a 4 MB APNG can declare a canvas that a 32-bit `Int` can't
+    /// count, and `CGFloat` is too narrow there to count it exactly.
+    static func bytesPerFrame(for size: CGSize) -> Int {
+        let bytes = Double(size.width.rounded(.down)) * Double(size.height.rounded(.down)) * 4
+        return bytes < Double(Int.max) ? Int(bytes) : .max
     }
 
     /// The delay used for frames that don't declare a usable one: `0.1`.

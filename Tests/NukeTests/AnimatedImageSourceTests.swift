@@ -227,6 +227,20 @@ struct AnimatedImageSourceTests {
         #expect(source.delays == [0.1, 0.1, 0.1, 0.2])
     }
 
+    /// A 4 MB APNG can declare a 23,171×23,171 canvas, which is more than a
+    /// 32-bit `Int` can count in bytes.
+    @Test func bytesPerFrameIsExactUpToTheLastValueThatFits() {
+        #expect(AnimatedImageSource.bytesPerFrame(for: CGSize(width: 23_171, height: 23_171)) == 2_147_580_964)
+        #expect(AnimatedImageSource.bytesPerFrame(for: CGSize(width: 65_535, height: 65_535)) == 17_179_344_900)
+        #expect(AnimatedImageSource.bytesPerFrame(for: CGSize(width: 10.5, height: 20.9)) == 10 * 20 * 4)
+        #expect(AnimatedImageSource.bytesPerFrame(for: .zero) == 0)
+    }
+
+    @Test func bytesPerFrameOfACanvasThatDoesNotFitIsTheMostItCanSay() {
+        #expect(AnimatedImageSource.bytesPerFrame(for: CGSize(width: 4_294_967_295, height: 4_294_967_295)) == .max)
+        #expect(AnimatedImageSource.bytesPerFrame(for: CGSize(width: CGFloat.infinity, height: 8)) == .max)
+    }
+
     @Test func refusesWhatIsNotAnAnimation() {
         let flipbook = Flipbook(data: Flipbook.encode())!
         func makeSource(delays: [TimeInterval], size: CGSize) -> AnimatedImageSource? {

@@ -445,6 +445,61 @@ struct AnimatedImageFramePoolTests {
         #expect(kept.isPlaying)
     }
 
+    // MARK: Animations Too Large to Count
+
+    /// `Int` runs out at 259 frames of 1080p on a 32-bit watch, which no
+    /// simulator has, so this reaches the same arithmetic with a canvas whose
+    /// frames only just fit in a 64-bit `Int`. Nothing is decoded at this size.
+    @Test func anAnimationTooLargeToCountInBytesStillPlays() throws {
+        let pool = makePool(frames: 100)
+        let source = try #require(makeSourceTooLargeToCount(frameCount: 3))
+        #expect(source.bytesPerFrame == 8_000_000_000_000_000_000)
+
+        let player = makePlayer(source: source, pool: pool)
+
+        #expect(player.isPlaying)
+        #expect(player.diagnostics.isFullyBuffered == false)
+        #expect(player.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+    }
+
+    @Test func anAnimationTooLargeToCountReportsTheMostItCan() throws {
+        // More than a player that's asked to hold it can count, however many
+        // frames it ends up with.
+        let source = try #require(makeSourceTooLargeToCount(frameCount: 3))
+        var options = AnimatedImagePlayer.Options()
+        options.maxBufferSize = .max
+        let (player, _) = AnimatedImageTest.makePlayer(source: source, options: options, pool: AnimatedImageFramePool(costLimit: .max))
+
+        player.play()
+
+        #expect(player.diagnostics.bufferByteLimit == .max)
+    }
+
+    @Test func anAnimationTooLargeToCountDoesNotStopTheOthers() throws {
+        let pool = makePool(frames: 100)
+        let source = try #require(makeSourceTooLargeToCount(frameCount: 100))
+        let large = makePlayer(source: source, pool: pool)
+
+        let small = makePlayer(frameCount: 20, pool: pool)
+
+        #expect(large.isPlaying && small.isPlaying)
+        #expect(large.diagnostics.bufferCapacity == AnimatedImagePlayer.idleFrameCount)
+        #expect(small.diagnostics.bufferCapacity >= AnimatedImagePlayer.idleFrameCount)
+    }
+
+    private func makeSourceTooLargeToCount(frameCount: Int) -> AnimatedImageSource? {
+        AnimatedImageSource(
+            data: Data(),
+            delays: Array(repeating: 0.1, count: frameCount),
+            size: CGSize(width: 2_000_000_000, height: 1_000_000_000),
+            makeFrameDecoder: { _ in NoFramesDecoder() }
+        )
+    }
+
+    private struct NoFramesDecoder: AnimatedImageFrameDecoding {
+        func decode(at index: Int) async -> CGImage? { nil }
+    }
+
     // MARK: Limits
 
     @Test func theDefaultLimitIsAQuarterOfTheBudgetForDecodedImages() {

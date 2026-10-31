@@ -325,7 +325,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         diagnostics.bufferedFrameCount = store.decodedFrameCount(in: window)
         diagnostics.bufferCapacity = bufferCapacity
         diagnostics.bufferedByteCount = store.byteCount(in: window)
-        diagnostics.bufferByteLimit = bufferCapacity * store.bytesPerFrame
+        diagnostics.bufferByteLimit = store.byteCount(ofFrames: bufferCapacity)
         diagnostics.sharingPlayerCount = store.memberCount
         diagnostics.decodedFrameCount = counters.decodedFrameCount
         diagnostics.lastDecodeDuration = counters.lastDecodeDuration

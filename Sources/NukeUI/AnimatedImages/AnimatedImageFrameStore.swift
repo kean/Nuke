@@ -251,7 +251,7 @@ final class AnimatedImageFrameStore {
     /// members' windows cover between them, and never more than the whole
     /// animation.
     var demand: Int {
-        claimedFrameCount(upTo: frameCount) * bytesPerFrame
+        byteCount(ofFrames: claimedFrameCount(upTo: frameCount))
     }
 
     /// The least the store can play from: a window of the read-ahead at every
@@ -261,7 +261,16 @@ final class AnimatedImageFrameStore {
     /// slides re-decodes every frame each loop however long it is – so these
     /// are the only two amounts the pool hands out.
     var leastDemand: Int {
-        claimedFrameCount(upTo: AnimatedImagePlayer.readAheadFrameCount + 1) * bytesPerFrame
+        byteCount(ofFrames: claimedFrameCount(upTo: AnimatedImagePlayer.readAheadFrameCount + 1))
+    }
+
+    /// The memory the given number of frames occupy, or `Int.max` if they
+    /// occupy more than that. A 32-bit `Int`, which a watch has, runs out at
+    /// 259 frames of 1080p. The pool only compares these and subtracts them
+    /// from one another, so the most it can be asked for is safe to hand it.
+    func byteCount(ofFrames count: Int) -> Int {
+        let (bytes, isOverflow) = count.multipliedReportingOverflow(by: bytesPerFrame)
+        return isOverflow ? .max : bytes
     }
 
     /// The number of distinct frames the members claim between them when none
@@ -314,7 +323,7 @@ final class AnimatedImageFrameStore {
         // could ask for, so where they are can't change what it needs. This is
         // the case a screen of one sticker is in, and leaving early is what
         // keeps it from measuring itself on every frame it shows.
-        guard allotment < frameCount * bytesPerFrame else { return }
+        guard allotment < byteCount(ofFrames: frameCount) else { return }
         // What a store needs is the union of its members' windows, which turns
         // on the set of playheads and not on the members: it changes when two
         // of them part or meet, not on every frame every one of them shows.
