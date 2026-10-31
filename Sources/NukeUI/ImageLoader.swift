@@ -470,6 +470,44 @@ extension ImageLoader {
             if case .failure(let error) = result { return error }
             return nil
         }
+
+        /// Creates a state, to test or preview the code that draws the states
+        /// of a loader:
+        ///
+        /// ```swift
+        /// extension PosterCell {
+        ///     func render(_ state: ImageLoader.State) {
+        ///         posterView.image = state.image
+        ///         spinner.isHidden = !state.isLoading
+        ///     }
+        /// }
+        ///
+        /// cell.render(ImageLoader.State(event: .started(nil), isLoading: true))
+        /// #expect(!cell.spinner.isHidden)
+        /// ```
+        ///
+        /// The values aren't checked against each other, so the state can be
+        /// one a loader never reports, such as a ``Event/finished(_:isSync:)``
+        /// event with no ``result``.
+        public init(
+            event: Event = .reset,
+            request: ImageRequest? = nil,
+            task: ImageTask? = nil,
+            imageContainer: ImageContainer? = nil,
+            isPreviousImage: Bool = false,
+            isLoading: Bool = false,
+            progress: ImageTask.Progress = ImageTask.Progress(completed: 0, total: 0),
+            result: Result<ImageResponse, ImagePipeline.Error>? = nil
+        ) {
+            self.event = event
+            self.request = request
+            self.task = task
+            self.imageContainer = imageContainer
+            self.isPreviousImage = isPreviousImage
+            self.isLoading = isLoading
+            self.progress = progress
+            self.result = result
+        }
     }
 
     /// What changed in a ``State``.
