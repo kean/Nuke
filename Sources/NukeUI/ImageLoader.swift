@@ -265,7 +265,8 @@ public final class ImageLoader {
     ///
     /// Cancelling the load cancels the Swift task that runs `action`. The
     /// function isn't guaranteed to stop, and if it returns anyway, its
-    /// result is discarded.
+    /// result is discarded. The loader doesn't keep the function, so the load
+    /// can't be repeated with ``reload()``.
     ///
     /// - parameter action: Fetches the image. An error that isn't already an
     /// ``ImagePipeline/Error`` is reported as
@@ -304,6 +305,30 @@ public final class ImageLoader {
         state.isPreviousImage = previousImage != nil
         update(state)
         return Handle(task: nil, outcome: outcome)
+    }
+
+    /// Loads the request of the last load again, with the current options of
+    /// the loader.
+    ///
+    /// Use it to retry a load that failed or was cancelled:
+    ///
+    /// ```swift
+    /// ImageLoader.loader(for: imageView).reload()
+    /// ```
+    ///
+    /// A load that is still running keeps running (see
+    /// ``load(_:)-(ImageRequest?)``). If the memory cache has the image, the
+    /// load finishes before this method returns. To skip the caches, load a
+    /// request with ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData``.
+    ///
+    /// - returns: A handle to the load, or `nil` if there is no request to
+    /// load: the last load was from an async function or a `nil` request, or
+    /// the loader was reset.
+    @discardableResult
+    public func reload() -> Handle? {
+        // The async function of a load isn't kept for a reload: it often
+        // captures the object that owns the loader.
+        state.request.map { load($0) }
     }
 
     /// Cancels the current load. The image it displayed so far stays in the
@@ -444,6 +469,44 @@ extension ImageLoader {
         public var error: ImagePipeline.Error? {
             if case .failure(let error) = result { return error }
             return nil
+        }
+
+        /// Creates a state, to test or preview the code that draws the states
+        /// of a loader:
+        ///
+        /// ```swift
+        /// extension PosterCell {
+        ///     func render(_ state: ImageLoader.State) {
+        ///         posterView.image = state.image
+        ///         spinner.isHidden = !state.isLoading
+        ///     }
+        /// }
+        ///
+        /// cell.render(ImageLoader.State(event: .started(nil), isLoading: true))
+        /// #expect(!cell.spinner.isHidden)
+        /// ```
+        ///
+        /// The values aren't checked against each other, so the state can be
+        /// one a loader never reports, such as a ``Event/finished(_:isSync:)``
+        /// event with no ``result``.
+        public init(
+            event: Event = .reset,
+            request: ImageRequest? = nil,
+            task: ImageTask? = nil,
+            imageContainer: ImageContainer? = nil,
+            isPreviousImage: Bool = false,
+            isLoading: Bool = false,
+            progress: ImageTask.Progress = ImageTask.Progress(completed: 0, total: 0),
+            result: Result<ImageResponse, ImagePipeline.Error>? = nil
+        ) {
+            self.event = event
+            self.request = request
+            self.task = task
+            self.imageContainer = imageContainer
+            self.isPreviousImage = isPreviousImage
+            self.isLoading = isLoading
+            self.progress = progress
+            self.result = result
         }
     }
 

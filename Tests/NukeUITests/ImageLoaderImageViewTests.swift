@@ -231,6 +231,24 @@ struct ImageLoaderImageViewTests {
     }
 #endif
 
+    @Test func presentationRendersACreatedState() {
+        // Given
+        let presentation = ImageLoader.Presentation(placeholder: placeholder, failureImage: failureImage)
+        let error = ImagePipeline.Error.imageRequestMissing
+
+        // When
+        presentation.render(ImageLoader.State(event: .started(nil), isLoading: true), in: imageView)
+
+        // Then
+        #expect(imageView.image === placeholder)
+
+        // When
+        presentation.render(ImageLoader.State(event: .finished(.failure(error), isSync: true), result: .failure(error)), in: imageView)
+
+        // Then
+        #expect(imageView.image === failureImage)
+    }
+
     @Test func resetClearsTheImageView() {
         // Given
         imageCache[Test.request] = Test.container
