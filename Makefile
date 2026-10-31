@@ -1,4 +1,4 @@
-.PHONY: ci ci-list test test-one build lint spm snippets llms help
+.PHONY: ci ci-list test test-one build lint spm snippets llms release-check help
 
 CI := bash .scripts/ci.sh
 
@@ -41,9 +41,13 @@ spm:
 snippets:
 	@$(CI) snippets
 
-## Regenerate llms.txt, llms-full.txt, and llms-api.txt
+## Regenerate llms.txt, llms-full.txt, and llms-api.txt (a step of the release, not of a pull request)
 llms:
 	@python3 .scripts/generate-llms.py
+
+## Fail if the generated llms files are stale, to run before tagging a release
+release-check:
+	@python3 .scripts/generate-llms.py --check --fresh
 
 ## Show available targets
 help:

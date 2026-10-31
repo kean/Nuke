@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Generates the plain-text documentation for agents: llms.txt, llms-full.txt, and llms-api.txt.
 
-Usage: generate-llms.py [--check]
+Usage: generate-llms.py [--check [--fresh]]
   (no args)  Writes the files to the repository root.
-  --check    Writes nothing, and fails if the files are stale, if a skill isn't
-             valid, or if one of its code samples isn't compiled.
+  --check    Writes nothing, and fails if a skill isn't valid, if one of its code
+             samples isn't compiled, or if the files can't be generated at all.
+  --fresh    With --check, also fails if the committed files differ from what
+             would be generated.
+
+The files are regenerated once, as a step of the release (see "Releasing" in
+AGENTS.md), and not in the pull requests. They are built from every article, skill,
+and public API, so every pull request that touched one used to conflict with every
+other, and `--fresh` is not run on pull requests for the same reason.
 
 The hosted documentation only renders with JavaScript, so a fetch gets an empty
 page, and it can lag the release a project is on. These files are committed, which
@@ -435,7 +442,7 @@ def main():
     errors = [error for path in sorted(SKILLS.glob("*/SKILL.md")) for error in check_skill(path)]
 
     if "--check" in sys.argv:
-        for name, text in outputs.items():
+        for name, text in outputs.items() if "--fresh" in sys.argv else []:
             path = ROOT / name
             if not path.exists() or path.read_text(encoding="utf-8") != text:
                 errors.append(f"{name} is stale, run `make llms`")
