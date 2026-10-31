@@ -5,7 +5,7 @@
 import Foundation
 
 /// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
-final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
+final class TaskFetchOriginalImage: AsyncFetchTask<ImageResponse> {
     private var decoder: (any ImageDecoding)?
     /// The preview policy the current ``decoder`` was created with. `nil` until
     /// a decoder is created from partial data.
@@ -30,6 +30,13 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
         dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
+    }
+
+    /// A retry couldn't resume, so the data starts from the first byte, and it
+    /// can be a different image. A decoder only takes data that grows.
+    func originalDataDidStartOver() {
+        decoder = nil
+        decoderPreviewPolicy = nil
     }
 
     /// Receiving data from `TaskFetchOriginalData`.
@@ -151,8 +158,12 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             }
             send(value: ImageResponse(container: container, request: request), isCompleted: true)
         } catch {
-            diagnostics?.endStage(stage) { $0.source = .closure }
-            send(error: .dataLoadingFailed(error: error))
+            let error = ImagePipeline.Error.dataLoadingFailed(error: error)
+            diagnostics?.endStage(stage) {
+                $0.source = .closure
+                $0.error = ImagePipeline.Diagnostics.ErrorSummary(error)
+            }
+            attemptDidFail(with: error)
         }
     }
 }

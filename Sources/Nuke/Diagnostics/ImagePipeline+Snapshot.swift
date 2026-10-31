@@ -50,6 +50,12 @@ extension ImagePipeline.Diagnostics {
             /// The time since the task was created. `nil` when diagnostics
             /// are off, because nothing recorded it.
             public let age: TimeInterval?
+            /// ``ImageTask/Status/retryCount``.
+            public let retryCount: Int
+            /// `true` if an attempt failed, and the load is waiting for the
+            /// time to retry or for the device to get back online. No queue
+            /// is holding it up.
+            public let isWaitingForRetry: Bool
         }
 
         /// One of the queues in ``ImagePipeline/Configuration-swift.struct``.
@@ -107,7 +113,7 @@ extension ImagePipeline.Diagnostics {
 }
 
 extension ImagePipeline.Diagnostics.Snapshot.ActiveTask {
-    /// `#12 · normal · 45% · 1.2 s · https://example.com/image.jpeg`
+    /// `#12 · normal · 45% · 1.2 s · 1 retry · waiting to retry · https://example.com/image.jpeg`
     fileprivate var line: String {
         var parts = ["#\(taskID)"]
         if kind != .image {
@@ -118,6 +124,12 @@ extension ImagePipeline.Diagnostics.Snapshot.ActiveTask {
             parts.append("\(Int((progress.fraction * 100).rounded()))%")
         }
         parts += age.map { [String(format: "%.1f s", $0)] } ?? []
+        if retryCount > 0 {
+            parts.append(retryCount == 1 ? "1 retry" : "\(retryCount) retries")
+        }
+        if isWaitingForRetry {
+            parts.append("waiting to retry")
+        }
         parts += resource.map { [$0] } ?? []
         return "  " + parts.joined(separator: " · ")
     }
@@ -165,7 +177,9 @@ extension ImagePipeline {
                 resource: task.request.url?.redactedDescription ?? task.request.imageID,
                 priority: status.priority,
                 progress: status.progress,
-                age: task._createdAt.flatMap { createdAt in now.map { $0 - createdAt } }
+                age: task._createdAt.flatMap { createdAt in now.map { $0 - createdAt } },
+                retryCount: status.retryCount,
+                isWaitingForRetry: task._isWaitingForRetry
             )
         }
         let queues = [

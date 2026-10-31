@@ -206,6 +206,10 @@ extension ImagePipeline.Diagnostics {
         public internal(set) var expectedBytes: Int64?
         /// The HTTP status code of a download.
         public internal(set) var statusCode: Int?
+        /// The error a download failed with, which is the only record of it
+        /// for an attempt that was retried: ``Job/error`` is what the job
+        /// ended with.
+        public internal(set) var error: ErrorSummary?
         /// When the first chunk of a download arrived, in seconds since 1970.
         public internal(set) var firstByteAt: TimeInterval?
         /// The `taskIdentifier` of the `URLSessionTask` that performed the
@@ -233,6 +237,10 @@ extension ImagePipeline.Diagnostics {
             /// delegate returns.
             case willLoadData
             case download
+            /// The time between a failed download and the next attempt. A
+            /// ``ImagePipeline/RetryPolicy`` starts one after every download it
+            /// retries.
+            case retryDelay
             case diskStore
             case decode
             case process

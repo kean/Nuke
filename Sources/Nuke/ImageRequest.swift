@@ -53,6 +53,25 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.options = newValue } }
     }
 
+    /// The policy for retrying the load if it fails. `nil` by default, which
+    /// uses ``ImagePipeline/Configuration-swift.struct/retryPolicy``.
+    ///
+    /// ```swift
+    /// var request = ImageRequest(url: url)
+    /// request.retryPolicy = ImagePipeline.RetryPolicy(maxRetryCount: 5)
+    /// ```
+    ///
+    /// Use ``ImagePipeline/RetryPolicy/disabled`` to opt out of the policy of
+    /// the pipeline.
+    ///
+    /// - note: The policy doesn't stop coalescing. Requests for the same image
+    /// share a load, and with it the retries, for as long as the request that
+    /// allows the most of them wants to continue.
+    public var retryPolicy: ImagePipeline.RetryPolicy? {
+        get { ref.retryPolicy?.value }
+        set { mutate { $0.retryPolicy = newValue.map(RetryPolicyBox.init) } }
+    }
+
     /// Custom info passed alongside the request.
     public var userInfo: [UserInfoKey: any Sendable] {
         get { ref.userInfo ?? [:] }
@@ -550,6 +569,7 @@ extension ImageRequest {
 
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
+        var retryPolicy: RetryPolicyBox? // A pointer: most requests have none
 
         init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options) {
             self.resource = resource
@@ -571,11 +591,20 @@ extension ImageRequest {
             self.customImageID = ref.customImageID
             self.scale = ref.scale
             self.thumbnail = ref.thumbnail
+            self.retryPolicy = ref.retryPolicy
             self.processorsIdentity = ref.processorsIdentity
         }
 
         private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ImageProcessorID] {
             processors.isEmpty ? [] : processors.map(ImageProcessorID.init)
+        }
+    }
+
+    private final class RetryPolicyBox: Sendable {
+        let value: ImagePipeline.RetryPolicy
+
+        init(_ value: ImagePipeline.RetryPolicy) {
+            self.value = value
         }
     }
 

@@ -39,6 +39,47 @@ struct ImagePipelineContentionTests {
         _ = await outcomes(of: tasks)
     }
 
+    /// Tasks that come and go from many threads while the loads they share
+    /// fail, wait, and start over. Every task has to finish, the way it was
+    /// asked to, and nothing can be left behind in the pipeline.
+    @Test func retriesSurviveTasksComingAndGoingFromManyThreads() async {
+        // Given every other attempt failing
+        let attempts = OSAllocatedUnfairLock(initialState: 0)
+        let policy = ImagePipeline.RetryPolicy(maxRetryCount: 3, backoff: .fixed(0.001), jitter: 0.5, connectivityTimeout: 0)
+        let pipeline = ImagePipeline {
+            $0.imageCache = nil
+            $0.retryPolicy = policy
+        }
+
+        // When
+        let tasks = makeTasks(threads: 16, perThread: 40) { thread, index in
+            let request = ImageRequest(id: "\((thread + index) % 8)", data: {
+                let attempt = attempts.withLock { count in
+                    count += 1
+                    return count
+                }
+                if attempt.isMultiple(of: 2) {
+                    throw URLError(.timedOut)
+                }
+                return Test.data
+            })
+            let task = pipeline.imageTask(with: request)
+            if index.isMultiple(of: 2) {
+                DispatchQueue.global().async { task.priority = .high }
+            }
+            if index.isMultiple(of: 3) {
+                DispatchQueue.global().async { task.cancel() }
+            }
+            return task
+        }
+
+        // Then
+        let results = await outcomes(of: tasks)
+        #expect(results.allSatisfy { $0 != nil })
+        await drainPipeline()
+        #expect(await pipeline.taskCount == 0)
+    }
+
     /// Tasks for the same image, created on many threads while the download
     /// is pending, all join the one download and get the same image.
     @Test func coalescedTasksFromManyThreadsShareOneDownload() async {
