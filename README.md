@@ -12,7 +12,7 @@
 
 Load images from different sources and display them in your app using simple and flexible APIs. Take advantage of the powerful image processing capabilities and a robust caching system.
 
-The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
+The framework is lean and has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
 
 > **Memory and Disk Cache** · **Image Processing & Decompression** · **Request Coalescing & Priority** · **Prefetching** · **Resumable Downloads** · **Progressive JPEG** · **HEIF, WebP, GIF** · **Animated Images** · **SwiftUI** · **Async/Await**
 
@@ -61,7 +61,7 @@ The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/ge
 
 ## Installation
 
-Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/), which is the recommended option. If that doesn't work for you, you can use binary frameworks attached to the [releases](https://github.com/kean/Nuke/releases).
+Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/).
 
 The package ships with four modules that you can install depending on your needs:
 
@@ -89,15 +89,13 @@ Nuke ships with what a coding agent needs to use its current API, and not the on
 
 ## Extensions
 
-The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community.
+The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community. None of them resolves against Nuke 14 yet: the Status column has the versions each one supports.
 
-|Name|Description|
-|--|--|
-|[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
-|[**NukeWebP**](https://github.com/makleso6/NukeWebP)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Maxim Kolesnik](https://github.com/makleso6)|
-|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
-|[**AVIF Plugin**](https://github.com/delneg/Nuke-AVIF-Plugin)| **Community**. [AVIF](https://caniuse.com/avif) support, built by [Denis](https://github.com/delneg)|
-|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
+|Name|Description|Status|
+|--|--|--|
+|[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|Nuke 12. Updated for Nuke 14 at its release|
+|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|Nuke 12. Updated for Nuke 14 at its release|
+|[**AVIF Plugin**](https://github.com/delneg/Nuke-AVIF-Plugin)| **Community**. [AVIF](https://caniuse.com/avif) support, built by [Denis](https://github.com/delneg)|Nuke 11 and 12|
 
 > Looking for a way to log your network requests, including image requests? Check out [**Pulse**](https://github.com/kean/Pulse).
 
@@ -111,12 +109,8 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |-----------------|-----------|------------|-------------------------------------------------------------|
 | Nuke 14.0 (WIP) | Swift 6.2 | Xcode 26.0 | iOS 16.0, watchOS 9.0, macOS 13.0, tvOS 16.0, visionOS 1.0  |
 | Nuke 13.0       | Swift 6.2 | Xcode 26.0 | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
-| Nuke 12.0       | Swift 5.7 | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
+| Nuke 12.0       | Swift 5.7 | Xcode 14.1 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 
 ## License
 
 Nuke is available under the MIT license. See the LICENSE file for more info.
-
-----
-
-> <a name="footnote-1">¹</a> Measured on MacBook Pro 14" 2021 (10-core M1 Pro)
