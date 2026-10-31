@@ -1188,7 +1188,7 @@
 - `var keepsPreviousImage = false`: If `true`, a new load keeps the previous image in `State.imageContainer` until it has an image of its own
 - `var state = State()`: The current state.
 - `var task: ImageTask?`: The task of the current load, while it runs.
-- `weak var delegate: (any ImageLoaderDelegate)?`: Receives every change of the `state`.
+- `weak var delegate: (any ImageLoader.Delegate)?`: Receives every change of the `state`.
 - `init(pipeline: ImagePipeline = .shared)`: Creates a loader.
 - `func load(_ url: URL?) -> Handle`: Loads an image with the given URL, and cancels what was loading before it.
 - `func load(_ request: ImageRequest?) -> Handle`: Loads an image with the given request, and cancels what was loading before it.
@@ -1199,6 +1199,11 @@
 - `static func loader(for object: AnyObject) -> ImageLoader`: Returns the loader attached to the object, and attaches a new one on first use.
 - `static func load<Target: AnyObject>(_ url: URL?, into target: Target, pipeline: ImagePipeline? = nil, render: @escaping @MainActor (Target, State) -> Void) -> Handle`: Loads an image with the given URL into the target, and calls `render` with every change of the state.
 - `static func load<Target: AnyObject>(_ request: ImageRequest?, into target: Target, pipeline: ImagePipeline? = nil, render: @escaping @MainActor (Target, State) -> Void) -> Handle`: Loads an image with the given request into the target, and calls `render` with every change of the state.
+
+### ImageLoader.Delegate
+
+- `protocol Delegate: AnyObject`: Receives the states of an `ImageLoader`.
+- `func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)`: Called every time the state of the loader changes.
 
 ### ImageLoader.Event
 
@@ -1248,11 +1253,6 @@
 - `var image: PlatformImage?`: The image to display.
 - `var error: ImagePipeline.Error?`: The error the load failed with, if it failed.
 - `init(event: Event = .reset, request: ImageRequest? = nil, task: ImageTask? = nil, imageContainer: ImageContainer? = nil, isPreviousImage: Bool = false, isLoading: Bool = false, progress: ImageTask.Progress = ImageTask.Progress(completed: 0, total: 0), result: Result<ImageResponse, ImagePipeline.Error>? = nil)`: Creates a state, to test or preview the code that draws the states of a loader
-
-### ImageLoaderDelegate
-
-- `protocol ImageLoaderDelegate: AnyObject`: Receives the states of an `ImageLoader`.
-- `func imageLoader(_ loader: ImageLoader, didUpdate state: ImageLoader.State)`: Called every time the state of the loader changes.
 
 ### LazyImage
 

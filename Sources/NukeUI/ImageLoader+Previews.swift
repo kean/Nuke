@@ -78,7 +78,7 @@ private struct ImageLoaderPreview: View {
 
 /// Prints the states of a loader, with the time since the load began.
 @MainActor
-private final class PreviewLogger: ImageLoaderDelegate {
+private final class PreviewLogger: ImageLoader.Delegate {
     static let shared = PreviewLogger()
 
     private var startTime = Date()

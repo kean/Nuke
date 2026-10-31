@@ -36,4 +36,4 @@ Both views play animated images – GIF, APNG, animated WebP, and HEIC and AVIF 
 
 - ``LazyImageState``
 - ``FetchImage``
-- ``ImageLoaderDelegate``
+- ``ImageLoader/Delegate-swift.protocol``

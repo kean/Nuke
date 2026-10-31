@@ -130,7 +130,7 @@ ImageLoader.load(url, into: imageView) { imageView, state in
 To receive the states in a delegate instead – the `event` of each state says what changed – create a loader and keep it.
 
 ```swift
-final class PosterCell: UICollectionViewCell, ImageLoaderDelegate {
+final class PosterCell: UICollectionViewCell, ImageLoader.Delegate {
     private let loader = ImageLoader()
     private let posterView = UIImageView()
     private let progressView = UIProgressView()

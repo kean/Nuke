@@ -111,7 +111,7 @@ private final class CaptionedCell: UICollectionViewCell {
     let spinner = UIActivityIndicatorView()
 }
 
-private final class PosterCell: UICollectionViewCell, ImageLoaderDelegate {
+private final class PosterCell: UICollectionViewCell, ImageLoader.Delegate {
     private let loader = ImageLoader()
     private let posterView = UIImageView()
     private let progressView = UIProgressView()
