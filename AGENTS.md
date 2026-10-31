@@ -10,7 +10,6 @@ Image loading for Apple platforms. This file is for agents and people working on
 | `Sources/NukeUI` | `LazyImage`, `LazyImageView`, `ImageLoader`, `FetchImage`, and animated image playback |
 | `Sources/NukeExtensions` | Soft-deprecated `UIImageView` extensions |
 | `Sources/NukeVideo` | Short video decoding and playback |
-| `Sources/NukeTesting` | `StubDataLoader` for tests and previews. Only in `Package.swift`, with its tests in `Tests/NukeTestingTests`: run `swift test --filter NukeTestingTests` |
 | `Documentation` | DocC catalogs and migration guides, with `Documentation/Migrations/Nuke 14 Migration Guide.md` updated as changes land |
 | `Tests/DocumentationSnippets` | The code samples from the DocC articles and the skills, verbatim, as a package of their own |
 | `Demo` | The `NukeDemo` app, run from `Nuke.xcodeproj` |

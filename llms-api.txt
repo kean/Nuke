@@ -1,6 +1,6 @@
 # Nuke API
 
-> Every public declaration of Nuke, NukeUI, NukeVideo, NukeExtensions, and NukeTesting, generated from the sources, grouped by the type that owns it. Deprecated and unavailable declarations are left out. For how to use them, see llms-full.txt.
+> Every public declaration of Nuke, NukeUI, NukeVideo, and NukeExtensions, generated from the sources, grouped by the type that owns it. Deprecated and unavailable declarations are left out. For how to use them, see llms-full.txt.
 
 
 ## Nuke
@@ -1416,27 +1416,3 @@
 ### UIImageView
 
 - `func nuke_display(_ container: ImageContainer?)`: Displays the still image, and plays it when the view is an `AnimatedImageView` from NukeUI.
-
-## NukeTesting
-
-
-### ImagePipeline
-
-- `nonisolated static func stubbed(_ dataLoader: StubDataLoader = StubDataLoader(), configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline`: Creates a pipeline for tests and previews
-
-### StubDataLoader
-
-- `final class StubDataLoader: DataLoading, Sendable`: A data loader for tests and previews
-- `var requests: [URLRequest]`: The requests the loader received, in order.
-- `init(defaultResponse: Response = .image())`
-- `func stub(_ url: URL, with response: Response)`: Sets the answer to the requests with the given URL.
-- `func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable ((any Error)?) -> Void) -> any Cancellable`
-
-### StubDataLoader.Response
-
-- `enum Response: Sendable`: What the loader answers a request with.
-- `case data(Data, mimeType: String? = nil)`: `200 OK` with the given body.
-- `case status(Int)`: The given status code and no body.
-- `case failure(any Error)`: The request fails with the given error, such as a `URLError`.
-- `case hanging`: The request never finishes, which is how to test a loading state or a cancellation.
-- `static func image(width: Int = 1, height: Int = 1) -> Response`: A generated PNG of the given size in pixels.
