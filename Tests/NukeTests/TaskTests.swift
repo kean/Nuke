@@ -870,6 +870,8 @@ private final class Observer: ImageTaskSubscribers {
     func containsImageTask(where predicate: (ImageTask) -> Bool) -> Bool {
         false
     }
+
+    func forEachImageTask(_ body: (ImageTask) -> Void) {}
 }
 
 @ImagePipelineActor
