@@ -255,7 +255,7 @@ Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, `isUsin
 ## 6. Verify
 
 1. Build every target, and run the tests.
-2. Launch with `NUKE_DIAGNOSTICS_LOG=1`, open the screens with images, and read the lines. `log stream --predicate 'subsystem == "com.github.kean.Nuke.ImagePipeline"'` shows them, and the `nuke` skill explains them.
+2. Launch with `NUKE_DIAGNOSTICS_LOG=1`, open the screens with images, and read the lines. `log stream --predicate 'subsystem == "com.github.kean.Nuke.ImagePipeline"'` shows them, and the Troubleshooting article explains them.
 3. If a delegate method changed, prove it runs: set a breakpoint or a log in it, and load an image. A test with a mock is better, because it stays.
 4. Report what you changed by hand from step 5, one line for each hit from step 2, including the ones that needed nothing. That's what a reviewer can't get from the compiler. If you couldn't run the app, say so, and list 2 and 3 as not done.
 

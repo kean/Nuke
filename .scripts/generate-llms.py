@@ -24,9 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RAW_URL = "https://raw.githubusercontent.com/kean/Nuke/main"
 SKILLS = ROOT / "skills"
-SKILL = SKILLS / "nuke/SKILL.md"
-# The skills that aren't the guide, which go after the articles in llms-full.txt.
-MORE_SKILLS = ["nuke-optimize", "nuke-migrate"]
+# The order of the skills in llms-full.txt, where they go after the articles.
+SKILL_ORDER = ["nuke-optimize", "nuke-migrate"]
 SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets"
 DELEGATE = ROOT / "Sources/Nuke/Pipeline/ImagePipeline+Delegate.swift"
 MIGRATION_GUIDE = "Documentation/Migrations/Nuke 14 Migration Guide.md"
@@ -132,7 +131,7 @@ def abstract_of(text):
     return ""
 
 
-def skill_body(path=SKILL):
+def skill_body(path):
     return re.sub(r"\A---\n.*?\n---\n+", "", path.read_text(encoding="utf-8"), flags=re.S)
 
 
@@ -335,11 +334,10 @@ def llms_full():
         "> The documentation of Nuke, an image loading system for Apple platforms, in one file. "
         "Generated from the skills, the DocC articles, and the migration guide, for the version of Nuke it was checked out with. "
         "The signatures of every public declaration are in llms-api.txt.\n",
-        skill_body().replace("# Nuke\n", "# Using Nuke\n", 1).replace("\n## ", "\n### ").replace("# Using Nuke", "## Using Nuke", 1),
     ]
     for path, text in sources:
         output.append(plain_markdown(text, titles))
-    for name in MORE_SKILLS:
+    for name in SKILL_ORDER:
         output.append(plain_markdown(skill_body(SKILLS / name / "SKILL.md"), titles))
     guide = (ROOT / MIGRATION_GUIDE).read_text(encoding="utf-8")
     output.append(plain_markdown(guide, titles))
@@ -360,18 +358,17 @@ def llms_index():
 
 > Nuke is an image loading system for iOS, macOS, tvOS, watchOS, and visionOS: `ImagePipeline` loads, processes, and caches images, and NukeUI displays them with `LazyImage` in SwiftUI and `ImageLoader` in UIKit and AppKit.
 
-These files describe the `main` branch, which is Nuke 14. The latest stable release is Nuke 13, so check `Package.resolved` first: the [guide]({RAW_URL}/skills/nuke/SKILL.md) lists what differs. A project's own checkout has the same files for the version it uses, at the root of `.build/checkouts/Nuke`, or `SourcePackages/checkouts/Nuke` in Xcode's DerivedData.
+These files describe the `main` branch, which is Nuke 14. The latest stable release is Nuke 13, so check `Package.resolved` first: the [migration guide]({migration_url}) lists what differs. A project's own checkout has the same files for the version it uses, at the root of `.build/checkouts/Nuke`, or `SourcePackages/checkouts/Nuke` in Xcode's DerivedData.
 
 What you remember about Nuke is likely out of date. In particular:
 
-- A pipeline delegate method with the wrong signature compiles, and is never called. The Nuke 13 `willCache(data:image:for:pipeline:completion:)` is one. Copy the signatures from the guide.
+- A pipeline delegate method with the wrong signature compiles, and is never called. The Nuke 13 `willCache(data:image:for:pipeline:completion:)` is one. Copy the signatures from `llms-api.txt`.
 - `LazyImage` plays GIFs with no setup, and `AnimatedImageView` does in UIKit. Don't decode the frames yourself. A custom `LazyImage` content closure needs `AnimatedImage`.
 - Load into an image view with `ImageLoader.load(_:into:)` from NukeUI, not `loadImage(with:into:)` from NukeExtensions, which is soft-deprecated.
 - To find out why an image doesn't load, launch with `NUKE_DIAGNOSTICS_LOG=1` and read the log.
 
 ## Guides
 
-- [Using Nuke]({RAW_URL}/skills/nuke/SKILL.md): Which API to use, working code for the common tasks, the exact delegate signatures, debugging, testing, and the mistakes that compile
 - [Optimizing Nuke]({RAW_URL}/skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
 - [Migrating to Nuke 14]({RAW_URL}/skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
 - [Everything in one file]({RAW_URL}/llms-full.txt): The guides, every article, and the migration guide

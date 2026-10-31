@@ -8,7 +8,7 @@ license: MIT
 
 Nuke's defaults come from benchmarks, so the gains are almost always in how the app asks for images, and rarely in its configuration. A 12 MP photo decoded for a 120-point cell costs 46 MB, and no setting makes up for that.
 
-Measure first, change one thing, and measure again. Each change here has a cost, and some make things worse when the cause is something else. If you can't run the app, say that what you changed comes from reading the code, and that it's unmeasured. For the API in general, see the `nuke` skill.
+Measure first, change one thing, and measure again. Each change here has a cost, and some make things worse when the cause is something else. If you can't run the app, say that what you changed comes from reading the code, and that it's unmeasured. For the API in general, see `llms-full.txt` at the root of the package.
 
 ## Measure
 

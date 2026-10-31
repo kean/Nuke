@@ -475,7 +475,7 @@ run_job() {
         llms)
             # The files are generated and committed, so that they ship in the
             # checkout of every project that depends on Nuke. This fails if they
-            # are stale, or if a sample in the skill isn't compiled.
+            # are stale, or if a sample in a skill isn't compiled.
             run_streamed "$id" python3 python3 "$SCRIPT_DIR/generate-llms.py" --check || exit_code=$?
             ;;
         build)

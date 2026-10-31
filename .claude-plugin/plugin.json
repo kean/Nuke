@@ -1,6 +1,6 @@
 {
   "name": "nuke",
-  "description": "Write, debug, optimize, and migrate code that uses Nuke, the image loading system for Apple platforms: which API to use, working samples, exact delegate signatures, how to measure and fix slow images, and how to upgrade to Nuke 14.",
+  "description": "Optimize and migrate code that uses Nuke, the image loading system for Apple platforms: how to measure and fix slow images, and how to upgrade to Nuke 14.",
   "author": {
     "name": "Alexander Grebenyuk",
     "url": "https://github.com/kean"

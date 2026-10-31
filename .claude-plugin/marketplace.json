@@ -9,7 +9,7 @@
     {
       "name": "nuke",
       "source": "./",
-      "description": "Write, debug, optimize, and migrate code that uses Nuke: which API to use, working samples, exact delegate signatures, how to fix slow images, and how to upgrade to Nuke 14."
+      "description": "Optimize and migrate code that uses Nuke: how to measure and fix slow images, and how to upgrade to Nuke 14."
     }
   ]
 }
