@@ -299,7 +299,7 @@ ImageLoader.load(url, into: imageView, presentation: presentation)
 
 ## From Nuke 12 or earlier
 
-Go straight to 14. The stubs name the replacements for what's left of the older APIs: `ImagePreheater`, `ImageRequestConvertible`, `ImageTaskEvent`, the global `Nuke.loadImage`, `isDeduplicationEnabled`, `LazyImage(source:)`, `onSuccess`, and the like. What the stubs can't cover:
+Go straight to 14. The stubs name the replacements for what was removed in Nuke 12 and 13: `ImageRequestConvertible`, `callbackQueue`, `LazyImage(source:)`, `onSuccess`, and the like. Older names fail with "no member": look them up in the migration guide of the version that removed them. What the stubs can't cover:
 
 - **Cancellation** is `.finished(.failure(.cancelled))`, and `pipeline.image(for:)` throws `ImagePipeline.Error.cancelled`, not `CancellationError`. A `catch is CancellationError` compiles and never matches, so it shows an error for a scroll.
 - **The typed errors** make a `catch` clause infer `ImagePipeline.Error` when everything in the `do` throws it.

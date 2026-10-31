@@ -26,7 +26,7 @@ extension FetchImage {
     }
 }
 
-// MARK: - Removed Before Nuke 14
+// MARK: - Removed in Nuke 12 and 13
 //
 // For the code people and models remember, not for migrations. See the same section
 // in `Sources/Nuke/Pipeline/Deprecated.swift`. These have no removal date.
