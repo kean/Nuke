@@ -158,7 +158,7 @@ request.imageID = "avatar-42" // Replaces the URL in the cache key, for a URL wi
 request.options = [.disableDiskCacheWrites]
 ```
 
-Resize to the size you display at, here or with `.processors`, not with a SwiftUI `.frame` alone: that keeps the full image in memory. The built-in processors are `.resize`, `.circle()`, `.roundedCorners(radius:)`, `.gaussianBlur(radius:)`, and `.coreImageFilter(name:)`. A custom one:
+Resize to the size you display at, here or with `.processors`, not with a SwiftUI `.frame` alone: that keeps the full image in memory. For anything else about speed, memory, or the cache, use the `nuke-optimize` skill, which is at <https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-optimize/SKILL.md>. The built-in processors are `.resize`, `.circle()`, `.roundedCorners(radius:)`, `.gaussianBlur(radius:)`, and `.coreImageFilter(name:)`. A custom one:
 
 ```swift
 struct Sepia: ImageProcessing {

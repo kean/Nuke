@@ -26,7 +26,7 @@ RAW_URL = "https://raw.githubusercontent.com/kean/Nuke/main"
 SKILLS = ROOT / "skills"
 SKILL = SKILLS / "nuke/SKILL.md"
 # The skills that aren't the guide, which go after the articles in llms-full.txt.
-MORE_SKILLS = ["nuke-migrate"]
+MORE_SKILLS = ["nuke-optimize", "nuke-migrate"]
 SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets"
 DELEGATE = ROOT / "Sources/Nuke/Pipeline/ImagePipeline+Delegate.swift"
 MIGRATION_GUIDE = "Documentation/Migrations/Nuke 14 Migration Guide.md"
@@ -372,6 +372,7 @@ What you remember about Nuke is likely out of date. In particular:
 ## Guides
 
 - [Using Nuke]({RAW_URL}/skills/nuke/SKILL.md): Which API to use, working code for the common tasks, the exact delegate signatures, debugging, testing, and the mistakes that compile
+- [Optimizing Nuke]({RAW_URL}/skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
 - [Migrating to Nuke 14]({RAW_URL}/skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
 - [Everything in one file]({RAW_URL}/llms-full.txt): The guides, every article, and the migration guide
 - [API reference]({RAW_URL}/llms-api.txt): The signature and the summary of every public declaration

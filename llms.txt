@@ -14,6 +14,7 @@ What you remember about Nuke is likely out of date. In particular:
 ## Guides
 
 - [Using Nuke](https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke/SKILL.md): Which API to use, working code for the common tasks, the exact delegate signatures, debugging, testing, and the mistakes that compile
+- [Optimizing Nuke](https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
 - [Migrating to Nuke 14](https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
 - [Everything in one file](https://raw.githubusercontent.com/kean/Nuke/main/llms-full.txt): The guides, every article, and the migration guide
 - [API reference](https://raw.githubusercontent.com/kean/Nuke/main/llms-api.txt): The signature and the summary of every public declaration
