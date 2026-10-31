@@ -108,7 +108,13 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Loads an image with the given URL.
     public func load(_ url: URL?) {
-        load(url.map { ImageRequest(url: $0) })
+        // Not `url.map`: a closure inherits the actor and checks for it, which
+        // traps for Swift 5 code that gets here off the main thread (see 13.0.6).
+        if let url {
+            load(ImageRequest(url: url))
+        } else {
+            load(nil as ImageRequest?)
+        }
     }
 
     /// Loads an image with the given request.

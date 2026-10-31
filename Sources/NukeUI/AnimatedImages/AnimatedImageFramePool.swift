@@ -304,6 +304,7 @@ public final class AnimatedImageFramePool {
     /// would hold nothing whole the moment the animations together outgrew the
     /// limit.
     private func divide(_ limit: Int, between stores: [AnimatedImageFrameStore]) -> [Share] {
+        // swiftlint:disable:next optional_map_in_nukeui - not an Optional
         var shares = stores.map { Share(store: $0, demand: $0.demand, least: $0.leastDemand) }
         var remaining = max(0, limit)
 
