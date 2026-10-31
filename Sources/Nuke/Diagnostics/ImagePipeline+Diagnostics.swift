@@ -299,7 +299,8 @@ extension ImagePipeline.Diagnostics {
         /// reused, has no timestamps.
         public struct Transaction: Codable, Sendable {
             /// The URL of the request, with its query, the same as
-            /// ``ImageTask/Metrics/RequestSummary/url``.
+            /// ``ImageTask/Metrics/RequestSummary/url``. The session makes a
+            /// transaction per redirect.
             public let url: String?
             public let statusCode: Int?
             public let fetchType: FetchType
@@ -307,6 +308,7 @@ extension ImagePipeline.Diagnostics {
             public let networkProtocol: String?
             /// The version the connection negotiated, such as `"TLS 1.3"`.
             public let tlsVersion: String?
+            /// The IP address of the server.
             public let remoteAddress: String?
             public let isReusedConnection: Bool
             public let isProxyConnection: Bool

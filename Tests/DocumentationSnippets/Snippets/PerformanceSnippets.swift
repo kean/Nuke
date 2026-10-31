@@ -68,6 +68,35 @@ extension Telemetry: ImagePipeline.Delegate {
     nonisolated func send(_ metrics: ImageTask.Metrics) {}
 }
 
+private func upload(_ data: Data) {}
+
+private func send(_ metrics: ImageTask.Metrics) throws {
+    let record = try JSONSerialization.jsonObject(with: JSONEncoder().encode(metrics))
+    upload(try JSONSerialization.data(withJSONObject: removingQueries(from: record)))
+}
+
+/// Cuts every URL in an encoded record at its query, and drops the server's address.
+private func removingQueries(from value: Any) -> Any {
+    switch value {
+    case let string as String where string.contains("://"):
+        String(string.prefix { $0 != "?" && $0 != "#" })
+    case let array as [Any]:
+        array.map(removingQueries)
+    case let object as [String: Any]:
+        object.filter { $0.key != "remoteAddress" }.mapValues(removingQueries)
+    default:
+        value
+    }
+}
+
+private func diagnosticsWithoutSignposts() {
+    let pipeline = ImagePipeline {
+        $0.isDiagnosticsEnabled = true
+        $0.signpostLog = nil
+    }
+    _ = pipeline
+}
+
 private func progressiveDecoding() {
     ImagePipeline.shared = ImagePipeline {
         $0.isProgressiveDecodingEnabled = true

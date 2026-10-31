@@ -268,6 +268,48 @@ extension Telemetry: ImagePipeline.Delegate {
 }
 ```
 
+### Privacy
+
+The pipeline keeps the records on the device, so what leaves it is up to you. A record describes a network request, so treat it like one. It has:
+
+- The full URL of the request, with the query string, which can carry a token or a signature, in ``ImageTask/Metrics/request``. ``ImageRequest/imageID`` is the same URL unless you set it
+- The full URL of every redirect, and the IP address of the server, in the ``ImagePipeline/Diagnostics-swift.struct/URLSessionMetrics/transactions`` of the download
+- The ``ImagePipeline/Diagnostics-swift.struct/ErrorSummary/description`` of an error, which includes the description of the underlying error. A `URLError` names the full URL there
+
+It doesn't have the headers of the request or the response, only how many bytes they took. The `description` of a record and ``ImageTask/Metrics/formatted(_:)`` print the same URLs. ``ImageTask/Metrics/summary`` replaces the query with `?…`, so that line is safe to send as it is.
+
+To send the whole record, strip the query strings first:
+
+```swift
+func send(_ metrics: ImageTask.Metrics) throws {
+    let record = try JSONSerialization.jsonObject(with: JSONEncoder().encode(metrics))
+    upload(try JSONSerialization.data(withJSONObject: removingQueries(from: record)))
+}
+
+/// Cuts every URL in an encoded record at its query, and drops the server's address.
+func removingQueries(from value: Any) -> Any {
+    switch value {
+    case let string as String where string.contains("://"):
+        String(string.prefix { $0 != "?" && $0 != "#" })
+    case let array as [Any]:
+        array.map(removingQueries)
+    case let object as [String: Any]:
+        object.filter { $0.key != "remoteAddress" }.mapValues(removingQueries)
+    default:
+        value
+    }
+}
+```
+
+> Important: The signposts carry URLs too. While diagnostics are on, the signpost of every task and job has the full URL of the request, with the query string, and it's marked as `.public`. It goes to the system log, in a release build as well, where anyone who can read the log of the device sees it, with no debugger attached. If you keep diagnostics on in production, turn the signposts off:
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isDiagnosticsEnabled = true
+    $0.signpostLog = nil
+}
+```
+
 ## Selecting a System
 
 Make sure you select one image loading framework and stick to it. If you use more than one framework, it will prevent them from managing the system resources efficiently, such as caches. If, for any reason, you must use more than one framework, ensure that they at least share the same memory and disk caches.

@@ -153,6 +153,11 @@ extension ImagePipeline {
         /// record from ``ImageTask/metrics``, and use
         /// ``ImagePipeline/Diagnostics-swift.struct/isEnabled`` to pause the
         /// recording at runtime.
+        ///
+        /// A record has the full URLs of the request and its redirects, with
+        /// the query strings, and the address of the server, but no headers.
+        /// Strip them before a record leaves the device, and see
+        /// ``signpostLog``, which is on by default.
         public var isDiagnosticsEnabled = ImagePipeline.Diagnostics.isEnabledByEnvironment
 
         /// Logs a line for every task that finishes: how it ended, how long it
@@ -171,7 +176,8 @@ extension ImagePipeline {
         ///
         /// A failure is logged as an error, and the rest as notices. It turns
         /// on the recording that ``isDiagnosticsEnabled`` controls, which is
-        /// what the lines are made from.
+        /// what the lines are made from. The lines have no query strings, but
+        /// the signposts of ``signpostLog`` do.
         public var isDiagnosticsLoggingEnabled = ImagePipeline.Diagnostics.isLoggingEnabledByEnvironment
 
         /// The log the pipeline sends `os_signpost` intervals to while
@@ -183,6 +189,12 @@ extension ImagePipeline {
         /// The signposts follow ``isDiagnosticsEnabled`` and
         /// ``ImagePipeline/Diagnostics-swift.struct/isEnabled``, and cost next
         /// to nothing while no tool is recording them.
+        ///
+        /// - important: The signpost of every task and job has the full URL of
+        /// the request, with the query string, marked as `.public`. It goes to
+        /// the system log, in a release build as well, where anyone who can
+        /// read the log of the device sees it. If you keep diagnostics on in
+        /// production, set this to `nil`.
         public var signpostLog: OSLog? = ImagePipeline.Diagnostics.defaultSignpostLog
 
         /// The maximum response data size in bytes allowed before the download
