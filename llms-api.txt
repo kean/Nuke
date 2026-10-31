@@ -588,7 +588,7 @@
 - `let fetchType: FetchType`
 - `let networkProtocol: String?`: The name of the protocol, such as `"h2"`.
 - `let tlsVersion: String?`: The version the connection negotiated, such as `"TLS 1.3"`.
-- `let remoteAddress: String?`
+- `let remoteAddress: String?`: The IP address of the server.
 - `let isReusedConnection: Bool`
 - `let isProxyConnection: Bool`
 - `let isCellular: Bool`
@@ -996,7 +996,7 @@
 
 - `struct RequestSummary: Codable, Sendable`: The `Codable` subset of the `ImageRequest`.
 - `let url: String?`: The URL of the request, with its query, which can carry a token.
-- `let imageID: String?`
+- `let imageID: String?`: `ImageRequest.imageID`, which is the same URL unless the request sets it.
 - `let processors: [String]`: The identifiers of the processors.
 - `let thumbnail: String?`: The identifier of `ImageRequest.thumbnail`.
 - `let options: [String]`: The names of the `ImageRequest.Options`.

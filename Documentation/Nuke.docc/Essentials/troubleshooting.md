@@ -70,7 +70,7 @@ A queue at its limit with work pending means the pipeline is busy, and a task wa
 
 ## Read the Whole Record
 
-To see where the time of a slow task went, print its record. It needs ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``, and it's described in <doc:performance-guide>.
+To see where the time of a slow task went, print its record. It needs ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled``, and it's described in <doc:performance-guide>, along with what to check before a record leaves the device: it has the full URLs, with their query strings.
 
 ```swift
 let task = pipeline.imageTask(with: url)

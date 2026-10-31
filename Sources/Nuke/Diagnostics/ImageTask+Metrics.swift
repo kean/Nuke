@@ -31,6 +31,11 @@ extension ImageTask {
     ///
     /// `description` prints a text timeline of the task, which is what a bug
     /// report should paste. ``formatted(_:)`` prints the parts of it.
+    ///
+    /// The record has the full URLs of the request and its redirects, with the
+    /// query strings, the address of the server, and the description of the
+    /// underlying error. It has no headers. Strip the query strings before a
+    /// record leaves the device, or send ``summary``, which has none.
     public final class Metrics: Codable, Sendable, CustomStringConvertible {
         /// The version of the JSON the record encodes to.
         public let schemaVersion: Int
@@ -141,6 +146,8 @@ extension ImageTask {
             /// join on it. Strip what you don't want to store before you upload
             /// one. ``ImageTask/Metrics/summary`` is the redacted form.
             public let url: String?
+            /// ``ImageRequest/imageID``, which is the same URL unless the
+            /// request sets it.
             public let imageID: String?
             /// The identifiers of the processors.
             public let processors: [String]
