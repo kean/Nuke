@@ -35,7 +35,13 @@ extension ImagePipeline {
 
         /// The version of the JSON the records encode to. It is written into
         /// every record, and bumped whenever the shape changes.
-        static let schemaVersion = 2
+        ///
+        /// A field added in 14.x has to be optional, or come with a hand-written
+        /// decoder: the synthesized one requires every non-optional key, so a
+        /// new `attemptCount: Int` would make the records already written
+        /// undecodable. The raw values and `ErrorSummary.code` are the names of
+        /// the Swift cases, so renaming a case changes the format too.
+        static let schemaVersion = 3
 
         /// `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED`
         /// set to anything but `0`, `no`, `false`, or nothing at all.
@@ -285,6 +291,8 @@ extension ImagePipeline.Diagnostics {
         /// the session skipped, such as the lookup for a connection it
         /// reused, has no timestamps.
         public struct Transaction: Codable, Sendable {
+            /// The URL of the request, with its query, the same as
+            /// ``ImageTask/Metrics/RequestSummary/url``.
             public let url: String?
             public let statusCode: Int?
             public let fetchType: FetchType
@@ -423,7 +431,7 @@ extension ImagePipeline.Diagnostics {
         public var date: Date { Date(timeIntervalSince1970: at) }
     }
 
-    /// A size in pixels. Encodes as a two-element array.
+    /// A size in pixels.
     public struct PixelSize: Hashable, Sendable, Codable {
         public let width: Int
         public let height: Int
@@ -432,24 +440,12 @@ extension ImagePipeline.Diagnostics {
             self.width = width
             self.height = height
         }
-
-        public init(from decoder: any Decoder) throws {
-            var container = try decoder.unkeyedContainer()
-            self.width = try container.decode(Int.self)
-            self.height = try container.decode(Int.self)
-        }
-
-        public func encode(to encoder: any Encoder) throws {
-            var container = encoder.unkeyedContainer()
-            try container.encode(width)
-            try container.encode(height)
-        }
     }
 }
 
 // MARK: - Codable Conventions
 
-/// An enum that encodes as its lowercase name and decodes any name it doesn't
+/// An enum that encodes as its case name and decodes any name it doesn't
 /// know as `.unknown`, so a consumer built against an older schema still opens
 /// a newer file.
 public protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String {

@@ -246,7 +246,7 @@
 
 ### ImageDiagnosticsStringEnum
 
-- `protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String`: An enum that encodes as its lowercase name and decodes any name it doesn't know as `.unknown`, so a consumer built against an older schema still opens a newer file.
+- `protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String`: An enum that encodes as its case name and decodes any name it doesn't know as `.unknown`, so a consumer built against an older schema still opens a newer file.
 - `static var unknown: Self`
 - `init(from decoder: any Decoder) throws`
 - `func encode(to encoder: any Encoder) throws`
@@ -449,8 +449,6 @@
 - `let width: Int`
 - `let height: Int`
 - `init(width: Int, height: Int)`
-- `init(from decoder: any Decoder) throws`
-- `func encode(to encoder: any Encoder) throws`
 
 ### ImagePipeline.Diagnostics.PriorityChange
 
@@ -587,7 +585,7 @@
 ### ImagePipeline.Diagnostics.URLSessionMetrics.Transaction
 
 - `struct Transaction: Codable, Sendable`: The `Codable` subset of `URLSessionTaskTransactionMetrics`.
-- `let url: String?`
+- `let url: String?`: The URL of the request, with its query, the same as `ImageTask.Metrics.RequestSummary.url`.
 - `let statusCode: Int?`
 - `let fetchType: FetchType`
 - `let networkProtocol: String?`: The name of the protocol, such as `"h2"`.
@@ -1000,7 +998,7 @@
 ### ImageTask.Metrics.RequestSummary
 
 - `struct RequestSummary: Codable, Sendable`: The `Codable` subset of the `ImageRequest`.
-- `let url: String?`
+- `let url: String?`: The URL of the request, with its query, which can carry a token.
 - `let imageID: String?`
 - `let processors: [String]`: The identifiers of the processors.
 - `let thumbnail: String?`: The identifier of `ImageRequest.thumbnail`.

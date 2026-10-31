@@ -747,7 +747,7 @@ struct ImagePipelineDiagnosticsTests {
         let metrics = try JSONDecoder().decode(ImageTask.Metrics.self, from: data)
 
         // THEN
-        #expect(metrics.schemaVersion == 2)
+        #expect(metrics.schemaVersion == 3)
         #expect(metrics.taskID == 42)
         #expect(metrics.kind == .prefetch)
         #expect(metrics.label == "feed")

@@ -838,7 +838,7 @@ struct ImageTaskMetricsFormatTests {
             "createdAt": 10, "outcome": "vanished", "priorityHistory": [],
             "stages": [
               {"kind": "memoryLookup", "startedAt": 10, "duration": 0.1, "result": "maybe"},
-              {"kind": "download", "startedAt": 10.1, "duration": 0.5, "source": "telepathy", "pixels": [4, 3],
+              {"kind": "download", "startedAt": 10.1, "duration": 0.5, "source": "telepathy", "pixels": {"width": 4, "height": 3},
                "urlSessionMetrics": {"urlSessionTaskID": 1, "startedAt": 10.1, "endedAt": 10.6, "redirectCount": 0,
                  "transactions": [{"fetchType": "quantum", "isReusedConnection": false, "isProxyConnection": false,
                    "isCellular": false, "isExpensive": false, "isConstrained": false, "requestBytes": 0, "responseBytes": 0}]}}
@@ -880,16 +880,66 @@ struct ImageTaskMetricsFormatTests {
         #expect(object["hologram"] == nil)
     }
 
-    @Test func pixelSizeIsATwoElementArray() throws {
+    @Test func pixelSizeIsKeyed() throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
         let size = ImagePipeline.Diagnostics.PixelSize(width: 640, height: 480)
-        #expect(String(data: try JSONEncoder().encode(size), encoding: .utf8) == "[640,480]")
-        #expect(try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data("[1,2]".utf8)) == .init(width: 1, height: 2))
+        #expect(String(data: try encoder.encode(size), encoding: .utf8) == #"{"height":480,"width":640}"#)
+        #expect(try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data(#"{"width":1,"height":2}"#.utf8)) == .init(width: 1, height: 2))
         #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data("[1]".utf8))
+            try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data(#"{"width":1}"#.utf8))
         }
         #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data(#"{"width":1,"height":2}"#.utf8))
+            try JSONDecoder().decode(ImagePipeline.Diagnostics.PixelSize.self, from: Data("[1,2]".utf8))
         }
+    }
+
+    /// A stage and the image summary describe the same thing, so a consumer
+    /// reads a size from either one the same way.
+    @Test func everySizeInARecordIsKeyed() throws {
+        // GIVEN a record with a size in both places
+        var draft = _Draft()
+        draft.image = .init(width: 4032, height: 3024, format: "jpeg", isAnimated: false, memoryCost: 1)
+        draft.jobs = [_job(1, .loadImage, from: 0, to: 1, stages: [
+            _stage(.decode, queued: 0, from: 0.1, duration: 0.5) {
+                $0.pixels = .init(width: 4032, height: 3024)
+            }
+        ])]
+        let metrics = draft.make()
+
+        // WHEN
+        let data = try JSONEncoder().encode(metrics)
+        let decoded = try JSONDecoder().decode(ImageTask.Metrics.self, from: data)
+
+        // THEN it survives the round trip
+        #expect(decoded.jobs[0].stages[0].pixels == .init(width: 4032, height: 3024))
+        #expect(decoded.image?.width == 4032)
+
+        // THEN both are objects with the same keys
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let image = try #require(object["image"] as? [String: Any])
+        let job = try #require((object["jobs"] as? [[String: Any]])?.first)
+        let stage = try #require((job["stages"] as? [[String: Any]])?.first)
+        let pixels = stage["pixels"] as? [String: Int]
+        #expect(pixels?["width"] == image["width"] as? Int)
+        #expect(pixels?["height"] == image["height"] as? Int)
+    }
+
+    /// The record is opt-in and consumers join on the URL, so it keeps the
+    /// query, unlike the line that goes to the console.
+    @Test func recordKeepsTheFullURL() throws {
+        // GIVEN
+        var draft = _Draft()
+        draft.url = "https://example.com/image.jpeg?token=abc"
+        let metrics = draft.make()
+
+        // WHEN
+        let object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(metrics)) as? [String: Any])
+
+        // THEN
+        let request = try #require(object["request"] as? [String: Any])
+        #expect(request["url"] as? String == "https://example.com/image.jpeg?token=abc")
+        #expect(!metrics.summary.contains("token"))
     }
 
     @Test func recordWithoutARequiredFieldDoesNotDecode() throws {

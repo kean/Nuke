@@ -133,6 +133,10 @@ extension ImageTask {
 
         /// The `Codable` subset of the ``ImageRequest``.
         public struct RequestSummary: Codable, Sendable {
+            /// The URL of the request, with its query, which can carry a token.
+            /// A record is opt-in, and it keeps the whole URL because consumers
+            /// join on it. Strip what you don't want to store before you upload
+            /// one. ``ImageTask/Metrics/summary`` is the redacted form.
             public let url: String?
             public let imageID: String?
             /// The identifiers of the processors.

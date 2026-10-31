@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "pipelineID": "CE10C604-06C1-4DE0-8CC0-0F88D9167EE5",
   "taskID": 1,
   "kind": "image",
@@ -63,10 +63,10 @@
           "workDuration": 0.047,
           "attributedDuration": 0.0477,
           "format": "jpeg",
-          "pixels": [
-            1440,
-            960
-          ]
+          "pixels": {
+            "width": 1440,
+            "height": 960
+          }
         },
         {
           "kind": "memoryStore",
@@ -101,10 +101,10 @@
           "isProgressive": false,
           "decoder": "ImageDecoders.Default",
           "format": "jpeg",
-          "pixels": [
-            1440,
-            960
-          ]
+          "pixels": {
+            "width": 1440,
+            "height": 960
+          }
         }
       ]
     },
