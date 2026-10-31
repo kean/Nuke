@@ -1,0 +1,11 @@
+{
+  "name": "nuke",
+  "description": "Write and debug code that uses Nuke, the image loading system for Apple platforms: which API to use, working samples, exact delegate signatures, and what changed in Nuke 14.",
+  "author": {
+    "name": "Alexander Grebenyuk",
+    "url": "https://github.com/kean"
+  },
+  "homepage": "https://github.com/kean/Nuke",
+  "repository": "https://github.com/kean/Nuke",
+  "license": "MIT"
+}
