@@ -977,6 +977,30 @@ final class DataCacheTests {
         cache.isSweepEnabled = false
     }
 
+    /// A value that isn't a positive interval must not turn the timer into a loop
+    /// that lists the directory and rewrites the metadata file as fast as it can.
+    @Test(arguments: [0, -1] as [TimeInterval])
+    func scheduledSweepDoesNotLoopWithoutAnInterval(sweepInterval: TimeInterval) async throws {
+        // GIVEN
+        let counter = EventCounter()
+        let cache = try DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) },
+            sweepDelay: .milliseconds(0),
+            sweepInterval: sweepInterval,
+            onSweepCompleted: { counter.increment() }
+        )
+        defer { try? FileManager.default.removeItem(at: cache.path) }
+
+        // WHEN the first sweep comes around
+        await counter.wait(for: 1)
+        try await Task.sleep(for: .milliseconds(200))
+
+        // THEN the next one isn't scheduled right away
+        #expect(counter.count == 1)
+        cache.isSweepEnabled = false
+    }
+
     @Test func periodicSweepTrimsTheDataWrittenAfterTheFirstSweep() async throws {
         // GIVEN a long-lived cache that has already performed its first sweep
         let mb = 1024 * 1024
