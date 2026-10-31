@@ -175,6 +175,10 @@ struct ImagePipelineDecodingTests {
             switch event {
             case .preview:
                 previewCount += 1
+            case .progress:
+                // Serve the next chunk on progress rather than on a preview: the
+                // pipeline drops a preview while the previous one is still being
+                // decoded, and the loader would stall waiting for it.
                 dataLoader.resume()
             default:
                 break
