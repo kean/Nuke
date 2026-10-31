@@ -399,13 +399,14 @@ The options that applied to every load into a view now live on the loader attach
 | The `completion` closure | `await` the returned `ImageLoader.Handle` |
 | The returned `ImageTask?` | `ImageLoader.Handle.task` |
 | `cancelRequest(for:)` | `ImageLoader.loader(for: imageView).cancel()` |
-| `ImageDisplaying`, `contentModes`, `tintColors`, `alwaysTransition` | `ImageLoader.load(_:into:render:)` |
+| `ImageDisplaying`, `alwaysTransition` | `ImageLoader.load(_:into:render:)` |
+| `contentModes`, `tintColors` | `ImageLoader.load(_:into:render:)` calling `Presentation.render(_:in:)` |
 
 `ImageLoader` has no shared options: a `Presentation` is a value, so define the ones your app uses once and pass them by name.
 
 If you stay on `NukeExtensions`, a closure passed to `ImageLoadingOptions.Transition.custom(_:)` is now `@MainActor @Sendable`.
 
-To display the image in a view of your own – one that used to conform to `ImageDisplaying` – or to change the content mode or the tint color with the state, pass a closure that draws the `ImageLoader.State`:
+To display the image in a view of your own – one that used to conform to `ImageDisplaying` – pass a closure that draws the `ImageLoader.State`:
 
 ```swift
 // NukeExtensions
@@ -420,6 +421,24 @@ loadImage(with: url, into: posterView)
 // NukeUI
 ImageLoader.load(url, into: posterView) { posterView, state in
     posterView.image = state.image
+}
+```
+
+To change the content mode or the tint color with the state, call `render(_:in:)` of a `Presentation` from the closure, and change them after it:
+
+```swift
+// NukeExtensions
+let options = ImageLoadingOptions(
+    placeholder: UIImage(named: "placeholder"),
+    contentModes: .init(success: .scaleAspectFill, failure: .center, placeholder: .center)
+)
+loadImage(with: url, options: options, into: imageView)
+
+// NukeUI
+let presentation = ImageLoader.Presentation(placeholder: UIImage(named: "placeholder"))
+ImageLoader.load(url, into: imageView) { imageView, state in
+    presentation.render(state, in: imageView)
+    imageView.contentMode = state.image == nil ? .center : .scaleAspectFill
 }
 ```
 

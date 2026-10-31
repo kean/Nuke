@@ -294,7 +294,8 @@ ImageLoader.load(url, into: imageView, presentation: presentation)
 | The `progress` closure | The `delegate` of `ImageLoader.loader(for: imageView)` |
 | The `completion` closure | `await` the returned `ImageLoader.Handle`'s `result` |
 | `cancelRequest(for:)` | `ImageLoader.loader(for: imageView).cancel()` |
-| `contentModes`, `tintColors`, a custom `ImageDisplaying` view | `ImageLoader.load(_:into:render:)` |
+| A custom `ImageDisplaying` view | `ImageLoader.load(_:into:render:)` |
+| `contentModes`, `tintColors` | `ImageLoader.load(_:into:render:)` calling `Presentation.render(_:in:)` |
 
 ## From Nuke 12 or earlier
 

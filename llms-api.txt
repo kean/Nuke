@@ -1198,6 +1198,7 @@
 - `func load(_ url: URL?) -> Handle`: Loads an image with the given URL, and cancels what was loading before it.
 - `func load(_ request: ImageRequest?) -> Handle`: Loads an image with the given request, and cancels what was loading before it.
 - `func load(_ action: @escaping () async throws -> ImageResponse) -> Handle`: Loads an image with the given async function, and cancels what was loading before it.
+- `func reload() -> Handle?`: Loads the request of the last load again, with the current options of the loader.
 - `func cancel()`: Cancels the current load.
 - `func reset()`: Cancels the current load and clears the state.
 - `static func loader(for object: AnyObject) -> ImageLoader`: Returns the loader attached to the object, and attaches a new one on first use.
@@ -1230,6 +1231,7 @@
 - `var transition: Transition?`: The transition to run when a loaded image or a progressive preview is displayed.
 - `var failureImageTransition: Transition?`: The transition to run when the failure image is displayed.
 - `init(placeholder: PlatformImage? = nil, transition: Transition? = nil, failureImage: PlatformImage? = nil, failureImageTransition: Transition? = nil)`: Creates a presentation.
+- `func render(_ state: ImageLoader.State, in imageView: _PlatformImageView)`: Displays the state in the image view
 
 ### ImageLoader.Presentation.Transition
 
@@ -1250,6 +1252,7 @@
 - `var result: Result<ImageResponse, ImagePipeline.Error>?`: The outcome of the load, once it finishes.
 - `var image: PlatformImage?`: The image to display.
 - `var error: ImagePipeline.Error?`: The error the load failed with, if it failed.
+- `init(event: Event = .reset, request: ImageRequest? = nil, task: ImageTask? = nil, imageContainer: ImageContainer? = nil, isPreviousImage: Bool = false, isLoading: Bool = false, progress: ImageTask.Progress = ImageTask.Progress(completed: 0, total: 0), result: Result<ImageResponse, ImagePipeline.Error>? = nil)`: Creates a state, to test or preview the code that draws the states of a loader
 
 ### ImageLoaderDelegate
 

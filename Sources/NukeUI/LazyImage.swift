@@ -240,7 +240,7 @@ public struct LazyImage<Content: View>: View {
     /// request from the view's pipeline, whatever its priority.
     private func isLoaded(_ context: LazyImageContext?) -> Bool {
         guard let context, let request = viewModel.currentRequest else { return false }
-        return viewModel.pipeline === pipeline && context.loadsSameImage(as: LazyImageContext(request: request))
+        return viewModel.pipeline === pipeline && context.request.loadsSameImage(as: request)
     }
 
     private func onDisappear() {
@@ -274,24 +274,7 @@ private struct LazyImageContext: Equatable {
     var request: ImageRequest
 
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
-        lhs.loadsSameImage(as: rhs) && lhs.request.priority == rhs.request.priority
-    }
-
-    /// Returns `true` if the requests load the same image, whatever their
-    /// priority.
-    func loadsSameImage(as other: LazyImageContext) -> Bool {
-        let lhs = request
-        let rhs = other.request
-        // A view that keeps its request passes a copy of the same one on every
-        // update, and that is equal without comparing the processors.
-        if lhs.isIdentical(to: rhs) {
-            return true
-        }
-        return lhs.imageID == rhs.imageID &&
-        lhs.processorsIdentity == rhs.processorsIdentity &&
-        lhs.options == rhs.options &&
-        lhs.scale == rhs.scale &&
-        lhs.thumbnail == rhs.thumbnail
+        lhs.request.loadsSameImage(as: rhs.request) && lhs.request.priority == rhs.request.priority
     }
 }
 
