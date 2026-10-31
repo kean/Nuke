@@ -46,7 +46,9 @@ private func diagnostics(url: URL) async throws {
     _ = image
 }
 
-private final class Telemetry: ImagePipeline.Delegate, Sendable {
+private final class Telemetry: Sendable {}
+
+extension Telemetry: ImagePipeline.Delegate {
     @ImagePipelineActor
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {
         guard case .finished = event, let metrics = task.metrics else { return }

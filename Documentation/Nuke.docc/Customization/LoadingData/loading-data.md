@@ -17,7 +17,9 @@ The default ``DataLoader`` works great for most situations, but if you need to p
 To modify a URL request just before it is sent — for example, to inject authentication tokens or sign requests — implement ``ImagePipeline/Delegate-swift.protocol/willLoadData(for:urlRequest:pipeline:)`` in your pipeline delegate:
 
 ```swift
-final class AuthenticatedPipelineDelegate: ImagePipeline.Delegate {
+final class AuthenticatedPipelineDelegate: Sendable {}
+
+extension AuthenticatedPipelineDelegate: ImagePipeline.Delegate {
     func willLoadData(
         for request: ImageRequest,
         urlRequest: URLRequest,

@@ -162,6 +162,8 @@ func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
 }
 ```
 
+Swift can't attach a message to a removed enum case, so the compiler doesn't name the replacement. The error reads `reference to member 'started' cannot be resolved without a contextual type`, or `type 'ImageTask.Event' has no member 'started'`.
+
 ## `Float` to `CGFloat`
 
 The public scale and size APIs now use `CGFloat`, matching the types you get from UIKit and SwiftUI.
@@ -198,6 +200,23 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 ```
 
 The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
+
+> Warning: **The Nuke 13 method still compiles, and the pipeline never calls it.** Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code. A delegate that used `willCache` to keep private images off the disk stops doing so, silently. Search your code for `completion: @escaping (Data?) -> Void`.
+
+The same goes for every other delegate method whose signature doesn't match, such as the Nuke 12 `imageTaskDidCancel(_:pipeline:)`. Declare the conformance in an extension, not on the class:
+
+```swift
+final class MyDelegate: Sendable {}
+
+extension MyDelegate: ImagePipeline.Delegate {
+    func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) -> URLRequest? {
+        // warning: instance method 'willLoadData(for:urlRequest:pipeline:)' nearly matches
+        // defaulted requirement 'willLoadData(for:urlRequest:pipeline:)' of protocol 'Delegate'
+    }
+}
+```
+
+The compiler only compares a method to the requirements of the protocol the extension declares, and only if the number of parameters is the same. So the warning catches the method above, but not the old `willCache`, which has one more parameter.
 
 ## Renamed `TaskQueue.maxConcurrentOperationCount`
 
