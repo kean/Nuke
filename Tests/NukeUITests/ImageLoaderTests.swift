@@ -356,6 +356,316 @@ struct ImageLoaderTests {
         #expect(task.request.processors.count == 1)
     }
 
+    // MARK: - Loading the Same Image
+
+    @Test func loadingTheSameRequestKeepsTheRunningTask() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+        let task = try #require(first.task)
+
+        // When
+        let second = loader.load(Test.request)
+
+        // Then
+        #expect(second.task === task)
+        #expect(!task.isCancelled)
+        #expect(recorder.events == ["started"])
+
+        // When the task finishes
+        dataLoader.isSuspended = false
+        let response = try await second.response
+
+        // Then both handles get its response
+        #expect(try await first.response.image === response.image)
+        #expect(recorder.events.filter { $0 != "progress" } == ["started", "finished(success)"])
+    }
+
+    @Test func loadingTheSameURLAgainKeepsTheRunningTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        loader.load(Test.url)
+        let task = try #require(loader.task)
+
+        // When
+        loader.load(Test.url)
+
+        // Then
+        #expect(loader.task === task)
+        #expect(!task.isCancelled)
+        #expect(recorder.events == ["started"])
+    }
+
+    @Test func loadingTheSameImageWithAnotherPriorityUpdatesTheTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        loader.load(ImageRequest(url: Test.url, priority: .low))
+        let task = try #require(loader.task)
+
+        // When
+        loader.load(ImageRequest(url: Test.url, priority: .high))
+
+        // Then
+        #expect(loader.task === task)
+        #expect(task.priority == .high)
+        #expect(loader.state.request?.priority == .high)
+
+        // When the priority of the loader is taken back
+        loader.priority = .veryLow
+        loader.priority = nil
+
+        // Then it's the priority of the new request
+        #expect(task.priority == .high)
+    }
+
+    @Test func loadingTheSameImageKeepsThePriorityOfTheLoader() throws {
+        // Given
+        dataLoader.isSuspended = true
+        loader.priority = .high
+        loader.load(ImageRequest(url: Test.url, priority: .low))
+        let task = try #require(loader.task)
+
+        // When
+        loader.load(ImageRequest(url: Test.url, priority: .veryLow))
+
+        // Then
+        #expect(loader.task === task)
+        #expect(task.priority == .high)
+    }
+
+    @Test func loadingTheSameURLWithOtherProcessorsRestarts() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+
+        // When
+        let second = loader.load(ImageRequest(url: Test.url, processors: [ImageProcessors.Resize(width: 100)]))
+
+        // Then
+        #expect(await first.result.error == .cancelled)
+        #expect(second.task !== first.task)
+        #expect(recorder.events == ["started", "started"])
+    }
+
+    @Test func loadingTheSameRequestAfterTheProcessorsOfTheLoaderChangeRestarts() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+
+        // When
+        loader.processors = [ImageProcessors.Resize(width: 100)]
+        let second = loader.load(Test.request)
+
+        // Then
+        #expect(await first.result.error == .cancelled)
+        #expect(second.task !== first.task)
+        #expect(second.task?.request.processors.count == 1)
+    }
+
+    @Test func loadingTheSameRequestWithTheProcessorsOfTheLoaderKeepsTheRunningTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        loader.processors = [ImageProcessors.Resize(width: 100)]
+        loader.load(Test.request)
+        let task = try #require(loader.task)
+
+        // When
+        loader.load(Test.request)
+
+        // Then
+        #expect(loader.task === task)
+        #expect(!task.isCancelled)
+    }
+
+    @Test func loadingTheSameRequestFromAnotherPipelineRestarts() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+
+        // When
+        loader.pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+            $0.dataCache = MockDataCache()
+        }
+        let second = loader.load(Test.request)
+
+        // Then
+        #expect(await first.result.error == .cancelled)
+        #expect(second.task !== first.task)
+    }
+
+    @Test func loadingTheSameRequestAfterItsTaskIsCancelledRestarts() async throws {
+        // Given a task cancelled directly, whose event hasn't arrived yet
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+        first.task?.cancel()
+
+        // When
+        let second = loader.load(Test.request)
+        await drainPendingWork()
+
+        // Then
+        #expect(second.task !== first.task)
+        #expect(second.task?.isCancelled == false)
+        #expect(loader.task === second.task)
+        #expect(loader.state.isLoading)
+        #expect(await first.result.error == .cancelled)
+    }
+
+    @Test func loadingTheSameRequestAfterItFailsLoadsItAgain() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        _ = await loader.load(Test.request).result
+
+        // When
+        dataLoader.results[Test.url] = nil
+        _ = try await loader.load(Test.request).response
+
+        // Then
+        #expect(recorder.events.filter { $0 != "progress" } == ["started", "finished(failure)", "started", "finished(success)"])
+    }
+
+    @Test func cancellingTheHandleOfTheSameImageCancelsTheLoad() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+        let second = loader.load(Test.request)
+
+        // When
+        second.cancel()
+
+        // Then
+        #expect(first.task?.isCancelled == true)
+        #expect(await first.result.error == .cancelled)
+        #expect(recorder.events == ["started", "cancelled"])
+    }
+
+    // MARK: - Reloading
+
+    @Test func reloadRetriesAFailedLoad() async throws {
+        // Given
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        _ = await loader.load(Test.request).result
+
+        // When
+        dataLoader.results[Test.url] = nil
+        let handle = try #require(loader.reload())
+        let response = try await handle.response
+
+        // Then
+        #expect(loader.state.image === response.image)
+        #expect(recorder.events.filter { $0 != "progress" } == ["started", "finished(failure)", "started", "finished(success)"])
+    }
+
+    @Test func reloadRestartsACancelledLoad() throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+        loader.cancel()
+
+        // When
+        let second = try #require(loader.reload())
+
+        // Then
+        #expect(second.task !== first.task)
+        #expect(second.task?.isCancelled == false)
+        #expect(loader.state.isLoading)
+        #expect(recorder.events == ["started", "cancelled", "started"])
+    }
+
+    @Test func reloadKeepsTheRunningLoad() throws {
+        // Given
+        dataLoader.isSuspended = true
+        let first = loader.load(Test.request)
+
+        // When
+        let second = try #require(loader.reload())
+
+        // Then
+        #expect(second.task === first.task)
+        #expect(first.task?.isCancelled == false)
+        #expect(recorder.events == ["started"])
+    }
+
+    @Test func reloadAppliesTheCurrentOptionsOfTheLoader() throws {
+        // Given
+        dataLoader.isSuspended = true
+        loader.load(Test.request)
+        loader.cancel()
+
+        // When
+        loader.processors = [ImageProcessors.Resize(width: 100)]
+        loader.priority = .high
+        loader.reload()
+
+        // Then
+        let task = try #require(loader.task)
+        #expect(task.request.processors.count == 1)
+        #expect(task.priority == .high)
+        #expect(loader.state.request?.processors.isEmpty == true)
+    }
+
+    @Test func reloadFinishesSynchronouslyFromTheMemoryCache() throws {
+        // Given
+        imageCache[Test.request] = Test.container
+        loader.load(Test.request)
+
+        // When
+        let handle = try #require(loader.reload())
+
+        // Then
+        #expect(handle.task == nil)
+        #expect(recorder.events == ["finished(success, sync)", "finished(success, sync)"])
+    }
+
+    @Test func reloadWithoutALoadDoesNothing() {
+        // When
+        let handle = loader.reload()
+
+        // Then
+        #expect(handle == nil)
+        #expect(recorder.events.isEmpty)
+    }
+
+    @Test func reloadAfterResetDoesNothing() {
+        // Given
+        imageCache[Test.request] = Test.container
+        loader.load(Test.request)
+        loader.reset()
+
+        // When
+        let handle = loader.reload()
+
+        // Then
+        #expect(handle == nil)
+        #expect(recorder.events == ["finished(success, sync)", "reset"])
+    }
+
+    @Test func reloadAfterANilRequestDoesNothing() {
+        // Given
+        loader.load(nil as ImageRequest?)
+
+        // When
+        let handle = loader.reload()
+
+        // Then
+        #expect(handle == nil)
+        #expect(recorder.events == ["finished(failure, sync)"])
+    }
+
+    @Test func reloadAfterAClosureLoadDoesNothing() async throws {
+        // Given
+        _ = try await loader.load { Test.response }.response
+
+        // When
+        let handle = loader.reload()
+
+        // Then
+        #expect(handle == nil)
+        #expect(recorder.events == ["started", "finished(success)"])
+    }
+
     // MARK: - Loading From a Closure
 
     @Test func closureLoadReportsStartedAndFinished() async throws {
@@ -679,6 +989,61 @@ struct ImageLoaderTests {
         #expect(!loader.state.isPreviousImage)
     }
 
+    // MARK: - Creating States
+
+    @Test func createdStateIsEmptyByDefault() {
+        // When
+        let state = ImageLoader.State()
+
+        // Then
+        #expect(state.event.tag == "reset")
+        #expect(state.request == nil)
+        #expect(state.task == nil)
+        #expect(state.imageContainer == nil)
+        #expect(!state.isPreviousImage)
+        #expect(!state.isLoading)
+        #expect(state.progress == ImageTask.Progress(completed: 0, total: 0))
+        #expect(state.result == nil)
+    }
+
+    @Test func createdStateHasTheGivenValues() {
+        // Given
+        let error = ImagePipeline.Error.imageRequestMissing
+        let container = Test.container
+
+        // When
+        let state = ImageLoader.State(
+            event: .finished(.failure(error), isSync: false),
+            request: Test.request,
+            imageContainer: container,
+            isPreviousImage: true,
+            isLoading: true,
+            progress: ImageTask.Progress(completed: 1, total: 2),
+            result: .failure(error)
+        )
+
+        // Then
+        #expect(state.event.tag == "finished(failure)")
+        #expect(state.request?.url == Test.url)
+        #expect(state.image === container.image)
+        #expect(state.isPreviousImage)
+        #expect(state.isLoading)
+        #expect(state.progress == ImageTask.Progress(completed: 1, total: 2))
+        #expect(state.error == error)
+    }
+
+    @Test func createdStateHasTheGivenTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        let task = try #require(loader.load(Test.request).task)
+
+        // When
+        let state = ImageLoader.State(event: .started(task), task: task, isLoading: true)
+
+        // Then
+        #expect(state.task === task)
+    }
+
     // MARK: - Delegate
 
     @Test func loadStartedFromTheDelegateIsNotFollowedByAStaleState() async throws {
@@ -732,6 +1097,26 @@ struct ImageLoaderTests {
         // Then
         #expect(await first.result.error == .cancelled)
         #expect(ImageLoader.loader(for: target).pipeline === pipeline)
+    }
+
+    @Test func loadIntoObjectOfTheSameImageRendersTheRestOfItsStates() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let target = Target()
+        let first = ImageLoader.load(Test.request, into: target, pipeline: pipeline) { target, state in
+            target.events.append("first: \(state.event.tag)")
+        }
+
+        // When
+        let second = ImageLoader.load(Test.request, into: target) { target, state in
+            target.events.append("second: \(state.event.tag)")
+        }
+        dataLoader.isSuspended = false
+        _ = try await second.response
+
+        // Then
+        #expect(second.task === first.task)
+        #expect(target.events.filter { !$0.hasSuffix("progress") } == ["first: started", "second: finished(success)"])
     }
 
     @Test func loadIntoObjectDoesNotRetainIt() throws {

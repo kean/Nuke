@@ -228,6 +228,9 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     /// Sets the given request and immediately starts the download.
+    ///
+    /// If the view is already loading the same image, whatever the priority,
+    /// the task keeps running and gets the new priority.
     public var request: ImageRequest? {
         didSet { load(request) }
     }

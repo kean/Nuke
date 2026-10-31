@@ -165,6 +165,90 @@ struct ImageLoaderImageViewTests {
         #expect(imageView.image === container.image)
     }
 
+    // MARK: - Rendering From a Closure
+
+    @Test func presentationRendersFromAClosure() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let presentation = ImageLoader.Presentation(placeholder: placeholder)
+        var renderCount = 0
+
+        // When
+        let handle = ImageLoader.load(Test.request, into: imageView, pipeline: pipeline) { imageView, state in
+            presentation.render(state, in: imageView)
+            renderCount += 1
+        }
+
+        // Then
+        #expect(renderCount == 1)
+        #expect(imageView.image === placeholder)
+
+        // When the image arrives
+        dataLoader.isSuspended = false
+        let response = try await handle.response
+
+        // Then it replaces the placeholder
+        #expect(imageView.image === response.image)
+    }
+
+    @Test func presentationRendersTheFailureImageFromAClosure() async {
+        // Given
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        let presentation = ImageLoader.Presentation(placeholder: placeholder, failureImage: failureImage)
+
+        // When
+        _ = await ImageLoader.load(Test.request, into: imageView, pipeline: pipeline) { imageView, state in
+            presentation.render(state, in: imageView)
+        }.result
+
+        // Then
+        #expect(imageView.image === failureImage)
+    }
+
+#if !os(macOS)
+    @Test func contentModeChangesAlongWithThePresentation() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        let presentation = ImageLoader.Presentation(placeholder: placeholder)
+
+        // When
+        let handle = ImageLoader.load(Test.request, into: imageView, pipeline: pipeline) { imageView, state in
+            presentation.render(state, in: imageView)
+            imageView.contentMode = state.image == nil ? .center : .scaleAspectFill
+        }
+
+        // Then
+        #expect(imageView.image === placeholder)
+        #expect(imageView.contentMode == .center)
+
+        // When the image arrives
+        dataLoader.isSuspended = false
+        let response = try await handle.response
+
+        // Then
+        #expect(imageView.image === response.image)
+        #expect(imageView.contentMode == .scaleAspectFill)
+    }
+#endif
+
+    @Test func presentationRendersACreatedState() {
+        // Given
+        let presentation = ImageLoader.Presentation(placeholder: placeholder, failureImage: failureImage)
+        let error = ImagePipeline.Error.imageRequestMissing
+
+        // When
+        presentation.render(ImageLoader.State(event: .started(nil), isLoading: true), in: imageView)
+
+        // Then
+        #expect(imageView.image === placeholder)
+
+        // When
+        presentation.render(ImageLoader.State(event: .finished(.failure(error), isSync: true), result: .failure(error)), in: imageView)
+
+        // Then
+        #expect(imageView.image === failureImage)
+    }
+
     @Test func resetClearsTheImageView() {
         // Given
         imageCache[Test.request] = Test.container

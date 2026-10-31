@@ -112,6 +112,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     /// Loads an image with the given request.
+    ///
+    /// If it's already loading the same image, whatever the priority, the
+    /// task keeps running and gets the new priority.
     public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
         loader.load(request)

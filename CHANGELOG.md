@@ -157,6 +157,7 @@ Measured on macOS. Source and test lines exclude blank lines and comments.
 - `LazyImage/priority(_:)` with `nil` now keeps the request's own priority instead of resetting it to `.normal` – https://github.com/kean/Nuke/pull/1034
 - `LazyImage/processors(_:)` with `nil` now keeps the request's own processors; pass `[]` to remove them. `nil` in `processors(_:)` and `priority(_:)` also takes back an earlier call – https://github.com/kean/Nuke/pull/1035
 - `LazyImageView/imageTask` is now read-only – https://github.com/kean/Nuke/pull/1039
+- `FetchImage/load(_:)` and `LazyImageView/request` keep the running task when they load the same image again, instead of restarting the download – https://github.com/kean/Nuke/pull/1043
 
 ### Performance
 

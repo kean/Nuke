@@ -77,6 +77,22 @@ struct FetchImageTests {
         _ = try #require(capturedTask)
     }
 
+    @Test func loadingTheSameRequestKeepsTheRunningTask() {
+        // Given
+        dataLoader.isSuspended = true
+        var tasks: [ImageTask] = []
+        image.onStart = { tasks.append($0) }
+        image.load(Test.request)
+
+        // When
+        image.load(Test.request)
+
+        // Then
+        #expect(tasks.count == 1)
+        #expect(tasks.first?.isCancelled == false)
+        #expect(image.isLoading)
+    }
+
     @Test func isLoadingUpdated() async {
         #expect(!image.isLoading)
 

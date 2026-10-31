@@ -350,6 +350,21 @@ struct LazyImageViewTests {
         }
     }
 
+    @Test func settingTheSameRequestKeepsTheRunningTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        view.url = Test.url
+        let task = try #require(view.imageTask)
+
+        // When
+        view.url = Test.url
+
+        // Then
+        #expect(view.imageTask === task)
+        #expect(!task.isCancelled)
+        #expect(view.placeholderView?.isHidden == false)
+    }
+
     @Test func viewDeallocCancelsTask() async {
         dataLoader.isSuspended = true
 
