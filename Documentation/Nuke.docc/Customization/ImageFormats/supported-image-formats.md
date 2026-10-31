@@ -28,7 +28,7 @@ The pipeline can also drive progressive decoding, animated image rendering, draw
 | CUR | – | ✅ | ❌ | Opt-in | – |
 | Camera RAW | ``AssetType/tiff`` or – | ✅ | ❌ | Opt-in (embedded thumbnail) | – |
 | SVG | – | ❌ | ❌ | – | – |
-| MP4, M4V, MOV | ``AssetType/mp4``, ``AssetType/m4v``, ``AssetType/mov`` | `NukeVideo` | ❌ | – | ✅ `NukeVideo` |
+| MP4, M4V, MOV | ``AssetType/mp4``, ``AssetType/m4v``, ``AssetType/mov`` | `NukeVideo` | ❌ | Opt-in (single preview) | ✅ `NukeVideo` |
 
 Reading the columns:
 

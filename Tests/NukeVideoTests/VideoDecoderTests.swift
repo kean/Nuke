@@ -8,7 +8,10 @@ import NukeVideo
 
 #if !os(watchOS) && !os(visionOS)
 
-@Suite(.timeLimit(.minutes(5)))
+// Serialized because a decode blocks its thread until the resource loader's
+// delegate answers on a global queue. A suite's worth of them at once can leave
+// that queue no thread, and they fail when AVFoundation gives up, up to 120 s later.
+@Suite(.serialized, .timeLimit(.minutes(5)))
 struct VideoDecoderTests {
 
     // MARK: Initialization
@@ -124,6 +127,58 @@ struct VideoDecoderTests {
         #expect(container.userInfo[.videoAssetKey] is AVAsset)
     }
 
+    /// `decode` takes its data independently of the context the decoder was
+    /// created from, so it has to cope with less data than the loader ever
+    /// asks for: AVFoundation's first request wants the first two bytes.
+    @Test(arguments: [0, 1, 2])
+    func decodeOfDataShorterThanFirstByteRangeRequestReturnsEmptyImage(count: Int) throws {
+        // Given
+        let header = makeFileTypeBox(brand: "isom")
+        let decoder = try #require(ImageDecoders.Video(context: makeContext(header)))
+
+        // When
+        let container = try decoder.decode(header.prefix(count))
+
+        // Then
+        #expect(container.image.size == .zero)
+        #expect(container.userInfo[.videoAssetKey] is AVAsset)
+    }
+
+    /// The preview stands in for the video the player shows, so it has to be
+    /// in the orientation the track's preferred transform gives the video.
+    @Test func decodeAppliesPreferredTrackTransform() async throws {
+        // Given a portrait video the way a phone records it: 32×16 pixels
+        // rotated by 90°
+        let data = try await VideoFixture(width: 32, height: 16, transform: .portrait).makeData()
+        let decoder = try #require(ImageDecoders.Video(context: makeContext(data)))
+
+        // When
+        let container = try decoder.decode(data)
+
+        // Then the video is displayed 16 wide and 32 tall...
+        let asset = try #require(container.userInfo[.videoAssetKey] as? AVAsset)
+        let track = try #require(try await asset.loadTracks(withMediaType: .video).first)
+        let displaySize = try await track.load(.naturalSize).applying(track.load(.preferredTransform))
+        #expect(abs(displaySize.width) == 16 && abs(displaySize.height) == 32)
+
+        // ...and so is the preview
+        let image = try #require(cgImage(of: container.image))
+        #expect(image.width == 16 && image.height == 32, "The preview is \(image.width)×\(image.height)")
+    }
+
+    @Test func partialDecodeAppliesPreferredTrackTransform() async throws {
+        // Given
+        let data = try await VideoFixture(width: 32, height: 16, transform: .portrait).makeData()
+        let decoder = try #require(ImageDecoders.Video(context: makeContext(data, isCompleted: false)))
+
+        // When
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data))
+
+        // Then
+        let image = try #require(cgImage(of: preview.image))
+        #expect(image.width == 16 && image.height == 32, "The preview is \(image.width)×\(image.height)")
+    }
+
     // MARK: Partially Downloaded Data
 
     @Test func partialDecodeProducesOnePreview() async throws {
@@ -203,6 +258,22 @@ struct VideoDecoderTests {
         #expect(decoder.decodePartiallyDownloadedData(data) != nil)
     }
 
+    /// "`.disabled` – No previews are generated for partially downloaded data."
+    @Test func partialDecodeProducesNoPreviewWhenPolicyIsDisabled() async throws {
+        // Given
+        let data = try await VideoFixture(isFastStart: true).makeData()
+        let context = ImageDecodingContext(request: ImageRequest(url: nil), data: data, isCompleted: false, previewPolicy: .disabled)
+        let decoder = try #require(ImageDecoders.Video(context: context))
+
+        // When
+        let preview = decoder.decodePartiallyDownloadedData(data)
+
+        // Then
+        #expect(preview == nil)
+        // Then the final decode is unaffected
+        #expect(cgImage(of: try decoder.decode(data).image)?.width == 32)
+    }
+
     /// The pipeline doesn't call a decoder concurrently, but the decoder is
     /// `Sendable` and promises a single preview, so racing calls must agree
     /// on which one of them returns it.
@@ -222,6 +293,11 @@ struct VideoDecoderTests {
         // Then
         #expect(previewCount == 1)
     }
+}
+
+private extension CGAffineTransform {
+    /// Rotates a 32×16 track by 90° into a 16×32 portrait video.
+    static let portrait = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 16, ty: 0)
 }
 
 #endif

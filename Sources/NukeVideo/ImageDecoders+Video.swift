@@ -21,6 +21,7 @@ extension ImageDecoders {
     public final class Video: ImageDecoding, Sendable {
         private let didProducePreview = OSAllocatedUnfairLock(initialState: false)
         private let type: AssetType
+        private let previewPolicy: ImagePipeline.PreviewPolicy
 
         /// Always `true` — decoding is performed asynchronously to avoid blocking the pipeline.
         public var isAsynchronous: Bool { true }
@@ -29,6 +30,7 @@ extension ImageDecoders {
         public init?(context: ImageDecodingContext) {
             guard let type = AssetType(context.data), type.isVideo else { return nil }
             self.type = type
+            self.previewPolicy = context.previewPolicy
         }
 
         /// Decodes the complete video data and returns an ``ImageContainer`` with a
@@ -41,8 +43,10 @@ extension ImageDecoders {
         }
 
         /// Returns a single thumbnail preview for the first frame of partially downloaded
-        /// video data, or `nil` if the data is not yet decodable or a preview was already produced.
+        /// video data, or `nil` if the data is not yet decodable, a preview was already
+        /// produced, or the preview policy is ``ImagePipeline/PreviewPolicy/disabled``.
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            guard previewPolicy != .disabled else { return nil }
             guard let type = AssetType(data), type.isVideo else { return nil }
             guard !didProducePreview.withLock({ $0 }) else {
                 return nil // We only need one preview
@@ -73,6 +77,9 @@ extension ImageContainer.UserInfoKey {
 private func makePreview(for data: Data, type: AssetType) -> PlatformImage? {
     let asset = AVDataAsset(data: data, type: type)
     let generator = AVAssetImageGenerator(asset: asset)
+    // Show the frame the way the player will: a phone records portrait video
+    // as landscape pixels with a 90° transform.
+    generator.appliesPreferredTrackTransform = true
     guard let cgImage = try? generator.copyCGImage(at: CMTime(value: 0, timescale: 1), actualTime: nil) else {
         return nil
     }
