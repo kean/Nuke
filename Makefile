@@ -1,4 +1,4 @@
-.PHONY: ci ci-list test test-one build lint spm snippets help
+.PHONY: ci ci-list test test-one build lint spm snippets llms help
 
 CI := bash .scripts/ci.sh
 
@@ -40,6 +40,10 @@ spm:
 ## Compile the code samples from the DocC articles
 snippets:
 	@$(CI) snippets
+
+## Regenerate llms.txt, llms-full.txt, and llms-api.txt
+llms:
+	@python3 .scripts/generate-llms.py
 
 ## Show available targets
 help:

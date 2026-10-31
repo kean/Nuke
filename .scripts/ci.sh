@@ -57,6 +57,7 @@ JOBS=(
     "build-demo-ios|platforms|build|NukeDemo|iOS Simulator"
     "spm-build|platforms|spm|Package|SPM"
     "snippets-ios|platforms|snippets|DocumentationSnippets|iOS"
+    "llms-check|platforms|llms|llms.txt|—"
 
     "lint|lint|lint|SwiftLint|—"
 )
@@ -421,6 +422,7 @@ run_job() {
     case "$action" in
         lint) label="SwiftLint" ;;
         spm)  label="swift build" ;;
+        llms) label="llms.txt" ;;
         *)    label="$scheme · $platform" ;;
     esac
 
@@ -462,6 +464,12 @@ run_job() {
             ;;
         spm)
             run_streamed "$id" swift env -C "$PROJECT_ROOT" swift build || exit_code=$?
+            ;;
+        llms)
+            # The files are generated and committed, so that they ship in the
+            # checkout of every project that depends on Nuke. This fails if they
+            # are stale, or if a sample in the skill isn't compiled.
+            run_streamed "$id" python3 python3 "$SCRIPT_DIR/generate-llms.py" --check || exit_code=$?
             ;;
         build)
             run_streamed "$id" xcodebuild \

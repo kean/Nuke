@@ -23,6 +23,7 @@ make test-one TEST=ImageRequestTests/testInit   # One test or suite, on macOS, w
 make test-one TEST=LazyImageTests SCHEME=NukeUI PLATFORM=iOS
 make ci-macos                                   # One CI group; `make ci-list` lists them
 make snippets                                   # Compile the documentation samples
+make llms                                       # Regenerate llms.txt, llms-full.txt, and llms-api.txt
 make lint                                       # SwiftLint
 ```
 
@@ -60,5 +61,7 @@ make lint                                       # SwiftLint
 - **Removed API** stays as an `@available(*, unavailable)` stub whose message names the replacement, in a `Deprecated.swift`. The message goes straight into the compiler error, so it's the migration guide for anyone who doesn't read one. See the comment at the top of `Sources/Nuke/Pipeline/Deprecated.swift`.
 - **A source-breaking change** gets a section in the migration guide with `// Nuke 13` and `// Nuke 14` samples.
 - **A code sample in an article** is compiled: add it to `Tests/DocumentationSnippets`, verbatim. Declare a delegate conformance in an extension, which is the only place the compiler warns about a method that nearly matches a requirement.
+- **`llms.txt`, `llms-full.txt`, and `llms-api.txt`** are generated from the articles, the skill, and the sources. Run `make llms` after changing any of them, or a public API. CI fails if they're stale. A new article goes in `ARTICLE_ORDER` in `.scripts/generate-llms.py`.
+- **`skills/nuke/SKILL.md`** is what an agent reads to use Nuke. When the recommended way to do something changes, change it here too. Every sample in it has to be in `Tests/DocumentationSnippets/Snippets/SkillSnippets.swift`, which CI checks.
 - **`CHANGELOG.md`** is updated by the maintainer, in terse entries, one line each, with no period at the end and the PR linked.
 - **Commits and PRs** carry no `Co-Authored-By`, session, or "Generated with" lines.
