@@ -36,6 +36,7 @@ The URLs in the lines have no query, which can carry a token. ``ImageTask/Metric
 | `decoderNotRegistered` | The pipeline has a custom ``ImagePipeline/Configuration-swift.struct/makeImageDecoder`` that returned `nil` | Fall back to ``ImageDecoders/Default`` |
 | `Response status code was unacceptable` | The server answered with an error | Check the URL. ``DataLoader`` rejects everything but `2xx` |
 | `NSURLErrorDomain` and a code | `URLSession` failed. `-1009` is no connection, `-1004` is a refused connection, `-1022` is App Transport Security, and `-1001` is a timeout | See `URLError.Code` |
+| `1 retry` at the end of the line | An attempt failed, and the ``ImagePipeline/RetryPolicy`` loaded the image again | Expected on a bad connection. ``ImageTask/Metrics`` has the error of every attempt |
 | `dataMissingInCache` | The request has ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad``, and the image isn't cached | Expected, unless you meant to load it |
 | `cancelled` | The view went away, or something called `cancel()`. A cell that scrolls off the screen does it | Expected. To keep the download going when a `LazyImage` disappears, use `onDisappear(.lowerPriority)` |
 | `success`, and the view is blank | The image loaded. The problem is in the view | `LazyImage(url:)` shows the image at its natural size. Check its frame, and call `resizable()` in the `content` closure |
@@ -66,7 +67,7 @@ From code, use ``ImagePipeline/Diagnostics-swift.struct/snapshot()``:
 print(await ImagePipeline.shared.diagnostics.snapshot())
 ```
 
-A queue at its limit with work pending means the pipeline is busy, and a task waits for a slot. A queue marked `suspended` starts nothing until ``TaskQueue/isSuspended`` is set back. A queue with free slots and a task that doesn't finish means the task is waiting on the server.
+A queue at its limit with work pending means the pipeline is busy, and a task waits for a slot. A queue marked `suspended` starts nothing until ``TaskQueue/isSuspended`` is set back. A queue with free slots and a task that doesn't finish means the task is waiting on the server, unless the line of the task says `waiting to retry`: an attempt failed, and the ``ImagePipeline/RetryPolicy`` is waiting for the time to retry or for the device to get back online. See <doc:retrying-requests>.
 
 ## Read the Whole Record
 

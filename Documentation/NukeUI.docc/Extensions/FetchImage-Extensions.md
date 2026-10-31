@@ -59,6 +59,7 @@ struct ImageView: View {
 - ``load(_:)-(URL?)``
 - ``load(_:)-(ImageRequest?)``
 - ``load(_:)-(()->ImageResponse)``
+- ``reload()``
 - ``cancel()``
 - ``reset()``
 

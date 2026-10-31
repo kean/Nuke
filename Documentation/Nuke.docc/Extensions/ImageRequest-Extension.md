@@ -40,6 +40,7 @@ let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 - ``scale``
 - ``thumbnail``
 - ``label``
+- ``retryPolicy``
 - ``userInfo``
 
 ### Nested Types
