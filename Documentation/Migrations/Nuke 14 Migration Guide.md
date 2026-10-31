@@ -64,23 +64,52 @@ If the subclass existed to play animated images, `AnimatedImageView` does it alr
 
 `NukeExtensions` itself is soft-deprecated, and its replacement doesn't need the protocol – see [`ImageLoader` Replaces `NukeExtensions`](#imageloader-replaces-nukeextensions).
 
-## The Pipeline Parses Animated Images
+## `LazyImage` and `LazyImageView` Play Animated Images
 
-`ImageDecoders.Default` already attached the encoded bytes of an animated image to `ImageContainer.data`. It now also parses them and attaches the result to the new `ImageContainer.animation`.
+Nuke 13 showed the first frame of an animated image. In Nuke 14, `LazyImage` with its default content and every `LazyImageView` play GIF, APNG, animated WebP, and HEIC and AVIF sequences. Your code compiles as it is, so the images in your feeds start moving when you update.
+
+A `content` closure that shows `state.image` keeps showing the first frame. To play the image there, use `AnimatedImage`:
 
 ```swift
-// Nuke 13
-guard let source = AnimatedImageSource(data: response.container.data ?? Data()) else { return }
-
-// Nuke 14
-guard let animation = response.container.animation else { return }
+LazyImage(url: url) { state in
+    if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+        animation.resizable().scaledToFill()
+    } else if let image = state.image {
+        image.resizable().scaledToFill()
+    }
+}
 ```
 
-`AnimatedImageSource` moved from `NukeUI` to `Nuke`. `NukeUI` re-exports `Nuke`, so code that imports either keeps compiling.
+Animated images cost memory that Nuke 13 didn't use:
 
-The parse runs on the decoding queue, once per decoded image, and the result is cached with the container. `container.data != nil` is a header sniff and is `true` for a single-frame GIF; `container.animation != nil` is the parsed answer, so prefer it when the question is "can this be played?".
+- **Decoded frames** go in `AnimatedImageFramePool`, which holds up to 5% of the device's memory, capped at 128 MB. That comes on top of `ImageCache`, whose default limit is unchanged at 15%, capped at 768 MB. To give the pool less, set `AnimatedImageFramePool.shared.costLimit`.
+- **Encoded data:** `ImageContainer.data` is now also kept for APNG, animated WebP, and HEIC and AVIF sequences, where Nuke 13 kept it for GIF only. It counts against the `ImageCache` limit along with the bitmap, so these images take up more of the cache, whether they ever play or not.
 
-The parse walks the metadata of every frame and is paid whether or not the image is ever displayed. Turn it off in an app that plays animations some other way, or none at all:
+A GIF with no loop count plays once and rests on its last frame, which is how browsers play it. Nuke 13 showed its first frame. To keep such a GIF moving, set `repeatCount`:
+
+```swift
+lazyImageView.imageView.playerOptions.repeatCount = .infinite
+```
+
+### Keeping a Still
+
+To show the first frame in a `LazyImageView`, turn off playback in its image view:
+
+```swift
+lazyImageView.imageView.isPlaybackEnabled = false
+```
+
+In a `LazyImage`, pass a `content` closure that shows `state.image`:
+
+```swift
+LazyImage(url: url) { state in
+    if let image = state.image {
+        image.resizable().scaledToFill()
+    }
+}
+```
+
+To keep a still in every view, turn off parsing, which leaves them nothing to play:
 
 ```swift
 ImagePipeline.shared = ImagePipeline {
@@ -88,7 +117,48 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-`ImageContainer.data` is unaffected by the flag, so a renderer that parses the data itself keeps working. Processing an image now clears both `data` and `animation`, which describe the image that went into the processor.
+### Parsed Animations
+
+`ImageDecoders.Default` now parses an animated image and attaches the result to the new `ImageContainer.animation`, so a view that played the encoded data has less to do:
+
+```swift
+// Nuke 13
+if response.container.type == .gif, let data = response.container.data {
+    gifView.animate(withGIFData: data)
+}
+
+// Nuke 14
+if let animation = response.container.animation {
+    imageView.animatedImage = animation
+}
+```
+
+`imageView` is an `AnimatedImageView` here, a `UIImageView` (an `NSImageView` on macOS) that plays animated images.
+
+The parse runs once per decoded image, off the main thread, and the result is cached with the container. `container.data != nil` is a header sniff and is `true` for a single-frame GIF. `container.animation != nil` is the parsed answer, so prefer it when the question is "can this be played?".
+
+The parse walks the metadata of every frame and is paid whether or not the image is ever displayed. `isAnimatedImageParsingEnabled` turns it off in an app that plays animations some other way, or none at all. `ImageContainer.data` is unaffected by the flag, so a renderer that parses the data itself keeps working.
+
+### Processors and Thumbnails
+
+**A processor now drops `data` and `animation`**, which describe the image that went in. Nuke 13 kept `data`, so a GIF view could play the original over a processed still. A GIF with a `.resize` is a still in Nuke 14. Remove the processor from a request that can be animated, because `AnimatedImageView` decodes the frames no larger than it displays them:
+
+```swift
+// Nuke 13
+let request = ImageRequest(url: url, processors: [.resize(width: 320)])
+let response = try await ImagePipeline.shared.imageTask(with: request).response
+gifView.animate(withGIFData: response.container.data!) // Now `nil`
+
+// Nuke 14
+let response = try await ImagePipeline.shared.imageTask(with: ImageRequest(url: url)).response
+if let animation = response.container.animation {
+    imageView.animatedImage = animation
+}
+```
+
+To change the frames of an animation that goes on playing, use `AnimatedImagePlayer.Options.frameTransform`. A processor of your own that implements `process(_:context:)` decides for itself and can keep both.
+
+**A `thumbnail` request carries no `data` for a GIF** and no `animation`, because playing the full-size animation would undo the downscaling. Nuke 13 attached the data.
 
 ## Removed Deprecated APIs
 
@@ -496,6 +566,15 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `dataLoadingQueue` | Requests below `.normal` can take all 6 slots | At most 3, see `TaskQueue.reservedTaskCount` |
 | `isUsingPrepareForDisplay` | `false` | `true` |
 | Requests per second the rate limiter allows | 80 | 100 |
+| An animated image in `LazyImage` and `LazyImageView` | First frame | Plays |
+| Memory for decoded animation frames | None | Up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache` |
+| `ImageContainer.data` | GIF only | Also APNG, animated WebP, and HEIC and AVIF sequences, and it counts against the `ImageCache` limit |
+| A GIF with no loop count | First frame | Plays once and rests on its last frame |
+| `ImageContainer.data` after a processor | Kept | `nil`, and so is `animation` |
+| `ImageContainer.data` of a GIF with a `thumbnail` | Kept | `nil` |
+| `FetchImage.load(_:)` and `LazyImageView.request` while the same image is loading | Restart the download | Keep the running task and give it the new priority |
+
+See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
 A custom decoder with `isAsynchronous` set to `true` can now run alongside another one, so state it shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
 
@@ -504,6 +583,16 @@ ImagePipeline.shared = ImagePipeline {
     $0.dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: 6, reservedTaskCount: 0)
 }
 ```
+
+`isUsingPrepareForDisplay` keeps the depth of the image on iOS, tvOS, and visionOS, where the old path always drew it to 8 bits per component. A 10-bit HEIC or a 16-bit PNG now costs twice the memory, so fewer of them fit in `ImageCache`, and more of them go over its limit for a single entry. 8-bit images cost the same. If your app shows a lot of these images, weigh that against the faster decompression:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.isUsingPrepareForDisplay = false
+}
+```
+
+"The same image" for `FetchImage` and `LazyImageView` means a request that differs only in priority, from the same pipeline. The call doesn't report a new start, so `onStart` isn't called again. A load that has finished starts over.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 

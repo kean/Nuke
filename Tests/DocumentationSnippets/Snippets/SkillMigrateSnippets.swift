@@ -87,6 +87,69 @@ private struct BlurredPoster: View {
     }
 }
 
+// MARK: Animated images
+
+// These are also the samples from the animated section of the migration guide.
+
+private struct AnimatedPoster: View {
+    let url: URL
+
+    var body: some View {
+        LazyImage(url: url) { state in
+            if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+                animation.resizable().scaledToFill()
+            } else if let image = state.image {
+                image.resizable().scaledToFill()
+            }
+        }
+    }
+}
+
+private struct StillPoster: View {
+    let url: URL
+
+    var body: some View {
+        LazyImage(url: url) { state in
+            if let image = state.image {
+                image.resizable().scaledToFill()
+            }
+        }
+    }
+}
+
+@MainActor
+private func configurePlayback(of lazyImageView: LazyImageView) {
+    lazyImageView.imageView.playerOptions.repeatCount = .infinite
+    lazyImageView.imageView.isPlaybackEnabled = false
+}
+
+private func keepStills() {
+    ImagePipeline.shared = ImagePipeline {
+        $0.isAnimatedImageParsingEnabled = false
+    }
+}
+
+@MainActor
+private func play(_ response: ImageResponse, in imageView: AnimatedImageView) {
+    if let animation = response.container.animation {
+        imageView.animatedImage = animation
+    }
+}
+
+@MainActor
+private func playOriginal(url: URL, in imageView: AnimatedImageView) async throws {
+    let response = try await ImagePipeline.shared.imageTask(with: ImageRequest(url: url)).response
+    if let animation = response.container.animation {
+        imageView.animatedImage = animation
+    }
+}
+
+private func drawDeepImagesInEightBits() {
+    ImagePipeline.shared = ImagePipeline {
+        $0.isUsingPrepareForDisplay = false
+    }
+}
+
 // MARK: Errors
 
 private enum PosterError: Error {
