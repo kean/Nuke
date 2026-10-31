@@ -138,6 +138,9 @@ public final class DataLoader: DataLoading, Sendable {
     }
 
     /// Errors produced by ``DataLoader``.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable {
         /// Validation failed.
         case statusCodeUnacceptable(Int)

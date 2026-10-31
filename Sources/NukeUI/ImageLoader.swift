@@ -517,6 +517,9 @@ extension ImageLoader {
     /// ``finished(_:isSync:)``. A `nil` request and an image found in the
     /// memory cache report ``finished(_:isSync:)`` only, before `load`
     /// returns, so a reused cell is never cleared before it gets its image.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum Event: Sendable {
         /// The load started a task, and the previous load is cancelled.
         /// ``State/imageContainer`` is a preview found in the memory cache, the

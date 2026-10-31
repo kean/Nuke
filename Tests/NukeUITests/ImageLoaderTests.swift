@@ -1170,6 +1170,7 @@ extension ImageLoader.Event {
             "finished(\(result.error == nil ? "success" : "failure")\(isSync ? ", sync" : ""))"
         case .cancelled: "cancelled"
         case .reset: "reset"
+        @unknown default: "unknown"
         }
     }
 }

@@ -389,6 +389,38 @@ LazyImage(url: url) { state in
 
 `FetchImage.load(_:)` still takes an untyped async closure. An error that isn't already an `ImagePipeline.Error` is reported as `dataLoadingFailed(error:)` wrapping it, the same way the pipeline reports the errors thrown by the async `ImageRequest` sources.
 
+## `switch` Needs `@unknown default`
+
+`ImagePipeline.Error`, `DataLoader.Error`, `ImageDecodingError`, and `ImageProcessingError` are now `@nonexhaustive`, like the new `ImageLoader.Event` and the enums of `ImagePipeline.Diagnostics` and `ImageTask.Metrics`. A 14.x release can add a case to any of them without breaking your build, which is what a new failure mode or a retry stage needs.
+
+Outside of the Nuke package, an exhaustive `switch` over one of them is an error in the Swift 6 language mode and a warning in Swift 5 mode: `switch covers known cases, but 'ImagePipeline.Error' may have additional unknown values`. Add `@unknown default`, and the compiler warns you about a case you don't handle when a later release adds one.
+
+```swift
+// Nuke 13
+switch error {
+case .dataLoadingFailed(let error): show(error)
+case .dataDownloadExceededMaximumSize: showTooLarge()
+case .cancelled: break
+case .dataMissingInCache, .dataIsEmpty, .decoderNotRegistered, .decodingFailed,
+     .processingFailed, .imageRequestMissing, .pipelineInvalidated:
+    showGenericFailure()
+}
+
+// Nuke 14
+switch error {
+case .dataLoadingFailed(let error): show(error)
+case .dataDownloadExceededMaximumSize: showTooLarge()
+case .cancelled: break
+case .dataMissingInCache, .dataIsEmpty, .decoderNotRegistered, .decodingFailed,
+     .processingFailed, .imageRequestMissing, .pipelineInvalidated:
+    showGenericFailure()
+@unknown default:
+    showGenericFailure()
+}
+```
+
+`if case`, `guard case`, and a `switch` that ends in `default` aren't affected. `ImageTask.Event` stays `@frozen`, so a `switch` over it needs nothing.
+
 ## `nil` in `LazyImage` modifiers keeps the request's value
 
 `LazyImage.processors(_:)` and `LazyImage.priority(_:)` used to treat `nil` as an empty or default value that replaced the request's own. It now leaves the request's value alone.
