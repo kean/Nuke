@@ -56,6 +56,7 @@ JOBS=(
     "build-nukevideo-visionos|platforms|build|NukeVideo|visionOS"
     "build-demo-ios|platforms|build|NukeDemo|iOS Simulator"
     "spm-build|platforms|spm|Package|SPM"
+    "spm-test-nuketesting|platforms|spm-test|NukeTesting|SPM"
     "snippets-ios|platforms|snippets|DocumentationSnippets|iOS"
     "llms-check|platforms|llms|llms.txt|—"
 
@@ -422,6 +423,7 @@ run_job() {
     case "$action" in
         lint) label="SwiftLint" ;;
         spm)  label="swift build" ;;
+        spm-test) label="swift test" ;;
         llms) label="llms.txt" ;;
         *)    label="$scheme · $platform" ;;
     esac
@@ -464,6 +466,11 @@ run_job() {
             ;;
         spm)
             run_streamed "$id" swift env -C "$PROJECT_ROOT" swift build || exit_code=$?
+            ;;
+        spm-test)
+            # The one module that's only in the package: nothing in an app links
+            # it, and it has no UIKit paths, so macOS covers it.
+            run_streamed "$id" swift env -C "$PROJECT_ROOT" swift test --filter NukeTestingTests || exit_code=$?
             ;;
         llms)
             # The files are generated and committed, so that they ship in the

@@ -8,6 +8,7 @@
 
 import Foundation
 import Nuke
+import NukeTesting
 import NukeUI
 import SwiftUI
 
@@ -216,36 +217,17 @@ private func debugging(url: URL) async throws {
 
 // MARK: Testing
 
-/// Serves the same data for every request, with no network.
-final class StubDataLoader: DataLoading {
-    let data: Data
+private func testing(url: URL, brokenURL: URL, offlineURL: URL, slowURL: URL, pageURL: URL) async throws {
+    let dataLoader = StubDataLoader() // Every URL gets a generated image by default
+    dataLoader.stub(brokenURL, with: .status(404))
+    dataLoader.stub(offlineURL, with: .failure(URLError(.notConnectedToInternet)))
+    dataLoader.stub(slowURL, with: .hanging)
+    dataLoader.stub(pageURL, with: .data(Data("<html></html>".utf8), mimeType: "text/html"))
 
-    init(data: Data) {
-        self.data = data
-    }
-
-    func loadData(
-        with request: URLRequest,
-        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
-        completion: @escaping @Sendable (Error?) -> Void
-    ) -> any Cancellable {
-        didReceiveData(data, URLResponse(url: request.url!, mimeType: nil, expectedContentLength: data.count, textEncodingName: nil))
-        completion(nil)
-        return StubTask()
-    }
-
-    private struct StubTask: Cancellable {
-        func cancel() {}
-    }
-}
-
-private func testing(data: Data) {
-    let pipeline = ImagePipeline {
-        $0.dataLoader = StubDataLoader(data: data)
-        $0.imageCache = nil // Or an `ImageCache()` of its own, so tests don't share one
-        $0.dataCache = nil
-    }
-    _ = pipeline
+    let pipeline = ImagePipeline.stubbed(dataLoader) // No caches, so tests can't affect one another
+    let image = try await pipeline.image(for: url)
+    let requests = dataLoader.requests // What the code under test asked for
+    _ = (image, requests)
 }
 
 #if canImport(UIKit)

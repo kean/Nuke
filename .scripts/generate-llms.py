@@ -26,7 +26,7 @@ RAW_URL = "https://raw.githubusercontent.com/kean/Nuke/main"
 SKILL = ROOT / "skills/nuke/SKILL.md"
 SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets/SkillSnippets.swift"
 MIGRATION_GUIDE = "Documentation/Migrations/Nuke 14 Migration Guide.md"
-MODULES = ["Nuke", "NukeUI", "NukeVideo", "NukeExtensions"]
+MODULES = ["Nuke", "NukeUI", "NukeVideo", "NukeExtensions", "NukeTesting"]
 
 # The order of the articles in llms-full.txt, most useful first: a reader that gets
 # a truncated copy should still get the ones that matter. Anything not listed goes
@@ -279,7 +279,7 @@ def parse_file(path):
 def api_reference():
     output = [
         "# Nuke API\n",
-        "> Every public declaration of Nuke, NukeUI, NukeVideo, and NukeExtensions, generated from the sources, grouped by the type that owns it. "
+        "> Every public declaration of Nuke, NukeUI, NukeVideo, NukeExtensions, and NukeTesting, generated from the sources, grouped by the type that owns it. "
         "Deprecated and unavailable declarations are left out. For how to use them, see llms-full.txt.\n",
     ]
     for module in MODULES:

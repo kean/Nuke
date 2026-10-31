@@ -14,12 +14,15 @@ let package = Package(
         .library(name: "Nuke", targets: ["Nuke"]),
         .library(name: "NukeUI", targets: ["NukeUI"]),
         .library(name: "NukeVideo", targets: ["NukeVideo"]),
-        .library(name: "NukeExtensions", targets: ["NukeExtensions"])
+        .library(name: "NukeExtensions", targets: ["NukeExtensions"]),
+        .library(name: "NukeTesting", targets: ["NukeTesting"])
     ],
     targets: [
         .target(name: "Nuke"),
         .target(name: "NukeUI", dependencies: ["Nuke"]),
         .target(name: "NukeVideo", dependencies: ["Nuke"]),
-        .target(name: "NukeExtensions", dependencies: ["NukeUI"])
+        .target(name: "NukeExtensions", dependencies: ["NukeUI"]),
+        .target(name: "NukeTesting", dependencies: ["Nuke"]),
+        .testTarget(name: "NukeTestingTests", dependencies: ["NukeTesting"])
     ]
 )

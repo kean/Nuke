@@ -30,7 +30,8 @@ let package = Package(
             name: "DocumentationSnippets",
             dependencies: [
                 .product(name: "Nuke", package: "Nuke"),
-                .product(name: "NukeUI", package: "Nuke")
+                .product(name: "NukeUI", package: "Nuke"),
+                .product(name: "NukeTesting", package: "Nuke")
             ],
             path: "Snippets"
         )
