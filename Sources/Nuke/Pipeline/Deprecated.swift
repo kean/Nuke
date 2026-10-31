@@ -83,6 +83,115 @@ extension ImagePipeline {
     nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError() }
 }
 
+// MARK: - Removed Before Nuke 14
+//
+// These are not for migrations. Most of the Swift that mentions Nuke was written
+// against older versions, and that is the code people remember and models learned
+// from. Without a stub, an old name fails with "no member", which says nothing
+// about what to use instead.
+//
+// They have no removal date: the stubs don't show up in code completion or in the
+// documentation, so they cost nothing to keep. Limited to the names with at least
+// 20 matches in the Swift code on GitHub, and only the ones that are safe to stub:
+// a property that used to be followed by another member, such as
+// `memoryCacheOptions.isReadAllowed`, would fail on the member, not on the stub.
+
+@available(*, unavailable, renamed: "ImagePrefetcher", message: "Renamed in Nuke 10.")
+public typealias ImagePreheater = ImagePrefetcher
+
+@available(*, unavailable, renamed: "ImageDecoders.Default", message: "Renamed in Nuke 10. The pipeline uses it by default, so you rarely need to create one.")
+public typealias ImageDecoder = ImageDecoders.Default
+
+@available(*, unavailable, renamed: "ImageTask.Event", message: "Renamed in Nuke 11.")
+public typealias ImageTaskEvent = ImageTask.Event
+
+@available(*, unavailable, renamed: "ImageRequest.Options", message: "Renamed in Nuke 10.")
+public typealias ImageRequestOptions = ImageRequest.Options
+
+@available(*, unavailable, message: "Removed in Nuke 10. Pass `ImagePipeline.Delegate` to the pipeline initializer, and implement `imageTask(_:didReceiveEvent:pipeline:)`.")
+public typealias ImagePipelineObserving = ImagePipeline.Delegate
+
+@available(*, unavailable, message: "Removed in Nuke 12. Pass a `URL` or an `ImageRequest`.")
+public typealias ImageRequestConvertible = ImageRequest
+
+@available(*, unavailable, message: "Moved out of the core module. Use `ImageLoader.load(_:into:)` from NukeUI, or `loadImage(with:into:)` from NukeExtensions, which is soft-deprecated.")
+public func loadImage(with url: URL?, options: Any? = nil, into view: Any, progress: Any? = nil, completion: ((Any) -> Void)? = nil) {
+    fatalError("Removed")
+}
+
+@available(*, unavailable, message: "Moved out of the core module. Use `ImageLoader.load(_:into:)` from NukeUI, or `loadImage(with:into:)` from NukeExtensions, which is soft-deprecated.")
+public func loadImage(with request: ImageRequest?, options: Any? = nil, into view: Any, progress: Any? = nil, completion: ((Any) -> Void)? = nil) {
+    fatalError("Removed")
+}
+
+@available(*, unavailable, message: "Moved out of the core module. Use `ImageLoader.Presentation` from NukeUI, or import NukeExtensions, which is soft-deprecated.")
+// swiftlint:disable:next convenience_type
+public struct ImageLoadingOptions {
+    public enum Transition {
+        @available(*, unavailable)
+        public static func fadeIn(duration: TimeInterval, options: Any? = nil) -> Transition { fatalError("Removed") }
+    }
+
+    @available(*, unavailable)
+    public init(placeholder: Any? = nil, transition: Transition? = nil, failureImage: Any? = nil, failureImageTransition: Transition? = nil, contentModes: Any? = nil, tintColors: Any? = nil) {
+        fatalError("Removed")
+    }
+}
+
+extension ImagePipeline.Configuration {
+    @available(*, unavailable, renamed: "isTaskCoalescingEnabled", message: "Renamed in Nuke 10.")
+    public var isDeduplicationEnabled: Bool {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 10. Animated images need no setup: the pipeline attaches them to `ImageContainer.data` and `ImageContainer.animation`, and `LazyImage` plays them. To skip parsing them, use `isAnimatedImageParsingEnabled`.")
+    public var isAnimatedImageDataEnabled: Bool {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 10. Animated images need no setup: the pipeline attaches them to `ImageContainer.data` and `ImageContainer.animation`, and `LazyImage` plays them. To skip parsing them, use `isAnimatedImageParsingEnabled`.")
+    public static var isAnimatedImageDataEnabled: Bool {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 13. The closure-based APIs call back on the main actor.")
+    public var callbackQueue: DispatchQueue {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+
+    @available(*, unavailable, message: "Removed in Nuke 13. `DataCache` schedules its own writes.")
+    public var dataCachingQueue: TaskQueue {
+        get { fatalError("Removed") }
+        set { fatalError("Removed") }
+    }
+}
+
+extension ImageRequest.Options {
+    @available(*, unavailable, renamed: "disableMemoryCacheReads")
+    public static var disableMemoryCacheRead: ImageRequest.Options { fatalError("Removed") }
+
+    @available(*, unavailable, renamed: "disableMemoryCacheWrites")
+    public static var disableMemoryCacheWrite: ImageRequest.Options { fatalError("Removed") }
+
+    @available(*, unavailable, renamed: "disableDiskCacheReads")
+    public static var disableDiskCacheRead: ImageRequest.Options { fatalError("Removed") }
+
+    @available(*, unavailable, renamed: "disableDiskCacheWrites")
+    public static var disableDiskCacheWrite: ImageRequest.Options { fatalError("Removed") }
+}
+
+extension ImageTask {
+    @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.completed`, or observe `progress`.")
+    public var completedUnitCount: Int64 { fatalError("Removed") }
+
+    @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.total`, or observe `progress`.")
+    public var totalUnitCount: Int64 { fatalError("Removed") }
+}
+
 // MARK: - Soft-deprecated in Nuke 12.9
 
 extension ImagePipeline {
