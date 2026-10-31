@@ -11,7 +11,7 @@ import Testing
 @testable import NukeUI
 
 /// The playback contract of ``AnimatedImagePlayer`` at its edges: the order the
-/// callbacks arrive in, the repeat counts and rates that aren't the usual ones,
+/// callbacks arrive in, the loop counts and rates that aren't the usual ones,
 /// frames the decoder refuses, and what a player leaves behind.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImagePlayerPlaybackTests {
@@ -50,11 +50,11 @@ struct AnimatedImagePlayerPlaybackTests {
     }
 
     @Test(arguments: [0, -3])
-    func aRepeatCountBelowOnePlaysOnce(_ count: Int) async {
+    func aLoopCountBelowOnePlaysOnce(_ count: Int) async {
         // "Play a set number of times" has no meaning below one, and never
         // playing at all is not what anybody asking for zero plays wants.
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(count)
+        options.loopCount = .finite(count)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         player.play()
         await player.waitUntilFull()
@@ -88,7 +88,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func canBeRestartedFromTheFinishHandler() async {
         // GIVEN an animation that plays once, and a handler that starts it over
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         var finishCount = 0
         player.onFinish = { [unowned player] in
@@ -117,7 +117,7 @@ struct AnimatedImagePlayerPlaybackTests {
         // GIVEN an animation that plays once, and a loop handler that starts it
         // over
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options)
         player.onLoop = { [unowned player] _ in player.restart() }
         var finishCount = 0
@@ -340,7 +340,7 @@ struct AnimatedImagePlayerPlaybackTests {
 
     @Test func finishesAnAnimationWithNoFrameToShow() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = makeRefusingPlayer(frameCount: 3, refused: [0, 1, 2], options: options)
         player.play()
         await player.waitUntilFull()
@@ -412,7 +412,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func resumingFromAFinishedPlayerStaysFinished() async {
         // GIVEN a player that has played the one loop it was asked for
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (previous, clock) = AnimatedImageTest.makePlayer(frameCount: 3, options: options, pool: pool)
         previous.play()
         await previous.waitUntilFull()
@@ -497,7 +497,7 @@ struct AnimatedImagePlayerPlaybackTests {
     @Test func optionsDefaultToPlayingTheFileAsItAsks() {
         let options = AnimatedImagePlayer.Options()
 
-        #expect(options.repeatCount == .image)
+        #expect(options.loopCount == .image)
         #expect(options.playbackRate == 1)
         #expect(options.maxBufferSize == nil)
         #expect(options.maxPixelSize == nil)

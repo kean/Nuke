@@ -235,7 +235,7 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 
 Two more changes reach users on those screens:
 
-- A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.repeatCount = .infinite` on the `AnimatedImageView`.
+- A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.loopCount = .infinite` on the `AnimatedImageView`.
 - Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
 
 A third-party GIF view is now dead weight:

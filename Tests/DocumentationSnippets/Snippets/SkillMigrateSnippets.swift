@@ -119,7 +119,7 @@ private struct StillPoster: View {
 
 @MainActor
 private func configurePlayback(of lazyImageView: LazyImageView) {
-    lazyImageView.imageView.playerOptions.repeatCount = .infinite
+    lazyImageView.imageView.playerOptions.loopCount = .infinite
     lazyImageView.imageView.isPlaybackEnabled = false
 }
 

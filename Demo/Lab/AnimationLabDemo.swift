@@ -345,7 +345,7 @@ final class AnimationLabModel {
 
     private func makeCell(_ animation: LoadedAnimation) -> Cell {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .infinite
+        options.loopCount = .infinite
         // Without it the animation changes size as it takes over from the still.
         options.scale = animation.poster.scale
         options.isSynchronizationEnabled = isSynchronized
