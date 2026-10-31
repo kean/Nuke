@@ -168,7 +168,14 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
+#if os(visionOS)
+        // The one-parameter form is deprecated in every visionOS. This one
+        // calls the closure of the current update, not the previous one, but
+        // reads nothing from `self`, so the two behave the same.
+        .onChange(of: Update(view: self)) { _, update in update.view.onChange(to: update.context) }
+#else
         .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context) }
+#endif
     }
 
     /// The view as of an update, compared by what it loads. The action of
