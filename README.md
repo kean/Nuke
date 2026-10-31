@@ -85,7 +85,7 @@ Nuke ships with what a coding agent needs to use its current API, and not the on
 
 - **Docs**: [`llms.txt`](llms.txt), [`llms-full.txt`](llms-full.txt), and [`llms-api.txt`](llms-api.txt). They're also in your project's checkout of the package, at the version you resolved.
 - **Debugging**: launch with `NUKE_DIAGNOSTICS_LOG=1` to get a line in the console for every task, or run `po ImagePipeline.shared.diagnostics` in the debugger. See [Troubleshooting](Documentation/Nuke.docc/Essentials/troubleshooting.md).
-- **Contributing**: [`AGENTS.md`](AGENTS.md) has the commands and the traps of working on Nuke itself.
+- **Contributing**: [`AGENTS.md`](AGENTS.md) has the commands and the conventions for working on Nuke itself.
 
 ## Extensions
 
