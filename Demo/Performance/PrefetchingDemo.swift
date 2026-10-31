@@ -356,7 +356,7 @@ private final class PrefetchingDemoModel: ObservableObject {
         let relay = DemoRelay<PrefetchingDemoModel>()
         self.pipeline = DemoPipelineProbe.makePipeline("Prefetching", configuration: configuration, onEvent: { event in
             guard case .willLoadData = event.kind,
-                  event.request.userInfo[.labelKey] as? String == Self.label,
+                  event.request.label == Self.label,
                   let url = event.request.url,
                   let generation = event.request.userInfo[.generationKey] as? Int else {
                 return
@@ -469,13 +469,13 @@ private final class PrefetchingDemoModel: ObservableObject {
 
     // MARK: Helpers
 
-    /// The `labelKey` of the prefetcher's requests.
+    /// The label of the prefetcher's requests.
     nonisolated fileprivate static let label = "prefetch"
 
     private static func makeRequests(_ photos: [URL], generation: Int) -> [ImageRequest] {
         photos.map { url in
             var request = ImageRequest(url: url)
-            request.userInfo[.labelKey] = label
+            request.label = label
             request.userInfo[.generationKey] = generation
             return request
         }

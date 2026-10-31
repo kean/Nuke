@@ -44,7 +44,7 @@ extension ImageTask {
         /// ``ImageTask/taskId``.
         public let taskID: UInt64
         public let kind: Kind
-        /// The ``ImageRequest/UserInfoKey/labelKey`` of the request.
+        /// The ``ImageRequest/label`` of the request.
         public let label: String?
         public let request: RequestSummary
         /// When the task was created, in seconds since 1970.

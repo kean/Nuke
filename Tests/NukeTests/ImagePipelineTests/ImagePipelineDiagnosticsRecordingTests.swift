@@ -890,21 +890,6 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(task1.metrics?.rootJobID == ids1.first)
     }
 
-    @Test func labelThatIsNotAStringIsIgnored() async throws {
-        // GIVEN
-        var request = Test.request
-        request.userInfo[.labelKey] = 42
-
-        // WHEN
-        let task = pipeline.imageTask(with: request)
-        _ = try await task.response
-
-        // THEN
-        let metrics = try #require(task.metrics)
-        #expect(metrics.label == nil)
-        #expect(metrics.description.hasPrefix("ImageTask #\(task.taskId) · success"))
-    }
-
     @Test func requestSummaryNamesEveryOption() {
         // GIVEN
         var request = ImageRequest(url: Test.url, processors: [.resize(width: 100), .circle()], priority: .veryHigh)

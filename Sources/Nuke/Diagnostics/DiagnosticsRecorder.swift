@@ -110,7 +110,7 @@ extension ImagePipeline.Diagnostics {
             self.recorder = recorder
             self.taskID = task.taskId
             self.kind = task._kind
-            self.label = task.request.userInfo[.labelKey] as? String
+            self.label = task.request.label
             self.request = ImageTask.Metrics.RequestSummary(task.request)
             self.createdAt = task._createdAt ?? recorder.now
             self.signposter = signposter
