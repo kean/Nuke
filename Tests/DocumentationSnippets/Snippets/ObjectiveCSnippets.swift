@@ -41,7 +41,7 @@ public final class NKImageLoader: NSObject {
         Task {
             switch await handle.result {
             case .success(let response): completion(response.image, nil)
-            case .failure(let error): completion(nil, error.asNSError)
+            case .failure(let error): completion(nil, error as NSError)
             }
         }
     }
@@ -60,7 +60,7 @@ public final class NKImageLoader: NSObject {
                 let image = try await ImagePipeline.shared.image(for: url)
                 completion(image, nil)
             } catch {
-                completion(nil, error.asNSError)
+                completion(nil, error as NSError)
             }
         }
     }
@@ -104,18 +104,6 @@ public final class NKImagePrefetcher: NSObject {
     @objc(stopPrefetchingWithURLs:)
     public func stopPrefetching(with urls: [URL]) {
         prefetcher.stopPrefetching(with: urls)
-    }
-}
-
-private extension Error {
-    var asNSError: NSError {
-        guard let error = self as? ImagePipeline.Error else {
-            return self as NSError
-        }
-        return NSError(domain: "com.github.kean.Nuke", code: 0, userInfo: [
-            NSLocalizedDescriptionKey: error.description,
-            NSUnderlyingErrorKey: error as NSError
-        ])
     }
 }
 

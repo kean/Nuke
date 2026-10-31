@@ -175,6 +175,16 @@ struct ImagePipelineErrorTests {
         #expect("\(error)" == expected)
     }
 
+    @Test func localizedDescriptionIsTheDescription() {
+        let error: any Error = ImagePipeline.Error.dataIsEmpty
+        #expect(error.localizedDescription == "Data loader returned empty data.")
+    }
+
+    @Test func localizedDescriptionOfWrappedDataLoaderError() {
+        let error: any Error = ImagePipeline.Error.dataLoadingFailed(error: DataLoader.Error.statusCodeUnacceptable(404))
+        #expect(error.localizedDescription == "Failed to load image data. Underlying error: Response status code was unacceptable: 404.")
+    }
+
     // MARK: - What Was Received
 
     /// A server that answers `200` with an error page is the most common way

@@ -6,7 +6,7 @@ import Foundation
 
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
-    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+    public enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable {
         // The cases that carry a decoding or processing context are `indirect`:
         // stored inline, the context would make every error – and every `Result`
         // and task event that holds one – about a hundred bytes.
@@ -61,6 +61,10 @@ extension ImagePipeline.Error {
             return nil
         }
     }
+
+    /// The same as ``description``. Without it, `localizedDescription` would
+    /// print "The operation couldn't be completed", which says nothing.
+    public var errorDescription: String? { description }
 
     public var description: String {
         switch self {

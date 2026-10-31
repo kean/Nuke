@@ -138,9 +138,12 @@ public final class DataLoader: DataLoading, Sendable {
     }
 
     /// Errors produced by ``DataLoader``.
-    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+    public enum Error: Swift.Error, CustomStringConvertible, LocalizedError, Sendable {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
+
+        /// The same as ``description``, so that `localizedDescription` prints it.
+        public var errorDescription: String? { description }
 
         public var description: String {
             switch self {

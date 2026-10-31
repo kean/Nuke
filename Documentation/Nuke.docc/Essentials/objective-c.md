@@ -48,7 +48,7 @@ public final class NKImageLoader: NSObject {
         Task {
             switch await handle.result {
             case .success(let response): completion(response.image, nil)
-            case .failure(let error): completion(nil, error.asNSError)
+            case .failure(let error): completion(nil, error as NSError)
             }
         }
     }
@@ -67,7 +67,7 @@ public final class NKImageLoader: NSObject {
                 let image = try await ImagePipeline.shared.image(for: url)
                 completion(image, nil)
             } catch {
-                completion(nil, error.asNSError)
+                completion(nil, error as NSError)
             }
         }
     }
@@ -164,23 +164,9 @@ public final class NKImagePrefetcher: NSObject {
 
 ## Errors
 
-Swift errors bridge to `NSError` automatically, but the synthesized `localizedDescription` is generic. `ImagePipeline.Error` conforms to `CustomStringConvertible`, so map it yourself to give Objective-C callers a useful message:
+Swift errors bridge to `NSError` automatically. ``ImagePipeline/Error`` conforms to `LocalizedError`, so `localizedDescription` on the Objective-C side is the same message as its `description`.
 
-```swift
-private extension Error {
-    var asNSError: NSError {
-        guard let error = self as? ImagePipeline.Error else {
-            return self as NSError
-        }
-        return NSError(domain: "com.github.kean.Nuke", code: 0, userInfo: [
-            NSLocalizedDescriptionKey: error.description,
-            NSUnderlyingErrorKey: error as NSError
-        ])
-    }
-}
-```
-
-> Note: Typed throws don't survive a `Task` closure — `catch` there binds `any Error`, not `ImagePipeline.Error`. That's why the helper above tests the type rather than relying on inference.
+> Note: Typed throws don't survive a `Task` closure — `catch` there binds `any Error`, not `ImagePipeline.Error`. To branch on a case, cast it first.
 
 ## Threading
 
