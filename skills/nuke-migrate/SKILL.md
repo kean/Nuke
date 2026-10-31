@@ -35,6 +35,9 @@ grep -rnE '\.(processors|priority)\(' --include='*.swift' .
 grep -rn 'localizedDescription' --include='*.swift' .
 grep -rnE 'onCompletion|onFailure|\.result|state\.error' --include='*.swift' .
 
+# Views that start playing animations, and repeated loads that used to restart the task
+grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
+
 # Anything that plays, parses, or inspects the encoded data of an image
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
@@ -220,9 +223,22 @@ if case .failure(.dataLoadingFailed(let underlying)) = result, let error = under
 
 ### Animated images
 
-A processor now drops `ImageContainer.data` and `ImageContainer.animation`, because they describe the image that went in. On 13, the data survived, so a view could play the original over a processed still. **A GIF with a `.resize` is a still on Nuke 14.** Remove the processor from a request that can be animated: `AnimatedImageView` decodes the frames at the size it displays them. A `thumbnail` request gives you a still too. If a URL can be a GIF or a large still, the `nuke-optimize` skill has a processor that skips animations.
+A processor now drops `ImageContainer.data` and `ImageContainer.animation`, because they describe the image that went in. On 13, the data survived, so a view could play the original over a processed still. **A GIF with a `.resize` is a still on Nuke 14.** Remove the processor from a request that can be animated: `AnimatedImageView` decodes the frames at the size it displays them. A `thumbnail` request gives you a still too, and has no `data` for a GIF, which 13 attached. If a URL can be a GIF or a large still, the `nuke-optimize` skill has a processor that skips animations.
 
-`LazyImage` and `LazyImageView` now play animations on their own, so a third-party GIF view is dead weight:
+`LazyImage` with its default content and `LazyImageView` now play animations on their own. On 13, they showed the first frame. Nothing fails, so go through the hits from step 2 and find the screens that can show one. If a design or a comment says it stays still, keep it still. Otherwise, tell the owner which screens start moving:
+
+| To keep a still in | Do |
+|---|---|
+| A `LazyImageView` | `lazyImageView.imageView.isPlaybackEnabled = false` |
+| A `LazyImage` | A `content` closure that shows `state.image` and no `AnimatedImage` |
+| Every view | `isAnimatedImageParsingEnabled = false` in the pipeline's configuration |
+
+Two more changes reach users on those screens:
+
+- A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.repeatCount = .infinite` on the `AnimatedImageView`.
+- Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
+
+A third-party GIF view is now dead weight:
 
 | If the app has | Do |
 |---|---|
@@ -230,7 +246,6 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 | A `content` closure that checks for a GIF and shows a custom view | Replace the view with `AnimatedImage(container:)` |
 | `makeImageView` on `LazyImageView` that returns a GIF view | Remove it, `imageView` plays animations |
 | A `UIImageView` that needs to play | `AnimatedImageView`, which is a subclass of it |
-| `AnimatedImageSource(data:)` built by hand | `container.animation`, already parsed |
 | A rendering engine that parses `container.data` itself | Keep it, and set `isAnimatedImageParsingEnabled = false` |
 
 `container.data != nil` is a look at the header, and is `true` for a single-frame GIF. To ask whether an image can play, check `container.animation != nil`.
@@ -239,7 +254,7 @@ Don't remove a GIF dependency that the app uses for anything but Nuke's images.
 
 ### Changed defaults
 
-Most apps have nothing to do here. Check these two:
+Most apps have nothing to do here. Check these:
 
 - A custom `ImageDecoding` runs on `imageDecodingQueue` unless it sets `isAsynchronous` to `false`, and two of them can now run at once. Look for `static` or global mutable state, and put it behind a lock.
 - `dataLoadingQueue` runs requests below `.normal` in 3 of its 6 slots, so a prefetcher with `maxConcurrentRequestCount` above 3 slows down. If prefetching has to keep up with fast scrolling, restore it:
@@ -250,7 +265,10 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, `isUsingPrepareForDisplay` is on, and the rate limiter allows 100 requests a second instead of 80. The cache keys didn't change, so users keep what's on disk.
+- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
+- `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
+
+Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, and the rate limiter allows 100 requests a second instead of 80. The cache keys didn't change, so users keep what's on disk.
 
 ## 6. Verify
 
