@@ -121,14 +121,11 @@ public final class AnimatedImageFramePool {
         }
     }
 
-    /// Gives back the frames of every animation nobody is playing.
+    /// Gives back the frames of every animation nobody is playing. The players
+    /// that are still around keep what they hold.
     ///
-    /// Called when the app goes to the background, where ``Nuke/ImageCache``
-    /// trims itself for the same reason: nothing is on screen, so the frames
-    /// kept for a view that might come back are a cache the app isn't using,
-    /// and the animations they came from are on their way out of the cache
-    /// anyway. The players that are still around keep the two frames they need
-    /// to resume without a stall.
+    /// The pool does this on its own on a memory warning and when the app goes
+    /// to the background, where it also holds those players at two frames.
     public func removeIdleAnimations() {
         sweep()
         for store in stores.values.filter(\.isIdle) {
@@ -148,8 +145,31 @@ public final class AnimatedImageFramePool {
 
     private var restore: Task<Void, Never>?
 
+    /// `true` from going to the background until the app is active again.
+    private var isInBackground = false
+
+    /// Answers the app going to the background, where ``Nuke/ImageCache`` trims
+    /// itself for the same reason: nothing is on screen, so every frame past
+    /// the two a player needs to resume without a stall is a cache the app
+    /// isn't using. A view stays in its window out here, so this is the only
+    /// thing that takes the frames of the ones that were on screen.
+    private func didEnterBackground() {
+        isInBackground = true
+        restore?.cancel()
+        isUnderMemoryPressure = true
+        rebalance()
+    }
+
+    private func didBecomeActive() {
+        isInBackground = false
+        restore?.cancel()
+        endMemoryPressure()
+    }
+
     private func endMemoryPressure() {
-        guard isUnderMemoryPressure else { return }
+        // A warning's grace period can run out in the background, and frames
+        // refilled there are the ones going to the background just gave up.
+        guard isUnderMemoryPressure, !isInBackground else { return }
         isUnderMemoryPressure = false
         // Every store is handed a new share, which is what starts refilling
         // the windows now the ceiling has come off.
@@ -164,15 +184,10 @@ public final class AnimatedImageFramePool {
         // Coming back to the foreground is the clearest signal that the memory
         // pressure is over.
         center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.restore?.cancel()
-                self?.endMemoryPressure()
-            }
+            MainActor.assumeIsolated { self?.didBecomeActive() }
         }
-        // Nothing is on screen, and a store whose animation the cache has just
-        // let go of is otherwise held until something else makes the pool look.
         center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.removeIdleAnimations() }
+            MainActor.assumeIsolated { self?.didEnterBackground() }
         }
 #endif
     }
