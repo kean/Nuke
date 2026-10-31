@@ -52,7 +52,7 @@ public final class ImagePipeline: Sendable {
     private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
     private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
-    private var isInvalidated = false
+    private(set) var isInvalidated = false
 
     private nonisolated var nextTaskId: UInt64 {
         _nextTaskId.withLock { value in
@@ -73,6 +73,9 @@ public final class ImagePipeline: Sendable {
 
     /// The number of image tasks the pipeline currently retains. Debug purposes.
     var taskCount: Int { tasks.count }
+
+    /// The image tasks the pipeline currently retains, oldest first. Debug purposes.
+    var activeTasks: [ImageTask] { tasks.elements }
 
     nonisolated deinit {
         let id = self.id
