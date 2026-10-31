@@ -121,6 +121,24 @@ The test suite more than doubled, and writing it uncovered many of the bugs fixe
 
 Measured on macOS. Source and test lines exclude blank lines and comments.
 
+### AI Agents
+
+Nuke ships with two skills for coding agents: `nuke-migrate` upgrades an app to Nuke 14, including what the compiler can't report, and `nuke-optimize` measures and fixes slow images. There's nothing to install. Ask an agent to follow one:
+
+```
+Upgrade this app to Nuke 14. Follow https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-migrate/SKILL.md
+Speed up the images in this app. Follow https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-optimize/SKILL.md
+```
+
+In Claude Code, you can also install them as a plugin, and they load on their own when they're relevant:
+
+```
+/plugin marketplace add kean/Nuke
+/plugin install nuke@nuke
+```
+
+- Add the `nuke-migrate` and `nuke-optimize` skills – https://github.com/kean/Nuke/pull/1048
+
 ### Requirements
 
 - Minimum required platforms: iOS 16.0, tvOS 16.0, watchOS 9.0, macOS 13.0, visionOS 1.0 – https://github.com/kean/Nuke/pull/904
