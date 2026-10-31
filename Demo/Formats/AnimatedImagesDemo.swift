@@ -555,7 +555,7 @@ struct AnimatedImagesDemo: View {
             options.maxBufferSize = maxBufferSizeMB.map { Int($0 * 1_048_576) }
             options.playbackRate = playbackRate
             options.maxPixelSize = maxPixelSize
-            options.repeatCount = repeatsForever ? .infinite : .image
+            options.loopCount = repeatsForever ? .infinite : .image
             return options
         }
 

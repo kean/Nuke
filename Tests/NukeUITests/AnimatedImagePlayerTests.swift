@@ -484,9 +484,9 @@ struct AnimatedImagePlayerTests {
         #expect(player.currentFrameIndex == 2)
     }
 
-    @Test func repeatCountOverridesTheImage() async {
+    @Test func loopCountOverridesTheImage() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, loopCount: 0, options: options)
         player.play()
         await player.waitUntilFull()
@@ -497,9 +497,27 @@ struct AnimatedImagePlayerTests {
         #expect(player.completedLoopCount == 1)
     }
 
+    @Test func aFiniteLoopCountCountsThePlaysNotTheRepeats() async {
+        var options = AnimatedImagePlayer.Options()
+        options.loopCount = .finite(2)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, loopCount: 0, options: options)
+        player.play()
+        await player.waitUntilFull()
+
+        for _ in 0..<3 { clock.tick(0.1) }
+
+        #expect(player.isFinished == false)
+        #expect(player.completedLoopCount == 1)
+
+        for _ in 0..<3 { clock.tick(0.1) }
+
+        #expect(player.isFinished)
+        #expect(player.completedLoopCount == 2)
+    }
+
     @Test func infiniteOverridesTheImagesLoopCount() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .infinite
+        options.loopCount = .infinite
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 3, loopCount: 1, options: options)
         player.play()
         await player.waitUntilFull()
@@ -512,7 +530,7 @@ struct AnimatedImagePlayerTests {
 
     @Test func playDoesNothingAfterFinishing() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 2, options: options)
         player.play()
         await player.waitUntilFull()
@@ -526,7 +544,7 @@ struct AnimatedImagePlayerTests {
 
     @Test func restartPlaysItAgainFromTheStart() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 2, options: options)
         player.play()
         await player.waitUntilFull()
@@ -681,7 +699,7 @@ struct AnimatedImagePlayerTests {
     @Test func playsEveryFrameBeforeFinishingWithASlowDecoder() async throws {
         // GIVEN an animation that plays once, with a decoder that can't keep up
         var options = AnimatedImagePlayer.Options.twoFrameBuffer
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock, decoder) = AnimatedImageTest.makeGatedPlayer(
             frameCount: 3, delays: Array(repeating: 0.1, count: 3), options: options
         )
@@ -749,7 +767,7 @@ struct AnimatedImagePlayerTests {
 
     @Test func publishesWhenTheAnimationFinishes() async {
         var options = AnimatedImagePlayer.Options()
-        options.repeatCount = .finite(1)
+        options.loopCount = .finite(1)
         let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 2, options: options)
         player.play()
         await player.waitUntilFull()

@@ -1117,10 +1117,17 @@
 - `var effectiveFrameRate: Double`: The number of frames shown per second of playback.
 - `var isFullyBuffered: Bool`: `true` when every frame of the animation fits in the buffer, so each one is decoded exactly once.
 
+### AnimatedImagePlayer.LoopCount
+
+- `enum LoopCount: Hashable, Sendable`: How many times an animation should play.
+- `case image`: Whatever the image asks for, which is almost always forever.
+- `case infinite`: Play forever, whatever the image asks for.
+- `case finite(Int)`: Play a set number of times, then stop on the last frame
+
 ### AnimatedImagePlayer.Options
 
 - `struct Options: Sendable`: The options that change how an animation is played and how much memory it is allowed to use.
-- `var repeatCount: RepeatCount = .image`: How many times to play the animation.
+- `var loopCount: LoopCount = .image`: How many times to play the animation.
 - `var playbackRate: Double = 1`: The speed multiplier.
 - `var maxBufferSize: Int?`: The most memory this player's decoded frames may occupy, in bytes.
 - `var maxPixelSize: CGFloat?`: The longest side, in pixels, the decoded frames may have.
@@ -1129,13 +1136,6 @@
 - `var isSynchronizationEnabled = true`: Whether the player starts on the frame the other players of the same animation are showing, rather than on the first one.
 - `var isPowerThrottlingEnabled = true`: Whether the clock slows down while the system is asking for less work.
 - `init()`
-
-### AnimatedImagePlayer.RepeatCount
-
-- `enum RepeatCount: Hashable, Sendable`: How many times an animation should play.
-- `case image`: Whatever the image asks for, which is almost always forever.
-- `case infinite`: Play forever, whatever the image asks for.
-- `case finite(Int)`: Play a set number of times, then stop on the last frame.
 
 ### AnimatedImageView
 

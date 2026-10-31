@@ -463,7 +463,7 @@ What is published is the playback state changing – it starts, stops, finishes 
 
 `AnimatedImagePlayer.onFrame` stays yours as well: the views take the frames of a player they are given through a channel of their own, so a player already driving a scrubber of yours goes on driving it.
 
-`AnimatedImagePlayer.Options` covers the rest: `AnimatedImagePlayer.Options.playbackRate` for speed, and `AnimatedImagePlayer.Options.repeatCount` for how many times to play. The default, `AnimatedImagePlayer.RepeatCount.image`, honors what the file asks for, which for the vast majority of animations is "forever" – a GIF carrying no Netscape loop extension asks to be played once, and is, the way a browser plays it. `AnimatedImagePlayer.RepeatCount.finite(_:)` stops on the last frame and calls `AnimatedImagePlayer.onFinish`.
+`AnimatedImagePlayer.Options` covers the rest: `AnimatedImagePlayer.Options.playbackRate` for speed, and `AnimatedImagePlayer.Options.loopCount` for how many times to play. The default, `AnimatedImagePlayer.LoopCount.image`, honors what the file asks for, which for the vast majority of animations is "forever" – a GIF carrying no Netscape loop extension asks to be played once, and is, the way a browser plays it. `AnimatedImagePlayer.LoopCount.finite(_:)` stops on the last frame and calls `AnimatedImagePlayer.onFinish`.
 
 To show an animation as a still – a list where animations play only after the user asks for them – set `AnimatedImageView.isPlaybackEnabled` to `false`. The first frame is displayed and no frames beyond it are ever decoded.
 
@@ -2865,7 +2865,7 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 
 Two more changes reach users on those screens:
 
-- A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.repeatCount = .infinite` on the `AnimatedImageView`.
+- A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.loopCount = .infinite` on the `AnimatedImageView`.
 - Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
 
 A third-party GIF view is now dead weight:
@@ -3043,10 +3043,10 @@ Animated images cost memory that Nuke 13 didn't use:
 - **Decoded frames** go in `AnimatedImageFramePool`, which holds up to 5% of the device's memory, capped at 128 MB. That comes on top of `ImageCache`, whose default limit is unchanged at 15%, capped at 768 MB. To give the pool less, set `AnimatedImageFramePool.shared.costLimit`.
 - **Encoded data:** `ImageContainer.data` is now also kept for APNG, animated WebP, and HEIC and AVIF sequences, where Nuke 13 kept it for GIF only. It counts against the `ImageCache` limit along with the bitmap, so these images take up more of the cache, whether they ever play or not.
 
-A GIF with no loop count plays once and rests on its last frame, which is how browsers play it. Nuke 13 showed its first frame. To keep such a GIF moving, set `repeatCount`:
+A GIF with no loop count plays once and rests on its last frame, which is how browsers play it. Nuke 13 showed its first frame. To keep such a GIF moving, set `loopCount`:
 
 ```swift
-lazyImageView.imageView.playerOptions.repeatCount = .infinite
+lazyImageView.imageView.playerOptions.loopCount = .infinite
 ```
 
 #### Keeping a Still

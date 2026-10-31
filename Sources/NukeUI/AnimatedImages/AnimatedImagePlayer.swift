@@ -420,7 +420,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     private var nextFrameIndex: Int? {
         let next = currentFrameIndex + 1
         guard next >= source.frameCount else { return next }
-        if let limit = repeatLimit, completedLoopCount + 1 >= limit {
+        if let limit = loopLimit, completedLoopCount + 1 >= limit {
             return nil
         }
         return 0
@@ -449,8 +449,8 @@ public final class AnimatedImagePlayer: ObservableObject {
     }
 
     /// The number of loops to play, or `nil` for "forever".
-    private var repeatLimit: Int? {
-        switch options.repeatCount {
+    private var loopLimit: Int? {
+        switch options.loopCount {
         case .image: source.loopCount > 0 ? source.loopCount : nil
         case .infinite: nil
         case .finite(let count): max(1, count)
@@ -557,9 +557,9 @@ extension AnimatedImagePlayer {
     /// The options that change how an animation is played and how much memory
     /// it is allowed to use.
     public struct Options: Sendable {
-        /// How many times to play the animation. ``RepeatCount/image`` by
+        /// How many times to play the animation. ``LoopCount/image`` by
         /// default, which honors what the file asks for.
-        public var repeatCount: RepeatCount = .image
+        public var loopCount: LoopCount = .image
 
         /// The speed multiplier. `1` by default.
         public var playbackRate: Double = 1
@@ -628,12 +628,13 @@ extension AnimatedImagePlayer {
     }
 
     /// How many times an animation should play.
-    @frozen public enum RepeatCount: Hashable, Sendable {
+    @frozen public enum LoopCount: Hashable, Sendable {
         /// Whatever the image asks for, which is almost always forever.
         case image
         /// Play forever, whatever the image asks for.
         case infinite
-        /// Play a set number of times, then stop on the last frame.
+        /// Play a set number of times, then stop on the last frame: `.finite(2)`
+        /// plays twice.
         case finite(Int)
     }
 
