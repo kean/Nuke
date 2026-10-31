@@ -29,7 +29,7 @@ make lint                                       # SwiftLint
 
 `make ci` runs exactly what CI runs: `.scripts/ci.sh` is the single source of truth for the matrix, and `.github/workflows/ci.yml` only passes it a group name. New CI work goes in `ci.sh`.
 
-CI doesn't run `NukeVideoTests`: run the `NukeVideo` scheme when you change `Sources/NukeVideo`. The `NukeTests` and `NukeThreadSafetyTests` schemes run Thread Sanitizer, which erases dispatch QoS, so use the `Nuke` scheme for anything about QoS or timing.
+CI runs `NukeVideoTests` on macOS and on iOS 27 only, so run the `NukeVideo` scheme on tvOS too when you change `Sources/NukeVideo`. The `NukeTests` and `NukeThreadSafetyTests` schemes run Thread Sanitizer, which erases dispatch QoS, so use the `Nuke` scheme for anything about QoS or timing.
 
 ## Conventions
 

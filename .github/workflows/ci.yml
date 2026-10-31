@@ -16,7 +16,6 @@ permissions:
   contents: read
 
 env:
-  DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
   # Locally ci.sh logs to a temp directory; CI needs a fixed path to upload from.
   NUKE_CI_OUTPUT_DIR: .build/ci
 
@@ -28,22 +27,28 @@ jobs:
   # jobs, grouped to keep them balanced rather than letting one dominate.
   ci:
     name: ${{ matrix.name }}
-    runs-on: macOS-26
+    runs-on: ${{ matrix.runner || 'macOS-26' }}
     timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode || '26.4' }}.app/Contents/Developer
     strategy:
       fail-fast: false
       matrix:
         include:
-          - group: ios-core
-            name: Tests (Nuke, iOS)
-          - group: ios-ui
-            name: Tests (NukeUI + NukeExtensions, iOS)
+          - group: ios
+            name: Tests (iOS)
           - group: tvos
             name: Tests (tvOS)
           - group: macos
             name: Tests (macOS)
           - group: platforms
-            name: Build (watchOS, visionOS, Snippets, SPM)
+            name: Build (watchOS, visionOS, Snippets, SPM) + TSan
+          # The macOS 26 image only has Xcode 26. This one is a public preview,
+          # and it's the only image that has Xcode 27.
+          - group: xcode-27
+            name: Tests (Xcode 27)
+            runner: xcode-27
+            xcode: '27.1'
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.group }}
@@ -56,6 +61,11 @@ jobs:
         env:
           DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
         run: .scripts/ci.sh macos
+      # Folded into the shortest job, for the same reason. It's a group of its
+      # own because the macos group runs twice, and TSan doesn't need to.
+      - name: Run tsan
+        if: matrix.group == 'platforms'
+        run: .scripts/ci.sh tsan
       - name: Upload xcresult bundles
         if: failure()
         uses: actions/upload-artifact@v7
