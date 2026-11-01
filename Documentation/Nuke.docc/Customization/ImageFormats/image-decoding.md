@@ -6,11 +6,6 @@ At the core of the decoding infrastructure is the ``ImageDecoding`` protocol.
 
 ```swift
 public protocol ImageDecoding: Sendable {
-    /// Returns `true` if you want the decoding to be performed on the
-    /// decoding queue. If `false`, decoding is performed synchronously
-    /// on the pipeline's actor. By default, `true`.
-    var isAsynchronous: Bool { get }
-
     /// Produces an image from the given image data.
     func decode(_ data: Data) throws -> ImageContainer
 

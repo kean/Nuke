@@ -159,31 +159,24 @@ extension DemoPipelineProbe {
             self.counters = counters
         }
 
-        /// Forwarded, so the decode runs where the decoder asked for.
-        var isAsynchronous: Bool {
-            base.isAsynchronous
-        }
-
         func decode(_ data: Data) throws -> ImageContainer {
-            let isAsynchronous = base.isAsynchronous
-            counters.decodeStarted(isAsynchronous: isAsynchronous)
+            counters.decodeStarted()
             let startedAt = ContinuousClock.now
             do {
                 let container = try base.decode(data)
-                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: true)
+                counters.decodeFinished(startedAt: startedAt, isFinalImage: true)
                 return container
             } catch {
-                counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: false)
+                counters.decodeFinished(startedAt: startedAt, isFinalImage: false)
                 throw error
             }
         }
 
         func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            let isAsynchronous = base.isAsynchronous
-            counters.decodeStarted(isAsynchronous: isAsynchronous)
+            counters.decodeStarted()
             let startedAt = ContinuousClock.now
             let preview = base.decodePartiallyDownloadedData(data)
-            counters.decodeFinished(isAsynchronous: isAsynchronous, startedAt: startedAt, isFinalImage: false)
+            counters.decodeFinished(startedAt: startedAt, isFinalImage: false)
             return preview
         }
 

@@ -217,8 +217,6 @@ private struct NotifyingDecoder: ImageDecoding {
     let decoder: any ImageDecoding
     let didDecodePartialData: @Sendable () -> Void
 
-    var isAsynchronous: Bool { decoder.isAsynchronous }
-
     func decode(_ data: Data) throws -> ImageContainer {
         try decoder.decode(data)
     }

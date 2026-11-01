@@ -23,9 +23,6 @@ extension ImageDecoders {
         private let type: AssetType
         private let previewPolicy: ImagePipeline.PreviewPolicy
 
-        /// Always `true` — decoding is performed asynchronously to avoid blocking the pipeline.
-        public var isAsynchronous: Bool { true }
-
         /// Returns `nil` if the data is not a recognized video format (MP4, M4V, or MOV).
         public init?(context: ImageDecodingContext) {
             guard let type = AssetType(context.data), type.isVideo else { return nil }

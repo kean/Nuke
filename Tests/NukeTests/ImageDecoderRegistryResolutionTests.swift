@@ -58,15 +58,6 @@ struct ImageDecoderRegistryResolutionTests {
 
         #expect(decoder.previewPolicy == .disabled)
         #expect(decoder.isAnimatedImageParsingEnabled == false)
-        // A thumbnail request reads the image dimensions from the data, which
-        // is why it moves to the decoding queue.
-        #expect(decoder.isAsynchronous)
-    }
-
-    @Test func defaultDecoderIsSynchronousUnlessAThumbnailIsRequested() throws {
-        #expect(ImageDecoders.Default().isAsynchronous == false)
-        let decoder = try #require(ImageDecoderRegistry().decoder(for: .mock))
-        #expect(decoder.isAsynchronous == false)
     }
 
     // MARK: Order

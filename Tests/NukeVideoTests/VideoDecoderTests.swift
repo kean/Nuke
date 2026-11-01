@@ -26,7 +26,6 @@ struct VideoDecoderTests {
         let container = try decoder.decode(data)
 
         // Then
-        #expect(decoder.isAsynchronous)
         #expect(container.type == AssetType(rawValue: fileType.rawValue))
         #expect(container.type?.isVideo == true)
     }

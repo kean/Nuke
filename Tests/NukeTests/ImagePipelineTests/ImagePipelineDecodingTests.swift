@@ -139,6 +139,104 @@ struct ImagePipelineDecodingTests {
         }
     }
 
+    // MARK: - Animated Images
+
+    /// Parsing an animation takes as long as the file has frames. On the
+    /// pipeline's actor, every image load in the process would wait for it.
+    @Test(arguments: [("cat", "gif"), ("animated", "webp"), ("animated", "avif")])
+    @ImagePipelineActor func animationIsParsedOnTheDecodingQueue(fixture: (name: String, extension: String)) async throws {
+        // Given
+        dataLoader.results[Test.url] = .success((Test.data(name: fixture.name, extension: fixture.extension), Test.urlResponse))
+        let queue = pipeline.configuration.imageDecodingQueue
+        queue.isSuspended = true
+
+        // When
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: Test.url)
+        await expectation.wait(timeout: .seconds(5))
+
+        // Then the task waits for the queue
+        #expect(expectation.operations.count == 1)
+        queue.isSuspended = false
+        #expect(try await task.response.container.animation != nil)
+    }
+
+    /// The same parse runs again when a disk hit brings the image back, which
+    /// is the common way to reach it in an app that scrolls through GIFs.
+    @Test @ImagePipelineActor func animationFromDiskCacheIsParsedOnTheDecodingQueue() async throws {
+        // Given
+        let dataCache = MockDataCache()
+        dataCache.store[Test.url.absoluteString] = Test.data(name: "cat", extension: "gif")
+        let pipeline = pipeline.reconfigured { $0.dataCache = dataCache }
+        let queue = pipeline.configuration.imageDecodingQueue
+        queue.isSuspended = true
+
+        // When
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: Test.url)
+        await expectation.wait(timeout: .seconds(5))
+
+        // Then
+        #expect(expectation.operations.count == 1)
+        queue.isSuspended = false
+        let response = try await task.response
+        #expect(response.cacheType == .disk)
+        #expect(response.container.animation != nil)
+    }
+
+    /// Not only an animation: a decoder can't be trusted to be quick, and a
+    /// decode on the pipeline's actor would hold up every image load.
+    @Test @ImagePipelineActor func stillImageIsDecodedOnTheDecodingQueue() async throws {
+        // Given
+        let queue = pipeline.configuration.imageDecodingQueue
+        queue.isSuspended = true
+
+        // When
+        let expectation = TestExpectation(queue: queue, count: 1)
+        let task = pipeline.imageTask(with: Test.url)
+        await expectation.wait(timeout: .seconds(5))
+
+        // Then
+        #expect(expectation.operations.count == 1)
+        queue.isSuspended = false
+        #expect(try await task.response.container.type == .jpeg)
+    }
+
+    @Test func thumbnailOfAnAnimationParsesNothing() throws {
+        // Given
+        let gif = Test.data(name: "cat", extension: "gif")
+        let request = ImageRequest(url: Test.url).with { $0.thumbnail = .init(maxPixelSize: 100) }
+        let decoder = try #require(ImageDecoders.Default(context: ImageDecodingContext(request: request, data: gif)))
+
+        // Then
+        #expect(try decoder.decode(gif).animation == nil)
+    }
+
+    @Test(arguments: [
+        ("fixture", "jpeg", false), ("fixture", "png", false), ("baseline", "webp", false), ("img_751", "heic", false),
+        ("cat", "gif", true), ("animated", "webp", true), ("animated", "avif", true)
+    ]) func animationIsParsedOnlyWhenTheDataHoldsOne(fixture: (name: String, extension: String, isAnimated: Bool)) throws {
+        // Given
+        let data = Test.data(name: fixture.name, extension: fixture.extension)
+
+        // Then
+        let animation = try ImageDecoders.Default().decode(data).animation
+        #expect((animation != nil) == fixture.isAnimated)
+    }
+
+    @Test @ImagePipelineActor func animationIsNotParsedWhenParsingIsDisabled() async throws {
+        // Given
+        dataLoader.results[Test.url] = .success((Test.data(name: "cat", extension: "gif"), Test.urlResponse))
+        let pipeline = pipeline.reconfigured { $0.isAnimatedImageParsingEnabled = false }
+
+        // When
+        let response = try await pipeline.imageTask(with: Test.url).response
+
+        // Then
+        #expect(response.container.animation == nil)
+        #expect(response.container.data != nil)
+    }
+
     // MARK: - Async Decoders (Previews)
 
     /// An async decoder is never asked to decode synchronously – the default

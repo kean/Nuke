@@ -8,11 +8,6 @@ import Foundation
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImageDecodersEmptyTests {
-    @Test func isAsynchronousReturnsFalse() {
-        let decoder = ImageDecoders.Empty()
-        #expect(decoder.isAsynchronous == false)
-    }
-
     @Test func isProgressiveDefaultIsFalse() {
         let decoder = ImageDecoders.Empty()
         #expect(decoder.isProgressive == false)

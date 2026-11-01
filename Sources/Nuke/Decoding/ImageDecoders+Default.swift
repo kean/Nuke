@@ -47,11 +47,6 @@ extension ImageDecoders {
         let isAnimatedImageParsingEnabled: Bool
         private let lock = NSLock()
 
-        /// Returns `true` when thumbnail decoding is requested, because
-        /// thumbnail generation requires reading image dimensions from disk and
-        /// must run on the decoding queue rather than blocking the pipeline queue.
-        public var isAsynchronous: Bool { thumbnail != nil }
-
         /// Initializes the decoder with default settings.
         public init() {
             self.scale = 1.0
@@ -92,8 +87,8 @@ extension ImageDecoders {
             if thumbnail == nil, AssetType.isAnimated(data, type: type) {
                 container.data = data
                 // The sniff reads a header; this walks the delay of every frame,
-                // so it runs here – once per image, off the main thread –
-                // rather than in every view that displays it.
+                // so it runs here – once per image, on the decoding queue – rather
+                // than in every view that displays it.
                 if isAnimatedImageParsingEnabled {
                     container.animation = AnimatedImageSource(data: data)
                 }

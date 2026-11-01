@@ -99,9 +99,6 @@ struct CustomDecoderDemo: View {
                 }
             }
 
-            // On the pipeline's actor: it takes microseconds.
-            var isAsynchronous: Bool { false }
-
             func decode(_ data: Data) throws -> ImageContainer {
                 let bytes = [UInt8](data)
                 guard bytes.count >= 8 else {
@@ -171,7 +168,7 @@ struct CustomDecoderDemo: View {
             .init("Falling through", "`ImageDecoders.Default` is the registry's own first decoder, so it is asked last, and it takes any data: a pipeline always gets a decoder. The PNG shows that path with `NukePixDecoder` in place. Without it, the NukePix file goes the same way, and Image I/O can't read it: `decodingFailed`, with `ImageDecodingError.unknown`."),
             .init("Taken is final", "The file that was cut short still starts with the signature, so `NukePixDecoder` takes it, and its error is the result: the pipeline doesn't try the next decoder when `decode(_:)` throws. The error reaches the app as the `error` of `ImagePipeline.Error.decodingFailed`, next to the decoder and the context."),
             .init("Previews", "The initializer doesn't look at `context.isCompleted`. With progressive decoding on, the pipeline asks as soon as the first bytes arrive, and keeps the decoder it gets for the whole download: a decoder that passes on a partial file hands all of it to `ImageDecoders.Default`. A decoder with no previews to offer takes the data and leaves `decodePartiallyDownloadedData(_:)` to its default, which returns `nil`."),
-            .init("Where it runs", "`isAsynchronous` is `true` by default, which puts every decode on the pipeline's decoding queue. `NukePixDecoder` says `false`, and decodes on the pipeline's actor, which suits work that takes microseconds. A real codec should stay on the queue."),
+            .init("Where it runs", "Every decode runs on the pipeline's decoding queue, two at a time, and never on the pipeline's actor, where every image load would wait for it. A decoder doesn't choose, so `NukePixDecoder` is as ordinary as a real codec."),
             .init("The container", "`type` is an `AssetType` of the decoder's own. A decoder whose images are drawn by something else – an animation, a video, a vector format – also puts the data in `data`, and anything else in `userInfo`. The pipeline decompresses the image and caches it like any other."),
             .init("Plug-ins", "The community decoders listed in Nuke's README – NukeWebP and the WebP Plugin, from before Image I/O read WebP, and the AVIF Plugin – are this shape: a decoder around a codec library, and a line that registers it. BlurHash has no file to download: an `ImageRequest(id:image:)` closure can decode the hash, or a decoder can recognise the request by its `userInfo`, which the context carries."),
             .init("Decode time", "Measured by the demo's pipeline probe, which wraps the decoder the registry returns, as the pipeline HUD shows it. A decode that throws has no time.")

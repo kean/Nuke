@@ -848,15 +848,6 @@ struct ImageTaskTests {
             }
         }
 
-        /// The default decoder decodes on the pipeline's actor unless it's
-        /// asked for a thumbnail, so the decoding stage needs one that doesn't.
-        func pipeline(from pipeline: ImagePipeline) -> ImagePipeline {
-            switch self {
-            case .dataLoading, .processing: pipeline
-            case .decoding: pipeline.reconfigured { $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") } }
-            }
-        }
-
         func queue(of pipeline: ImagePipeline) -> TaskQueue {
             switch self {
             case .dataLoading: pipeline.configuration.dataLoadingQueue
@@ -870,7 +861,6 @@ struct ImageTaskTests {
     /// which stays suspended.
     @ImagePipelineActor
     private func startTask(queuedIn stage: QueuedStage) async throws -> (ImageTask, TaskQueue.Operation) {
-        let pipeline = stage.pipeline(from: pipeline)
         let queue = stage.queue(of: pipeline)
         queue.isSuspended = true
         var task: ImageTask?

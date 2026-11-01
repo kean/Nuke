@@ -43,8 +43,6 @@ final class MockScriptedDecoder: ImageDecoding, @unchecked Sendable {
         self.init(previewPolicy: context.previewPolicy)
     }
 
-    var isAsynchronous: Bool { false }
-
     func decode(_ data: Data) throws -> ImageContainer {
         lock.withLock { _finalDecodeCount += 1 }
         if let _decode {

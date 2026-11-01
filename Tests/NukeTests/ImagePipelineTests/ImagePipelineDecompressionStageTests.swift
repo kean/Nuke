@@ -327,8 +327,6 @@ private final class DecompressionFlaggingDecoder: ImageDecoding, @unchecked Send
         self.isFlaggingPreviews = isFlaggingPreviews
     }
 
-    var isAsynchronous: Bool { false }
-
     func decode(_ data: Data) throws -> ImageContainer {
         let container = try decoder.decode(data)
         ImageDecompression.setDecompressionNeeded(true, for: container.image)

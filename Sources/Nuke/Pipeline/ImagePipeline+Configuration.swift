@@ -217,12 +217,12 @@ extension ImagePipeline {
 
         /// Image decoding queue. Default maximum concurrent task count is 2.
         ///
-        /// Only the decoders that ask for it run here – see
-        /// ``ImageDecoding/isAsynchronous``. ``ImageDecoders/Default`` asks for
-        /// it for a thumbnail request, where the decode also downsamples the
-        /// image and no decompression follows it, so the count matches
-        /// ``imageDecompressingQueue``: the pixel work of a request costs the
-        /// same whichever of the two paths it takes.
+        /// Every decode runs here, never on the pipeline's actor: a decode can
+        /// take as long as the image has pixels or frames, and every image load
+        /// in the process would wait for it. The count matches
+        /// ``imageDecompressingQueue``, because a thumbnail request decodes and
+        /// downsamples the image in one step, with no decompression after it,
+        /// so the pixel work of a request costs the same whichever path it takes.
         public var imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 2)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.

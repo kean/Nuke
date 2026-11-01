@@ -234,12 +234,22 @@ struct ImagePipelineFetchOriginalImageTests {
 
     /// Starts loading the image, serving the next chunk of data for every
     /// progress update, and recording the previews.
+    ///
+    /// The next chunk waits for the decode of this one: a chunk that arrives
+    /// while another is being decoded is skipped, which the tests of the
+    /// throttling would otherwise depend on the timing of.
     private func loadImage(with pipeline: ImagePipeline, request: ImageRequest = Test.request, previews: LockedArray<ImageResponse>) -> ImageTask {
         let dataLoader = dataLoader
+        let queue = pipeline.configuration.imageDecodingQueue
         return pipeline.makeStartedImageTask(with: request) { event, _ in
             switch event {
             case .progress:
-                dataLoader.resume()
+                Task { @ImagePipelineActor in
+                    while queue.runningCount + queue.pendingCount > 0 {
+                        try? await Task.sleep(for: .milliseconds(1))
+                    }
+                    dataLoader.resume()
+                }
             case .preview(let preview):
                 previews.append(preview)
             case .finished:

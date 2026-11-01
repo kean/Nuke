@@ -8,14 +8,13 @@ import Foundation
 ///
 /// A decoder is a one-shot object created for a single image decoding session.
 ///
+/// The pipeline runs it on its decoding queue (see
+/// ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``), never on
+/// its own actor, where every image load in the process would wait for it.
+///
 /// - note: If you need additional information in the decoder, you can pass
 /// anything that you might need from the ``ImageDecodingContext``.
 public protocol ImageDecoding: Sendable {
-    /// Returns `true` if you want the decoding to be performed on the decoding
-    /// queue (see ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``). If `false`, the decoding will be
-    /// performed synchronously on the pipeline's actor. By default, `true`.
-    var isAsynchronous: Bool { get }
-
     /// Produces an image from the given image data.
     func decode(_ data: Data) throws -> ImageContainer
 
@@ -39,9 +38,6 @@ public protocol AsyncImageDecoding: ImageDecoding {
 }
 
 extension ImageDecoding {
-    /// Returns `true` by default.
-    public var isAsynchronous: Bool { true }
-
     /// The default implementation which simply returns `nil` (no progressive
     /// decoding available).
     public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? { nil }
