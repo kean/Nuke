@@ -60,7 +60,7 @@ extension ImagePipeline {
         // MARK: - Options
 
         /// Decompresses the loaded images. By default, enabled on all platforms
-        /// except for `macOS`.
+        /// except for `macOS`, where you can enable it.
         ///
         /// Decompressing compressed image formats (such as JPEG) can significantly
         /// improve drawing performance as it allows a bitmap representation to be
