@@ -253,6 +253,10 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
 - Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix `ImageResponse/request` of a freshly processed image missing the processors – https://github.com/kean/Nuke/pull/1032
+- Fix a thumbnail request re-downloading the image when its disk cache entry can't be decoded, although the original image data is in the disk cache – https://github.com/kean/Nuke/pull/1032
+- Fix `ImagePipeline/Configuration/isDecompressionEnabled` having no effect on macOS – https://github.com/kean/Nuke/pull/1032
+- Fix the `ImageRequest/init(id:image:processors:priority:options:)` documentation claiming the image is never stored in the disk cache; it is encoded and stored according to `ImagePipeline/DataCachePolicy` like other local resources – https://github.com/kean/Nuke/pull/1032
 
 ### Documentation
 

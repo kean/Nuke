@@ -10,6 +10,8 @@ import Foundation
 /// The coalescing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
+    private var didLookUpOriginalData = false
+
     override func start() {
         if let container = lookUpCachedImage(for: request) {
             let response = ImageResponse(container: container, request: request, cacheType: .memory)
@@ -45,11 +47,23 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         if let response {
             didReceiveImageResponse(response, isCompleted: true, isFromOwnDiskEntry: isFromOwnDiskEntry)
         } else {
-            fetchImage()
+            loadOriginalDataOrFetch()
         }
     }
 
     // MARK: Fetch Image
+
+    /// Generates the thumbnail from the original image data in the disk cache
+    /// when the entry for the thumbnail itself can't be decoded, before going
+    /// to the network for it.
+    private func loadOriginalDataOrFetch() {
+        guard request.thumbnail != nil, request.processors.isEmpty, !didLookUpOriginalData,
+              let data = lookUpCachedData(for: request.withoutThumbnail()) else {
+            return fetchImage()
+        }
+        didLookUpOriginalData = true
+        decodeCachedData(data, isOwnEntry: false)
+    }
 
     private func fetchImage() {
         if let processor = request.processors.last {
@@ -87,13 +101,16 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 let result = Result {
                     var response = response
                     response.container = try processor.process(response.container, context: context)
+                    response.request = context.request
                     return response
                 }.mapError { error in
                     ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                 }
                 return (result, start.map { (ContinuousClock.now - $0).timeInterval })
             }
-            self.operation = nil
+            if !Task.isCancelled { // A superseded preview leaves the final operation's handle alone
+                self.operation = nil
+            }
             self.diagnostics?.endStage(stage) {
                 $0.processor = processor.identifier
                 $0.isProgressive = !isCompleted
@@ -139,7 +156,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 let response = self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
                 return (response, start.map { (ContinuousClock.now - $0).timeInterval })
             }
-            self.operation = nil
+            if !Task.isCancelled { // A superseded preview leaves the final operation's handle alone
+                self.operation = nil
+            }
             self.diagnostics?.endStage(stage) {
                 $0.isProgressive = !isCompleted
                 $0.workDuration = workDuration
