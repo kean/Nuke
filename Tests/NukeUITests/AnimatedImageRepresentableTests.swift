@@ -155,7 +155,7 @@ struct AnimatedImageRepresentableTests {
 
     @Test func pausesOffScreenAndResumesWhenItComesBack() async throws {
         let source = Test.animatedGIFSource(frameCount: 8)
-        let host = ViewHost(source) { AnimatedImage($0) }
+        let host = ViewHost(source) { AnimatedImage($0).allowingPlayback() }
         await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.isPlaying == true })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))
         let player = try #require(view.player)
@@ -177,6 +177,7 @@ struct AnimatedImageRepresentableTests {
         let source = Test.animatedGIFSource(frameCount: 8)
         let host = ViewHost(false) { isAutoPlayOn in
             AnimatedImage(source).environment(\.accessibilityPlayAnimatedImagesOverride, isAutoPlayOn)
+                .environment(\._accessibilityReduceMotion, false)
         }
         await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.player?.image != nil })
         let view = try #require(host.firstView(ofType: AnimatedImageView.self))

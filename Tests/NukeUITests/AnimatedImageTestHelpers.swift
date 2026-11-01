@@ -241,6 +241,21 @@ extension AnimatedImagePoolSuite {
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
+import SwiftUI
+
+extension View {
+    /// Lets an `AnimatedImage` play on its own, whatever the machine says.
+    ///
+    /// Pinning ``AnimatedImageAutoPlaySettings`` only reaches the
+    /// `AnimatedImageView`. `AnimatedImage` reads the two settings from the
+    /// SwiftUI environment, where a CI runner has Auto-Play off or Reduce
+    /// Motion on and nothing plays.
+    func allowingPlayback() -> some View {
+        environment(\.accessibilityPlayAnimatedImagesOverride, true)
+            .environment(\._accessibilityReduceMotion, false)
+    }
+}
+
 extension AnimatedImageAutoPlaySettings {
     /// Lets the views a test makes play on their own, whatever the machine says.
     ///
