@@ -41,10 +41,16 @@ struct ImageProcessingExtensions {
             return nil // Nothing to draw, and NaN would slip past the scale check
         }
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
+        guard scale > 0 else {
+            return nil // A zero or negative target has nothing to draw in
+        }
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
-        let size = cgImage.size.scaled(by: scale).rounded()
+        // A side that scales below half a pixel rounds to zero, but a thin
+        // image – a separator, a progress bar – is still drawable at 1 px, as
+        // Image I/O draws it when it downsamples.
+        let size = cgImage.size.scaled(by: scale).rounded().clampedToOnePixel()
         return image.draw(inCanvasWithSize: size)
     }
 
@@ -64,7 +70,7 @@ struct ImageProcessingExtensions {
         var scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         var canvasSize = targetSize
         if scale > 1 && !upscale {
-            canvasSize = targetSize.scaled(by: 1 / scale).rounded()
+            canvasSize = targetSize.scaled(by: 1 / scale).rounded().clampedToOnePixel()
             scale = 1
         }
         let scaledSize = cgImage.size.scaled(by: scale)
@@ -101,7 +107,7 @@ struct ImageProcessingExtensions {
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
         }
-        return PlatformImage.make(cgImage: cropped, source: image)
+        return PlatformImage.make(cgImage: cropped, source: image, sourceCGImage: cgImage)
     }
 
     /// Adds rounded corners with the given radius to the image.
@@ -123,13 +129,16 @@ struct ImageProcessingExtensions {
         if let border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
-            ctx.setLineWidth(border.width)
+            // The stroke is centered on the path and the context is clipped to
+            // it, so only the inner half is drawn – twice the width makes the
+            // visible part as wide as requested.
+            ctx.setLineWidth(border.width * 2)
             ctx.strokePath()
         }
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return PlatformImage.make(cgImage: outputCGImage, source: image)
+        return PlatformImage.make(cgImage: outputCGImage, source: image, sourceCGImage: cgImage)
     }
 }
 
@@ -154,7 +163,7 @@ extension PlatformImage {
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return PlatformImage.make(cgImage: outputCGImage, source: self)
+        return PlatformImage.make(cgImage: outputCGImage, source: self, sourceCGImage: cgImage)
     }
 
     /// Decompresses the input image by drawing in the `CGContext`.
@@ -320,8 +329,24 @@ extension NSImage {
         cgImage.map { CIImage(cgImage: $0) }
     }
 
-    static func make(cgImage: CGImage, source: NSImage) -> NSImage {
-        NSImage(cgImage: cgImage, size: .zero)
+    /// Wraps the pixels drawn from `source` in an image with the same points
+    /// per pixel as the source, the way `UIImage` keeps its `scale`: an image
+    /// `NSImage(data:)` sized by its DPI, or one with a `@2x` representation,
+    /// keeps its point size when it's processed.
+    ///
+    /// - parameter sourceCGImage: The `cgImage` of the source, if the caller
+    /// already has it, to save a second `cgImage(forProposedRect:)` call.
+    static func make(cgImage: CGImage, source: NSImage, sourceCGImage: CGImage? = nil) -> NSImage {
+        guard let sourceCGImage = sourceCGImage ?? source.cgImage,
+              sourceCGImage.width > 0, sourceCGImage.height > 0,
+              source.size.width > 0, source.size.height > 0 else {
+            return NSImage(cgImage: cgImage, size: .zero)
+        }
+        let size = NSSize(
+            width: CGFloat(cgImage.width) * source.size.width / CGFloat(sourceCGImage.width),
+            height: CGFloat(cgImage.height) * source.size.height / CGFloat(sourceCGImage.height)
+        )
+        return NSImage(cgImage: cgImage, size: size)
     }
 
     convenience init(cgImage: CGImage) {
@@ -330,7 +355,7 @@ extension NSImage {
 }
 #else
 extension UIImage {
-    static func make(cgImage: CGImage, source: UIImage) -> UIImage {
+    static func make(cgImage: CGImage, source: UIImage, sourceCGImage: CGImage? = nil) -> UIImage {
         UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
 }
@@ -400,6 +425,11 @@ extension CGSize {
 
     func rounded() -> CGSize {
         CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
+    }
+
+    /// Returns the size with each side raised to at least one pixel.
+    func clampedToOnePixel() -> CGSize {
+        CGSize(width: max(1, width), height: max(1, height))
     }
 }
 
@@ -538,8 +568,17 @@ private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions
         return max(targetSize.width, targetSize.height)
     }
     let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+    // The stored pixels are fitted into the target, so the target has to be
+    // turned whenever the image the caller gets is displayed upright: on UIKit
+    // always, since `UIImage` carries the orientation when the transform is
+    // off; on AppKit only when Image I/O bakes it into the thumbnail, since
+    // `NSImage(cgImage:)` shows the pixels as stored.
 #if canImport(UIKit)
     targetSize = targetSize.rotatedForOrientation(orientation)
+#else
+    if thumbnailOptions.createThumbnailWithTransform {
+        targetSize = targetSize.rotatedForOrientation(orientation)
+    }
 #endif
     let imageSize = CGSize(width: width, height: height)
     let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)
