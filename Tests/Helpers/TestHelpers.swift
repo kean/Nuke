@@ -36,7 +36,10 @@ func startSuspended<T>(for pipeline: ImagePipeline, count: Int, _ body: () -> T)
     }
     let result = body()
     await expectation.wait()
-    pipeline.onTaskStarted = nil
+    // The hook stays: clearing it from here is a plain write to a property the
+    // pipeline actor reads for every task it starts, and Thread Sanitizer
+    // reports it as a race (and aborts the run) when the actor is still on the
+    // task that fulfilled the expectation. After `count` it does nothing.
     return result
 }
 
