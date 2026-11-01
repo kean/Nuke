@@ -14,7 +14,7 @@ extension ImagePipeline.Configuration {
     @available(*, deprecated, message: "Deprecated in Nuke 14.0. The pipeline no longer has a rate limiter, and setting this does nothing.")
     public var isRateLimiterEnabled: Bool {
         get { false }
-        set { /* The rate limiter is gone. */ }
+        set { _ = newValue } // The rate limiter is gone.
     }
 }
 
@@ -23,6 +23,11 @@ extension ImagePipeline.Configuration {
 // Removed APIs are kept as unavailable stubs that name their replacement: the
 // message goes straight into the compiler error, and `renamed:` also becomes an
 // Xcode fix-it. They are deleted two major versions after the removal.
+//
+// A setter never reads `newValue`: it only exists to keep the shape of the
+// property it replaces, which was settable.
+
+// swiftlint:disable unused_setter_value
 
 /// - warning: Renamed to ``ImagePipeline/Delegate``.
 @available(*, unavailable, renamed: "ImagePipeline.Delegate")
@@ -215,3 +220,5 @@ extension ImagePipeline {
         }
     }
 }
+
+// swiftlint:enable unused_setter_value
