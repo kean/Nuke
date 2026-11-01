@@ -10,8 +10,11 @@ private let maximumReservedCapacity: Int64 = 64 * 1024 * 1024
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
-final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
+final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
+    /// The response to a failed attempt. `urlResponse` doesn't have it if the
+    /// data loader rejected the response, which is where a `503` ends up.
+    private var failedResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private var data = Data()
@@ -117,7 +120,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 urlRequest = try await pipeline.willLoadData(for: request, urlRequest: urlRequest)
             } catch {
                 diagnostics?.endStage(willLoadDataStage)
-                throw error
+                // The delegate said no, and asking again won't change that.
+                await dataTaskDidFinish(error: ImagePipeline.Error(loadingError: error), isRetryable: false)
+                return
             }
             diagnostics?.endStage(willLoadDataStage)
             // The task can get cancelled while the delegate is suspended.
@@ -132,22 +137,20 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             try await loadData(with: urlRequest, dataLoader: dataLoader)
             await dataTaskDidFinish()
         } catch {
-            if let error = error as? ImagePipeline.Error {
-                await dataTaskDidFinish(error: error)
-            } else {
-                await dataTaskDidFinish(error: .dataLoadingFailed(error: error))
-            }
+            await dataTaskDidFinish(error: ImagePipeline.Error(loadingError: error))
         }
     }
 
     // This method was previously using `AsyncThrowingStream` but it turned out to be
     // sub-optimal in terms of the performance.
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
+        // A callback can arrive after the attempt that it belongs to is over.
+        let attempt = retryCount
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
             let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
                 Task { @ImagePipelineActor in
-                    self?.dataTaskDidReceive(chunk: chunk, response: response)
+                    self?.dataTaskDidReceive(chunk: chunk, response: response, attempt: attempt)
                 }
             }
             // Each branch passes its own completion so that the common one
@@ -156,7 +159,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 // The diagnostics are on: ask for what `URLSession` measured.
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
                     Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
+                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics, attempt: attempt)
                     }
                 }
                 if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
@@ -165,15 +168,15 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             } else {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
                     Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
+                        self?.finishDataLoad(error: error, attempt: attempt)
                     }
                 }
             }
         }
     }
 
-    private func dataTaskDidReceive(chunk: Data, response: URLResponse) {
-        guard dataLoadContinuation != nil, !isDisposed else { return }
+    private func dataTaskDidReceive(chunk: Data, response: URLResponse, attempt: Int) {
+        guard attempt == retryCount, dataLoadContinuation != nil, !isDisposed else { return }
         diagnostics?.recordFirstByte(downloadStage, statusCode: (response as? HTTPURLResponse)?.statusCode)
         do {
             if urlResponse == nil {
@@ -186,9 +189,15 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
     }
 
-    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil) {
-        guard let continuation = dataLoadContinuation else { return }
+    /// - parameter attempt: The attempt the callback came from. `nil` if it
+    /// comes from the current one.
+    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil, attempt: Int? = nil) {
+        guard attempt == nil || attempt == retryCount, let continuation = dataLoadContinuation else { return }
         dataLoadContinuation = nil
+        // Not for a cancellation, which is common and has no use for it.
+        if error != nil, !isDisposed, let handle = dataLoadCancellable as? URLSessionTaskCancellable {
+            failedResponse = handle.task.response
+        }
         dataLoadCancellable = nil
         if let urlSessionMetrics {
             diagnostics?.updateStage(downloadStage) { stage in
@@ -211,6 +220,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let resumableData, ResumableData.isResumedResponse(response) {
             data = resumableData.data
             resumedDataCount = Int64(resumableData.data.count)
+        } else if retryCount > 0 {
+            forEachSubscriber { ($0 as? TaskFetchOriginalImage)?.originalDataDidStartOver() }
         }
         resumableData = nil // Get rid of resumable data
 
@@ -262,20 +273,30 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         send(value: (data, response))
     }
 
-    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
+    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil, isRetryable: Bool = true) async {
         guard !isDisposed else { return }
 
-        diagnostics?.endStage(downloadStage) { recordTransfer(in: &$0) }
+        diagnostics?.endStage(downloadStage) { stage in
+            recordTransfer(in: &stage)
+            if let error {
+                stage.error = ImagePipeline.Diagnostics.ErrorSummary(error)
+                stage.statusCode = stage.statusCode ?? (failedResponse as? HTTPURLResponse)?.statusCode
+            }
+        }
 
         if let error {
             tryToSaveResumableData()
-            send(error: error)
+            if isRetryable {
+                downloadDidFail(with: error)
+            } else {
+                send(error: error)
+            }
             return
         }
 
         // Sanity check, should never happen in practice
         guard !data.isEmpty else {
-            send(error: .dataIsEmpty)
+            downloadDidFail(with: .dataIsEmpty)
             return
         }
 
@@ -296,6 +317,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if let urlResponse, urlResponse.expectedContentLength >= 0 {
             stage.expectedBytes = expectedSize(of: urlResponse)
         }
+    }
+
+    /// Clears what the attempt left behind. The bytes worth keeping are in the
+    /// resumable data storage by now, and that is where the next attempt takes
+    /// them from, once the server agrees to resume.
+    private func downloadDidFail(with error: ImagePipeline.Error) {
+        let response = failedResponse ?? urlResponse
+        urlResponse = nil
+        failedResponse = nil
+        resumableData = nil
+        resumedDataCount = 0
+        data = Data()
+        attemptDidFail(with: error, response: response)
     }
 
     // MARK: Async Data Loading
@@ -327,22 +361,22 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             }
             await asyncDataDidFinish(data)
         } catch {
-            diagnostics?.endStage(downloadStage) { $0.source = .closure }
-            send(error: .dataLoadingFailed(error: error))
+            let error = ImagePipeline.Error.dataLoadingFailed(error: error)
+            diagnostics?.endStage(downloadStage) {
+                $0.source = .closure
+                $0.error = ImagePipeline.Diagnostics.ErrorSummary(error)
+            }
+            attemptDidFail(with: error)
         }
     }
 
     private func asyncDataDidFinish(_ data: Data) async {
         guard !data.isEmpty else {
-            send(error: .dataIsEmpty)
+            attemptDidFail(with: .dataIsEmpty)
             return
         }
         await storeDataInCacheIfNeeded(data)
         send(value: (data, nil), isCompleted: true)
-    }
-
-    private func asyncDataDidFail(_ error: Error) {
-        send(error: .dataLoadingFailed(error: error))
     }
 
     private func tryToSaveResumableData() {

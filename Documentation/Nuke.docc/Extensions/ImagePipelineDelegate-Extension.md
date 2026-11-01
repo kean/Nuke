@@ -6,6 +6,7 @@
 
 - ``dataLoader(for:pipeline:)``
 - ``willLoadData(for:urlRequest:pipeline:)``
+- ``retryDecision(for:pipeline:)``
 
 ### Decoding and Encoding
 

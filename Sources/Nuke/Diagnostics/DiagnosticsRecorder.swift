@@ -216,7 +216,8 @@ extension ImagePipeline.Diagnostics {
 
         private static func bytes(of jobs: [Job]) -> ImageTask.Metrics.Bytes? {
             for job in jobs.reversed() {
-                for stage in job.stages where stage.kind == .download {
+                // The last attempt: it is the one that has the whole picture.
+                for stage in job.stages.reversed() where stage.kind == .download {
                     guard let bytes = stage.bytes else { continue }
                     return ImageTask.Metrics.Bytes(downloaded: bytes, resumed: stage.resumedBytes ?? 0, expected: stage.expectedBytes ?? bytes)
                 }

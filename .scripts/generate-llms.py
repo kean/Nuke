@@ -49,6 +49,7 @@ ARTICLE_ORDER = [
     "Essentials/troubleshooting.md",
     "Customization/ImageProcessing/image-processing.md",
     "Customization/LoadingData/loading-data.md",
+    "Customization/LoadingData/retrying-requests.md",
     "Performance/Caching/caching.md",
     "Performance/Caching/cache-layers.md",
     "Performance/Caching/accessing-caches.md",

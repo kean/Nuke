@@ -157,7 +157,9 @@ ImagePipeline.shared = ImagePipeline {
 
 ## Auto Retry
 
-Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/2908812-waitsforconnectivity) on `URLSession` to indicate that the session should wait for connectivity to become available instead of failing the request immediately in case of a network failure.
+Set ``ImagePipeline/Configuration-swift.struct/retryPolicy`` to retry the loads that fail for a reason that can go away, and to wait for the device to get back online. A load that is waiting doesn't take up a slot in the data loading queue. To learn more, see <doc:retrying-requests>.
+
+Prefer it to [`waitsForConnectivity`](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/2908812-waitsforconnectivity) on `URLSession`, which also waits for connectivity, but inside the request: it keeps the slot for as long as it waits, and the wait is limited by `timeoutIntervalForResource`, which is 7 days by default.
 
 ## Measure
 

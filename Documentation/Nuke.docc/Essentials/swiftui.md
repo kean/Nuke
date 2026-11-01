@@ -47,6 +47,8 @@ LazyImage(url: url) { state in
 .clipped()
 ```
 
+> Tip: To give people a way to try again, call `state.reload()`. To retry before showing an error, see <doc:retrying-requests>.
+
 > Note: Unlike `AsyncImage`, `LazyImage` doesn't pass a phase enum to the closure – it passes the state itself, so you can read the download progress or the underlying ``ImageResponse`` while the view is on screen.
 
 ## Transitions

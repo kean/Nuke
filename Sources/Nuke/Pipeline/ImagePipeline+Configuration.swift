@@ -139,6 +139,23 @@ extension ImagePipeline {
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
+        /// The policy for retrying the loads that fail, unless the request has
+        /// one of its own: ``ImageRequest/retryPolicy``. `nil` by default, which
+        /// doesn't retry.
+        ///
+        /// ```swift
+        /// let pipeline = ImagePipeline {
+        ///     $0.retryPolicy = .default
+        /// }
+        /// ```
+        ///
+        /// Retries reuse what the failed attempt downloaded if
+        /// ``isResumableDataEnabled`` is on and the server supports it. While it
+        /// waits, a request doesn't take up a slot in ``dataLoadingQueue``.
+        /// ``ImagePrefetcher`` doesn't use this policy: set one on the
+        /// request to retry a prefetch.
+        public var retryPolicy: RetryPolicy?
+
         /// If enabled, the pipeline will load the local resources (`file` and
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true

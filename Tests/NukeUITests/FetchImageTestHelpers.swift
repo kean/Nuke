@@ -32,6 +32,13 @@ extension FetchImage {
         await waitForCompletion { load(action) }
     }
 
+    /// Reloads the image and waits for ``FetchImage/onCompletion``, which it
+    /// replaces for the duration of the load.
+    @discardableResult
+    func reloadAndWait() async -> Result<ImageResponse, ImagePipeline.Error>? {
+        await waitForCompletion { reload() }
+    }
+
     private func waitForCompletion(of load: () -> Void) async -> Result<ImageResponse, ImagePipeline.Error>? {
         let completed = TestExpectation()
         let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)

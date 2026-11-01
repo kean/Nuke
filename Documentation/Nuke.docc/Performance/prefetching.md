@@ -72,6 +72,8 @@ To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)-718dg`` met
 - ``ImagePrefetcher/stopPrefetching(with:)-8cdam``
 - ``ImagePrefetcher/stopPrefetching()``
 
+A failed prefetch isn't retried, even if the pipeline has a ``ImagePipeline/Configuration-swift.struct/retryPolicy``, unless the request has one of its own: ``ImageRequest/retryPolicy``. A request for the same image that joins the prefetch brings its own retries.
+
 The prefetcher automatically cancels all of the outstanding tasks when deallocated. All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used even from the main thread during scrolling.
 
 > Important: Prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination: ``ImagePrefetcher/Destination/diskCache``. It doesn't require image decoding and processing and therefore uses less CPU. The images are stored on disk, so they also take up less memory. This policy doesn't work with ``ImagePipeline/DataCachePolicy/storeEncodedImages`` cache policy and other policies that affect `loadData()`. 

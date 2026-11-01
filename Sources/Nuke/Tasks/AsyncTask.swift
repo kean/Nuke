@@ -50,6 +50,15 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         return false
     }
 
+    func forEachSubscriber(_ body: (any ImageTaskSubscribers) -> Void) {
+        if let subscriber = inlineSubscription?.subscriber { body(subscriber) }
+        if let subscriptions {
+            for entry in subscriptions {
+                if let subscriber = entry.sub.subscriber { body(subscriber) }
+            }
+        }
+    }
+
     func hasSubscriber<T>(of type: T.Type) -> Bool {
         if inlineSubscription?.subscriber is T { return true }
         if let subscriptions {

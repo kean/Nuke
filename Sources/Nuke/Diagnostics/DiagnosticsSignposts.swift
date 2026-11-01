@@ -32,6 +32,7 @@ extension ImagePipeline.Diagnostics.Stage.Kind {
         case .diskLookup: "DiskLookup"
         case .willLoadData: "WillLoadData"
         case .download: "Download"
+        case .retryDelay: "RetryDelay"
         case .diskStore: "DiskStore"
         case .decode: "Decode"
         case .process: "Process"

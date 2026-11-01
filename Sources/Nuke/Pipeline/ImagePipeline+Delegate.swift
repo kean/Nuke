@@ -48,6 +48,9 @@ extension ImagePipeline {
         ///
         /// The default implementation returns `urlRequest` unchanged.
         ///
+        /// The pipeline calls it again for every retry, with the original URL
+        /// request, so a retry goes out with the current token.
+        ///
         /// - important: Not called for requests using a custom data fetch closure
         ///   or for local file resources.
         /// - parameters:
@@ -60,6 +63,42 @@ extension ImagePipeline {
         ///   ``ImagePipeline/Error/dataLoadingFailed(error:)`` wrapping the error.
         @ImagePipelineActor
         func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest
+
+        /// Decides what to do after an attempt to load an image fails. The
+        /// pipeline asks once per failed attempt, whatever the number of
+        /// requests that share the load.
+        ///
+        /// Use this hook for what a ``RetryPolicy`` can't express. It can
+        /// suspend, so it can also fix what went wrong. A request that follows
+        /// goes through ``willLoadData(for:urlRequest:pipeline:)``, which
+        /// is where a refreshed token gets into it:
+        ///
+        /// ```swift
+        /// func retryDecision(for context: ImagePipeline.RetryContext, pipeline: ImagePipeline) async -> ImagePipeline.RetryDecision {
+        ///     if context.statusCode == 401, context.retryCount == 0 {
+        ///         await session.refreshToken()
+        ///         return .retry(after: 0)
+        ///     }
+        ///     return context.policy?.decision(for: context) ?? .stop
+        /// }
+        /// ```
+        ///
+        /// The default implementation does what the ``RetryContext/policy``
+        /// says, and stops if there is none.
+        ///
+        /// - important: The delegate has the last word, so ``RetryPolicy/maxRetryCount``
+        ///   doesn't limit a decision made here. Check ``RetryContext/retryCount``.
+        ///
+        /// - note: Not called for a local resource, or for a request that
+        ///   ``willLoadData(for:urlRequest:pipeline:)`` rejects by throwing. A
+        ///   failure to decode or process an image isn't a failed attempt: the
+        ///   same data would fail again.
+        /// - parameters:
+        ///   - context: The failed attempt.
+        ///   - pipeline: The pipeline performing the request.
+        /// - returns: What the pipeline should do next.
+        @ImagePipelineActor
+        func retryDecision(for context: ImagePipeline.RetryContext, pipeline: ImagePipeline) async -> ImagePipeline.RetryDecision
 
         // MARK: Caching
 
@@ -134,6 +173,11 @@ extension ImagePipeline.Delegate {
         urlRequest
     }
 
+    @ImagePipelineActor
+    public func retryDecision(for context: ImagePipeline.RetryContext, pipeline: ImagePipeline) async -> ImagePipeline.RetryDecision {
+        context.policy?.decision(for: context) ?? .stop
+    }
+
     public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
         pipeline.configuration.dataCache
     }
@@ -185,6 +229,14 @@ extension ImagePipeline {
     func willLoadData(for request: ImageRequest, urlRequest: URLRequest) async throws -> URLRequest {
         guard !isDefaultDelegate else { return urlRequest }
         return try await delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: self)
+    }
+
+    @ImagePipelineActor
+    func retryDecision(for context: RetryContext) async -> RetryDecision {
+        guard !isDefaultDelegate else {
+            return context.policy?.decision(for: context) ?? .stop
+        }
+        return await delegate.retryDecision(for: context, pipeline: self)
     }
 
     /// Returns `nil` if the data must not be stored, including when the delegate
