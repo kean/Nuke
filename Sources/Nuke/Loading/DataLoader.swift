@@ -192,13 +192,13 @@ struct URLSessionTaskCancellable: Cancellable {
 private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     // The mutable state is confined to the session's serial delegate queue.
-    private nonisolated(unsafe) var handlers = [URLSessionTask: _Handler]()
+    nonisolated(unsafe) private var handlers = [URLSessionTask: _Handler]()
     /// The metrics of the tasks whose handlers asked for them, held from
     /// the moment they are collected to the completion, which delivers them.
-    private nonisolated(unsafe) var metrics = [URLSessionTask: URLSessionTaskMetrics]()
+    nonisolated(unsafe) private var metrics = [URLSessionTask: URLSessionTaskMetrics]()
     /// The validation errors of the responses the tasks that collect metrics
     /// were cancelled for, held until the completion, which delivers them.
-    private nonisolated(unsafe) var rejections = [URLSessionTask: Error]()
+    nonisolated(unsafe) private var rejections = [URLSessionTask: Error]()
 
     var delegate: URLSessionDelegate? {
         get { _delegate.withLockUnchecked { $0 } }

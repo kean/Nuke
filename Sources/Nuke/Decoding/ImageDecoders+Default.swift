@@ -37,10 +37,10 @@ extension ImageDecoders {
         /// The number of previews produced so far, including the ones generated
         /// by the ``ImagePipeline/PreviewPolicy/thumbnail`` policy and by the
         /// thumbnail fallback. Not a count of the scans in the image data.
-        private(set) nonisolated(unsafe) var numberOfScans = 0
-        private nonisolated(unsafe) var incrementalSource: CGImageSource?
+        nonisolated(unsafe) private(set) var numberOfScans = 0
+        nonisolated(unsafe) private var incrementalSource: CGImageSource?
 
-        private nonisolated(unsafe) var didAttemptThumbnailFallback = false
+        nonisolated(unsafe) private var didAttemptThumbnailFallback = false
         private let scale: CGFloat
         private let thumbnail: ImageRequest.ThumbnailOptions?
         let previewPolicy: ImagePipeline.PreviewPolicy
