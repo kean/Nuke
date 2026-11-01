@@ -19,28 +19,31 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             }
         }
         if let data = lookUpCachedData(for: request) {
-            decodeCachedData(data)
+            decodeCachedData(data, isOwnEntry: true)
         } else if request.thumbnail != nil, request.processors.isEmpty,
                   let data = lookUpCachedData(for: request.withoutThumbnail()) {
-            decodeCachedData(data)
+            decodeCachedData(data, isOwnEntry: false)
         } else {
             fetchImage()
         }
     }
 
-    private func decodeCachedData(_ data: Data) {
+    /// - parameter isOwnEntry: `true` if the data was read from the disk cache
+    /// entry for this request, so the decoded image isn't stored in it again,
+    /// as opposed to the original image data that a thumbnail is generated from.
+    private func decodeCachedData(_ data: Data, isOwnEntry: Bool) {
         let context = ImageDecodingContext(request: request, data: data, cacheType: .disk, isAnimatedImageParsingEnabled: pipeline.configuration.isAnimatedImageParsingEnabled)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
-            return didFinishDecoding(with: nil)
+            return didFinishDecoding(with: nil, isFromOwnDiskEntry: isOwnEntry)
         }
         decode(context, decoder: decoder) { [weak self] in
-            self?.didFinishDecoding(with: try? $0.get())
+            self?.didFinishDecoding(with: try? $0.get(), isFromOwnDiskEntry: isOwnEntry)
         }
     }
 
-    private func didFinishDecoding(with response: ImageResponse?) {
+    private func didFinishDecoding(with response: ImageResponse?, isFromOwnDiskEntry: Bool) {
         if let response {
-            didReceiveImageResponse(response, isCompleted: true)
+            didReceiveImageResponse(response, isCompleted: true, isFromOwnDiskEntry: isFromOwnDiskEntry)
         } else {
             fetchImage()
         }
@@ -116,10 +119,10 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
     // MARK: Decompression
 
-    private func didReceiveImageResponse(_ response: ImageResponse, isCompleted: Bool) {
+    private func didReceiveImageResponse(_ response: ImageResponse, isCompleted: Bool, isFromOwnDiskEntry: Bool = false) {
         guard !isDisposed else { return }
         guard isDecompressionNeeded(for: response) else {
-            return didReceiveDecompressedImage(response, isCompleted: isCompleted)
+            return didReceiveDecompressedImage(response, isCompleted: isCompleted, isFromOwnDiskEntry: isFromOwnDiskEntry)
         }
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive decompression tasks
@@ -142,7 +145,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 $0.workDuration = workDuration
                 $0.setOutput(response.container)
             }
-            self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
+            self.didReceiveDecompressedImage(response, isCompleted: isCompleted, isFromOwnDiskEntry: isFromOwnDiskEntry)
         }
     }
 
@@ -153,14 +156,14 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
 
-    private func didReceiveDecompressedImage(_ response: ImageResponse, isCompleted: Bool) {
-        storeImageInCaches(response)
+    private func didReceiveDecompressedImage(_ response: ImageResponse, isCompleted: Bool, isFromOwnDiskEntry: Bool) {
+        storeImageInCaches(response, isFromOwnDiskEntry: isFromOwnDiskEntry)
         send(value: response, isCompleted: isCompleted)
     }
 
     // MARK: Caching
 
-    private func storeImageInCaches(_ response: ImageResponse) {
+    private func storeImageInCaches(_ response: ImageResponse, isFromOwnDiskEntry: Bool) {
         guard hasDirectSubscribers else {
             return
         }
@@ -173,7 +176,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 }
             }
         }
-        if shouldStoreResponseInDataCache(response) {
+        if !isFromOwnDiskEntry, shouldStoreResponseInDataCache(response) {
             storeImageInDataCache(response)
         }
     }
@@ -200,8 +203,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         guard !request.options.contains(.disableDiskCacheWrites) else {
             return false
         }
-        guard !response.container.isPreview,
-              !(response.cacheType == .disk) else {
+        guard !response.container.isPreview else {
             return false
         }
         let isProcessed = !request.processors.isEmpty || request.thumbnail != nil

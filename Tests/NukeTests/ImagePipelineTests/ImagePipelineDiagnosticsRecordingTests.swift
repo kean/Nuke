@@ -50,7 +50,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
 
         // THEN
         #expect(task.metrics != nil)
-        #expect(task.status.metrics?.taskID == task.taskId)
+        #expect(task.status.metrics?.taskID == task.taskID)
     }
 
     /// The record is written before the terminal event is sent, so an
@@ -84,7 +84,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(finished)
         let metrics = try #require(record)
         #expect(metrics.outcome == .success)
-        #expect(metrics.taskID == task.taskId)
+        #expect(metrics.taskID == task.taskID)
     }
 
     // MARK: - Runtime Switch
@@ -205,7 +205,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
             #expect(metrics.startedAt != nil)
             #expect(metrics.outcome == .success)
             #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
-            #expect(metrics.jobs.allSatisfy { $0.taskIDs == [task.taskId] && $0.createdByTaskID == task.taskId && $0.outcome == .success })
+            #expect(metrics.jobs.allSatisfy { $0.taskIDs == [task.taskID] && $0.createdByTaskID == task.taskID && $0.outcome == .success })
             #expect(metrics.bytes?.downloaded == 22789)
         }
     }
@@ -251,7 +251,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(metrics.isCoalesced)
         #expect(metrics.jobs.map(\.kind) == [.loadImage, .fetchOriginalImage, .fetchOriginalData])
         #expect(metrics.jobs.allSatisfy { $0.joinedAt != nil })
-        #expect(metrics.jobs.allSatisfy { $0.taskIDs == [recorded.taskId] })
+        #expect(metrics.jobs.allSatisfy { $0.taskIDs == [recorded.taskID] })
         // The creator is unknown, and the task that joined isn't it
         #expect(metrics.jobs.allSatisfy { $0.createdByTaskID == 0 })
         #expect(metrics.sharedTaskIDs.isEmpty)
@@ -293,7 +293,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         let timeline = metrics.formatted(.timeline)
         #expect(timeline.split(separator: "\n").count == 1, "Unexpected timeline:\n\(timeline)")
         #expect(timeline.hasPrefix("total "))
-        #expect(metrics.description.hasPrefix("ImageTask #\(task.taskId) · cancelled · "))
+        #expect(metrics.description.hasPrefix("ImageTask #\(task.taskID) · cancelled · "))
     }
 
     @Test func taskOnAnInvalidatedPipelineRecordsTheFailure() async throws {
@@ -477,7 +477,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         // THEN every job it waited on, and the download, is running in its copy
         let metrics = try #require(task1.metrics)
         #expect(!metrics.isCoalesced)
-        #expect(metrics.sharedTaskIDs == [task2.taskId])
+        #expect(metrics.sharedTaskIDs == [task2.taskID])
         let lines = metrics.formatted(.timeline).split(separator: "\n").map(String.init)
         for job in metrics.jobs {
             let row = try #require(lines.first { $0.contains("j\(job.id) \(job.kind.rawValue)") })
@@ -485,7 +485,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         }
         let download = try #require(lines.first { $0.contains("─ download ") })
         #expect(download.hasSuffix("  running"), "Unexpected row: \(download)")
-        #expect(metrics.description.range(of: #"\ncoalesced: +no · shared with #\#(task2.taskId) \(j[0-9]+, j[0-9]+, j[0-9]+\)\n"#, options: .regularExpression) != nil, "Unexpected header in:\n\(metrics.description)")
+        #expect(metrics.description.range(of: #"\ncoalesced: +no · shared with #\#(task2.taskID) \(j[0-9]+, j[0-9]+, j[0-9]+\)\n"#, options: .regularExpression) != nil, "Unexpected header in:\n\(metrics.description)")
     }
 
     /// A task that joined a download and left before it finished sees it
@@ -795,7 +795,7 @@ struct ImagePipelineDiagnosticsRecordingTests {
         #expect(description.range(of: #"\nkind: +data\n"#, options: .regularExpression) != nil, "No kind in:\n\(description)")
         #expect(!description.contains("\nimage:"), "Unexpected image in:\n\(description)")
         #expect(!description.contains("\ntransfer:"), "Unexpected transfer in:\n\(description)")
-        #expect(description.hasPrefix("ImageTask #\(task.taskId) · success · "))
+        #expect(description.hasPrefix("ImageTask #\(task.taskID) · success · "))
         #expect(description.split(separator: "\n").first?.hasSuffix("from disk") == true)
     }
 

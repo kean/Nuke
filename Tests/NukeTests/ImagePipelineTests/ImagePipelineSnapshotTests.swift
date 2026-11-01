@@ -54,12 +54,12 @@ struct ImagePipelineSnapshotTests {
 
         // THEN
         let active = try #require(snapshot.tasks.first)
-        #expect(active.taskID == task.taskId)
+        #expect(active.taskID == task.taskID)
         #expect(active.kind == .image)
         #expect(active.resource == "https://example.com/image.jpeg?…")
         #expect(active.priority == .high)
         #expect(active.age == nil) // Diagnostics are off
-        #expect(snapshot.description.contains("#\(task.taskId) · high · https://example.com/image.jpeg?…"))
+        #expect(snapshot.description.contains("#\(task.taskID) · high · https://example.com/image.jpeg?…"))
         #expect(!snapshot.description.contains("secret"))
 
         task.cancel()
@@ -72,7 +72,7 @@ struct ImagePipelineSnapshotTests {
         let tasks = (0..<3).map { pipeline.imageTask(with: URL(string: "https://example.com/\($0).jpeg")!) }
         let snapshot = await snapshot(of: pipeline, untilTaskCount: 3)
 
-        #expect(snapshot.tasks.map(\.taskID).sorted() == tasks.map(\.taskId))
+        #expect(snapshot.tasks.map(\.taskID).sorted() == tasks.map(\.taskID))
         #expect(snapshot.tasks.map(\.taskID) == snapshot.tasks.map(\.taskID).sorted())
 
         tasks.forEach { $0.cancel() }

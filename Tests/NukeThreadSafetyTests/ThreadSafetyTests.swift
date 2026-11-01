@@ -506,7 +506,14 @@ private enum EventKey: Equatable {
 /// until each of them sees the task finish, and one more after that. With
 /// `cancels`, one of the threads cancels the task after its first stream.
 private func makeStreamsAcrossTheTerminalEvent(of request: ImageRequest, in pipeline: ImagePipeline, cancels: Bool) async -> (ImageTask, [AsyncStream<ImageTask.Event>]) {
-    await withCheckedContinuation { continuation in
+    // The task is made on a dispatch thread and used on whichever thread the
+    // test resumes on. It goes through a lock rather than the continuation's
+    // result because Thread Sanitizer sees a lock's release and acquire, but
+    // not a continuation's resume: it reports the task's one-time setup as a
+    // race with the first read of `response` whenever the threads differ,
+    // which they do on a runner with few cores.
+    let handoff = OSAllocatedUnfairLock<(ImageTask, [AsyncStream<ImageTask.Event>])?>(initialState: nil)
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
         DispatchQueue.global().async {
             let task = pipeline.imageTask(with: request)
             let streams = OSAllocatedUnfairLock<[AsyncStream<ImageTask.Event>]>(initialState: [])
@@ -523,9 +530,11 @@ private func makeStreamsAcrossTheTerminalEvent(of request: ImageRequest, in pipe
                     }
                 }
             }
-            continuation.resume(returning: (task, streams.withLock { $0 }))
+            handoff.withLock { $0 = (task, streams.withLock { $0 }) }
+            continuation.resume()
         }
     }
+    return handoff.withLock { $0! }
 }
 
 /// The name of the event, telling apart only how the task finished.

@@ -238,6 +238,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing processed images in the data cache – https://github.com/kean/Nuke/pull/1008
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
 - Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
+- Fix processed images and thumbnails built from an original in the disk cache never being stored in the disk cache under the `.automatic` and `.storeAll` policies – https://github.com/kean/Nuke/pull/1016
 - Fix a resumed download that failed again discarding its resumable data, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
 - Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
@@ -255,6 +256,9 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageDecoders/Default` previews ignoring the EXIF orientation, so a rotated progressive image snapped a quarter turn when the download completed – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageDecoders/Default` decoding full-size progressive previews for a request with `ImageRequest/thumbnail` set – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
 
 ### Documentation
 
@@ -269,6 +273,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 
 - Replace the hand-rolled `os_unfair_lock_t` allocations with `OSAllocatedUnfairLock` – https://github.com/kean/Nuke/pull/908
 - `TaskSubscription` is now `~Copyable`, so the compiler rejects unsubscribing twice – https://github.com/kean/Nuke/pull/961
+- Fix the `crop` documentation of `ImageProcessors/Resize` saying the flag has no effect with `.aspectFill`; it has no effect with `.aspectFit` – https://github.com/kean/Nuke/pull/1021
 
 # Nuke 13
 

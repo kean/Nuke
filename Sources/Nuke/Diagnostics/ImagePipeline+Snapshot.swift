@@ -39,7 +39,7 @@ extension ImagePipeline.Diagnostics {
 
         /// A task that hasn't finished.
         public struct ActiveTask: Sendable {
-            /// ``ImageTask/taskId``.
+            /// ``ImageTask/taskID``.
             public let taskID: UInt64
             public let kind: ImageTask.Metrics.Kind
             /// The URL with no query, which can carry a token, or the
@@ -160,7 +160,7 @@ extension ImagePipeline {
         let tasks = activeTasks.map { task in
             let status = task.status
             return Diagnostics.Snapshot.ActiveTask(
-                taskID: task.taskId,
+                taskID: task.taskID,
                 kind: task._kind,
                 resource: task.request.url?.redactedDescription ?? task.request.imageID,
                 priority: status.priority,

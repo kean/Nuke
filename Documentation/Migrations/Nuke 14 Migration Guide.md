@@ -329,6 +329,18 @@ let pipeline = ImagePipeline {
 let pipeline = ImagePipeline()
 ```
 
+## Renamed `ImageTask.taskId`
+
+`ImageTask.taskId` is now `taskID`, which is how every other identifier in Nuke spells it. The old name is deprecated and keeps working.
+
+```swift
+// Nuke 13
+logger.log("Finished \(task.taskId)")
+
+// Nuke 14
+logger.log("Finished \(task.taskID)")
+```
+
 ## `ImagePipeline.Delegate` declares its isolation
 
 The protocol used to describe where its methods run in a doc comment – "performed on the pipeline queue in the background" – which was true for only half of them. The isolation is now part of each signature.
