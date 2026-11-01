@@ -159,6 +159,7 @@ struct ImagePipelineDecodingTests {
     @Test func asyncDecoderProducesPreviews() async throws {
         // Given a decoder that supports progressive decoding
         let dataLoader = MockProgressiveDataLoader()
+        dataLoader.servesFirstChunkAutomatically = false
         let decoder = MockAsyncDecoder { _ in
             ImageContainer(image: Test.image)
         } decodePreview: { _ in
@@ -171,15 +172,24 @@ struct ImagePipelineDecodingTests {
         // When
         var previewCount = 0
         let task = pipeline.imageTask(with: Test.request)
+        dataLoader.resume()
         for await event in task.events {
             switch event {
             case .preview:
                 previewCount += 1
+                if previewCount == 1 {
+                    dataLoader.resume()
+                }
             case .progress:
-                // Serve the next chunk on progress rather than on a preview: the
-                // pipeline drops a preview while the previous one is still being
-                // decoded, and the loader would stall waiting for it.
-                dataLoader.resume()
+                // The rest of the chunks are served on progress rather than on
+                // every preview: the pipeline drops a preview while the previous
+                // one is still being decoded, and the loader would stall waiting
+                // for it. Not before the first preview, though. On a slow
+                // machine the last chunk could otherwise arrive while the first
+                // preview was still being decoded, and there would be none.
+                if previewCount > 0 {
+                    dataLoader.resume()
+                }
             default:
                 break
             }
