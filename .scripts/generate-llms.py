@@ -44,6 +44,7 @@ MODULES = ["Nuke", "NukeUI", "NukeVideo", "NukeExtensions"]
 ARTICLE_ORDER = [
     "Essentials/getting-started.md",
     "Essentials/swiftui.md",
+    "Essentials/replacing-async-image.md",
     "Essentials/uikit.md",
     "AnimatedImages.md",
     "Essentials/troubleshooting.md",

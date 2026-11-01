@@ -30,6 +30,7 @@ To install Nuke, use Swift Package Manager.
 
 - <doc:getting-started>
 - <doc:swiftui>
+- <doc:replacing-async-image>
 - <doc:uikit>
 - <doc:objective-c>
 - <doc:troubleshooting>
