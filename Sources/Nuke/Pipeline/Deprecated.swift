@@ -14,7 +14,7 @@ extension ImagePipeline.Configuration {
     @available(*, deprecated, message: "Deprecated in Nuke 14.0. The pipeline no longer has a rate limiter, and setting this does nothing.")
     public var isRateLimiterEnabled: Bool {
         get { false }
-        set { /* The rate limiter is gone. */ }
+        set { _ = newValue } // The rate limiter is gone.
     }
 }
 
@@ -23,6 +23,11 @@ extension ImagePipeline.Configuration {
 // Removed APIs are kept as unavailable stubs that name their replacement: the
 // message goes straight into the compiler error, and `renamed:` also becomes an
 // Xcode fix-it. They are deleted two major versions after the removal.
+//
+// A setter never reads `newValue`: it only exists to keep the shape of the
+// property it replaces, which was settable.
+
+// swiftlint:disable unused_setter_value
 
 /// - warning: Renamed to ``ImagePipeline/Delegate``.
 @available(*, unavailable, renamed: "ImagePipeline.Delegate")
@@ -31,28 +36,28 @@ public typealias ImagePipelineDelegate = ImagePipeline.Delegate
 extension ImageRequest {
     @available(*, unavailable, renamed: "imageID")
     public var imageId: String? {
-        get { fatalError() }
-        set { fatalError() }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
     public init(url: URL?, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
-        fatalError()
+        fatalError("Unavailable")
     }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
     public init(urlRequest: URLRequest, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
-        fatalError()
+        fatalError("Unavailable")
     }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
     public init(id: String, data: @Sendable @escaping () async throws -> Data, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
-        fatalError()
+        fatalError("Unavailable")
     }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Set the `userInfo` property on the request instead.")
     public init(id: String, image: @Sendable @escaping () async throws -> ImageContainer, processors: [any ImageProcessing] = [], priority: Priority = .normal, options: Options = [], userInfo: [UserInfoKey: any Sendable]?) {
-        fatalError()
+        fatalError("Unavailable")
     }
 }
 
@@ -70,45 +75,45 @@ extension ImageRequest.UserInfoKey {
 extension ImagePipeline.Configuration {
     @available(*, unavailable, message: "Removed in Nuke 14. Automatic downscaling is gone; use `ImageRequest.ThumbnailOptions` per request.")
     public var maximumDecodedImageSize: Int? {
-        get { fatalError() }
-        set { fatalError() }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 
     @available(*, unavailable, message: "Removed in Nuke 14. The pipeline sends signposts while its diagnostics are on; see `isDiagnosticsEnabled` and `signpostLog`.")
     public static var isSignpostLoggingEnabled: Bool {
-        get { fatalError() }
-        set { fatalError() }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 }
 
 extension ImageDecodingContext {
     @available(*, unavailable, message: "Removed in Nuke 14. Automatic downscaling is gone; use `ImageRequest.ThumbnailOptions` per request.")
     public var maximumDecodedImageSize: Int? {
-        get { fatalError() }
-        set { fatalError() }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 }
 
 extension DataCache {
     @available(*, unavailable, message: "Removed in Nuke 14. The disk I/O runs on a private queue. To wait for it, use `await flush()`.")
-    public var queue: DispatchQueue { fatalError() }
+    public var queue: DispatchQueue { fatalError("Unavailable") }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Use `await flush()`, which writes everything that's staged.")
-    public func flush(for key: String) { fatalError() }
+    public func flush(for key: String) { fatalError("Unavailable") }
 }
 
 extension ImageDecoding {
     // A decoder that still declares it compiles, and the pipeline ignores it.
     @available(*, unavailable, message: "Removed in Nuke 14. Every decode runs on `imageDecodingQueue`, so delete the property.")
-    public var isAsynchronous: Bool { fatalError() }
+    public var isAsynchronous: Bool { fatalError("Unavailable") }
 }
 
 extension ImagePipeline {
     @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
-    nonisolated public func imagePublisher(with url: URL) -> Never { fatalError() }
+    nonisolated public func imagePublisher(with url: URL) -> Never { fatalError("Unavailable") }
 
     @available(*, unavailable, message: "Removed in Nuke 14. Use `image(for:)` or `imageTask(with:)`. For progressive previews use `ImageTask.previews`.")
-    nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError() }
+    nonisolated public func imagePublisher(with request: ImageRequest) -> Never { fatalError("Unavailable") }
 }
 
 // MARK: - Removed in Nuke 12 and 13
@@ -128,23 +133,23 @@ public typealias ImageRequestConvertible = ImageRequest
 extension ImagePipeline.Configuration {
     @available(*, unavailable, message: "Removed in Nuke 13. The closure-based APIs call back on the main actor.")
     public var callbackQueue: DispatchQueue {
-        get { fatalError("Removed") }
-        set { fatalError("Removed") }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 
     @available(*, unavailable, message: "Removed in Nuke 13. `DataCache` schedules its own writes.")
     public var dataCachingQueue: TaskQueue {
-        get { fatalError("Removed") }
-        set { fatalError("Removed") }
+        get { fatalError("Unavailable") }
+        set { fatalError("Unavailable") }
     }
 }
 
 extension ImageTask {
     @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.completed`, or observe `progress`.")
-    public var completedUnitCount: Int64 { fatalError("Removed") }
+    public var completedUnitCount: Int64 { fatalError("Unavailable") }
 
     @available(*, unavailable, message: "Removed in Nuke 12. Use `status.progress.total`, or observe `progress`.")
-    public var totalUnitCount: Int64 { fatalError("Removed") }
+    public var totalUnitCount: Int64 { fatalError("Unavailable") }
 }
 
 // MARK: - Soft-deprecated in Nuke 12.9
@@ -215,3 +220,5 @@ extension ImagePipeline {
         }
     }
 }
+
+// swiftlint:enable unused_setter_value

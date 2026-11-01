@@ -37,10 +37,6 @@ type_body_length:
     warning: 600
     error: 1000
 
-identifier_name:
-    min_length:
-        warning: 1
-
 # NukeUI is built in Swift 6 mode and called by apps in Swift 5 mode, which can
 # reach a `@MainActor` method off the main thread without a diagnostic. A closure
 # passed to `map` inherits the actor and checks for it, so `url.map { ... }` traps

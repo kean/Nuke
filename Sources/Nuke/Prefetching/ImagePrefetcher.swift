@@ -43,7 +43,7 @@ public final class ImagePrefetcher: Sendable {
             }
         }
     }
-    private nonisolated let _priority = OSAllocatedUnfairLock(initialState: ImageRequest.Priority.low)
+    nonisolated private let _priority = OSAllocatedUnfairLock(initialState: ImageRequest.Priority.low)
 
     /// Prefetching destination.
     @frozen public enum Destination: Sendable {
@@ -72,7 +72,7 @@ public final class ImagePrefetcher: Sendable {
         get { _didComplete.withLock { $0 } }
         set { _didComplete.withLock { $0 = newValue } }
     }
-    private nonisolated let _didComplete = OSAllocatedUnfairLock<(@MainActor @Sendable () -> Void)?>(initialState: nil)
+    nonisolated private let _didComplete = OSAllocatedUnfairLock<(@MainActor @Sendable () -> Void)?>(initialState: nil)
 
     private let pipeline: ImagePipeline
     private let destination: Destination

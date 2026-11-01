@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Combine
 import CoreGraphics
 import NukeUI
 import SwiftUI

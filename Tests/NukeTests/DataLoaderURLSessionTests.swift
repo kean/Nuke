@@ -1174,7 +1174,7 @@ struct DataLoaderTaskPriorityTests {
         imageTask.priority = .veryHigh
 
         // Then
-        try await waitFor { task.priority == 1.0 ? true : nil }
+        _ = try await waitFor { task.priority == 1.0 ? true : nil }
 
         imageTask.cancel()
         _ = await result.value

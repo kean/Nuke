@@ -34,7 +34,7 @@ public final class ImagePipeline: Sendable {
         set { _shared.withLock { $0 = newValue } }
     }
 
-    private nonisolated static let _shared = OSAllocatedUnfairLock(initialState: ImagePipeline(configuration: .withURLCache))
+    nonisolated private static let _shared = OSAllocatedUnfairLock(initialState: ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
     nonisolated public let configuration: Configuration
@@ -54,13 +54,13 @@ public final class ImagePipeline: Sendable {
 
     private(set) var isInvalidated = false
 
-    private nonisolated var nextTaskID: UInt64 {
+    nonisolated private var nextTaskID: UInt64 {
         _nextTaskID.withLock { value in
             value += 1
             return value
         }
     }
-    private nonisolated let _nextTaskID = OSAllocatedUnfairLock<UInt64>(initialState: 0)
+    nonisolated private let _nextTaskID = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     /// Records the diagnostics. `nil` unless
     /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
