@@ -256,6 +256,11 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix `LazyImageView` hiding a `failureView` assigned while a failure is displayed, e.g. from `onFailure`, and showing a `placeholderView` assigned after a failure or while a `makeImageView` view displays the image – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` keeping the previous image visible in `imageView` when a memory cache hit, or a response with `isResetEnabled` disabled, is displayed by a `makeImageView` view – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` calling `onCompletion` for a request replaced from `onSuccess` or `onFailure` after the completion of the request that replaced it – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` displaying a memory-cached progressive scan when `isProgressiveRenderingEnabled` is disabled – https://github.com/kean/Nuke/pull/1028
+- Fix `LazyImageView` restarting the `.fadeIn` transition from transparent for every progressive scan and for the final image while an image is already displayed – https://github.com/kean/Nuke/pull/1028
 
 ### Documentation
 
