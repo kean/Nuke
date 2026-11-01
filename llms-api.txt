@@ -392,6 +392,7 @@
 - `nonisolated func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)`: Gets called when the task is created.
 - `func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)`: Gets called when the task is started by the pipeline.
 - `func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)`: Gets called when the task receives an event.
+- `func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)`
 
 ### ImagePipeline.Diagnostics
 

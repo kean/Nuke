@@ -137,9 +137,9 @@ Go through the list from step 2.
 
 ### Delegate methods that are never called
 
-Every method of `ImagePipeline.Delegate` has a default implementation, so a method with an old signature compiles, and the pipeline calls the default instead. Nothing warns about it. The worst case is `willCache`: a delegate that kept private images off the disk stops doing so.
+Every method of `ImagePipeline.Delegate` has a default implementation, so a method with an old signature compiles, and the pipeline calls the default instead. Nothing warns about it. The one exception is the Nuke 13 `willCache` with its completion closure, which the pipeline still calls.
 
-Compare **every** method in **every** conformance with this list. Any method whose name matches and whose signature differs is dead:
+Compare **every** method in **every** conformance with this list. Any other method whose name matches and whose signature differs is dead:
 
 ```swift
 extension PipelineDelegate: ImagePipeline.Delegate {
@@ -160,7 +160,9 @@ extension PipelineDelegate: ImagePipeline.Delegate {
 }
 ```
 
-Those are the only requirements, and the bodies above are not the defaults to copy: leave out what you don't need. Move the conformance into an extension, as above, which is the only place the compiler warns about a method that nearly matches. It doesn't catch a different number of parameters, which is why the old `willCache` needs a person to look at it:
+The bodies above are not the defaults to copy: leave out what you don't need. Move the conformance into an extension, as above, which is the only place the compiler warns about a method that nearly matches. It doesn't catch a different number of parameters.
+
+The default implementation of the new `willCache` calls the Nuke 13 one, so a delegate that keeps private images off the disk still does. It's soft-deprecated, and if a delegate has both, the pipeline calls the new one, so move the logic over:
 
 ```swift
 // Nuke 13
@@ -174,7 +176,9 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 }
 ```
 
-If the method does more than decide, such as encrypting the data, keep that logic and return the result. These older methods are dead too:
+If the method does more than decide, such as encrypting the data, keep that logic and return the result. Until it moves, note that Nuke 13 didn't wait for the completion closure, and now the image waits for it when the pipeline stores the original data.
+
+These older methods are dead:
 
 | Never called | Use, in `imageTask(_:didReceiveEvent:pipeline:)` |
 |---|---|

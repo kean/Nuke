@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// How the pipeline consults the caching hooks of ``ImagePipeline/Delegate-swift.protocol``
@@ -101,6 +102,151 @@ struct ImagePipelineDelegateCachingTests {
 
         // THEN
         #expect(dataCache.store == [Test.url.absoluteString + "p1": Data("sealedencoded".utf8)])
+    }
+
+    // MARK: willCache With a Completion Closure
+
+    private func makePipeline(delegate: any ImagePipeline.Delegate, _ policy: ImagePipeline.DataCachePolicy = .storeOriginalData, _ configure: (inout ImagePipeline.Configuration) -> Void = { _ in }) -> ImagePipeline {
+        ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.dataCache = dataCache
+            $0.dataCachePolicy = policy
+            configure(&$0)
+        }
+    }
+
+    /// The method compiles after an upgrade with no diagnostic, so if the
+    /// pipeline stopped calling it, private images would end up on the disk.
+    @Test func nuke13WillCacheKeepsDataOffTheDisk() async throws {
+        // GIVEN a delegate written for Nuke 13
+        let delegate = Nuke13CachingDelegate { _, completion in completion(nil) }
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(delegate.callCount == 1)
+        #expect(dataCache.store.isEmpty)
+    }
+
+    @Test func nuke13WillCacheDeclaredInAnExtensionKeepsDataOffTheDisk() async throws {
+        // GIVEN
+        let delegate = Nuke13ExtensionDelegate()
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(delegate.isCalled.withLock { $0 })
+        #expect(dataCache.store.isEmpty)
+    }
+
+    @Test func nuke13WillCacheCanReplaceTheData() async throws {
+        // GIVEN
+        let delegate = Nuke13CachingDelegate { data, completion in completion(Data("sealed".utf8) + data) }
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(dataCache.store == [Test.url.absoluteString: Data("sealed".utf8) + Test.data])
+    }
+
+    @Test func nuke13WillCacheCanPreventStoringTheEncodedImage() async throws {
+        // GIVEN
+        let delegate = Nuke13CachingDelegate { _, completion in completion(nil) }
+        let pipeline = makePipeline(delegate: delegate, .automatic) {
+            $0.makeImageEncoder = { _ in MockImageEncoder(result: Data("encoded".utf8)) }
+        }
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // THEN
+        #expect(delegate.callCount == 1)
+        #expect(dataCache.store.isEmpty)
+    }
+
+    /// The reason to take a closure: encrypting the data on a queue of its
+    /// own, for example. The closure must not assume it's called on the actor.
+    @Test func nuke13WillCacheCanCompleteOnAnotherThread() async throws {
+        // GIVEN
+        let delegate = Nuke13CachingDelegate { data, completion in
+            nonisolated(unsafe) let completion = completion
+            DispatchQueue.global().async { completion(Data("sealed".utf8) + data) }
+        }
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(dataCache.store == [Test.url.absoluteString: Data("sealed".utf8) + Test.data])
+    }
+
+    /// Nuke 13 didn't wait for the closure, so leaving it uncalled kept the
+    /// data off the disk, and the image still loaded. The pipeline now waits,
+    /// and must not wait forever.
+    @Test func nuke13WillCacheThatNeverCompletesDoesNotBlockTheLoad() async throws {
+        // GIVEN
+        let delegate = Nuke13CachingDelegate { _, _ in }
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        let image = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(image.size == Test.image.size)
+        #expect(delegate.callCount == 1)
+        #expect(dataCache.store.isEmpty)
+    }
+
+    /// Nuke 13 stored the data on each call, so it survived the mistake.
+    @Test func nuke13WillCacheThatCompletesTwiceUsesTheFirstResult() async throws {
+        // GIVEN
+        let delegate = Nuke13CachingDelegate { data, completion in
+            completion(data)
+            completion(nil)
+        }
+        let pipeline = makePipeline(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(dataCache.store == [Test.url.absoluteString: Test.data])
+    }
+
+    @Test func delegateWithoutWillCacheStoresTheData() async throws {
+        // GIVEN
+        final class Delegate: ImagePipeline.Delegate {}
+        let pipeline = makePipeline(delegate: Delegate())
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(dataCache.store == [Test.url.absoluteString: Test.data])
+    }
+
+    @Test func asyncWillCacheWinsOverTheNuke13Method() async throws {
+        // GIVEN a delegate that adopted the new method and left the old one
+        let delegate = Nuke13CachingDelegate { _, completion in completion(nil) }
+        let migrated = MigratedCachingDelegate(nuke13: delegate)
+        let pipeline = makePipeline(delegate: migrated)
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request)
+
+        // THEN
+        #expect(delegate.callCount == 0)
+        #expect(dataCache.store == [Test.url.absoluteString: Data("async".utf8)])
     }
 
     /// Documented: "This method is called only if the request parameters and
@@ -282,5 +428,55 @@ struct ImagePipelineDelegateCachingTests {
         #expect(context.urlResponse?.url == Test.url)
         #expect(context.request.processors.count == 1)
         #expect(context.image.nk_test_processorIDs == ["p1"])
+    }
+}
+
+// MARK: - Helpers
+
+/// A delegate written for Nuke 13, when `willCache` took a completion closure.
+private final class Nuke13CachingDelegate: ImagePipeline.Delegate, Sendable {
+    typealias Handler = @Sendable (Data, @escaping (Data?) -> Void) -> Void
+
+    private let handler: Handler
+    private let _callCount = OSAllocatedUnfairLock(initialState: 0)
+
+    var callCount: Int { _callCount.withLock { $0 } }
+
+    init(handler: @escaping Handler) {
+        self.handler = handler
+    }
+
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+        _callCount.withLock { $0 += 1 }
+        handler(data, completion)
+    }
+}
+
+/// The way the migration guide says to declare a conformance.
+private final class Nuke13ExtensionDelegate: Sendable {
+    let isCalled = OSAllocatedUnfairLock(initialState: false)
+}
+
+extension Nuke13ExtensionDelegate: ImagePipeline.Delegate {
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+        isCalled.withLock { $0 = true }
+        completion(nil)
+    }
+}
+
+/// Implements both forms of `willCache`.
+private final class MigratedCachingDelegate: ImagePipeline.Delegate, Sendable {
+    private let nuke13: Nuke13CachingDelegate
+
+    init(nuke13: Nuke13CachingDelegate) {
+        self.nuke13 = nuke13
+    }
+
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
+        Data("async".utf8)
+    }
+
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+        nuke13.willCache(data: data, image: image, for: request, pipeline: pipeline, completion: completion)
     }
 }

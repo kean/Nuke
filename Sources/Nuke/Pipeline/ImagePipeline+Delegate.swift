@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 extension ImagePipeline {
     /// A delegate that allows you to customize the pipeline dynamically on a per-request basis.
@@ -82,7 +83,9 @@ extension ImagePipeline {
         /// This method is called only if the request parameters and data caching policy
         /// of the pipeline already allow caching.
         ///
-        /// The default implementation returns `data` unchanged.
+        /// The default implementation calls
+        /// ``willCache(data:image:for:pipeline:completion:)``, which leaves `data`
+        /// unchanged unless a delegate written for Nuke 13 implements it.
         ///
         /// - parameters:
         ///   - data: Either the original data or the encoded image in case of storing
@@ -93,6 +96,30 @@ extension ImagePipeline {
         /// - returns: The data to store. Return `nil` or empty data to prevent caching.
         @ImagePipelineActor
         func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data?
+
+        /// The Nuke 13 form of ``willCache(data:image:for:pipeline:)``, whose
+        /// default implementation calls this method. The method above takes
+        /// precedence if a delegate implements both.
+        ///
+        /// It stays a requirement because a method left over from Nuke 13 compiles
+        /// without a diagnostic: if the pipeline stopped calling it, a delegate
+        /// that keeps private images off the disk would silently stop doing so.
+        ///
+        /// The default implementation calls `completion` with `data`.
+        ///
+        /// - warning: Soft-deprecated in Nuke 14. Implement
+        /// ``willCache(data:image:for:pipeline:)`` instead.
+        ///
+        /// - parameters:
+        ///   - data: Either the original data or the encoded image in case of storing
+        ///   a processed or re-encoded image.
+        ///   - image: Non-nil in case storing an encoded image.
+        ///   - request: The request for which image is being stored.
+        ///   - pipeline: The pipeline that is about to store the data.
+        ///   - completion: Call it from any thread with the data to store, or `nil`
+        ///   to prevent caching. The pipeline waits for it before delivering
+        ///   the original data.
+        nonisolated func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
 
         // MARK: Decompression
 
@@ -156,7 +183,16 @@ extension ImagePipeline.Delegate {
 
     @ImagePipelineActor
     public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
-        data
+        await withUnsafeContinuation { continuation in
+            let completion = WillCacheCompletion(continuation)
+            willCache(data: data, image: image, for: request, pipeline: pipeline) { @Sendable in
+                completion.resume(returning: $0)
+            }
+        }
+    }
+
+    public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+        completion(data)
     }
 
     public func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool {
@@ -213,3 +249,23 @@ extension ImagePipeline {
 }
 
 final class ImagePipelineDefaultDelegate: ImagePipeline.Delegate {}
+
+/// Nuke 13 didn't wait for the completion closure of `willCache`, so a delegate
+/// got away with not calling it, which kept the data off the disk, or with
+/// calling it twice. The pipeline waits for it now, and neither of those can
+/// hang the load or crash it.
+private final class WillCacheCompletion: Sendable {
+    private let continuation: OSAllocatedUnfairLock<UnsafeContinuation<Data?, Never>?>
+
+    init(_ continuation: UnsafeContinuation<Data?, Never>) {
+        self.continuation = OSAllocatedUnfairLock(initialState: continuation)
+    }
+
+    func resume(returning data: Data?) {
+        continuation.withLock { $0.take() }?.resume(returning: data)
+    }
+
+    deinit {
+        resume(returning: nil)
+    }
+}

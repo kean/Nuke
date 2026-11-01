@@ -380,7 +380,7 @@ These files describe the `main` branch, which is Nuke 14. The latest stable rele
 
 What you remember about Nuke is likely out of date. In particular:
 
-- A pipeline delegate method with the wrong signature compiles, and is never called. The Nuke 13 `willCache(data:image:for:pipeline:completion:)` is one. Copy the signatures from `llms-api.txt`.
+- A pipeline delegate method with the wrong signature compiles, and is never called. The Nuke 12 `imageTaskDidCancel(_:pipeline:)` is one. Copy the signatures from `llms-api.txt`.
 - `LazyImage` plays GIFs with no setup, and `AnimatedImageView` does in UIKit. Don't decode the frames yourself. A custom `LazyImage` content closure needs `AnimatedImage`.
 - Load into an image view with `ImageLoader.load(_:into:)` from NukeUI, not `loadImage(with:into:)` from NukeExtensions, which is soft-deprecated.
 - To find out why an image doesn't load, launch with `NUKE_DIAGNOSTICS_LOG=1` and read the log.
