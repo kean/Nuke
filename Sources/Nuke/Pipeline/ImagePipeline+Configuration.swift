@@ -144,9 +144,7 @@ extension ImagePipeline {
         public var isLocalResourcesSupportEnabled = true
 
         /// Records ``ImageTask/Metrics`` for every task. `false` by default,
-        /// unless the process was launched with `NUKE_DIAGNOSTICS_ENABLED`,
-        /// which ``ImagePipeline/Diagnostics-swift.struct/isEnabledByEnvironment``
-        /// reflects.
+        /// unless the process was launched with `NUKE_DIAGNOSTICS_ENABLED`.
         ///
         /// The recording is done on the pipeline actor, alongside the work it
         /// measures, and costs a few microseconds per task. Read a task's
@@ -163,9 +161,7 @@ extension ImagePipeline {
         /// Logs a line for every task that finishes: how it ended, how long it
         /// took, and where the image came from or why it failed. It's what to
         /// turn on when an image doesn't show up. `false` by default, unless
-        /// the process was launched with `NUKE_DIAGNOSTICS_LOG`, which
-        /// ``ImagePipeline/Diagnostics-swift.struct/isLoggingEnabledByEnvironment``
-        /// reflects.
+        /// the process was launched with `NUKE_DIAGNOSTICS_LOG`.
         ///
         /// The lines are ``ImageTask/Metrics/summary``, and they go to the
         /// unified logging system, which is the Xcode console, or:

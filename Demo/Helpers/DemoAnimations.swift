@@ -396,7 +396,7 @@ struct DemoAnimationInfo: Sendable {
     }
 
     private init(source: AnimatedImageSource) {
-        guard let imageSource = source.makeImageSource() else { return }
+        guard let imageSource = CGImageSourceCreateWithData(source.data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else { return }
         typeIdentifier = CGImageSourceGetType(imageSource) as String?
         // Image I/O files the animation metadata under a dictionary named for
         // the format; the keys inside are the same for every one.

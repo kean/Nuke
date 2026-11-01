@@ -201,8 +201,9 @@ def clean_signature(text):
     return re.sub(r"\b(?:internal|fileprivate|private)\(set\)\s+", "", text)
 
 
-def parse_file(path):
-    """Returns (scope, signature, summary) for every public declaration in a file."""
+def parse_file(path, hidden_types):
+    """Returns (scope, signature, summary) for every public declaration in a file,
+    and adds the top-level types it declares that aren't public to `hidden_types`."""
     lines = path.read_text(encoding="utf-8").splitlines()
     declarations = []
     scopes = []
@@ -288,6 +289,8 @@ def parse_file(path):
                         if accessor:
                             signature += " { get " + accessor.group(1) + " }"
                     declarations.append((owner, clean_signature(signature), first_sentence(docs), kind))
+                if kind in TYPE_KINDS and enclosing is None and not is_declared_public:
+                    hidden_types.add(name)
                 if kind in TYPE_KINDS and "{" in code:
                     scopes.append(Scope(name, kind, exposed, depth))
 
@@ -313,9 +316,17 @@ def api_reference():
     ]
     for module in MODULES:
         groups = {}
+        hidden_types = set()
         for path in sorted((ROOT / "Sources" / module).rglob("*.swift")):
-            for owner, signature, summary, kind in parse_file(path):
+            for owner, signature, summary, kind in parse_file(path, hidden_types):
                 groups.setdefault(owner, []).append((signature, summary, kind))
+
+        # A public witness in an extension of a `package` protocol isn't API, and
+        # neither is the protocol in the conformance list of a public type.
+        for name in hidden_types:
+            groups.pop(name, None)
+            for owner, members in groups.items():
+                groups[owner] = [(re.sub(rf",\s*{name}\b", "", signature), summary, kind) for signature, summary, kind in members]
 
         output.append(f"\n## {module}\n")
         for owner in sorted(groups):

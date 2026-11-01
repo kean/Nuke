@@ -246,7 +246,7 @@ public final class AnimatedImageSource: Sendable {
     ///
     /// - important: `CGImageSource` is not safe to use concurrently. Decode
     /// from one thread at a time, or create one source per decoder.
-    public func makeImageSource() -> CGImageSource? {
+    func makeImageSource() -> CGImageSource? {
         CGImageSourceCreateWithData(data as CFData, AnimatedImageSource.imageSourceOptions)
     }
 
