@@ -399,11 +399,11 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
                   completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        var chunks = Array(_createChunks(for: data, size: data.count / chunkCount))[...]
+        nonisolated(unsafe) var chunks = Array(_createChunks(for: data, size: data.count / chunkCount))[...]
         let response = urlResponse
         // The pipeline decodes a chunk on its decoding queue and skips the ones
         // that arrive meanwhile, so a chunk waits for the previous one's decode.
-        nonisolated(unsafe) func serve() {
+        @Sendable func serve() {
             guard let chunk = chunks.popFirst() else {
                 return completion(nil)
             }
