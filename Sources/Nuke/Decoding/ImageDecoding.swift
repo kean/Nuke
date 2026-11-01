@@ -101,10 +101,11 @@ extension AsyncImageDecoding {
 }
 
 private func makeImageResponse(_ container: ImageContainer, context: ImageDecodingContext) -> ImageResponse {
-#if !os(macOS)
+    // Marked on every platform: whether to decompress is up to the pipeline
+    // (`isDecompressionEnabled`, which is off on macOS by default) and its
+    // delegate, so that turning it on works on macOS too.
     if context.request.thumbnail == nil && !container.isPreview {
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
     }
-#endif
     return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
 }
