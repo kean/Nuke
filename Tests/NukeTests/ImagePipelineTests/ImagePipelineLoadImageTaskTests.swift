@@ -478,6 +478,56 @@ struct ImagePipelineLoadImageTaskTests {
         _ = try await task.response
         #expect(calls.count == 1)
     }
+
+    @Test func imageClosureSkippingTheDataLoadingQueueRunsWhileItIsSuspended() async throws {
+        // GIVEN a data loading queue that runs nothing
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+        let didCallClosure = TestExpectation()
+        let request = ImageRequest(
+            id: "closure-image",
+            image: {
+                didCallClosure.fulfill()
+                return Test.container
+            },
+            options: [.skipDataLoadingQueue]
+        )
+
+        // WHEN
+        let task = pipeline.imageTask(with: request)
+
+        // THEN the closure runs anyway
+        await didCallClosure.wait(timeout: .seconds(5))
+        queue.isSuspended = false
+        let image = try await task.image
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func imageClosureSkippingTheDataLoadingQueueIsCancellable() async throws {
+        // GIVEN a closure that doesn't finish on its own
+        let entered = TestExpectation()
+        let proceed = AsyncGate()
+        let request = ImageRequest(
+            id: "closure-image",
+            image: {
+                entered.fulfill()
+                await proceed.wait()
+                return Test.container
+            },
+            options: [.skipDataLoadingQueue]
+        )
+
+        // WHEN the task is cancelled while the closure is in flight
+        let task = pipeline.imageTask(with: request)
+        await entered.wait()
+        task.cancel()
+
+        // THEN
+        await #expect(throws: ImagePipeline.Error.cancelled) {
+            try await task.response
+        }
+        proceed.open()
+    }
 }
 
 // MARK: - Helpers
