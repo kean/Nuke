@@ -245,6 +245,9 @@ extension AssetType {
             return nil
         }
         let start = data.index(data.startIndex, offsetBy: offset)
+        // The failable `String(bytes:encoding:)` goes through Foundation, and this runs
+        // on every sniffed image. Invalid bytes become U+FFFD and match no brand.
+        // swiftlint:disable:next optional_data_string_conversion
         return String(decoding: data[start..<data.index(start, offsetBy: count)], as: UTF8.self)
     }
 
