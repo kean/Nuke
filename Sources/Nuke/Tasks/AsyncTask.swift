@@ -301,6 +301,19 @@ enum TaskPriority: Int, Comparable, CaseIterable {
     static func < (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
         lhs.rawValue < rhs.rawValue
     }
+
+    /// What `URLSessionTask.priority` takes for the level. The five values are
+    /// the ones `URLSession` sends as the HTTP priority urgency (`u=7, 5, 3, 1, 0`,
+    /// where 3 is the default), so each level is a distinct urgency on the wire.
+    var urlSessionTaskPriority: Float {
+        switch self {
+        case .veryLow: 0.0
+        case .low: 0.25
+        case .normal: 0.5
+        case .high: 0.75
+        case .veryHigh: 1.0
+        }
+    }
 }
 
 // MARK: - AsyncTask.Event {
