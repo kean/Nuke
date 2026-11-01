@@ -106,7 +106,7 @@ struct ImageViewExtensionsTests {
         let preview = ImageContainer(image: Test.image, isPreview: true)
         imageCache[Test.request] = preview
 
-        let task = NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        let task = NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // The cached preview stays on screen while the final image loads.
         #expect(task != nil)
@@ -120,7 +120,7 @@ struct ImageViewExtensionsTests {
         var options = options
         options.placeholder = Test.image
 
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         #expect(imageView.image === preview.image)
     }
@@ -132,7 +132,7 @@ struct ImageViewExtensionsTests {
         options.isProgressiveRenderingEnabled = false
         options.placeholder = Test.image
 
-        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         #expect(imageView.image === options.placeholder)
     }
