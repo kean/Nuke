@@ -204,15 +204,32 @@ public final class ImagePipeline: Sendable {
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         // The creation time is the one thing the diagnostics read off the actor.
         let task = ImageTask(taskID: nextTaskID, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
-        // Important to call it before `imageTaskStartCalled`
-        imageTaskCreated(task, isDataTask: isDataTask)
-        task._task = Task { @ImagePipelineActor in
-            await withUnsafeContinuation { continuation in
-                task._continuation = continuation
-                self.startImageTask(task, isDataTask: isDataTask)
+        guard !isDataTask && !isDefaultDelegate else {
+            task._task = Task { @ImagePipelineActor in
+                await self.startImageTask(task, isDataTask: isDataTask)
             }
+            return task
         }
+        // The delegate is handed the task synchronously, and it can await the
+        // response right away, so `_task` has to be set before the call. The
+        // gate keeps the start – and `imageTaskDidStart` – from running until
+        // the delegate returns.
+        let created = OneShotGate()
+        task._task = Task { @ImagePipelineActor in
+            await created.wait()
+            return await self.startImageTask(task, isDataTask: isDataTask)
+        }
+        delegate.imageTaskCreated(task, pipeline: self)
+        created.open()
         return task
+    }
+
+    /// Wires the task and starts it.
+    private func startImageTask(_ task: ImageTask, isDataTask: Bool) async -> Result<ImageResponse, ImagePipeline.Error> {
+        await withUnsafeContinuation { continuation in
+            task._continuation = continuation
+            startImageTask(task, isDataTask: isDataTask)
+        }
     }
 
     // By this time, the task has `continuation` set and is fully wired.
