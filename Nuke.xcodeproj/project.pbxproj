@@ -660,6 +660,7 @@
 			buildPhases = (
 				0C06C96F22E47FD1000AA0A6 /* Lint */,
 				0C91748B1BAE99EE004A7905 /* Sources */,
+				0CDE20000000000000000001 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -792,6 +793,13 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0CDE20000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C38DB1D28568FE20027F9FF /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
