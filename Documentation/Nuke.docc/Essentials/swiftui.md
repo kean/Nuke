@@ -86,14 +86,21 @@ LazyImage(url: url)
 
 ## Using a Custom Pipeline
 
-To use a pipeline other than ``ImagePipeline/shared``, set it on the view.
+To use a pipeline other than ``ImagePipeline/shared``, set it on the view hierarchy. Every `LazyImage` below the modifier loads with it, the way `asyncImageURLSession(_:)` sets the session of `AsyncImage`.
+
+```swift
+ContentView()
+    .imagePipeline(myPipeline)
+```
+
+A pipeline set on a single view with `pipeline(_:)` takes precedence over the one in the environment.
 
 ```swift
 LazyImage(url: url)
     .pipeline(myPipeline)
 ```
 
-> Tip: There is no environment-based mechanism for this – `pipeline(_:)` is set per view. If most of your app uses a single custom pipeline, assign it to ``ImagePipeline/shared`` at launch instead of passing it to every view.
+Changing the pipeline reloads the images that are on screen. If your whole app uses a single custom pipeline, you can also assign it to ``ImagePipeline/shared`` at launch.
 
 ## FetchImage for Custom Views
 
