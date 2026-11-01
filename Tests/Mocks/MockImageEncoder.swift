@@ -28,9 +28,10 @@ final class MockImageEncoder: ImageEncoding {
 
     func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
         _contexts.withLock { $0.append(context) }
-        // The default implementation passes the data of a GIF through.
-        if container.type == .gif {
-            return container.data
+        // The default implementation passes the data of a GIF through, unless
+        // a processor dropped it.
+        if container.type == .gif, let data = container.data {
+            return data
         }
         return encode(container.image)
     }
