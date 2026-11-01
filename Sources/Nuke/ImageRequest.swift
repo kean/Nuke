@@ -33,6 +33,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// The relative priority of the request. The priority affects the order in
     /// which the requests are performed. ``Priority-swift.enum/normal`` by default.
     ///
+    /// The default ``DataLoader`` also sets it as the priority of the `URLSessionTask`,
+    /// which `URLSession` passes to the server as a hint.
+    ///
     /// - note: You can change the priority of a running task using ``ImageTask/priority``.
     public var priority: Priority {
         get { ref.priority }

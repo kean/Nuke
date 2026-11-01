@@ -25,6 +25,16 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var downloadStage: Int?
     private var willLoadDataStage: Int?
 
+    /// The `URLSessionTask` priority is a hint the server and the connection
+    /// use to order the responses, so a task that gets more urgent while it
+    /// runs passes that on. The queue only orders the tasks not yet started.
+    override var priority: TaskPriority {
+        didSet {
+            guard oldValue != priority else { return }
+            (dataLoadCancellable as? URLSessionTaskCancellable)?.task.priority = priority.urlSessionTaskPriority
+        }
+    }
+
     override func start() {
         if case .data(let closure) = request.resource {
             loadAsyncData(closure)
@@ -154,13 +164,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             // isn't wrapped in a closure that only exists to drop the metrics.
             if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
                 // The diagnostics are on: ask for what `URLSession` measured.
-                dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error, metrics in
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, priority: priority, didReceiveData: didReceiveData) { [weak self] error, metrics in
                     Task { @ImagePipelineActor in
                         self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
                     }
                 }
                 if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
                     diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
+                }
+            } else if let dataLoader = dataLoader as? DataLoader {
+                dataLoadCancellable = dataLoader.loadData(with: urlRequest, priority: priority, didReceiveData: didReceiveData) { [weak self] error in
+                    Task { @ImagePipelineActor in
+                        self?.finishDataLoad(error: error)
+                    }
                 }
             } else {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in

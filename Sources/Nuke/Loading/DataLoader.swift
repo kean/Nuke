@@ -110,7 +110,7 @@ public final class DataLoader: DataLoading, Sendable {
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Swift.Error?) -> Void
     ) -> any Cancellable {
-        loadData(with: request, collectsMetrics: false, didReceiveData: didReceiveData) { error, _ in
+        loadData(with: request, priority: nil, collectsMetrics: false, didReceiveData: didReceiveData) { error, _ in
             completion(error)
         }
     }
@@ -120,20 +120,39 @@ public final class DataLoader: DataLoading, Sendable {
     /// completion. The pipeline asks for them when its diagnostics are on.
     func loadData(
         with request: URLRequest,
+        priority: TaskPriority? = nil,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void
     ) -> any Cancellable {
-        loadData(with: request, collectsMetrics: true, didReceiveData: didReceiveData, completion: completion)
+        loadData(with: request, priority: priority, collectsMetrics: true, didReceiveData: didReceiveData, completion: completion)
+    }
+
+    /// ``loadData(with:didReceiveData:completion:)``, with the priority of
+    /// the request set on the `URLSessionTask` before it starts. The pipeline
+    /// uses it because the public `DataLoading` method has no room for one.
+    func loadData(
+        with request: URLRequest,
+        priority: TaskPriority,
+        didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+        completion: @escaping @Sendable (Swift.Error?) -> Void
+    ) -> any Cancellable {
+        loadData(with: request, priority: priority, collectsMetrics: false, didReceiveData: didReceiveData) { error, _ in
+            completion(error)
+        }
     }
 
     private func loadData(
         with request: URLRequest,
+        priority: TaskPriority?,
         collectsMetrics: Bool,
         didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
         completion: @escaping @Sendable (Swift.Error?, URLSessionTaskMetrics?) -> Void
     ) -> any Cancellable {
         let task = session.dataTask(with: request)
         task.prefersIncrementalDelivery = prefersIncrementalDelivery
+        if let priority {
+            task.priority = priority.urlSessionTaskPriority
+        }
         return impl.loadData(with: task, session: session, collectsMetrics: collectsMetrics, didReceiveData: didReceiveData, completion: completion)
     }
 

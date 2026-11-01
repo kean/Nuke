@@ -1100,6 +1100,95 @@ struct DataLoaderDelegateForwardingTests {
     }
 }
 
+// MARK: - Task Priority
+
+/// The request priority is passed on as `URLSessionTask.priority`, which
+/// `URLSession` turns into the HTTP priority of the request.
+@Suite(.timeLimit(.minutes(5)))
+struct DataLoaderTaskPriorityTests {
+
+    @Test func levelsAreDistinctAndOrdered() {
+        let values = TaskPriority.allCases.map(\.urlSessionTaskPriority)
+        #expect(values == [0.0, 0.25, 0.5, 0.75, 1.0])
+        #expect(TaskPriority.normal.urlSessionTaskPriority == URLSessionTask.defaultPriority)
+    }
+
+    @Test(arguments: [
+        (ImageRequest.Priority.veryLow, Float(0.0)),
+        (.low, 0.25),
+        (.normal, 0.5),
+        (.high, 0.75),
+        (.veryHigh, 1.0)
+    ])
+    func pipelineSetsTaskPriorityFromRequest(priority: ImageRequest.Priority, expected: Float) async throws {
+        // Given
+        let observed = OSAllocatedUnfairLock<Float?>(initialState: nil)
+        let url = StubURLProtocol.register { stub in
+            observed.withLock { $0 = stub.task?.priority }
+            stub.respond(chunks: [Data("x".utf8)])
+        }
+        let pipeline = ImagePipeline {
+            $0.dataLoader = makeStubLoader()
+            $0.imageCache = nil
+        }
+
+        // When the load fails to decode, which doesn't matter: the task has run
+        _ = try? await pipeline.data(for: ImageRequest(url: url, priority: priority))
+
+        // Then
+        #expect(observed.withLock { $0 } == expected)
+    }
+
+    @Test func loadingThroughTheProtocolLeavesTheDefaultPriority() async {
+        // Given
+        let observed = OSAllocatedUnfairLock<Float?>(initialState: nil)
+        let url = StubURLProtocol.register { stub in
+            observed.withLock { $0 = stub.task?.priority }
+            stub.respond(chunks: [Data("x".utf8)])
+        }
+
+        // When
+        await LoadRecorder().loadToCompletion(with: makeStubLoader(), request: URLRequest(url: url))
+
+        // Then
+        #expect(observed.withLock { $0 } == URLSessionTask.defaultPriority)
+    }
+
+    @Test func runningTaskFollowsPriorityChanges() async throws {
+        // Given a load that is in flight
+        let running = OSAllocatedUnfairLock<URLSessionTask?>(initialState: nil)
+        let url = StubURLProtocol.register { stub in
+            stub.sendResponse()
+            running.withLock { $0 = stub.task }
+        }
+        let pipeline = ImagePipeline {
+            $0.dataLoader = makeStubLoader()
+            $0.imageCache = nil
+        }
+        let imageTask = pipeline.imageTask(with: ImageRequest(url: url, priority: .low))
+        let result = Task { try? await imageTask.response }
+        let task = try await waitFor { running.withLock { $0 } }
+        #expect(task.priority == 0.25)
+
+        // When
+        imageTask.priority = .veryHigh
+
+        // Then
+        try await waitFor { task.priority == 1.0 ? true : nil }
+
+        imageTask.cancel()
+        _ = await result.value
+    }
+}
+
+private func waitFor<T: Sendable>(_ value: @Sendable () -> T?) async throws -> T {
+    for _ in 0..<500 {
+        if let value = value() { return value }
+        try await Task.sleep(nanoseconds: 10_000_000)
+    }
+    throw CancellationError()
+}
+
 // MARK: - Helpers
 
 private func makeStubLoader(
