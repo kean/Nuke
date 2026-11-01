@@ -125,61 +125,69 @@ extension ImageDecoders {
                 return nil // Already handled above
 
             case .thumbnail:
-                if numberOfScans > 0 { return nil } // Already generated
-                guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-                      let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                          kCGImageSourceCreateThumbnailFromImageAlways: false,
-                          kCGImageSourceCreateThumbnailFromImageIfAbsent: false,
-                          kCGImageSourceCreateThumbnailWithTransform: true
-                      ] as CFDictionary) else {
-                    return nil
-                }
-                numberOfScans += 1
-                let image = ImageDecoders.Default._make(thumb, scale: scale)
-                return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+                return _thumbnailPreview(data: data, assetType: assetType)
 
             case .incremental:
-                if incrementalSource == nil {
-                    incrementalSource = CGImageSourceCreateIncremental(nil)
-                }
-
-                let source = incrementalSource!
-                CGImageSourceUpdateData(source, data as CFData, false)
-
-                // Check that Image I/O has parsed the image dimensions before
-                // attempting to create a (potentially expensive) CGImage.
-                guard let orientation = _orientation(ifDimensionsAreKnownIn: source) else {
-                    // Fallback: for JPEGs with large EXIF headers, the
-                    // incremental source may never produce dimensions. Try
-                    // generating a thumbnail from a non-incremental source once.
-                    return _thumbnailFallback(data: data, assetType: assetType)
-                }
-
-                let image: PlatformImage
-                if let thumbnail {
-                    // A thumbnail request asks for a small image to save memory;
-                    // a preview decoded at the full size of the image would undo
-                    // that, so its previews are thumbnails too.
-                    guard let thumb = makeThumbnail(source: source, options: thumbnail, scale: scale) else {
-                        return nil
-                    }
-                    image = thumb
-                } else {
-                    guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-                        return nil
-                    }
-                    image = ImageDecoders.Default._make(cgImage, scale: scale, orientation: orientation)
-                }
-
-                numberOfScans += 1
-
-                return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+                return _incrementalPreview(data: data, assetType: assetType)
             }
         }
     }
 }
 
 extension ImageDecoders.Default {
+    private func _thumbnailPreview(data: Data, assetType: AssetType?) -> ImageContainer? {
+        if numberOfScans > 0 { return nil } // Already generated
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: false,
+                  kCGImageSourceCreateThumbnailFromImageIfAbsent: false,
+                  kCGImageSourceCreateThumbnailWithTransform: true
+              ] as CFDictionary) else {
+            return nil
+        }
+        numberOfScans += 1
+        let image = ImageDecoders.Default._make(thumb, scale: scale)
+        return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+    }
+
+    private func _incrementalPreview(data: Data, assetType: AssetType?) -> ImageContainer? {
+        if incrementalSource == nil {
+            incrementalSource = CGImageSourceCreateIncremental(nil)
+        }
+
+        let source = incrementalSource!
+        CGImageSourceUpdateData(source, data as CFData, false)
+
+        // Check that Image I/O has parsed the image dimensions before
+        // attempting to create a (potentially expensive) CGImage.
+        guard let orientation = _orientation(ifDimensionsAreKnownIn: source) else {
+            // Fallback: for JPEGs with large EXIF headers, the
+            // incremental source may never produce dimensions. Try
+            // generating a thumbnail from a non-incremental source once.
+            return _thumbnailFallback(data: data, assetType: assetType)
+        }
+
+        let image: PlatformImage
+        if let thumbnail {
+            // A thumbnail request asks for a small image to save memory;
+            // a preview decoded at the full size of the image would undo
+            // that, so its previews are thumbnails too.
+            guard let thumb = makeThumbnail(source: source, options: thumbnail, scale: scale) else {
+                return nil
+            }
+            image = thumb
+        } else {
+            guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                return nil
+            }
+            image = ImageDecoders.Default._make(cgImage, scale: scale, orientation: orientation)
+        }
+
+        numberOfScans += 1
+
+        return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+    }
+
     /// Attempts to generate a thumbnail from a non-incremental source when
     /// `CGImageSourceCreateIncremental` can't parse the image (e.g. JPEGs
     /// with large EXIF headers). Only tried once per decoder instance.

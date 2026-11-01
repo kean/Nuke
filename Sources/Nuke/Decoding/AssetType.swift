@@ -103,65 +103,71 @@ extension AssetType {
     }
 
     private static func make(_ data: Data) -> AssetType? {
-        func _match(_ numbers: [UInt8?], offset: Int = 0) -> Bool {
-            guard data.count >= numbers.count + offset else {
-                return false
-            }
-            return zip(numbers.indices, numbers).allSatisfy { index, number in
-                guard let number else { return true }
-                guard let index = data.index(data.startIndex, offsetBy: index + offset, limitedBy: data.endIndex) else {
-                    return false
-                }
-                return data[index] == number
-            }
-        }
-
         // JPEG magic numbers https://en.wikipedia.org/wiki/JPEG
-        if _match([0xFF, 0xD8, 0xFF]) { return .jpeg }
+        if _match([0xFF, 0xD8, 0xFF], in: data) { return .jpeg }
 
         // PNG Magic numbers https://en.wikipedia.org/wiki/Portable_Network_Graphics
-        if _match([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) { return .png }
+        if _match([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], in: data) { return .png }
 
         // GIF magic numbers: "GIF" followed by one of the two version numbers
         // the format defines. https://en.wikipedia.org/wiki/GIF
-        if _match([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]) ||
-            _match([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]) { return .gif }
+        if _match([0x47, 0x49, 0x46, 0x38, 0x37, 0x61], in: data) ||
+            _match([0x47, 0x49, 0x46, 0x38, 0x39, 0x61], in: data) { return .gif }
 
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
-        if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
+        if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50], in: data) { return .webp }
 
         // ISO base media file format (HEIC, AVIF, MP4, M4V, MOV): the `ftyp`
         // box starts at byte 4 and is followed by the four-character brands
         // that identify the flavor of the container.
         // https://en.wikipedia.org/wiki/ISO_base_media_file_format
-        if _match([0x66, 0x74, 0x79, 0x70], offset: 4),
+        if _match([0x66, 0x74, 0x79, 0x70], offset: 4, in: data),
            let type = _makeISOBaseMedia(data) {
             return type
         }
 
+        return _makeOther(data)
+    }
+
+    /// The formats `make` tries last, split off to keep both short. Nearly every
+    /// image is one of the formats above.
+    private static func _makeOther(_ data: Data) -> AssetType? {
         // ICO magic numbers https://en.wikipedia.org/wiki/ICO_(file_format)
-        if _match([0x00, 0x00, 0x01, 0x00]) { return .ico }
+        if _match([0x00, 0x00, 0x01, 0x00], in: data) { return .ico }
 
         // JPEG 2000: either the JP2 signature box, or a raw codestream that
         // starts with the SOC and SIZ markers.
         // https://en.wikipedia.org/wiki/JPEG_2000
-        if _match([0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A]) { return .jpeg2000 }
-        if _match([0xFF, 0x4F, 0xFF, 0x51]) { return .jpeg2000 }
+        if _match([0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A], in: data) { return .jpeg2000 }
+        if _match([0xFF, 0x4F, 0xFF, 0x51], in: data) { return .jpeg2000 }
 
         // JPEG XL: either the container signature box, or a naked codestream.
         // https://en.wikipedia.org/wiki/JPEG_XL
-        if _match([0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A]) { return .jxl }
-        if _match([0xFF, 0x0A]) { return .jxl }
+        if _match([0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A], in: data) { return .jxl }
+        if _match([0xFF, 0x0A], in: data) { return .jxl }
 
         // TIFF magic numbers: a byte-order mark ("II" or "MM") followed by 42
         // written in that order. https://en.wikipedia.org/wiki/TIFF
-        if _match([0x49, 0x49, 0x2A, 0x00]) || _match([0x4D, 0x4D, 0x00, 0x2A]) { return .tiff }
+        if _match([0x49, 0x49, 0x2A, 0x00], in: data) || _match([0x4D, 0x4D, 0x00, 0x2A], in: data) { return .tiff }
 
         // BMP magic numbers https://en.wikipedia.org/wiki/BMP_file_format
-        if _match([0x42, 0x4D]) { return .bmp }
+        if _match([0x42, 0x4D], in: data) { return .bmp }
 
         // Either not enough data, or we just don't support this format.
         return nil
+    }
+
+    private static func _match(_ numbers: [UInt8?], offset: Int = 0, in data: Data) -> Bool {
+        guard data.count >= numbers.count + offset else {
+            return false
+        }
+        return zip(numbers.indices, numbers).allSatisfy { index, number in
+            guard let number else { return true }
+            guard let index = data.index(data.startIndex, offsetBy: index + offset, limitedBy: data.endIndex) else {
+                return false
+            }
+            return data[index] == number
+        }
     }
 
     /// Returns the type of an ISO base media file, or `nil` if the brands it
