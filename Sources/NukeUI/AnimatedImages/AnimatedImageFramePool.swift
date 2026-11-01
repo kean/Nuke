@@ -67,7 +67,7 @@ public final class AnimatedImageFramePool {
     /// device: 5% of it, capped at 128 MB.
     ///
     /// It is a quarter of the one budget decoded images get, and
-    /// ``Nuke/ImageCache/defaultCostLimit`` is the other three quarters: the
+    /// ``ImageCache/defaultCostLimit`` is the other three quarters: the
     /// two caches split one figure, so playing animations doesn't raise what
     /// an app's images may cost in memory.
     public static var defaultCostLimit: Int {
@@ -148,7 +148,7 @@ public final class AnimatedImageFramePool {
     /// `true` from going to the background until the app is active again.
     private var isInBackground = false
 
-    /// Answers the app going to the background, where ``Nuke/ImageCache`` trims
+    /// Answers the app going to the background, where ``ImageCache`` trims
     /// itself for the same reason: nothing is on screen, so every frame past
     /// the two a player needs to resume without a stall is a cache the app
     /// isn't using. A view stays in its window out here, so this is the only

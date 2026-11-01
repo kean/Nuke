@@ -41,7 +41,7 @@ extension ImageTask {
         public let schemaVersion: Int
         /// The pipeline that performed the task.
         public let pipelineID: UUID
-        /// ``ImageTask/taskId``.
+        /// ``ImageTask/taskID``.
         public let taskID: UInt64
         public let kind: Kind
         /// The ``ImageRequest/label`` of the request.

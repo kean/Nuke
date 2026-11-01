@@ -37,7 +37,7 @@ import AppKit
 /// it is useful for your app.
 public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
-    public let taskId: UInt64
+    public let taskID: UInt64
 
     /// The original request that the task was created with.
     public let request: ImageRequest
@@ -269,8 +269,8 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?
     @ImagePipelineActor weak var _node: LinkedList<ImageTask>.Node?
 
-    init(taskId: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
-        self.taskId = taskId
+    init(taskID: UInt64, request: ImageRequest, isDataTask: Bool, isPrefetch: Bool = false, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?, createdAt: TimeInterval? = nil) {
+        self.taskID = taskID
         self.request = request
         self._status = OSAllocatedUnfairLock(initialState: Status(priority: request.priority))
         self.isDataTask = isDataTask
@@ -411,7 +411,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
 
     /// An identifier that uniquely identifies the task.
     ///
-    /// Derived from the object identity, not from ``taskId``, which is only
+    /// Derived from the object identity, not from ``taskID``, which is only
     /// unique within a single pipeline.
     public var id: ObjectIdentifier { ObjectIdentifier(self) }
 
@@ -434,7 +434,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         case .success: "success"
         case .failure(let error): "failure(\(error))"
         }
-        return "ImageTask(id: \(taskId), priority: \(status.priority), progress: \(status.progress.completed) / \(status.progress.total), state: \(state))"
+        return "ImageTask(id: \(taskID), priority: \(status.priority), progress: \(status.progress.completed) / \(status.progress.total), state: \(state))"
     }
 }
 
@@ -470,6 +470,12 @@ extension ImageTask {
 // MARK: - ImageTask (Deprecated)
 
 extension ImageTask {
+    /// An identifier that uniquely identifies the task within a given pipeline.
+    ///
+    /// - warning: Deprecated in Nuke 14.0. Use ``taskID`` instead.
+    @available(*, deprecated, renamed: "taskID")
+    public var taskId: UInt64 { taskID }
+
     /// Returns the current download progress. Returns zeros until the download
     /// starts and the total resource size is known.
     ///

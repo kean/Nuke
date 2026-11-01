@@ -92,7 +92,7 @@ struct ImageTaskTests {
     // MARK: - Identifiable
 
     @Test func idIsStableAndUniqueAcrossPipelines() {
-        // Given two pipelines that both hand out the same `taskId`
+        // Given two pipelines that both hand out the same `taskID`
         dataLoader.isSuspended = true
         let other = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -102,7 +102,7 @@ struct ImageTaskTests {
         let rhs = other.imageTask(with: Test.request)
 
         // Then the identifiers are still distinct
-        #expect(lhs.taskId == rhs.taskId)
+        #expect(lhs.taskID == rhs.taskID)
         #expect(lhs.id == lhs.id)
         #expect(lhs.id != rhs.id)
 
@@ -120,7 +120,7 @@ struct ImageTaskTests {
         // Then
         let description = task.description
         #expect(description.hasPrefix("ImageTask("))
-        #expect(description.contains("id: \(task.taskId)"))
+        #expect(description.contains("id: \(task.taskID)"))
         #expect(description.contains("priority: normal"))
         #expect(description.contains("progress: 0 / 0"))
         #expect(description.contains("state: running"))
@@ -173,7 +173,7 @@ struct ImageTaskTests {
         let tasks = (0..<5).map { _ in pipeline.imageTask(with: Test.request) }
 
         // Then
-        let ids = tasks.map(\.taskId)
+        let ids = tasks.map(\.taskID)
         #expect(ids == ids.sorted())
         #expect(Set(ids).count == ids.count)
         tasks.forEach { $0.cancel() }
@@ -196,7 +196,7 @@ struct ImageTaskTests {
         // Then
         let created = tasks.withLock { $0 }
         #expect(created.count == 64)
-        #expect(Set(created.map(\.taskId)).count == 64)
+        #expect(Set(created.map(\.taskID)).count == 64)
         created.forEach { $0.cancel() }
     }
 

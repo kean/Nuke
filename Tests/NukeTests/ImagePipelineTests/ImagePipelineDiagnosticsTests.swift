@@ -145,7 +145,7 @@ struct ImagePipelineDiagnosticsTests {
         let metrics = try #require(task.metrics)
         #expect(metrics.schemaVersion == ImagePipeline.Diagnostics.schemaVersion)
         #expect(metrics.pipelineID == pipeline.id)
-        #expect(metrics.taskID == task.taskId)
+        #expect(metrics.taskID == task.taskID)
         #expect(metrics.kind == .image)
         #expect(metrics.label == nil)
         #expect(metrics.request.url == Test.url.absoluteString)
@@ -167,8 +167,8 @@ struct ImagePipelineDiagnosticsTests {
         #expect(metrics.rootJobID == metrics.jobs[0].id)
         #expect(metrics.jobs.map(\.parentID) == [metrics.jobs[1].id, metrics.jobs[2].id, nil])
         for job in metrics.jobs {
-            #expect(job.createdByTaskID == task.taskId)
-            #expect(job.taskIDs == [task.taskId])
+            #expect(job.createdByTaskID == task.taskID)
+            #expect(job.taskIDs == [task.taskID])
             #expect(job.joinedAt == nil)
             #expect(job.outcome == .success)
             #expect(job.endedAt != nil)
@@ -675,7 +675,7 @@ struct ImagePipelineDiagnosticsTests {
         let metrics2 = try #require(task2.metrics)
         #expect(metrics2.outcome == .success)
         #expect(metrics2.jobs.allSatisfy { $0.outcome == .success })
-        #expect(metrics2.jobs[0].taskIDs == [task1.taskId, task2.taskId])
+        #expect(metrics2.jobs[0].taskIDs == [task1.taskID, task2.taskID])
         #expect(dataLoader.createdTaskCount == 1)
     }
 
@@ -832,7 +832,7 @@ struct ImagePipelineDiagnosticsTests {
         // THEN the header is a title, then a field per fact with the values in a column
         let header = description.split(separator: "\n", omittingEmptySubsequences: false).prefix { !$0.isEmpty }
         // The duration is in seconds past 10 s, which a loaded simulator reaches
-        let title = #"^ImageTask #\#(task.taskId) "avatar" · success · [0-9.]+ m?s · from network$"#
+        let title = #"^ImageTask #\#(task.taskID) "avatar" · success · [0-9.]+ m?s · from network$"#
         #expect(header.first?.range(of: title, options: .regularExpression) != nil, "No title in:\n\(description)")
         let fields = [
             "url: +\(NSRegularExpression.escapedPattern(for: Test.url.absoluteString))",

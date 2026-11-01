@@ -14,7 +14,7 @@ import os
 
 @Suite(.timeLimit(.minutes(5)))
 struct ImagePipelineContentionTests {
-    /// `taskId` "uniquely identifies the task within a given pipeline", which
+    /// `taskID` "uniquely identifies the task within a given pipeline", which
     /// has to hold for the tasks created on different threads at once.
     @Test func taskIdentifiersAreUniqueAcrossThreads() async {
         // Given
@@ -31,7 +31,7 @@ struct ImagePipelineContentionTests {
         }
 
         // Then
-        #expect(Set(tasks.map(\.taskId)).count == 1600)
+        #expect(Set(tasks.map(\.taskID)).count == 1600)
         #expect(Set(tasks.map(\.id)).count == 1600)
 
         // Cleanup
@@ -373,7 +373,7 @@ struct ImagePipelineDiagnosticsContentionTests {
         // Then
         for (task, result) in zip(tasks, results) {
             guard let metrics = task.metrics else { continue }
-            #expect(metrics.taskID == task.taskId)
+            #expect(metrics.taskID == task.taskID)
             #expect(metrics.pipelineID == pipeline.id)
             #expect(metrics.endedAt >= metrics.createdAt)
             switch result {
@@ -388,7 +388,7 @@ struct ImagePipelineDiagnosticsContentionTests {
             }
             #expect(metrics.jobs.last?.parentID == nil)
             for job in metrics.jobs {
-                #expect(job.taskIDs.contains(task.taskId), "The task reached every job in its chain")
+                #expect(job.taskIDs.contains(task.taskID), "The task reached every job in its chain")
             }
         }
 

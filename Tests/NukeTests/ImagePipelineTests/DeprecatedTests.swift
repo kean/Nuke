@@ -311,6 +311,12 @@ struct DeprecatedImageTaskProgressTests {
     }
 
     @available(*, deprecated)
+    @Test func taskIdReturnsTheTaskID() {
+        let task = pipeline.imageTask(with: Test.request)
+        #expect(task.taskId == task.taskID)
+    }
+
+    @available(*, deprecated)
     @Test func currentProgressMatchesTheStatus() async throws {
         // Given
         dataLoader.isSuspended = true
