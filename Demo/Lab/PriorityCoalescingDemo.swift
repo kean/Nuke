@@ -930,7 +930,7 @@ private final class TaskRowModel: ObservableObject, Identifiable {
     /// Reads whose download the request waited on from its record.
     fileprivate func readOwner(from metrics: ImageTask.Metrics?, rows: [TaskRowModel]) {
         guard let job = metrics?.jobs.first(where: { $0.kind == .fetchOriginalData }) else { return }
-        downloadOwner = rows.first { $0.task?.taskId == job.createdByTaskID }?.number
+        downloadOwner = rows.first { $0.task?.taskID == job.createdByTaskID }?.number
     }
 }
 

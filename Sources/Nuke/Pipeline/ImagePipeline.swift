@@ -54,13 +54,13 @@ public final class ImagePipeline: Sendable {
 
     private(set) var isInvalidated = false
 
-    private nonisolated var nextTaskId: UInt64 {
-        _nextTaskId.withLock { value in
+    private nonisolated var nextTaskID: UInt64 {
+        _nextTaskID.withLock { value in
             value += 1
             return value
         }
     }
-    private nonisolated let _nextTaskId = OSAllocatedUnfairLock<UInt64>(initialState: 0)
+    private nonisolated let _nextTaskID = OSAllocatedUnfairLock<UInt64>(initialState: 0)
 
     /// Records the diagnostics. `nil` unless
     /// ``Configuration-swift.struct/isDiagnosticsEnabled`` or
@@ -203,7 +203,7 @@ public final class ImagePipeline: Sendable {
 
     nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, isPrefetch: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         // The creation time is the one thing the diagnostics read off the actor.
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
+        let task = ImageTask(taskID: nextTaskID, request: request, isDataTask: isDataTask, isPrefetch: isPrefetch, pipeline: self, onEvent: onEvent, createdAt: recorder?.now)
         // Important to call it before `imageTaskStartCalled`
         imageTaskCreated(task, isDataTask: isDataTask)
         task._task = Task { @ImagePipelineActor in

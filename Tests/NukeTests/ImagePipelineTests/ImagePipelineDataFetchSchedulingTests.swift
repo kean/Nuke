@@ -203,7 +203,7 @@ struct ImagePipelineDataFetchSchedulingTests {
     /// Subscribes to the fetch of the original data the way the tasks that
     /// depend on it do, and starts it.
     private func subscribe(to pipeline: ImagePipeline, _ request: ImageRequest, _ onEvent: @escaping (AsyncTask<(Data, URLResponse?), ImagePipeline.Error>.Event) -> Void = { _ in }) -> TaskSubscription? {
-        let subscriber = ImageTask(taskId: 1, request: request, isDataTask: true, pipeline: pipeline, onEvent: nil)
+        let subscriber = ImageTask(taskID: 1, request: request, isDataTask: true, pipeline: pipeline, onEvent: nil)
         let subscription = pipeline.makeTaskFetchOriginalData(for: request).subscribe(subscriber: subscriber, onEvent)
         subscribers.append(subscriber)
         return subscription
