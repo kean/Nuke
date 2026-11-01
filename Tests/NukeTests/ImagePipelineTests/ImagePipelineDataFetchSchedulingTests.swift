@@ -182,8 +182,8 @@ struct ImagePipelineDataFetchSchedulingTests {
 
         // THEN it finishes while the slot is still taken
         await finished.wait(timeout: .seconds(5))
-        #expect(urgent.state == .completed)
-        #expect(queued.state == .running)
+        #expect(urgent.status.result != nil)
+        #expect(queued.status.result == nil)
 
         gate.fulfill()
         _ = try await blocker.response
