@@ -9,6 +9,8 @@ import Foundation
 import Nuke
 import NukeUI
 
+// A load of the image that is already loading keeps the running task and does
+// next to nothing, so a benchmark of a load has to ask for another image every time.
 @Suite(.serialized)
 @MainActor
 final class LazyImageViewPerformanceTests {
@@ -47,7 +49,7 @@ final class LazyImageViewPerformanceTests {
     func lazyImageViewMainThreadPerformanceWithProcessor() {
         let view = LazyImageView()
 
-        let urls = (0..<20_000).map { _ in URL(string: "http://test.com/1")! }
+        let urls = (0..<20_000).map { URL(string: "http://test.com/\($0)")! }
 
         measure {
             for url in urls {
@@ -60,11 +62,13 @@ final class LazyImageViewPerformanceTests {
     func lazyImageViewMainThreadPerformanceWithProcessorAndSimilarImageInCache() {
         let view = LazyImageView()
 
-        let urls = (0..<20_000).map { _ in MemoryCacheSeed.url }
+        // The seed's URL, whose key has the same hash, so the lookup has to compare
+        // the processors.
+        let sizes = (1...20_000).map { CGSize(width: $0, height: 1) }
 
         measure {
-            for url in urls {
-                view.request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
+            for size in sizes {
+                view.request = ImageRequest(url: MemoryCacheSeed.url, processors: [ImageProcessors.Resize(size: size)])
             }
         }
     }
