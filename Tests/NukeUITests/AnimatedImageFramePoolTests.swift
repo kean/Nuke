@@ -388,7 +388,7 @@ struct AnimatedImageFramePoolTests {
         let center = NotificationCenter()
         let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
         let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
-        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        let player = AnimatedImagePlayer(animation: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
         player.play()
         await player.waitUntilFull()
         #expect(pool.totalCost == 8 * Self.bytesPerFrame)
@@ -405,7 +405,7 @@ struct AnimatedImageFramePoolTests {
         let pool = AnimatedImageFramePool(costLimit: 24 * Self.bytesPerFrame, notificationCenter: center)
         pool.memoryPressureGracePeriod = 0.01
         let source = Test.animatedGIFSource(frameCount: 8, size: CGSize(width: 32, height: 32))
-        let player = AnimatedImagePlayer(source: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
+        let player = AnimatedImagePlayer(animation: source, options: AnimatedImagePlayer.Options(), clock: ManualClock(), pool: pool)
         player.play()
         await player.waitUntilFull()
 

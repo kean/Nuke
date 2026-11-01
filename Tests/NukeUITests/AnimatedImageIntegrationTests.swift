@@ -17,6 +17,7 @@ struct AnimatedImageIntegrationTests {
     let pipeline: ImagePipeline
 
     init() {
+        AnimatedImageAutoPlaySettings.allowPlayback()
         let dataLoader = self.dataLoader
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
@@ -174,9 +175,9 @@ struct AnimatedImageIntegrationTests {
     @Test func animatedImagePlaysWithoutBeingAsked() async throws {
         // Playback starts on its own unless Accessibility › Motion › Auto-Play
         // Animated Images says not to, which the view reads from the SwiftUI
-        // environment – and which is on wherever the tests run.
+        // environment, so the test pins it: a CI runner can have it off.
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
-        let host = ViewHost(source) { AnimatedImage($0) }
+        let host = ViewHost(source) { AnimatedImage($0).allowingPlayback() }
 
         await host.render(until: { host.firstView(ofType: AnimatedImageView.self)?.isPlaying == true })
 
