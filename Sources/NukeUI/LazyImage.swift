@@ -160,10 +160,11 @@ public struct LazyImage<Content: View>: View {
 
     public var body: some View {
         ZStack {
+            let state = currentState()
             if let makeContent {
-                makeContent(viewModel)
+                makeContent(state)
             } else {
-                makeDefaultContent(for: viewModel)
+                makeDefaultContent(for: state)
             }
         }
         .onAppear { onAppear() }
@@ -176,6 +177,38 @@ public struct LazyImage<Content: View>: View {
 #else
         .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context) }
 #endif
+    }
+
+    /// The state to draw. Before the first load, which starts in `onAppear`,
+    /// that is the memory cache's image if it has one, so that the first body
+    /// already shows it and not a placeholder for the update `onAppear` asks
+    /// for. `onAppear` still loads it, to report it like any other load.
+    ///
+    /// Only the memory cache: it takes about a microsecond, and the disk cache
+    /// takes a read and a decode, which the load does off the main thread.
+    private func currentState() -> LazyImageState {
+        guard viewModel.currentRequest == nil,
+              let request = overrides.applied(to: context)?.request,
+              let container = pipeline.cache[request],
+              !container.isPreview else {
+            return viewModel
+        }
+        return MemoryCacheHit(container: container, request: request)
+    }
+
+    /// The state of a load that found its image in the memory cache, the way
+    /// `FetchImage` reports it once it has loaded it.
+    private struct MemoryCacheHit: LazyImageState {
+        let container: ImageContainer
+        let request: ImageRequest
+
+        var imageContainer: ImageContainer? { container }
+        var isLoading: Bool { false }
+        var progress: ImageTask.Progress { ImageTask.Progress(completed: 0, total: 0) }
+        // Made when read: most content only reads the image.
+        var result: Result<ImageResponse, ImagePipeline.Error>? {
+            .success(ImageResponse(container: container, request: request, cacheType: .memory))
+        }
     }
 
     /// The view as of an update, compared by what it loads. The action of

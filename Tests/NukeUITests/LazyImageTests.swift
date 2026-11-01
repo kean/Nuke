@@ -204,6 +204,97 @@ struct LazyImageTests {
         #expect(dataLoader.createdTaskCount == 0)
     }
 
+    /// The update `onAppear` asks for would otherwise be the first one to
+    /// show the image, after a body with a placeholder.
+    @Test func memoryCacheHitIsShownByTheFirstBody() async throws {
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil && !state.isLoading && state.result?.isSuccess == true)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { result.value = $0 }
+        }
+        await host.render(until: { result.value != nil })
+        await host.render()
+
+        #expect(bodies.value.first == true)
+        #expect(bodies.value.allSatisfy { $0 })
+        #expect(try #require(result.value?.value).cacheType == .memory)
+        #expect(dataLoader.createdTaskCount == 0)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func processorsOfTheModifierDecideWhichCachedImageIsShown() async throws {
+        // The unprocessed image is cached, the processed one is not.
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let completed = TestExpectation()
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .processors([MockImageProcessor(id: "p1")])
+            .onCompletion { _ in completed.fulfill() }
+        }
+        await completed.wait()
+
+        #expect(bodies.value.first == false)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func requestThatSkipsTheMemoryCacheIsNotShownByTheFirstBody() async throws {
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let completed = TestExpectation()
+        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheReads])
+        let host = ViewHost(request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { _ in completed.fulfill() }
+        }
+        await completed.wait()
+
+        #expect(bodies.value.first == false)
+        withExtendedLifetime(host) {}
+    }
+
+    /// Reading the disk cache takes a read and a decode, so the first body
+    /// shows a placeholder, and the load reads it off the main thread.
+    @Test func diskCacheHitIsNotReadByTheFirstBody() async throws {
+        let dataCache = try #require(pipeline.configuration.dataCache as? MockDataCache)
+        pipeline.cache.storeCachedData(Test.data, for: Test.request)
+        dataCache.resetCounters()
+
+        let firstBody = Ref<(hasImage: Bool, diskReads: Int)?>(nil)
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = firstBody.value = firstBody.value ?? (state.image != nil, dataCache.readCount)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { result.value = $0 }
+        }
+        await host.render(until: { result.value != nil })
+
+        #expect(firstBody.value?.hasImage == false)
+        #expect(firstBody.value?.diskReads == 0)
+        #expect(try #require(result.value?.value).cacheType == .disk)
+        withExtendedLifetime(host) {}
+    }
+
     // MARK: - Callbacks
 
     @Test func onStartCalled() async throws {
