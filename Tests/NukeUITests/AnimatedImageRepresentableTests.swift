@@ -15,6 +15,10 @@ import Testing
 /// SwiftUI reconfigures it and takes it on and off screen.
 @Suite(.timeLimit(.minutes(5))) @MainActor
 struct AnimatedImageRepresentableTests {
+    init() {
+        AnimatedImageAutoPlaySettings.allowPlayback()
+    }
+
     // MARK: Containers
 
     @Test func playsTheAnimationOfAContainerAndHoldsItsStillUntilTheFirstFrame() async throws {

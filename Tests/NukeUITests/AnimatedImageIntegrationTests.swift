@@ -17,6 +17,7 @@ struct AnimatedImageIntegrationTests {
     let pipeline: ImagePipeline
 
     init() {
+        AnimatedImageAutoPlaySettings.allowPlayback()
         let dataLoader = self.dataLoader
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader

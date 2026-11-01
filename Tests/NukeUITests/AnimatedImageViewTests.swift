@@ -19,6 +19,10 @@ import UIKit
 struct AnimatedImageViewTests {
     let view = AnimatedImageView()
 
+    init() {
+        AnimatedImageAutoPlaySettings.allowPlayback()
+    }
+
     /// Displays the image the way the pipeline does: in a container carrying
     /// the animation it parsed, rather than data for the view to find one in.
     private func display(_ data: Data?, image: PlatformImage? = Test.image) {
