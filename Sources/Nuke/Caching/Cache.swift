@@ -11,7 +11,8 @@ import UIKit.UIApplication
 
 // Internal memory-cache implementation.
 final class Cache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {
-    // Can't use `NSCache` because it is not LRU
+    // Can't use `NSCache`: it treats the cost limit as a hint, and doesn't say
+    // what it evicts
 
     struct Configuration {
         var costLimit: Int { didSet { recomputeEntryMaxCost() } }

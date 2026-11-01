@@ -9,12 +9,18 @@ import UIKit
 import Cocoa
 #endif
 
-/// An LRU memory cache.
+/// A memory cache that evicts with the CLOCK algorithm, an approximation of
+/// LRU.
 ///
 /// The elements stored in cache are automatically discarded if either *cost* or
-/// *count* limit is reached. The default cost limit represents a number of bytes
-/// and is calculated based on the amount of physical memory available on the
-/// device. The default count limit is set to `Int.max`.
+/// *count* limit is reached. An element that was read since the last sweep gets
+/// a second chance; the ones that weren't are evicted first, oldest first. A
+/// read only sets a flag, so it is cheap under contention, but the cache doesn't
+/// keep the elements in the exact order they were last used.
+///
+/// The default cost limit represents a number of bytes and is calculated based
+/// on the amount of physical memory available on the device. The default count
+/// limit is set to `Int.max`.
 ///
 /// ``ImageCache`` automatically removes all stored elements when it receives a
 /// memory warning. On iOS, tvOS, and visionOS, it also automatically removes
@@ -68,7 +74,7 @@ public final class ImageCache: ImageCaching {
     /// Returns a cost limit computed based on the amount of the physical memory
     /// available on the device: three quarters of the one budget decoded images
     /// get – 15% of the physical memory – capped at 768 MB. The cache uses a
-    /// custom LRU eviction policy that enforces this limit precisely, unlike
+    /// custom CLOCK eviction policy that enforces this limit precisely, unlike
     /// `NSCache` which treats cost limits as hints.
     public static var defaultCostLimit: Int {
         min(defaultMemoryBudget / 4 * 3, 805_306_368) // 768 MB
@@ -102,14 +108,14 @@ public final class ImageCache: ImageCaching {
         impl.removeAllCachedValues()
     }
 
-    /// Removes least recently used items from the cache until the total cost
-    /// of the remaining items is less than the given cost limit.
+    /// Removes the items that weren't read recently from the cache until the
+    /// total cost of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
         impl.trim(toCost: limit)
     }
 
-    /// Removes least recently used items from the cache until the total count
-    /// of the remaining items is less than the given count limit.
+    /// Removes the items that weren't read recently from the cache until the
+    /// total count of the remaining items is less than the given count limit.
     public func trim(toCount limit: Int) {
         impl.trim(toCount: limit)
     }

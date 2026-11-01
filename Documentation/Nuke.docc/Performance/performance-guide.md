@@ -8,7 +8,7 @@ Images can take a lot of space. When you download an image, it gets cached so th
 
 ### L1. Memory Cache (Default)
 
-The images are stored in a fast in-memory cache: ``ImageCache``. It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a strict size limit. It also automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
+The images are stored in a fast in-memory cache: ``ImageCache``. It evicts with [CLOCK](https://en.wikipedia.org/wiki/Page_replacement_algorithm#Clock), an approximation of LRU (least recently used) that doesn't reorder entries on a read, and has a strict size limit. It also automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
 
 > Important: The memory cache stores decompressed (bitmapped) images. If your app is loading and displaying high-resolution images, consider downsampling them and/or increasing cache limits. For context, a bitmap for a 6000x4000px image takes 92 MB (assuming it needs 4 bytes per pixel).
 
