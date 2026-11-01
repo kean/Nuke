@@ -223,7 +223,9 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             }
         }
         if resumedDataCount > 0, expectedSize > 0 {
-            data.reserveCapacity(Int(min(expectedSize, maximumReservedCapacity)))
+            let capacity = Int(min(expectedSize, maximumReservedCapacity))
+            reportDataBufferUpdate(.resumedReservation, response: response, requestedCapacity: capacity)
+            data.reserveCapacity(capacity)
         }
     }
 
@@ -241,9 +243,12 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if data.isEmpty {
             data = chunk
             if response.expectedContentLength > chunk.count {
-                data.reserveCapacity(Int(min(response.expectedContentLength, maximumReservedCapacity)))
+                let capacity = Int(min(response.expectedContentLength, maximumReservedCapacity))
+                reportDataBufferUpdate(.initialReservation, response: response, requestedCapacity: capacity)
+                data.reserveCapacity(capacity)
             }
         } else {
+            reportDataBufferUpdate(.append, response: response, incomingByteCount: chunk.count)
             data.append(chunk)
         }
         urlResponse = response
@@ -260,6 +265,26 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // progressive decoding doesn't run.
         guard data.count < expectedSize(of: response) else { return }
         send(value: (data, response))
+    }
+
+    private func reportDataBufferUpdate(
+        _ operation: ImagePipeline.DataBufferUpdateContext.Operation,
+        response: URLResponse,
+        incomingByteCount: Int = 0,
+        requestedCapacity: Int? = nil
+    ) {
+        guard !pipeline.isDefaultDelegate else { return }
+        pipeline.delegate.willUpdateDataBuffer(
+            for: request,
+            context: .init(
+                operation: operation,
+                bufferedByteCount: data.count,
+                incomingByteCount: incomingByteCount,
+                requestedCapacity: requestedCapacity,
+                response: response
+            ),
+            pipeline: pipeline
+        )
     }
 
     private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
