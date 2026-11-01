@@ -252,6 +252,9 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
 - Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
 - Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix a resumed download sending the same `Range` again on every attempt after the server rejected it with "416 Range Not Satisfiable" – https://github.com/kean/Nuke/pull/1026
+- Fix the progress of a resumed download reporting a total below the bytes received when the "206 Partial Content" has no `Content-Length` – https://github.com/kean/Nuke/pull/1026
+- Fix an empty local file or `data:` URL succeeding with empty data instead of failing with `ImagePipeline/Error/dataIsEmpty` – https://github.com/kean/Nuke/pull/1026
 
 ### Documentation
 

@@ -21,6 +21,9 @@ final class MockRangeServer: DataLoading, @unchecked Sendable {
         case serve
         /// Same as `serve`, but advertises the given "Content-Length".
         case serveAdvertising(contentLength: String)
+        /// Same as `serve`, but the response has no "Content-Length", so its
+        /// length is unknown.
+        case serveWithoutContentLength
         /// Ignores the "Range" header and sends the whole resource with "200 OK".
         case ignoreRange
         /// Fails before sending a response.
@@ -73,14 +76,16 @@ final class MockRangeServer: DataLoading, @unchecked Sendable {
         }
         /// The response that honors the "Range" of the request, if it can,
         /// and the offset to send the resource from.
-        func makeRangeResponse(contentLength: String? = nil) -> (HTTPURLResponse, Int) {
-            guard let offset = resumeOffset(for: request, data: data, validator: validator) else {
-                return (makeResponse(statusCode: 200, headers: headers(["Content-Length": contentLength ?? "\(data.count)"])), 0)
+        func makeRangeResponse(contentLength: String? = nil, omitsContentLength: Bool = false) -> (HTTPURLResponse, Int) {
+            func lengthHeader(_ length: Int) -> [String: String] {
+                omitsContentLength ? [:] : ["Content-Length": contentLength ?? "\(length)"]
             }
-            let partial = makeResponse(statusCode: 206, headers: headers([
-                "Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)",
-                "Content-Length": contentLength ?? "\(data.count - offset)"
-            ]))
+            guard let offset = resumeOffset(for: request, data: data, validator: validator) else {
+                return (makeResponse(statusCode: 200, headers: headers(lengthHeader(data.count))), 0)
+            }
+            let partial = makeResponse(statusCode: 206, headers: headers(
+                lengthHeader(data.count - offset).merging(["Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)"]) { $1 }
+            ))
             return (partial, offset)
         }
         func send(_ range: Range<Int>, _ response: URLResponse) {
@@ -102,8 +107,8 @@ final class MockRangeServer: DataLoading, @unchecked Sendable {
             completion(nil)
         case .failBeforeResponse:
             completion(URLError(.notConnectedToInternet))
-        case .serve, .serveAdvertising:
-            let (response, offset) = makeRangeResponse(contentLength: contentLength(for: step))
+        case .serve, .serveAdvertising, .serveWithoutContentLength:
+            let (response, offset) = makeRangeResponse(contentLength: contentLength(for: step), omitsContentLength: omitsContentLength(step))
             send(offset..<data.count, response)
             completion(nil)
         }
@@ -112,6 +117,10 @@ final class MockRangeServer: DataLoading, @unchecked Sendable {
 
     private func contentLength(for step: Step) -> String? {
         if case .serveAdvertising(let contentLength) = step { contentLength } else { nil }
+    }
+
+    private func omitsContentLength(_ step: Step) -> Bool {
+        if case .serveWithoutContentLength = step { true } else { false }
     }
 
     /// Returns the offset to resume from if the request asks for a range and
