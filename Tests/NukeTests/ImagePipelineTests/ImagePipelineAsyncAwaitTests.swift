@@ -563,8 +563,9 @@ struct ImageTaskStateTests {
         let task = pipeline.imageTask(with: Test.request)
         Task.detached { try? await task.response }
         await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
-        task.cancel()
-        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {}
+        await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
+            task.cancel()
+        }
         #expect(task.state == .cancelled)
     }
 
