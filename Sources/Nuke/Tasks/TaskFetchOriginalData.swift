@@ -384,12 +384,15 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
         let stage = diagnostics?.beginStage(.diskStore)
+        // Before the delegate runs: the task can be left with no image tasks
+        // to ask by the time it returns.
+        let expiration = soonestCacheExpiration
         guard let data = await pipeline.willCache(data: data, image: nil, for: request) else {
             diagnostics?.endStage(stage) { $0.cacheKey = diagnosticsDigest(of: key) }
             return
         }
         // Important! Storing directly ignoring `ImageRequest.Options`.
-        dataCache.storeData(data, for: key)
+        dataCache.store(data, for: key, with: expiration)
         diagnostics?.endStage(stage) {
             $0.cacheKey = diagnosticsDigest(of: key)
             $0.bytes = Int64(data.count)
