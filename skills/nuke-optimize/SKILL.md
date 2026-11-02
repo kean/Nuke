@@ -163,15 +163,13 @@ configuration.dataCachePolicy = .automatic
 ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
-`ImageCache` doesn't read `cache-control` either: an image that changes at a stable URL stays in memory until it's evicted, however short its `max-age`. Give those a memory cache of their own, with a `ttl`, on a second pipeline. Pass it to the views with `.pipeline(Pipelines.avatars)`, and to a prefetcher with `ImagePrefetcher(pipeline: Pipelines.avatars)`:
+`ImageCache` doesn't read `cache-control` either: an image that changes at a stable URL stays in memory until it's evicted, however short its `max-age`. Set `cacheExpiration` on the requests for those, and pass them to the views with `LazyImage(request:)`:
 
 ```swift
-enum Pipelines {
-    static let avatars = ImagePipeline {
-        let cache = ImageCache()
-        cache.ttl = 120
-        $0.imageCache = cache
-    }
+func avatarRequest(url: URL) -> ImageRequest {
+    var request = ImageRequest(url: url)
+    request.cacheExpiration = .interval(120)
+    return request
 }
 ```
 

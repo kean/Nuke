@@ -35,7 +35,16 @@ ImageCache.shared.removeAll()
 
 `ImageCache` automatically removes all stored elements when it receives a memory warning. On iOS, tvOS, and visionOS, it also automatically removes *most* stored elements when the app enters the background.
 
-> You can implement a custom cache by conforming to the ``ImageCaching`` protocol.
+``ImageCache/ttl`` applies to every image in the cache. To set it for the images of one request, for example, an avatar that can change at a stable URL, use ``ImageRequest/cacheExpiration-swift.property``:
+
+```swift
+var request = ImageRequest(url: url)
+request.cacheExpiration = .interval(300) // Or `.date(_:)`, or `.never` to ignore the `ttl`
+```
+
+The expiration is stamped on the entry when the image is stored, and reading doesn't renew it. It isn't part of the cache key, so any request for the image reads the entry until it expires. If several requests share a load, the entry gets the soonest expiration among them.
+
+> You can implement a custom cache by conforming to the ``ImageCaching`` protocol. To support expiration, implement ``ImageCaching/store(_:for:expiration:)``: without it, the image is stored with no expiration.
 
 ### HTTP Disk Cache
 

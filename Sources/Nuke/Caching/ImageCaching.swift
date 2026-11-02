@@ -11,8 +11,21 @@ public protocol ImageCaching: AnyObject, Sendable {
     /// Access the image cached for the given request.
     subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 
+    /// Stores the image with the given expiration, which takes precedence over
+    /// any default the cache has. Read it with ``ImageRequest/CacheExpiration-swift.struct/expirationDate``.
+    ///
+    /// The default implementation ignores the expiration and stores the image
+    /// using the subscript.
+    func store(_ image: ImageContainer, for key: ImageCacheKey, expiration: ImageRequest.CacheExpiration)
+
     /// Removes all cached items.
     func removeAll()
+}
+
+extension ImageCaching {
+    public func store(_ image: ImageContainer, for key: ImageCacheKey, expiration: ImageRequest.CacheExpiration) {
+        self[key] = image
+    }
 }
 
 /// An opaque container that acts as a memory cache key.

@@ -14,6 +14,12 @@ private func aggressiveDiskCache() {
     ImagePipeline.shared = ImagePipeline(configuration: configuration)
 }
 
+private func cacheExpiration(url: URL) -> ImageRequest {
+    var request = ImageRequest(url: url)
+    request.cacheExpiration = .interval(300) // Or `.date(_:)`, or `.never` to ignore the `ttl`
+    return request
+}
+
 private func downsampleImages() {
     let url = URL(string: "https://example.com/image")!
     // Target size is in points

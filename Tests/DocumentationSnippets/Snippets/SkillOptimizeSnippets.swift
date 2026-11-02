@@ -72,12 +72,10 @@ private func diskCache() {
     ImagePipeline.shared = ImagePipeline(configuration: configuration)
 }
 
-private enum Pipelines {
-    static let avatars = ImagePipeline {
-        let cache = ImageCache()
-        cache.ttl = 120
-        $0.imageCache = cache
-    }
+private func avatarRequest(url: URL) -> ImageRequest {
+    var request = ImageRequest(url: url)
+    request.cacheExpiration = .interval(120)
+    return request
 }
 
 // MARK: Prefetching
