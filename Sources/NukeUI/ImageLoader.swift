@@ -168,6 +168,10 @@ public final class ImageLoader {
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public func load(_ request: ImageRequest?) -> Handle {
+        load(request, isReload: false)
+    }
+
+    private func load(_ request: ImageRequest?, isReload: Bool) -> Handle {
         // A load that finishes before this method returns needs no `Outcome`:
         // its handle just holds the result.
         guard let request else {
@@ -217,7 +221,7 @@ public final class ImageLoader {
         //             self.handle(event, of: task)
         //         }
         //     }
-        let task = pipeline.imageTask(with: resolved) { [weak self] event, task in
+        let task = pipeline.imageTask(with: isReload ? makeReloadRequest(resolved) : resolved) { [weak self] event, task in
             self?.handle(event, of: task)
         }
         taskPipeline = pipeline
@@ -232,6 +236,17 @@ public final class ImageLoader {
         state.isPreviousImage = cached == nil && previousImage != nil
         update(state)
         return Handle(task: task, outcome: outcome)
+    }
+
+    /// Returns the request for the task of a reload. Only the task gets the
+    /// option: it says nothing about the image, so the request in the state
+    /// stays the one that was passed in. Without a cooldown, the request is left
+    /// alone so that the reload can still join a load of it by another view.
+    private func makeReloadRequest(_ request: ImageRequest) -> ImageRequest {
+        guard pipeline.configuration.failureCooldown != nil else { return request }
+        var request = request
+        request.options.insert(.skipFailureCooldown)
+        return request
     }
 
     /// Applies the processors and the priority of the loader to the request.
@@ -325,6 +340,9 @@ public final class ImageLoader {
     /// load finishes before this method returns. To skip the caches, load a
     /// request with ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData``.
     ///
+    /// A reload is someone asking for the image again, so it isn't held back
+    /// by ``ImagePipeline/Configuration-swift.struct/failureCooldown``.
+    ///
     /// - returns: A handle to the load, or `nil` if there is no request to
     /// load: the last load was from an async function or a `nil` request, or
     /// the loader was reset.
@@ -333,7 +351,7 @@ public final class ImageLoader {
         // The async function of a load isn't kept for a reload: it often
         // captures the object that owns the loader.
         guard let request = state.request else { return nil }
-        return load(request)
+        return load(request, isReload: true)
     }
 
     /// Cancels the current load. The image it displayed so far stays in the
@@ -685,7 +703,9 @@ extension ImageRequest {
         }
         return imageID == other.imageID &&
         processorsIdentity == other.processorsIdentity &&
-        options == other.options &&
+        // A reload adds this option to its task, and it doesn't change what
+        // gets loaded. See `makeReloadRequest(_:)`.
+        (options == other.options || options.symmetricDifference(other.options) == .skipFailureCooldown) &&
         scale == other.scale &&
         thumbnail == other.thumbnail
     }
