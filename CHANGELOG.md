@@ -21,18 +21,18 @@
 
 ## Nuke 13.2.1
 
-*Nov 1, 2026*
+*Nov 2, 2026*
 
-- Remove an unused `AVKit` import from `Nuke`, which weak-linked the AVFoundation and CoreAudio Swift overlays into apps on every platform except watchOS. A target that used these frameworks through this import has to import or link them itself – https://github.com/kean/Nuke/pull/947
+- Remove an unused `AVKit` import from `Nuke`, which weak-linked the Swift overlays of AVFoundation and related frameworks into apps on every platform except watchOS. A target that used these frameworks through this import has to import or link them itself – https://github.com/kean/Nuke/pull/947
 - Fix progressive previews stopping early on a resumed download, or not being delivered at all when at least half of the image was resumed – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 - Fix a crash when a download reports a huge `Content-Length`, either resumed or with `maximumResponseDataSize` set to `nil` – https://github.com/kean/Nuke/pull/988
 - Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing encoded images in the data cache – https://github.com/kean/Nuke/pull/1008
 - Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
-- Fix a resumed download that failed again discarding its resumable data once it had received as many bytes as the `Content-Length` of the partial response, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
+- Fix a resumed download that failed again discarding its resumable data once the bytes it held, including the resumed ones, reached the `Content-Length` of the partial response, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
 - Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
 - Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
-- Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
+- Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""`, `"."`, or `".."` – https://github.com/kean/Nuke/pull/997
 
 ## Nuke 13.2.0
 
