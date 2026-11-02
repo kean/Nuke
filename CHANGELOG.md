@@ -199,6 +199,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - `ImagePipeline/Error` descriptions now say what was received, such as a `text/html` page sent with a `200`, along with a redacted URL – https://github.com/kean/Nuke/pull/1048
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
+- Add `ImagePipeline/Configuration-swift.struct/failureCooldown`, off by default, which stops requesting a URL for a while after a `404` or a `410`. Those loads fail with `ImagePipeline/Error/urlInCooldown(error:)`, and `ImageRequest/Options-swift.struct/skipFailureCooldown` and `ImageLoader/reload()` skip it – https://github.com/kean/Nuke/pull/1106
 
 ### Performance
 
