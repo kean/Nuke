@@ -198,6 +198,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - `ImagePipeline/Error` and `DataLoader/Error` now conform to `LocalizedError`: `localizedDescription` returns their `description`, a technical English message, instead of a generic one – https://github.com/kean/Nuke/pull/1048
 - `ImagePipeline/Error` descriptions now say what was received, such as a `text/html` page sent with a `200`, along with a redacted URL – https://github.com/kean/Nuke/pull/1048
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
+- Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
 
 ### Performance
 
