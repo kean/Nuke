@@ -43,7 +43,51 @@ private struct StatesView: View {
     }
 }
 
+private struct FailureView: View {
+    let url: URL
+
+    var body: some View {
+        LazyImage(url: url)
+            .failureView { state in
+                Button("Retry") { state.reload() }
+            }
+    }
+}
+
+// MARK: - Reloading
+
+private struct RetryingView: View {
+    let url: URL
+    @State private var attempt = 0
+
+    var body: some View {
+        LazyImage(url: url)
+            .reload(id: attempt)
+        Button("Retry") { attempt += 1 }
+    }
+}
+
+// MARK: - Keeping the Previous Image
+
+private struct KeepsPreviousImageView: View {
+    let url: URL
+
+    var body: some View {
+        LazyImage(url: url)
+            .keepsPreviousImage()
+    }
+}
+
 // MARK: - Transitions
+
+private struct ImageTransitionView: View {
+    let url: URL
+
+    var body: some View {
+        LazyImage(url: url)
+            .imageTransition(.opacity, animation: .easeInOut(duration: 0.33))
+    }
+}
 
 private struct TransitionView: View {
     let url: URL

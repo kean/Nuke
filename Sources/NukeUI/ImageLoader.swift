@@ -106,6 +106,12 @@ public final class ImageLoader {
     /// Receives every change of the ``state``, before the ``delegate``.
     var onUpdate: (@MainActor (State) -> Void)?
 
+    // What `FetchImage` remembers for `LazyImage`. They aren't stored there:
+    // each stored property of that class, even one that's never read, adds
+    // 0.4% to the instructions a `LazyImage` takes to show up.
+    var reloadID: AnyHashable?
+    var animatesMemoryCacheHits = false
+
     /// The outcome of the current load. It is resolved when the load
     /// finishes, is cancelled, or is replaced by a new load.
     fileprivate var outcome: Outcome?
