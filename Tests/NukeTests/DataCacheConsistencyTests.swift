@@ -62,6 +62,18 @@ final class DataCacheConsistencyTests {
     func readsMatchTheLatestChangeWhileTheDrainRunsConcurrently(seed: UInt64) async throws {
         // GIVEN a drain that runs almost continuously
         cache.flushInterval = .milliseconds(1)
+        try await performRandomChanges(seed: seed)
+    }
+
+    @Test(arguments: [1, 2, 3] as [UInt64])
+    func readsMatchTheLatestChangeWhileTheStagingLimitDrainsTheChanges(seed: UInt64) async throws {
+        // GIVEN a drain that only runs because every change is past the limit
+        cache.flushInterval = .seconds(60)
+        cache.stagingSizeLimit = 1
+        try await performRandomChanges(seed: seed)
+    }
+
+    private func performRandomChanges(seed: UInt64) async throws {
         var rng = SplitMix64(seed: seed)
         var model: [String: Data] = [:]
         let keys = (0..<6).map { "key\($0)" }
@@ -190,6 +202,38 @@ final class DataCacheConsistencyTests {
         for index in 0..<3 {
             #expect(cache["key\(index)"] == nil)
         }
+    }
+
+    /// The change that arrives while the staging limit is draining the staged
+    /// data has no scheduled drain to join: the one in flight took its snapshot
+    /// already, and it has to schedule another.
+    @Test func changesStagedWhileTheStagingLimitDrainsTheCacheReachTheDisk() async throws {
+        // GIVEN a drain the staging limit started, in the middle of its snapshot
+        let gate = Gate(key: "key")
+        let path = makeUniqueDirectoryURL()
+        defer { try? FileManager.default.removeItem(at: path) }
+        let cache = try DataCache(path: path, filenameGenerator: {
+            gate.pass($0)
+            return DataCache.filename(for: $0)
+        })
+        cache.isSweepEnabled = false
+        cache.flushInterval = .seconds(60)
+        cache.stagingSizeLimit = 1
+        cache["key"] = Data("A".utf8)
+        await gate.entered.wait()
+
+        // WHEN
+        cache["key"] = Data("B".utf8)
+        cache["other"] = blob
+        gate.open()
+
+        // THEN nothing has to wait for the interval, and the newer value wins
+        await waitUntil { cache.stagedSize == 0 }
+        #expect(cache["key"] == Data("B".utf8))
+        let reopened = try DataCache(path: path)
+        reopened.isSweepEnabled = false
+        #expect(reopened["key"] == Data("B".utf8))
+        #expect(reopened["other"] == blob)
     }
 
     /// A flush in flight writes the snapshot it took before the key was

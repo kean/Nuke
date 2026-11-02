@@ -214,6 +214,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 - Creating processor identifiers, which go in every data cache key, is 2.5× faster, and generating filenames 1.5× – https://github.com/kean/Nuke/pull/979
 - Decompression is up to 45% faster on the iOS simulator: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay`, which also applies to tvOS and visionOS, is now enabled by default – https://github.com/kean/Nuke/pull/990
+- `DataCache` starts writing once 16 MB is staged instead of holding the data for a second: peak growth for 120 12 MP JPEGs with `ImagePipeline/Configuration-swift.struct/withDataCache` is 60 MB instead of 261 MB on loopback, 63 MB instead of 86 MB at 48 MB/s, and unchanged at 12 MB/s – https://github.com/kean/Nuke/pull/1105
 
 ### Bug Fixes
 

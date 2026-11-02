@@ -84,6 +84,22 @@ public final class DataCache: DataCaching, Sendable {
         set { state.withLock { $0.flushInterval = newValue } }
     }
 
+    /// The size of the staged data, in bytes, past which the automatic drain
+    /// no longer waits for ``flushInterval``. `16` MB by default.
+    ///
+    /// The staged data stays in memory until it's written, so the interval
+    /// otherwise holds on to everything that arrives within it: on a fast link,
+    /// more than the images being displayed take up.
+    var stagingSizeLimit: Int {
+        get { state.withLock { $0.stagingSizeLimit } }
+        set { state.withLock { $0.stagingSizeLimit = newValue } }
+    }
+
+    /// The size of the staged data, in bytes (testing only).
+    var stagedSize: Int {
+        state.withLock { $0.staging.size }
+    }
+
     /// A function that generates a filename for the given key. A good candidate
     /// is a hash function with low collision probability, such as SHA1.
     ///
@@ -126,9 +142,13 @@ public final class DataCache: DataCaching, Sendable {
     private struct State {
         /// The changes that are yet to reach the disk.
         var staging = Staging()
-        /// A drain is already scheduled on ``ioQueue``. There is never more
-        /// than one of them in flight.
+        /// A drain is already waiting for the end of ``flushInterval``. There
+        /// is never more than one of them in flight.
         var isFlushScheduled = false
+        /// A drain is already queued on ``ioQueue`` because the staged data went
+        /// past ``stagingSizeLimit``. It can overlap the one above, which then
+        /// finds less to do.
+        var isEarlyFlushScheduled = false
         /// Prevents the automatic drain from running (testing only).
         var isIOSuspended = false
         /// The keys whose access date is yet to reach the disk.
@@ -138,6 +158,7 @@ public final class DataCache: DataCaching, Sendable {
         var sizeLimit = 1024 * 1024 * 150
         var sweepInterval: TimeInterval = 1800
         var flushInterval: DispatchTimeInterval = .seconds(1)
+        var stagingSizeLimit = 1024 * 1024 * 16
         var isSweepEnabled = true
         var trimRatio = 0.7
 
@@ -362,26 +383,40 @@ public final class DataCache: DataCaching, Sendable {
     ///
     /// The window gives the changes that arrive in quick succession a chance to
     /// batch up: they are written in a single pass over the disk, and the
-    /// repeated writes to the same key are collapsed into one.
+    /// repeated writes to the same key are collapsed into one. Once they take
+    /// up more than ``stagingSizeLimit``, the batch is big enough, and waiting
+    /// any longer would only hold on to the memory.
     ///
     /// - important: Must be called with the lock held.
     private func scheduleNextFlush(_ state: inout State) {
-        guard !state.isFlushScheduled, !state.isIOSuspended, state.hasPendingWork else { return }
-        state.isFlushScheduled = true
+        guard !state.isIOSuspended, state.hasPendingWork else { return }
         // `self` is captured strongly on purpose: the staged data has to reach
         // the disk even if the client releases the cache in the meantime.
-        ioQueue.asyncAfter(deadline: .now() + state.flushInterval, qos: .utility) {
-            self.flushChangesIfNeeded()
+        if state.staging.size >= state.stagingSizeLimit {
+            guard !state.isEarlyFlushScheduled else { return }
+            state.isEarlyFlushScheduled = true
+            ioQueue.async(qos: .utility) {
+                self.flushChangesIfNeeded(isEarly: true)
+            }
+        } else if !state.isFlushScheduled {
+            state.isFlushScheduled = true
+            ioQueue.asyncAfter(deadline: .now() + state.flushInterval, qos: .utility) {
+                self.flushChangesIfNeeded(isEarly: false)
+            }
         }
     }
 
     /// Writes the changes staged so far. Runs on ``ioQueue``.
-    private func flushChangesIfNeeded() {
+    private func flushChangesIfNeeded(isEarly: Bool) {
         // Create a snapshot of the recently made changes. The drain is no
         // longer scheduled, so the changes staged from here on schedule the
         // next one instead of joining the snapshot.
         let work: PendingWork? = state.withLock {
-            $0.isFlushScheduled = false
+            if isEarly {
+                $0.isEarlyFlushScheduled = false
+            } else {
+                $0.isFlushScheduled = false
+            }
             guard !$0.isIOSuspended else {
                 return nil // The changes are picked up by `resumeIO()`
             }
@@ -694,6 +729,8 @@ public final class DataCache: DataCaching, Sendable {
 private struct Staging {
     private(set) var changes = [String: Change]()
     private(set) var changeRemoveAll: ChangeRemoveAll?
+    /// The total size of the data in ``changes``, in bytes.
+    private(set) var size = 0
     private var nextChangeId = 0
 
     var isEmpty: Bool {
@@ -713,6 +750,13 @@ private struct Staging {
     enum ChangeType {
         case add(Data)
         case remove
+
+        var size: Int {
+            switch self {
+            case let .add(data): data.count
+            case .remove: 0
+            }
+        }
     }
 
     // MARK: Changes
@@ -730,19 +774,24 @@ private struct Staging {
     // MARK: Register Changes
 
     mutating func add(data: Data, for key: String) {
-        nextChangeId += 1
-        changes[key] = Change(key: key, id: nextChangeId, type: .add(data))
+        replaceChange(for: key, with: .add(data))
     }
 
     mutating func removeData(for key: String) {
+        replaceChange(for: key, with: .remove)
+    }
+
+    private mutating func replaceChange(for key: String, with type: ChangeType) {
         nextChangeId += 1
-        changes[key] = Change(key: key, id: nextChangeId, type: .remove)
+        let previous = changes.updateValue(Change(key: key, id: nextChangeId, type: type), forKey: key)
+        size += type.size - (previous?.type.size ?? 0)
     }
 
     mutating func removeAll() {
         nextChangeId += 1
         changeRemoveAll = ChangeRemoveAll(id: nextChangeId)
         changes.removeAll()
+        size = 0
     }
 
     // MARK: Flush Changes
@@ -759,7 +808,7 @@ private struct Staging {
     mutating func flushed(_ change: Change) {
         if let index = changes.index(forKey: change.key),
            changes[index].value.id == change.id {
-            changes.remove(at: index)
+            size -= changes.remove(at: index).value.type.size
         }
     }
 
