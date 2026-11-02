@@ -19,6 +19,7 @@ It can drive progressive decoding, animated image rendering, progressive animate
 ### Decoding
 
 - <doc:image-decoding>
+- <doc:high-dynamic-range>
 - ``ImageDecoding``
 - ``ImageDecoders``
 - ``ImageDecodingError``
