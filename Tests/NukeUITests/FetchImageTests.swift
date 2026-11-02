@@ -46,6 +46,48 @@ struct FetchImageTests {
         #expect(image.image != nil)
     }
 
+    // MARK: - Reload
+
+    @Test func reloadRetriesAFailedLoad() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 1))
+        await image.loadAndWait(Test.request)
+        #expect(image.error != nil)
+
+        dataLoader.results[Test.url] = nil
+        let completed = TestExpectation()
+        image.onCompletion = { _ in completed.fulfill() }
+        image.reload()
+        #expect(image.isLoading)
+        await completed.wait()
+
+        #expect(image.image != nil)
+        #expect(image.error == nil)
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    @Test func reloadWithoutARequestDoesNothing() {
+        image.reload()
+
+        #expect(!image.isLoading)
+        #expect(image.result == nil)
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    // MARK: - Keeps Previous Image
+
+    @Test func keepsPreviousImageWhileANewOneLoads() async throws {
+        image.keepsPreviousImage = true
+        await image.loadAndWait(Test.request)
+        let previous = try #require(image.imageContainer)
+
+        dataLoader.isSuspended = true
+        image.load(URL(string: "https://example.com/other.jpeg"))
+
+        #expect(image.isLoading)
+        #expect(image.imageContainer?.image === previous.image)
+        dataLoader.isSuspended = false
+    }
+
     @Test func nilURLFailsWithRequestMissing() async throws {
         let result = await image.loadAndWait(nil as URL?)
 
