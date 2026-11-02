@@ -35,6 +35,39 @@ struct ImageProcessorsProtocolExtensionsTests {
         #expect(request.processors.first?.identifier == processor.identifier)
     }
 
+    @Test func passingProcessorsUsingProtocolExtensionsCrop() throws {
+        let rect = CGRect(x: 1, y: 2, width: 3, height: 4)
+        let processor = ImageProcessors.Crop(rect: rect, unit: .pixels)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.crop(rect: rect, unit: .pixels)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
+    }
+
+    @Test func passingProcessorsUsingProtocolExtensionsFlip() throws {
+        let processor = ImageProcessors.Flip(.vertical)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.flip(.vertical)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
+    }
+
+    @Test func passingProcessorsUsingProtocolExtensionsRotate() throws {
+        let processor = ImageProcessors.Rotate(degrees: 90)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.rotate(degrees: 90)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
+    }
+
+    @Test func passingProcessorsUsingProtocolExtensionsTint() throws {
+        let processor = ImageProcessors.Tint(color: .red)
+
+        let request = try #require(ImageRequest(url: nil, processors: [.tint(color: .red)]))
+
+        #expect(request.processors.first?.identifier == processor.identifier)
+    }
+
     @Test func passingProcessorsUsingProtocolExtensionsCircleEmpty() throws {
         let processor = ImageProcessors.Circle()
 
