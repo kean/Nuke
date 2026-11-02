@@ -324,7 +324,9 @@ struct ResumableDataStorageTests {
     }
 
     @Test func removeAllResponses() {
-        let storage = ResumableDataStorage.shared
+        // Not `shared`: this empties the storage for every pipeline, including
+        // the ones in the tests running in parallel.
+        let storage = ResumableDataStorage()
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
         }

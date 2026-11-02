@@ -537,12 +537,12 @@ struct DataCacheTests {
         let cache = try DataCache(path: root.appendingPathComponent("cache", isDirectory: true), filenameGenerator: { $0 })
         cache.isSweepEnabled = false
         cache["a"] = blob
-        await cache.flush()
+        cache.flush()
         #expect(!cache.containsData(for: ""))
 
         // WHEN
         cache.removeData(for: "")
-        await cache.flush()
+        cache.flush()
 
         // THEN
         #expect(cache["a"] == blob)
@@ -559,7 +559,7 @@ struct DataCacheTests {
 
         // WHEN
         cache.removeData(for: "..")
-        await cache.flush()
+        cache.flush()
 
         // THEN
         #expect(FileManager.default.fileExists(atPath: sibling.path))
@@ -575,11 +575,11 @@ struct DataCacheTests {
         }
         let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
         pipeline.cache.storeCachedData(blob!, for: request)
-        await cache.flush()
+        cache.flush()
 
         // WHEN
         pipeline.cache.removeCachedImage(for: ImageRequest(url: nil))
-        await cache.flush()
+        cache.flush()
 
         // THEN
         #expect(pipeline.cache.cachedData(for: request) == blob)
