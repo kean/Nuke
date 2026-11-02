@@ -94,6 +94,19 @@ private struct CustomPipelineView: View {
     }
 }
 
+private struct EnvironmentPipelineView: View {
+    let myPipeline: ImagePipeline
+
+    var body: some View {
+        ContentView()
+            .imagePipeline(myPipeline)
+    }
+}
+
+private struct ContentView: View {
+    var body: some View { EmptyView() }
+}
+
 // MARK: - FetchImage for Custom Views
 
 private struct CustomImageView: View {
