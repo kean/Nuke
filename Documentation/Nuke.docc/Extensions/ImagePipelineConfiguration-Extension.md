@@ -35,6 +35,7 @@ To learn more about caching, see <doc:caching>.
 - ``isProgressiveDecodingEnabled``
 - ``progressiveDecodingInterval``
 - ``isResumableDataEnabled``
+- ``failureCooldown``
 
 ### Diagnostics
 

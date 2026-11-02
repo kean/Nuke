@@ -18,6 +18,11 @@ extension ImagePipeline {
         case dataMissingInCache
         /// Data loader failed to load image data with a wrapped error.
         case dataLoadingFailed(error: Swift.Error)
+        /// The pipeline didn't request the URL because it failed recently and
+        /// is in cooldown (see ``ImagePipeline/Configuration-swift.struct/failureCooldown``).
+        /// The error is the one the failure ended with, which
+        /// ``ImagePipeline/Error/dataLoadingError`` returns as well.
+        case urlInCooldown(error: Swift.Error)
         /// Data loader returned empty data.
         case dataIsEmpty
         /// No decoder registered for the given data.
@@ -58,7 +63,7 @@ extension ImagePipeline.Error {
     /// Returns underlying data loading error.
     public var dataLoadingError: Swift.Error? {
         switch self {
-        case .dataLoadingFailed(let error):
+        case .dataLoadingFailed(let error), .urlInCooldown(let error):
             return error
         default:
             return nil
@@ -75,6 +80,8 @@ extension ImagePipeline.Error {
             return "Failed to load data from cache and download is disabled."
         case let .dataLoadingFailed(error):
             return "Failed to load image data. Underlying error: \(error)."
+        case let .urlInCooldown(error):
+            return "Didn't request the URL because it failed recently and is in cooldown. Underlying error: \(error)."
         case .dataIsEmpty:
             return "Data loader returned empty data."
         case let .decoderNotRegistered(context):

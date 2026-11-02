@@ -36,6 +36,7 @@ The URLs in the lines have no query, which can carry a token. ``ImageTask/Metric
 | `decoderNotRegistered` | The pipeline has a custom ``ImagePipeline/Configuration-swift.struct/makeImageDecoder`` that returned `nil` | Fall back to ``ImageDecoders/Default`` |
 | `Response status code was unacceptable` | The server answered with an error | Check the URL. ``DataLoader`` rejects everything but `2xx` |
 | `NSURLErrorDomain` and a code | `URLSession` failed. `-1009` is no connection, `-1004` is a refused connection, `-1022` is App Transport Security, and `-1001` is a timeout | See `URLError.Code` |
+| `urlInCooldown` | The URL failed with a `404` or a `410` a moment ago, and ``ImagePipeline/Configuration-swift.struct/failureCooldown`` is on, so the pipeline didn't request it again | Expected. See <doc:loading-data#Failure-Cooldown> to retry it |
 | `dataMissingInCache` | The request has ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad``, and the image isn't cached | Expected, unless you meant to load it |
 | `cancelled` | The view went away, or something called `cancel()`. A cell that scrolls off the screen does it | Expected. To keep the download going when a `LazyImage` disappears, use `onDisappear(.lowerPriority)` |
 | `success`, and the view is blank | The image loaded. The problem is in the view | `LazyImage(url:)` shows the image at its natural size. Check its frame, and call `resizable()` in the `content` closure |

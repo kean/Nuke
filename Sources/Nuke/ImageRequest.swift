@@ -345,7 +345,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         ///
         /// This option only works with ``ImageCaching`` and ``DataCaching``, but not
         /// `URLCache`. If you want to ignore `URLCache`, initialize the request
-        /// with `URLRequest` with the respective policy.
+        /// with `URLRequest` with the respective policy. It also ignores
+        /// ``ImagePipeline/Configuration-swift.struct/failureCooldown``, as a
+        /// failure the pipeline remembers is cached data too.
         public static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]
 
         /// Use existing cache data and fail if no cached data is available.
@@ -361,6 +363,11 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// - important: If there is an outstanding task for loading the same
         /// resource but without this option, a new task will be created.
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
+
+        /// Requests the URL even if it is in cooldown, while still using the
+        /// caches (see ``ImagePipeline/Configuration-swift.struct/failureCooldown``).
+        /// Use it when the user asks for the image again.
+        public static let skipFailureCooldown = Options(rawValue: 1 << 7)
     }
 
     /// A key used in `userInfo` for providing custom request options.
