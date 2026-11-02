@@ -17,12 +17,13 @@ import SwiftUI
 @MainActor
 public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
+    @Environment(\.optionalImagePipeline) private var environmentPipeline
 
     private var context: LazyImageContext?
     private var overrides = Overrides()
     private var makeContent: ((LazyImageState) -> Content)?
     private var transaction: Transaction
-    private var pipeline: ImagePipeline = .shared
+    private var pipeline: ImagePipeline?
     private var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
     private var onDisappearBehavior: DisappearBehavior? = .cancel
     private var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
@@ -121,6 +122,10 @@ public struct LazyImage<Content: View>: View {
     }
 
     /// Changes the underlying pipeline used for image loading.
+    ///
+    /// This takes precedence over the pipeline in the environment, which is set
+    /// with ``SwiftUICore/View/imagePipeline(_:)``. Without either,
+    /// ``ImagePipeline/shared`` is used.
     public consuming func pipeline(_ pipeline: ImagePipeline) -> Self {
         map { $0.pipeline = pipeline }
     }
@@ -150,6 +155,13 @@ public struct LazyImage<Content: View>: View {
         map { $0.onCompletion = closure }
     }
 
+    /// The pipeline the view loads with: its own, then the environment's, then
+    /// ``ImagePipeline/shared``, which is read here because it can be assigned
+    /// at any time.
+    private var resolvedPipeline: ImagePipeline {
+        pipeline ?? environmentPipeline ?? .shared
+    }
+
     private consuming func map(_ closure: (inout LazyImage) -> Void) -> Self {
         var copy = self
         closure(&copy)
@@ -173,9 +185,9 @@ public struct LazyImage<Content: View>: View {
         // The one-parameter form is deprecated in every visionOS. This one
         // calls the closure of the current update, not the previous one, but
         // reads nothing from `self`, so the two behave the same.
-        .onChange(of: Update(view: self)) { _, update in update.view.onChange(to: update.context) }
+        .onChange(of: Update(view: self)) { _, update in update.view.onChange(to: update.context, pipeline: update.pipeline) }
 #else
-        .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context) }
+        .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context, pipeline: $0.pipeline) }
 #endif
     }
 
@@ -189,7 +201,7 @@ public struct LazyImage<Content: View>: View {
     private func currentState() -> LazyImageState {
         guard viewModel.currentRequest == nil,
               let request = overrides.applied(to: context)?.request,
-              let container = pipeline.cache[request],
+              let container = resolvedPipeline.cache[request],
               !container.isPreview else {
             return viewModel
         }
@@ -220,14 +232,20 @@ public struct LazyImage<Content: View>: View {
         /// has to be a snapshot: a processor's identifier can change in place,
         /// and reading it again in `==` would see the new one on both sides.
         let context: LazyImageContext?
+        /// The pipeline the view resolves to, made once per update for the same
+        /// reason. The environment is only read in `body`, and the action runs
+        /// later.
+        let pipeline: ImagePipeline
 
+        @MainActor
         init(view: LazyImage) {
             self.view = view
             self.context = view.overrides.applied(to: view.context)
+            self.pipeline = view.resolvedPipeline
         }
 
         static func == (lhs: Update, rhs: Update) -> Bool {
-            lhs.context == rhs.context && lhs.view.pipeline === rhs.view.pipeline
+            lhs.context == rhs.context && lhs.pipeline === rhs.pipeline
         }
     }
 
@@ -247,10 +265,11 @@ public struct LazyImage<Content: View>: View {
 
     private func onAppear() {
         let context = overrides.applied(to: context)
+        let pipeline = resolvedPipeline
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
-        let isStillLoading = viewModel.isLoading && isLoaded(context)
-        configure()
+        let isStillLoading = viewModel.isLoading && isLoaded(context, pipeline: pipeline)
+        configure(pipeline: pipeline)
         // Undo the priority lowered by the `.lowerPriority` disappear behavior.
         viewModel.priority = context?.request.priority
         if !isStillLoading {
@@ -258,9 +277,9 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onChange(to context: LazyImageContext?) {
-        let isAlreadyLoaded = isLoaded(context)
-        configure()
+    private func onChange(to context: LazyImageContext?, pipeline: ImagePipeline) {
+        let isAlreadyLoaded = isLoaded(context, pipeline: pipeline)
+        configure(pipeline: pipeline)
         // Before the load, which would otherwise start with the priority of
         // the previous request. If it's only the priority that changed, this
         // is all there is to do.
@@ -270,7 +289,7 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func configure() {
+    private func configure(pipeline: ImagePipeline) {
         viewModel.transaction = transaction
         viewModel.pipeline = pipeline
         viewModel.onStart = onStart
@@ -278,8 +297,8 @@ public struct LazyImage<Content: View>: View {
     }
 
     /// Returns `true` if the view model has loaded, or is loading, the given
-    /// request from the view's pipeline, whatever its priority.
-    private func isLoaded(_ context: LazyImageContext?) -> Bool {
+    /// request from the given pipeline, whatever its priority.
+    private func isLoaded(_ context: LazyImageContext?, pipeline: ImagePipeline) -> Bool {
         guard let context, let request = viewModel.currentRequest else { return false }
         return viewModel.pipeline === pipeline && context.request.loadsSameImage(as: request)
     }

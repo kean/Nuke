@@ -58,6 +58,13 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .pipeline(customPipeline)
 ```
 
+To use one pipeline for a whole view hierarchy, set it in the environment with `imagePipeline(_:)` instead of passing it to every view. The view's own `pipeline(_:)` takes precedence.
+
+```swift
+ContentView()
+    .imagePipeline(customPipeline)
+```
+
 > Tip: ``LazyImage`` is built on top of ``FetchImage``. If you want even more control, you can use it directly instead.  
 
 ## Topics

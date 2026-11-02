@@ -6,7 +6,7 @@ Learn about the memory and disk cache layers.
 
 There are three cache layers:
 
-- ``ImageCache`` – LRU **memory** cache for processed images
+- ``ImageCache`` – **memory** cache (CLOCK, an approximation of LRU) for processed images
 - ``DataCache`` – aggressive LRU **disk** cache
 - [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) – HTTP **disk** cache, which is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system)
 
@@ -14,9 +14,9 @@ The default pipeline uses a combination of ``ImageCache`` and [`URLCache`](https
 
 ### Memory Cache
 
-``ImageCache`` is a **memory** cache with an [LRU cleanup](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)) policy (least recently used are removed first). The pipeline uses it to store processed images that are decompressed and ready to be displayed.
+``ImageCache`` is a **memory** cache that evicts with [CLOCK](https://en.wikipedia.org/wiki/Page_replacement_algorithm#Clock), an approximation of LRU: an image that was read since the last sweep gets a second chance, and the ones that weren't are removed first. The pipeline uses it to store processed images that are decompressed and ready to be displayed.
 
-``ImageCache`` discards the least recently cached images if either *cost* or *count* limit is reached. The default cost limit represents a number of bytes and is calculated based on the amount of physical memory available on the device. The default count limit is `Int.max`.
+``ImageCache`` discards images that weren't read recently if either *cost* or *count* limit is reached. The default cost limit represents a number of bytes and is calculated based on the amount of physical memory available on the device. The default count limit is `Int.max`.
 
 ```swift
 // Configure cache
