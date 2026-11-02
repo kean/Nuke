@@ -43,6 +43,31 @@ struct ImagePipelineDataCachingTests {
         #expect(!dataCache.store.isEmpty)
     }
 
+    @Test(arguments: [ImagePipeline.DataCachePolicy.storeAll, .storeEncodedImages, .storeOriginalData, .automatic])
+    func stagingLimitDrainsWhatEachPolicyStores(_ policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN a cache the staging limit drains, with no help from the interval
+        let dataCache = try DataCache(path: makeUniqueDirectoryURL())
+        defer { try? FileManager.default.removeItem(at: dataCache.path) }
+        dataCache.isSweepEnabled = false
+        dataCache.flushInterval = .seconds(60)
+        dataCache.stagingSizeLimit = 1
+        let pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+            $0.dataCachePolicy = policy
+        }
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+
+        // WHEN
+        _ = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+        await waitUntil { dataCache.stagedSize == 0 }
+
+        // THEN each policy finds the same entries as without the limit
+        let original = ImageRequest(url: Test.url)
+        #expect((pipeline.cache.cachedData(for: request) != nil) == (policy != .storeOriginalData))
+        #expect((pipeline.cache.cachedData(for: original) != nil) == (policy == .storeOriginalData || policy == .storeAll))
+    }
+
     @Test func thumbnailOptionsDataCacheStoresOriginalDataByDefault() async throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
