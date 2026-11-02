@@ -687,7 +687,8 @@ extension ImageRequest {
         processorsIdentity == other.processorsIdentity &&
         options == other.options &&
         scale == other.scale &&
-        thumbnail == other.thumbnail
+        thumbnail == other.thumbnail &&
+        hasSameFallbacks(as: other)
     }
 }
 

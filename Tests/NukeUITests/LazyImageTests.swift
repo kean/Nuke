@@ -83,6 +83,34 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
+    @Test func imageLoadedFromAlternativeWhenTheSourceFails() async throws {
+        // Given
+        let mirrorURL = URL(string: "http://test.com/mirror.jpeg")!
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        var request = Test.request
+        request.alternatives = [.url(mirrorURL)]
+
+        let completed = TestExpectation()
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+
+        // When
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .onCompletion {
+                    result.value = $0
+                    completed.fulfill()
+                }
+        }
+        await completed.wait()
+
+        // Then
+        let response = try #require(result.value).get()
+        #expect(response.request.url == mirrorURL)
+        #expect(dataLoader.requestedURLs == [Test.url, mirrorURL])
+        withExtendedLifetime(host) {}
+    }
+
     @Test func nilRequestFailsWithRequestMissing() async throws {
         let completed = TestExpectation()
         let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
