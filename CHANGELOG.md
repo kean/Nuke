@@ -202,6 +202,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
 - Add `ImageProcessors/Crop`, `ImageProcessors/Flip`, `ImageProcessors/Rotate`, and `ImageProcessors/Tint`, with `ImageProcessing/crop(rect:unit:)`, `ImageProcessing/flip(_:)`, `ImageProcessing/rotate(degrees:)`, and `ImageProcessing/tint(color:)` – https://github.com/kean/Nuke/pull/1103
 - Add `ImageDecoders/PDF`, an opt-in decoder that draws a page of a PDF document at the size the request asks for, and `AssetType/pdf`. It isn't available on tvOS – https://github.com/kean/Nuke/pull/1107
+- Add `ImagePipeline/Configuration-swift.struct/failureCooldown`, off by default, which stops requesting a URL for a while after a `404` or a `410`. Those loads fail with `ImagePipeline/Error/urlInCooldown(error:)`, and `ImageRequest/Options-swift.struct/skipFailureCooldown` and `ImageLoader/reload()` skip it – https://github.com/kean/Nuke/pull/1106
 
 ### Performance
 
