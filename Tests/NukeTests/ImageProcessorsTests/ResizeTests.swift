@@ -13,6 +13,16 @@ import UIKit
 @Suite(.timeLimit(.minutes(5)))
 struct ImageProcessorsResizeTests {
 
+    @Test func sizesCompareAsNumbersExceptThatNaNEqualsItself() {
+        func resize(height: CGFloat) -> ImageProcessors.Resize {
+            ImageProcessors.Resize(size: CGSize(width: 100, height: height), unit: .pixels)
+        }
+
+        #expect(resize(height: .nan) == resize(height: .nan))
+        #expect(resize(height: 0) == resize(height: -0.0))
+        #expect(resize(height: 1) != resize(height: 2))
+    }
+
     @Test func thatImageIsResizedToFill() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)

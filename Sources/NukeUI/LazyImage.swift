@@ -207,7 +207,7 @@ private struct LazyImageContext: Equatable {
         lhs.processors == rhs.processors &&
         lhs.priority == rhs.priority &&
         lhs.options == rhs.options &&
-        lhs.scale.bitPattern == rhs.scale.bitPattern &&
+        (lhs.scale == rhs.scale || lhs.scale.bitPattern == rhs.scale.bitPattern) &&
         lhs.thumbnail == rhs.thumbnail
     }
 }

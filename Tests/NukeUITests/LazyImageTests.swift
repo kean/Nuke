@@ -98,6 +98,20 @@ struct LazyImageTests {
         #expect(starts.value == 1)
     }
 
+    @Test func noReloadWhenScaleChangesToNegativeZero() async {
+        let starts = Ref(0)
+        let host = ViewHost(Float(0)) { scale in
+            var request = ImageRequest(url: Test.url)
+            request.scale = scale
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(-0.0)
+
+        #expect(starts.value == 1)
+    }
+
     @Test func noReloadWhenThumbnailSizeIsNaN() async {
         let starts = Ref(0)
         let host = ViewHost(0) { _ in
