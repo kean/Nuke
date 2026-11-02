@@ -814,94 +814,6 @@ struct DataLoaderDelegateForwardingTests {
         #expect(recorder.body == Data("authorized".utf8))
     }
 
-    // MARK: Authentication Routing
-    //
-    // `DataLoader` implements only the task-level challenge method, so
-    // `URLSession` sends it the session-wide challenges too, and it routes
-    // them the way `URLSession` would.
-
-    @Test func sessionLevelChallengeIsForwardedToDelegate() async {
-        // Given a delegate that implements only the session-level method
-        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = SessionLevelChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then the delegate rejects the server trust challenge
-        #expect(delegate.challengeCount == 1)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
-
-    @Test func taskLevelChallengeIsForwardedToDelegate() async {
-        // Given a delegate that implements the task-level method
-        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = TaskLevelChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then
-        #expect(delegate.challengeCount == 1)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
-
-    @Test func sessionWideChallengeGoesToSessionLevelMethodFirst() async {
-        // Given a delegate that implements both methods
-        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = BothLevelsChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then server trust goes to the session-level method, as with `URLSession`
-        #expect(delegate.sessionLevelCount == 1)
-        #expect(delegate.taskLevelCount == 0)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
-
-    @Test func taskSpecificChallengeGoesToTaskLevelMethod() async {
-        // Given a delegate that implements both methods
-        let url = StubURLProtocol.registerChallenge { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = BothLevelsChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then HTTP Basic never goes to the session-level method
-        #expect(delegate.sessionLevelCount == 0)
-        #expect(delegate.taskLevelCount == 1)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
-
-    @Test func taskSpecificChallengeIsNotForwardedToSessionLevelMethod() async {
-        // Given a delegate that implements only the session-level method
-        let url = StubURLProtocol.registerChallenge { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = SessionLevelChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then the challenge gets default handling
-        #expect(delegate.challengeCount == 0)
-        #expect(recorder.error == nil)
-    }
-
     // MARK: Redirects
 
     @Test func delegateCanRewriteRedirect() async throws {
@@ -1191,7 +1103,7 @@ private func waitFor<T: Sendable>(_ value: @Sendable () -> T?) async throws -> T
 
 // MARK: - Helpers
 
-private func makeStubLoader(
+func makeStubLoader(
     validate: @Sendable @escaping (URLResponse) -> Error? = DataLoader.validate
 ) -> DataLoader {
     let configuration = URLSessionConfiguration.ephemeral
@@ -1259,7 +1171,7 @@ extension DataLoader {
 }
 
 /// Records the callbacks of a single ``DataLoader`` load.
-private final class LoadRecorder: @unchecked Sendable {
+final class LoadRecorder: @unchecked Sendable {
     let completed = TestExpectation()
     let receivedData = TestExpectation()
 
@@ -1360,46 +1272,6 @@ private final class ChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchec
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @Sendable @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         completionHandler(disposition, credential)
-    }
-}
-
-/// Implements only the session-level challenge method and rejects the challenge.
-private final class SessionLevelChallengeDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
-    var challengeCount: Int { _challengeCount.withLock { $0 } }
-    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
-
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        _challengeCount.withLock { $0 += 1 }
-        completionHandler(.cancelAuthenticationChallenge, nil)
-    }
-}
-
-/// Implements only the task-level challenge method and rejects the challenge.
-private final class TaskLevelChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    var challengeCount: Int { _challengeCount.withLock { $0 } }
-    private let _challengeCount = OSAllocatedUnfairLock(initialState: 0)
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        _challengeCount.withLock { $0 += 1 }
-        completionHandler(.cancelAuthenticationChallenge, nil)
-    }
-}
-
-/// Implements both challenge methods and rejects the challenge.
-private final class BothLevelsChallengeDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    var sessionLevelCount: Int { _sessionLevelCount.withLock { $0 } }
-    var taskLevelCount: Int { _taskLevelCount.withLock { $0 } }
-    private let _sessionLevelCount = OSAllocatedUnfairLock(initialState: 0)
-    private let _taskLevelCount = OSAllocatedUnfairLock(initialState: 0)
-
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        _sessionLevelCount.withLock { $0 += 1 }
-        completionHandler(.cancelAuthenticationChallenge, nil)
-    }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        _taskLevelCount.withLock { $0 += 1 }
-        completionHandler(.cancelAuthenticationChallenge, nil)
     }
 }
 
