@@ -30,6 +30,9 @@ import os
 /// let data = cache[key]
 /// ```
 ///
+/// An entry can have an expiration date, see ``ImageRequest/cacheExpiration-swift.property``.
+/// Once it passes, the entry reads as missing, and the next sweep removes it.
+///
 /// - important: Reads can require disk IO, avoid using them from the main thread.
 ///
 /// - important: It's possible to have more than one instance of ``DataCache`` with
@@ -139,6 +142,7 @@ public final class DataCache: DataCaching, Sendable {
         var sweepInterval: TimeInterval = 1800
         var flushInterval: DispatchTimeInterval = .seconds(1)
         var isSweepEnabled = true
+        var hasExpiringFiles = false
         var trimRatio = 0.7
 
         /// There is something for the drain to write.
@@ -199,6 +203,9 @@ public final class DataCache: DataCaching, Sendable {
             state.withLock { $0.isSweepEnabled = false }
         }
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        if FileManager.default.fileExists(atPath: expiringFilesMarkerURL.path) {
+            state.withLock { $0.hasExpiringFiles = true }
+        }
         scheduleSweep(deadline: .now() + sweepDelay)
     }
 
@@ -219,13 +226,14 @@ public final class DataCache: DataCaching, Sendable {
     public func cachedData(for key: String) -> Data? {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
-            case let .add(data):
-                return data
+            case let .add(data, expiration):
+                return isExpired(expiration) ? nil : data
             case .remove:
                 return nil
             }
         }
-        guard let url = url(for: key), let data = try? Data(contentsOf: url) else {
+        guard let url = url(for: key), !isExpired(expiration(ofFileAt: url)),
+              let data = try? Data(contentsOf: url) else {
             return nil
         }
         touchAccessDate(for: key)
@@ -241,8 +249,8 @@ public final class DataCache: DataCaching, Sendable {
     public func containsData(for key: String) -> Bool {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
-            case .add:
-                return true
+            case let .add(_, expiration):
+                return !isExpired(expiration)
             case .remove:
                 return false
             }
@@ -250,7 +258,29 @@ public final class DataCache: DataCaching, Sendable {
         guard let url = url(for: key) else {
             return false
         }
-        return FileManager.default.fileExists(atPath: url.path)
+        return FileManager.default.fileExists(atPath: url.path) && !isExpired(expiration(ofFileAt: url))
+    }
+
+    /// Returns the date the entry for the given key expires on, or `nil` if it
+    /// doesn't expire.
+    ///
+    /// If the entry is still in the staging area, the method returns instantly.
+    /// Otherwise, it checks the disk synchronously.
+    ///
+    /// - important: Can require disk IO, avoid using from the main thread.
+    public func expirationDate(for key: String) -> Date? {
+        let timestamp: TimeInterval?
+        if let change = change(for: key) {
+            switch change { // Change wasn't flushed to disk yet
+            case let .add(_, expiration):
+                timestamp = expiration
+            case .remove:
+                timestamp = nil
+            }
+        } else {
+            timestamp = url(for: key).flatMap(expiration(ofFileAt:))
+        }
+        return timestamp.map(Date.init(timeIntervalSinceReferenceDate:))
     }
 
     /// Refreshes the access date that the LRU sweep ranks the entries by.
@@ -278,7 +308,14 @@ public final class DataCache: DataCaching, Sendable {
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asynchronously.
     public func storeData(_ data: Data, for key: String) {
-        stage { $0.add(data: data, for: key) }
+        stage { $0.add(data: data, for: key, expiration: nil) }
+    }
+
+    /// Stores data for the given key, with the given expiration. The method
+    /// returns instantly and the data is written asynchronously.
+    public func storeData(_ data: Data, for key: String, expiration: ImageRequest.CacheExpiration) {
+        let timestamp = expiration.expirationDate?.timeIntervalSinceReferenceDate
+        stage { $0.add(data: data, for: key, expiration: timestamp) }
     }
 
     /// Removes data for the given key. The method returns instantly, the data
@@ -349,8 +386,9 @@ public final class DataCache: DataCaching, Sendable {
         await performIO { self.performPendingChanges() }
     }
 
-    /// Performs a cache sweep, removing the least recently used items that no
-    /// longer fit in the cache, and waits for it to finish.
+    /// Performs a cache sweep, removing the items that expired and the least
+    /// recently used items that no longer fit in the cache, and waits for it
+    /// to finish.
     ///
     /// The sweep counts as a recent one: the next scheduled sweep skips it if it
     /// happens within ``DataCache/sweepInterval``.
@@ -488,12 +526,12 @@ public final class DataCache: DataCaching, Sendable {
             return
         }
         switch change.type {
-        case let .add(data):
+        case let .add(data, expiration):
             do {
-                try write(data, to: url)
+                try write(data, expiration: expiration, to: url)
             } catch let error as NSError where error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain {
                 createDirectory() // The directory is gone, re-create it and try again
-                try? write(data, to: url)
+                try? write(data, expiration: expiration, to: url)
             } catch {
                 // There is nothing we can do about it
             }
@@ -515,10 +553,17 @@ public final class DataCache: DataCaching, Sendable {
     /// one is hidden, which ``contents(keys:)`` already skips. Its name is
     /// derived from the destination, so a process that dies mid-write leaves at
     /// most one behind per key and the next write to that key reclaims it.
-    private func write(_ data: Data, to url: URL) throws {
+    ///
+    /// The expiration goes on the temporary file for the same reason: there is
+    /// never a moment when the entry is there without it.
+    private func write(_ data: Data, expiration: TimeInterval?, to url: URL) throws {
         let tempURL = url.deletingLastPathComponent()
             .appendingPathComponent("." + url.lastPathComponent + ".tmp", isDirectory: false)
         try data.write(to: tempURL)
+        guard setExpiration(expiration, ofFileAt: tempURL) else {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw CocoaError(.fileWriteUnknown)
+        }
         let didRename = tempURL.withUnsafeFileSystemRepresentation { source in
             url.withUnsafeFileSystemRepresentation { destination in
                 guard let source, let destination else { return false }
@@ -531,6 +576,67 @@ public final class DataCache: DataCaching, Sendable {
         }
     }
 
+    // MARK: Expiration
+
+    // An extended attribute and not a date on the file: the sweep ranks the
+    // entries by the access date, and a modification date in the past can't
+    // tell an entry that expired from one that doesn't expire. The attribute
+    // is a part of the file, so it survives the rename and a relaunch, and
+    // goes away with the entry. The value is the time since the reference date.
+    //
+    // Reading it takes about 7 µs, seven times as long as a `stat`, and a third
+    // of what the rest of a read takes, so a cache only reads it once one of
+    // its files has it. A marker file says so the next time the cache opens.
+    private static let expirationAttribute = "com.github.kean.Nuke.expiration"
+
+    private var expiringFilesMarkerURL: URL {
+        path.appendingPathComponent(".has-expiring-files", isDirectory: false)
+    }
+
+    private var hasExpiringFiles: Bool {
+        state.withLock { $0.hasExpiringFiles }
+    }
+
+    private func isExpired(_ expiration: TimeInterval?) -> Bool {
+        expiration.map { $0 <= Date.timeIntervalSinceReferenceDate } ?? false
+    }
+
+    private func expiration(ofFileAt url: URL) -> TimeInterval? {
+        guard hasExpiringFiles else { return nil }
+        var value: TimeInterval = 0
+        let size = MemoryLayout<TimeInterval>.size
+        let count = url.withUnsafeFileSystemRepresentation { path in
+            path.map { getxattr($0, Self.expirationAttribute, &value, size, 0, 0) } ?? -1
+        }
+        return count == size ? value : nil
+    }
+
+    /// - returns: `false` if the file can't hold the expiration, and shouldn't
+    /// become an entry that never expires.
+    private func setExpiration(_ expiration: TimeInterval?, ofFileAt url: URL) -> Bool {
+        url.withUnsafeFileSystemRepresentation { path in
+            guard let path else { return false }
+            guard var value = expiration else {
+                // `write(to:)` reuses a file left behind by a process that
+                // died before the rename, and with it, the attribute.
+                if hasExpiringFiles {
+                    removexattr(path, Self.expirationAttribute, 0)
+                }
+                return true
+            }
+            return markFilesAsExpiring() && setxattr(path, Self.expirationAttribute, &value, MemoryLayout<TimeInterval>.size, 0, 0) == 0
+        }
+    }
+
+    /// Goes first: a file with the attribute and no marker would never expire
+    /// after a relaunch.
+    private func markFilesAsExpiring() -> Bool {
+        guard !hasExpiringFiles else { return true }
+        guard FileManager.default.createFile(atPath: expiringFilesMarkerURL.path, contents: nil) else { return false }
+        state.withLock { $0.hasExpiringFiles = true }
+        return true
+    }
+
     private func performRemoveAll() {
         try? FileManager.default.removeItem(at: path)
         createDirectory()
@@ -538,6 +644,7 @@ public final class DataCache: DataCaching, Sendable {
 
     private func createDirectory() {
         try? FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        state.withLock { $0.hasExpiringFiles = false } // They were in there
     }
 
     // MARK: Sweep
@@ -589,6 +696,11 @@ public final class DataCache: DataCaching, Sendable {
 
     private func performSweep() {
         var items = contents(keys: [.contentAccessDateKey, .totalFileAllocatedSizeKey])
+        items.removeAll { item in
+            guard isExpired(expiration(ofFileAt: item.url)) else { return false }
+            try? FileManager.default.removeItem(at: item.url)
+            return true
+        }
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
         let (sizeLimit, trimRatio) = state.withLock { ($0.sizeLimit, $0.trimRatio) }
         guard size > sizeLimit else {
@@ -711,7 +823,8 @@ private struct Staging {
     }
 
     enum ChangeType {
-        case add(Data)
+        /// `expiration` is the time since the reference date.
+        case add(Data, expiration: TimeInterval?)
         case remove
     }
 
@@ -729,9 +842,9 @@ private struct Staging {
 
     // MARK: Register Changes
 
-    mutating func add(data: Data, for key: String) {
+    mutating func add(data: Data, for key: String, expiration: TimeInterval?) {
         nextChangeId += 1
-        changes[key] = Change(key: key, id: nextChangeId, type: .add(data))
+        changes[key] = Change(key: key, id: nextChangeId, type: .add(data, expiration: expiration))
     }
 
     mutating func removeData(for key: String) {

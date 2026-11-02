@@ -56,8 +56,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.options = newValue } }
     }
 
-    /// How long the memory cache keeps the image. `nil` by default, which
-    /// leaves it to the cache: ``ImageCache`` uses ``ImageCache/ttl``.
+    /// How long the image stays in the memory and the disk cache. `nil` by
+    /// default, which leaves it to the caches: ``ImageCache`` uses ``ImageCache/ttl``,
+    /// and ``DataCache`` keeps the data until it's evicted.
     ///
     /// Set it for an image that can change at a stable URL:
     ///
@@ -69,14 +70,17 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// The expiration is stamped on the entry when the image is stored. Reading
     /// doesn't renew it, and it isn't part of the cache key: any request for
     /// the image reads the entry until it expires, whatever its own expiration
-    /// is. Storing the image again replaces the entry and its expiration.
+    /// is. Storing the image again replaces the entry and its expiration. An
+    /// image read from the disk cache stays in memory no longer than the disk
+    /// entry it was read from.
     ///
     /// - note: The expiration doesn't stop coalescing. Requests that share a
     /// load share the entry it stores, and it gets the soonest expiration among
     /// them. A request with `nil` leaves it to the others.
     ///
     /// - note: A cache that doesn't implement ``ImageCaching/store(_:for:expiration:)``
-    /// stores the image with no expiration.
+    /// or ``DataCaching/storeData(_:for:expiration:)`` stores the image with no
+    /// expiration. It doesn't apply to `URLCache`, which follows `cache-control`.
     public var cacheExpiration: CacheExpiration? {
         get { ref.cacheExpiration }
         set { mutate { $0.cacheExpiration = newValue } }
@@ -417,6 +421,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// The image expires on the given date.
         public static func date(_ date: Date) -> CacheExpiration {
             CacheExpiration(storage: .date(date.timeIntervalSinceReferenceDate))
+        }
+
+        /// Returns the one that expires first. `nil` has no say.
+        static func soonest(_ lhs: CacheExpiration?, _ rhs: CacheExpiration?) -> CacheExpiration? {
+            guard let lhs, let rhs else { return lhs ?? rhs }
+            return rhs.timeToLive < lhs.timeToLive ? rhs : lhs
         }
 
         /// The date an image stored now expires on, or `nil` if it doesn't.

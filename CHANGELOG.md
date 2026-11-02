@@ -200,6 +200,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
 - Add `ImageRequest/cacheExpiration`, which overrides `ImageCache/ttl` for the images of a request. A custom `ImageCaching` supports it with `ImageCaching/store(_:for:expiration:)` – https://github.com/kean/Nuke/pull/1099
+- `ImageRequest/cacheExpiration` also covers `DataCache`. A custom `DataCaching` supports it with `DataCaching/storeData(_:for:expiration:)` and `DataCaching/expirationDate(for:)` – https://github.com/kean/Nuke/pull/1101
 
 ### Performance
 

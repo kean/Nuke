@@ -114,6 +114,17 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
+``DataCache`` doesn't read `cache-control`, so an image that changes at a stable URL stays on the disk until it's evicted. ``ImageRequest/cacheExpiration-swift.property`` covers the disk cache too:
+
+```swift
+var request = ImageRequest(url: url)
+request.cacheExpiration = .interval(24 * 60 * 60) // One day
+```
+
+An entry that expired reads as missing, so the next load goes to the network, and the next sweep removes it. An image read from the disk stays in the memory cache no longer than the entry it was read from. The expiration doesn't apply to `URLCache`, which follows `cache-control`.
+
+> To support expiration in a custom disk cache, implement ``DataCaching/storeData(_:for:expiration:)`` and ``DataCaching/expirationDate(for:)``. Without them, the data is stored with no expiration.
+
 ``DataCache`` writes asynchronously: ``DataCache/storeData(_:for:)`` stages the data and returns immediately, and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
 
 > Important: Reads are not asynchronous. ``DataCache/cachedData(for:)`` and ``DataCache/containsData(for:)`` return instantly only if the entry is still in the staging area – otherwise they hit the disk synchronously. Avoid calling them from the main thread.
