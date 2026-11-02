@@ -19,6 +19,25 @@
 
 # Nuke 13
 
+## Nuke 13.2.2
+
+*Nov 2, 2026*
+
+- Fix a crash when replacing `DataLoader/delegate` while loading data – https://github.com/kean/Nuke/pull/998
+- Fix a crash when loading a video from a `Data` slice – https://github.com/kean/Nuke/pull/1082
+- Fix work with a priority lower than `.normal`, including `ImagePrefetcher` by default, starting in reverse order – https://github.com/kean/Nuke/pull/981
+- Fix a cancelled download keeping its `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` slot when a custom `DataLoading` doesn't call `completion` after `cancel()` – https://github.com/kean/Nuke/pull/989
+- Fix `ImagePipeline/data(for:)` and `ImagePrefetcher/Destination/diskCache` downloading a thumbnail or processed request again when the original data is in the disk cache – https://github.com/kean/Nuke/pull/1004
+- Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
+- Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
+- Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
+- Fix `DataCache` skipping the scheduled sweeps when the recorded last sweep date is in the future, e.g. after the device clock was corrected – https://github.com/kean/Nuke/pull/1024
+- Fix `DataCache/sweep()` not recording the sweep date, so the next launch could sweep again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
+- Fix a data race on `DataLoader/prefersIncrementalDelivery` – https://github.com/kean/Nuke/pull/928
+- Fix a data race on `ImagePrefetcher/didComplete` – https://github.com/kean/Nuke/pull/929
+- Fix a data race on `ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled` – https://github.com/kean/Nuke/pull/901
+
 ## Nuke 13.2.1
 
 *Nov 2, 2026*
