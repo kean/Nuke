@@ -44,6 +44,23 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"), transaction: Trans
 }
 ```
 
+For a transition that works with any content, including the default one, use ``LazyImage/imageTransition(_:animation:onMemoryCacheHit:)``. With ``LazyImage/keepsPreviousImage(_:)``, the current image stays on screen until the next one is ready, and the transition runs between the two.
+
+```swift
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    .keepsPreviousImage()
+    .imageTransition(.opacity)
+```
+
+To display a view of its own for a failed load, use ``LazyImage/failureView(_:)``. ``LazyImageState/reload()`` loads the image again from inside of the view, and ``LazyImage/reload(id:)`` does it from outside when the value you pass changes.
+
+```swift
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    .failureView { state in
+        Button("Retry") { state.reload() }
+    }
+```
+
 `LazyImage` can be instantiated with an `ImageRequest` or configured using convenience modifiers.
 
 ```swift
@@ -79,6 +96,16 @@ ContentView()
 ### Cancellation
 
 - ``onDisappear(_:)``
+
+### Reloading
+
+- ``reload(id:)``
+
+### Displaying the Image
+
+- ``keepsPreviousImage(_:)``
+- ``failureView(_:)``
+- ``imageTransition(_:animation:onMemoryCacheHit:)``
 
 ### Request Options
 
