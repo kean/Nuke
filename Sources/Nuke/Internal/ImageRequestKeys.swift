@@ -116,19 +116,29 @@ struct TaskFetchOriginalDataKey: Hashable {
     private let imageID: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool
+    // A request kept off a constrained network, which is how `lowDataURL` works,
+    // must not join a fetch that isn't, or the other way around.
+    private let allowsConstrainedNetworkAccess: Bool
     // A request that skips the queue must not join a fetch waiting in it.
     private let skipsDataLoadingQueue: Bool
 
     init(_ request: ImageRequest) {
         self.imageID = request.originalImageID
         self.skipsDataLoadingQueue = request.options.contains(.skipDataLoadingQueue)
-        switch request.resource {
+        switch request.resourceWithFallbacks {
         case .url, .data, .image:
             self.cachePolicy = .useProtocolCachePolicy
             self.allowsCellularAccess = true
+            self.allowsConstrainedNetworkAccess = true
         case let .urlRequest(urlRequest):
             self.cachePolicy = urlRequest.cachePolicy
             self.allowsCellularAccess = urlRequest.allowsCellularAccess
+            self.allowsConstrainedNetworkAccess = urlRequest.allowsConstrainedNetworkAccess
+        case .fallbacks:
+            let urlRequest = request.urlRequest
+            self.cachePolicy = urlRequest?.cachePolicy ?? .useProtocolCachePolicy
+            self.allowsCellularAccess = urlRequest?.allowsCellularAccess ?? true
+            self.allowsConstrainedNetworkAccess = urlRequest?.allowsConstrainedNetworkAccess ?? true
         }
 
         var hasher = Hasher()
@@ -136,6 +146,9 @@ struct TaskFetchOriginalDataKey: Hashable {
         hasher.combine(cachePolicy)
         hasher.combine(allowsCellularAccess)
         hasher.combine(skipsDataLoadingQueue)
+        if !allowsConstrainedNetworkAccess { // Few are, and the rest skip the work
+            hasher.combine(allowsConstrainedNetworkAccess)
+        }
         self._hashValue = hasher.finalize()
     }
 

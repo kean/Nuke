@@ -42,6 +42,11 @@ let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 - ``label``
 - ``userInfo``
 
+### Fallbacks
+
+- ``alternatives``
+- ``lowDataURL``
+
 ### Nested Types
 
 - ``Priority-swift.enum``

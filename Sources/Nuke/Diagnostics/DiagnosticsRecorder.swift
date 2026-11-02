@@ -101,6 +101,9 @@ extension ImagePipeline.Diagnostics {
         let createdAt: TimeInterval
         private(set) var startedAt: TimeInterval?
         private(set) var rootJob: JobRecord?
+        /// The root jobs of the sources that failed, oldest first.
+        private var failedRootJobs: [JobRecord] = []
+        private var fallbacks: [ImageTask.Metrics.Fallback] = []
         var previewCount = 0
         private var priorityHistory: [PriorityChange] = []
         private let signposter: OSSignposter?
@@ -132,6 +135,15 @@ extension ImagePipeline.Diagnostics {
             rootJob = job
         }
 
+        /// The source of the task failed, and it's moving on to the given
+        /// request. The task's next root job belongs to that.
+        func didFallBack(to request: ImageRequest, after error: ImagePipeline.Error) {
+            if let job = rootJob.take() {
+                failedRootJobs.append(job)
+            }
+            fallbacks.append(ImageTask.Metrics.Fallback(at: recorder.now, url: request.url?.absoluteString, imageID: request.imageID, error: ErrorSummary(error)))
+        }
+
         func recordPriority(_ priority: ImageRequest.Priority) {
             priorityHistory.append(PriorityChange(at: recorder.now, priority: priority))
         }
@@ -140,12 +152,9 @@ extension ImagePipeline.Diagnostics {
         func finish(with result: Result<ImageResponse, ImagePipeline.Error>) -> ImageTask.Metrics {
             let now = recorder.now
 
-            var jobs: [Job] = []
-            var job = rootJob
-            while let current = job {
-                jobs.append(current.makeSnapshot(for: self, at: now))
-                job = current.parent
-            }
+            // The image came out of the last source, and only that one.
+            let lastJobs = snapshots(from: rootJob, at: now)
+            let jobs = failedRootJobs.flatMap { snapshots(from: $0, at: now) } + lastJobs
 
             let outcome: Outcome
             var error: ErrorSummary?
@@ -161,7 +170,7 @@ extension ImagePipeline.Diagnostics {
                 error = ErrorSummary(failure)
             }
 
-            let source = outcome == .success ? Self.source(of: jobs) : nil
+            let source = outcome == .success ? Self.source(of: lastJobs) : nil
             if let signpostInterval {
                 signposter?.endInterval("ImageTask", signpostInterval, "\(outcome.rawValue, privacy: .public) \(source?.rawValue ?? "", privacy: .public)")
             }
@@ -184,12 +193,23 @@ extension ImagePipeline.Diagnostics {
                 rootJobID: rootJob?.id,
                 previewCount: previewCount,
                 priorityHistory: priorityHistory,
-                bytes: Self.bytes(of: jobs),
+                bytes: Self.bytes(of: lastJobs),
                 image: image,
-                jobs: jobs
+                jobs: jobs,
+                fallbacks: fallbacks.isEmpty ? nil : fallbacks
             )
             recorder.log(metrics)
             return metrics
+        }
+
+        private func snapshots(from root: JobRecord?, at now: TimeInterval) -> [Job] {
+            var jobs: [Job] = []
+            var job = root
+            while let current = job {
+                jobs.append(current.makeSnapshot(for: self, at: now))
+                job = current.parent
+            }
+            return jobs
         }
 
         /// The deepest stage that produced the image or its data decides:

@@ -108,6 +108,7 @@ To see what the tasks are doing without changing any code, launch with `NUKE_DIA
 - `ImageRequest/Priority` now conforms to `Codable` – https://github.com/kean/Nuke/pull/960
 - Add `ImagePipeline/Configuration-swift.struct/isDiagnosticsLoggingEnabled`, which launching with `NUKE_DIAGNOSTICS_LOG` also sets, and `ImageTask/Metrics/summary`, the line it logs – https://github.com/kean/Nuke/pull/1048
 - Add `ImagePipeline/Diagnostics-swift.struct/snapshot()` – https://github.com/kean/Nuke/pull/1048
+- Add `ImageTask/Metrics/fallbacks` – https://github.com/kean/Nuke/pull/1102
 
 ### ImageLoader
 
@@ -199,6 +200,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - `ImagePipeline/Error` descriptions now say what was received, such as a `text/html` page sent with a `200`, along with a redacted URL – https://github.com/kean/Nuke/pull/1048
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
+- Add `ImageRequest/alternatives` and `ImageRequest/lowDataURL` to load an image from another source when its own fails or Low Data Mode keeps it off the network – https://github.com/kean/Nuke/pull/1102
 
 ### Performance
 
@@ -260,6 +262,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix a request with `allowsConstrainedNetworkAccess` set to `false` sharing a download with one without it – https://github.com/kean/Nuke/pull/1102
 
 ### Documentation
 
