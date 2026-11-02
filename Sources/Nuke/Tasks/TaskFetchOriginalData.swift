@@ -418,7 +418,8 @@ extension AsyncPipelineTask where Value == (Data, URLResponse?) {
         case .storeOriginalData:
             return true
         case .storeEncodedImages:
-            return false
+            // Encoding an HDR image would flatten it.
+            return containsImageTask { $0.request.isHighDynamicRange }
         case .storeAll:
             return true
         }

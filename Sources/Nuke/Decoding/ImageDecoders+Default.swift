@@ -43,6 +43,7 @@ extension ImageDecoders {
         nonisolated(unsafe) private var didAttemptThumbnailFallback = false
         private let scale: CGFloat
         private let thumbnail: ImageRequest.ThumbnailOptions?
+        private let isHighDynamicRange: Bool
         let previewPolicy: ImagePipeline.PreviewPolicy
         let isAnimatedImageParsingEnabled: Bool
         private let lock = NSLock()
@@ -51,6 +52,7 @@ extension ImageDecoders {
         public init() {
             self.scale = 1.0
             self.thumbnail = nil
+            self.isHighDynamicRange = false
             self.previewPolicy = .incremental
             self.isAnimatedImageParsingEnabled = true
         }
@@ -60,6 +62,7 @@ extension ImageDecoders {
         public init?(context: ImageDecodingContext) {
             self.scale = context.request.scale
             self.thumbnail = context.request.thumbnail
+            self.isHighDynamicRange = context.request.isHighDynamicRange
             self.previewPolicy = context.previewPolicy
             self.isAnimatedImageParsingEnabled = context.isAnimatedImageParsingEnabled
         }
@@ -70,7 +73,10 @@ extension ImageDecoders {
 
             func makeImage() -> PlatformImage? {
                 if let thumbnail {
-                    return makeThumbnail(data: data, options: thumbnail, scale: scale)
+                    return makeThumbnail(data: data, options: thumbnail, scale: scale, isHighDynamicRange: isHighDynamicRange)
+                }
+                if isHighDynamicRange, let image = _decodeHighDynamicRange(data) {
+                    return image
                 }
                 return ImageDecoders.Default._decode(data, scale: scale)
             }
@@ -230,6 +236,59 @@ extension ImageDecoders.Default {
         }
         return (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
     }
+
+    /// Decodes the image to HDR, or returns `nil` for the standard decoder to
+    /// have it: the APIs need iOS 17, and Image I/O doesn't read everything
+    /// `NSImage` does.
+    private func _decodeHighDynamicRange(_ data: Data) -> PlatformImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let decodeOptions = makeHighDynamicRangeDecodeOptions(for: source),
+              let orientation = _orientation(ifDimensionsAreKnownIn: source) else {
+            return nil
+        }
+        // Decoded here because it can't be done later: `preparingForDisplay()`
+        // goes back to the SDR base of a gain map, and `decompressed` draws in
+        // 8 bits per component.
+        let options = decodeOptions.merging([kCGImageSourceShouldCacheImmediately: true]) { $1 }
+        let image: PlatformImage?
+#if os(macOS)
+        // `_make` bakes a rotation into the pixels in 8 bits. Image I/O can do
+        // it in the pixel format of the image, as part of making a thumbnail.
+        if orientation != .up {
+            image = _makeRotatedHighDynamicRangeImage(source: source, options: options)
+        } else {
+            image = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary).map {
+                ImageDecoders.Default._make($0, scale: scale)
+            }
+        }
+#else
+        image = CGImageSourceCreateImageAtIndex(source, 0, options as CFDictionary).map {
+            ImageDecoders.Default._make($0, scale: scale, orientation: orientation)
+        }
+#endif
+        if let image {
+            ImageDecompression.setDecompressionNeeded(false, for: image)
+        }
+        return image
+    }
+
+#if os(macOS)
+    private func _makeRotatedHighDynamicRangeImage(source: CGImageSource, options: [CFString: Any]) -> PlatformImage? {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+            return nil
+        }
+        let options = options.merging([
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(width, height)
+        ]) { $1 }
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary).map {
+            ImageDecoders.Default._make($0, scale: scale)
+        }
+    }
+#endif
 
     private static func _decode(_ data: Data, scale: CGFloat) -> PlatformImage? {
 #if os(macOS)

@@ -27,7 +27,9 @@ final class MemoryCacheKey: Hashable, Sendable {
     }
 
     init(_ request: ImageRequest) {
-        self.customKey = nil
+        // Not a field of its own, so that a standard request pays for this
+        // branch and not for a field to store and compare on every lookup.
+        self.customKey = request.isHighDynamicRange ? "hdr" : nil
         self.imageID = request.imageID
         self.scale = request.scale
         self.thumbnail = request.thumbnail
@@ -90,16 +92,22 @@ struct TaskFetchOriginalImageKey: Hashable {
     private let dataLoadKey: TaskFetchOriginalDataKey
     private let scale: CGFloat
     private let thumbnail: ImageRequest.ThumbnailOptions?
+    // Not in `TaskFetchOriginalDataKey`: the two decodes share one download.
+    private let isHighDynamicRange: Bool
 
     init(_ request: ImageRequest) {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
         self.scale = request.scale
         self.thumbnail = request.thumbnail
+        self.isHighDynamicRange = request.isHighDynamicRange
 
         var hasher = Hasher()
         hasher.combine(dataLoadKey)
         hasher.combine(scale)
         hasher.combine(thumbnail)
+        if isHighDynamicRange {
+            hasher.combine(true)
+        }
         self._hashValue = hasher.finalize()
     }
 
