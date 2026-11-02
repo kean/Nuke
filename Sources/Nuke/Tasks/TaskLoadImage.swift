@@ -53,7 +53,10 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
     private func fetchImage() {
         if let processor = request.processors.last {
-            let request = request.withProcessors(request.processors.dropLast())
+            var request = request.withProcessors(request.processors.dropLast())
+            if request.dynamicRange == .high { // They start from the standard image
+                request.dynamicRange = .standard
+            }
             dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
                 self?.process($0, isCompleted: $1, processor: processor)
             }
@@ -205,6 +208,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         }
         guard !response.container.isPreview else {
             return false
+        }
+        guard !request.isHighDynamicRange else {
+            return false // Encoding would flatten it. It's the original that is kept.
         }
         let isProcessed = !request.processors.isEmpty || request.thumbnail != nil
         switch pipeline.configuration.dataCachePolicy {
