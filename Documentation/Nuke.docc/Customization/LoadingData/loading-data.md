@@ -64,6 +64,37 @@ final class YourDelegate: URLSessionTaskDelegate {
 
 If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous one left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Both validators are supported: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
 
+## Fallback Sources
+
+Set ``ImageRequest/alternatives`` to load the image from somewhere else when the request's own source fails, such as a mirror, or a placeholder that ships with the app:
+
+```swift
+var request = ImageRequest(url: URL(string: "https://cdn.example.com/photo.jpeg"))
+request.alternatives = [
+    .url(URL(string: "https://mirror.example.com/photo.jpeg")),
+    .image(id: "photo-placeholder") { ImageContainer(image: placeholder) }
+]
+let response = try await ImagePipeline.shared.imageTask(with: request).response
+print(response.request.url as Any) // The source the image came from
+```
+
+The sources are tried in order, once the load of the one before has failed for good, retries included. A source that couldn't be loaded, came back empty or larger than ``ImagePipeline/Configuration-swift.struct/maximumResponseDataSize``, or couldn't be decoded is a reason to move on. A missing entry with ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad``, a processor that failed, and a cancellation aren't, because another source wouldn't change them. If every source fails, the task fails with the error of the request's own source.
+
+An alternative is a load of its own, with the processors, the thumbnail, the scale, and the options of the request. It has its own keys in the caches, so a passing failure can't leave a mirror's image, or a placeholder, in the place of the real one: every load tries the request's own source again, and finds the alternative in the caches when it needs it. It also means that a source that's down makes every load wait for it to fail first.
+
+Tasks that load the same image share the download of its source, whatever their alternatives are, and each moves on to its own. To see that a task fell back and why, enable ``ImagePipeline/Configuration-swift.struct/isDiagnosticsEnabled`` and read ``ImageTask/Metrics/fallbacks``.
+
+## Low Data Mode
+
+Set ``ImageRequest/lowDataURL`` to load a smaller image when the user turned on Low Data Mode:
+
+```swift
+var request = ImageRequest(url: URL(string: "https://example.com/photo@3x.jpeg"))
+request.lowDataURL = URL(string: "https://example.com/photo@1x.jpeg")
+```
+
+The request then goes out with `allowsConstrainedNetworkAccess` set to `false`, so on a constrained network, the system fails it before it uses any data, and the pipeline loads ``ImageRequest/lowDataURL`` instead, the same way it loads an alternative. The full image is still shown if it's in the caches of the pipeline, since reading it takes no data. If the low data image fails too, the task moves on to the ``ImageRequest/alternatives``.
+
 ## Custom Networking Layer
 
 If you'd like to use some other networking library or custom code, implement the ``DataLoading`` protocol.
@@ -139,3 +170,9 @@ extension Alamofire.Request: Nuke.Cancellable {}
 
 - ``DataLoading``
 - ``DataLoader``
+
+### Fallbacks
+
+- ``ImageRequest/alternatives``
+- ``ImageRequest/lowDataURL``
+- ``ImageSource``

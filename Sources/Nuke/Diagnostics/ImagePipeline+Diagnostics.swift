@@ -41,7 +41,7 @@ extension ImagePipeline {
         /// new `attemptCount: Int` would make the records already written
         /// undecodable. The raw values and `ErrorSummary.code` are the names of
         /// the Swift cases, so renaming a case changes the format too.
-        static let schemaVersion = 3
+        static let schemaVersion = 4
 
         /// `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED`
         /// set to anything but `0`, `no`, `false`, or nothing at all.

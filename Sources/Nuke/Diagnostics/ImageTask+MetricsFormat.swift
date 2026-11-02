@@ -169,6 +169,9 @@ extension ImageTask.Metrics {
                 parts.append("coalesced")
             }
         }
+        if let fallbacks {
+            parts.append(fallbacks.count == 1 ? "1 fallback" : "\(fallbacks.count) fallbacks")
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -204,6 +207,7 @@ extension ImageTask.Metrics {
             fields.append(Field("kind", kind.rawValue))
         }
         fields += requestFields
+        fields += fallbacks.map { [Field("fallback", $0.map(text(of:)))] } ?? []
         fields += resultFields
         // The first octet is enough to tell two pipelines apart in one log.
         fields.append(Field("pipeline", String(pipelineID.uuidString.prefix(8))))
@@ -265,6 +269,11 @@ extension ImageTask.Metrics {
             text += " · shared with \(tasks) (\(jobs))"
         }
         return text
+    }
+
+    /// Where the task went at what point, and what sent it there.
+    private func text(of fallback: Fallback) -> String {
+        "\(fallback.url ?? fallback.imageID ?? "none") at \(ms(fallback.at - createdAt)) after \(text(of: fallback.error))"
     }
 
     /// The code and the description, which names the underlying error.
