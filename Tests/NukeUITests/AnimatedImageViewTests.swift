@@ -295,6 +295,16 @@ struct AnimatedImageViewTests {
         #expect(view.player?.options.playbackRate == 2)
     }
 
+    @Test func createsItsPlayersWithThePlaybackMode() {
+        layOut(CGSize(width: 100, height: 100))
+        view.playerOptions.playbackMode = .reverse
+
+        view.animation = Test.animatedGIFSource(frameCount: 4)
+
+        #expect(view.player?.options.playbackMode == .reverse)
+        #expect(view.player?.currentFrameIndex == 3)
+    }
+
     @Test func aFrameOnScreenDoesNotStopTheAnimation() async throws {
         let source = try #require(AnimatedImageSource(data: Test.animatedGIF()))
         let player = AnimatedImagePlayer(animation: source)

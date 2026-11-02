@@ -35,6 +35,24 @@ struct AnimatedImageFrameTransformTests: AnimatedImagePoolSuite {
 
     // MARK: What It Is Handed
 
+    @Test(arguments: [AnimatedImagePlayer.PlaybackMode.reverse, .bounce])
+    func isHandedEachFrameOnceHoweverItPlays(_ mode: AnimatedImagePlayer.PlaybackMode) async {
+        // The transform comes after the composing, and a frame it has been
+        // through is what gets shared and replayed.
+        let log = TransformLog()
+        var options = AnimatedImagePlayer.Options()
+        options.playbackMode = mode
+        options.frameTransform = log.recording(identifier: "recording")
+        let (player, clock) = makeIdlePlayer(source: Test.animatedGIFSource(frameCount: 4), options: options)
+        player.play()
+        await player.waitUntilFull()
+
+        for _ in 0..<12 { clock.tick(0.1) }
+        await player.waitUntilFull()
+
+        #expect(log.count == 4)
+    }
+
     @Test func isHandedTheFramesAtTheSizeTheyAreDecodedAt() async throws {
         // The transform works on the downsampled frames, not on full-size
         // ones it would then have to be scaled down from.

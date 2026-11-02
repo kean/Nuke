@@ -91,6 +91,19 @@ What is published is the playback state changing – it starts, stops, finishes 
 
 ``AnimatedImagePlayer/Options`` covers the rest: ``AnimatedImagePlayer/Options/playbackRate`` for speed, and ``AnimatedImagePlayer/Options/loopCount`` for how many times to play. The default, ``AnimatedImagePlayer/LoopCount/image``, honors what the file asks for, which for the vast majority of animations is "forever" – a GIF carrying no Netscape loop extension asks to be played once, and is, the way a browser plays it. ``AnimatedImagePlayer/LoopCount/finite(_:)`` stops on the last frame and calls ``AnimatedImagePlayer/onFinish``.
 
+``AnimatedImagePlayer/Options/playbackMode`` sets the order the frames play in. ``AnimatedImagePlayer/PlaybackMode/reverse`` goes from the last frame to the first, and ``AnimatedImagePlayer/PlaybackMode/bounce`` goes to the last frame and back, showing the frames at the ends once per turn:
+
+```swift
+var options = AnimatedImagePlayer.Options()
+options.playbackMode = .bounce
+imageView.playerOptions = options // UIKit and AppKit
+
+let player = AnimatedImagePlayer(animation: animation, options: options) // SwiftUI
+AnimatedImage(player: player)
+```
+
+Each frame keeps its own delay, and the loop count means what it means going forward: a reverse loop stops on the first frame, and one way there and back is one loop of a bounce, which stops on the first frame it started from. ``AnimatedImagePlayer/currentFrameIndex`` and ``AnimatedImagePlayer/seek(toFrame:)`` are always indexes into the file, a reverse animation that isn't playing shows the frame it starts on, the last one, and ``AnimatedImagePlayer/restart()`` goes back to it.
+
 To show an animation as a still – a list where animations play only after the user asks for them – set ``AnimatedImageView/isPlaybackEnabled`` to `false`. The first frame is displayed, and the player holds only it and the frame after it – ready for when playback starts – decoding nothing further. Turning playback off on an animation that has already played pauses it in place and keeps the frames it has.
 
 Two settings in Accessibility › Motion do the same on their own: Auto-Play Animated Images, from iOS 17, macOS 14, tvOS 17, and watchOS 10, and Reduce Motion. While the first is off or the second is on, ``AnimatedImage``, ``LazyImage``, ``LazyImageView``, and ``AnimatedImageView`` all show a still. There is nothing to set up. An animation already playing pauses on the frame it is on when a setting changes, and carries on from there when it changes back. A player you own still plays when something asks it to, so a play button of your own keeps working: an ``AnimatedImagePlayer`` on its own doesn't read either setting, and neither does ``AnimatedImagePlayer/play()``.
@@ -98,6 +111,8 @@ Two settings in Accessibility › Motion do the same on their own: Auto-Play Ani
 ## Memory
 
 Decoding every frame up front is the fastest way to run out of memory: a 1000×1000 animation with 60 frames is 240 MB of bitmaps. So there are two ways an animation is played. One that fits in memory is decoded exactly once and kept. One that doesn't is played out of a window: the player holds the frame on screen and the two after it, decoding each frame again as the animation comes back round to it – and asks for nothing more, because a window that slides re-decodes every frame each loop however long it is, and memory past what absorbs a slow decode is better left to the animations that fit.
+
+The modes that go backward want the same memory, and the difference between the two ways of playing is larger for them. GIF, APNG, and WebP frames can be patches on the frames before them, so Image I/O can only produce them going forward, and the frame before the one it just made is a walk from the start of the file. An animation the pool holds whole doesn't notice: it is decoded once, in file order, whichever way it plays, and for those formats the first frame of a reverse animation is on screen when that pass reaches it. One that plays out of a window makes that walk for every frame it goes back: playing the 22 frames of a 500×279 GIF backward is 9 times the work of playing them forward, and it grows with the length of the animation. The window stays inside its budget and no frame is skipped, so an animation long or large enough to outrun the decoder slows down instead, on one core. Downsample it until the pool can hold it whole. HEIC and AVIF sequences cost the same in either direction.
 
 Which of the two it is falls to ``AnimatedImageFramePool``, which every animation on screen draws its frames from. Its ``AnimatedImageFramePool/costLimit`` is 5% of the device's physical memory, capped at 128 MB – a quarter of the one budget decoded images get, with ``ImageCache`` taking the other three quarters, so what an app's images may cost in memory is one figure whether its animations play or not. An animation alone may take all of the pool's share:
 
@@ -130,6 +145,8 @@ Memory is bounded either way. On a memory warning the pool gives back the frames
 ### Sharing
 
 Every player showing one animation at one size draws from a single set of decoded frames, produced by a single decoder, so twenty copies of a sticker cost one sticker, and the nineteenth view to appear decodes nothing at all. A player also falls in behind whatever is already playing, so the copies on a screen sit on the same frame and one window covers all of them – turn that off with ``AnimatedImagePlayer/Options/isSynchronizationEnabled`` for a player that should always start at the beginning.
+
+The playback mode isn't part of what makes a set of frames, so players going opposite ways share theirs and hold them once. They don't share a playhead: a player only falls in behind one going the same way. Sharing one decoder has a cost when the animation doesn't fit, because a GIF played both ways at once has its decoder walked back and forth between the two windows.
 
 Views of the same animation at *different* sizes share too, as long as what is already decoded covers them and isn't far larger: a view draws from the smallest set of frames that covers it and scales them as it draws them, so the same sticker drawn a little smaller in one place than another is decoded once. A set answers a view only up to twice the longest side it asked for – four times the pixels – because the smaller view pays for those frames in bytes and goes on holding them after the larger view has gone: a 44-point avatar beside a full-screen animation decodes a set of its own rather than keeping 1000-pixel frames alive for it. Only a view that wants more pixels than anything decoded so far starts a set of its own; the sets already on screen stay where they are. ``AnimatedImageView`` also rounds the size it decodes for up to a step, so cells a fraction of a point apart ask for one size to begin with. The step is a small one because a larger one has nothing to offer: no size decodes faster than another, so rounding a view up to the next power of two would only ask for pixels nobody draws – across a spread of view sizes, twice the memory for frames that are no cheaper to produce and, minified again as the view draws them, no sharper than frames decoded at the size it needs.
 
