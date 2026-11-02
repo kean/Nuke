@@ -51,7 +51,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         return _progress
     }
 
-    private static let noProgress = ImageTask.Progress(completed: 0, total: 0)
+    static let noProgress = ImageTask.Progress(completed: 0, total: 0)
 
     // Set the first time `progress` is read; see the property for the reason.
     private var isProgressObserved = false
@@ -124,6 +124,18 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
         loader.load(request)
+    }
+
+    /// Loads the request, and finishes with `memoryCacheHit` if it's set: the
+    /// image that the view has already drawn.
+    func load(_ request: ImageRequest?, memoryCacheHit: ImageContainer?) {
+        loader.load(request, memoryCacheHit: memoryCacheHit)
+    }
+
+    /// Returns what a load of the request from the given pipeline would find
+    /// in the memory cache.
+    func memoryCacheHit(for request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse? {
+        loader.memoryCacheHit(for: request, pipeline: pipeline)
     }
 
     // MARK: Load (Async/Await)

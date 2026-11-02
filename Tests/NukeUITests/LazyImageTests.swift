@@ -295,6 +295,208 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
+    /// A preview only stands in until the load finishes, so it can't be
+    /// reported as the result of one.
+    @Test func previewInTheMemoryCacheIsNotShownByTheFirstBody() async throws {
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        let bodies = Ref<[Bool]>([])
+        let completed = TestExpectation()
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.result != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { _ in completed.fulfill() }
+        }
+        await completed.wait()
+
+        #expect(bodies.value.first == false)
+        #expect(dataLoader.createdTaskCount == 1)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func memoryCacheOfTheEnvironmentPipelineIsReadByTheFirstBody() async throws {
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .onCompletion { result.value = $0 }
+            .imagePipeline(pipeline)
+        }
+        await host.render(until: { result.value != nil })
+
+        #expect(bodies.value.first == true)
+        #expect(try #require(result.value?.value).cacheType == .memory)
+        #expect(dataLoader.createdTaskCount == 0)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func memoryCacheOfThePipelineOfTheViewWinsOverTheEnvironment() async throws {
+        // The environment has the image, and the pipeline of the view doesn't.
+        pipeline.cache[Test.request] = Test.container
+        let own = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageCache = MockImageCache()
+        }
+
+        let bodies = Ref<[Bool]>([])
+        let completed = TestExpectation()
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(own)
+            .onCompletion { _ in completed.fulfill() }
+            .imagePipeline(pipeline)
+        }
+        await completed.wait()
+
+        #expect(bodies.value.first == false)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The load runs after the body. If it looked the image up again, it would
+    /// find nothing and replace what's on screen with a placeholder.
+    @Test func imageShownByTheFirstBodyStaysIfTheCacheLosesIt() async throws {
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let _ = bodies.value.append(state.image != nil && !state.isLoading)
+                let _ = pipeline.cache[Test.request] = nil
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { result.value = $0 }
+        }
+        await host.render(until: { result.value != nil })
+        await host.render()
+
+        #expect(bodies.value.count > 1)
+        #expect(bodies.value.allSatisfy { $0 })
+        #expect(try #require(result.value?.value).cacheType == .memory)
+        #expect(dataLoader.createdTaskCount == 0)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The same goes for a live view: the body that gets the new request
+    /// would otherwise draw the image of the previous one.
+    @Test func memoryCacheHitIsShownByTheFirstBodyOfANewRequest() async throws {
+        let second = ImageRequest(url: URL(string: "http://test.com/second.jpeg")!)
+        let firstImage = ImageContainer(image: Test.rgbImage(width: 1, height: 1))
+        let secondImage = ImageContainer(image: Test.rgbImage(width: 1, height: 1))
+        pipeline.cache[Test.request] = firstImage
+        pipeline.cache[second] = secondImage
+
+        let bodies = Ref<[Bool]>([])
+        let completions = Ref<[ImageRequest]>([])
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { state in
+                let expected = request.url == second.url ? secondImage : firstImage
+                let _ = bodies.value.append(state.imageContainer?.image === expected.image)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { result in
+                if case .success(let response) = result { completions.value.append(response.request) }
+            }
+        }
+        await host.render(until: { completions.value.count == 1 })
+        await host.update(second, until: { completions.value.count == 2 })
+        await host.render()
+
+        #expect(bodies.value.allSatisfy { $0 })
+        #expect(completions.value.map(\.url) == [Test.url, second.url])
+        #expect(dataLoader.createdTaskCount == 0)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func memoryCacheHitIsShownByTheFirstBodyAfterANilRequest() async throws {
+        pipeline.cache[Test.request] = Test.container
+
+        let bodies = Ref<[Bool]>([])
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(nil as ImageRequest?) { request in
+            LazyImage(request: request) { state in
+                if request != nil {
+                    let _ = bodies.value.append(state.image != nil)
+                }
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { result.value = $0 }
+        }
+        await host.render(until: { result.value != nil })
+        await host.update(Test.request, until: { result.value?.isSuccess == true })
+
+        #expect(bodies.value.first == true)
+        #expect(dataLoader.createdTaskCount == 0)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func memoryCacheHitIsShownByTheFirstBodyOfTheDefaultContent() async {
+        pipeline.cache[Test.request] = ImageContainer(image: Test.rgbImage(width: 8, height: 8))
+
+        let sizes = Ref<[CGSize]>([])
+        let host = ViewHost(Test.request) { request in
+            SizeRecorder(sizes: sizes) {
+                LazyImage(request: request).pipeline(pipeline)
+            }
+        }
+        await host.render()
+
+        #expect(!sizes.value.isEmpty)
+        #expect(sizes.value.allSatisfy { $0.width == 8 })
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func memoryCacheHitPlaysInTheFirstBodyOfTheDefaultContent() async {
+        AnimatedImageAutoPlaySettings.allowPlayback()
+        var container = ImageContainer(image: Test.rgbImage(width: 8, height: 8), data: Test.animatedGIF())
+        container.animation = Test.animatedGIFSource()
+        pipeline.cache[Test.request] = container
+
+        let sizes = Ref<[CGSize]>([])
+        let host = ViewHost(Test.request) { request in
+            SizeRecorder(sizes: sizes) {
+                LazyImage(request: request).pipeline(pipeline)
+            }
+        }
+        await host.render()
+
+        #expect(!sizes.value.isEmpty)
+        #expect(sizes.value.allSatisfy { $0.width == 8 })
+        #expect(host.firstView(ofType: AnimatedImageView.self) != nil)
+    }
+
+    /// Records the size of its content on every layout. It's how to tell what
+    /// the default content drew, which takes no closure: an image is as large
+    /// as it is, and the placeholder takes all the space it's offered. The
+    /// first layout comes before `onAppear`, so it shows the first body.
+    private struct SizeRecorder: Layout {
+        let sizes: Ref<[CGSize]>
+
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+            let size = subviews[0].sizeThatFits(proposal)
+            sizes.value.append(size)
+            return size
+        }
+
+        func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+            subviews[0].place(at: bounds.origin, proposal: proposal)
+        }
+    }
+
     // MARK: - Callbacks
 
     @Test func onStartCalled() async throws {

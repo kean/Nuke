@@ -168,6 +168,15 @@ public final class ImageLoader {
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public func load(_ request: ImageRequest?) -> Handle {
+        load(request, memoryCacheHit: nil)
+    }
+
+    /// Loads an image with the given request. If `memoryCacheHit` is set, the
+    /// load finishes with it and doesn't check the memory cache: the caller
+    /// has already shown it (see ``memoryCacheHit(for:pipeline:)``), and the
+    /// cache can have lost it since.
+    @discardableResult
+    func load(_ request: ImageRequest?, memoryCacheHit: ImageContainer?) -> Handle {
         // A load that finishes before this method returns needs no `Outcome`:
         // its handle just holds the result.
         guard let request else {
@@ -189,13 +198,12 @@ public final class ImageLoader {
         cancelTask()
 
         // Quick synchronous memory cache lookup.
-        let cached = pipeline.cache[resolved]
-        if let container = cached, !container.isPreview {
-            let response = ImageResponse(container: container, request: resolved, cacheType: .memory)
+        let cached = memoryCacheHit ?? pipeline.cache[resolved]
+        if let response = response(forCached: cached, request: resolved) {
             var state = State()
             state.event = .finished(.success(response), isSynchronous: true)
             state.request = request
-            state.imageContainer = container
+            state.imageContainer = response.container
             state.result = .success(response)
             finish(state)
             return Handle(result: .success(response))
@@ -232,6 +240,20 @@ public final class ImageLoader {
         state.isPreviousImage = cached == nil && previousImage != nil
         update(state)
         return Handle(task: task, outcome: outcome)
+    }
+
+    /// Returns what a load of the request from the given pipeline, which
+    /// doesn't have to be the loader's yet, would find in the memory cache.
+    func memoryCacheHit(for request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse? {
+        let resolved = resolve(request)
+        return response(forCached: pipeline.cache[resolved], request: resolved)
+    }
+
+    /// Returns the response for an image from the memory cache, unless it's a
+    /// preview, which only stands in until the load finishes.
+    private func response(forCached container: ImageContainer?, request: ImageRequest) -> ImageResponse? {
+        guard let container, !container.isPreview else { return nil }
+        return ImageResponse(container: container, request: request, cacheType: .memory)
     }
 
     /// Applies the processors and the priority of the loader to the request.
