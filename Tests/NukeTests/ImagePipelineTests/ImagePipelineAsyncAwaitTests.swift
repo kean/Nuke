@@ -176,11 +176,11 @@ struct ImagePipelineAsyncAwaitTests {
     @Test func cancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
+        // Subscribe first, because `imageTask(with:)` starts the task.
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
         let task = pipeline.imageTask(with: Test.url)
-        let observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-            task.cancel()
-        }
-        dataLoader.queue.isSuspended = false
+        await started.wait()
+        task.cancel()
 
         var caughtError: ImagePipeline.Error?
         do {
@@ -190,7 +190,6 @@ struct ImagePipelineAsyncAwaitTests {
         }
         #expect(caughtError == .cancelled)
         #expect(task.state == .cancelled)
-        NotificationCenter.default.removeObserver(observer)
     }
 
     // MARK: - Load Data
@@ -542,10 +541,11 @@ struct ImageTaskStateTests {
 
     @Test func stateIsRunningWhileInFlight() async throws {
         dataLoader.queue.isSuspended = true
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
         let task = pipeline.imageTask(with: Test.request)
         Task.detached { try? await task.response }
 
-        await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
+        await started.wait()
 
         #expect(task.state == .running)
         dataLoader.queue.isSuspended = false
@@ -560,9 +560,10 @@ struct ImageTaskStateTests {
 
     @Test func stateIsCancelledAfterCancel() async throws {
         dataLoader.queue.isSuspended = true
+        let started = TestExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
         let task = pipeline.imageTask(with: Test.request)
         Task.detached { try? await task.response }
-        await notification(MockDataLoader.DidStartTask, object: dataLoader) {}
+        await started.wait()
         await notification(MockDataLoader.DidCancelTask, object: dataLoader) {
             task.cancel()
         }
