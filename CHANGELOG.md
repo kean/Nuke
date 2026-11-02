@@ -273,7 +273,6 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 
 *Nov 2, 2026*
 
-- Remove an unused `AVKit` import from `Nuke`, which weak-linked the Swift overlays of AVFoundation and related frameworks into apps on every platform except watchOS. A target that used these frameworks through this import has to import or link them itself – https://github.com/kean/Nuke/pull/947
 - Fix progressive previews stopping early on a resumed download, or not being delivered at all when at least half of the image was resumed – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 - Fix a crash when a download reports a huge `Content-Length`, either resumed or with `maximumResponseDataSize` set to `nil` – https://github.com/kean/Nuke/pull/988
@@ -283,6 +282,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
 - Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""`, `"."`, or `".."` – https://github.com/kean/Nuke/pull/997
+- Remove an unused `AVKit` import from `Nuke`, which weak-linked the Swift overlays of AVFoundation and related frameworks into apps on every platform except watchOS. A target that used these frameworks through this import has to import or link them itself – https://github.com/kean/Nuke/pull/947
 
 ## Nuke 13.2.0
 
