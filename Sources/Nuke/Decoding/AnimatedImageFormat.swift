@@ -43,6 +43,46 @@ enum AnimatedImageFormat: CaseIterable {
         }
     }
 
+    /// Returns the frames of an APNG that ask for the canvas to be restored
+    /// to what it was before them, which Image I/O publishes no property for.
+    ///
+    /// The first frame is not among them: there is nothing to restore, and
+    /// the format says to treat it as clearing the canvas.
+    ///
+    /// - returns: An empty set for data that isn't a PNG, or that a chunk
+    /// doesn't fit in.
+    static func framesRestoringTheCanvas(in data: Data) -> Set<Int> {
+        let signature: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        guard data.starts(with: signature) else {
+            return []
+        }
+        // The chunks are length-prefixed, so reaching every frame control
+        // chunk reads a dozen bytes of each and inflates nothing.
+        let disposalOffset = 24 // Into the chunk data of `fcTL`
+        let restorePrevious: UInt8 = 2
+        return data.withUnsafeBytes { bytes in
+            var frames = Set<Int>()
+            var frame = 0
+            var offset = signature.count
+            while offset + 8 <= bytes.count {
+                let length = (0..<4).reduce(0) { $0 << 8 | Int(bytes[offset + $1]) }
+                let isFrameControl = bytes[offset + 4] == 0x66 && bytes[offset + 5] == 0x63 // "fc"
+                    && bytes[offset + 6] == 0x54 && bytes[offset + 7] == 0x4C // "TL"
+                guard offset + 8 + length <= bytes.count else {
+                    break
+                }
+                if isFrameControl {
+                    if frame > 0, length > disposalOffset, bytes[offset + 8 + disposalOffset] == restorePrevious {
+                        frames.insert(frame)
+                    }
+                    frame += 1
+                }
+                offset += 8 + length + 4 // The checksum
+            }
+            return frames
+        }
+    }
+
     /// The keys every container files its metadata under.
     ///
     /// `kCGImageProperty{GIF,APNG,WebP,HEICS}DelayTime` are all the same

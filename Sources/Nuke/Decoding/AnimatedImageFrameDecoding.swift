@@ -85,6 +85,12 @@ actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
     /// main actor, which is where the decoder itself is made.
     private lazy var source: CGImageSource? = animation.makeImageSource()
 
+    /// The frame asked for last.
+    private var lastIndex = -1
+
+    /// See ``composeFramesRestoringTheCanvas(before:in:)``.
+    private lazy var framesRestoringTheCanvas = AnimatedImageFormat.framesRestoringTheCanvas(in: animation.data)
+
     /// What every frame is asked for with. Built once, on the first decode:
     /// `CFDictionary` isn't `Sendable`, so it is made where it is used.
     private lazy var options: CFDictionary = {
@@ -127,6 +133,41 @@ actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
         guard let source, !Task.isCancelled else {
             return nil
         }
+        composeFramesRestoringTheCanvas(before: index, in: source)
+        lastIndex = index
+        return decodeFrame(at: index, in: source)
+    }
+
+    /// Walks up to a frame of an APNG that restores the canvas when it's done
+    /// with it, and that the decoder is about to land on from somewhere else.
+    ///
+    /// Image I/O draws such a frame correctly when it is asked for it out of
+    /// the blue, but it doesn't take the copy of the canvas to restore: the
+    /// frame after it is then drawn over whatever Image I/O composed last, a
+    /// blank canvas if that was nothing. It takes the copy on the way through,
+    /// so the frame after one that was landed on is the one that comes out
+    /// wrong – from any seek, and from any window that doesn't go through the
+    /// frames in file order. Measured on macOS, iOS, and tvOS 27 with
+    /// `DeltaAnimation`, and neither GIF, which has the same disposal, nor a
+    /// format without it is affected.
+    ///
+    /// The copy comes right when the frames that restore are walked through,
+    /// from the last one that doesn't.
+    private func composeFramesRestoringTheCanvas(before index: Int, in source: CGImageSource) {
+        // Wrapping, because the index is whatever a caller passes.
+        guard index != lastIndex &+ 1, framesRestoringTheCanvas.contains(index) else {
+            return
+        }
+        var start = index - 1
+        while framesRestoringTheCanvas.contains(start) {
+            start -= 1
+        }
+        for frame in start..<index {
+            _ = decodeFrame(at: frame, in: source)
+        }
+    }
+
+    private func decodeFrame(at index: Int, in source: CGImageSource) -> CGImage? {
         // Image I/O composes the frame onto the canvas, applying the disposal
         // and blend modes of GIF and APNG, scales it to the size the player
         // asked for, and hands back a bitmap that is already decompressed –
