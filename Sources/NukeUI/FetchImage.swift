@@ -263,6 +263,9 @@ public final class FetchImage: ObservableObject, Identifiable {
         // async/await-based (the task is cancelled by `cancellable`, but the
         // action isn't guaranteed to stop, so its result has to be discarded)
         loadGeneration &+= 1
+
+        // The cancelled load never reaches `handle(result:)`
+        if isLoading { isLoading = false }
     }
 
     /// Resets the `FetchImage` instance by cancelling the request and removing

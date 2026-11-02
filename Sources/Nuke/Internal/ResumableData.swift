@@ -10,11 +10,14 @@ struct ResumableData: Sendable {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
-    init?(response: URLResponse, data: Data) {
+    /// - parameter resumedDataCount: The number of bytes `data` already had
+    /// before `response` – the "Content-Length" of a "206 Partial Content"
+    /// response covers only the remaining bytes.
+    init?(response: URLResponse, data: Data, resumedDataCount: Int64 = 0) {
         // Check if "Accept-Ranges" is present and the response is valid.
         guard !data.isEmpty,
             let response = response as? HTTPURLResponse,
-            data.count < response.expectedContentLength,
+            Int64(data.count) - resumedDataCount < response.expectedContentLength,
             response.statusCode == 200 /* OK */ || response.statusCode == 206, /* Partial Content */
             let acceptRanges = response.allHeaderFields["Accept-Ranges"] as? String,
             acceptRanges.lowercased() == "bytes",

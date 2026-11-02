@@ -19,6 +19,22 @@
 
 # Nuke 13
 
+## Nuke 13.2.1
+
+*Nov 1, 2026*
+
+- Remove an unused `AVKit` import from `Nuke`, which linked AVKit, AVFoundation, and their dependencies into every app – https://github.com/kean/Nuke/pull/947
+- Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
+- Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
+- Fix a crash when a resumed download reports a huge `Content-Length` – https://github.com/kean/Nuke/pull/988
+- Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing processed images in the data cache – https://github.com/kean/Nuke/pull/1008
+- Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
+- Fix a resumed download that failed again discarding its resumable data, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
+- Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
+- Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
+- Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
+- Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
+
 ## Nuke 13.2.0
 
 *Aug 15, 2026*
