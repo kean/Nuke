@@ -139,6 +139,38 @@ extension ImagePipeline {
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
+        /// Stops the pipeline from requesting a URL for a while after the
+        /// server said the image isn't there. `nil` by default, so every load
+        /// that misses the caches reaches the data loader.
+        ///
+        /// A dead URL in a feed otherwise costs a request every time a cell
+        /// shows it. With a cooldown, the loads of that URL fail with
+        /// ``ImagePipeline/Error/urlInCooldown(error:)`` until it's over,
+        /// without going to the network:
+        ///
+        /// ```swift
+        /// let pipeline = ImagePipeline {
+        ///     $0.failureCooldown = .init(duration: 300)
+        /// }
+        /// ```
+        ///
+        /// The cooldown only applies to URLs, after the caches: a cached image
+        /// is still served. It counts `404` and `410` responses by default,
+        /// and never a connection failure, a timeout, or a cancellation. See
+        /// ``ImagePipeline/FailureCooldown/statusCodes``. The pipeline keeps
+        /// the URLs in memory, up to about a thousand of them, and each
+        /// pipeline has its own.
+        ///
+        /// - important: A cooldown trades a wasted request for a stale answer.
+        /// An image that gets uploaded during the window stays missing until
+        /// the window ends, and a server that sends `404` by mistake is
+        /// believed for all of it. Keep the duration short, because the app
+        /// can't see the URL recover. `ImageLoader.reload()` in `NukeUI` and
+        /// ``ImageRequest/Options-swift.struct/skipFailureCooldown`` ignore the
+        /// cooldown, and ``ImagePipeline/resetFailureCooldown()`` ends it. See
+        /// <doc:loading-data#Failure-Cooldown>.
+        public var failureCooldown: FailureCooldown?
+
         /// If enabled, the pipeline will load the local resources (`file` and
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
