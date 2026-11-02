@@ -17,28 +17,28 @@ The pipeline can also drive progressive decoding, animated image rendering, draw
 | JPEG | ``AssetType/jpeg`` | ✅ | ✅ | Automatic (progressive JPEG) | – |
 | PNG | ``AssetType/png`` | ✅ | ✅ | Opt-in | ✅ APNG |
 | GIF | ``AssetType/gif`` | ✅ | ✅ | Automatic (single preview) | ✅ |
-| HEIC | ``AssetType/heic`` | ✅ | ✅ | Opt-in | ✅ image sequences |
-| WebP | ``AssetType/webp`` | ✅ | ❌ | Opt-in | ✅ |
-| AVIF | ``AssetType/avif`` | ✅ | ✅ recent OS only | Opt-in | ✅ image sequences |
-| JPEG XL | ``AssetType/jxl`` | ✅ iOS 17, macOS 14 | ❌ | Opt-in | – |
+| HEIC | ``AssetType/heic`` | ✅ | ✅ except watchOS | Opt-in | ✅ image sequences |
+| WebP | ``AssetType/webp`` | ✅ except watchOS | ❌ | None | ✅ except watchOS |
+| AVIF | ``AssetType/avif`` | ✅ except stills on watchOS | ✅ recent iOS, macOS, visionOS | Opt-in | ✅ image sequences |
+| JPEG XL | ``AssetType/jxl`` | ✅ iOS 17, macOS 14, tvOS 17, watchOS 10 | ❌ | Opt-in | ❌ |
 | JPEG 2000 | ``AssetType/jpeg2000`` | ✅ | ✅ | Opt-in | – |
-| TIFF | ``AssetType/tiff`` | ✅ | ✅ | Opt-in | – |
+| TIFF | ``AssetType/tiff`` | ✅ | ✅ | None | – |
 | BMP | ``AssetType/bmp`` | ✅ | ✅ | Opt-in | – |
-| ICO | ``AssetType/ico`` | ✅ | ✅ | Opt-in | – |
+| ICO | ``AssetType/ico`` | ✅ | ✅ 8 square sizes | Opt-in | – |
 | CUR | – | ✅ | ❌ | Opt-in | – |
-| Camera RAW | ``AssetType/tiff`` or – | ✅ | ❌ | Opt-in (embedded thumbnail) | – |
-| SVG | – | ❌ | ❌ | – | – |
-| MP4, M4V, MOV | ``AssetType/mp4``, ``AssetType/m4v``, ``AssetType/mov`` | `NukeVideo` | ❌ | Opt-in (single preview) | ✅ `NukeVideo` |
+| Camera RAW | ``AssetType/tiff`` or – | ✅ embedded thumbnail for TIFF-based files | ❌ | Opt-in (embedded thumbnail) | – |
+| SVG | – | macOS only | ❌ | – | – |
+| MP4, M4V, MOV | ``AssetType/mp4``, ``AssetType/m4v``, ``AssetType/mov`` | `NukeVideo`, except watchOS and visionOS | ❌ | Opt-in (single preview) | ✅ `NukeVideo`, except watchOS and visionOS |
 
 Reading the columns:
 
 - **``AssetType``** – the type `AssetType(data)` returns for this format, or `–` if the sniffer doesn't recognize it. A `–` doesn't prevent decoding, it only means ``ImageContainer/type`` is `nil`.
 - **Decode** – whether ``ImageDecoders/Default`` produces an image. Formats without a version note are decodable on every supported OS (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
-- **Encode** – whether the format can be used with ``ImageEncoders/ImageIO``. ``ImageEncoders/Default`` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder.
-- **Previews** – behavior once ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``, and whether Image I/O can produce anything from a partial file is format-dependent.
-- **Animation** – whether the pipeline recognizes the format as animated and attaches ``ImageContainer/data`` so that it can be played. A `–` means the format has no animated flavor. See <doc:supported-image-formats#Animated-Images>.
+- **Encode** – whether the format can be used with ``ImageEncoders/ImageIO``. ``ImageEncoders/Default`` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder. ICO only takes a square image of 16, 24, 32, 48, 64, 72, 128, or 256 pixels: anything else encodes to `nil`, even though ``ImageEncoders/ImageIO/isSupported(type:)`` returns `true`.
+- **Previews** – behavior once ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled`` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via ``ImagePipeline/Delegate/previewPolicy(for:pipeline:)``, and whether Image I/O can produce anything from a partial file is format-dependent. "None" means Image I/O produced nothing from a partial file under either policy, even with 99% of it.
+- **Animation** – whether the pipeline recognizes the format as animated and attaches ``ImageContainer/data`` so that it can be played. A `–` means the format has no animated flavor, and ❌ that it has one the pipeline doesn't recognize. See <doc:supported-image-formats#Animated-Images>.
 
-> Tip: The matrix reflects what Apple's frameworks ship today. Both halves are queryable at runtime: `CGImageSourceCopyTypeIdentifiers()` for decoding, ``ImageEncoders/ImageIO/isSupported(type:)`` for encoding.
+> Tip: The matrix reflects what Apple's frameworks ship today, and its watchOS entries were measured in the simulator. Both halves are queryable at runtime: `CGImageSourceCopyTypeIdentifiers()` for decoding, ``ImageEncoders/ImageIO/isSupported(type:)`` for encoding.
 
 ## Format Detection
 
@@ -100,15 +100,15 @@ To render HEIF images, you can use `UIImageView`/`NSImageView`/`WKInterfaceImage
 
 ## WebP
 
-[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, tvOS 14, and watchOS 7, so it's available on every supported OS version.
+[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, and tvOS 14, so it's available on every supported version of those and of visionOS. watchOS has no WebP decoder: an image fails to decode there, animated or not.
 
 Image I/O has no WebP encoder. ``ImageEncoders/ImageIO/isSupported(type:)`` returns `false` for ``AssetType/webp`` on every current platform. Animated WebP decodes to its first frame and carries its data, like every other animation – see <doc:supported-image-formats#Animated-Images>.
 
 ## AVIF
 
-[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every supported OS. Files with the `avif` and `avis` major brands sniff as ``AssetType/avif``.
+[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every supported OS except watchOS, which doesn't list `public.avif` as a type it can read: a still fails to decode there, while an image sequence decodes. Files with the `avif` and `avis` major brands sniff as ``AssetType/avif``.
 
-AVIF encoding arrived later than decoding and is only available on recent OS versions, so check before using it:
+AVIF encoding arrived later than decoding and is only available on recent versions of iOS, macOS, and visionOS, and not on tvOS or watchOS, so check before using it:
 
 ```swift
 if ImageEncoders.ImageIO.isSupported(type: .avif) {
@@ -120,7 +120,7 @@ if ImageEncoders.ImageIO.isSupported(type: .avif) {
 
 ## JPEG XL
 
-[JPEG XL](https://en.wikipedia.org/wiki/JPEG_XL) decodes natively on macOS 14, iOS 17, tvOS 17, and watchOS 10. Both the container signature and the naked codestream sniff as ``AssetType/jxl``. There is no encoder.
+[JPEG XL](https://en.wikipedia.org/wiki/JPEG_XL) decodes natively on macOS 14, iOS 17, tvOS 17, and watchOS 10. Both the container signature and the naked codestream sniff as ``AssetType/jxl``. There is no encoder. The pipeline doesn't recognize an animated JPEG XL, so it attaches no ``ImageContainer/data`` for one to play.
 
 Because OS versions older than these are supported, guard any JPEG XL-specific code:
 
@@ -138,17 +138,11 @@ Apple's documentation lists `public.jpeg-2000` as a macOS-only identifier, but c
 
 ## Camera RAW
 
-Image I/O decodes RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others. The decoder passes them straight through, so they load without any extra setup.
+Image I/O reads RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others – on macOS, iOS, and visionOS. tvOS and watchOS have no RAW decoder.
 
 ``AssetType`` has no RAW constants – there are dozens of vendor-specific identifiers. Most RAW files are TIFF containers under the hood and sniff as ``AssetType/tiff``; the rest, such as Canon's ISO-base-media CR3, sniff as `nil`.
 
-RAW files are large and slow to decode at full size. Use ``ImageRequest/thumbnail`` to have Image I/O read the embedded preview instead of the full sensor data:
-
-```swift
-var request = ImageRequest(url: url)
-request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 512)
-let image = try await ImagePipeline.shared.image(for: request)
-```
+A TIFF-based file can load as its embedded thumbnail rather than its sensor data. Without a type hint, Image I/O takes it for a plain TIFF and returns the first image in it, and ``ImageDecoders/Default`` passes no hint: a 3008×2000 NEF loads at 160×120 on every platform, and ``ImageRequest/thumbnail`` doesn't get you anything larger. To decode the full image, write an ``ImageDecoding`` that creates its `CGImageSource` with `kCGImageSourceTypeIdentifierHint`, set to a type such as `com.nikon.raw-image` – see <doc:image-decoding>.
 
 ## Animated Images
 
@@ -186,7 +180,7 @@ Image I/O can write GIF and APNG, but ``ImageEncoders/ImageIO`` writes a single 
 
 **Decoding**
 
-There is currently no built-in support for SVG. Use ``ImageDecoders/Empty`` to pass the original image data to an SVG-enabled view and render it using an external mechanism.
+On macOS, `NSImage(data:)` reads SVG, so ``ImageDecoders/Default`` decodes it there. No other platform does, ``AssetType`` doesn't recognize it, and a request with ``ImageRequest/thumbnail`` fails because Image I/O can't read it. To render SVG as vectors on any platform, use ``ImageDecoders/Empty`` to pass the original image data to an SVG-enabled view and render it using an external mechanism.
 
 **Encoding**
 
@@ -230,4 +224,4 @@ svgView.center = view.center
 ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
 ```
 
-`ImageDecoders.Video` generates a still preview and attaches the downloaded data to the container, which `VideoPlayerView` then plays.
+`ImageDecoders.Video` generates a still preview and attaches the downloaded data to the container, which `VideoPlayerView` then plays. The decoder isn't available on watchOS or visionOS.
