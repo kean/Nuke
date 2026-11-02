@@ -661,6 +661,7 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `ImageContainer.data` after a processor | Kept | `nil`, and so is `animation` |
 | `ImageContainer.data` of a GIF with a `thumbnail` | Kept | `nil` |
 | `FetchImage.load(_:)` and `LazyImageView.request` while the same image is loading | Restart the download | Keep the running task and give it the new priority |
+| A server trust, client certificate, NTLM, or Negotiate challenge for a `DataLoader.delegate` that implements both challenge methods | Task-level method only | Session-level method first, then the task-level one if it returns `.performDefaultHandling` |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
@@ -681,6 +682,8 @@ ImagePipeline.shared = ImagePipeline {
 ```
 
 "The same image" for `FetchImage` and `LazyImageView` means a request that differs only in priority, from the same pipeline. The call doesn't report a new start, so `onStart` isn't called again. A load that has finished starts over.
+
+A delegate that implements only one of the challenge methods has nothing to do. With both, check that the session-level `urlSession(_:didReceive:completionHandler:)` returns `.performDefaultHandling` for any challenge the task-level method has to see, such as one it pins: a challenge the session-level method resolves doesn't reach the task-level one, and Nuke 13 never called the session-level method.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 

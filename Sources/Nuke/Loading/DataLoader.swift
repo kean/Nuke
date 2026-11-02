@@ -34,6 +34,12 @@ public final class DataLoader: DataLoading, Sendable {
     /// (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
     /// ```
     ///
+    /// Server trust, client certificate, NTLM, and Negotiate challenges go to
+    /// the session-level `urlSession(_:didReceive:completionHandler:)` first, as
+    /// they do with `URLSession`. If the delegate doesn't implement it, or it
+    /// returns `.performDefaultHandling`, they go to the task-level
+    /// `urlSession(_:task:didReceive:completionHandler:)`.
+    ///
     /// - note: The delegate is retained.
     ///
     /// - note: The delegate is read by every session callback on the session's
@@ -292,19 +298,34 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @Sendable @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         let delegate = self.delegate
+        let askTaskLevelMethod: @Sendable () -> Void = {
+            (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler) ??
+            completionHandler(.performDefaultHandling, nil)
+        }
         // `_DataLoader` doesn't implement the session-level method, so `URLSession`
         // sends session-wide challenges here; route them the way it would: to the
         // session-level method first, and to the task-level one if it's missing.
+        // `performDefaultHandling` means "as though this delegate method were not
+        // implemented", so that goes to the task-level method too. Without it, a
+        // session-level method with nothing to say about a challenge would turn
+        // off a check in the task-level one.
         switch challenge.protectionSpace.authenticationMethod {
         case NSURLAuthenticationMethodServerTrust, NSURLAuthenticationMethodClientCertificate, NSURLAuthenticationMethodNTLM, NSURLAuthenticationMethodNegotiate:
-            if delegate?.urlSession?(session, didReceive: challenge, completionHandler: completionHandler) != nil {
+            let completion: @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void = { disposition, credential in
+                if disposition == .performDefaultHandling {
+                    // The delegate can call this on any queue.
+                    session.delegateQueue.addOperation(askTaskLevelMethod)
+                } else {
+                    completionHandler(disposition, credential)
+                }
+            }
+            if delegate?.urlSession?(session, didReceive: challenge, completionHandler: completion) != nil {
                 return
             }
         default:
             break
         }
-        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler) ??
-        completionHandler(.performDefaultHandling, nil)
+        askTaskLevelMethod()
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, willBeginDelayedRequest request: URLRequest, completionHandler: @Sendable @escaping (URLSession.DelayedRequestDisposition, URLRequest?) -> Void) {

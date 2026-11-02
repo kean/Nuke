@@ -43,6 +43,9 @@ grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimat
 
 # Queues and prefetchers set by hand, and decoders of your own
 grep -rnE 'maxConcurrentRequestCount|ImageDecoding\b|isAsynchronous' --include='*.swift' .
+
+# DataLoader delegates that handle authentication challenges
+grep -rnE 'didReceive challenge' --include='*.swift' .
 ```
 
 The search can't see through a typealias, or a signature split over lines. Open each file and read it.
@@ -269,6 +272,7 @@ ImagePipeline.shared = ImagePipeline {
 
 - `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
 - `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
+- A `DataLoader.delegate` that implements both challenge methods now gets server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)` first, where 13 only called the task-level method. The task-level method runs if the session-level one returns `.performDefaultHandling`, and not if it resolves the challenge. If the app pins certificates in the task-level method, make sure the session-level one returns `.performDefaultHandling` for those challenges. A delegate with one of the methods has nothing to do.
 
 Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
 
