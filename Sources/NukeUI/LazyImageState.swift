@@ -7,6 +7,11 @@ import Nuke
 import SwiftUI
 
 /// Describes the current image state.
+///
+/// The state describes one update of the view, which calls the content again
+/// with a new one when it changes. Read it in the content rather than keep it
+/// for later, and don't cast it to ``FetchImage``: an image found in the memory
+/// cache is passed as a value of its own.
 @MainActor
 public protocol LazyImageState {
     /// Returns the current fetch result.

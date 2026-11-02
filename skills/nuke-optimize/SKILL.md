@@ -313,7 +313,7 @@ Each of these has been measured, or exists for a reason. If the code has changed
 | `imageProcessingQueue`, `imageDecompressingQueue` | Raise them. They compete with the main thread for CPU |
 | `isProgressiveDecodingEnabled` | Enable it for thumbnails. A progressive JPEG or a GIF gets decoded again every 0.5 s of its download |
 | `isAnimatedImageParsingEnabled` | Disable it for speed. It only runs for animated data |
-| `LazyImage` | Replace it with something hand-written for speed. It costs about 80 µs a cell over a plain `Image`, and the time is elsewhere |
+| `LazyImage` | Replace it with something hand-written for speed. It costs about 50 µs a cell over a plain `Image` on an iOS simulator, and the time is elsewhere |
 
 ## Report
 
