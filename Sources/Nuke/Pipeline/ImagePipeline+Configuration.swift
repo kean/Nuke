@@ -315,6 +315,9 @@ extension ImagePipeline {
 
         /// Encode and store images.
         ///
+        /// An animated image is stored as its original data, because an encoder
+        /// writes a single image.
+        ///
         /// - note: This is useful if you want to store images in a format
         /// different than provided by a server, e.g. decompressed. In other
         /// scenarios, consider using ``automatic`` policy instead.

@@ -174,7 +174,7 @@ Learn more in <doc:image-decoding>.
 
 **Encoding**
 
-Image I/O can write GIF and APNG, but ``ImageEncoders/ImageIO`` writes a single frame – it has no way to express an animation.
+Image I/O can write GIF and APNG, but ``ImageEncoders/ImageIO`` writes a single frame – it has no way to express an animation. With ``ImagePipeline/DataCachePolicy/storeEncodedImages``, an animated image skips the encoder, and its original data is stored instead.
 
 ## SVG
 

@@ -86,7 +86,8 @@ extension ImagePipeline {
         ///
         /// - parameters:
         ///   - data: Either the original data or the encoded image in case of storing
-        ///   a processed or re-encoded image.
+        ///   a processed or re-encoded image. An animated image isn't re-encoded, so
+        ///   this is its original data.
         ///   - image: Non-nil in case storing an encoded image.
         ///   - request: The request for which image is being stored.
         ///   - pipeline: The pipeline that is about to store the data.
