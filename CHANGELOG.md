@@ -199,6 +199,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - `ImagePipeline/Error` descriptions now say what was received, such as a `text/html` page sent with a `200`, along with a redacted URL – https://github.com/kean/Nuke/pull/1048
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
+- Add `LazyImage/reload(id:)`, `LazyImageState/reload()`, `LazyImage/keepsPreviousImage(_:)`, `LazyImage/failureView(_:)`, `LazyImage/imageTransition(_:animation:onMemoryCacheHit:)`, `FetchImage/reload()`, and `FetchImage/keepsPreviousImage` – https://github.com/kean/Nuke/pull/1100
 
 ### Performance
 
