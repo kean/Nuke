@@ -659,6 +659,7 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `ImageContainer.data` after a processor | Kept | `nil`, and so is `animation` |
 | `ImageContainer.data` of a GIF with a `thumbnail` | Kept | `nil` |
 | `FetchImage.load(_:)` and `LazyImageView.request` while the same image is loading | Restart the download | Keep the running task and give it the new priority |
+| An image in the memory cache in `LazyImage` | A placeholder for one update | Drawn by the first update |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
@@ -679,6 +680,8 @@ ImagePipeline.shared = ImagePipeline {
 ```
 
 "The same image" for `FetchImage` and `LazyImageView` means a request that differs only in priority, from the same pipeline. The call doesn't report a new start, so `onStart` isn't called again. A load that has finished starts over.
+
+A `LazyImage` with an image in the memory cache no longer goes through a state with no image, so an `onChange` of `state.image`, `state.imageContainer`, or `state.result` in its `content` closure doesn't fire for that image. `onCompletion` still does. In that update, `state` isn't a `FetchImage`, and it doesn't change later: read it in the closure rather than keep it.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 
