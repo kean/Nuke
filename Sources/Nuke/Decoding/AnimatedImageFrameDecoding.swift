@@ -21,8 +21,9 @@ import ImageIO
 /// registered in one place: ``ImageDecoderRegistry``. See
 /// <doc:image-decoding>.
 ///
-/// The player asks for one frame at a time, in playback order, and stops
-/// asking when its window of frames is full.
+/// The player asks for one frame at a time, in playback order – which runs
+/// from the last frame to the first in a reverse animation – and stops asking
+/// when its window of frames is full.
 ///
 /// - note: The player is on the main actor and awaits the frames from it.
 /// Produce them on an actor or a queue of your own; an implementation isolated
@@ -63,7 +64,7 @@ public struct AnimatedImageFrameDecodingContext: Sendable {
 /// its own.
 ///
 /// An actor because `CGImageSource` is not safe to use concurrently, and
-/// because decoding in playback order is what the buffer wants anyway.
+/// because one frame at a time is what the buffer wants anyway.
 actor AnimatedImageFrameDecoder: AnimatedImageFrameDecoding {
     private let animation: AnimatedImageSource
 

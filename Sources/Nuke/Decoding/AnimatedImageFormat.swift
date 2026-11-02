@@ -43,6 +43,24 @@ enum AnimatedImageFormat: CaseIterable {
         }
     }
 
+    /// Whether the decoder should be asked for the frames in the order the
+    /// file stores them.
+    ///
+    /// A frame of these formats can be a patch on the ones before it, so Image
+    /// I/O produces it by walking forward from the last frame it composed, and
+    /// from the start of the animation to go back. Taking the 22 frames of
+    /// `cat.gif` from last to first costs 9 times what first to last does as a
+    /// GIF, 9 times as an APNG with delta frames, and 8 as a WebP. It costs the
+    /// same as a HEIC or an AVIF sequence, which is why those are left out,
+    /// and as an APNG of full frames, which nothing short of reading its frame
+    /// headers tells from one of deltas.
+    var composesFramesInFileOrder: Bool {
+        switch self {
+        case .gif, .png, .webp: true
+        case .heics, .avis: false
+        }
+    }
+
     /// Returns the frames of an APNG that ask for the canvas to be restored
     /// to what it was before them, which Image I/O publishes no property for.
     ///

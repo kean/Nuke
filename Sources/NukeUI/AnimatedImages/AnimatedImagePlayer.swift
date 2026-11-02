@@ -42,7 +42,8 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// The options the player was created with.
     public let options: Options
 
-    /// The frame currently on screen.
+    /// The frame currently on screen, as an index into the file, whichever
+    /// way ``Options/playbackMode`` is playing it.
     public private(set) var currentFrameIndex = 0
 
     /// The image of the current frame, or `nil` until the first frame is
@@ -53,7 +54,7 @@ public final class AnimatedImagePlayer: ObservableObject {
     @Published public private(set) var isPlaying = false
 
     /// `true` when the animation has played the number of loops it was asked to
-    /// and stopped on its last frame.
+    /// and stopped on the last frame it plays.
     @Published public private(set) var isFinished = false
 
     /// The number of loops completed since the player was created.
@@ -80,6 +81,16 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// The decoded frames of this animation at this size, shared with every
     /// other player showing it.
     let store: AnimatedImageFrameStore
+
+    /// The order this player shows them in, which is its own: it isn't part of
+    /// what makes a set of frames, so two players can share them and go
+    /// opposite ways.
+    let order: AnimatedImagePlaybackOrder
+
+    /// Where the playhead is in the loop, which is what ``currentFrameIndex``
+    /// is worked out from. The frame the loop ends on when a bounce comes to a
+    /// stop is one past the end of it: see ``nextPosition``.
+    private(set) var playbackPosition = 0
 
     private let clock: any AnimatedImageClock
     private let pool: AnimatedImageFramePool
@@ -121,6 +132,7 @@ public final class AnimatedImagePlayer: ObservableObject {
         self.clock = clock
         self.pool = pool
         self.power = power
+        self.order = AnimatedImagePlaybackOrder(mode: options.playbackMode, frameCount: animation.frameCount)
         self.store = pool.store(
             for: animation,
             maxPixelSize: options.maxPixelSize,
@@ -134,7 +146,8 @@ public final class AnimatedImagePlayer: ObservableObject {
         // Fall in behind whatever is already playing this animation, so that
         // the copies of one sticker share one window of frames. Read before
         // joining, so that the player never falls in behind itself.
-        self.currentFrameIndex = options.isSynchronizationEnabled ? store.leadingIndex() ?? 0 : 0
+        self.playbackPosition = options.isSynchronizationEnabled ? store.leadingPosition(for: options.playbackMode) ?? 0 : 0
+        self.currentFrameIndex = order.frameIndex(at: playbackPosition)
 
         updateClockRate()
         clock.onTick = { [weak self] in self?.tick($0) }
@@ -178,33 +191,41 @@ public final class AnimatedImagePlayer: ObservableObject {
         clock.isPaused = true
     }
 
-    /// Returns to the first frame and starts playing.
+    /// Returns to the frame playback starts on and starts playing: the first
+    /// one, or the last one in a reverse animation.
     public func restart() {
         completedLoopCount = 0
-        seek(toFrame: 0)
+        seek(toPosition: 0)
         play()
     }
 
     /// Displays the frame at the given index.
     ///
-    /// The index is clamped to the number of frames in the animation. The
-    /// frames around the destination start decoding immediately, and the frame
-    /// itself appears as soon as it is ready. A player that has played all of
-    /// its loops can be seeked and played again.
+    /// The index is into the file, and is clamped to the number of frames in
+    /// the animation. The frames around the destination start decoding
+    /// immediately, and the frame itself appears as soon as it is ready. A
+    /// player that has played all of its loops can be seeked and played again.
+    ///
+    /// A bounce carries on the way it was heading.
     public func seek(toFrame index: Int) {
         let index = min(max(0, index), animation.frameCount - 1)
+        seek(toPosition: order.position(of: index, from: playbackPosition))
+    }
+
+    private func seek(toPosition position: Int) {
         // Assigned on every seek, whether or not it changes: a `@Published`
         // property publishes on assignment, and this is what publishes the
         // move to observers. `currentFrameIndex` can't do it itself without
         // putting the SwiftUI graph on the frame clock.
         isFinished = false
-        currentFrameIndex = index
+        playbackPosition = position
+        currentFrameIndex = order.frameIndex(at: position)
         elapsed = 0
         isWaitingForNextFrame = false
         // The frame being decoded is for somewhere the playhead has just left:
         // nobody is waiting for it any more.
         store.didUpdateWindow(of: self, isSeeking: true)
-        display(frameAt: index)
+        display(frameAt: currentFrameIndex)
     }
 
     /// Picks up where another player of the same animation left off.
@@ -214,7 +235,12 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// start over every time the view was resized.
     func resume(from player: AnimatedImagePlayer) {
         completedLoopCount = player.completedLoopCount
-        seek(toFrame: player.currentFrameIndex)
+        if player.options.playbackMode == options.playbackMode {
+            // The position and not the frame: a bounce is heading somewhere.
+            seek(toPosition: player.playbackPosition)
+        } else {
+            seek(toFrame: player.currentFrameIndex)
+        }
         // After the seek, which clears it: an animation that has played all of
         // its loops stays finished at its new size.
         isFinished = player.isFinished
@@ -272,15 +298,18 @@ public final class AnimatedImagePlayer: ObservableObject {
         return max(Self.idleFrameCount, min(Self.readAheadFrameCount + 1, affordable))
     }
 
-    /// The range of frame indexes the player is claiming, which may run past
-    /// the last frame and wrap around.
+    /// The range of playback positions the player is claiming, which may run
+    /// past the end of the loop and wrap around.
     var window: Range<Int> {
-        currentFrameIndex..<(currentFrameIndex + bufferCapacity)
+        // Claiming every frame is claiming the whole loop, which is more
+        // positions than frames in a bounce.
+        let capacity = bufferCapacity
+        return playbackPosition..<(playbackPosition + (capacity < animation.frameCount ? capacity : order.loopLength))
     }
 
     /// `true` when the player is claiming the frame at the given index.
     func wants(_ index: Int) -> Bool {
-        (index - currentFrameIndex + animation.frameCount) % animation.frameCount < bufferCapacity
+        order.covers(index, from: playbackPosition, length: bufferCapacity)
     }
 
     /// What a player holds while nobody is watching, and the floor for every
@@ -322,9 +351,9 @@ public final class AnimatedImagePlayer: ObservableObject {
         diagnostics.frameCount = animation.frameCount
         diagnostics.currentFrameIndex = currentFrameIndex
         diagnostics.completedLoopCount = completedLoopCount
-        diagnostics.bufferedFrameCount = store.decodedFrameCount(in: window)
+        diagnostics.bufferedFrameCount = store.decodedFrameCount(in: window, order: order)
         diagnostics.bufferCapacity = bufferCapacity
-        diagnostics.bufferedByteCount = store.byteCount(in: window)
+        diagnostics.bufferedByteCount = store.byteCount(in: window, order: order)
         diagnostics.bufferByteLimit = store.byteCount(ofFrames: bufferCapacity)
         diagnostics.sharingPlayerCount = store.memberCount
         diagnostics.decodedFrameCount = counters.decodedFrameCount
@@ -379,10 +408,11 @@ public final class AnimatedImagePlayer: ObservableObject {
         var didLoop = false
         var advanceCount = 0
         while elapsed >= animation.delays[currentFrameIndex] {
-            guard let next = nextFrameIndex else {
+            guard let position = nextPosition else {
                 finish()
                 break
             }
+            let next = order.frameIndex(at: position)
             guard store.frame(at: next) != nil || !store.isPending(next) else {
                 // The frame is late. The one on screen stays until it arrives –
                 // no frame is ever skipped, the way a browser plays – and the
@@ -397,7 +427,7 @@ public final class AnimatedImagePlayer: ObservableObject {
                 break
             }
             let remainder = elapsed - animation.delays[currentFrameIndex]
-            didLoop = advance(to: next) || didLoop
+            didLoop = advance(to: position, frame: next) || didLoop
             // What is left of a tick that came on time carries over, so that a
             // 70 ms frame on a 50 ms clock averages 70 ms and not 100. What is
             // left of a tick that came late doesn't: the frame just shown gets
@@ -413,7 +443,7 @@ public final class AnimatedImagePlayer: ObservableObject {
             // long as it is large – forever, once the subtraction above rounds
             // to nothing.
             advanceCount += 1
-            if advanceCount >= animation.frameCount {
+            if advanceCount >= order.loopLength {
                 elapsed = 0
                 break
             }
@@ -426,29 +456,34 @@ public final class AnimatedImagePlayer: ObservableObject {
         if didLoop { onLoop?(completedLoopCount) }
     }
 
-    /// The frame after the current one, or `nil` when the current frame is
+    /// The position after the current one, or `nil` when the current frame is
     /// the last one of the last loop.
-    private var nextFrameIndex: Int? {
-        let next = currentFrameIndex + 1
-        guard next >= animation.frameCount else { return next }
+    private var nextPosition: Int? {
+        let next = playbackPosition + 1
+        guard next >= order.loopLength else { return next }
         if let limit = loopLimit, completedLoopCount + 1 >= limit {
-            return nil
+            // The other loops of a bounce hand over to the next one on the
+            // first frame, which is that loop's. The last one has no next loop
+            // to do that and takes the position itself, so that it stops where
+            // it started instead of a frame short of it.
+            return options.playbackMode == .bounce && next == order.loopLength ? next : nil
         }
         return 0
     }
 
-    /// Moves the playhead to the given frame, counting a loop when it wraps.
-    /// Returns `true` if it wrapped; the caller reports the loop once the
-    /// frame is on screen.
-    private func advance(to index: Int) -> Bool {
-        currentFrameIndex = index
+    /// Moves the playhead to the given position, which shows the given frame,
+    /// counting a loop when it wraps. Returns `true` if it wrapped; the caller
+    /// reports the loop once the frame is on screen.
+    private func advance(to position: Int, frame: Int) -> Bool {
+        playbackPosition = position
+        currentFrameIndex = frame
         isWaitingForNextFrame = false
-        guard index == 0 else { return false }
+        guard position == 0 else { return false }
         completedLoopCount += 1
         return true
     }
 
-    /// Stops on the last frame of the last loop.
+    /// Stops on the frame the last loop ends on.
     private func finish() {
         completedLoopCount += 1
         isFinished = true
@@ -497,8 +532,8 @@ public final class AnimatedImagePlayer: ObservableObject {
         // The frame the playhead has been waiting on is shown now, for its
         // whole delay from now. Any other frame – read-ahead, or one a seek
         // left behind – is for the clock to reach.
-        guard isPlaying, isWaitingForNextFrame, index == nextFrameIndex else { return }
-        let didLoop = advance(to: index)
+        guard isPlaying, isWaitingForNextFrame, let position = nextPosition, index == order.frameIndex(at: position) else { return }
+        let didLoop = advance(to: position, frame: index)
         elapsed = 0
         store.didUpdateWindow(of: self, isSeeking: false)
         display(frameAt: index)
@@ -572,6 +607,12 @@ extension AnimatedImagePlayer {
         /// default, which honors what the file asks for.
         public var loopCount: LoopCount = .image
 
+        /// The order the frames play in. ``PlaybackMode/forward`` by default.
+        ///
+        /// An animation that plays any other way wants the pool's memory the
+        /// way one that plays forward does: see ``PlaybackMode``.
+        public var playbackMode: PlaybackMode = .forward
+
         /// The speed multiplier. `1` by default.
         ///
         /// A rate that isn't a positive finite number holds the current frame,
@@ -642,14 +683,41 @@ extension AnimatedImagePlayer {
         public init() {}
     }
 
+    /// The order the frames of an animation play in.
+    ///
+    /// Each frame is shown for its own delay, none is skipped, and the loop
+    /// count means what it means going forward: the frames a mode goes through
+    /// once make a loop, and playback stops at the end of the last one.
+    ///
+    /// Going backward costs nothing in an animation the pool holds whole. One
+    /// that plays out of a window pays for it on every frame if it's a GIF,
+    /// an APNG, or a WebP, which can only be decoded going forward: each step
+    /// back walks from the start of the file. See <doc:AnimatedImages>.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
+    public enum PlaybackMode: Hashable, Sendable {
+        /// From the first frame to the last, the way the file stores them.
+        case forward
+
+        /// From the last frame to the first. The animation starts on its last
+        /// frame and stops on its first.
+        case reverse
+
+        /// From the first frame to the last and back. The frames at the ends
+        /// are shown once per turn. One way there and back is one loop, so the
+        /// animation stops on the first frame it started from.
+        case bounce
+    }
+
     /// How many times an animation should play.
     @frozen public enum LoopCount: Hashable, Sendable {
         /// Whatever the image asks for, which is almost always forever.
         case image
         /// Play forever, whatever the image asks for.
         case infinite
-        /// Play a set number of times, then stop on the last frame: `.finite(2)`
-        /// plays twice.
+        /// Play a set number of times, then stop on the last frame played:
+        /// `.finite(2)` plays twice.
         case finite(Int)
     }
 

@@ -73,6 +73,13 @@ public final class AnimatedImageSource: Sendable {
     /// it too, so the two agree.
     let orientation: CGImagePropertyOrientation
 
+    /// `true` when frames in file order are the cheap ones to decode and any
+    /// other order walks the animation from the start for every frame.
+    ///
+    /// `false` for a decoder of your own: the player asks those for the frames
+    /// in playback order, as ``AnimatedImageFrameDecoding`` says it does.
+    package let prefersDecodingInFileOrder: Bool
+
     /// What produces the frames, when it isn't Image I/O.
     ///
     /// Not the decoder itself: a decoder holds the container it reads from,
@@ -149,6 +156,7 @@ public final class AnimatedImageSource: Sendable {
         let canvas = AnimatedImageSource.canvas(of: source)
         self.size = canvas.size
         self.orientation = canvas.orientation
+        self.prefersDecodingInFileOrder = format.composesFramesInFileOrder
         self.customFrameDecoder = nil
     }
 
@@ -210,6 +218,7 @@ public final class AnimatedImageSource: Sendable {
         // Whatever the frames the decoder produces are oriented like, they are
         // what they are: nothing here transforms them.
         self.orientation = .up
+        self.prefersDecodingInFileOrder = false
         self.customFrameDecoder = makeFrameDecoder
     }
 

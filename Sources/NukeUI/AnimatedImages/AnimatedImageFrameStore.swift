@@ -47,6 +47,10 @@ struct AnimatedImageFrameKey: Hashable {
 /// an animation that doesn't fit, every member gets a smaller window so that
 /// the total stays inside the share the pool gave the store. A store never
 /// costs more than the whole animation, however many players draw from it.
+///
+/// A frame is the same frame whichever way a player is going, so the players
+/// of one animation share a store whatever their playback modes. They only
+/// share a playhead with the players that go the same way.
 @MainActor
 final class AnimatedImageFrameStore {
     let key: AnimatedImageFrameKey
@@ -111,6 +115,16 @@ final class AnimatedImageFrameStore {
         let player: AnimatedImagePlayer
         let start: Int
         let length: Int
+
+        // Asked of the player rather than kept here: the windows are gathered
+        // on every frame, and a store of forward players never asks.
+        var order: AnimatedImagePlaybackOrder { player.order }
+
+        /// The number of positions from ``start`` it takes to reach every frame
+        /// the window covers.
+        var reach: Int {
+            length < order.frameCount ? length : order.loopLength
+        }
     }
 
     private var frames: [Int: Frame] = [:]
@@ -120,6 +134,15 @@ final class AnimatedImageFrameStore {
     private var failedIndexes: Set<Int> = []
 
     private var members: [Member] = []
+
+    /// `true` while a member plays any way but forward, which is when the
+    /// playheads can't be treated as all going the same way round the
+    /// animation and the paths that do are left for the ones that don't.
+    ///
+    /// Kept rather than asked of the members: a screen of one sticker asks on
+    /// every frame every copy of it shows, and it's what leaves that screen
+    /// running exactly the code it would without the other modes.
+    private var hasNonForwardMembers = false
 
     /// Created on demand and dropped with the last member: a decoder holds the
     /// animation, and an idle store must not keep it alive.
@@ -143,6 +166,9 @@ final class AnimatedImageFrameStore {
     /// wants the same frames.
     private let transform: AnimatedImageFrameTransform?
 
+    /// See ``AnimatedImageSource/prefersDecodingInFileOrder``.
+    private let prefersDecodingInFileOrder: Bool
+
     init(
         key: AnimatedImageFrameKey,
         source: AnimatedImageSource,
@@ -155,6 +181,7 @@ final class AnimatedImageFrameStore {
         self.pool = pool
         self.transform = transform
         self.frameCount = source.frameCount
+        self.prefersDecodingInFileOrder = source.prefersDecodingInFileOrder
         self.bytesPerFrame = AnimatedImageFrameStore.bytesPerFrame(for: source, maxPixelSize: key.maxPixelSize)
         self.decoder = if let decoder { AnimatedImageFrameStore.transforming(decoder, with: transform) } else { nil }
     }
@@ -177,20 +204,22 @@ final class AnimatedImageFrameStore {
 
     func add(_ player: AnimatedImagePlayer) {
         members.append(Member(player: player))
+        hasNonForwardMembers = hasNonForwardMembers || player.options.playbackMode != .forward
         lastUsed = monotonicTime()
         // Joins the decode in flight if it wants that frame, and asks for
         // nothing at all if the animation is already in memory.
         scheduleDecodeIfNeeded()
     }
 
-    /// The frame a joining player should start on, or `nil` when nothing else
-    /// is playing this animation.
+    /// The position a joining player should start on, or `nil` when nothing
+    /// else is playing this animation in the given mode.
     ///
     /// Starting there keeps a screen of the same animation to a single window
     /// of frames, and it is what a browser does with every `img` element
-    /// showing one animation.
-    func leadingIndex() -> Int? {
-        liveMembers.first(where: \.keepsFullBuffer)?.currentFrameIndex
+    /// showing one animation. A player going the other way shares no window
+    /// with this one and has nothing to fall in behind.
+    func leadingPosition(for mode: AnimatedImagePlayer.PlaybackMode) -> Int? {
+        liveMembers.first { $0.keepsFullBuffer && $0.options.playbackMode == mode }?.playbackPosition
     }
 
     // MARK: Frames
@@ -216,13 +245,16 @@ final class AnimatedImageFrameStore {
     }
 
     /// The number of decoded frames inside the given window.
-    func decodedFrameCount(in window: Range<Int>) -> Int {
-        indexes(in: window).count { frames[$0] != nil }
+    ///
+    /// - parameter order: What the window is a range of. By default, of
+    /// indexes into the file.
+    func decodedFrameCount(in window: Range<Int>, order: AnimatedImagePlaybackOrder? = nil) -> Int {
+        indexes(in: window, order: order).count { frames[$0] != nil }
     }
 
     /// The memory the frames inside the given window occupy, in bytes.
-    func byteCount(in window: Range<Int>) -> Int {
-        indexes(in: window).reduce(0) { $0 + (frames[$1]?.byteCount ?? 0) }
+    func byteCount(in window: Range<Int>, order: AnimatedImagePlaybackOrder? = nil) -> Int {
+        indexes(in: window, order: order).reduce(0) { $0 + (frames[$1]?.byteCount ?? 0) }
     }
 
     /// Drops every decoded frame and stops the decode in flight.
@@ -294,9 +326,29 @@ final class AnimatedImageFrameStore {
     /// anything is held whole, so the over-claim comes out of the animations
     /// that could have been held whole in it.
     private func claimedFrameCount(upTo limit: Int) -> Int {
+        guard !hasNonForwardMembers else {
+            return claimedFrames(upTo: limit).count
+        }
         let lengths = wantedFrameCounts(upTo: limit)
         let total = unionSize(of: lengths.keys.sorted()) { lengths[$0] ?? 0 }
         return min(frameCount, total)
+    }
+
+    /// The frames the members claim between them when none of them holds more
+    /// than the given number.
+    ///
+    /// The answer ``unionSize(of:length:)`` can't give once a member plays
+    /// anything but forward: the arithmetic there has every window running the
+    /// same way round the animation, and here one can run backward from the
+    /// same playhead as another, or fold back on itself at an end.
+    private func claimedFrames(upTo limit: Int) -> Set<Int> {
+        var claimed = Set<Int>()
+        for player in liveMembers {
+            for offset in 0..<min(player.wantedFrameCount, limit) {
+                claimed.insert(player.order.frameIndex(at: player.playbackPosition + offset))
+            }
+        }
+        return claimed
     }
 
     /// The number of frames the members on each playhead want between them,
@@ -361,6 +413,16 @@ final class AnimatedImageFrameStore {
             return frameCount
         }
         let floor = AnimatedImagePlayer.idleFrameCount
+        guard !hasNonForwardMembers else {
+            // Counting frames rather than doing the arithmetic, so the search
+            // is kept short: no window short of the animation goes past the
+            // read-ahead, whatever length it is offered.
+            var length = max(floor, min(capacity, AnimatedImagePlayer.readAheadFrameCount + 1))
+            while length > floor, claimedFrames(upTo: length).count > capacity {
+                length -= 1
+            }
+            return length
+        }
         // Each playhead measured at what the members on it want, the way the
         // share was asked for: a member nobody is watching holds two frames
         // however long the window is, and measured at the full length it
@@ -419,7 +481,10 @@ final class AnimatedImageFrameStore {
     }
 
     private func covers(_ index: Int, _ window: MemberWindow) -> Bool {
-        (index - window.start + frameCount) % frameCount < window.length
+        guard !hasNonForwardMembers else {
+            return window.order.covers(index, from: window.start, length: window.length)
+        }
+        return (index - window.start + frameCount) % frameCount < window.length
     }
 
     /// Drops the frames outside every member's window, for the pool to call
@@ -432,9 +497,11 @@ final class AnimatedImageFrameStore {
         }
     }
 
-    private func indexes(in window: Range<Int>) -> [Int] {
+    /// A set, because a window that folds back at the end of a bounce comes
+    /// to the same frame twice.
+    private func indexes(in window: Range<Int>, order: AnimatedImagePlaybackOrder?) -> Set<Int> {
         // swiftlint:disable:next optional_map_in_nukeui - not an Optional
-        window.map { $0 % frameCount }
+        Set(window.map { order?.frameIndex(at: $0) ?? $0 % frameCount })
     }
 
     // MARK: Decoding
@@ -487,6 +554,9 @@ final class AnimatedImageFrameStore {
         // its time here, which is what keeps a wall of copies of one animation
         // from walking every window on every frame it shows.
         guard hasPendingFrames else { return nil }
+        guard !hasNonForwardMembers else {
+            return nextNeededIndexInAnyDirection(windows)
+        }
         if let window = windows.first(where: { isPending($0.start) }) {
             return window.start
         }
@@ -494,6 +564,28 @@ final class AnimatedImageFrameStore {
         for offset in 1..<max(1, longest) {
             for window in windows where offset < window.length {
                 let index = (window.start + offset) % frameCount
+                if isPending(index) { return index }
+            }
+        }
+        return nil
+    }
+
+    /// The next frame worth decoding for members that aren't all going forward.
+    private func nextNeededIndexInAnyDirection(_ windows: [MemberWindow]) -> Int? {
+        if prefersDecodingInFileOrder {
+            // Lowest first. In playback order, every frame of a backward
+            // window would walk the file from the start, and an animation
+            // held whole would cost a walk per frame instead of one. The frame
+            // the playhead is on comes last, but it is no later for it: the
+            // walk goes through the others to get there.
+            return (0..<frameCount).first { index in
+                isPending(index) && windows.contains { covers(index, $0) }
+            }
+        }
+        let longest = windows.map(\.reach).max() ?? 0
+        for offset in 0..<longest {
+            for window in windows where offset < window.reach {
+                let index = window.order.frameIndex(at: window.start + offset)
                 if isPending(index) { return index }
             }
         }
@@ -594,7 +686,7 @@ final class AnimatedImageFrameStore {
             guard let player = member.player else { return nil }
             return MemberWindow(
                 player: player,
-                start: player.currentFrameIndex,
+                start: player.playbackPosition,
                 length: player.bufferCapacity(windowLength: windowLength)
             )
         }
@@ -605,6 +697,7 @@ final class AnimatedImageFrameStore {
         let count = members.count
         members.removeAll { $0.player == nil }
         guard members.count != count else { return }
+        hasNonForwardMembers = liveMembers.contains { $0.options.playbackMode != .forward }
         lastUsed = monotonicTime()
         if members.isEmpty {
             // A decoder holds the animation, and with it the encoded data.
