@@ -138,6 +138,12 @@ struct ImageTargetSize: Hashable {
         }
     }
 
+    // Bitwise, so that a NaN equals itself: a size that compares unequal to
+    // itself makes `LazyImage` reload on every update.
+    static func == (lhs: ImageTargetSize, rhs: ImageTargetSize) -> Bool {
+        lhs.width.bitPattern == rhs.width.bitPattern && lhs.height.bitPattern == rhs.height.bitPattern
+    }
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(width)
         hasher.combine(height)
