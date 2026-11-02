@@ -10,6 +10,8 @@ Recognizing a format is a separate concern from decoding it. ``AssetType`` sniff
 
 The pipeline can also drive progressive decoding, animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
+HDR images are opt-in, see <doc:high-dynamic-range>.
+
 ## Support Matrix
 
 | Format | ``AssetType`` | Decode | Encode | Previews | Animation |
