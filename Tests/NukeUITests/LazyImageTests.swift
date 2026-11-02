@@ -551,6 +551,119 @@ struct LazyImageTests {
         #expect(task.priority == .low)
     }
 
+    // MARK: - Dynamic Range
+
+    @Test(arguments: [
+        (Image.DynamicRange.high, ImageRequest.DynamicRange.high),
+        (.constrainedHigh, .high),
+        (.standard, .standard)
+    ]) func allowedDynamicRangeSetsTheRangeOfTheRequest(range: Image.DynamicRange, expected: ImageRequest.DynamicRange) async throws {
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+        var request = ImageRequest(url: Test.url)
+        request.dynamicRange = expected == .high ? .standard : .high
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .onCompletion {
+                    response.value = try? $0.get()
+                    completed.fulfill()
+                }
+                .allowedDynamicRange(range)
+        }
+        await completed.wait()
+
+        #expect(try #require(response.value).request.dynamicRange == expected)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func nilAllowedDynamicRangeKeepsTheRangeOfTheRequest() async throws {
+        let completed = TestExpectation()
+        let response = Ref<ImageResponse?>(nil)
+        var request = ImageRequest(url: Test.url)
+        request.dynamicRange = .high
+
+        let host = ViewHost(request) { request in
+            LazyImage(request: request)
+                .pipeline(pipeline)
+                .onCompletion {
+                    response.value = try? $0.get()
+                    completed.fulfill()
+                }
+                .allowedDynamicRange(nil)
+        }
+        await completed.wait()
+
+        #expect(try #require(response.value).request.dynamicRange == .high)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The image has to reach `Image` too: the request alone doesn't display HDR.
+    @Test func allowedDynamicRangeReachesTheContent() async throws {
+        let rendered = TestExpectation()
+        let range = Ref<Image.DynamicRange?>(nil)
+
+        let host = ViewHost(Test.url) { url in
+            LazyImage(url: url) { _ in
+                DynamicRangeReader {
+                    range.value = $0
+                    rendered.fulfill()
+                }
+            }
+            .pipeline(pipeline)
+            .allowedDynamicRange(.high)
+        }
+        await rendered.wait()
+
+        #expect(range.value == .high)
+        withExtendedLifetime(host) {}
+    }
+
+    @Test func dynamicRangeChangeReloads() async throws {
+        let completed = TestExpectation()
+        let responses = Ref<[ImageResponse]>([])
+        let host = ViewHost(Image.DynamicRange.standard) { range in
+            LazyImage(url: Test.url)
+                .pipeline(pipeline)
+                .onCompletion {
+                    if let response = try? $0.get() {
+                        responses.value.append(response)
+                        completed.fulfill()
+                    }
+                }
+                .allowedDynamicRange(range)
+        }
+        await completed.wait()
+
+        await host.update(.high, until: { responses.value.count == 2 })
+
+        #expect(responses.value.map(\.request.dynamicRange) == [.standard, .high])
+    }
+
+    /// A request with processors stays in the standard range, so there is
+    /// nothing to load again.
+    @Test func dynamicRangeChangeKeepsTheProcessedImage() async throws {
+        let completed = TestExpectation()
+        let completions = Ref(0)
+        let host = ViewHost(Image.DynamicRange.standard) { range in
+            LazyImage(url: Test.url)
+                .processors([MockImageProcessor(id: "1")])
+                .pipeline(pipeline)
+                .onCompletion { _ in
+                    completions.value += 1
+                    completed.fulfill()
+                }
+                .allowedDynamicRange(range)
+        }
+        await completed.wait()
+
+        await host.update(.high, until: { true })
+        await host.render()
+
+        #expect(completions.value == 1)
+    }
+
     // MARK: - Disappear Behavior
 
     @Test func requestCancelledOnDisappearByDefault() async throws {
@@ -958,6 +1071,17 @@ struct LazyImageTests {
 
         #expect(completions.value == 1)
         #expect(dataLoader.createdTaskCount == 1)
+    }
+}
+
+/// Reports the dynamic range an `Image` in the content would get.
+private struct DynamicRangeReader: View {
+    @Environment(\.allowedDynamicRange) private var range
+    let onRender: (Image.DynamicRange?) -> Void
+
+    var body: some View {
+        let _ = onRender(range)
+        SwiftUI.Color.clear
     }
 }
 

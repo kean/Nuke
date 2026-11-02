@@ -686,6 +686,7 @@ extension ImageRequest {
         return imageID == other.imageID &&
         processorsIdentity == other.processorsIdentity &&
         options == other.options &&
+        isHighDynamicRange == other.isHighDynamicRange &&
         scale == other.scale &&
         thumbnail == other.thumbnail
     }
