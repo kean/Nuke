@@ -446,7 +446,7 @@ struct LazyImageModifiersTests {
 
     // MARK: - Image Transition
 
-    @Test func transitionRunsWhenADownloadedImageIsDisplayed() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func transitionRunsWhenADownloadedImageIsDisplayed() async {
         let log = TransitionLog()
         let completed = TestExpectation()
 
@@ -462,7 +462,7 @@ struct LazyImageModifiersTests {
         #expect(log.activeCount > 0)
     }
 
-    @Test func noTransitionForAnImageFoundInTheMemoryCache() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func noTransitionForAnImageFoundInTheMemoryCache() async {
         imageCache[ImageRequest(url: Test.url)] = Test.container
         let log = TransitionLog()
         let completed = TestExpectation()
@@ -480,7 +480,7 @@ struct LazyImageModifiersTests {
         #expect(log.activeCount == 0)
     }
 
-    @Test func transitionForAMemoryCacheHitWhenAskedFor() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func transitionForAMemoryCacheHitWhenAskedFor() async {
         imageCache[ImageRequest(url: Test.url)] = Test.container
         let log = TransitionLog()
         let completed = TestExpectation()
@@ -500,7 +500,7 @@ struct LazyImageModifiersTests {
 
     /// The previous image goes with the transition as well, which is what makes
     /// a cross-fade between two images.
-    @Test func transitionRunsWhenANewImageReplacesThePreviousOne() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func transitionRunsWhenANewImageReplacesThePreviousOne() async {
         let log = TransitionLog()
         let completions = Ref(0)
 
@@ -522,7 +522,7 @@ struct LazyImageModifiersTests {
 
     /// The transition doesn't depend on the closure having a branch for the
     /// image to go in.
-    @Test func transitionRunsForContentWithNoBranches() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func transitionRunsForContentWithNoBranches() async {
         let log = TransitionLog()
         let completed = TestExpectation()
 
@@ -540,7 +540,7 @@ struct LazyImageModifiersTests {
         #expect(log.activeCount > 0)
     }
 
-    @Test func noTransitionWhenTheSameImageIsDisplayedAgain() async {
+    @Test(.enabled(if: transitionsAreInterpolated, "Reduce Motion replaces a custom transition")) func noTransitionWhenTheSameImageIsDisplayedAgain() async {
         let log = TransitionLog()
         let completions = Ref(0)
 
@@ -667,6 +667,25 @@ struct LazyImageModifiersTests {
         withExtendedLifetime(host) {}
     }
 }
+
+/// With Reduce Motion on, which it is on the macOS CI runner, SwiftUI doesn't
+/// interpolate a custom transition: its modifier is never given a value between
+/// the two ends, for a plain view as much as for a `LazyImage`. What the
+/// transition tests count never happens, so they would fail, or in the case of
+/// "no transition", pass for no reason.
+private let transitionsAreInterpolated: Bool = {
+    @MainActor func isReduceMotionEnabled() -> Bool {
+#if os(macOS)
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+#else
+        UIAccessibility.isReduceMotionEnabled
+#endif
+    }
+    // The condition of a trait is evaluated wherever the runner happens to be.
+    return !(Thread.isMainThread
+        ? MainActor.assumeIsolated { isReduceMotionEnabled() }
+        : DispatchQueue.main.sync { MainActor.assumeIsolated { isReduceMotionEnabled() } })
+}()
 
 /// Records a transition running. The body of a transition's modifier gets built
 /// with no animation too, so what shows that it ran is the modifier receiving a
