@@ -322,6 +322,10 @@ extension ImagePipeline {
         /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)``
         /// method will not store the images in the disk cache – this method only
         /// loads data and doesn't decode images.
+        ///
+        /// - note: Encoding would flatten an HDR image, so for a request with
+        /// ``ImageRequest/DynamicRange-swift.enum/high``, the original data is
+        /// stored instead.
         case storeEncodedImages
 
         /// Stores both processed images and the original image data.

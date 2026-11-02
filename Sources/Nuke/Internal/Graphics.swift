@@ -480,24 +480,28 @@ extension Color {
 /// - parameter data: Data object from which to read the image.
 /// - parameter options: Image loading options.
 /// - parameter scale: The scale factor to assume when interpreting the image data, defaults to 1.
-func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CGFloat = 1.0) -> PlatformImage? {
+/// - parameter isHighDynamicRange: Decodes the thumbnail to HDR, if available.
+func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions, scale: CGFloat = 1.0, isHighDynamicRange: Bool = false) -> PlatformImage? {
     guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
         return nil
     }
-    return makeThumbnail(source: source, options: options, scale: scale)
+    return makeThumbnail(source: source, options: options, scale: scale, isHighDynamicRange: isHighDynamicRange)
 }
 
 /// Creates a thumbnail from the first image in the source, which can be an
 /// incremental source with partially downloaded data.
-func makeThumbnail(source: CGImageSource, options: ImageRequest.ThumbnailOptions, scale: CGFloat = 1.0) -> PlatformImage? {
+func makeThumbnail(source: CGImageSource, options: ImageRequest.ThumbnailOptions, scale: CGFloat = 1.0, isHighDynamicRange: Bool = false) -> PlatformImage? {
     let maxPixelSize = getMaxPixelSize(for: source, options: options)
     let flags = options.options
-    let options = [
+    var options = [
         kCGImageSourceCreateThumbnailFromImageAlways: flags.contains(.createThumbnailFromImageAlways),
         kCGImageSourceCreateThumbnailFromImageIfAbsent: flags.contains(.createThumbnailFromImageIfAbsent),
         kCGImageSourceShouldCacheImmediately: flags.contains(.shouldCacheImmediately),
         kCGImageSourceCreateThumbnailWithTransform: flags.contains(.createThumbnailWithTransform),
         kCGImageSourceThumbnailMaxPixelSize: maxPixelSize] as [CFString: Any]
+    if isHighDynamicRange, let decodeOptions = makeHighDynamicRangeDecodeOptions(for: source) {
+        options.merge(decodeOptions) { $1 }
+    }
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
@@ -513,6 +517,35 @@ func makeThumbnail(source: CGImageSource, options: ImageRequest.ThumbnailOptions
     }
     return makeImage(from: image, source: source, scale: scale)
 }
+
+/// Returns the options that decode the first image in the source to HDR, or
+/// `nil` if it has to be decoded the standard way.
+func makeHighDynamicRangeDecodeOptions(for source: CGImageSource) -> [CFString: Any]? {
+    guard #available(iOS 17, tvOS 17, macOS 14, watchOS 10, visionOS 1, *) else {
+        return nil
+    }
+#if targetEnvironment(simulator)
+    // A simulator can't apply a gain map, and Image I/O doesn't fail: it
+    // returns a black image. Every simulator tested does this, iOS 26.5 to
+    // 27.2 and tvOS 27, and macOS doesn't.
+    if hasGainMap(source) {
+        return nil
+    }
+#endif
+    return [kCGImageSourceDecodeRequest: kCGImageSourceDecodeToHDR]
+}
+
+#if targetEnvironment(simulator)
+private func hasGainMap(_ source: CGImageSource) -> Bool {
+    if CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeHDRGainMap) != nil {
+        return true
+    }
+    if #available(iOS 18, tvOS 18, watchOS 11, visionOS 2, *) {
+        return CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeISOGainMap) != nil
+    }
+    return false
+}
+#endif
 
 /// Creates a `PlatformImage` from a `CGImage` produced by a `CGImageSource`,
 /// reading EXIF orientation from the source properties.

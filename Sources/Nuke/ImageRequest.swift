@@ -144,6 +144,20 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.thumbnail = newValue } }
     }
 
+    /// The dynamic range to decode the image in. ``DynamicRange-swift.enum/standard``
+    /// by default.
+    ///
+    /// Display is a separate setting, see <doc:high-dynamic-range>. In `NukeUI`,
+    /// `LazyImage/allowedDynamicRange(_:)` sets both.
+    ///
+    /// - note: A request with ``processors`` ignores it: they draw in 8 bits
+    /// per component, so they start from the standard image. To downscale an
+    /// HDR image, use ``thumbnail``.
+    public var dynamicRange: DynamicRange {
+        get { ref.dynamicRange }
+        set { mutate { $0.dynamicRange = newValue } }
+    }
+
     /// Returns a debug request description.
     public var description: String {
         "ImageRequest(resource: \(ref.resource), priority: \(ref.priority), processors: \(ref.processors), options: \(ref.options), userInfo: \(ref.userInfo ?? [:]))"
@@ -363,6 +377,23 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
     }
 
+    /// The dynamic range of the decoded image.
+    public enum DynamicRange: Sendable {
+        /// Decodes the image the way the system does by default. A gain map is
+        /// ignored, so an HDR photo decodes as its SDR base image. An image that
+        /// has no SDR base, such as a 10-bit PQ HEIC, stays what it is.
+        case standard
+
+        /// Decodes HDR: applies the gain map of an image that has one, and
+        /// keeps the result out of the 8-bit paths of the pipeline.
+        ///
+        /// Requires iOS 17, tvOS 17, macOS 14, watchOS 10, or visionOS 1, and
+        /// decodes as ``standard`` on the earlier versions. On a simulator, a
+        /// gain map decodes as ``standard`` too, because a simulator can't
+        /// apply one.
+        case high
+    }
+
     /// A key used in `userInfo` for providing custom request options.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         /// Returns a key raw value.
@@ -502,6 +533,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         return copy
     }
 
+    /// `true` if the image should be decoded to HDR. A request with processors
+    /// never is, so it shares its caches and its work with a standard one.
+    package var isHighDynamicRange: Bool {
+        ref.dynamicRange == .high && ref.processors.isEmpty
+    }
+
     /// The underlying resource image ID (URL string or data ID), never the
     /// user-supplied ``imageID`` override. Used for data-loading task keys
     /// where the actual URL determines what gets fetched.
@@ -553,6 +590,9 @@ extension ImageRequest {
 
         var userInfo: [UserInfoKey: any Sendable]?
         var thumbnail: ThumbnailOptions?
+        // Last, where it takes the padding: `priority`, `options`, and `scale`
+        // have none, and in front of them it would grow every request by 8 bytes.
+        var dynamicRange: DynamicRange = .standard
 
         init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options) {
             self.resource = resource
@@ -568,6 +608,7 @@ extension ImageRequest {
             self.resource = ref.resource
             self.processors = ref.processors
             self.priority = ref.priority
+            self.dynamicRange = ref.dynamicRange
             self.options = ref.options
             self.originalImageID = ref.originalImageID
             self.userInfo = ref.userInfo

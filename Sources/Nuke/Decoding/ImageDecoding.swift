@@ -105,7 +105,11 @@ private func makeImageResponse(_ container: ImageContainer, context: ImageDecodi
     // (`isDecompressionEnabled`, which is off on macOS by default) and its
     // delegate, so that turning it on works on macOS too.
     if context.request.thumbnail == nil && !container.isPreview {
-        ImageDecompression.setDecompressionNeeded(true, for: container.image)
+        // The check is for HDR only: the default decoder marks an image it
+        // decoded to HDR with `false`.
+        if !context.request.isHighDynamicRange || ImageDecompression.isDecompressionNeeded(for: container.image) == nil {
+            ImageDecompression.setDecompressionNeeded(true, for: container.image)
+        }
     }
     return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
 }
