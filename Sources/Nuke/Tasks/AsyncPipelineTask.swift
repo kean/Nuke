@@ -96,10 +96,7 @@ extension AsyncPipelineTask {
         var soonest: ImageRequest.CacheExpiration?
         // Returning `false` is what makes the walk visit all of them.
         _ = containsImageTask { task in
-            if let expiration = task.request.cacheExpiration,
-               soonest.map({ expiration.timeToLive < $0.timeToLive }) ?? true {
-                soonest = expiration
-            }
+            soonest = .soonest(soonest, task.request.cacheExpiration)
             return false
         }
         return soonest

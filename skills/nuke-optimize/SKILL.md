@@ -154,7 +154,7 @@ The default pipeline has `URLCache`, which follows `cache-control`, and is limit
 | Images | Use | Why |
 |---|---|---|
 | Never change at a URL | `.withDataCache` | Faster, works offline, no revalidation |
-| Can change at a stable URL, like an avatar | The default `URLCache` | `.withDataCache` ignores `cache-control`, and shows the old image until it's evicted |
+| Can change at a stable URL, like an avatar | The default `URLCache`, or `.withDataCache` with a `cacheExpiration` on the request | `.withDataCache` ignores `cache-control`, and shows the old image until it's evicted or expires |
 | Both | A pipeline for each | The rules are per pipeline, and these two can't share one |
 
 ```swift
@@ -163,7 +163,7 @@ configuration.dataCachePolicy = .automatic
 ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
-`ImageCache` doesn't read `cache-control` either: an image that changes at a stable URL stays in memory until it's evicted, however short its `max-age`. Set `cacheExpiration` on the requests for those, and pass them to the views with `LazyImage(request:)`:
+`ImageCache` doesn't read `cache-control` either: an image that changes at a stable URL stays in memory until it's evicted, however short its `max-age`. Set `cacheExpiration` on the requests for those, and pass them to the views with `LazyImage(request:)`. It covers both `ImageCache` and `DataCache`:
 
 ```swift
 func avatarRequest(url: URL) -> ImageRequest {
