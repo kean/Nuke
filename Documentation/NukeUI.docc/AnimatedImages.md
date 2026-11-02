@@ -171,6 +171,8 @@ Two cases where an animation deliberately becomes a still:
 - **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data and the animation with it. A processor that implements ``ImageProcessing/process(_:context:)`` decides for itself and can keep both – one that processes the frames, say. To change the frames of an animation that goes on playing, reach for ``AnimatedImagePlayer/Options/frameTransform`` instead.
 - **A thumbnail request.** ``ImageRequest/thumbnail`` exists to avoid decoding the image at full size, and playing the full-size animation would undo that. Neither the data nor the animation is attached.
 
+The disk cache is not one of them: every ``ImagePipeline/DataCachePolicy`` keeps an animation that reaches it. ``ImagePipeline/DataCachePolicy/storeEncodedImages`` stores its original data, because an encoder writes a single image.
+
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.
 
 ## Under the Hood
