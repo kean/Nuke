@@ -168,13 +168,15 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             guard let data, !data.isEmpty else { return }
             pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
                 guard let data = $0, !data.isEmpty else { return }
-                // Important! Storing directly ignoring `ImageRequest.Options`.
                 dataCache.storeData(data, for: key) // This is instant, writes are async
             }
         }
     }
 
     private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
+        guard !request.options.contains(.disableDiskCacheWrites) else {
+            return false
+        }
         guard !response.container.isPreview,
               !(response.cacheType == .disk) else {
             return false

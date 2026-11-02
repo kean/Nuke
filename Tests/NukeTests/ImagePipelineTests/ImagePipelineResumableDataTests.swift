@@ -57,6 +57,49 @@ struct ImagePipelineResumableDataTests {
         ])
     }
 
+    /// On a "206 Partial Content" response, `expectedContentLength` covers only
+    /// the remaining bytes while the accumulated data already contains the
+    /// resumed prefix. The guard that decides whether to give the decoder a
+    /// chance to produce a preview used to compare the two directly, so it was
+    /// never satisfied and the resumed download produced no previews at all.
+    @Test func previewsAreDeliveredWhenTheDownloadIsResumed() async throws {
+        // GIVEN a pipeline with progressive decoding enabled
+        let dataLoader = _MockResumableProgressiveDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+
+        // GIVEN an initial download that delivers one scan and then fails
+        var initialPreviews: [ImageResponse] = []
+        let initialTask = pipeline.imageTask(with: Test.request)
+        for await preview in initialTask.previews {
+            initialPreviews.append(preview)
+        }
+        await #expect(throws: ImagePipeline.Error.self) {
+            try await initialTask.response
+        }
+        #expect(initialPreviews.count == 1)
+
+        // WHEN the download is resumed with "206 Partial Content"
+        var previews: [ImageResponse] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await preview in task.previews {
+            previews.append(preview)
+        }
+        let response = try await task.response
+
+        // THEN the remaining scans are still delivered as previews
+        #expect(dataLoader.isResumed)
+        #expect(previews.count == 1)
+        #expect(previews.allSatisfy { $0.container.isPreview })
+
+        // THEN the final image is produced
+        #expect(!response.container.isPreview)
+    }
+
     @Test func thatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() async throws {
         // GIVEN an initial partial download that fails and stores resumable data
         _ = try? await pipeline.imageTask(with: Test.request).response
@@ -106,6 +149,28 @@ struct ImagePipelineResumableDataTests {
         )
         #expect(stored != nil)
     }
+
+    @Test func resumedDownloadThatFailsAgainKeepsResumableData() async throws {
+        // GIVEN a server that fails the first attempt at 8000 bytes and the
+        // resumed one at 20000 bytes – more than the 206 "Content-Length"
+        let dataLoader = _MockFailingRangeDataLoader()
+        dataLoader.steps = [.fail(atOffset: 8000), .fail(atOffset: 20000), .serve]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        // WHEN the download fails, is resumed, and fails again
+        _ = try? await pipeline.data(for: Test.request)
+        _ = try? await pipeline.data(for: Test.request)
+        #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=8000-")
+
+        // THEN the third attempt resumes from where the second one failed
+        let (data, _) = try await pipeline.data(for: Test.request)
+        #expect(data == Test.data)
+        #expect(dataLoader.requests.count == 3)
+        #expect(dataLoader.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=20000-")
+    }
 }
 
 private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable {
@@ -116,6 +181,105 @@ private final class _GatingDelegate: ImagePipeline.Delegate, @unchecked Sendable
         entered?.open()
         await proceed?.wait()
         return urlRequest
+    }
+}
+
+/// Serves `Test.data`, honoring "Range", and fails each attempt at the given
+/// offset of the whole resource.
+private final class _MockFailingRangeDataLoader: DataLoading, @unchecked Sendable {
+    enum Step {
+        case fail(atOffset: Int)
+        case serve
+    }
+
+    let data = Test.data
+    private let lock = NSLock()
+    private var _steps: [Step] = []
+    private var _requests: [URLRequest] = []
+
+    var steps: [Step] {
+        get { lock.withLock { _steps } }
+        set { lock.withLock { _steps = newValue } }
+    }
+    var requests: [URLRequest] { lock.withLock { _requests } }
+
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let step = lock.withLock { () -> Step in
+            _requests.append(request)
+            return _steps.isEmpty ? .serve : _steps.removeFirst()
+        }
+        let offset = request.value(forHTTPHeaderField: "If-Range") == "v1"
+            ? request.value(forHTTPHeaderField: "Range").flatMap { Int(_groups(regex: "bytes=(\\d*)-", in: $0)[0]) }
+            : nil
+        var headerFields = ["Accept-Ranges": "bytes", "ETag": "v1"]
+        if let offset {
+            // "Content-Length" of a partial response covers the remaining bytes only.
+            headerFields["Content-Range"] = "bytes \(offset)-\(data.count - 1)/\(data.count)"
+            headerFields["Content-Length"] = "\(data.count - offset)"
+        } else {
+            headerFields["Content-Length"] = "\(data.count)"
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: offset == nil ? 200 : 206, httpVersion: "HTTP/1.1", headerFields: headerFields)!
+        switch step {
+        case .fail(let end):
+            didReceiveData(data[(offset ?? 0)..<end], response)
+            completion(URLError(.networkConnectionLost))
+        case .serve:
+            didReceiveData(data[(offset ?? 0)...], response)
+            completion(nil)
+        }
+        return AnonymousCancellable {}
+    }
+}
+
+/// Serves a progressive JPEG in three scans: the first attempt delivers the
+/// first scan and fails, the resumed attempt delivers the rest with
+/// "206 Partial Content".
+private final class _MockResumableProgressiveDataLoader: DataLoading, @unchecked Sendable {
+    let data = Test.data(name: "progressive", extension: "jpeg")
+    let eTag = "img_01"
+
+    /// `true` when the server accepted the "If-Range" header.
+    private(set) var isResumed = false
+
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
+                  completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let chunks = _createChunks(for: data, size: data.count / 3)
+
+        func makeResponse(statusCode: Int, headerFields: [String: String]) -> HTTPURLResponse {
+            var headerFields = headerFields
+            headerFields["Accept-Ranges"] = "bytes"
+            headerFields["ETag"] = eTag
+            return HTTPURLResponse(url: request.url!, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headerFields)!
+        }
+
+        if let range = request.allHTTPHeaderFields?["Range"], request.allHTTPHeaderFields?["If-Range"] == eTag {
+            isResumed = true
+
+            // The client already has the first chunk – serve the remaining ones.
+            let offset = Int(_groups(regex: "bytes=(\\d*)-", in: range)[0])!
+            let remainingChunks = chunks.filter { $0.startIndex >= offset }
+            let remainingCount = data.count - offset
+
+            // "Content-Length" of a partial response covers the remaining bytes only.
+            let response = makeResponse(statusCode: 206, headerFields: [
+                "Content-Range": "bytes \(offset)-\(data.count - 1)/\(data.count)",
+                "Content-Length": "\(remainingCount)"
+            ])
+            for chunk in remainingChunks {
+                didReceiveData(chunk, response)
+            }
+            completion(nil)
+        } else {
+            // Serve the first chunk and fail mid-download.
+            let response = makeResponse(statusCode: 200, headerFields: ["Content-Length": "\(data.count)"])
+            didReceiveData(chunks[0], response)
+            completion(URLError(.networkConnectionLost))
+        }
+        return AnonymousCancellable {}
     }
 }
 
