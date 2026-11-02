@@ -33,7 +33,6 @@
 - Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
 - Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
 - Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
-- Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 
 ## Nuke 13.2.0
 
