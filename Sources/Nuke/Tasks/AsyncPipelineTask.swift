@@ -87,6 +87,24 @@ extension AsyncPipelineTask {
 }
 
 extension AsyncPipelineTask {
+    /// The expiration of what this task stores. All the image tasks waiting
+    /// for it read the entry from then on, so the soonest one wins: the worst
+    /// that can do is an extra load, while a later one would keep showing an
+    /// image to a request that called it stale. A task with no expiration has
+    /// no say, and `nil` means none of them has one.
+    var soonestCacheExpiration: ImageRequest.CacheExpiration? {
+        var soonest: ImageRequest.CacheExpiration?
+        // Returning `false` is what makes the walk visit all of them.
+        _ = containsImageTask { task in
+            if let expiration = task.request.cacheExpiration,
+               soonest.map({ expiration.timeToLive < $0.timeToLive }) ?? true {
+                soonest = expiration
+            }
+            return false
+        }
+        return soonest
+    }
+
     /// Reads the memory cache, recording the lookup when diagnostics are on
     /// and there is a cache to look into.
     func lookUpCachedImage(for request: ImageRequest) -> ImageContainer? {
