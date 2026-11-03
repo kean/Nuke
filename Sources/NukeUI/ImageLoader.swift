@@ -689,7 +689,8 @@ extension ImageRequest {
         // A NaN has to equal itself: a request that compares unequal to itself
         // makes `LazyImage` reload on every update.
         (scale == other.scale || scale.bitPattern == other.scale.bitPattern) &&
-        thumbnail == other.thumbnail
+        thumbnail == other.thumbnail &&
+        hasSameFallbacks(as: other)
     }
 }
 

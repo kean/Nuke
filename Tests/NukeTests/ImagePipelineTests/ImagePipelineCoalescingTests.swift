@@ -61,6 +61,23 @@ struct ImagePipelineCoalescingTests {
         #expect(dataLoader.createdTaskCount == 1)
     }
 
+    @Test func noDeduplicationGivenRequestKeptOffConstrainedNetworks() async throws {
+        // A request the system fails in Low Data Mode has no place in a
+        // download that's allowed to go ahead, and neither is the reverse.
+        var urlRequest = URLRequest(url: Test.url)
+        urlRequest.allowsConstrainedNetworkAccess = false
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(urlRequest: urlRequest)
+
+        let (task1, task2) = await withSuspendedDataLoading(for: pipeline, expectedCount: 2) {
+            (pipeline.imageTask(with: request1), pipeline.imageTask(with: request2))
+        }
+        _ = try await task1.response
+        _ = try await task2.response
+
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
     @Test func noDeduplicationGivenNonEquivalentRequests() async throws {
         let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
