@@ -105,7 +105,7 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-``DataCache`` writes asynchronously: ``DataCache/storeData(_:for:)`` stages the data and returns immediately, and the disk I/O happens later. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
+``DataCache`` writes asynchronously: ``DataCache/storeData(_:for:)`` stages the data and returns immediately, and the disk I/O happens later: about a second later, so that writes batch up, or sooner once more than 16 MB is waiting. The staged data stays in memory until it's written. To wait until the pending changes are written to disk, use ``DataCache/flush()``.
 
 > Important: Reads are not asynchronous. ``DataCache/cachedData(for:)`` and ``DataCache/containsData(for:)`` return instantly only if the entry is still in the staging area – otherwise they hit the disk synchronously. Avoid calling them from the main thread.
 
