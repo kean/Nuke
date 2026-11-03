@@ -90,6 +90,16 @@ private struct PlayerContentView: View {
     }
 }
 
+@MainActor
+private func bounce(_ imageView: AnimatedImageView, animation: AnimatedImageSource) -> some View {
+    var options = AnimatedImagePlayer.Options()
+    options.playbackMode = .bounce
+    imageView.playerOptions = options // UIKit and AppKit
+
+    let player = AnimatedImagePlayer(animation: animation, options: options) // SwiftUI
+    return AnimatedImage(player: player)
+}
+
 // MARK: - Custom Frames
 
 @MainActor

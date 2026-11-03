@@ -99,6 +99,76 @@ struct AnimatedImageFrameDecoderTests {
         #expect(max(frame.width, frame.height) == 1)
     }
 
+    // MARK: Composing
+
+    @Test(arguments: [[0, 2, 3], [2, 3], [5, 2, 3, 4, 5], [1, 2, 3], [3, 2, 3], [4, 0, 2, 3]])
+    func aFrameComesOutTheSameWhicheverOrderTheFramesAreAskedFor(order: [Int]) async throws {
+        // The third frame puts the canvas back when it's done, and landing on
+        // it leaves Image I/O with the wrong canvas to put back
+        for data in [DeltaAnimation.apng(), DeltaAnimation.gif()] {
+            let source = try #require(AnimatedImageSource(data: data))
+            let decoder = AnimatedImageFrameDecoder(source: source)
+
+            for index in order {
+                let frame = try #require(await decoder.decode(at: index))
+                #expect(DeltaAnimation.mismatches(in: frame, frameAt: index) == [], "\(order)")
+            }
+        }
+    }
+
+    @Test(arguments: [[3, 4], [2, 3, 4, 5, 6], [6, 4, 5], [4, 5, 6], [0, 2, 3, 4], [5, 3, 4, 1, 2, 3]])
+    func framesThatAllRestoreTheCanvasComeOutTheSameInAnyOrder(order: [Int]) async throws {
+        let data = DeltaAnimation.apng(frames: DeltaAnimation.restoringFrames)
+        let source = try #require(AnimatedImageSource(data: data))
+        let decoder = AnimatedImageFrameDecoder(source: source)
+
+        for index in order {
+            let frame = try #require(await decoder.decode(at: index))
+            #expect(DeltaAnimation.mismatches(in: frame, frameAt: index, of: DeltaAnimation.composedRestoringFrames) == [], "\(order)")
+        }
+    }
+
+    @Test func aDecoderScalingTheFramesComesToTheSameCanvas() async throws {
+        let source = try #require(AnimatedImageSource(data: DeltaAnimation.apng()))
+        let decoder = AnimatedImageFrameDecoder(source: source, maxPixelSize: 12)
+
+        _ = await decoder.decode(at: 2)
+        let frame = try #require(await decoder.decode(at: 3))
+
+        // The middle of the frame's top right quadrant is back to the canvas
+        let bitmap = try #require(RGBABitmap(cgImage: frame))
+        let isCanvas = bitmap.color(atX: 9, y: 3).isClose(to: PixelColor(red: 255, green: 0, blue: 0))
+        #expect(isCanvas, "\(bitmap.pixel(atX: 9, y: 3))")
+    }
+
+    @Test func findsTheFramesOfAnAPNGThatRestoreTheCanvas() throws {
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: DeltaAnimation.apng()) == [2])
+        let frames = DeltaAnimation.restoringFrames
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: DeltaAnimation.apng(frames: frames)) == [1, 2, 3, 4])
+    }
+
+    @Test func aFirstFrameThatRestoresTheCanvasHasNothingToRestore() {
+        let frames = [DeltaAnimation.Frame(quadrant: nil, color: 0, disposal: .previous)] + DeltaAnimation.frames.dropFirst()
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: DeltaAnimation.apng(frames: frames)) == [2])
+    }
+
+    @Test func findsNoFramesThatRestoreTheCanvasInAnythingElse() throws {
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: DeltaAnimation.gif()).isEmpty)
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: Data()).isEmpty)
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: Test.staticPNG()).isEmpty)
+        // Image I/O writes full frames, which have nothing to restore
+        let data = try #require(Test.animatedPNG())
+        #expect(AnimatedImageFormat.framesRestoringTheCanvas(in: data).isEmpty)
+    }
+
+    @Test func aTruncatedAPNGIsReadAsFarAsItGoes() {
+        let data = DeltaAnimation.apng()
+        for count in 0..<data.count {
+            let frames = AnimatedImageFormat.framesRestoringTheCanvas(in: data.prefix(count))
+            #expect(frames.isSubset(of: [2]))
+        }
+    }
+
     // MARK: Orientation
 
     @Test(arguments: orientations)

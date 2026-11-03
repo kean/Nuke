@@ -49,6 +49,7 @@ The repository now includes a demo app: open `Nuke.xcodeproj` and run the `NukeD
 - `ImageDecoders/Default` parses every animated image it recognizes once, and attaches the result along with the encoded `ImageContainer/data`. `ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled` turns it off – https://github.com/kean/Nuke/pull/958
 - A decoder registered with `ImageDecoderRegistry` can attach an `AnimatedImageSource` and an `AnimatedImageFrameDecoding` to play a format Image I/O can't read – https://github.com/kean/Nuke/pull/958
 - `ImagePipeline/DataCachePolicy/storeEncodedImages` stores APNG, animated WebP, and HEIC and AVIF sequences as their original data, like GIF, instead of as their first frame – https://github.com/kean/Nuke/pull/1098
+- Add `AnimatedImagePlayer/Options/playbackMode` to play an animation in reverse or back and forth – https://github.com/kean/Nuke/pull/1108
 
 ### Diagnostics
 
