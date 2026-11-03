@@ -156,6 +156,10 @@ You can find all of the built-in decoders in the ``ImageDecoders`` namespace.
 
 The default ``ImageDecoders/Default`` also supports progressive decoding via `CGImageSourceCreateIncremental`. It produces previews as data arrives, gated by ``ImagePipeline/PreviewPolicy`` (`.incremental` for progressive JPEGs and GIFs by default, `.disabled` for other formats).
 
+### ImageDecoders.PDF
+
+``ImageDecoders/PDF`` draws a page of a PDF document into a bitmap, at the size the request asks for. You have to register it, and it isn't available on tvOS: see <doc:supported-image-formats#PDF>.
+
 ### ImageDecoders.Video 
 
 Generates a video preview and attaches downloaded data to the image container.

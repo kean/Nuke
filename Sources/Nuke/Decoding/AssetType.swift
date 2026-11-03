@@ -32,7 +32,7 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     /// WebP.
     ///
     /// Native decoding support only available on the following platforms: macOS 11,
-    /// iOS 14, watchOS 7, tvOS 14.
+    /// iOS 14, tvOS 14, visionOS 1. There is none on watchOS.
     public static let webp: AssetType = "org.webmproject.webp"
 
     /// MPEG-4 video.
@@ -65,9 +65,16 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
 
     /// AVIF (AV1 Image File Format).
     ///
-    /// Image I/O decodes AVIF on every supported platform. Encoding arrived
-    /// later – check ``ImageEncoders/ImageIO/isSupported(type:)`` before using it.
+    /// Image I/O decodes AVIF on every supported platform except watchOS, where
+    /// only image sequences decode. Encoding arrived later – check
+    /// ``ImageEncoders/ImageIO/isSupported(type:)`` before using it.
     public static let avif: AssetType = "public.avif"
+
+    /// PDF (Portable Document Format).
+    ///
+    /// Register ``ImageDecoders/PDF`` to decode it, on any platform except
+    /// tvOS. Without it, only macOS reads PDF documents, through `NSImage(data:)`.
+    public static let pdf: AssetType = "com.adobe.pdf"
 }
 
 extension AssetType {
@@ -152,6 +159,9 @@ extension AssetType {
 
         // BMP magic numbers https://en.wikipedia.org/wiki/BMP_file_format
         if _match([0x42, 0x4D], in: data) { return .bmp }
+
+        // PDF: "%PDF-", followed by the version https://en.wikipedia.org/wiki/PDF
+        if _match([0x25, 0x50, 0x44, 0x46, 0x2D], in: data) { return .pdf }
 
         // Either not enough data, or we just don't support this format.
         return nil

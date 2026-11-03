@@ -106,6 +106,105 @@ struct ImageEncodingProtocolTests {
         #expect(!result.isEmpty)
     }
 
+    // MARK: - Animated Pass-Through
+
+    private var context: ImageEncodingContext {
+        ImageEncodingContext(request: Test.request, image: Test.image, urlResponse: nil)
+    }
+
+    @Test(arguments: AnimatedFixture.allCases)
+    func encodeContainerPassesThroughAnimatedData(fixture: AnimatedFixture) throws {
+        guard let data = fixture.data else {
+            return // Image I/O on this platform can't write the fixture
+        }
+        let container = try ImageDecoders.Default().decode(data)
+        #expect(container.animation != nil)
+
+        #expect(ImageEncoders.Default().encode(container, context: context) == data)
+        #expect(ImageEncoders.ImageIO(type: .jpeg).encode(container, context: context) == data)
+    }
+
+    /// With parsing off, the decoder attaches the data but no animation, and
+    /// the same header check it attached the data on is the one that's left.
+    @Test(arguments: AnimatedFixture.allCases)
+    func encodeContainerPassesThroughAnimatedDataWithParsingDisabled(fixture: AnimatedFixture) throws {
+        guard let data = fixture.data else { return }
+        let decodingContext = ImageDecodingContext(request: Test.request, data: data, isAnimatedImageParsingEnabled: false)
+        let container = try #require(ImageDecoders.Default(context: decodingContext)).decode(data)
+        #expect(container.animation == nil)
+        #expect(container.data == data)
+
+        #expect(ImageEncoders.Default().encode(container, context: context) == data)
+    }
+
+    /// A decoder of your own can publish the bytes in the animation alone.
+    @Test func encodeContainerPassesThroughTheDataOfACustomAnimation() throws {
+        // Given an animation in a format `AssetType` doesn't know
+        let data = Data([0x01, 0x02, 0x03, 0x04])
+        let animation = AnimatedImageSource(
+            data: data,
+            delays: [0.1, 0.1],
+            size: CGSize(width: 8, height: 8),
+            makeFrameDecoder: { _ in fatalError("Encoding decodes no frames") }
+        )
+        let container = ImageContainer(image: Test.image, animation: try #require(animation))
+
+        // Then
+        #expect(ImageEncoders.Default().encode(container, context: context) == data)
+    }
+
+    @Test(arguments: AnimatedFixture.allCases)
+    func encodeContainerEncodesAnAnimatedImageWithoutItsData(fixture: AnimatedFixture) throws {
+        guard let data = fixture.data else { return }
+        // Given what `ImageProcessing` leaves of an animation: the type stays,
+        // and the data and the animation don't
+        let container = try ImageDecoders.Default().decode(data).map { $0 }
+        #expect(container.type != nil)
+        #expect(container.data == nil)
+        #expect(container.animation == nil)
+
+        // When
+        let encoded = try #require(ImageEncoders.Default().encode(container, context: context))
+
+        // Then
+        #expect(encoded != data)
+        #expect(AnimatedImageSource(data: encoded) == nil)
+    }
+
+    /// `ImageContainer/data` alone says nothing about the image: a decoder can
+    /// attach it to any image, and the point of encoding is to replace it.
+    @Test func encodeContainerDoesNotPassThroughTheDataOfAStill() {
+        for (type, data) in [
+            (AssetType.png, Test.staticPNG()),
+            (AssetType.jpeg, Test.data),
+            (AssetType.webp, Test.data(name: "baseline", extension: "webp")),
+            (AssetType.heic, Test.data(name: "img_751", extension: "heic"))
+        ] {
+            // Given
+            let encoder = RecordingEncoder()
+            let container = ImageContainer(image: Test.image, type: type, data: data)
+
+            // Then
+            #expect(encoder.encode(container, context: context) == RecordingEncoder.output)
+            #expect(encoder.encodedImages.count == 1)
+        }
+    }
+
+    /// An encoder that implements the method is in charge of what it does.
+    @Test func customEncoderCanEncodeAnimationsItself() throws {
+        // Given
+        struct FrameEncoder: ImageEncoding {
+            static let output = Data([0x04, 0x05])
+            func encode(_ image: PlatformImage) -> Data? { nil }
+            func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? { FrameEncoder.output }
+        }
+        let container = try ImageDecoders.Default().decode(Test.data(name: "animated", extension: "webp"))
+        #expect(container.animation != nil)
+
+        // Then
+        #expect(FrameEncoder().encode(container, context: context) == FrameEncoder.output)
+    }
+
     // MARK: - Context
 
     @Test func encodingContextContainsExpectedValues() {
@@ -266,6 +365,20 @@ struct ImageEncodingProtocolTests {
 
         // Then
         #expect(data == gifData)
+        #expect(encoder.encodedImages.isEmpty)
+    }
+
+    /// So does the rest of what `ImageDecoders.Default` calls an animation.
+    @Test(arguments: AnimatedFixture.allCases)
+    func customEncoderPassesThroughAnimatedDataWithoutEncoding(fixture: AnimatedFixture) throws {
+        guard let data = fixture.data else { return }
+
+        // Given
+        let encoder = RecordingEncoder()
+        let container = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(encoder.encode(container, context: context) == data)
         #expect(encoder.encodedImages.isEmpty)
     }
 

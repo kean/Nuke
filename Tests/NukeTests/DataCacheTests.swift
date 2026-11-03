@@ -1173,4 +1173,92 @@ final class DataCacheTests {
         #expect(cache.totalCount == 0)
     }
 
+    // MARK: Staging Size Limit
+
+    @Test func dataPastTheStagingLimitReachesTheDiskWithoutWaitingForTheInterval() async throws {
+        // GIVEN an interval long enough that the drain can't run within it, and
+        // no sweep, which would drain the staged changes after a few seconds
+        cache.flushInterval = .seconds(20)
+        cache.isSweepEnabled = false
+
+        // WHEN a single entry takes the staged data to the default limit
+        cache["key"] = Data(count: 16 * 1024 * 1024)
+
+        // THEN it doesn't stay in memory for the rest of the interval
+        let url = try #require(cache.url(for: "key"))
+        await waitUntil(timeout: .seconds(8)) { FileManager.default.fileExists(atPath: url.path) }
+        await waitUntil { cache.stagedSize == 0 }
+        #expect(cache["key"]?.count == 16 * 1024 * 1024)
+    }
+
+    @Test func dataBelowTheStagingLimitWaitsForTheInterval() async throws {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache.stagingSizeLimit = 100
+
+        // WHEN
+        cache["key"] = Data(count: 99)
+        try await Task.sleep(for: .milliseconds(50))
+
+        // THEN the small writes still get to batch up
+        #expect(cache.contents.isEmpty)
+        #expect(cache.stagedSize == 99)
+    }
+
+    @Test func entriesThatPassTheStagingLimitTogetherAreWrittenTogether() async {
+        // GIVEN an entry that is under the limit on its own
+        cache.flushInterval = .seconds(20)
+        cache.isSweepEnabled = false
+        cache.stagingSizeLimit = 100
+        cache["key1"] = Data(count: 60)
+
+        // WHEN
+        cache["key2"] = Data(count: 60)
+
+        // THEN
+        await waitUntil { cache.contents.count == 2 }
+        await waitUntil { cache.stagedSize == 0 }
+    }
+
+    @Test func theStagedSizeCountsTheChangesTheStagingAreaHolds() async {
+        cache.suspendIO()
+
+        cache["key1"] = Data(count: 10)
+        #expect(cache.stagedSize == 10)
+
+        // An entry that is replaced stops counting
+        cache["key1"] = Data(count: 4)
+        #expect(cache.stagedSize == 4)
+
+        cache["key2"] = Data(count: 3)
+        #expect(cache.stagedSize == 7)
+
+        // A removal holds no data, and replaces what it removes
+        cache["key1"] = nil
+        #expect(cache.stagedSize == 3)
+
+        cache.removeAll()
+        #expect(cache.stagedSize == 0)
+
+        cache["key3"] = Data(count: 5)
+        await cache.flush()
+        #expect(cache.stagedSize == 0)
+    }
+
+    @Test func theStagingLimitDoesNotDrainWhileTheIOIsSuspended() async throws {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache.isSweepEnabled = false
+        cache.stagingSizeLimit = 100
+
+        // WHEN
+        cache.withSuspendedIO {
+            cache["key"] = Data(count: 100)
+            #expect(cache.contents.isEmpty)
+        }
+
+        // THEN the limit is applied as soon as the I/O resumes
+        await waitUntil { cache.contents.count == 1 }
+    }
+
 }

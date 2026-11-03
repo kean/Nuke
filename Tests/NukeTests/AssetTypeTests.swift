@@ -317,6 +317,18 @@ struct AssetTypeTests {
 
     // MARK: init(UTType)
 
+    @Test func pdfIsRecognizedByItsHeader() {
+        #expect(AssetType(Data("%PDF-1.7\n".utf8)) == .pdf)
+        #expect(AssetType(Test.pdf(pages: [])) == .pdf)
+        #expect(AssetType(Test.quartzPDF(size: CGSize(width: 10, height: 10))) == .pdf)
+    }
+
+    @Test func pdfHeaderHasToBeComplete() {
+        #expect(AssetType(Data("%PDF".utf8)) == nil)
+        #expect(AssetType(Data("%PDX-1.7".utf8)) == nil)
+        #expect(AssetType(Data(" %PDF-1.7".utf8)) == nil)
+    }
+
     @Test func initWithUTType() {
         #expect(AssetType(UTType.png) == .png)
         #expect(AssetType(UTType.jpeg) == .jpeg)
@@ -328,16 +340,16 @@ struct AssetTypeTests {
         #expect(AssetType(UTType.webP) == .webp)
         #expect(AssetType(UTType.mpeg4Movie) == .mp4)
         #expect(AssetType(UTType.quickTimeMovie) == .mov)
+        #expect(AssetType(UTType.pdf) == .pdf)
     }
 
     @Test func initWithUTTypeOutsideOfTheBuiltInTypes() {
-        #expect(AssetType(UTType.pdf).rawValue == "com.adobe.pdf")
         #expect(AssetType(UTType.svg).rawValue == "public.svg-image")
         #expect(AssetType(UTType.icns).rawValue == "com.apple.icns")
     }
 
     @Test func roundTrip() {
-        let types: [UTType] = [.png, .jpeg, .gif, .heic, .ico, .tiff, .bmp, .webP, .mpeg4Movie, .quickTimeMovie]
+        let types: [UTType] = [.png, .jpeg, .gif, .heic, .ico, .tiff, .bmp, .webP, .mpeg4Movie, .quickTimeMovie, .pdf]
         for type in types {
             #expect(AssetType(type).utType == type)
         }

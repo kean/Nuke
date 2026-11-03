@@ -162,6 +162,7 @@ extension AssetType {
         case .ico: "ico"
         case .jpeg2000: "jpeg2000"
         case .jxl: "jxl"
+        case .pdf: "pdf"
         case .mp4: "mp4"
         case .m4v: "m4v"
         case .mov: "mov"

@@ -24,8 +24,20 @@ public protocol ImageEncoding: Sendable {
 }
 
 extension ImageEncoding {
+    /// The default implementation returns the original data of an animated
+    /// image, and calls ``encode(_:)`` with ``ImageContainer/image`` for
+    /// everything else, a processed animation and a thumbnail of one included.
+    ///
+    /// An encoder writes a single image, so going through it would leave only
+    /// the first frame of an animation. Implement this method to do otherwise.
     public func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
-        if container.type == .gif, let data = container.data {
+        if let animation = container.animation {
+            return animation.data
+        }
+        // Without `isAnimatedImageParsingEnabled`, the decoder attaches the data
+        // but no animation. The data alone doesn't say that it's an animation:
+        // a decoder of your own can attach it to any image.
+        if let data = container.data, AssetType.isAnimated(data, type: container.type) {
             return data
         }
         return self.encode(container.image)

@@ -14,6 +14,33 @@ ImageRequest(url: url, processors: [
 
 The built-in processors can all be found in the ``ImageProcessors`` namespace, but the preferred way to create them is by using static factory methods on ``ImageProcessing`` protocol.
 
+## Cropping, Flipping, and Rotating
+
+Use ``ImageProcessing/crop(rect:unit:)``, ``ImageProcessing/flip(_:)``, and ``ImageProcessing/rotate(degrees:)`` to change the geometry of an image.
+
+```swift
+ImageRequest(url: url, processors: [
+    .crop(rect: CGRect(x: 0, y: 0, width: 1200, height: 630), unit: .pixels),
+    .rotate(degrees: 90),
+    .flip(.horizontal)
+])
+```
+
+These act on the image as it's displayed, so a rectangle is measured from the top-left corner of a photo even if the file stores it on its side. Processors run in order, so each one gets the output of the one before it.
+
+- A crop ignores the part of the rectangle outside of the image, and fails the request if nothing is left.
+- A rotation is clockwise. A multiple of 90 degrees moves the pixels without resampling them. Any other angle grows the canvas to fit the rotated image and leaves the corners transparent, so the output has an alpha channel even if the input was opaque.
+
+## Tinting
+
+``ImageProcessing/tint(color:)`` paints a color over an image with the `sourceAtop` blend mode, which keeps the alpha of the image. An opaque color turns it into a silhouette, which is the way to color a template icon. A translucent one is laid over it, which is the way to darken a photo under some text.
+
+```swift
+ImageRequest(url: url, processors: [
+    .tint(color: .black.withAlphaComponent(0.4))
+])
+```
+
 ## Custom Processors
 
 Custom processors need to implement ``ImageProcessing`` protocol. For the basic image processing needs, implement ``ImageProcessing/process(_:)`` method and create an identifier that uniquely identifies the processor. For processors with no input parameters, return a static string.
@@ -53,6 +80,10 @@ In addition to ``ImageProcessing/identifier`` (a `String`), you can implement ``
 - ``ImageProcessing/resize(height:unit:upscale:)``
 - ``ImageProcessing/circle(border:)``
 - ``ImageProcessing/roundedCorners(radius:unit:border:)``
+- ``ImageProcessing/crop(rect:unit:)``
+- ``ImageProcessing/flip(_:)``
+- ``ImageProcessing/rotate(degrees:)``
+- ``ImageProcessing/tint(color:)``
 - ``ImageProcessing/gaussianBlur(radius:)``
 - ``ImageProcessing/coreImageFilter(name:)``
 - ``ImageProcessing/coreImageFilter(name:parameters:identifier:)``

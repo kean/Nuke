@@ -393,6 +393,170 @@ private extension CGAffineTransform {
     }
 }
 
+// MARK: - Geometry
+
+// A rect or a direction means nothing on the stored pixels of a photo taken on
+// its side, so these act on the image as it's displayed, unlike the resizing
+// above, which can leave the orientation on the output.
+//
+// They draw rather than call `CGImage.cropping(to:)`. Its result keeps the whole
+// input alive while the cache charges for the crop, and an image that isn't
+// decoded yet stays that way until the main thread displays it, since the
+// pipeline only decompresses what the decoder produced.
+extension ImageProcessingExtensions {
+    /// Crops the image to the given rect.
+    ///
+    /// - parameter rect: The rect in pixels, measured from the top-left corner
+    /// of the image as it's displayed.
+    func byCropping(to rect: CGRect) -> PlatformImage? {
+        guard let size = displayedSize, rect.isFinite else {
+            return nil
+        }
+        let bounds = CGRect(origin: .zero, size: size)
+        let intersection = rect.intersection(bounds)
+        guard !intersection.isEmpty else {
+            return nil // There are no pixels in it
+        }
+        let crop = intersection.integral
+        guard crop != bounds else {
+            return image
+        }
+        // The y axis of a context points up, and the rect is measured from the
+        // top, so it's the bottom of the rect that goes on the bottom of the canvas.
+        return byDrawingDisplayedImage(
+            inCanvasWithSize: crop.size,
+            transform: CGAffineTransform(translationX: -crop.minX, y: crop.maxY - size.height)
+        )
+    }
+
+    /// Mirrors the image as it's displayed.
+    func byFlipping(_ direction: ImageProcessors.Flip.Direction) -> PlatformImage? {
+        guard let size = displayedSize else {
+            return nil
+        }
+        switch direction {
+        case .horizontal:
+            return byDrawingDisplayedImage(inCanvasWithSize: size, transform: CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: size.width, ty: 0))
+        case .vertical:
+            return byDrawingDisplayedImage(inCanvasWithSize: size, transform: CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: size.height))
+        }
+    }
+
+    /// Rotates the image as it's displayed.
+    ///
+    /// - parameter degrees: The clockwise angle, in `0..<360`.
+    func byRotating(degrees: CGFloat) -> PlatformImage? {
+        guard let size = displayedSize, degrees.isFinite else {
+            return nil
+        }
+        let (width, height) = (size.width, size.height)
+        let turned = CGSize(width: height, height: width)
+        // The quarter turns are spelled out so that they are exact, instead of
+        // counting on Core Graphics to round away the error of `cos` and `sin`.
+        switch degrees {
+        case 0:
+            return image
+        case 90:
+            return byDrawingDisplayedImage(inCanvasWithSize: turned, transform: CGAffineTransform(a: 0, b: -1, c: 1, d: 0, tx: 0, ty: width))
+        case 180:
+            return byDrawingDisplayedImage(inCanvasWithSize: size, transform: CGAffineTransform(a: -1, b: 0, c: 0, d: -1, tx: width, ty: height))
+        case 270:
+            return byDrawingDisplayedImage(inCanvasWithSize: turned, transform: CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: height, ty: 0))
+        default:
+            // The y axis of a context points up, so a clockwise turn is negative.
+            let radians = -degrees * .pi / 180
+            let box = CGRect(origin: .zero, size: size).applying(CGAffineTransform(rotationAngle: radians))
+            // The tolerance keeps the rounding error of `cos` and `sin` from
+            // adding a pixel to a box that comes to a whole number.
+            let canvas = CGSize(width: (box.width - 1e-6).rounded(.up), height: (box.height - 1e-6).rounded(.up))
+            let transform = CGAffineTransform(translationX: canvas.width / 2, y: canvas.height / 2)
+                .rotated(by: radians)
+                .translatedBy(x: -width / 2, y: -height / 2)
+            return byDrawingDisplayedImage(inCanvasWithSize: canvas, alphaInfo: .premultipliedLast, interpolationQuality: .high, transform: transform)
+        }
+    }
+
+    /// Paints the color over the image, where the image isn't transparent.
+    func byTinting(with color: PlatformColor) -> PlatformImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+        let alphaInfo: CGImageAlphaInfo = cgImage.isOpaque ? .noneSkipLast : .premultipliedLast
+        // The color has to survive the context, so a monochrome image doesn't
+        // get a context of its own color space.
+        var colorSpace = cgImage.colorSpace
+        if colorSpace?.model != .rgb {
+            colorSpace = CGColorSpace(name: CGColorSpace.sRGB)
+        }
+        let context = colorSpace.flatMap { CGContext.make(cgImage, size: cgImage.size, alphaInfo: alphaInfo, colorSpace: $0) }
+        guard let ctx = context ?? CGContext.make(cgImage, size: cgImage.size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB()) else {
+            return nil
+        }
+        let rect = CGRect(origin: .zero, size: cgImage.size)
+        ctx.draw(cgImage, in: rect)
+        ctx.setBlendMode(.sourceAtop)
+        ctx.setFillColor(color.cgColor)
+        ctx.fill(rect)
+        guard let outputCGImage = ctx.makeImage() else {
+            return nil
+        }
+        return PlatformImage.make(cgImage: outputCGImage, source: image)
+    }
+
+    /// The orientation the image displays its stored pixels in. `NSImage` has
+    /// none: it's in the pixels already.
+    private var displayedOrientation: CGImagePropertyOrientation {
+#if canImport(UIKit)
+        CGImagePropertyOrientation(image.imageOrientation)
+#else
+        .up
+#endif
+    }
+
+    /// The size of the image in pixels, as it's displayed.
+    private var displayedSize: CGSize? {
+        image.cgImage?.size.rotatedForOrientation(displayedOrientation)
+    }
+
+    /// Draws the image as it's displayed in a canvas of the given size, and
+    /// returns it with the orientation baked into the pixels.
+    ///
+    /// - parameter transform: What to do to the image, which has its bottom-left
+    /// corner at the origin of a context whose y axis points up.
+    /// - parameter interpolationQuality: `.none` by default, for a transform
+    /// that maps pixels to pixels.
+    private func byDrawingDisplayedImage(
+        inCanvasWithSize canvasSize: CGSize,
+        alphaInfo: CGImageAlphaInfo? = nil,
+        interpolationQuality: CGInterpolationQuality = .none,
+        transform: CGAffineTransform
+    ) -> PlatformImage? {
+        guard let cgImage = image.cgImage,
+              let ctx = CGContext.make(cgImage, size: canvasSize, alphaInfo: alphaInfo) else {
+            return nil
+        }
+        ctx.interpolationQuality = interpolationQuality
+        ctx.concatenate(transform)
+        ctx.concatenate(.orienting(displayedOrientation, size: cgImage.size))
+        ctx.draw(cgImage, in: CGRect(origin: .zero, size: cgImage.size))
+        guard let outputCGImage = ctx.makeImage() else {
+            return nil
+        }
+#if canImport(UIKit)
+        return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: .up)
+#else
+        return PlatformImage.make(cgImage: outputCGImage, source: image)
+#endif
+    }
+}
+
+private extension CGRect {
+    /// Returns `true` if none of the components is NaN or infinite.
+    var isFinite: Bool {
+        origin.x.isFinite && origin.y.isFinite && size.isFinite
+    }
+}
+
 extension CGSize {
     func scaled(by scale: CGFloat) -> CGSize {
         CGSize(width: width * scale, height: height * scale)

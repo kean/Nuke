@@ -85,6 +85,8 @@ Animated images cost memory that Nuke 13 didn't use:
 - **Decoded frames** go in `AnimatedImageFramePool`, which holds up to 5% of the device's memory, capped at 128 MB. That comes on top of `ImageCache`, whose default limit is unchanged at 15%, capped at 768 MB. To give the pool less, set `AnimatedImageFramePool.shared.costLimit`.
 - **Encoded data:** `ImageContainer.data` is now also kept for APNG, animated WebP, and HEIC and AVIF sequences, where Nuke 13 kept it for GIF only. It counts against the `ImageCache` limit along with the bitmap, so these images take up more of the cache, whether they ever play or not.
 
+With `.storeEncodedImages`, these formats are now stored as their original data, where Nuke 13 stored their first frame, so they take up more of the disk cache. A `willCache` delegate method is handed that data too. An encoder that implements `encode(_:context:)` is unaffected.
+
 A GIF with no loop count plays once and rests on its last frame, which is how browsers play it. Nuke 13 showed its first frame. To keep such a GIF moving, set `loopCount`:
 
 ```swift
