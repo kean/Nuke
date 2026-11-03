@@ -167,8 +167,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         guard hasDirectSubscribers else {
             return
         }
+        let expiration = makeCacheExpiration(for: response)
         let start: ContinuousClock.Instant? = diagnostics != nil ? .now : nil
-        if pipeline.cache.storeCachedImageInMemoryCache(response.container, for: request, expiration: soonestCacheExpiration), let start {
+        if pipeline.cache.storeCachedImageInMemoryCache(response.container, for: request, expiration: expiration), let start {
             diagnostics?.recordStage(.memoryStore, from: start) {
                 $0.cacheKey = pipeline.cache.makeImageCacheKeyDigest(for: request)
                 if response.isPreview {
@@ -177,11 +178,19 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             }
         }
         if !isFromOwnDiskEntry, shouldStoreResponseInDataCache(response) {
-            storeImageInDataCache(response)
+            storeImageInDataCache(response, expiration: expiration)
         }
     }
 
-    private func storeImageInDataCache(_ response: ImageResponse) {
+    /// An image doesn't get to outlive the disk cache entry it was read from,
+    /// or it would start over with every read, and a request with no expiration
+    /// would keep it for good.
+    private func makeCacheExpiration(for response: ImageResponse) -> ImageRequest.CacheExpiration? {
+        let date = pipeline.cache.dataExpirationDate(for: response)
+        return .soonest(soonestCacheExpiration, date.map { .date($0) })
+    }
+
+    private func storeImageInDataCache(_ response: ImageResponse, expiration: ImageRequest.CacheExpiration?) {
         guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline) else {
             return
         }
@@ -195,7 +204,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
             }
             guard let data, !data.isEmpty else { return }
             guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }
-            dataCache.storeData(data, for: key) // This is instant, writes are async
+            dataCache.store(data, for: key, with: expiration) // This is instant, writes are async
         }
     }
 

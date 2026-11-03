@@ -202,8 +202,22 @@ extension ImagePipeline.Cache {
               !request.options.contains(.disableDiskCacheWrites) else {
             return
         }
-        let key = makeDataCacheKey(for: request)
-        dataCache.storeData(data, for: key)
+        dataCache.store(data, for: makeDataCacheKey(for: request), with: request.cacheExpiration)
+    }
+
+    /// Returns the date the disk cache entry that the image in the response was
+    /// read from expires on, if it was read from one.
+    func dataExpirationDate(for response: ImageResponse) -> Date? {
+        guard response.cacheType == .disk else {
+            return nil
+        }
+        // A thumbnail can be read from its own entry or the original data.
+        let request = response.request
+        return dataExpirationDate(for: request) ?? (request.thumbnail == nil ? nil : dataExpirationDate(for: request.withoutThumbnail()))
+    }
+
+    private func dataExpirationDate(for request: ImageRequest) -> Date? {
+        dataCache(for: request)?.expirationDate(for: makeDataCacheKey(for: request))
     }
 
     /// Returns `true` if the data cache contains data for the given image.

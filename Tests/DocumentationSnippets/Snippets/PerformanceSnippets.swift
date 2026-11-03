@@ -20,6 +20,12 @@ private func cacheExpiration(url: URL) -> ImageRequest {
     return request
 }
 
+private func diskCacheExpiration(url: URL) -> ImageRequest {
+    var request = ImageRequest(url: url)
+    request.cacheExpiration = .interval(24 * 60 * 60) // One day
+    return request
+}
+
 private func downsampleImages() {
     let url = URL(string: "https://example.com/image")!
     // Target size is in points
