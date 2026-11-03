@@ -23,7 +23,7 @@
     "Check the Nuke version in Package.resolved first: these docs describe Nuke 14, and the latest stable release is Nuke 13.",
     "Use LazyImage from NukeUI in SwiftUI, and ImageLoader.load(_:into:) from NukeUI in UIKit and AppKit. Don't use NukeExtensions in new code.",
     "LazyImage plays animated images with no setup. A custom content closure needs AnimatedImage(container:), and UIKit needs AnimatedImageView. Don't decode the frames yourself.",
-    "A pipeline delegate method with the wrong signature compiles and is never called. Declare the conformance in an extension, and check the signatures. In Nuke 14, willCache is async and takes no completion closure.",
+    "A pipeline delegate method with the wrong signature compiles and is never called. Declare the conformance in an extension, and check the signatures. In Nuke 14, implement the async willCache: the form with a completion closure is soft-deprecated.",
     "Keep one ImagePipeline for the app, set on ImagePipeline.shared at launch. Never create one per view.",
     "To find out why an image doesn't load, launch with NUKE_DIAGNOSTICS_LOG=1 and read the log."
   ],
