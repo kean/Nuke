@@ -460,10 +460,6 @@ struct DataLoaderTests {
         #expect(spy.didCreateTaskCount == 1)
     }
 
-    /// The loader reads `delegate` in every session callback and when each
-    /// task is created, which happens on the thread that starts the request,
-    /// so replacing it from another thread has to be synchronized – otherwise
-    /// the process crashes or the thread sanitizer aborts the test run.
     @Test func replacingTheDelegateReleasesTheOldOneOutsideTheLock() {
         // GIVEN a delegate that reads the property when it is released
         let loader = makeDataLoader()
@@ -480,6 +476,10 @@ struct DataLoaderTests {
         #expect(released.value)
     }
 
+    /// The loader reads `delegate` in every session callback and when each
+    /// task is created, which happens on the thread that starts the request,
+    /// so replacing it from another thread has to be synchronized – otherwise
+    /// the process crashes or the thread sanitizer aborts the test run.
     @Test func delegateIsReplacedWhileLoadingData() async throws {
         // Given
         let loader = makeDataLoader()

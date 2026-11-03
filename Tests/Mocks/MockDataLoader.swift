@@ -19,6 +19,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 
     @Mutex var createdTaskCount = 0
+    @Mutex var requestedURLs: [URL] = []
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
     var isSuspended: Bool {
@@ -31,6 +32,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
 
         // - warning: Important so it runs atomically
         $createdTaskCount.withLock { $0 = $0 + 1 }
+        $requestedURLs.withLock { $0.append(contentsOf: request.url.map { [$0] } ?? []) }
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
 

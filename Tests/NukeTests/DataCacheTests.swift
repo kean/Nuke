@@ -477,7 +477,7 @@ struct DataCacheTests {
         // THEN the launch sweep runs and repairs the date
         await expectation.wait(timeout: .seconds(10))
         let date = try #require(lastSweepDate(at: cache.path))
-        #expect(Date().timeIntervalSince(date) < 5)
+        #expect(abs(Date().timeIntervalSince(date)) < 5)
     }
 
     private func lastSweepDate(at path: URL) -> Date? {
