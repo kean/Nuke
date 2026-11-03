@@ -28,6 +28,7 @@ The pipeline can also drive progressive decoding, animated image rendering, draw
 | CUR | – | ✅ | ❌ | Opt-in | – |
 | Camera RAW | ``AssetType/tiff`` or – | ✅ embedded thumbnail for TIFF-based files | ❌ | Opt-in (embedded thumbnail) | – |
 | SVG | – | macOS only | ❌ | – | – |
+| PDF | ``AssetType/pdf`` | ``ImageDecoders/PDF``, except tvOS | ❌ | None | – |
 | MP4, M4V, MOV | ``AssetType/mp4``, ``AssetType/m4v``, ``AssetType/mov`` | `NukeVideo`, except watchOS and visionOS | ❌ | Opt-in (single preview) | ✅ `NukeVideo`, except watchOS and visionOS |
 
 Reading the columns:
@@ -215,6 +216,59 @@ svgView.center = view.center
 ```
 
 > Important: Both [SwiftSVG](https://github.com/mchoe/SwiftSVG) and [SVG](https://github.com/SVGKit/SVGKit) only support a subset of SVG features.
+
+## PDF
+
+**Decoding**
+
+``ImageDecoders/PDF`` draws a page of a document into a bitmap with Core Graphics, on every platform except tvOS. It's opt-in, because a PDF parser is a lot to expose to every URL an app loads images from, so you have to register it:
+
+```swift
+ImageDecoderRegistry.shared.register(ImageDecoders.PDF.init)
+```
+
+A page has no pixels of its own, so ask for the size you're going to display. The decoder draws the page once, at that size, which can be larger than the page:
+
+```swift
+var request = ImageRequest(url: url)
+request.thumbnail = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 320), contentMode: .aspectFit)
+let image = try await ImagePipeline.shared.image(for: request)
+```
+
+Without a thumbnail, the image is the size of the page multiplied by ``ImageRequest/scale``, so one pixel per point by default. Either way, the longest side stops at ``ImageDecoders/PDF/maxPixelSize``, which is 4096 pixels by default.
+
+The decoder draws the first page. To draw another, set ``ImageDecoders/PDF/pageIndex`` in the registration:
+
+```swift
+ImageDecoderRegistry.shared.register { context in
+    var decoder = ImageDecoders.PDF(context: context)
+    decoder?.pageIndex = context.request.userInfo["pageIndex"] as? Int ?? 0
+    return decoder
+}
+```
+
+The page isn't a part of the cache key, so give the request for each page its own ``ImageRequest/imageID``:
+
+```swift
+var request = ImageRequest(url: url)
+request.userInfo["pageIndex"] = 2
+request.imageID = "\(url.absoluteString)#page=3"
+```
+
+A few things are worth knowing:
+
+- **Nothing paints the page white.** Whatever the document doesn't paint stays transparent, so black text on a page with no background needs a light view behind it.
+- **A failure is a decoding failure.** A document that can't be read, one that needs a password, and a page that doesn't exist fail with ``ImagePipeline/Error/decodingFailed(decoder:context:error:)``.
+- **tvOS doesn't have the decoder.** On tvOS 27, Core Graphics crashes on a document it can't open instead of reporting a failure, so a damaged file would take the app down.
+- **A document can load without the decoder.** On macOS, `NSImage(data:)` reads it, so ``ImageDecoders/Default`` does too, at the size of the page. A request with ``ImageRequest/thumbnail`` goes through Image I/O, which also draws a page on iOS and tvOS, but never larger than the page. Anything else fails to decode.
+
+**Encoding**
+
+None. With the default ``ImagePipeline/DataCachePolicy/storeOriginalData``, the disk cache keeps the document, and each thumbnail is drawn from it. ``ImagePipeline/DataCachePolicy/storeEncodedImages`` stores the drawing as a PNG instead, under the key of the request, and a later request for a larger image can't be any sharper than that PNG.
+
+**Rendering**
+
+A decoded page is a bitmap, so any view can display it.
 
 ## Video
 
