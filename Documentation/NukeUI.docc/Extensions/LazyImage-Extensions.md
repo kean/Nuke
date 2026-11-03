@@ -84,4 +84,5 @@ ContentView()
 
 - ``priority(_:)``
 - ``processors(_:)``
+- ``allowedDynamicRange(_:)``
 - ``pipeline(_:)``

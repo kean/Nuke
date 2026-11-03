@@ -223,7 +223,7 @@ extension ImagePipeline.Cache {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return diagnosticsDigest(of: customKey)
         }
-        let key = "\(request.imageID ?? "")|\(request.scale)|\(request.thumbnail?.identifier ?? "")|\(ImageProcessors.Composition(request.processors).identifier)"
+        let key = "\(request.imageID ?? "")|\(request.scale)|\(request.thumbnail?.identifier ?? "")|\(ImageProcessors.Composition(request.processors).identifier)\(request.isHighDynamicRange ? "|hdr" : "")"
         return diagnosticsDigest(of: key)
     }
 
@@ -237,6 +237,11 @@ extension ImagePipeline.Cache {
         var key = request.imageID ?? ""
         if let thumbnail = request.thumbnail {
             key += thumbnail.identifier
+            // The thumbnail of a standard request is stored encoded in 8 bits.
+            // An HDR one is never stored, so it's made from the original data.
+            if request.isHighDynamicRange {
+                key += ",dynamicRange=high"
+            }
         }
         for processor in request.processors {
             key += processor.identifier

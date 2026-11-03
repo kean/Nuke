@@ -58,6 +58,7 @@ ARTICLE_ORDER = [
     "Customization/ImageFormats/image-formats.md",
     "Customization/ImageFormats/supported-image-formats.md",
     "Customization/ImageFormats/image-decoding.md",
+    "Customization/ImageFormats/high-dynamic-range.md",
     "Customization/ImageFormats/image-encoding.md",
     "Extensions/ImagePipeline-Extension.md",
     "Extensions/LazyImage-Extensions.md",
