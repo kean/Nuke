@@ -938,6 +938,50 @@ struct LazyImageTests {
         #expect(try #require(results.value.last?.value).request.scale == 2)
     }
 
+    // A request with a NaN compares unequal to itself, so every update would
+    // look like a new request, and each load publishes the next update.
+    @Test func noReloadWhenScaleIsNaN() async {
+        let starts = Ref(0)
+        let host = ViewHost(0) { _ in
+            var request = ImageRequest(url: Test.url)
+            request.scale = .nan
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(1)
+
+        #expect(starts.value == 1)
+    }
+
+    @Test func noReloadWhenScaleChangesToNegativeZero() async {
+        let starts = Ref(0)
+        let host = ViewHost(CGFloat(0)) { scale in
+            var request = ImageRequest(url: Test.url)
+            request.scale = scale
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(-0.0)
+
+        #expect(starts.value == 1)
+    }
+
+    @Test func noReloadWhenThumbnailSizeIsNaN() async {
+        let starts = Ref(0)
+        let host = ViewHost(0) { _ in
+            var request = ImageRequest(url: Test.url)
+            request.thumbnail = ImageRequest.ThumbnailOptions(size: CGSize(width: 300, height: CGFloat.nan), unit: .pixels)
+            return LazyImage(request: request)
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(1)
+
+        #expect(starts.value == 1)
+    }
+
     @Test func noNewRequestWhenPriorityChanges() async {
         let completions = Ref(0)
         let completed = TestExpectation()

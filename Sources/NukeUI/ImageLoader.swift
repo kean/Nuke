@@ -686,7 +686,9 @@ extension ImageRequest {
         return imageID == other.imageID &&
         processorsIdentity == other.processorsIdentity &&
         options == other.options &&
-        scale == other.scale &&
+        // A NaN has to equal itself: a request that compares unequal to itself
+        // makes `LazyImage` reload on every update.
+        (scale == other.scale || scale.bitPattern == other.scale.bitPattern) &&
         thumbnail == other.thumbnail
     }
 }

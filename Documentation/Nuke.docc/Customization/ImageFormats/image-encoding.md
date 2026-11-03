@@ -14,6 +14,8 @@ public protocol ImageEncoding: Sendable {
 
 There is currently no dedicated image encoder registry. Use the pipeline configuration to register custom encoders using ``ImagePipeline/Configuration-swift.struct/makeImageEncoder``.
 
+An encoder writes a single image, so the default implementation of the second method returns the original data of an animated image – a GIF, an APNG, an animated WebP, or a HEIC or AVIF sequence – and encodes the image in every other case. A processed animation and a thumbnail of one are stills, and are encoded like any other image.
+
 ## Built-In Image Encoders
 
 You can find all of the built-in encoders in the ``ImageEncoders`` namespace.

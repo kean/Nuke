@@ -48,6 +48,7 @@ The repository now includes a demo app: open `Nuke.xcodeproj` and run the `NukeD
 - Add `AnimatedImage`, `AnimatedImageView`, `AnimatedImagePlayer`, `AnimatedImageFramePool`, and `LazyImageState/animatedImage` to `NukeUI`, and `ImageContainer/animation` to `Nuke` – https://github.com/kean/Nuke/pull/958
 - `ImageDecoders/Default` parses every animated image it recognizes once, and attaches the result along with the encoded `ImageContainer/data`. `ImagePipeline/Configuration-swift.struct/isAnimatedImageParsingEnabled` turns it off – https://github.com/kean/Nuke/pull/958
 - A decoder registered with `ImageDecoderRegistry` can attach an `AnimatedImageSource` and an `AnimatedImageFrameDecoding` to play a format Image I/O can't read – https://github.com/kean/Nuke/pull/958
+- `ImagePipeline/DataCachePolicy/storeEncodedImages` stores APNG, animated WebP, and HEIC and AVIF sequences as their original data, like GIF, instead of as their first frame – https://github.com/kean/Nuke/pull/1098
 
 ### Diagnostics
 
@@ -200,6 +201,7 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - Add unavailable stubs for the most used APIs removed in Nuke 12 and 13, such as `ImageRequestConvertible`, `LazyImage(source:)`, and `onSuccess`, so the compiler error names the replacement – https://github.com/kean/Nuke/pull/1048
 - Add `View/imagePipeline(_:)` and `EnvironmentValues/imagePipeline` to set the pipeline of every `LazyImage` in a view hierarchy. `LazyImage/pipeline(_:)` takes precedence – https://github.com/kean/Nuke/pull/1094
 - Add `ImageProcessors/Crop`, `ImageProcessors/Flip`, `ImageProcessors/Rotate`, and `ImageProcessors/Tint`, with `ImageProcessing/crop(rect:unit:)`, `ImageProcessing/flip(_:)`, `ImageProcessing/rotate(degrees:)`, and `ImageProcessing/tint(color:)` – https://github.com/kean/Nuke/pull/1103
+- Add `ImageDecoders/PDF`, an opt-in decoder that draws a page of a PDF document at the size the request asks for, and `AssetType/pdf`. It isn't available on tvOS – https://github.com/kean/Nuke/pull/1107
 
 ### Performance
 
@@ -215,13 +217,11 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - `LazyImage` checks whether a request with processors changed 1.7× faster – https://github.com/kean/Nuke/pull/978
 - Creating processor identifiers, which go in every data cache key, is 2.5× faster, and generating filenames 1.5× – https://github.com/kean/Nuke/pull/979
 - Decompression is up to 45% faster on the iOS simulator: `ImagePipeline/Configuration-swift.struct/isUsingPrepareForDisplay`, which also applies to tvOS and visionOS, is now enabled by default – https://github.com/kean/Nuke/pull/990
+- `DataCache` starts writing once 16 MB is staged instead of holding the data for a second: peak growth for 120 12 MP JPEGs with `ImagePipeline/Configuration-swift.struct/withDataCache` is 60 MB instead of 261 MB on loopback, 63 MB instead of 86 MB at 48 MB/s, and unchanged at 12 MB/s – https://github.com/kean/Nuke/pull/1105
 
 ### Bug Fixes
 
-- Remove an unused `AVKit` import from `Nuke`, which linked AVKit, AVFoundation, and their dependencies into every app – https://github.com/kean/Nuke/pull/947
-- Fix progressive previews not being delivered on a resumed download – https://github.com/kean/Nuke/pull/903
 - Fix `ImageTask/events` producing an empty stream when the task finishes before the subscription lands, as it does on a memory cache hit – https://github.com/kean/Nuke/pull/916
-- Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
 - Fix a data race on the `DataCache` configuration properties – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache.init` reading and decoding its metadata file on the calling thread, typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit – https://github.com/kean/Nuke/pull/927
@@ -233,20 +233,13 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
 - Fix `ImagePrefetcher/didComplete` not being called when stopping prefetching cancels the last outstanding request – https://github.com/kean/Nuke/pull/968
 - Fix `ImageTask/events`, `ImageTask/progress`, and `ImageTask/previews` missing previews and progress updates sent before the subscription lands – https://github.com/kean/Nuke/pull/980
-- Fix a crash when a resumed download reports a huge `Content-Length` – https://github.com/kean/Nuke/pull/988
 - Fix a cancelled download keeping its `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` slot when a custom `DataLoading` doesn't call `completion` after `cancel()` – https://github.com/kean/Nuke/pull/989
 - Fix `ImagePipeline/data(for:)` and `ImagePrefetcher/Destination/diskCache` downloading a thumbnail or processed request again when the original data is in the disk cache – https://github.com/kean/Nuke/pull/1004
 - Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
-- Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing processed images in the data cache – https://github.com/kean/Nuke/pull/1008
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
-- Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
 - Fix processed images and thumbnails built from an original in the disk cache never being stored in the disk cache under the `.automatic` and `.storeAll` policies – https://github.com/kean/Nuke/pull/1016
-- Fix a resumed download that failed again discarding its resumable data, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
-- Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
-- Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
 - Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
-- Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""` or `".."` – https://github.com/kean/Nuke/pull/997
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
@@ -278,6 +271,21 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix the `crop` documentation of `ImageProcessors/Resize` saying the flag has no effect with `.aspectFill`; it has no effect with `.aspectFit` – https://github.com/kean/Nuke/pull/1021
 
 # Nuke 13
+
+## Nuke 13.2.1
+
+*Nov 2, 2026*
+
+- Fix progressive previews stopping early on a resumed download, or not being delivered at all when at least half of the image was resumed – https://github.com/kean/Nuke/pull/903
+- Fix `ImageTask/priority` updates being applied out of order, leaving the running task at a stale priority – https://github.com/kean/Nuke/pull/918
+- Fix a crash when a download reports a huge `Content-Length`, either resumed or with `maximumResponseDataSize` set to `nil` – https://github.com/kean/Nuke/pull/988
+- Fix `ImageRequest/Options/disableDiskCacheWrites` being ignored when storing encoded images in the data cache – https://github.com/kean/Nuke/pull/1008
+- Fix `ImageCache` keeping the previous image when it is overwritten with an image over the entry cost limit – https://github.com/kean/Nuke/pull/1014
+- Fix a resumed download that failed again discarding its resumable data once the bytes it held, including the resumed ones, reached the `Content-Length` of the partial response, so the next attempt started from scratch – https://github.com/kean/Nuke/pull/1006
+- Fix `LazyImage` not reloading when only the request's `thumbnail` or `scale` changes – https://github.com/kean/Nuke/pull/1015
+- Fix `FetchImage/isLoading` remaining `true` after `cancel()` – https://github.com/kean/Nuke/pull/1013
+- Fix `DataCache/removeData(for:)` deleting the whole cache directory, or its parent, when a custom `DataCache/FilenameGenerator` returns `""`, `"."`, or `".."` – https://github.com/kean/Nuke/pull/997
+- Remove an unused `AVKit` import from `Nuke`, which weak-linked the Swift overlays of AVFoundation and related frameworks into apps on every platform except watchOS. A target that used these frameworks through this import has to import or link them itself – https://github.com/kean/Nuke/pull/947
 
 ## Nuke 13.2.0
 
