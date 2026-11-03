@@ -75,6 +75,50 @@ extension ImageProcessing where Self == ImageProcessors.RoundedCorners {
     }
 }
 
+extension ImageProcessing where Self == ImageProcessors.Crop {
+    /// Crops an image to the given rectangle, measured from the top-left
+    /// corner of the image as it's displayed.
+    ///
+    /// - parameters:
+    ///   - rect: The rectangle to keep. The part of it outside of the image is
+    ///   ignored, and the processor fails if nothing is left.
+    ///   - unit: Unit of the rectangle. By default, `.points`.
+    public static func crop(rect: CGRect, unit: ImageProcessingOptions.Unit = .points) -> ImageProcessors.Crop {
+        ImageProcessors.Crop(rect: rect, unit: unit)
+    }
+}
+
+extension ImageProcessing where Self == ImageProcessors.Flip {
+    /// Mirrors an image as it's displayed.
+    ///
+    /// - parameter direction: `.horizontal` swaps left and right, and
+    /// `.vertical` swaps top and bottom.
+    public static func flip(_ direction: ImageProcessors.Flip.Direction) -> ImageProcessors.Flip {
+        ImageProcessors.Flip(direction)
+    }
+}
+
+extension ImageProcessing where Self == ImageProcessors.Rotate {
+    /// Rotates an image as it's displayed.
+    ///
+    /// - parameter degrees: The angle, clockwise. A multiple of 90 degrees
+    /// moves the pixels without resampling them. Any other angle grows the
+    /// canvas to fit the image, and leaves the corners transparent.
+    public static func rotate(degrees: CGFloat) -> ImageProcessors.Rotate {
+        ImageProcessors.Rotate(degrees: degrees)
+    }
+}
+
+extension ImageProcessing where Self == ImageProcessors.Tint {
+    /// Paints a color over an image, keeping its alpha.
+    ///
+    /// - parameter color: An opaque color turns the image into a silhouette,
+    /// and a translucent one is laid over it.
+    public static func tint(color: PlatformColor) -> ImageProcessors.Tint {
+        ImageProcessors.Tint(color: color)
+    }
+}
+
 extension ImageProcessing where Self == ImageProcessors.Anonymous {
     /// Creates a custom processor with a given closure.
     ///
