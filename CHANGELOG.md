@@ -25,7 +25,7 @@
 
 - Fix a crash when replacing `DataLoader/delegate` while loading data – https://github.com/kean/Nuke/pull/998
 - Fix a crash when loading a video from a `Data` slice – https://github.com/kean/Nuke/pull/1082
-- Fix work with a priority lower than `.normal`, including `ImagePrefetcher` by default, starting in reverse order – https://github.com/kean/Nuke/pull/981
+- Fix work added with a priority lower than `.normal`, including `ImagePrefetcher` by default, starting in reverse order – https://github.com/kean/Nuke/pull/981
 - Fix a cancelled download keeping its `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` slot when a custom `DataLoading` doesn't call `completion` after `cancel()` – https://github.com/kean/Nuke/pull/989
 - Fix `ImagePipeline/data(for:)` and `ImagePrefetcher/Destination/diskCache` downloading a thumbnail or processed request again when the original data is in the disk cache – https://github.com/kean/Nuke/pull/1004
 - Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
