@@ -27,6 +27,9 @@ public struct LazyImage<Content: View>: View {
     private var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
     private var onDisappearBehavior: DisappearBehavior? = .cancel
     private var onCompletion: (@MainActor @Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)?
+    // In a box: SwiftUI copies the view on every update, and a view that sets
+    // none of these options, which is most of them, pays for one pointer.
+    private var options: Box<Options>?
 
     // MARK: Initializers
 
@@ -98,6 +101,23 @@ public struct LazyImage<Content: View>: View {
         self.makeContent = content
     }
 
+    /// The view with different content, and everything else as it was set.
+    private init<Other>(copying other: consuming LazyImage<Other>, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.context = other.context
+        self.overrides = other.overrides
+        self.makeContent = content
+        self.transaction = other.transaction
+        self.pipeline = other.pipeline
+        self.onStart = other.onStart
+        self.onDisappearBehavior = switch other.onDisappearBehavior {
+        case .cancel: .cancel
+        case .lowerPriority: .lowerPriority
+        case nil: nil
+        }
+        self.onCompletion = other.onCompletion
+        self.options = other.options
+    }
+
     // MARK: Options
 
     /// Sets processors to be applied to the image.
@@ -128,6 +148,99 @@ public struct LazyImage<Content: View>: View {
     /// ``ImagePipeline/shared`` is used.
     public consuming func pipeline(_ pipeline: ImagePipeline) -> Self {
         map { $0.pipeline = pipeline }
+    }
+
+    /// Keeps the current image on screen while a new one loads, instead of
+    /// showing the placeholder in between. The view keeps it until the new
+    /// load has an image of its own, a preview or the final image, and drops
+    /// it if the load fails. `false` by default.
+    ///
+    /// While the previous image is displayed, ``LazyImageState/image`` isn't
+    /// `nil` and ``LazyImageState/isLoading`` is `true`.
+    public consuming func keepsPreviousImage(_ keepsPreviousImage: Bool = true) -> Self {
+        mapOptions { $0.keepsPreviousImage = keepsPreviousImage }
+    }
+
+    /// Loads the image again when the given value changes.
+    ///
+    /// ```swift
+    /// @State private var attempt = 0
+    ///
+    /// var body: some View {
+    ///     LazyImage(url: url)
+    ///         .reload(id: attempt)
+    ///     Button("Retry") { attempt += 1 }
+    /// }
+    /// ```
+    ///
+    /// The view stays, with its state, and only the load starts over, the way
+    /// ``LazyImageState/reload()`` does it from inside of the content. To keep
+    /// the current image on screen in the meantime, use ``keepsPreviousImage(_:)``.
+    ///
+    /// A load that is still running keeps running. If the memory cache has the
+    /// image, it is what gets displayed. To skip the caches, load a request with
+    /// ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData``.
+    public consuming func reload(id: some Hashable) -> Self {
+        let id = AnyHashable(id)
+        return mapOptions { $0.reloadID = id }
+    }
+
+    /// Sets the view to display when the load fails, in place of the content
+    /// of the view, whether it's the default one or the one from the `content`
+    /// closure.
+    ///
+    /// ```swift
+    /// LazyImage(url: url)
+    ///     .failureView { state in
+    ///         Button("Retry") { state.reload() }
+    ///     }
+    /// ```
+    ///
+    /// - parameter content: Receives the same state as the `content` closure,
+    /// so it can read ``LazyImageState/error`` and call ``LazyImageState/reload()``.
+    public consuming func failureView<Failure: View>(@ViewBuilder _ content: @escaping (LazyImageState) -> Failure) -> LazyImage<some View> {
+        // A new `Content`, which `some View` hides, and not an `AnyView` in a
+        // branch of `body`, which every view would pay for (see `body`).
+        let makeContent = makeContent
+        return LazyImage<_>(copying: self) { state in
+            if state.error != nil {
+                content(state)
+            } else {
+                makeStateContent(makeContent, for: state)
+            }
+        }
+    }
+
+    /// Sets the transition to display a new image with: the first one, and
+    /// the one that replaces it after the request changes. It removes what
+    /// the view displayed before, such as the placeholder, with the same
+    /// transition.
+    ///
+    /// ```swift
+    /// LazyImage(url: url)
+    ///     .imageTransition(.opacity, animation: .easeInOut(duration: 0.33))
+    /// ```
+    ///
+    /// Use it instead of the `transaction` of the initializer, which it
+    /// replaces, for a transition that doesn't depend on how the `content`
+    /// closure is written. The view runs it by giving the content a new
+    /// identity, so any state the content owns starts over with a new image.
+    ///
+    /// - parameters:
+    ///   - transition: The transition, applied in both directions. For a
+    ///   different one in each, use `AnyTransition.asymmetric(insertion:removal:)`.
+    ///   - animation: The animation that runs it.
+    ///   - onMemoryCacheHit: By default, an image that is in the memory cache
+    ///   is displayed with no transition. Otherwise, a list would run it for
+    ///   every cell that scrolls back. Pass `true` to run it anyway.
+    public consuming func imageTransition(_ transition: AnyTransition, animation: Animation = .default, onMemoryCacheHit: Bool = false) -> LazyImage<some View> {
+        let makeContent = makeContent
+        var copy = mapOptions { $0.animatesMemoryCacheHits = onMemoryCacheHit }
+        copy.transaction = Transaction(animation: animation)
+        return LazyImage<_>(copying: copy) { state in
+            makeStateContent(makeContent, for: state)
+                .modifier(ImageTransitionModifier(container: state.imageContainer, transition: transition))
+        }
     }
 
     /// Defines the behavior when the view disappears.
@@ -162,15 +275,29 @@ public struct LazyImage<Content: View>: View {
         pipeline ?? environmentPipeline ?? .shared
     }
 
+    private var reloadID: AnyHashable? { options?.value.reloadID }
+
     private consuming func map(_ closure: (inout LazyImage) -> Void) -> Self {
         var copy = self
         closure(&copy)
         return copy
     }
 
+    private consuming func mapOptions(_ closure: (inout Options) -> Void) -> Self {
+        map {
+            var options = $0.options?.value ?? Options()
+            closure(&options)
+            $0.options = Box(options)
+        }
+    }
+
     // MARK: Body
 
     public var body: some View {
+        // Every cell of a list pays for what's here, so what only some views
+        // use goes in their `Content`. Moving these lines into a property of
+        // their own costs 1% of the instructions a cell takes to show up, and
+        // two more branches for the modifiers 0.3%.
         ZStack {
             if let makeContent {
                 makeContent(viewModel)
@@ -203,30 +330,20 @@ public struct LazyImage<Content: View>: View {
         /// reason. The environment is only read in `body`, and the action runs
         /// later.
         let pipeline: ImagePipeline
+        /// The value of ``LazyImage/reload(id:)``. Unlike the closures of the
+        /// other modifiers, it's meant to trigger a change.
+        let reloadID: AnyHashable?
 
         @MainActor
         init(view: LazyImage) {
             self.view = view
             self.context = view.overrides.applied(to: view.context)
             self.pipeline = view.resolvedPipeline
+            self.reloadID = view.reloadID
         }
 
         static func == (lhs: Update, rhs: Update) -> Bool {
-            lhs.context == rhs.context && lhs.pipeline === rhs.pipeline
-        }
-    }
-
-    @ViewBuilder
-    private func makeDefaultContent(for state: LazyImageState) -> some View {
-        // `nil` for everything that isn't animated. The initializer carries
-        // the still the decoder produced along with the animation, so that the
-        // cell isn't blank for as long as the first frame takes to decode.
-        if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
-            animation
-        } else if let image = state.image {
-            image
-        } else {
-            Color(.secondarySystemBackground)
+            lhs.context == rhs.context && lhs.pipeline === rhs.pipeline && lhs.reloadID == rhs.reloadID
         }
     }
 
@@ -246,12 +363,15 @@ public struct LazyImage<Content: View>: View {
 
     private func onChange(to context: LazyImageContext?, pipeline: ImagePipeline) {
         let isAlreadyLoaded = isLoaded(context, pipeline: pipeline)
+        // The view model has the ID of the last update that loaded: this action
+        // only gets the new value on iOS 16.
+        let isReloadRequested = viewModel.reloadID != reloadID
         configure(pipeline: pipeline)
         // Before the load, which would otherwise start with the priority of
         // the previous request. If it's only the priority that changed, this
         // is all there is to do.
         viewModel.priority = context?.request.priority
-        if !isAlreadyLoaded {
+        if !isAlreadyLoaded || isReloadRequested {
             viewModel.load(context?.request)
         }
     }
@@ -261,6 +381,9 @@ public struct LazyImage<Content: View>: View {
         viewModel.pipeline = pipeline
         viewModel.onStart = onStart
         viewModel.onCompletion = onCompletion
+        viewModel.keepsPreviousImage = options?.value.keepsPreviousImage ?? false
+        viewModel.animatesMemoryCacheHits = options?.value.animatesMemoryCacheHits ?? false
+        viewModel.reloadID = reloadID
     }
 
     /// Returns `true` if the view model has loaded, or is loading, the given
@@ -297,6 +420,80 @@ private struct Overrides {
     }
 }
 
+/// What the modifiers that few views use set.
+private struct Options {
+    var keepsPreviousImage = false
+    var animatesMemoryCacheHits = false
+    var reloadID: AnyHashable?
+}
+
+private final class Box<Value> {
+    let value: Value
+
+    init(_ value: Value) {
+        self.value = value
+    }
+}
+
+@MainActor @ViewBuilder
+private func makeStateContent<Content: View>(_ makeContent: ((LazyImageState) -> Content)?, for state: LazyImageState) -> some View {
+    if let makeContent {
+        makeContent(state)
+    } else {
+        makeDefaultContent(for: state)
+    }
+}
+
+@MainActor @ViewBuilder
+private func makeDefaultContent(for state: LazyImageState) -> some View {
+    // `nil` for everything that isn't animated. The initializer carries
+    // the still the decoder produced along with the animation, so that the
+    // cell isn't blank for as long as the first frame takes to decode.
+    if let container = state.imageContainer, let animation = AnimatedImage(container: container) {
+        animation
+    } else if let image = state.image {
+        image
+    } else {
+        Color(.secondarySystemBackground)
+    }
+}
+
+/// Runs a transition by giving the content a new identity when a new image is
+/// displayed.
+private struct ImageTransitionModifier: ViewModifier {
+    let container: ImageContainer?
+    let transition: AnyTransition
+
+    @State private var identity = DisplayedImageIdentity()
+
+    func body(content: Content) -> some View {
+        content
+            .id(identity.update(with: container))
+            .transition(transition)
+    }
+}
+
+/// Tells when a new image takes the place of what is displayed. Comparing the
+/// images wouldn't do: a final image continues its progressive previews.
+final class DisplayedImageIdentity {
+    private var container: ImageContainer?
+    private var count = 0
+
+    /// Returns the identity of the content that displays the given image. It
+    /// can be called any number of times for an image.
+    func update(with container: ImageContainer?) -> Int {
+        guard let container else {
+            self.container = nil
+            return 0
+        }
+        if container.image !== self.container?.image, self.container?.isPreview != true {
+            count &+= 1
+        }
+        self.container = container
+        return count
+    }
+}
+
 private struct LazyImageContext: Equatable {
     var request: ImageRequest
 
@@ -325,7 +522,7 @@ struct LazyImage_Previews: PreviewProvider {
 private struct LazyImageDemoView: View {
     @State var url = URL(string: "https://kean.blog/images/pulse/01.png")
     @State var isBlured = false
-    @State var imageViewId = UUID()
+    @State var attempt = 0
 
     var body: some View {
         VStack {
@@ -339,7 +536,7 @@ private struct LazyImageDemoView: View {
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
 #endif
-            .id(imageViewId) // Example of how to implement retry
+            .reload(id: attempt) // Example of how to implement retry
 
             Spacer()
             VStack(alignment: .leading, spacing: 16) {
@@ -350,7 +547,7 @@ private struct LazyImageDemoView: View {
                         url = URL(string: "https://kean.blog/images/pulse/01.png")
                     }
                 }
-                Button("Retry") { imageViewId = UUID() }
+                Button("Retry") { attempt += 1 }
                 Toggle("Apply Blur", isOn: $isBlured)
             }
             .padding()

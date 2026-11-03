@@ -84,6 +84,15 @@ public final class FetchImage: ObservableObject, Identifiable {
         set { loader.processors = newValue }
     }
 
+    /// If `true`, a new load keeps the previous image in ``imageContainer``
+    /// until it has an image of its own: a preview or the final image. The
+    /// previous image is dropped if the new load fails, and stays if it is
+    /// cancelled. `false` by default.
+    public var keepsPreviousImage: Bool {
+        get { loader.keepsPreviousImage }
+        set { loader.keepsPreviousImage = newValue }
+    }
+
     /// Gets called when the request is started.
     public var onStart: (@MainActor @Sendable (ImageTask) -> Void)?
 
@@ -98,6 +107,19 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// ``priority`` and ``processors`` are applied to it. `nil` for a load
     /// from an async function.
     var currentRequest: ImageRequest? { loader.state.request }
+
+    /// The value of `LazyImage/reload(id:)` as of the last load. The view can't
+    /// tell what it was in the previous update.
+    var reloadID: AnyHashable? {
+        get { loader.reloadID }
+        set { loader.reloadID = newValue }
+    }
+
+    /// Applies ``transaction`` to an image found in the memory cache as well.
+    var animatesMemoryCacheHits: Bool {
+        get { loader.animatesMemoryCacheHits }
+        set { loader.animatesMemoryCacheHits = newValue }
+    }
 
     /// Initializes the image. To load an image, use one of the `load()` methods.
     public init() {
@@ -139,6 +161,21 @@ public final class FetchImage: ObservableObject, Identifiable {
         loader.load(action)
     }
 
+    // MARK: Reload
+
+    /// Loads the last request again, with the current options. Use it to retry
+    /// a load that failed or was cancelled.
+    ///
+    /// A load that is still running keeps running. If the memory cache has the
+    /// image, the load finishes before this method returns. To skip the caches,
+    /// load a request with ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData``.
+    ///
+    /// Does nothing if there is no request to load: the last load was from an
+    /// async function or a `nil` request, or the instance was reset.
+    public func reload() {
+        loader.reload()
+    }
+
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded image.
@@ -170,7 +207,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             // An image found in the memory cache has no progress, which also
             // clears the one of a load it replaced.
             if _progress != state.progress { _progress = state.progress }
-            if isSynchronous {
+            if isSynchronous && !animatesMemoryCacheHits {
                 // Animation isn't used when the image is available in the memory cache.
                 finish(with: result, container: state.imageContainer)
             } else {

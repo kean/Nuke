@@ -49,9 +49,57 @@ LazyImage(url: url) { state in
 
 > Note: Unlike `AsyncImage`, `LazyImage` doesn't pass a phase enum to the closure – it passes the state itself, so you can read the download progress or the underlying ``ImageResponse`` while the view is on screen. See <doc:replacing-async-image> if you're moving from `AsyncImage`.
 
+To keep the failure out of the `content` closure, or to add it to the default content, use `failureView(_:)`. It receives the same state.
+
+```swift
+LazyImage(url: url)
+    .failureView { state in
+        Button("Retry") { state.reload() }
+    }
+```
+
+## Reloading
+
+`reload()` on the state loads the image again from inside of the view, as in the sample above. To do it from outside, pass a value to `reload(id:)`, and change it.
+
+```swift
+struct RetryingView: View {
+    let url: URL
+    @State private var attempt = 0
+
+    var body: some View {
+        LazyImage(url: url)
+            .reload(id: attempt)
+        Button("Retry") { attempt += 1 }
+    }
+}
+```
+
+Either way, the view stays and only the load starts over. A load that is still running keeps running, and an image in the memory cache is displayed without a download. To skip the caches, load a request with ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData``.
+
+> Tip: Don't use `id(_:)` to reload. A new identity throws away the view and everything it knows, so the placeholder is back for as long as the load takes.
+
+## Keeping the Previous Image
+
+When the request changes, `LazyImage` clears the image and displays the placeholder until the new one is ready. To replace the image in place instead, for example in a detail view that pages through photos, use `keepsPreviousImage(_:)`. The previous image is dropped if the new load fails.
+
+```swift
+LazyImage(url: url)
+    .keepsPreviousImage()
+```
+
 ## Transitions
 
-To animate the state changes, pass a `Transaction`. It's applied when the image is displayed.
+To run a transition when an image is displayed, use `imageTransition(_:animation:onMemoryCacheHit:)`. It doesn't depend on how the `content` closure is written, so it works with the default content too.
+
+```swift
+LazyImage(url: url)
+    .imageTransition(.opacity, animation: .easeInOut(duration: 0.33))
+```
+
+An image in the memory cache is displayed with no transition, so that a list doesn't run it for every cell that scrolls back. Pass `onMemoryCacheHit: true` to run it anyway. Combined with `keepsPreviousImage(_:)`, it also runs between two images, which makes `.opacity` a cross-fade.
+
+To animate the state changes that your own `content` closure makes, pass a `Transaction` instead. It's applied when the image is displayed.
 
 ```swift
 LazyImage(url: url, transaction: Transaction(animation: .easeInOut(duration: 0.33))) { state in
