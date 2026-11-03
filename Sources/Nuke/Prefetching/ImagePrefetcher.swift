@@ -65,7 +65,7 @@ public final class ImagePrefetcher: Sendable {
         get { _didComplete.value }
         set { _didComplete.replace(with: newValue) }
     }
-    private nonisolated let _didComplete = Mutex<(@MainActor @Sendable () -> Void)?>(value: nil)
+    nonisolated private let _didComplete = Mutex<(@MainActor @Sendable () -> Void)?>(value: nil)
 
     private let pipeline: ImagePipeline
     private let destination: Destination
