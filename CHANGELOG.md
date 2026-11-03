@@ -254,6 +254,10 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageCache` losing a limit written on one thread when another thread writes a different limit at the same time – https://github.com/kean/Nuke/pull/1027
+- Fix concurrent requests for the same URL with different `imageID`s being cached only under the first request's ID – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.containsCachedImage(for:caches:)` and `containsData(for:)` ignoring `.disableDiskCacheReads` – https://github.com/kean/Nuke/pull/1027
+- Fix `ImagePipeline.Cache.storeCachedImage(_:for:caches:)` encoding the image when there is no data cache to store it in – https://github.com/kean/Nuke/pull/1027
 
 ### Documentation
 

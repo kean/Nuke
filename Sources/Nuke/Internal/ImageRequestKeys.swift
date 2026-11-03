@@ -57,6 +57,10 @@ final class TaskLoadImageKey: Hashable, Sendable {
     private let loadKey: TaskFetchOriginalImageKey
     private let options: ImageRequest.Options
     private let processors: [ImageProcessorID]
+    // The task stores its image under the keys of the request it was created
+    // for, so requests that cache under different IDs need separate tasks. The
+    // data is still fetched once, by URL. `nil` for the default ID.
+    private let customImageID: String?
     // Computed once: the pool hashes a key on lookup, on insert, and again when
     // the task is disposed.
     private let _hashValue: Int
@@ -65,11 +69,13 @@ final class TaskLoadImageKey: Hashable, Sendable {
         self.loadKey = TaskFetchOriginalImageKey(request)
         self.options = request.options
         self.processors = request.processorsIdentity
+        self.customImageID = request.customImageID
 
         var hasher = Hasher()
         hasher.combine(loadKey)
         hasher.combine(options)
         hasher.combine(processors.count)
+        hasher.combine(customImageID)
         self._hashValue = hasher.finalize()
     }
 
@@ -78,7 +84,7 @@ final class TaskLoadImageKey: Hashable, Sendable {
     }
 
     static func == (lhs: TaskLoadImageKey, rhs: TaskLoadImageKey) -> Bool {
-        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors)
+        lhs === rhs || (lhs._hashValue == rhs._hashValue && lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors && lhs.customImageID == rhs.customImageID)
     }
 }
 
