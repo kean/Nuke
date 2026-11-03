@@ -42,6 +42,8 @@ public final class ImageCache: ImageCaching {
 
     /// Default TTL (time to live) for each entry. Can be used to make sure that
     /// the entries get validated at some point. `nil` (never expire) by default.
+    ///
+    /// ``ImageRequest/cacheExpiration-swift.property`` overrides it for the images of a request.
     public var ttl: TimeInterval? {
         get { impl.conf.ttl }
         set { impl.conf.ttl = newValue }
@@ -101,6 +103,11 @@ public final class ImageCache: ImageCaching {
                 impl.removeValue(forKey: key)
             }
         }
+    }
+
+    /// Stores the image with the given expiration instead of ``ttl``.
+    public func store(_ image: ImageContainer, for key: ImageCacheKey, expiration: ImageRequest.CacheExpiration) {
+        impl.set(image, forKey: key, cost: cost(for: image), ttl: expiration.timeToLive)
     }
 
     /// Removes all cached images.

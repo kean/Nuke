@@ -56,6 +56,32 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         set { mutate { $0.options = newValue } }
     }
 
+    /// How long the memory cache keeps the image. `nil` by default, which
+    /// leaves it to the cache: ``ImageCache`` uses ``ImageCache/ttl``.
+    ///
+    /// Set it for an image that can change at a stable URL:
+    ///
+    /// ```swift
+    /// var request = ImageRequest(url: url)
+    /// request.cacheExpiration = .interval(300)
+    /// ```
+    ///
+    /// The expiration is stamped on the entry when the image is stored. Reading
+    /// doesn't renew it, and it isn't part of the cache key: any request for
+    /// the image reads the entry until it expires, whatever its own expiration
+    /// is. Storing the image again replaces the entry and its expiration.
+    ///
+    /// - note: The expiration doesn't stop coalescing. Requests that share a
+    /// load share the entry it stores, and it gets the soonest expiration among
+    /// them. A request with `nil` leaves it to the others.
+    ///
+    /// - note: A cache that doesn't implement ``ImageCaching/store(_:for:expiration:)``
+    /// stores the image with no expiration.
+    public var cacheExpiration: CacheExpiration? {
+        get { ref.cacheExpiration }
+        set { mutate { $0.cacheExpiration = newValue } }
+    }
+
     /// Custom info passed alongside the request.
     public var userInfo: [UserInfoKey: any Sendable] {
         get { ref.userInfo ?? [:] }
@@ -363,6 +389,52 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
     }
 
+    /// When a cached image stops being valid.
+    public struct CacheExpiration: Hashable, Sendable {
+        // Not the public cases: `Date` is resilient, and with it in a payload,
+        // the read of the expiration the pipeline does for every image it
+        // stores asks the runtime for the layout of the value, 300 more
+        // instructions even if it's `nil`.
+        private enum Storage: Hashable {
+            case never
+            case interval(TimeInterval)
+            case date(TimeInterval) // Since the reference date
+        }
+
+        private let storage: Storage
+
+        /// The image doesn't expire, whatever the default of the cache is. It
+        /// can still be evicted.
+        public static var never: CacheExpiration {
+            CacheExpiration(storage: .never)
+        }
+
+        /// The image expires the given number of seconds after it is stored.
+        public static func interval(_ interval: TimeInterval) -> CacheExpiration {
+            CacheExpiration(storage: .interval(interval))
+        }
+
+        /// The image expires on the given date.
+        public static func date(_ date: Date) -> CacheExpiration {
+            CacheExpiration(storage: .date(date.timeIntervalSinceReferenceDate))
+        }
+
+        /// The date an image stored now expires on, or `nil` if it doesn't.
+        public var expirationDate: Date? {
+            timeToLive.isFinite ? Date(timeIntervalSinceNow: timeToLive) : nil
+        }
+
+        /// The seconds left until the expiration, negative past it, and
+        /// `infinity` if there is none.
+        var timeToLive: TimeInterval {
+            switch storage {
+            case .never: .infinity
+            case .interval(let interval): interval
+            case .date(let date): date - Date.timeIntervalSinceReferenceDate
+            }
+        }
+    }
+
     /// A key used in `userInfo` for providing custom request options.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         /// Returns a key raw value.
@@ -551,8 +623,21 @@ extension ImageRequest {
         // uniquely referenced, so there is nothing to synchronize.
         private(set) var processorsIdentity: [ImageProcessorID]
 
-        var userInfo: [UserInfoKey: any Sendable]?
+        // Few requests set these, so they share one pointer. Another field
+        // moves the container to the next size class, and every request pays
+        // for that: `storingRequestInCollections` got about 40% slower.
+        private var rarelyUsed: RarelyUsed?
         var thumbnail: ThumbnailOptions?
+
+        var userInfo: [UserInfoKey: any Sendable]? {
+            get { rarelyUsed?.userInfo }
+            set { rarelyUsed = RarelyUsed(userInfo: newValue, cacheExpiration: cacheExpiration) }
+        }
+
+        var cacheExpiration: CacheExpiration? {
+            get { rarelyUsed?.cacheExpiration }
+            set { rarelyUsed = RarelyUsed(userInfo: userInfo, cacheExpiration: newValue) }
+        }
 
         init(resource: Resource, originalImageID: String?, processors: [any ImageProcessing], priority: Priority, options: Options) {
             self.resource = resource
@@ -570,7 +655,7 @@ extension ImageRequest {
             self.priority = ref.priority
             self.options = ref.options
             self.originalImageID = ref.originalImageID
-            self.userInfo = ref.userInfo
+            self.rarelyUsed = ref.rarelyUsed
             self.customImageID = ref.customImageID
             self.scale = ref.scale
             self.thumbnail = ref.thumbnail
@@ -579,6 +664,16 @@ extension ImageRequest {
 
         private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ImageProcessorID] {
             processors.isEmpty ? [] : processors.map(ImageProcessorID.init)
+        }
+    }
+
+    private final class RarelyUsed: Sendable {
+        let userInfo: [UserInfoKey: any Sendable]?
+        let cacheExpiration: CacheExpiration?
+
+        init(userInfo: [UserInfoKey: any Sendable]?, cacheExpiration: CacheExpiration?) {
+            self.userInfo = userInfo
+            self.cacheExpiration = cacheExpiration
         }
     }
 

@@ -39,6 +39,7 @@ let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 - ``imageID``
 - ``scale``
 - ``thumbnail``
+- ``cacheExpiration-swift.property``
 - ``label``
 - ``userInfo``
 
@@ -47,6 +48,7 @@ let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 - ``Priority-swift.enum``
 - ``Options-swift.struct``
 - ``ThumbnailOptions``
+- ``CacheExpiration-swift.struct``
 - ``UserInfoKey``
 
 ### Instance Properties
