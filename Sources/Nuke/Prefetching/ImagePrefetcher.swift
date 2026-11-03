@@ -60,7 +60,7 @@ public final class ImagePrefetcher: Sendable {
     /// The closure runs every time the prefetcher runs out of outstanding work,
     /// which includes the batches that finish without starting a single task:
     /// an empty list of requests, or one where every image is already in the
-    /// memory cache.
+    /// memory cache. Stopping the outstanding requests doesn't run it.
     nonisolated public var didComplete: (@MainActor @Sendable () -> Void)? {
         get { _didComplete.value }
         set { _didComplete.replace(with: newValue) }

@@ -350,8 +350,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Synchronously performs a cache sweep and removes the least recently used
     /// items that no longer fit in the cache.
     ///
-    /// The sweep counts as a recent one: the next scheduled sweep skips it if it
-    /// happens within ``DataCache/sweepInterval``.
+    /// The sweep counts as a recent one: the sweep scheduled at the next launch
+    /// is skipped if it falls within ``DataCache/sweepInterval``.
     public func sweep() {
         queue.sync {
             self.performSweep()
