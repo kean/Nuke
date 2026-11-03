@@ -63,6 +63,15 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             return
         }
 
+        // After the caches, which have had their turn by now, and before the
+        // queue, so that a URL nobody is going to request doesn't wait for a slot.
+        if let failure = pipeline.failureRegistry?.failure(for: request) {
+            let stage = diagnostics?.beginStage(.download)
+            diagnostics?.endStage(stage) { $0.source = .failureCooldown }
+            send(error: .urlInCooldown(error: failure))
+            return
+        }
+
         loadData(urlRequest: urlRequest)
     }
 
@@ -282,6 +291,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         guard !isDisposed else { return }
 
         diagnostics?.endStage(downloadStage) { recordTransfer(in: &$0) }
+        pipeline.failureRegistry?.didFinishLoading(request, error: error)
 
         if let error {
             tryToSaveResumableData()

@@ -35,7 +35,7 @@ extension ImageTask.Metrics.ImageSummary {
 extension ImagePipeline.Diagnostics.ErrorSummary {
     init(_ error: ImagePipeline.Error) {
         let underlying: (any Swift.Error)? = switch error {
-        case .dataLoadingFailed(let error), .decodingFailed(_, _, let error), .processingFailed(_, _, let error): error
+        case .dataLoadingFailed(let error), .urlInCooldown(let error), .decodingFailed(_, _, let error), .processingFailed(_, _, let error): error
         default: nil
         }
         let nsError = underlying.map { $0 as NSError }
@@ -49,6 +49,7 @@ extension ImagePipeline.Error {
         switch self {
         case .dataMissingInCache: "dataMissingInCache"
         case .dataLoadingFailed: "dataLoadingFailed"
+        case .urlInCooldown: "urlInCooldown"
         case .dataIsEmpty: "dataIsEmpty"
         case .decoderNotRegistered: "decoderNotRegistered"
         case .decodingFailed: "decodingFailed"
@@ -138,7 +139,8 @@ extension ImageRequest.Options {
         (.disableDiskCacheWrites, "disableDiskCacheWrites"),
         (.returnCacheDataDontLoad, "returnCacheDataDontLoad"),
         (.skipDecompression, "skipDecompression"),
-        (.skipDataLoadingQueue, "skipDataLoadingQueue")
+        (.skipDataLoadingQueue, "skipDataLoadingQueue"),
+        (.skipFailureCooldown, "skipFailureCooldown")
     ]
 
     var diagnosticsNames: [String] {

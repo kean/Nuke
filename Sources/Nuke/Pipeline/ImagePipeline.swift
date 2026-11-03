@@ -52,6 +52,10 @@ public final class ImagePipeline: Sendable {
     private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
     private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
+    /// The URLs in cooldown. `nil` unless
+    /// ``Configuration-swift.struct/failureCooldown`` is set.
+    let failureRegistry: FailureRegistry?
+
     private(set) var isInvalidated = false
 
     nonisolated private var nextTaskID: UInt64 {
@@ -102,6 +106,11 @@ public final class ImagePipeline: Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
+        if let cooldown = configuration.failureCooldown {
+            self.failureRegistry = FailureRegistry(cooldown: cooldown)
+        } else {
+            self.failureRegistry = nil
+        }
         let isRecording = configuration.isDiagnosticsEnabled || configuration.isDiagnosticsLoggingEnabled
         self.recorder = isRecording ? Diagnostics.Recorder(pipelineID: id, signpostLog: configuration.signpostLog, isLoggingEnabled: configuration.isDiagnosticsLoggingEnabled) : nil
 

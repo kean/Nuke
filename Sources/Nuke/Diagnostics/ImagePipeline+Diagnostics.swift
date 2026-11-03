@@ -426,6 +426,9 @@ extension ImagePipeline.Diagnostics {
         case file
         /// The `data` or `image` closure of the request.
         case closure
+        /// Nothing: the URL is in cooldown, so the download ended before it
+        /// started. See ``ImagePipeline/Configuration-swift.struct/failureCooldown``.
+        case failureCooldown
         case unknown
     }
 
