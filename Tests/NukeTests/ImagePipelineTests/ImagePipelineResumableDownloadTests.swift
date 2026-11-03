@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// Resumable downloads end-to-end: what the pipeline sends back to the server
@@ -247,6 +248,34 @@ struct ImagePipelineResumableDownloadTests {
         ])
     }
 
+    /// A "206 Partial Content" without "Content-Length" has an unknown length,
+    /// which is reported as unknown, the way it is for a download that was
+    /// never resumed: adding the resumed bytes to `-1` would put the total
+    /// below the bytes already received.
+    @Test func progressOfAResumedDownloadWithUnknownLengthIsNotComplete() async throws {
+        // GIVEN a download that failed after 10000 bytes
+        server.steps = [.fail(after: 10000), .serveWithoutContentLength]
+        _ = try? await pipeline.data(for: Test.request)
+
+        // WHEN it is resumed by a response without "Content-Length"
+        var progress: [ImageTask.Progress] = []
+        let task = pipeline.imageTask(with: Test.request)
+        for await value in task.progress {
+            progress.append(value)
+        }
+        let response = try await task.response
+        #expect((response.urlResponse as? HTTPURLResponse)?.statusCode == 206)
+
+        // THEN the total is unknown, and the download is never reported as
+        // complete before it is
+        #expect(progress.count > 1)
+        #expect(progress.last?.completed == 22789)
+        for value in progress {
+            #expect(value.total == -1, "\(value)")
+            #expect(value.fraction == 0, "\(value)")
+        }
+    }
+
     @Test func resumedBytesAreReportedInTheMetrics() async throws {
         // GIVEN a pipeline that records diagnostics and a download that failed
         // mid-way
@@ -425,6 +454,64 @@ struct ImagePipelineResumableDownloadTests {
         #expect(server.requests.last?.value(forHTTPHeaderField: "Range") == "bytes=5000-")
         #expect(server.requests.last?.value(forHTTPHeaderField: "If-Range") == "\"v2\"")
         #expect(resumed == newData)
+    }
+
+    /// `DataLoader` rejects a "416 Range Not Satisfiable" before the pipeline
+    /// sees the response, which used to look like a request that ended before
+    /// the server responded, so the rejected range was put back and sent
+    /// again on every attempt.
+    @Test func rangeRejectedByTheServerIsNotSentAgain() async throws {
+        // GIVEN a real `DataLoader` talking to a server that serves the first
+        // 10000 bytes and drops the connection, then rejects every range
+        struct State {
+            var ranges: [String?] = []
+            var stalled: StubURLProtocol?
+        }
+        // It holds a `StubURLProtocol`, which isn't `Sendable`, so it is unchecked
+        let state = OSAllocatedUnfairLock<State>(uncheckedState: State())
+        let url = StubURLProtocol.register { stub in
+            let range = stub.request.value(forHTTPHeaderField: "Range")
+            let attempt = state.withLockUnchecked { state -> Int in
+                state.ranges.append(range)
+                return state.ranges.count
+            }
+            let data = Test.data
+            if range != nil {
+                stub.sendResponse(statusCode: 416, headers: ["Content-Range": "bytes */\(data.count)"])
+                stub.finish()
+                return
+            }
+            stub.sendResponse(headers: ["Content-Length": "\(data.count)", "Accept-Ranges": "bytes", "ETag": "\"v1\""])
+            if attempt == 1 {
+                state.withLockUnchecked { $0.stalled = stub }
+                stub.send(data[0..<10000])
+            } else {
+                stub.send(data)
+                stub.finish()
+            }
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let pipeline = ImagePipeline {
+            $0.dataLoader = DataLoader(configuration: configuration)
+            $0.imageCache = nil
+        }
+
+        // WHEN the download fails once the pipeline has the first 10000 bytes
+        let first = pipeline.imageTask(with: ImageRequest(url: url))
+        var progress = first.progress.makeAsyncIterator()
+        _ = await progress.next()
+        let stalled = try #require(state.withLockUnchecked { $0.stalled })
+        stalled.fail(URLError(.networkConnectionLost))
+        _ = try? await first.response
+
+        // WHEN it is resumed, and the server rejects the range
+        _ = try? await pipeline.data(for: ImageRequest(url: url))
+
+        // THEN the next attempt asks for the whole resource, and gets it
+        let (data, _) = try await pipeline.data(for: ImageRequest(url: url))
+        #expect(data == Test.data)
+        #expect(state.withLockUnchecked { $0.ranges } == [nil, "bytes=10000-", nil])
     }
 
     // MARK: - Configuration
