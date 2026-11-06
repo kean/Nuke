@@ -53,8 +53,8 @@ extension ImagePipeline.Diagnostics {
             /// ``ImageTask/Status/retryCount``.
             public let retryCount: Int
             /// `true` if an attempt failed, and the load is waiting for the
-            /// time to retry or for the device to get back online. No queue
-            /// is holding it up.
+            /// delegate to decide on a retry, for the time to retry, or for
+            /// the device to get back online. No queue is holding it up.
             public let isWaitingForRetry: Bool
         }
 

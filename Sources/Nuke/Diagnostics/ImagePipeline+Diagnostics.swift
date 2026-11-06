@@ -237,9 +237,9 @@ extension ImagePipeline.Diagnostics {
             /// delegate returns.
             case willLoadData
             case download
-            /// The time between a failed download and the next attempt. A
-            /// ``ImagePipeline/RetryPolicy`` starts one after every download it
-            /// retries.
+            /// The time between a failed download and the next attempt,
+            /// including the time the delegate took to decide on the retry.
+            /// There is one for every download the pipeline retries.
             case retryDelay
             case diskStore
             case decode

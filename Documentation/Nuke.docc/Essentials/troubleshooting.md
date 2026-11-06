@@ -67,7 +67,7 @@ From code, use ``ImagePipeline/Diagnostics-swift.struct/snapshot()``:
 print(await ImagePipeline.shared.diagnostics.snapshot())
 ```
 
-A queue at its limit with work pending means the pipeline is busy, and a task waits for a slot. A queue marked `suspended` starts nothing until ``TaskQueue/isSuspended`` is set back. A queue with free slots and a task that doesn't finish means the task is waiting on the server, unless the line of the task says `waiting to retry`: an attempt failed, and the ``ImagePipeline/RetryPolicy`` is waiting for the time to retry or for the device to get back online. See <doc:retrying-requests>.
+A queue at its limit with work pending means the pipeline is busy, and a task waits for a slot. A queue marked `suspended` starts nothing until ``TaskQueue/isSuspended`` is set back. A queue with free slots and a task that doesn't finish means the task is waiting on the server, unless the line of the task says `waiting to retry`: an attempt failed, and the pipeline is waiting for the delegate to decide on a retry, for the time to retry, or for the device to get back online. See <doc:retrying-requests>.
 
 ## Read the Whole Record
 

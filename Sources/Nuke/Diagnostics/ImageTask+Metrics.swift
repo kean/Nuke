@@ -264,7 +264,8 @@ extension ImageTask.Metrics {
         /// ``ImagePipeline/Configuration-swift.struct``, which is where the
         /// time goes when the pipeline is busy.
         case queue
-        /// The wait before a retry, which ``ImagePipeline/RetryPolicy`` sets.
+        /// The wait before a retry, which ``ImagePipeline/RetryPolicy`` sets,
+        /// and the time the delegate took to decide on it.
         case retry
         case process
         case decompress

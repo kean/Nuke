@@ -434,6 +434,46 @@ struct ImagePipelineRetryTests {
         #expect(dataLoader.requestCount == 2)
     }
 
+    /// The policy that allows the most retries doesn't get to stop the load if
+    /// it doesn't retry the failure: a request that wants a retry gets it.
+    @Test func coalescedFailureIsRetriedIfAnyPolicyRetriesIt() async throws {
+        // GIVEN a request that retries a `503`, and one that allows more
+        // retries, but of a `429` only
+        dataLoader.steps = [.fail(DataLoader.Error.statusCodeUnacceptable(503))]
+        dataLoader.isSuspended = true
+        let pipeline = makePipeline(policy: nil)
+        let first = pipeline.imageTask(with: request(.immediate(1)))
+        let second = pipeline.imageTask(with: request(Policy(maxRetryCount: 3, backoff: .fixed(0), jitter: 0, retryableStatusCodes: [429])))
+        await waitUntil { dataLoader.requestCount == 1 }
+        await drainPipeline()
+
+        // WHEN the load fails with a `503`
+        dataLoader.isSuspended = false
+        _ = try await first.response
+        _ = try await second.response
+
+        // THEN it's retried
+        #expect(dataLoader.requestCount == 2)
+    }
+
+    @Test func delegateGetsThePolicyThatRetriesTheFailure() async throws {
+        let delegate = MockRetryDelegate { $0.policy?.decision(for: $0) ?? .stop }
+        dataLoader.steps = [.fail(DataLoader.Error.statusCodeUnacceptable(503))]
+        dataLoader.isSuspended = true
+        let pipeline = makePipeline(policy: nil, delegate: delegate)
+        let first = pipeline.imageTask(with: request(Policy(maxRetryCount: 3, backoff: .fixed(0), jitter: 0, retryableStatusCodes: [429])))
+        let second = pipeline.imageTask(with: request(.immediate(1)))
+        await waitUntil { dataLoader.requestCount == 1 }
+        await drainPipeline()
+
+        dataLoader.isSuspended = false
+        _ = try await first.response
+        _ = try await second.response
+
+        #expect(delegate.contexts.first?.policy == .immediate(1))
+        #expect(dataLoader.requestCount == 2)
+    }
+
     @Test func tasksJoinALoadThatIsWaitingForARetry() async throws {
         // GIVEN a load waiting for the delegate to decide
         let gate = AsyncGate()
@@ -1197,6 +1237,66 @@ struct ImagePipelineRetryTests {
         #expect(active.retryCount == 1)
         #expect(snapshot.description.contains("1 retry"))
         task.cancel()
+    }
+
+    /// A delegate refreshing a token before the retry: the load is waiting on
+    /// it, not on the server.
+    @Test func snapshotSaysThatTheLoadIsWaitingWhileTheDelegateDecides() async throws {
+        // GIVEN a delegate that takes a while to decide
+        let gate = AsyncGate()
+        let isAsked = TestExpectation()
+        let delegate = MockRetryDelegate { _ in
+            isAsked.fulfill()
+            await gate.wait()
+            return .stop
+        }
+        dataLoader.steps = [timedOut]
+        let pipeline = makePipeline(delegate: delegate)
+        let task = pipeline.imageTask(with: Test.request)
+        await isAsked.wait()
+
+        // WHEN
+        let snapshot = await pipeline.diagnostics.snapshot()
+        gate.open()
+
+        // THEN
+        #expect(snapshot.tasks.first?.isWaitingForRetry == true)
+        await #expect(throws: ImagePipeline.Error.self) {
+            _ = try await task.response
+        }
+    }
+
+    @Test func waitForTheRetryIncludesTheTimeTheDelegateTookToDecide() async throws {
+        // GIVEN a delegate that takes a while to decide
+        let delegate = MockRetryDelegate { _ in
+            try? await Task.sleep(for: .milliseconds(20)) // The refresh
+            return .retry(after: 0)
+        }
+        dataLoader.steps = [timedOut]
+        let pipeline = makePipeline(policy: nil, delegate: delegate) { $0.isDiagnosticsEnabled = true }
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        _ = try await task.response
+
+        // THEN
+        let metrics = try #require(task.metrics)
+        let job = try #require(metrics.jobs.first { $0.kind == .fetchOriginalData })
+        let wait = try #require(job.stages.first { $0.kind == .retryDelay }?.duration)
+        #expect(wait >= 0.019)
+    }
+
+    @Test func failureThatIsNotRetriedHasNoWait() async throws {
+        let delegate = MockRetryDelegate { _ in .stop }
+        dataLoader.steps = [timedOut]
+        let pipeline = makePipeline(policy: nil, delegate: delegate) { $0.isDiagnosticsEnabled = true }
+        let task = pipeline.imageTask(with: Test.request)
+
+        _ = try? await task.response
+
+        let metrics = try #require(task.metrics)
+        #expect(!metrics.jobs.contains { $0.stages.contains { $0.kind == .retryDelay } })
+        #expect(delegate.contexts.count == 1)
     }
 
     @Test func metricsOfAFailedLoadRecordEveryFailure() async throws {

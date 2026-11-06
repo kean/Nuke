@@ -33,8 +33,11 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
     /// it gives the slot back, which is why the wait isn't awaited here.
     func attemptDidFail(with error: ImagePipeline.Error, response: URLResponse? = nil) {
         guard !isDisposed else { return }
-        let policy = retryPolicy()
-        guard policy != nil || !pipeline.isDefaultDelegate else {
+        let failure = ImagePipeline.RetryContext(request: request, error: error, response: response, retryCount: retryCount)
+        let (policy, decision) = retryPolicy(for: failure) ?? (nil, .stop)
+        // Without a delegate, the policy has already decided, and most failures
+        // aren't retried, such as a `404`: they fail now instead of after a hop.
+        if pipeline.isDefaultDelegate, decision == .stop {
             return send(error: error)
         }
         let context = ImagePipeline.RetryContext(request: request, error: error, response: response, retryCount: retryCount, policy: policy)
@@ -43,19 +46,30 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
         onCancelled = { [weak self] in
             self?.retryTask?.cancel()
         }
+        // The wait includes the delegate's decision, which can take a while:
+        // it's where a token gets refreshed.
+        let failedAt = diagnostics?.recorder.now
+        forEachImageTask { $0._isWaitingForRetry = true }
+        let policyDecision = pipeline.isDefaultDelegate ? decision : nil
         retryTask = Task { @ImagePipelineActor in
-            await self.retry(context)
+            await self.retry(context, decision: policyDecision, failedAt: failedAt)
         }
     }
 
-    private func retry(_ context: ImagePipeline.RetryContext) async {
-        let decision = await pipeline.retryDecision(for: context)
+    /// - parameter decision: The decision of the policy, or `nil` to ask the
+    /// delegate.
+    private func retry(_ context: ImagePipeline.RetryContext, decision: ImagePipeline.RetryDecision?, failedAt: TimeInterval?) async {
+        // The load can be cancelled before this runs. There is then nothing to
+        // ask the delegate about, and asking can start a token refresh.
+        guard !isDisposed else { return }
+        let decision = if let decision { decision } else { await pipeline.retryDecision(for: context) }
         guard !isDisposed else { return }
 
         let delay: TimeInterval
         let connectivityTimeout: TimeInterval?
         switch decision {
         case .stop:
+            forEachImageTask { $0._isWaitingForRetry = false }
             return send(error: context.error)
         case .retry(let after):
             (delay, connectivityTimeout) = (after, nil)
@@ -63,8 +77,10 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
             (delay, connectivityTimeout) = (after, timeout)
         }
 
-        forEachImageTask { $0._isWaitingForRetry = true }
         let stage = diagnostics?.beginStage(.retryDelay)
+        if let failedAt {
+            diagnostics?.updateStage(stage) { $0.startedAt = failedAt }
+        }
         await Task.sleep(seconds: delay)
         var isOnline = true
         if let connectivityTimeout, !isDisposed {
@@ -84,26 +100,35 @@ class AsyncFetchTask<Value: Sendable>: AsyncPipelineTask<Value> {
         start()
     }
 
-    /// Returns the policy that allows the most retries among the requests that
-    /// wait for this task, or `nil` if none of them has a policy.
+    /// Returns the policy that applies to the failure, and what it decides, or
+    /// `nil` if none of the requests that wait for this task has a policy.
     ///
     /// A shared load keeps going for as long as one of the requests wants it
-    /// to, the others get an image a little later. The alternative is to treat
-    /// requests with different policies as different work, and keeping the
-    /// policy out of the task keys costs nothing until something fails.
+    /// to, the others get an image a little later: of the policies that retry
+    /// the failure, it's the one that allows the most retries, and if none
+    /// does, the one that allows the most anyway, which is what the delegate
+    /// gets. The alternative is to treat requests with different policies as
+    /// different work, and keeping the policy out of the task keys costs
+    /// nothing until something fails.
     ///
     /// Prefetching doesn't use the policy of the pipeline. It's speculative, and
     /// a load that matters is going to come with its own retries, or to join
     /// this one, in which case the policy applies.
-    private func retryPolicy() -> ImagePipeline.RetryPolicy? {
+    private func retryPolicy(for failure: ImagePipeline.RetryContext) -> (ImagePipeline.RetryPolicy, ImagePipeline.RetryDecision)? {
         let pipelinePolicy = pipeline.configuration.retryPolicy
-        var policy: ImagePipeline.RetryPolicy?
+        var best: (policy: ImagePipeline.RetryPolicy, decision: ImagePipeline.RetryDecision)?
         forEachImageTask { task in
-            let candidate = task.request.retryPolicy ?? (task._kind == .prefetch ? nil : pipelinePolicy)
-            if let candidate, candidate.maxRetryCount > policy?.maxRetryCount ?? -1 {
-                policy = candidate
+            guard let policy = task.request.retryPolicy ?? (task._kind == .prefetch ? nil : pipelinePolicy) else {
+                return
             }
+            let decision = policy.decision(for: failure)
+            if let best {
+                let retries = decision != .stop
+                let isBetter = retries == (best.decision != .stop) ? policy.maxRetryCount > best.policy.maxRetryCount : retries
+                guard isBetter else { return }
+            }
+            best = (policy, decision)
         }
-        return policy
+        return best
     }
 }

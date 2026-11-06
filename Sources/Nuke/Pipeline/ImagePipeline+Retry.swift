@@ -193,8 +193,10 @@ extension ImagePipeline {
         public let response: URLResponse?
         /// The number of retries so far: `0` when the first attempt fails.
         public let retryCount: Int
-        /// The policy that applies to the load, if any: the one that allows the
-        /// most retries of the requests that share it.
+        /// The policy that applies to the load, if any. When requests with
+        /// different policies share it, it's the one that allows the most
+        /// retries among those that retry this failure, or among all of them
+        /// if none does.
         public let policy: RetryPolicy?
 
         /// Initializes the context. The pipeline creates it for you – use this

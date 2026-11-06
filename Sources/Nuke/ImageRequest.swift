@@ -68,8 +68,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// the pipeline.
     ///
     /// - note: The policy doesn't stop coalescing. Requests for the same image
-    /// share a load, and with it the retries, for as long as the request that
-    /// allows the most of them wants to continue.
+    /// share a load, and with it the retries: a failure is retried if the
+    /// policy of any of them retries it.
     public var retryPolicy: ImagePipeline.RetryPolicy? {
         get { ref.retryPolicy?.value }
         set { mutate { $0.retryPolicy = newValue.map(RetryPolicyBox.init) } }

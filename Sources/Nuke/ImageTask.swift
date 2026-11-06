@@ -275,8 +275,9 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     nonisolated(unsafe) var _task: Task<Result<ImageResponse, ImagePipeline.Error>, Never>!
     @ImagePipelineActor var _continuation: UnsafeContinuation<Result<ImageResponse, ImagePipeline.Error>, Never>?
     @ImagePipelineActor var _isFinished = false
-    /// `true` while the fetch the task waits for is waiting to start over. A
-    /// task that joins during the wait isn't marked.
+    /// `true` from the moment an attempt of the fetch the task waits for fails
+    /// to the moment it starts over or gives up, which includes the time the
+    /// delegate takes to decide. A task that joins during the wait isn't marked.
     @ImagePipelineActor var _isWaitingForRetry = false
     @ImagePipelineActor var _subscription: TaskSubscription?
     @ImagePipelineActor var _diagnostics: ImagePipeline.Diagnostics.TaskRecord?

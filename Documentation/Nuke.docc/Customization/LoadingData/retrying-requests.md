@@ -98,7 +98,7 @@ The last line falls back to the policy, which is what the default implementation
 
 A retry repeats the fetch of the data, and nothing around it, so the rest of the pipeline works the way it always does:
 
-- **Coalescing.** Requests for the same image share the load, and with it the retries. Twenty cells with the same avatar make one sequence of requests, and the delegate is asked once per failed attempt. Requests can join while the load waits. If the requests have different policies, the one that allows the most retries applies.
+- **Coalescing.** Requests for the same image share the load, and with it the retries. Twenty cells with the same avatar make one sequence of requests, and the delegate is asked once per failed attempt. Requests can join while the load waits. If the requests have different policies, a failure is retried if any of them retries it, by the one that allows the most retries.
 - **Queues.** A load that is waiting doesn't take up a slot in ``ImagePipeline/Configuration-swift.struct/dataLoadingQueue``, so a host that is down doesn't hold up the images from the hosts that work. Each attempt goes through the queue again, at the current priority.
 - **Cancellation.** Cancelling a task stops the wait right away, unless other tasks are waiting for the same load.
 - **Resumable downloads.** If the server supports it, a retry continues from where the failed attempt stopped. Otherwise, it starts over, and the progress goes back with it. See ``ImagePipeline/Configuration-swift.struct/isResumableDataEnabled``.
