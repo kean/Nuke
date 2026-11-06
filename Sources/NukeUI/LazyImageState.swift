@@ -28,6 +28,24 @@ public protocol LazyImageState {
     /// `NukeUI` no longer has a progress type of its own: `FetchImage.Progress`
     /// is a deprecated typealias for it.
     var progress: ImageTask.Progress { get }
+
+    /// Loads the image again. Use it to let people retry a load that failed:
+    ///
+    /// ```swift
+    /// LazyImage(url: url) { state in
+    ///     if let image = state.image {
+    ///         image
+    ///     } else if state.error != nil {
+    ///         Button("Try Again") { state.reload() }
+    ///     } else {
+    ///         ProgressView()
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// To retry automatically before showing an error, set a
+    /// ``ImagePipeline/RetryPolicy`` on the pipeline or the request.
+    func reload()
 }
 
 extension LazyImageState {
@@ -38,6 +56,9 @@ extension LazyImageState {
     public var animation: AnimatedImageSource? {
         imageContainer?.animation
     }
+
+    /// Does nothing, for the states that aren't backed by a ``FetchImage``.
+    public func reload() {}
 
     /// Returns the current error.
     public var error: ImagePipeline.Error? {

@@ -274,6 +274,16 @@ public final class LazyImageView: _PlatformBaseView {
         loader.cancel()
     }
 
+    /// Loads the current ``request`` again, if there is one. Use it to retry a
+    /// load that failed or was cancelled. A load that is still running keeps
+    /// running. To retry automatically, set a ``ImagePipeline/RetryPolicy`` on
+    /// the pipeline or the request.
+    public func reload() {
+        if let request {
+            load(request)
+        }
+    }
+
     // MARK: Loading Images
 
     /// Loads an image with the given request.

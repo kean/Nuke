@@ -39,6 +39,10 @@ let pipeline = ImagePipeline(delegate: AuthenticatedPipelineDelegate()) {
 
 The method is called on every URL-based request, after resumable data headers are applied but before the request is passed to ``DataLoading``. Throwing an error cancels the request and surfaces the error as ``ImagePipeline/Error/dataLoadingFailed(error:)``. The hook is not called for requests that use a custom data fetch closure or that target local file resources.
 
+## Retrying Failed Requests
+
+Set ``ImagePipeline/Configuration-swift.struct/retryPolicy`` to have the pipeline retry the loads that fail for a reason that can go away. To learn more, see <doc:retrying-requests>.
+
 ## Monitoring Network Requests
 
 The pipeline can be used with [Pulse](https://github.com/kean/Pulse) for monitoring network traffic.

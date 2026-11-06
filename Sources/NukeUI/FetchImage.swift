@@ -139,6 +139,20 @@ public final class FetchImage: ObservableObject, Identifiable {
         loader.load(action)
     }
 
+    // MARK: Reload
+
+    /// Loads the request of the last load again.
+    ///
+    /// Use it to retry a load that failed or was cancelled. A load that is
+    /// still running keeps running. To retry automatically, set a
+    /// ``ImagePipeline/RetryPolicy`` on the pipeline or the request.
+    ///
+    /// The last load has nothing to repeat if it was from an async function or a
+    /// `nil` request, or if it was reset.
+    public func reload() {
+        loader.reload()
+    }
+
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded image.

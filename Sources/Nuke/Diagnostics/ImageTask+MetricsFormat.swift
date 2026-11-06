@@ -169,6 +169,9 @@ extension ImageTask.Metrics {
                 parts.append("coalesced")
             }
         }
+        if retryCount > 0 {
+            parts.append(retryCount == 1 ? "1 retry" : "\(retryCount) retries")
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -495,7 +498,7 @@ extension ImageTask.Metrics {
         guard let span else {
             return [Row(label: label, details: details(of: stage, in: job, options: options))]
         }
-        var rows = [Row(label: label, duration: span.duration, span: span, details: details(of: stage, in: job, options: options))]
+        var rows = [Row(label: label, duration: span.duration, span: span, isWait: stage.kind == .retryDelay, details: details(of: stage, in: job, options: options))]
         if options.contains(.urlSession), let metrics = stage.urlSessionMetrics {
             rows += self.rows(of: metrics, prefixes: prefixes, options: options)
         }
@@ -554,6 +557,7 @@ extension ImageTask.Metrics {
             parts.append(text)
         }
         parts += stage.statusCode.map { ["HTTP \($0)"] } ?? []
+        parts += stage.error.map { [$0.code] } ?? []
         if let firstByteAt = stage.firstByteAt, let startedAt = stage.startedAt {
             parts.append("first byte \(ms(firstByteAt - startedAt))")
         }

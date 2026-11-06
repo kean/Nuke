@@ -200,13 +200,34 @@ extension ImageTask.Metrics {
         return ids
     }
 
+    /// The number of times the load the task waited on started over, including
+    /// the ones before the task joined it. A wait that ended without one, such
+    /// as the wait of a task that was cancelled, doesn't count.
+    public var retryCount: Int {
+        jobs.reduce(0) { count, job in
+            // With a delegate, an attempt starts with `willLoadData`, and if
+            // that throws, there is no download.
+            var downloads = 0
+            var delegateCalls = 0
+            for stage in job.stages {
+                switch stage.kind {
+                case .download: downloads += 1
+                case .willLoadData: delegateCalls += 1
+                default: break
+                }
+            }
+            return count + max(0, max(downloads, delegateCalls) - 1)
+        }
+    }
+
     /// What `URLSession` measured for the download the task waited on: the
     /// ``ImagePipeline/Diagnostics-swift.struct/Stage/urlSessionMetrics`` of
-    /// its download stage. `nil` if the data loader isn't a ``DataLoader``,
-    /// or if the task ended before the download did.
+    /// its download stage, the last one if it took more than one attempt.
+    /// `nil` if the data loader isn't a ``DataLoader``, or if the task ended
+    /// before the download did.
     public var urlSessionMetrics: ImagePipeline.Diagnostics.URLSessionMetrics? {
         for job in jobs {
-            for stage in job.stages {
+            for stage in job.stages.reversed() {
                 if let metrics = stage.urlSessionMetrics {
                     return metrics
                 }
@@ -254,6 +275,9 @@ extension ImageTask.Metrics {
         /// ``ImagePipeline/Configuration-swift.struct``, which is where the
         /// time goes when the pipeline is busy.
         case queue
+        /// The wait before a retry, which ``ImagePipeline/RetryPolicy`` sets,
+        /// and the time the delegate took to decide on it.
+        case retry
         case process
         case decompress
         case decode
@@ -339,6 +363,7 @@ extension ImageTask.Metrics {
     private func category(of kind: ImagePipeline.Diagnostics.Stage.Kind) -> Category {
         switch kind {
         case .download: .network
+        case .retryDelay: .retry
         case .process: .process
         case .decompress: .decompress
         case .decode: .decode

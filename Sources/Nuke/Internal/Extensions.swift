@@ -84,3 +84,15 @@ struct AnonymousCancellable: Cancellable {
 @concurrent func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
     closure()
 }
+
+extension Task where Success == Never, Failure == Never {
+    /// Sleeps for the given number of seconds, or until the task is cancelled.
+    ///
+    /// The value comes straight from the app, and `Duration` traps on the ones
+    /// it can't represent, such as a timeout of `.infinity`, which reads like a
+    /// reasonable way to ask to wait for as long as it takes.
+    static func sleep(seconds: TimeInterval) async {
+        guard seconds > 0 else { return }
+        try? await sleep(for: .seconds(min(seconds, 365 * 24 * 3600)))
+    }
+}

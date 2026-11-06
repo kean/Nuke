@@ -5,7 +5,7 @@
 import Foundation
 
 /// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
-final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
+final class TaskFetchOriginalImage: AsyncFetchTask<ImageResponse> {
     private var decoder: (any ImageDecoding)?
     /// The preview policy the current ``decoder`` was created with. `nil` until
     /// a decoder is created from partial data.
@@ -15,6 +15,9 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
     private var previewPolicyEvaluationCount = 0
     private var previewPolicyDataCount = 0
     private var lastPreviewTime: CFAbsoluteTime?
+    /// Changes when the data starts over, so that a preview of the old bytes
+    /// that is still being decoded is dropped.
+    private var dataGeneration = 0
 
     /// The maximum number of times the preview policy is evaluated for a single
     /// download. Together with ``resolvePreviewPolicy(for:)`` requiring the data
@@ -30,6 +33,18 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
         dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
+    }
+
+    /// A retry couldn't resume, so the data starts from the first byte, and it
+    /// can be a different image. A decoder only takes data that grows, and the
+    /// limits on the previews are per download.
+    func originalDataDidStartOver() {
+        decoder = nil
+        decoderPreviewPolicy = nil
+        previewPolicyEvaluationCount = 0
+        previewPolicyDataCount = 0
+        lastPreviewTime = nil
+        dataGeneration += 1
     }
 
     /// Receiving data from `TaskFetchOriginalData`.
@@ -67,12 +82,16 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             return
         }
 
+        let generation = dataGeneration
         decode(context, decoder: decoder) { [weak self] in
-            self?.didFinishDecoding(context: context, result: $0)
+            self?.didFinishDecoding(context: context, generation: generation, result: $0)
         }
     }
 
-    private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImagePipeline.Error>) {
+    private func didFinishDecoding(context: ImageDecodingContext, generation: Int, result: Result<ImageResponse, ImagePipeline.Error>) {
+        guard context.isCompleted || generation == dataGeneration else {
+            return // A preview of the bytes of an attempt that failed
+        }
         switch result {
         case .success(let response):
             if !context.isCompleted {
@@ -151,8 +170,12 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             }
             send(value: ImageResponse(container: container, request: request), isCompleted: true)
         } catch {
-            diagnostics?.endStage(stage) { $0.source = .closure }
-            send(error: .dataLoadingFailed(error: error))
+            let error = ImagePipeline.Error.dataLoadingFailed(error: error)
+            diagnostics?.endStage(stage) {
+                $0.source = .closure
+                $0.error = ImagePipeline.Diagnostics.ErrorSummary(error)
+            }
+            attemptDidFail(with: error)
         }
     }
 }
