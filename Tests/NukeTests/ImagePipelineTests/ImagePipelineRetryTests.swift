@@ -1299,6 +1299,61 @@ struct ImagePipelineRetryTests {
         #expect(delegate.contexts.count == 1)
     }
 
+    /// The way it goes when the token refresh fails: the delegate retries, and
+    /// then refuses the request.
+    @Test func metricsOfARetryThatWillLoadDataRefusedKeepTheFailedAttempt() async throws {
+        final class Delegate: ImagePipeline.Delegate, @unchecked Sendable {
+            let calls = EventCounter()
+
+            func willLoadData(for request: ImageRequest, urlRequest: URLRequest, pipeline: ImagePipeline) async throws -> URLRequest {
+                calls.increment()
+                guard calls.count == 1 else { throw URLError(.userAuthenticationRequired) }
+                return urlRequest
+            }
+
+            func retryDecision(for context: ImagePipeline.RetryContext, pipeline: ImagePipeline) async -> ImagePipeline.RetryDecision {
+                .retry(after: 0)
+            }
+        }
+        // GIVEN a download that fails halfway, and a retry that doesn't get to
+        // the download
+        let server = MockRangeServer(data: Test.data, validator: [:])
+        server.steps = [.fail(after: 5000)]
+        let pipeline = makePipeline(policy: nil, delegate: Delegate()) {
+            $0.dataLoader = server
+            $0.isDiagnosticsEnabled = true
+        }
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        _ = try? await task.response
+
+        // THEN the first attempt is the way it ended
+        let metrics = try #require(task.metrics)
+        #expect(metrics.retryCount == 1)
+        #expect(metrics.retryCount == task.status.retryCount)
+        let job = try #require(metrics.jobs.first { $0.kind == .fetchOriginalData })
+        let downloads = job.stages.filter { $0.kind == .download }
+        #expect(downloads.count == 1)
+        #expect(downloads.first?.bytes == 5000)
+        #expect(downloads.first?.error?.underlyingCode == URLError.networkConnectionLost.rawValue)
+    }
+
+    @Test(arguments: [false, true])
+    func metricsOfAnEmptyResponseHaveTheError(isClosure: Bool) async throws {
+        dataLoader.steps = [.serve(Data())]
+        let pipeline = makePipeline(policy: nil) { $0.isDiagnosticsEnabled = true }
+        let request = isClosure ? ImageRequest(id: "empty", data: { Data() }) : Test.request
+        let task = pipeline.imageTask(with: request)
+
+        _ = try? await task.response
+
+        let metrics = try #require(task.metrics)
+        let job = try #require(metrics.jobs.first { $0.kind == .fetchOriginalData })
+        let download = try #require(job.stages.first { $0.kind == .download })
+        #expect(download.error?.code == "dataIsEmpty")
+    }
+
     @Test func metricsOfAFailedLoadRecordEveryFailure() async throws {
         dataLoader.steps = [timedOut, timedOut, timedOut]
         let pipeline = makePipeline(policy: .immediate(1)) { $0.isDiagnosticsEnabled = true }

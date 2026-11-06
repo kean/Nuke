@@ -205,7 +205,18 @@ extension ImageTask.Metrics {
     /// as the wait of a task that was cancelled, doesn't count.
     public var retryCount: Int {
         jobs.reduce(0) { count, job in
-            count + max(0, job.stages.lazy.filter { $0.kind == .download }.count - 1)
+            // With a delegate, an attempt starts with `willLoadData`, and if
+            // that throws, there is no download.
+            var downloads = 0
+            var delegateCalls = 0
+            for stage in job.stages {
+                switch stage.kind {
+                case .download: downloads += 1
+                case .willLoadData: delegateCalls += 1
+                default: break
+                }
+            }
+            return count + max(0, max(downloads, delegateCalls) - 1)
         }
     }
 

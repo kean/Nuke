@@ -73,6 +73,10 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
         if pipeline.isDefaultDelegate {
             downloadStage = diagnostics?.beginStage(.download, queued: true)
         } else {
+            // The stage of the previous attempt otherwise stays current until
+            // the delegate returns, and a delegate that throws would end it
+            // a second time.
+            downloadStage = nil
             willLoadDataStage = diagnostics?.beginStage(.willLoadData, queued: true)
         }
         if request.options.contains(.skipDataLoadingQueue) {
@@ -292,6 +296,8 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
 
     private func dataTaskDidFinish(error: ImagePipeline.Error? = nil, isRetryable: Bool = true) async {
         guard !isDisposed else { return }
+        // Sanity check, should never happen in practice
+        let error = error ?? (data.isEmpty ? .dataIsEmpty : nil)
 
         diagnostics?.endStage(downloadStage) { stage in
             recordTransfer(in: &stage)
@@ -308,12 +314,6 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             } else {
                 send(error: error)
             }
-            return
-        }
-
-        // Sanity check, should never happen in practice
-        guard !data.isEmpty else {
-            downloadDidFail(with: .dataIsEmpty)
             return
         }
 
@@ -375,6 +375,9 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             diagnostics?.endStage(downloadStage) {
                 $0.source = .closure
                 $0.bytes = Int64(data.count)
+                if data.isEmpty {
+                    $0.error = ImagePipeline.Diagnostics.ErrorSummary(.dataIsEmpty)
+                }
             }
             await asyncDataDidFinish(data)
         } catch {
