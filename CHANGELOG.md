@@ -21,7 +21,7 @@
 
 ## WIP
 
-Nuke 14 plays animated images, records where every image task spent its time, and loads images into any view with `ImageLoader`. It also fixes more than 30 bugs and raises the minimum platforms by one major version.
+Nuke 14 plays animated images, records where every image task spent its time, and loads images into any view with `ImageLoader`. It also fixes more than 20 bugs and raises the minimum platforms by one major version.
 
 Nuke 14 requires Swift 6.2 and Xcode 26.0. The [Migration Guide](https://github.com/kean/Nuke/blob/main/Documentation/Migrations/Nuke%2014%20Migration%20Guide.md) covers the upgrade, including what the compiler can't report.
 
@@ -225,33 +225,22 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix a data race on the `DataCache` configuration properties – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache.init` reading and decoding its metadata file on the calling thread, typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
 - Fix `DataCache` updating the entry access date on the calling thread on every disk cache hit – https://github.com/kean/Nuke/pull/927
-- Fix a data race on `DataLoader/prefersIncrementalDelivery` – https://github.com/kean/Nuke/pull/928
-- Fix a data race on `ImagePrefetcher/didComplete` – https://github.com/kean/Nuke/pull/929
 - Fix `DataCache` sweeping only once per launch instead of every `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/930
-- Fix `DataCache/sweep()` not recording the sweep date, so the next scheduled sweep ran again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
 - Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
 - Fix `VideoPlayerView` not resuming a looping video on macOS when the view is added back to a window – https://github.com/kean/Nuke/pull/951
 - Fix `ImagePrefetcher/didComplete` not being called when stopping prefetching cancels the last outstanding request – https://github.com/kean/Nuke/pull/968
 - Fix `ImageTask/events`, `ImageTask/progress`, and `ImageTask/previews` missing previews and progress updates sent before the subscription lands – https://github.com/kean/Nuke/pull/980
-- Fix a cancelled download keeping its `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` slot when a custom `DataLoading` doesn't call `completion` after `cancel()` – https://github.com/kean/Nuke/pull/989
-- Fix `ImagePipeline/data(for:)` and `ImagePrefetcher/Destination/diskCache` downloading a thumbnail or processed request again when the original data is in the disk cache – https://github.com/kean/Nuke/pull/1004
-- Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
 - Fix processed images and thumbnails built from an original in the disk cache never being stored in the disk cache under the `.automatic` and `.storeAll` policies – https://github.com/kean/Nuke/pull/1016
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
-- Fix a data race on `DataLoader/delegate` – https://github.com/kean/Nuke/pull/998
 - Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
-- Fix `DataCache` skipping the scheduled sweeps when the recorded last sweep date is in the future, e.g. after the device clock was corrected – https://github.com/kean/Nuke/pull/1024
 - Fix `LazyImage` starting a new request with the `pipeline`, `onStart`, and `onCompletion` from when the view last appeared, and ignoring a change of the pipeline alone – https://github.com/kean/Nuke/pull/1037
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
-- Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
-- Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
 - Fix `ImageDecoders/Default` previews ignoring the EXIF orientation, so a rotated progressive image snapped a quarter turn when the download completed – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageDecoders/Default` decoding full-size progressive previews for a request with `ImageRequest/thumbnail` set – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
-- Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
 
@@ -271,6 +260,25 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix the `crop` documentation of `ImageProcessors/Resize` saying the flag has no effect with `.aspectFill`; it has no effect with `.aspectFit` – https://github.com/kean/Nuke/pull/1021
 
 # Nuke 13
+
+## Nuke 13.2.2
+
+*Nov 5, 2026*
+
+- Fix a crash when replacing `DataLoader/delegate` while loading data – https://github.com/kean/Nuke/pull/998
+- Fix a crash when loading a video from a `Data` slice – https://github.com/kean/Nuke/pull/1082
+- Fix work added with a priority lower than `.normal`, including `ImagePrefetcher` by default, starting in reverse order – https://github.com/kean/Nuke/pull/981
+- Fix a cancelled download keeping its `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` slot when a custom `DataLoading` doesn't call `completion` after `cancel()` – https://github.com/kean/Nuke/pull/989
+- Fix `ImagePipeline/data(for:)` and `ImagePrefetcher/Destination/diskCache` downloading a thumbnail or processed request again when the original data is in the disk cache – https://github.com/kean/Nuke/pull/1004
+- Fix `ImageRequest/Options/returnCacheDataDontLoad` failing requests with processors even when the original image is cached – https://github.com/kean/Nuke/pull/1007
+- Fix `ImagePrefetcher` skipping images that only have a progressive preview in the memory cache – https://github.com/kean/Nuke/pull/1022
+- Fix `ImagePrefetcher/priority` updates being applied out of order, leaving the outstanding prefetches at a stale priority – https://github.com/kean/Nuke/pull/1022
+- Fix `ImageProcessors/GaussianBlur` returning a corrupted near-black image and allocating gigabytes of scratch memory for a radius of about `1544` or more – https://github.com/kean/Nuke/pull/1021
+- Fix `DataCache` skipping the scheduled sweeps when the recorded last sweep date is in the future, e.g. after the device clock was corrected – https://github.com/kean/Nuke/pull/1024
+- Fix `DataCache/sweep()` not recording the sweep date, so the next launch could sweep again within `DataCache/sweepInterval` – https://github.com/kean/Nuke/pull/932
+- Fix a data race on `DataLoader/prefersIncrementalDelivery` – https://github.com/kean/Nuke/pull/928
+- Fix a data race on `ImagePrefetcher/didComplete` – https://github.com/kean/Nuke/pull/929
+- Fix a data race on `ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled` – https://github.com/kean/Nuke/pull/901
 
 ## Nuke 13.2.1
 
