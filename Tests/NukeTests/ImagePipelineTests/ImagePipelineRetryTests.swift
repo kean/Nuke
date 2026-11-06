@@ -1024,6 +1024,73 @@ struct ImagePipelineRetryTests {
         #expect(decoders.count == 1)
     }
 
+    /// The retry can be of a different image, so a preview of the old bytes
+    /// that is still being decoded when it starts over doesn't get through.
+    @Test func previewOfTheBytesOfAFailedAttemptIsDropped() async throws {
+        // GIVEN a preview of the first attempt that is still being decoded
+        // when the retry starts over
+        let isDecoding = TestExpectation()
+        let decoding = DispatchSemaphore(value: 0)
+        let server = MockRangeServer(data: Test.data, validator: [:])
+        server.steps = [.fail(after: 3000), .stall(after: 3000)]
+        let observer = ImagePipelineObserver()
+        let pipeline = makePipeline(policy: .immediate(), delegate: observer) {
+            $0.dataLoader = server
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+            $0.makeImageDecoder = { _ in
+                BlockingPreviewDecoder {
+                    isDecoding.fulfill()
+                    decoding.wait()
+                }
+            }
+        }
+        let task = pipeline.imageTask(with: Test.request)
+        await isDecoding.wait()
+        await waitUntil { server.requests.count == 2 }
+        await drainPipeline()
+
+        // WHEN the decoding finishes
+        decoding.signal()
+        await Task { @ImagePipelineActor in
+            await pipeline.configuration.imageDecodingQueue.waitUntilAllOperationsAreFinished()
+        }.value
+        await drainPipeline()
+
+        // THEN
+        #expect(!observer.events.contains { if case .intermediateResponseReceived = $0 { true } else { false } })
+        task.cancel()
+    }
+
+    /// The preview policy is evaluated a limited number of times per download,
+    /// and a download that starts over is a new one.
+    @Test func previewPolicyIsEvaluatedAgainWhenTheRetryStartsOver() async throws {
+        // GIVEN a first attempt that evaluates the policy as many times as it
+        // can, and a retry that has to evaluate it twice to get previews
+        let data = Test.data(name: "progressive", extension: "jpeg")
+        let delegate = MockPreviewPolicyDelegate(policies: Array(repeating: .disabled, count: 7) + [.incremental])
+        let decodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
+        let pipeline = makePipeline(delegate: delegate) {
+            $0.dataLoader = PacedDataLoader(data: data, chunkSize: 1000, failAfter: [33000], decodingQueue: decodingQueue)
+            $0.imageDecodingQueue = decodingQueue
+            $0.isProgressiveDecodingEnabled = true
+            $0.progressiveDecodingInterval = 0
+        }
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        var previewCount = 0
+        for await event in task.events {
+            if case .preview = event { previewCount += 1 }
+        }
+
+        // THEN
+        #expect(task.status.result?.isSuccess == true)
+        #expect(task.status.retryCount == 1)
+        #expect(delegate.policyRequestCount >= 8)
+        #expect(previewCount > 0)
+    }
+
     // MARK: - Connectivity
 
     private func makeOfflinePipeline(_ observer: MockConnectivityObserver, policy: Policy) -> ImagePipeline {
@@ -1461,3 +1528,61 @@ private final class SuspendingSessionDelegate: NSObject, URLSessionDataDelegate,
         session.delegateQueue.isSuspended = true
     }
 }
+
+/// Decodes a preview, after calling `onPreview`, which can block.
+private struct BlockingPreviewDecoder: ImageDecoding {
+    let onPreview: @Sendable () -> Void
+
+    func decode(_ data: Data) throws -> ImageContainer {
+        ImageContainer(image: Test.image)
+    }
+
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        onPreview()
+        return ImageContainer(image: Test.image, isPreview: true)
+    }
+}
+
+/// Sends the chunks one at a time, each once the pipeline is done with the
+/// previous one, so none is skipped while a preview is being decoded.
+private final class PacedDataLoader: DataLoading, @unchecked Sendable {
+    private let data: Data
+    private let chunkSize: Int
+    private let decodingQueue: TaskQueue
+    /// The offset each request fails at. The ones after it are served.
+    private let failAfter: OSAllocatedUnfairLock<[Int]>
+
+    init(data: Data, chunkSize: Int, failAfter: [Int], decodingQueue: TaskQueue) {
+        self.data = data
+        self.chunkSize = chunkSize
+        self.failAfter = OSAllocatedUnfairLock(initialState: failAfter)
+        self.decodingQueue = decodingQueue
+    }
+
+    func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
+        let end = failAfter.withLock { $0.isEmpty ? nil : $0.removeFirst() }
+        let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
+        let chunks = _createChunks(for: data[0..<(end ?? data.count)], size: chunkSize)
+        let decodingQueue = self.decodingQueue
+        let task = Task {
+            for chunk in chunks {
+                didReceiveData(chunk, response)
+                await drainPipeline()
+                await Task { @ImagePipelineActor in
+                    await decodingQueue.waitUntilAllOperationsAreFinished()
+                }.value
+            }
+            completion(end == nil ? nil : URLError(.networkConnectionLost))
+        }
+        return PacedDataLoaderTask(task: task)
+    }
+}
+
+private struct PacedDataLoaderTask: Cancellable {
+    let task: Task<Void, Never>
+
+    func cancel() {
+        task.cancel()
+    }
+}
+
