@@ -26,9 +26,13 @@ final class MockConnectivityObserver: ConnectivityObserving, @unchecked Sendable
     private var _onChange: (@Sendable () -> Void)?
     private var _startCount = 0
     private var _stopCount = 0
+    private let reportsOnStart: Bool
 
-    init(isOnline: Bool) {
+    /// - parameter reportsOnStart: `false` to report the initial state only
+    /// on ``report()``, the way `NWPathMonitor` reports it a moment later.
+    init(isOnline: Bool, reportsOnStart: Bool = true) {
         self._isOnline = isOnline
+        self.reportsOnStart = reportsOnStart
     }
 
     func start(onChange: @escaping @Sendable () -> Void) {
@@ -36,7 +40,14 @@ final class MockConnectivityObserver: ConnectivityObserving, @unchecked Sendable
             _onChange = onChange
             _startCount += 1
         }
-        onChange()
+        if reportsOnStart {
+            onChange()
+        }
+    }
+
+    /// Reports the current state.
+    func report() {
+        lock.withLock { _onChange }?()
     }
 
     func stop() {
@@ -141,6 +152,35 @@ struct ConnectivityMonitorTests {
         observer.isOnline = true
 
         #expect(await long.value)
+    }
+
+    /// The first report of `NWPathMonitor` takes a moment, and a timeout can
+    /// run out before it. That says nothing about the device being offline.
+    @Test(arguments: [true, false])
+    func waitThatRunsOutBeforeTheFirstReportEndsWithIt(isOnline: Bool) async {
+        let observer = MockConnectivityObserver(isOnline: isOnline, reportsOnStart: false)
+        let monitor = ConnectivityMonitor { observer }
+        let task = Task { await monitor.waitUntilOnline(timeout: 0) }
+        await waitUntil { observer.startCount == 1 }
+        try? await Task.sleep(for: .milliseconds(20)) // The time runs out
+
+        observer.report()
+
+        #expect(await task.value == isOnline)
+        #expect(observer.stopCount == 1)
+    }
+
+    @Test func waitThatRanOutBeforeTheFirstReportEndsWhenCancelled() async {
+        let observer = MockConnectivityObserver(isOnline: true, reportsOnStart: false)
+        let monitor = ConnectivityMonitor { observer }
+        let task = Task { await monitor.waitUntilOnline(timeout: 0) }
+        await waitUntil { observer.startCount == 1 }
+        try? await Task.sleep(for: .milliseconds(20))
+
+        task.cancel()
+
+        #expect(await task.value == false)
+        #expect(observer.stopCount == 1)
     }
 
     @Test func observesAgainForTheNextWait() async {

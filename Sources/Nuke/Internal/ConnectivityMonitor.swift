@@ -26,7 +26,17 @@ final class ConnectivityMonitor {
 
     private let makeObserver: @Sendable () -> any ConnectivityObserving
     private var observer: (any ConnectivityObserving)?
+    /// Changes with every observer, so that a late call from one that was
+    /// already stopped is ignored.
+    private var observerID = 0
+    /// `false` until the observer reports the state for the first time.
+    private var isStateKnown = false
     private var waiters: [Int: UnsafeContinuation<Bool, Never>] = [:]
+    /// The waits whose time ran out before the observer reported anything.
+    /// `NWPathMonitor` takes a moment to report the first time, and until it
+    /// does, nothing says that the device is offline, so they end with that
+    /// report, whatever it says.
+    private var expiredWaiters: Set<Int> = []
     private var nextWaiterID = 0
 
     nonisolated init(makeObserver: @escaping @Sendable () -> any ConnectivityObserving) {
@@ -38,11 +48,10 @@ final class ConnectivityMonitor {
     func waitUntilOnline(timeout: TimeInterval) async -> Bool {
         let id = nextWaiterID
         nextWaiterID += 1
-        // Cancelling the timer ends the wait the same way running out of time
-        // does, so there is one path out of it.
         let timer = Task { @ImagePipelineActor in
             await Task.sleep(seconds: timeout)
-            self.finishWaiter(id, isOnline: false)
+            guard !Task.isCancelled else { return }
+            self.waiterDidTimeOut(id)
         }
         let isOnline = await withTaskCancellationHandler {
             await withUnsafeContinuation { continuation in
@@ -51,6 +60,7 @@ final class ConnectivityMonitor {
             }
         } onCancel: {
             timer.cancel()
+            Task { @ImagePipelineActor in self.finishWaiter(id, isOnline: false) }
         }
         timer.cancel()
         return isOnline
@@ -58,24 +68,38 @@ final class ConnectivityMonitor {
 
     private func startObservingIfNeeded() {
         guard observer == nil else { return }
+        observerID += 1
+        isStateKnown = false
+        let id = observerID
         let observer = makeObserver()
         self.observer = observer
         observer.start { [weak self] in
-            Task { @ImagePipelineActor in self?.didChangeConnectivity() }
+            Task { @ImagePipelineActor in self?.didChangeConnectivity(observerID: id) }
         }
     }
 
-    private func didChangeConnectivity() {
-        // Read the state instead of passing it along: the hops are unordered,
-        // and this one can even come from an observer that was already stopped.
-        guard observer?.isOnline == true else { return }
-        for id in waiters.keys {
-            finishWaiter(id, isOnline: true)
+    private func didChangeConnectivity(observerID: Int) {
+        // Read the state instead of passing it along: the hops are unordered.
+        guard observerID == self.observerID, let observer else { return }
+        isStateKnown = true
+        let isOnline = observer.isOnline
+        for id in waiters.keys where isOnline || expiredWaiters.contains(id) {
+            finishWaiter(id, isOnline: isOnline)
         }
+    }
+
+    private func waiterDidTimeOut(_ id: Int) {
+        guard isStateKnown else {
+            expiredWaiters.insert(id)
+            return
+        }
+        finishWaiter(id, isOnline: false)
     }
 
     private func finishWaiter(_ id: Int, isOnline: Bool) {
-        waiters.removeValue(forKey: id)?.resume(returning: isOnline)
+        expiredWaiters.remove(id)
+        guard let waiter = waiters.removeValue(forKey: id) else { return }
+        waiter.resume(returning: isOnline)
         if waiters.isEmpty {
             observer?.stop()
             observer = nil
