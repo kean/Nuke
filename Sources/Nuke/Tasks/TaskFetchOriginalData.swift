@@ -119,7 +119,7 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             self.tryToSaveResumableData()
             // A loader doesn't have to call the completion after `cancel()`,
             // so resume here to give back the data loading queue slot.
-            self.finishDataLoad(error: CancellationError())
+            self.finishDataLoad(error: CancellationError(), attempt: self.retryCount)
         }
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
@@ -178,7 +178,7 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             } else if let dataLoader = dataLoader as? DataLoader {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, priority: priority, didReceiveData: didReceiveData) { [weak self] error in
                     Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
+                        self?.finishDataLoad(error: error, attempt: attempt)
                     }
                 }
             } else {
@@ -201,14 +201,15 @@ final class TaskFetchOriginalData: AsyncFetchTask<(Data, URLResponse?)> {
             try dataTask(didReceiveData: chunk, response: response)
         } catch {
             dataLoadCancellable?.cancel()
-            finishDataLoad(error: error)
+            finishDataLoad(error: error, attempt: attempt)
         }
     }
 
-    /// - parameter attempt: The attempt the callback came from. `nil` if it
-    /// comes from the current one.
-    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil, attempt: Int? = nil) {
-        guard attempt == nil || attempt == retryCount, let continuation = dataLoadContinuation else { return }
+    /// - parameter attempt: The attempt the call comes from. Required, so that
+    /// no caller can forget it: the loader can complete an attempt the
+    /// pipeline already ended itself, and that must not end the next one.
+    private func finishDataLoad(error: Swift.Error?, urlSessionMetrics: URLSessionTaskMetrics? = nil, attempt: Int) {
+        guard attempt == retryCount, let continuation = dataLoadContinuation else { return }
         dataLoadContinuation = nil
         // Not for a cancellation, which is common and has no use for it.
         if error != nil, !isDisposed, let handle = dataLoadCancellable as? URLSessionTaskCancellable {

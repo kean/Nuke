@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import os
 @testable import Nuke
 
 /// Retries end-to-end. What a policy decides is in ``RetryPolicyTests``; this
@@ -760,6 +761,46 @@ struct ImagePipelineRetryTests {
         #expect(task.status.progress.completed == Test.data.count)
     }
 
+    /// The same with a `DataLoader`, which completes an attempt the pipeline
+    /// ended itself, here over the size limit, whenever `URLSession` gets to
+    /// it. Holding the session's queue makes that after the retry started.
+    @Test func dataLoaderCompletionOfAnAttemptThatWasEndedEarlyIsIgnored() async throws {
+        // GIVEN a first response that is over the size limit, and a retry
+        let attempts = EventCounter()
+        let retryStarted = TestExpectation()
+        let url = StubURLProtocol.register { stub in
+            attempts.increment()
+            if attempts.count == 1 {
+                stub.sendResponse(headers: ["Content-Length": "\(Test.data.count * 10)", "Content-Type": "image/jpeg"])
+                stub.send(Test.data)
+            } else {
+                retryStarted.fulfill()
+                stub.respond(chunks: [Test.data])
+            }
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let dataLoader = DataLoader(configuration: configuration)
+        dataLoader.delegate = SuspendingSessionDelegate()
+        let delegate = MockRetryDelegate { $0.retryCount == 0 ? .retry(after: 0) : .stop }
+        let pipeline = makePipeline(policy: nil, delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.maximumResponseDataSize = Test.data.count * 2
+            // Has the session deliver the chunk before the response ends
+            $0.isProgressiveDecodingEnabled = true
+        }
+        let task = pipeline.imageTask(with: url)
+
+        // WHEN the session completes the first attempt during the retry
+        await retryStarted.wait(timeout: .seconds(10))
+        dataLoader.session.delegateQueue.isSuspended = false
+
+        // THEN the retry isn't affected
+        _ = try await task.response
+        #expect(attempts.count == 2)
+        #expect(delegate.contexts.count == 1)
+    }
+
     // MARK: - Resumable Downloads
 
     @Test func retryResumesTheDownload() async throws {
@@ -1252,5 +1293,16 @@ struct ImagePipelineRetryTests {
 
         #expect(decoded.retryCount == 1)
         #expect(decoded.jobs.flatMap(\.stages).contains { $0.error?.code == "dataLoadingFailed" })
+    }
+}
+
+/// Suspends the session's delegate queue on the first chunk it receives, so
+/// that what the session reports after it waits until the test resumes it.
+private final class SuspendingSessionDelegate: NSObject, URLSessionDataDelegate, Sendable {
+    private let didSuspend = OSAllocatedUnfairLock(initialState: false)
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        guard !didSuspend.withLock({ defer { $0 = true }; return $0 }) else { return }
+        session.delegateQueue.isSuspended = true
     }
 }
