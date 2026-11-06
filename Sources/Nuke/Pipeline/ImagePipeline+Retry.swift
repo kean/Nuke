@@ -70,6 +70,9 @@ extension ImagePipeline {
         public var retryableURLErrorCodes: Set<URLError.Code>
 
         /// How long to wait before a retry.
+#if hasAttribute(nonexhaustive)
+        @nonexhaustive
+#endif
         public enum Backoff: Hashable, Sendable {
             /// The same delay before every retry, in seconds.
             case fixed(TimeInterval)
@@ -163,6 +166,9 @@ extension ImagePipeline {
     }
 
     /// What the pipeline does after an attempt to load an image fails.
+#if hasAttribute(nonexhaustive)
+    @nonexhaustive
+#endif
     public enum RetryDecision: Hashable, Sendable {
         /// Fails the request with the error of the last attempt.
         case stop
@@ -227,12 +233,18 @@ extension ImagePipeline {
             if let seconds = Int(value.trimmingCharacters(in: .whitespaces)) {
                 return TimeInterval(max(0, seconds))
             }
+            return Self.httpDateFormatter.date(from: value).map { max(0, $0.timeIntervalSinceNow) }
+        }
+
+        /// Creating a formatter costs more than parsing with one, and when a
+        /// host goes down, every image on the screen fails at the same time.
+        private static let httpDateFormatter: DateFormatter = {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
             formatter.timeZone = TimeZone(secondsFromGMT: 0)
             formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-            return formatter.date(from: value).map { max(0, $0.timeIntervalSinceNow) }
-        }
+            return formatter
+        }()
 
         /// `true` if the attempt failed because there is no way to reach the
         /// network, as opposed to the server being unreachable.
