@@ -858,7 +858,7 @@ struct ImagePipelineRetryTests {
         server.chunkSize = 3000
         server.steps = [.fail(after: data.count - 1000), .serve]
         let decoders = EventCounter()
-        let pipeline = makePipeline(policy: .immediate()) {
+        let pipeline = makePipeline(policy: .immediate(), delegate: RetryAfterDecodingDelegate()) {
             $0.dataLoader = server
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
@@ -890,7 +890,7 @@ struct ImagePipelineRetryTests {
         server.chunkSize = 3000
         server.steps = [.fail(after: 3000), .serve]
         let decoders = EventCounter()
-        let pipeline = makePipeline(policy: .immediate()) {
+        let pipeline = makePipeline(policy: .immediate(), delegate: RetryAfterDecodingDelegate()) {
             $0.dataLoader = server
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
@@ -905,6 +905,18 @@ struct ImagePipelineRetryTests {
 
         // THEN
         #expect(decoders.count == 2)
+    }
+
+    /// Holds the retry until the decoding of the failed attempt is over. A
+    /// chunk that arrives while a preview is being decoded is skipped, and the
+    /// mock sends all of them at once, so the retry could otherwise finish
+    /// without decoding a single preview, and never need a new decoder.
+    private final class RetryAfterDecodingDelegate: ImagePipeline.Delegate, Sendable {
+        @ImagePipelineActor
+        func retryDecision(for context: ImagePipeline.RetryContext, pipeline: ImagePipeline) async -> ImagePipeline.RetryDecision {
+            await pipeline.configuration.imageDecodingQueue.waitUntilAllOperationsAreFinished()
+            return context.policy?.decision(for: context) ?? .stop
+        }
     }
 
     @Test func retryThatResumesKeepsTheDecoder() async throws {
