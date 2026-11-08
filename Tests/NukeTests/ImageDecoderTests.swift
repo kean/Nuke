@@ -5,6 +5,7 @@
 import Testing
 import Foundation
 import ImageIO
+import UniformTypeIdentifiers
 @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
@@ -330,6 +331,122 @@ struct ImageDecoderTests {
         #expect(container.data == nil)
     }
 #endif
+
+    // MARK: - Thumbnail Request Previews
+
+    @Test func previewsOfAThumbnailRequestAreThumbnails() throws {
+        // A thumbnail request asks for a small image to save memory; a preview
+        // decoded at the full size of the image would undo that, and it can
+        // land in the memory cache under the thumbnail's key.
+        let data = Test.data(name: "progressive", extension: "jpeg")
+        var context = ImageDecodingContext.mock(data: data)
+        context.request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 64)
+        context.isCompleted = false
+        context.previewPolicy = .default(for: data)
+        #expect(context.previewPolicy == .incremental)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<20000]))
+        let final = try decoder.decode(data)
+
+        #expect(preview.isPreview)
+        #expect(preview.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(final.image.sizeInPixels == CGSize(width: 64, height: 43))
+        #expect(preview.image.sizeInPixels == final.image.sizeInPixels)
+    }
+
+    @Test func thumbnailFallbackOfAThumbnailRequestIsNoLargerThanTheThumbnail() throws {
+        // The fixture's embedded thumbnail takes bytes 202..<7256, and SOF2
+        // starts at 7394: in between, only the fallback can make a preview.
+        let data = Test.data(name: "tricky_progressive", extension: "jpeg")
+        var context = ImageDecodingContext.mock(data: data)
+        context.request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 64)
+        context.isCompleted = false
+        context.previewPolicy = .incremental
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<7300]))
+
+        #expect(max(preview.image.sizeInPixels.width, preview.image.sizeInPixels.height) <= 64)
+        #expect(decoder.numberOfScans == 1)
+    }
+
+    // MARK: - Preview Orientation
+
+    @Test func incrementalPreviewIsDisplayedWithTheOrientationOfTheFinalImage() throws {
+        // The final image comes from `UIImage(data:)` / `NSImage(data:)`, which
+        // apply the EXIF orientation. A preview that didn't would lie on its
+        // side until the download completes, then snap a quarter turn.
+        let data = makeRotatedJPEG(isProgressive: true)
+        var context = ImageDecodingContext.mock(data: data)
+        context.isCompleted = false
+        context.previewPolicy = .default(for: data)
+        #expect(context.previewPolicy == .incremental)
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data.prefix(data.count * 3 / 4)))
+        let final = try decoder.decode(data)
+
+        #expect(final.image.size == CGSize(width: 300, height: 400))
+        #expect(preview.image.size == final.image.size)
+#if canImport(UIKit)
+        // Carried by the image, as `UIImage(data:)` does, not baked into the pixels
+        #expect(preview.image.imageOrientation == .right)
+        #expect(preview.image.sizeInPixels == CGSize(width: 400, height: 300))
+#endif
+    }
+
+    @Test func thumbnailPolicyPreviewIsDisplayedWithTheOrientationOfTheFinalImage() throws {
+        let data = makeRotatedJPEG(isProgressive: false)
+        var context = ImageDecodingContext.mock(data: data)
+        context.isCompleted = false
+        context.previewPolicy = .thumbnail
+        let decoder = try #require(ImageDecoders.Default(context: context))
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data.prefix(data.count * 3 / 4)))
+        let final = try decoder.decode(data)
+
+        #expect(final.image.size == CGSize(width: 300, height: 400))
+        #expect(preview.image.size == final.image.size)
+    }
+
+    /// A 400×300 JPEG declaring orientation 6 (`.right`), displayed as
+    /// 300×400, with an embedded thumbnail for the `.thumbnail` policy.
+    private func makeRotatedJPEG(isProgressive: Bool) -> Data {
+        let context = CGContext(data: nil, width: 400, height: 300, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setFillColor(CGColor(red: 1, green: 0.5, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 400, height: 300))
+        context.setFillColor(CGColor(red: 0, green: 0, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 200, height: 100))
+        let output = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil)!
+        var properties: [CFString: Any] = [
+            kCGImagePropertyOrientation: CGImagePropertyOrientation.right.rawValue,
+            kCGImageDestinationEmbedThumbnail: true
+        ]
+        if isProgressive {
+            properties[kCGImagePropertyJFIFDictionary] = [kCGImagePropertyJFIFIsProgressive: true]
+        }
+        CGImageDestinationAddImage(destination, context.makeImage()!, properties as CFDictionary)
+        CGImageDestinationFinalize(destination)
+        return output as Data
+    }
+
+    // MARK: - GIF Preview Numbering
+
+    @Test func gifPreviewIsNumberedLikeAnyOther() throws {
+        // Documented on the decoder: the previews are numbered in the order
+        // they are produced, and the final image counts the ones before it.
+        let data = Test.data(name: "cat", extension: "gif")
+        let decoder = ImageDecoders.Default()
+
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[...60000]))
+        let final = try decoder.decode(data)
+
+        #expect(preview.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(final.userInfo[.scanNumberKey] as? Int == 1)
+        #expect(decoder.numberOfScans == 1)
+    }
 
     // MARK: - Invalid / Corrupted Data
 

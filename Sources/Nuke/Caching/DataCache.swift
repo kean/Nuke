@@ -133,23 +133,30 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func scheduleSweep() {
-        if let lastSweepDate = getMetadata().lastSweepDate {
-            let elapsed = Date().timeIntervalSince(lastSweepDate)
-            // A date ahead of the clock was recorded while the clock was wrong and
-            // must not hold the sweeps back until the clock catches up with it.
-            if elapsed >= 0 && elapsed < sweepInterval {
-                return // Already completed recently
-            }
-        }
+        // Read here, at init, as before: only the metadata read moves to the
+        // queue, where it doesn't block the thread creating the cache.
+        let sweepInterval = self.sweepInterval
         // Add a bit of a delay to free the resources during launch
         queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
-            guard let self, self.isSweepEnabled else { return }
+            guard let self, self.isSweepEnabled, self.isSweepNeeded(interval: sweepInterval) else { return }
             self.performSweep()
             self.updateMetadata {
                 $0.lastSweepDate = Date()
             }
             self.onSweepCompleted?()
         }
+    }
+
+    /// Returns `false` if a sweep was performed within the interval, e.g. by
+    /// the previous launch. Reads the metadata file, so it runs on ``queue``.
+    private func isSweepNeeded(interval: TimeInterval) -> Bool {
+        guard let lastSweepDate = getMetadata().lastSweepDate else {
+            return true
+        }
+        let elapsed = Date().timeIntervalSince(lastSweepDate)
+        // A date ahead of the clock was recorded while the clock was wrong and
+        // must not hold the sweeps back until the clock catches up with it.
+        return elapsed < 0 || elapsed >= interval
     }
 
     // MARK: DataCaching
@@ -334,14 +341,43 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         switch change.type {
         case let .add(data):
             do {
-                try data.write(to: url)
+                try write(data, to: url)
             } catch let error as NSError {
                 guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                try? data.write(to: url) // re-create a directory and try again
+                try? write(data, to: url) // re-create a directory and try again
             }
         case .remove:
             try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    /// Writes the data to a temporary file and renames it over the destination.
+    ///
+    /// The rename is what makes the write atomic, and it has to be: reads run
+    /// on the caller's thread, not on ``queue``, so a write that truncated the
+    /// file in place would hand a reader that missed the staging shortcut a
+    /// prefix of it. The rename swaps the two whole files instead.
+    ///
+    /// `Data.WritingOptions.atomic` does the same thing but is roughly twice as
+    /// slow, and the temporary file it creates is a regular one, so the
+    /// inspection API counts it as an entry while the write is in flight. This
+    /// one is hidden, which ``contents(keys:)`` already skips. Its name is
+    /// derived from the destination, so a process that dies mid-write leaves at
+    /// most one behind per key and the next write to that key reclaims it.
+    private func write(_ data: Data, to url: URL) throws {
+        let tempURL = url.deletingLastPathComponent()
+            .appendingPathComponent("." + url.lastPathComponent + ".tmp", isDirectory: false)
+        try data.write(to: tempURL)
+        let didRename = tempURL.withUnsafeFileSystemRepresentation { source in
+            url.withUnsafeFileSystemRepresentation { destination in
+                guard let source, let destination else { return false }
+                return rename(source, destination) == 0
+            }
+        }
+        guard didRename else {
+            try? FileManager.default.removeItem(at: tempURL)
+            throw CocoaError(.fileWriteUnknown)
         }
     }
 

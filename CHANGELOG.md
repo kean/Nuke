@@ -19,6 +19,20 @@
 
 # Nuke 13
 
+## Nuke 13.2.3
+
+*Nov 8, 2026*
+
+- Fix `DataCache` writing entries non-atomically, so a read that arrived while the same key was being overwritten could return a truncated file – https://github.com/kean/Nuke/pull/937
+- Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
+- Fix `DataCache.init` reading and decoding its metadata file on the calling thread, typically the main thread during app launch – https://github.com/kean/Nuke/pull/925
+- Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageDecoders/Default` previews ignoring the EXIF orientation, so a rotated progressive image snapped a quarter turn when the download completed – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` decoding full-size progressive previews for a request with `ImageRequest/thumbnail` set – https://github.com/kean/Nuke/pull/1029
+- Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
+- Fix the `crop` documentation of `ImageProcessors/Resize` saying the flag has no effect with `.aspectFill`; it has no effect with `.aspectFit` – https://github.com/kean/Nuke/pull/1021
+
 ## Nuke 13.2.2
 
 *Nov 2, 2026*

@@ -208,6 +208,21 @@ struct ImageProcessorsGaussianBlurTests {
         }
     }
 
+    @Test func extendedColorSpaceSupport() throws {
+        // GIVEN a Display P3 image
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        #expect(try #require(input.cgImage?.colorSpace).isWideGamutRGB)
+
+        // WHEN
+        let output = try #require(ImageProcessors.GaussianBlur(radius: 4).process(input))
+
+        // THEN the image keeps its wide-gamut color space instead of being
+        // clipped to device RGB
+        let colorSpace = try #require(output.cgImage?.colorSpace)
+        #expect(colorSpace.isWideGamutRGB)
+        #expect(output.cgImage?.isOpaque == true)
+    }
+
     @Test func smallRadiiProduceDifferentOutput() throws {
         // GIVEN - processors with distinct identifiers, so they must not
         // produce byte-identical output and populate the cache with duplicates

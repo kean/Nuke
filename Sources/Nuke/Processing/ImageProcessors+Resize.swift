@@ -18,6 +18,14 @@ extension ImageProcessors {
         private let contentMode: ImageProcessingOptions.ContentMode
         private let crop: Bool
         private let upscale: Bool
+        private let fit: Fit
+
+        /// Which dimensions of ``size`` constrain the output. `init(width:)`
+        /// and `init(height:)` fix one dimension and leave the other one to
+        /// follow the aspect ratio of the image.
+        private enum Fit {
+            case size, width, height
+        }
 
         /// Initializes the processor with the given size.
         ///
@@ -26,13 +34,18 @@ extension ImageProcessors {
         ///   - unit: Unit of the target size.
         ///   - contentMode: A target content mode.
         ///   - crop: If `true`, crops the image to exactly match the target size.
-        ///   Has no effect when `contentMode` is `.aspectFill`.
+        ///   Has no effect when `contentMode` is `.aspectFit`.
         ///   - upscale: By default, upscaling is not allowed.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+            self.init(size: size, unit: unit, contentMode: contentMode, crop: crop, upscale: upscale, fit: .size)
+        }
+
+        private init(size: CGSize, unit: ImageProcessingOptions.Unit, contentMode: ImageProcessingOptions.ContentMode, crop: Bool, upscale: Bool, fit: Fit) {
             self.size = ImageTargetSize(size: size, unit: unit)
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
+            self.fit = fit
         }
 
         /// Scales an image to the given width preserving aspect ratio.
@@ -42,7 +55,9 @@ extension ImageProcessors {
         ///   - unit: Unit of the target size.
         ///   - upscale: `false` by default.
         public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
-            self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
+            // The placeholder height is part of the identifier, and with it of
+            // the disk cache keys. `fit` keeps it from constraining the output.
+            self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale, fit: .width)
         }
 
         /// Scales an image to the given height preserving aspect ratio.
@@ -52,14 +67,27 @@ extension ImageProcessors {
         ///   - unit: Unit of the target size.
         ///   - upscale: By default, upscaling is not allowed.
         public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
-            self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
+            self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale, fit: .height)
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: size.cgSize, upscale: upscale)
             }
-            return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
+            return image.processed.byResizing(to: fittingSize, contentMode: contentMode, upscale: upscale)
+        }
+
+        /// The size to fit the image into, in pixels. `size` carries a
+        /// placeholder for the dimension that `init(width:)` and `init(height:)`
+        /// leave open, which would cap it and shrink tall or wide images below
+        /// the requested size, so it is swapped for an unbounded one here.
+        private var fittingSize: CGSize {
+            let size = size.cgSize
+            switch fit {
+            case .size: return size
+            case .width: return CGSize(width: size.width, height: .greatestFiniteMagnitude)
+            case .height: return CGSize(width: .greatestFiniteMagnitude, height: size.height)
+            }
         }
 
         public var identifier: String {
