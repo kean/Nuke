@@ -35,6 +35,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
     case priorityAndCoalescing = "priority-and-coalescing"
     case scrollStress = "scroll-stress"
     case animationLab = "animation-lab"
+    case lazyImageReuse = "lazy-image-reuse"
 
     var id: String { rawValue }
 
@@ -53,6 +54,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: "Priority & Coalescing"
         case .scrollStress: "Scroll Stress"
         case .animationLab: "Animation Lab"
+        case .lazyImageReuse: "LazyImage Reuse"
         }
     }
 
@@ -72,6 +74,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
+        case .lazyImageReuse: "Memory cache hits in the first body, across reuse"
         }
     }
 
@@ -82,7 +85,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .imageFormats, .animatedImages, .progressiveDecoding, .video: .formats
         case .prefetching, .decompression: .performance
         case .customDecoder: .integration
-        case .priorityAndCoalescing, .scrollStress, .animationLab: .lab
+        case .priorityAndCoalescing, .scrollStress, .animationLab, .lazyImageReuse: .lab
         }
     }
 
@@ -104,6 +107,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .priorityAndCoalescing: PriorityCoalescingDemo()
         case .scrollStress: ScrollStressDemo()
         case .animationLab: AnimationLabDemo()
+        case .lazyImageReuse: LazyImageReuseDemo()
         }
     }
 }

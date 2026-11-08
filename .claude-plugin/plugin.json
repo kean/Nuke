@@ -7,5 +7,6 @@
   },
   "homepage": "https://github.com/kean/Nuke",
   "repository": "https://github.com/kean/Nuke",
-  "license": "MIT"
+  "license": "MIT",
+  "skills": "./Skills/"
 }

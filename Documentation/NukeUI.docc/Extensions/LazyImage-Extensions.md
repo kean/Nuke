@@ -16,7 +16,7 @@ The view is called "lazy" because it loads the image only when it appears on the
 
 > Tip: To change the `onDisappear` behavior, use ``LazyImage/onDisappear(_:)``.
 
-Until the image loads, the view displays a standard placeholder that fills the available space, just like [AsyncImage](https://developer.apple.com/documentation/SwiftUI/AsyncImage) does. After the load completes successfully, the view updates to display the image.
+Until the image loads, the view displays a standard placeholder that fills the available space, just like [AsyncImage](https://developer.apple.com/documentation/SwiftUI/AsyncImage) does. After the load completes successfully, the view updates to display the image. An image that is already in the memory cache is displayed by the first update, with no placeholder before it. The disk cache is read off the main thread, so an image that is only there shows the placeholder first.
 
 ![nukeui demo](nukeui-preview)
 

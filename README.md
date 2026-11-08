@@ -76,7 +76,7 @@ The package ships with four modules that you can install depending on your needs
 
 Nuke ships with what a coding agent needs to use its current API, and not the one it remembers.
 
-- **Skills**: [`nuke-optimize`](skills/nuke-optimize) measures and fixes slow images, and [`nuke-migrate`](skills/nuke-migrate) upgrades an app to Nuke 14, including what the compiler can't report. In Claude Code, run the commands below. For other agents, copy the folders to `.agents/skills/` in your project.
+- **Skills**: [`nuke-optimize`](Skills/nuke-optimize) measures and fixes slow images, and [`nuke-migrate`](Skills/nuke-migrate) upgrades an app to Nuke 14, including what the compiler can't report. In Claude Code, run the commands below. For other agents, copy the folders to `.agents/skills/` in your project.
 
   ```
   /plugin marketplace add kean/Nuke

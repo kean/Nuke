@@ -171,28 +171,69 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
+        let update = Update(view: self)
         ZStack {
+            let state: LazyImageState = update.memoryCacheHit.map(MemoryCacheHit.init) ?? viewModel
             if let makeContent {
-                makeContent(viewModel)
+                makeContent(state)
             } else {
-                makeDefaultContent(for: viewModel)
+                makeDefaultContent(for: state)
             }
         }
-        .onAppear { onAppear() }
+        .onAppear { update.view.onAppear(update) }
         .onDisappear { onDisappear() }
 #if os(visionOS)
         // The one-parameter form is deprecated in every visionOS. This one
         // calls the closure of the current update, not the previous one, but
         // reads nothing from `self`, so the two behave the same.
-        .onChange(of: Update(view: self)) { _, update in update.view.onChange(to: update.context, pipeline: update.pipeline) }
+        .onChange(of: update) { _, update in update.view.onChange(update) }
 #else
-        .onChange(of: Update(view: self)) { $0.view.onChange(to: $0.context, pipeline: $0.pipeline) }
+        .onChange(of: update) { $0.view.onChange($0) }
 #endif
     }
 
-    /// The view as of an update, compared by what it loads. The action of
-    /// `onChange(of:perform:)` is the closure from the previous update, so the
-    /// view reads its current options from here and not from that `self`.
+    /// Returns the image to draw ahead of the load that follows this update:
+    /// the memory cache's, if it has one, so that this update already shows it
+    /// and not a placeholder, the previous image, or the failure of a load
+    /// that ran before the view went off screen.
+    ///
+    /// `onAppear` or `onChange` then loads the same image, to report it like
+    /// any other load, and passes it along so that it stays even if the cache
+    /// has lost it by then. That load publishes the image, which costs a second
+    /// render of what's on screen: `FetchImage` can't take it silently because
+    /// a `@Published` property always notifies, and they are its public API.
+    ///
+    /// Only the memory cache: it takes about a microsecond, and the disk cache
+    /// takes a read and a decode, which the load does off the main thread. On
+    /// a miss the load looks again, because the view can sit between its body
+    /// and `onAppear` long enough for a prefetcher to put the image there.
+    private func memoryCacheHit(for context: LazyImageContext?, pipeline: ImagePipeline) -> ImageResponse? {
+        guard let context, willLoad(context, pipeline: pipeline) else { return nil }
+        // The request as the load resolves it: the view model's priority is
+        // the request's own by then, and it never has processors of its own.
+        let request = context.request
+        guard let container = pipeline.cache[request], !container.isPreview else { return nil }
+        return ImageResponse(container: container, request: request, cacheType: .memory)
+    }
+
+    /// Returns `true` if `onAppear` or `onChange` loads the request after the
+    /// update. A hit drawn without a load would never be reported, and would
+    /// go as soon as the cache lets go of it.
+    private func willLoad(_ context: LazyImageContext, pipeline: ImagePipeline) -> Bool {
+        guard isLoaded(context, pipeline: pipeline) else {
+            return true // `onChange` loads it, or `onAppear` for a new view
+        }
+        // `onAppear` loads it again, unless it's still loading or already has
+        // the image. A view on screen doesn't load what it has loaded.
+        if viewModel.isOnScreen || viewModel.isLoading { return false }
+        if case .success? = viewModel.result { return false }
+        return true
+    }
+
+    /// The view as of an update, compared by what it loads and the image it
+    /// draws from the memory cache. The action of `onChange(of:perform:)` is
+    /// the closure from the previous update, so the view reads its current
+    /// options from here and not from that `self`.
     private struct Update: Equatable {
         let view: LazyImage
         /// The request with the modifiers applied, made once per update. It
@@ -203,16 +244,28 @@ public struct LazyImage<Content: View>: View {
         /// reason. The environment is only read in `body`, and the action runs
         /// later.
         let pipeline: ImagePipeline
+        /// What this update draws instead of the view model's state, and the
+        /// load that follows it finishes with.
+        let memoryCacheHit: ImageResponse?
 
         @MainActor
         init(view: LazyImage) {
+            let context = view.overrides.applied(to: view.context)
+            let pipeline = view.resolvedPipeline
             self.view = view
-            self.context = view.overrides.applied(to: view.context)
-            self.pipeline = view.resolvedPipeline
+            self.context = context
+            self.pipeline = pipeline
+            self.memoryCacheHit = view.memoryCacheHit(for: context, pipeline: pipeline)
         }
 
+        /// The image counts because SwiftUI keeps an older value for as long
+        /// as it compares equal to the new one, and one that held a hit would
+        /// keep its image after the view model and the cache let go of it. It
+        /// costs an `onChange` after the load that finishes with the hit, which
+        /// finds the request loaded.
         static func == (lhs: Update, rhs: Update) -> Bool {
             lhs.context == rhs.context && lhs.pipeline === rhs.pipeline
+                && lhs.memoryCacheHit?.container.image === rhs.memoryCacheHit?.container.image
         }
     }
 
@@ -230,29 +283,32 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    private func onAppear() {
-        let context = overrides.applied(to: context)
+    private func onAppear(_ update: Update) {
+        viewModel.isOnScreen = true
+        // Read again: `.shared` can be assigned between the body and here. The
+        // image the body drew only stands if it came from the same pipeline.
         let pipeline = resolvedPipeline
+        let memoryCacheHit = pipeline === update.pipeline ? update.memoryCacheHit : nil
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
-        let isStillLoading = viewModel.isLoading && isLoaded(context, pipeline: pipeline)
+        let isStillLoading = viewModel.isLoading && isLoaded(update.context, pipeline: pipeline)
         configure(pipeline: pipeline)
         // Undo the priority lowered by the `.lowerPriority` disappear behavior.
-        viewModel.priority = context?.request.priority
+        viewModel.priority = update.context?.request.priority
         if !isStillLoading {
-            viewModel.load(context?.request)
+            viewModel.load(update.context?.request, memoryCacheHit: memoryCacheHit)
         }
     }
 
-    private func onChange(to context: LazyImageContext?, pipeline: ImagePipeline) {
-        let isAlreadyLoaded = isLoaded(context, pipeline: pipeline)
-        configure(pipeline: pipeline)
+    private func onChange(_ update: Update) {
+        let isAlreadyLoaded = isLoaded(update.context, pipeline: update.pipeline)
+        configure(pipeline: update.pipeline)
         // Before the load, which would otherwise start with the priority of
         // the previous request. If it's only the priority that changed, this
         // is all there is to do.
-        viewModel.priority = context?.request.priority
+        viewModel.priority = update.context?.request.priority
         if !isAlreadyLoaded {
-            viewModel.load(context?.request)
+            viewModel.load(update.context?.request, memoryCacheHit: update.memoryCacheHit)
         }
     }
 
@@ -271,6 +327,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onDisappear() {
+        viewModel.isOnScreen = false
         guard let behavior = onDisappearBehavior else { return }
         switch behavior {
         case .cancel:
@@ -279,6 +336,17 @@ public struct LazyImage<Content: View>: View {
             viewModel.priority = .veryLow
         }
     }
+}
+
+/// The state of a load that found its image in the memory cache, the way
+/// `FetchImage` reports it once it has loaded it.
+private struct MemoryCacheHit: LazyImageState {
+    let response: ImageResponse
+
+    var result: Result<ImageResponse, ImagePipeline.Error>? { .success(response) }
+    var imageContainer: ImageContainer? { response.container }
+    var isLoading: Bool { false }
+    var progress: ImageTask.Progress { ImageTask.Progress(completed: 0, total: 0) }
 }
 
 /// What the `processors` and `priority` modifiers set. `nil` leaves the

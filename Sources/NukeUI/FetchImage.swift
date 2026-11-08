@@ -99,6 +99,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// from an async function.
     var currentRequest: ImageRequest? { loader.state.request }
 
+    /// Whether the `LazyImage` that owns it is on screen: set by its
+    /// `onAppear` and cleared by its `onDisappear`. Not published, because the
+    /// view only reads it in the next body, and changing it draws nothing.
+    var isOnScreen = false
+
     /// Initializes the image. To load an image, use one of the `load()` methods.
     public init() {
         loader.onUpdate = { [weak self] in self?.apply($0) }
@@ -124,6 +129,13 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
         loader.load(request)
+    }
+
+    /// Loads the request, and finishes with `memoryCacheHit` if it's set: the
+    /// image that the view has already drawn (see
+    /// ``ImageLoader/load(_:memoryCacheHit:)``).
+    func load(_ request: ImageRequest?, memoryCacheHit: ImageResponse?) {
+        loader.load(request, memoryCacheHit: memoryCacheHit)
     }
 
     // MARK: Load (Async/Await)

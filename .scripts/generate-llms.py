@@ -30,7 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_URL = "https://raw.githubusercontent.com/kean/Nuke/main"
-SKILLS = ROOT / "skills"
+SKILLS = ROOT / "Skills"
 # The order of the skills in llms-full.txt, where they go after the articles.
 SKILL_ORDER = ["nuke-optimize", "nuke-migrate"]
 SNIPPETS = ROOT / "Tests/DocumentationSnippets/Snippets"
@@ -388,8 +388,8 @@ What you remember about Nuke is likely out of date. In particular:
 
 ## Guides
 
-- [Optimizing Nuke]({RAW_URL}/skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
-- [Migrating to Nuke 14]({RAW_URL}/skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
+- [Optimizing Nuke]({RAW_URL}/Skills/nuke-optimize/SKILL.md): How to measure, how to read the numbers, what to fix in what order, and the defaults to leave alone
+- [Migrating to Nuke 14]({RAW_URL}/Skills/nuke-migrate/SKILL.md): Upgrade steps, and what the compiler can't report
 - [Everything in one file]({RAW_URL}/llms-full.txt): The guides, every article, and the migration guide
 - [API reference]({RAW_URL}/llms-api.txt): The signature and the summary of every public declaration
 - [{title_of(guide)}]({migration_url}): What changed since Nuke 13

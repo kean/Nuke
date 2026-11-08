@@ -299,21 +299,21 @@ struct ResizeStills: ImageProcessing {
 - For a screen full of animations, show stills until someone asks: use `state.image` in the `content` closure of `LazyImage`, or set `isPlaybackEnabled = false` on `AnimatedImageView`.
 - The frames share a pool, `AnimatedImageFramePool`, sized at 5% of the device's memory, up to 128 MB. An animation that doesn't fit plays from a window of three frames, and pays to decode them on every loop.
 
-## Leave these alone
+## What not to do
 
-Each of these has been measured, or exists for a reason. If the code has changed one, find out why, and restore the default unless it's explained.
+Each of these looks like it would make images faster, and doesn't: the defaults have been measured, or exist for a reason. Don't make these changes. If the code already has one, find out why, and restore the default unless there's a reason that still holds.
 
-| Setting | Don't |
+| Don't | Why |
 |---|---|
-| `isTaskCoalescingEnabled` | Turn it off. It's why two views of one image make one download |
-| `isResumableDataEnabled` | Turn it off. It costs nothing unless a download is interrupted |
-| `isDecompressionEnabled`, `.skipDecompression` | Disable them on iOS. The decode moves to the main thread, at the first draw |
-| `isUsingPrepareForDisplay` | Disable it. It made decoding 41–45% faster on an iOS simulator |
-| `dataLoadingQueue` | Raise it past 6. In a simulation with shared bandwidth, 7 slots saved 7% for large images and nothing on HTTP/1.1. Use `reservedTaskCount` instead |
-| `imageProcessingQueue`, `imageDecompressingQueue` | Raise them. They compete with the main thread for CPU |
-| `isProgressiveDecodingEnabled` | Enable it for thumbnails. A progressive JPEG or a GIF gets decoded again every 0.5 s of its download |
-| `isAnimatedImageParsingEnabled` | Disable it for speed. It only runs for animated data |
-| `LazyImage` | Replace it with something hand-written for speed. It costs about 80 µs a cell over a plain `Image`, and the time is elsewhere |
+| Turn off `isTaskCoalescingEnabled` | It's why two views of one image make one download |
+| Turn off `isResumableDataEnabled` | It costs nothing unless a download is interrupted |
+| Turn off `isDecompressionEnabled`, or add `.skipDecompression`, on iOS | The decode moves to the main thread, at the first draw |
+| Turn off `isUsingPrepareForDisplay` | It made decoding 41–45% faster on an iOS simulator |
+| Raise `dataLoadingQueue` past 6 | In a simulation with shared bandwidth, 7 slots saved 7% for large images and nothing on HTTP/1.1. Use `reservedTaskCount` instead |
+| Raise `imageProcessingQueue` or `imageDecompressingQueue` | They compete with the main thread for CPU |
+| Turn on `isProgressiveDecodingEnabled` for thumbnails | A progressive JPEG or a GIF gets decoded again every 0.5 s of its download |
+| Turn off `isAnimatedImageParsingEnabled` for speed | It only runs for animated data |
+| Replace `LazyImage` with a view of your own for speed | It costs about 50 µs a cell over a plain `Image` on an iOS simulator, and the time is elsewhere |
 
 ## Report
 

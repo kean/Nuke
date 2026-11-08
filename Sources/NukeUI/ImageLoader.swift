@@ -168,6 +168,19 @@ public final class ImageLoader {
     /// - returns: A handle to the load, to await its outcome or cancel it.
     @discardableResult
     public func load(_ request: ImageRequest?) -> Handle {
+        load(request, memoryCacheHit: nil)
+    }
+
+    /// Loads an image with the given request. If `memoryCacheHit` is set, the
+    /// load finishes with it and doesn't check the memory cache: the caller
+    /// has already shown it, and the cache can have lost it since.
+    ///
+    /// The caller has to look it up for the request as the loader resolves it,
+    /// and only when the loader isn't loading that image already: the running
+    /// task would be kept, and a caller that drew the hit as finished would
+    /// see it go back to loading.
+    @discardableResult
+    func load(_ request: ImageRequest?, memoryCacheHit: ImageResponse?) -> Handle {
         // A load that finishes before this method returns needs no `Outcome`:
         // its handle just holds the result.
         guard let request else {
@@ -182,16 +195,20 @@ public final class ImageLoader {
 
         let resolved = resolve(request)
         if let handle = continueTask(loading: resolved, request: request) {
+            assert(memoryCacheHit == nil, "The caller drew an image as loaded while it's still loading")
             return handle
+        }
+        if let memoryCacheHit {
+            assert(!memoryCacheHit.container.isPreview && memoryCacheHit.request.loadsSameImage(as: resolved), "The memory cache hit isn't the final image of this request")
         }
 
         let previousImage = keepsPreviousImage ? state.imageContainer : nil
         cancelTask()
 
         // Quick synchronous memory cache lookup.
-        let cached = pipeline.cache[resolved]
+        let cached = memoryCacheHit?.container ?? pipeline.cache[resolved]
         if let container = cached, !container.isPreview {
-            let response = ImageResponse(container: container, request: resolved, cacheType: .memory)
+            let response = memoryCacheHit ?? ImageResponse(container: container, request: resolved, cacheType: .memory)
             var state = State()
             state.event = .finished(.success(response), isSynchronous: true)
             state.request = request
