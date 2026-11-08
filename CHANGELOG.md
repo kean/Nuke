@@ -243,6 +243,9 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix `ImageResponse/request` of a freshly processed image missing the processors – https://github.com/kean/Nuke/pull/1032
+- Fix a thumbnail request re-downloading the image when its disk cache entry can't be decoded, although the original image data is in the disk cache – https://github.com/kean/Nuke/pull/1032
+- Fix the `ImageRequest/init(id:image:processors:priority:options:)` documentation claiming the image is never stored in the disk cache; it is encoded and stored according to `ImagePipeline/DataCachePolicy` like other local resources – https://github.com/kean/Nuke/pull/1032
 
 ### Documentation
 
