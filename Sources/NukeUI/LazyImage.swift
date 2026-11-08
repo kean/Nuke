@@ -121,6 +121,34 @@ public struct LazyImage<Content: View>: View {
         map { $0.overrides.priority = priority }
     }
 
+    /// Sets the dynamic range to show the image in, and the one to load it in
+    /// to match, replacing the ``ImageRequest/dynamicRange`` of the request.
+    /// `nil` keeps the request's own.
+    ///
+    /// ```swift
+    /// LazyImage(url: url)
+    ///     .priority(.high)
+    ///     .allowedDynamicRange(.high)
+    /// ```
+    ///
+    /// Call it last: it returns a plain view, which is what spares every other
+    /// `LazyImage` a modifier in its `body`. The options set after it wouldn't
+    /// be options of the `LazyImage`.
+    ///
+    /// - note: A request with processors stays in the standard range, see
+    /// ``ImageRequest/dynamicRange``.
+#if !os(watchOS)
+    @available(iOS 17, tvOS 17, macOS 14, visionOS 1, *)
+    public consuming func allowedDynamicRange(_ range: Image.DynamicRange?) -> some View {
+        var copy = self
+        if let range {
+            copy.overrides.dynamicRange = range == .standard ? .standard : .high
+        }
+        // The same as the modifier of `View`, which this method hides.
+        return copy.environment(\.allowedDynamicRange, range)
+    }
+#endif
+
     /// Changes the underlying pipeline used for image loading.
     ///
     /// This takes precedence over the pipeline in the environment, which is set
@@ -281,18 +309,20 @@ public struct LazyImage<Content: View>: View {
     }
 }
 
-/// What the `processors` and `priority` modifiers set. `nil` leaves the
-/// request's own value. The modifiers store their arguments here instead of
-/// writing them into the request, so that the last call wins and a later
-/// `nil` takes back an earlier value.
+/// What the `processors`, `priority`, and `allowedDynamicRange` modifiers set.
+/// `nil` leaves the request's own value. The modifiers store their arguments
+/// here instead of writing them into the request, so that the last call wins
+/// and a later `nil` takes back an earlier value.
 private struct Overrides {
     var processors: [any ImageProcessing]?
     var priority: ImageRequest.Priority?
+    var dynamicRange: ImageRequest.DynamicRange?
 
     func applied(to context: LazyImageContext?) -> LazyImageContext? {
-        guard var context, processors != nil || priority != nil else { return context }
+        guard var context, processors != nil || priority != nil || dynamicRange != nil else { return context }
         if let processors { context.request.processors = processors }
         if let priority { context.request.priority = priority }
+        if let dynamicRange { context.request.dynamicRange = dynamicRange }
         return context
     }
 }
