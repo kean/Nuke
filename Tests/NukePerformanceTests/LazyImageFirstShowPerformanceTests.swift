@@ -27,18 +27,21 @@ final class LazyImageFirstShowPerformanceTests {
 
     private let requests: [ImageRequest]
     private let image = ImageContainer(image: PlatformImage())
+    /// The cells load from `.shared`, the way an app's do. The suite empties
+    /// the cache it filled even if `.shared` is replaced by then.
+    private let cache = ImagePipeline.shared.cache
 
     init() {
         requests = (0..<Self.cellCount).map { ImageRequest(url: URL(string: "http://test.com/first-show/\($0)")!) }
         for request in requests {
-            ImagePipeline.shared.cache[request] = image
+            cache[request] = image
         }
     }
 
     // Not isolated: Swift Testing releases the suite off the main actor.
     deinit {
         for request in requests {
-            ImagePipeline.shared.cache[request] = nil
+            cache[request] = nil
         }
     }
 

@@ -626,6 +626,10 @@ struct LazyImageTests {
     }
 
     @Test func memoryCacheHitPlaysInTheFirstBodyOfTheDefaultContent() async {
+        // The settings are the process's, so the next test gets them back.
+        let settings = AnimatedImageAutoPlaySettings.shared
+        let (isAutoPlayEnabled, isReduceMotionEnabled) = (settings.isAutoPlayEnabled, settings.isReduceMotionEnabled)
+        defer { settings.update(isAutoPlayEnabled: isAutoPlayEnabled, isReduceMotionEnabled: isReduceMotionEnabled) }
         AnimatedImageAutoPlaySettings.allowPlayback()
         var container = ImageContainer(image: Test.rgbImage(width: 8, height: 8), data: Test.animatedGIF())
         container.animation = Test.animatedGIFSource()
