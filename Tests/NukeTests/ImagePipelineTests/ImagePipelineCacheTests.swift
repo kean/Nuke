@@ -346,6 +346,72 @@ struct ImagePipelineCacheTests {
         #expect(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)) != nil)
     }
 
+    @Test func storeCachedImageEncodesOnceWhenStoredInDiskCache() {
+        // GIVEN
+        let encoder = MockImageEncoder(result: Test.data)
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageEncoder = { _ in encoder }
+        }
+
+        // WHEN
+        pipeline.cache.storeCachedImage(Test.container, for: Test.request)
+
+        // THEN
+        #expect(encoder.encodeCount == 1)
+        #expect(diskCache.cachedData(for: pipeline.cache.makeDataCacheKey(for: Test.request)) == Test.data)
+    }
+
+    @Test func storeCachedImageIsNotEncodedWhenNoDataCache() {
+        // GIVEN the default configuration: memory cache only
+        let encoder = MockImageEncoder(result: Test.data)
+        let pipeline = pipeline.reconfigured {
+            $0.dataCache = nil
+            $0.makeImageEncoder = { _ in encoder }
+        }
+
+        // WHEN
+        pipeline.cache.storeCachedImage(Test.container, for: Test.request)
+
+        // THEN there is nothing to store the encoded data in
+        #expect(pipeline.cache.cachedImage(for: Test.request, caches: [.memory]) != nil)
+        #expect(encoder.encodeCount == 0)
+    }
+
+    @Test func storeCachedImageIsNotEncodedWhenDelegateReturnsNoDataCache() {
+        // GIVEN
+        let encoder = MockImageEncoder(result: Test.data)
+        let delegate = MockCachingDelegate()
+        delegate.dataCache = { _ in nil }
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.imageCache = memoryCache
+            $0.dataCache = diskCache
+            $0.makeImageEncoder = { _ in encoder }
+        }
+
+        // WHEN
+        pipeline.cache.storeCachedImage(Test.container, for: Test.request)
+
+        // THEN
+        #expect(diskCache.store.isEmpty)
+        #expect(encoder.encodeCount == 0)
+    }
+
+    @Test func storeCachedImageIsNotEncodedWhenDiskCacheWritesDisabled() {
+        // GIVEN
+        let encoder = MockImageEncoder(result: Test.data)
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageEncoder = { _ in encoder }
+        }
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
+
+        // WHEN
+        pipeline.cache.storeCachedImage(Test.container, for: request)
+
+        // THEN nothing is stored, so nothing is encoded
+        #expect(diskCache.store.isEmpty)
+        #expect(encoder.encodeCount == 0)
+    }
+
     @Test func storeCachedImagePreviewInMemoryCacheWhenEnabled() throws {
         // GIVEN
         let pipeline = pipeline.reconfigured {
@@ -481,6 +547,30 @@ struct ImagePipelineCacheTests {
 
         // WHEN/THEN
         #expect(!pipeline.cache.containsData(for: Test.request))
+    }
+
+    @Test func containsWhenDiskCacheReadsDisabled() {
+        // GIVEN data in the disk cache
+        cache.storeCachedData(Test.data, for: Test.request)
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
+
+        // THEN the disk layer is invisible to the request, as it is for `cachedData`
+        #expect(cache.cachedData(for: request) == nil)
+        #expect(cache.cachedImage(for: request, caches: [.disk]) == nil)
+        #expect(!cache.containsCachedImage(for: request))
+        #expect(!cache.containsCachedImage(for: request, caches: [.disk]))
+        #expect(!cache.containsData(for: request))
+    }
+
+    @Test func containsWhenCachePolicyPreventsLookup() {
+        // GIVEN an image in both layers
+        cache.storeCachedImage(Test.container, for: Test.request)
+        let request = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
+
+        // THEN
+        #expect(cache.cachedImage(for: request) == nil)
+        #expect(!cache.containsCachedImage(for: request))
+        #expect(!cache.containsData(for: request))
     }
 
     // MARK: Remove
