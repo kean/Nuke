@@ -78,8 +78,15 @@ extension ImageTask {
         /// The image the task produced.
         public let image: ImageSummary?
         /// Every job the task waited on, root first. Copies, each stamped with
-        /// the time this task reached it.
+        /// the time this task reached it. A task that fell back has the jobs of
+        /// every source, in the order it tried them.
         public let jobs: [ImagePipeline.Diagnostics.Job]
+        /// The moves from a source that failed to the next one, in the order
+        /// they happened. `nil` if the source of the request didn't fail, or
+        /// if it had nothing to fall back to.
+        ///
+        /// - seealso: ``ImageRequest/alternatives``, ``ImageRequest/lowDataURL``
+        public let fallbacks: [Fallback]?
 
         init(
             schemaVersion: Int,
@@ -101,7 +108,8 @@ extension ImageTask {
             priorityHistory: [ImagePipeline.Diagnostics.PriorityChange],
             bytes: Bytes?,
             image: ImageSummary?,
-            jobs: [ImagePipeline.Diagnostics.Job]
+            jobs: [ImagePipeline.Diagnostics.Job],
+            fallbacks: [Fallback]? = nil
         ) {
             self.schemaVersion = schemaVersion
             self.pipelineID = pipelineID
@@ -123,6 +131,7 @@ extension ImageTask {
             self.bytes = bytes
             self.image = image
             self.jobs = jobs
+            self.fallbacks = fallbacks
         }
 
         /// The kind of a task.
@@ -157,6 +166,19 @@ extension ImageTask {
             public let options: [String]
             /// The priority the request was created with.
             public let priority: ImageRequest.Priority
+        }
+
+        /// A move from a source that failed to the next one.
+        public struct Fallback: Codable, Sendable {
+            /// When the task moved on, in seconds since 1970.
+            public let at: TimeInterval
+            /// The URL the task moved on to, with its query. `nil` if the
+            /// source isn't a URL.
+            public let url: String?
+            /// The ``ImageRequest/imageID`` of the source the task moved on to.
+            public let imageID: String?
+            /// The error of the source that failed.
+            public let error: ImagePipeline.Diagnostics.ErrorSummary
         }
 
         /// The bytes of a download.
@@ -205,7 +227,7 @@ extension ImageTask.Metrics {
     /// its download stage. `nil` if the data loader isn't a ``DataLoader``,
     /// or if the task ended before the download did.
     public var urlSessionMetrics: ImagePipeline.Diagnostics.URLSessionMetrics? {
-        for job in jobs {
+        for job in jobs.reversed() { // The source a task fell back to comes last
             for stage in job.stages {
                 if let metrics = stage.urlSessionMetrics {
                     return metrics

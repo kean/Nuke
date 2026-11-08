@@ -73,6 +73,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         case .urlRequest(let urlRequest): return urlRequest
         case .data: return nil
         case .image: return nil
+        case let .fallbacks(resource, fallbacks): return fallbacks.urlRequest(for: resource)
         }
     }
 
@@ -85,6 +86,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         case .urlRequest(let request): return request.url
         case .data: return nil
         case .image: return nil
+        case let .fallbacks(resource, _): return resource.urlWithoutFallbacks
         }
     }
 
@@ -142,6 +144,62 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     public var thumbnail: ThumbnailOptions? {
         get { ref.thumbnail }
         set { mutate { $0.thumbnail = newValue } }
+    }
+
+    /// The sources to load the image from if the request's own source fails,
+    /// in the order to try them. Empty by default.
+    ///
+    /// ```swift
+    /// var request = ImageRequest(url: URL(string: "https://cdn.example.com/photo.jpeg"))
+    /// request.alternatives = [
+    ///     .url(URL(string: "https://mirror.example.com/photo.jpeg")),
+    ///     .image(id: "photo-placeholder") { ImageContainer(image: placeholder) }
+    /// ]
+    /// ```
+    ///
+    /// An alternative is a load of its own. It has the processors, the
+    /// thumbnail, the scale, and the options of this request, and its own keys
+    /// in the caches, so a failure can't leave the alternative's image in place
+    /// of this one: every load tries the request's own source again, and finds
+    /// the alternative in the caches if it needs it. The ``ImageTask/request``
+    /// stays the same, and ``ImageResponse/request`` says what was loaded.
+    ///
+    /// A source that couldn't be loaded, came back empty or too large, or
+    /// couldn't be decoded is a reason to move on, once any retries of the load
+    /// are over. A missing entry with ``Options-swift.struct/returnCacheDataDontLoad``,
+    /// a processor that failed, and a cancellation aren't: another source
+    /// wouldn't change them. If every source fails, the task fails with the
+    /// error of the request's own source.
+    ///
+    /// ``ImagePipeline/Cache-swift.struct`` reads and writes the entries of the
+    /// request's own source. To reach the ones of an alternative, use a request
+    /// for it.
+    ///
+    /// - seealso: ``lowDataURL``
+    public var alternatives: [ImageSource] {
+        get { fallbacks.alternatives }
+        set { fallbacks.alternatives = newValue }
+    }
+
+    /// The URL to load the image from when Low Data Mode keeps the request off
+    /// the network. `nil` by default.
+    ///
+    /// With a URL set, the request goes out with `allowsConstrainedNetworkAccess`
+    /// set to `false`, so on a network in Low Data Mode, the system fails it
+    /// before it uses any data, and the pipeline loads this URL instead, the
+    /// same way it loads one of the ``alternatives``. If the load of this URL
+    /// fails too, the task moves on to the alternatives.
+    ///
+    /// ```swift
+    /// var request = ImageRequest(url: URL(string: "https://example.com/photo@3x.jpeg"))
+    /// request.lowDataURL = URL(string: "https://example.com/photo@1x.jpeg")
+    /// ```
+    ///
+    /// An image in the caches of the pipeline is still served in Low Data Mode,
+    /// since it takes no data to read one.
+    public var lowDataURL: URL? {
+        get { fallbacks.lowDataURL }
+        set { fallbacks.lowDataURL = newValue }
     }
 
     /// Returns a debug request description.
@@ -488,7 +546,39 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         closure(ref)
     }
 
-    var resource: Resource { ref.resource }
+    /// The source of the request, without what it falls back to.
+    var resource: Resource { ref.resource.primary }
+
+    /// The source of the request, and what it falls back to, if anything.
+    var resourceWithFallbacks: Resource { ref.resource }
+
+    /// `true` if the request has somewhere to go when its source fails.
+    var hasFallbacks: Bool {
+        if case .fallbacks = ref.resource { true } else { false }
+    }
+
+    var fallbacks: Fallbacks {
+        get { ref.resource.fallbacks ?? Fallbacks() }
+        set { ref = Container(ref, resource: ref.resource.with(newValue)) }
+    }
+
+    /// Returns `true` if the requests move on to the same sources when they
+    /// fail.
+    package func hasSameFallbacks(as other: ImageRequest) -> Bool {
+        guard hasFallbacks || other.hasFallbacks else { return true }
+        return lowDataURL == other.lowDataURL && alternatives.map(\.id) == other.alternatives.map(\.id)
+    }
+
+    /// Returns a request that loads the given source the way this request
+    /// loads its own. The custom ``imageID`` stays behind: the image doesn't
+    /// belong in the entries of this one.
+    func withSource(_ source: ImageSource) -> ImageRequest {
+        var copy = self
+        copy.ref = Container(ref, resource: source.resource)
+        copy.ref.originalImageID = source.id
+        copy.ref.customImageID = nil
+        return copy
+    }
 
     consuming func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
         var request = self
@@ -577,16 +667,62 @@ extension ImageRequest {
             self.processorsIdentity = ref.processorsIdentity
         }
 
+        /// Creates a copy with a different resource, for the rare request that
+        /// needs one: `resource` isn't mutable so that reading it, which every
+        /// load does, involves no exclusivity checks.
+        ///
+        /// It repeats ``init(_:)``, and has to stay in step with it. Sharing
+        /// the code makes every copy of a request pay for one more copy of the
+        /// resource: 8% if ``init(_:)`` delegates to this, and 33% if there is
+        /// one initializer that takes an optional.
+        init(_ ref: Container, resource: Resource) {
+            self.resource = resource
+            self.processors = ref.processors
+            self.priority = ref.priority
+            self.options = ref.options
+            self.originalImageID = ref.originalImageID
+            self.userInfo = ref.userInfo
+            self.customImageID = ref.customImageID
+            self.scale = ref.scale
+            self.thumbnail = ref.thumbnail
+            self.processorsIdentity = ref.processorsIdentity
+        }
+
         private static func makeIdentity(_ processors: [any ImageProcessing]) -> [ImageProcessorID] {
             processors.isEmpty ? [] : processors.map(ImageProcessorID.init)
         }
     }
 
-    enum Resource: CustomStringConvertible {
+    enum Resource: CustomStringConvertible, Sendable {
         case url(URL?)
         case urlRequest(URLRequest)
         case data(fetch: @Sendable () async throws -> Data)
         case image(fetch: @Sendable () async throws -> ImageContainer)
+        // Here and not in a field of `Container`, which is at the end of its
+        // malloc size class: one more pointer would cost every request, and
+        // few have fallbacks.
+        indirect case fallbacks(Resource, Fallbacks)
+
+        /// The resource itself, without what it falls back to.
+        var primary: Resource {
+            if case let .fallbacks(resource, _) = self { resource } else { self }
+        }
+
+        var fallbacks: Fallbacks? {
+            if case let .fallbacks(_, fallbacks) = self { fallbacks } else { nil }
+        }
+
+        var urlWithoutFallbacks: URL? {
+            switch self {
+            case .url(let url): url
+            case .urlRequest(let request): request.url
+            case .data, .image, .fallbacks: nil
+            }
+        }
+
+        func with(_ fallbacks: Fallbacks) -> Resource {
+            fallbacks.isEmpty ? primary : .fallbacks(primary, fallbacks)
+        }
 
         var description: String {
             switch self {
@@ -594,7 +730,43 @@ extension ImageRequest {
             case .urlRequest(let urlRequest): return "\(urlRequest)"
             case .data: return "<closure>"
             case .image: return "<closure>"
+            case let .fallbacks(resource, _): return "\(resource)"
             }
+        }
+    }
+
+    /// Where a request goes when its source fails.
+    struct Fallbacks: Sendable {
+        var alternatives: [ImageSource] = []
+        var lowDataURL: URL?
+
+        var isEmpty: Bool { alternatives.isEmpty && lowDataURL == nil }
+
+        /// Returns the `URLRequest` that goes out for the resource these are
+        /// the fallbacks of, which is one for the system to fail on a
+        /// constrained network if there is a URL to load instead.
+        func urlRequest(for resource: Resource) -> URLRequest? {
+            var urlRequest: URLRequest?
+            switch resource {
+            case .url(let url): urlRequest = url.map { URLRequest(url: $0) }
+            case .urlRequest(let request): urlRequest = request
+            case .data, .image, .fallbacks: return nil
+            }
+            if lowDataURL != nil {
+                urlRequest?.allowsConstrainedNetworkAccess = false
+            }
+            return urlRequest
+        }
+
+        /// Returns the source to try after the given error, and removes it, or
+        /// returns `nil` if the task is over.
+        mutating func next(after error: ImagePipeline.Error) -> ImageSource? {
+            guard error.isFailureOfSource else { return nil }
+            if let url = lowDataURL, error.isConstrainedNetworkFailure {
+                lowDataURL = nil
+                return .url(url)
+            }
+            return alternatives.isEmpty ? nil : alternatives.removeFirst()
         }
     }
 }

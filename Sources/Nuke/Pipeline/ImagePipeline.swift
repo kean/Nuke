@@ -243,8 +243,45 @@ public final class ImagePipeline: Sendable {
         task._node = tasks.append(task)
         imageTaskDidStart(task, isDataTask: isDataTask)
         onTaskStarted?(task)
-        task._subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
+        // `nil` if the worker is done already, in which case a task that failed
+        // may have moved on to a fallback, and that's the one to hold on to.
+        if let subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task, { [weak task] in
             task?._process($0)
+        }) {
+            task._subscription = consume subscription
+        }
+    }
+
+    // MARK: - Fallbacks
+
+    // The fallbacks are per image task, above the task graph, for the same reason
+    // the graph can coalesce: the tasks for one image share the load of its
+    // source whatever they fall back to, so none of it is in a key, and each
+    // walks its own list when the load fails. A source is then a load like any
+    // other: it coalesces, and it's cached, under its own keys.
+
+    /// The load of the task's own source failed.
+    func imageTask(_ task: ImageTask, didFailWith error: Error) {
+        fallBack(task, after: error, remaining: task.request.fallbacks, firstError: error)
+    }
+
+    private func fallBack(_ task: ImageTask, after error: Error, remaining: ImageRequest.Fallbacks, firstError: Error) {
+        var remaining = remaining
+        guard !task._isFinished, let source = remaining.next(after: error) else {
+            return task._finish(.failure(firstError))
+        }
+        let request = task.request.withSource(source)
+        task._diagnostics?.didFallBack(to: request, after: error)
+        let worker = task.isDataTask ? makeTaskLoadData(for: request) : makeTaskLoadImage(for: request)
+        if let subscription = worker.subscribe(priority: task.priority.taskPriority, subscriber: task, { [weak task] event in
+            guard let task else { return }
+            if case let .error(error) = event {
+                self.fallBack(task, after: error, remaining: remaining, firstError: firstError)
+            } else {
+                task._process(event)
+            }
+        }) {
+            task._subscription = consume subscription
         }
     }
 

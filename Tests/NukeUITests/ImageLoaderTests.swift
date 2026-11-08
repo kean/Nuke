@@ -513,6 +513,56 @@ struct ImageLoaderTests {
         #expect(await first.result.error == .cancelled)
     }
 
+    @Test func loadMovesOnToTheAlternativesOfTheRequest() async throws {
+        // Given
+        let mirrorURL = URL(string: "http://test.com/mirror.jpeg")!
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+        var request = Test.request
+        request.alternatives = [.url(mirrorURL)]
+
+        // When
+        let response = try await loader.load(request).response
+
+        // Then the failure of the source isn't reported
+        #expect(recorder.events.filter { $0 != "progress" } == ["started", "finished(success)"])
+        #expect(response.request.url == mirrorURL)
+        #expect(recorder.states.last?.imageContainer != nil)
+    }
+
+    @Test func loadingTheSameImageWithOtherAlternativesRestarts() async throws {
+        // Given
+        dataLoader.isSuspended = true
+        var request = Test.request
+        request.alternatives = [.url(URL(string: "http://test.com/first.jpeg"))]
+        let first = loader.load(request)
+
+        // When
+        request.alternatives = [.url(URL(string: "http://test.com/second.jpeg"))]
+        let second = loader.load(request)
+
+        // Then
+        #expect(await first.result.error == .cancelled)
+        #expect(second.task !== first.task)
+    }
+
+    @Test func loadingTheSameImageWithTheSameAlternativesKeepsTheRunningTask() throws {
+        // Given
+        dataLoader.isSuspended = true
+        let alternative = URL(string: "http://test.com/first.jpeg")
+        var request = Test.request
+        request.alternatives = [.url(alternative)]
+        let first = loader.load(request)
+
+        // When
+        var other = Test.request
+        other.alternatives = [.url(alternative)]
+        let second = loader.load(other)
+
+        // Then
+        #expect(second.task === first.task)
+        #expect(recorder.events == ["started"])
+    }
+
     @Test func loadingTheSameRequestAfterItFailsLoadsItAgain() async throws {
         // Given
         dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))

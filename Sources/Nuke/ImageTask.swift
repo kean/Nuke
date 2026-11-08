@@ -250,7 +250,7 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
     }
 
     private let _status: OSAllocatedUnfairLock<Status>
-    private let isDataTask: Bool
+    let isDataTask: Bool
     let _kind: Metrics.Kind
     /// The time the task was created, in seconds since 1970 on the clock of
     /// the recorder. `nil` unless diagnostics are on.
@@ -348,12 +348,16 @@ public final class ImageTask: Hashable, Identifiable, CustomStringConvertible, S
         case let .progress(value):
             _dispatch(.progress(value))
         case let .error(error):
-            _finish(.failure(error))
+            if request.hasFallbacks, let pipeline {
+                pipeline.imageTask(self, didFailWith: error)
+            } else {
+                _finish(.failure(error))
+            }
         }
     }
 
     /// Sends the terminal event, but only the first time it is called.
-    @ImagePipelineActor private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
+    @ImagePipelineActor func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
         guard !_isFinished else { return }
         _isFinished = true
         _dispatch(.finished(result))

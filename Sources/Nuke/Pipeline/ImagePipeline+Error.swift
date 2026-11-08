@@ -65,6 +65,27 @@ extension ImagePipeline.Error {
         }
     }
 
+    /// Returns `true` if the error is about the source of the image, so another
+    /// source can succeed where this one failed. The others would repeat: the
+    /// request asked for no loading, the processors are the same for every
+    /// source, and a cancellation means nobody wants the image.
+    var isFailureOfSource: Bool {
+        switch self {
+        case let .dataLoadingFailed(error):
+            return !(error is CancellationError) && (error as? URLError)?.code != .cancelled
+        case .dataIsEmpty, .decoderNotRegistered, .decodingFailed, .dataDownloadExceededMaximumSize:
+            return true
+        case .dataMissingInCache, .processingFailed, .imageRequestMissing, .pipelineInvalidated, .cancelled:
+            return false
+        }
+    }
+
+    /// Returns `true` if the system kept the request off a network in Low Data
+    /// Mode, which it does to a request that doesn't allow constrained access.
+    var isConstrainedNetworkFailure: Bool {
+        (dataLoadingError as? URLError)?.networkUnavailableReason == .constrained
+    }
+
     /// The same as ``description``. Without it, `localizedDescription` would
     /// print "The operation couldn't be completed", which says nothing.
     public var errorDescription: String? { description }
