@@ -525,7 +525,7 @@ extension ImageProcessingExtensions {
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return PlatformImage.make(cgImage: outputCGImage, source: image)
+        return PlatformImage.make(cgImage: outputCGImage, source: image, sourceCGImage: cgImage)
     }
 
     /// The orientation the image displays its stored pixels in. `NSImage` has
@@ -570,7 +570,7 @@ extension ImageProcessingExtensions {
 #if canImport(UIKit)
         return UIImage(cgImage: outputCGImage, scale: image.scale, orientation: .up)
 #else
-        return PlatformImage.make(cgImage: outputCGImage, source: image)
+        return PlatformImage.make(cgImage: outputCGImage, source: image, sourceCGImage: cgImage)
 #endif
     }
 }

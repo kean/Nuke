@@ -394,7 +394,10 @@ struct GraphicsTests {
         (1, "CoreImageFilter"),
         (2, "RoundedCorners"),
         (3, "Circle"),
-        (4, "Decompression")
+        (4, "Decompression"),
+        (5, "Flip"),
+        (6, "Rotate"),
+        (7, "Tint")
     ])
     func processingPreservesThePointSizeOfHighDPIImage(index: Int, name: String) throws {
         // Given a 40x40px image with a size of 20x20pt
@@ -405,7 +408,10 @@ struct GraphicsTests {
             ImageProcessors.CoreImageFilter(name: "CISepiaTone").process,
             { $0.processed.byAddingRoundedCorners(radius: 4) },
             { $0.processed.byDrawingInCircle(border: nil) },
-            { $0.decompressed(isUsingPrepareForDisplay: false) }
+            { $0.decompressed(isUsingPrepareForDisplay: false) },
+            ImageProcessors.Flip(.horizontal).process,
+            ImageProcessors.Rotate(degrees: 90).process,
+            ImageProcessors.Tint(color: .red).process
         ][index]
 
         // When
@@ -427,6 +433,19 @@ struct GraphicsTests {
         // Then the point size is scaled along with the pixels
         #expect(output.sizeInPixels == CGSize(width: 20, height: 20))
         #expect(output.size == CGSize(width: 10, height: 10))
+    }
+
+    @Test func croppingScalesThePointSizeOfHighDPIImage() throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let input = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+
+        // When
+        let output = try #require(ImageProcessors.Crop(rect: CGRect(x: 0, y: 0, width: 20, height: 10), unit: .pixels).process(input))
+
+        // Then the point size is cropped along with the pixels
+        #expect(output.sizeInPixels == CGSize(width: 20, height: 10))
+        #expect(output.size == CGSize(width: 10, height: 5))
     }
 
     @Test func processingPreservesThePointSizeOfDecodedHighDPIImage() throws {
