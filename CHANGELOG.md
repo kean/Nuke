@@ -243,6 +243,9 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageDecoders/Default` not attaching `ImageContainer/UserInfoKey/scanNumberKey` to the GIF preview, or to the final GIF that followed it – https://github.com/kean/Nuke/pull/1029
 - Fix `ImageProcessors/GaussianBlur` converting wide-gamut (Display P3) images to device RGB – https://github.com/kean/Nuke/pull/1021
 - Fix `ImageProcessors/Resize/init(width:unit:upscale:)` and `init(height:unit:upscale:)` capping the other dimension at `9999`, which shrank tall or wide images below the requested size – https://github.com/kean/Nuke/pull/1021
+- Fix a resumed download sending the same `Range` again on every attempt after the server rejected it with "416 Range Not Satisfiable" – https://github.com/kean/Nuke/pull/1026
+- Fix the progress of a resumed download reporting a total below the bytes received when the "206 Partial Content" has no `Content-Length` – https://github.com/kean/Nuke/pull/1026
+- Fix an empty local file or `data:` URL succeeding with empty data instead of failing with `ImagePipeline/Error/dataIsEmpty` – https://github.com/kean/Nuke/pull/1026
 
 ### Documentation
 
