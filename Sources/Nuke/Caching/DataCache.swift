@@ -133,23 +133,30 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func scheduleSweep() {
-        if let lastSweepDate = getMetadata().lastSweepDate {
-            let elapsed = Date().timeIntervalSince(lastSweepDate)
-            // A date ahead of the clock was recorded while the clock was wrong and
-            // must not hold the sweeps back until the clock catches up with it.
-            if elapsed >= 0 && elapsed < sweepInterval {
-                return // Already completed recently
-            }
-        }
+        // Read here, at init, as before: only the metadata read moves to the
+        // queue, where it doesn't block the thread creating the cache.
+        let sweepInterval = self.sweepInterval
         // Add a bit of a delay to free the resources during launch
         queue.asyncAfter(deadline: .now() + sweepDelay, qos: .background) { [weak self] in
-            guard let self, self.isSweepEnabled else { return }
+            guard let self, self.isSweepEnabled, self.isSweepNeeded(interval: sweepInterval) else { return }
             self.performSweep()
             self.updateMetadata {
                 $0.lastSweepDate = Date()
             }
             self.onSweepCompleted?()
         }
+    }
+
+    /// Returns `false` if a sweep was performed within the interval, e.g. by
+    /// the previous launch. Reads the metadata file, so it runs on ``queue``.
+    private func isSweepNeeded(interval: TimeInterval) -> Bool {
+        guard let lastSweepDate = getMetadata().lastSweepDate else {
+            return true
+        }
+        let elapsed = Date().timeIntervalSince(lastSweepDate)
+        // A date ahead of the clock was recorded while the clock was wrong and
+        // must not hold the sweeps back until the clock catches up with it.
+        return elapsed < 0 || elapsed >= interval
     }
 
     // MARK: DataCaching

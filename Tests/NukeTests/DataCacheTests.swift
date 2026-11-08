@@ -732,6 +732,34 @@ struct DataCacheTests {
         #expect(cache["key"] == blob)
     }
 
+    /// The sweep decision reads the metadata file, which `init` used to do on
+    /// the calling thread, typically the main one during app launch. It's
+    /// made on the cache's queue when the sweep is due instead.
+    @Test func sweepDecisionIsMadeWhenTheSweepIsDue() async throws {
+        // GIVEN a cache whose last sweep was just recorded
+        let name = UUID().uuidString
+        let root = try #require(FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first)
+        let path = root.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: path) }
+        let metadataURL = path.appendingPathComponent(".data-cache-info")
+        try JSONEncoder().encode(SweepMetadata(lastSweepDate: Date())).write(to: metadataURL)
+
+        // WHEN the record is gone by the time the sweep is due
+        let expectation = TestExpectation()
+        let cache = try DataCache(
+            name: name,
+            sweepDelay: .seconds(2),
+            onSweepCompleted: { expectation.fulfill() }
+        )
+        cache.queue.suspend() // Holds the sweep until the record is replaced
+        try JSONEncoder().encode(SweepMetadata(lastSweepDate: nil)).write(to: metadataURL)
+        cache.queue.resume()
+
+        // THEN the sweep runs: the decision didn't come from a read in `init`
+        await expectation.wait(timeout: .seconds(30))
+    }
+
     // MARK: Sweep Edge Cases
 
     @Test func sweepWhenSizeUnderLimit() throws {
