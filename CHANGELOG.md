@@ -142,8 +142,8 @@ Measured on macOS. Source and test lines exclude blank lines and comments.
 Nuke ships with two skills for coding agents: `nuke-migrate` upgrades an app to Nuke 14, including what the compiler can't report, and `nuke-optimize` measures and fixes slow images. There's nothing to install. Ask an agent to follow one:
 
 ```
-Upgrade this app to Nuke 14. Follow https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-migrate/SKILL.md
-Speed up the images in this app. Follow https://raw.githubusercontent.com/kean/Nuke/main/skills/nuke-optimize/SKILL.md
+Upgrade this app to Nuke 14. Follow https://raw.githubusercontent.com/kean/Nuke/main/Skills/nuke-migrate/SKILL.md
+Speed up the images in this app. Follow https://raw.githubusercontent.com/kean/Nuke/main/Skills/nuke-optimize/SKILL.md
 ```
 
 In Claude Code, you can also install them as a plugin, and they load on their own when they're relevant:

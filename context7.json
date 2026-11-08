@@ -2,7 +2,7 @@
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "Nuke",
   "description": "Image loading system for iOS, macOS, tvOS, watchOS, and visionOS: ImagePipeline, LazyImage, ImageLoader, and animated images.",
-  "folders": ["Documentation", "skills"],
+  "folders": ["Documentation", "Skills"],
   "excludeFolders": ["Documentation/NukeExtensions.docc"],
   "excludeFiles": [
     "AGENTS.md",

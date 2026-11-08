@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-// Snippets from `skills/nuke-migrate/SKILL.md`, verbatim. Only the `// Nuke 14` half
+// Snippets from `Skills/nuke-migrate/SKILL.md`, verbatim. Only the `// Nuke 14` half
 // of a sample is here: the `// Nuke 13` half doesn't compile, which is the point.
 
 import Foundation

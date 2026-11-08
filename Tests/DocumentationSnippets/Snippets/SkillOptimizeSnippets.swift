@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
-// Snippets from `skills/nuke-optimize/SKILL.md`, verbatim: `make llms` fails if a block
+// Snippets from `Skills/nuke-optimize/SKILL.md`, verbatim: `make llms` fails if a block
 // in the skill is missing from this file.
 
 import Foundation
