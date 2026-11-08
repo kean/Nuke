@@ -72,6 +72,47 @@ struct ImagePipelineTaskDelegateTests {
         task.cancel()
     }
 
+    /// The task is reported before the pipeline starts it, but it is already
+    /// wired: the delegate can await its response.
+    @Test func taskIsWiredWhenItsCreationIsReported() async throws {
+        // GIVEN
+        let wasWired = Ref<Bool?>(nil)
+        delegate.onTaskCreated = { wasWired.value = $0._task != nil }
+
+        // WHEN
+        _ = try await pipeline.imageTask(with: Test.request).response
+
+        // THEN
+        #expect(wasWired.value == true)
+    }
+
+    /// A delegate that observes the outcome of every task from `imageTaskCreated`,
+    /// e.g. for logging, with the observer getting to the task while the
+    /// delegate is still running.
+    @Test func awaitingTheResponseFromImageTaskCreatedDoesNotCrash() async throws {
+        // GIVEN
+        let observed = TestExpectation()
+        delegate.onTaskCreated = { task in
+            let didStart = DispatchSemaphore(value: 0)
+            Task.detached {
+                didStart.signal()
+                _ = try? await task.response
+                observed.fulfill()
+            }
+            didStart.wait()
+            Thread.sleep(forTimeInterval: 0.25) // Some synchronous work in the delegate
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: Test.request)
+        _ = try await task.response
+        await observed.wait()
+
+        // THEN
+        #expect(task.status.result?.isSuccess == true)
+        #expect(delegate.events.prefix(2) == [.created, .started])
+    }
+
     @Test func dataTasksAreNotReportedToTheDelegate() async throws {
         // WHEN
         _ = try await pipeline.data(for: Test.request)
