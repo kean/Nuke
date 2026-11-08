@@ -34,6 +34,14 @@ struct LazyImageStateDefaultsTests {
         #expect(state.error == nil)
     }
 
+    /// `reload()` was added after 14.0's first betas, and it's a requirement,
+    /// so a conformance written before it has to keep compiling.
+    @Test func reloadDoesNothingByDefault() {
+        let state = StaticState(result: .failure(.imageRequestMissing))
+        state.reload()
+        #expect(state.error == .imageRequestMissing)
+    }
+
     @Test func animationIsReadFromTheContainer() {
         let source = Test.animatedGIFSource(frameCount: 3)
         let container = ImageContainer(image: Test.image, animation: source)
