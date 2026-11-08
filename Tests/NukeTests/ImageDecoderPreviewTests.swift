@@ -20,11 +20,18 @@ struct ImageDecoderPreviewTests {
 
     // MARK: Thumbnail Fallback
 
+    /// The end of a prefix of `tricky_progressive.jpeg` past its embedded
+    /// thumbnail and short of SOF2.
+    ///
+    /// The fixture has a ~7 KB EXIF preamble: the embedded thumbnail takes
+    /// bytes 202..<7256, and SOF2 starts at 7394. In between, the incremental
+    /// source has no dimensions yet, while a regular source can already make
+    /// a thumbnail – the case the fallback exists for. Image I/O in macOS 26.7
+    /// and later makes no thumbnail from one cut short, so the prefix has to
+    /// hold all of it.
+    private static let prefixWithThumbnail = 7300
+
     @Test func fallsBackToAThumbnailWhileIncrementalDecodingCantReadTheDimensions() throws {
-        // The fixture has a ~7 KB EXIF preamble with SOF2 at offset 7394. Past
-        // the embedded thumbnail and short of SOF2, the incremental source has
-        // no dimensions yet, while a regular source can already make a
-        // thumbnail – the case the fallback exists for.
         let data = Test.data(name: "tricky_progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
 
@@ -34,7 +41,7 @@ struct ImageDecoderPreviewTests {
         #expect(decoder.numberOfScans == 0)
 
         // When
-        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<6000]))
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<Self.prefixWithThumbnail]))
 
         // Then
         #expect(preview.isPreview)
@@ -47,11 +54,11 @@ struct ImageDecoderPreviewTests {
     @Test func thumbnailFallbackIsUsedOnlyOnce() throws {
         let data = Test.data(name: "tricky_progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
-        #expect(decoder.decodePartiallyDownloadedData(data[0..<6000]) != nil)
+        #expect(decoder.decodePartiallyDownloadedData(data[0..<Self.prefixWithThumbnail]) != nil)
 
         // More data, still short of the dimensions: the same thumbnail again
         // would be a wasted decode and a preview that looks like no progress.
-        #expect(decoder.decodePartiallyDownloadedData(data[0..<7000]) == nil)
+        #expect(decoder.decodePartiallyDownloadedData(data[0..<7390]) == nil)
         #expect(decoder.numberOfScans == 1)
 
         // Once Image I/O can read the frame, full-size previews take over and
@@ -148,7 +155,7 @@ struct ImageDecoderPreviewTests {
         let context = ImageDecodingContext(request: request, data: data, isCompleted: false, previewPolicy: .incremental)
         let decoder = try #require(ImageDecoders.Default(context: context))
 
-        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<6000]))
+        let preview = try #require(decoder.decodePartiallyDownloadedData(data[0..<Self.prefixWithThumbnail]))
 
         #expect(max(preview.image.sizeInPixels.width, preview.image.sizeInPixels.height) <= 64)
         #expect(decoder.numberOfScans == 1)
@@ -295,7 +302,7 @@ struct ImageDecoderPreviewTests {
         let gif = Test.data(name: "cat", extension: "gif")
 
         let incremental = try #require(try makeDecoder(.incremental).decodePartiallyDownloadedData(progressive[0..<5000]))
-        let fallback = try #require(try makeDecoder(.incremental).decodePartiallyDownloadedData(tricky[0..<6000]))
+        let fallback = try #require(try makeDecoder(.incremental).decodePartiallyDownloadedData(tricky[0..<Self.prefixWithThumbnail]))
         let thumbnail = try #require(try makeDecoder(.thumbnail).decodePartiallyDownloadedData(progressive[0..<2000]))
         let gifPreview = try #require(try makeDecoder(.incremental).decodePartiallyDownloadedData(gif[...60000]))
         let final = try makeDecoder(.incremental).decode(progressive)
