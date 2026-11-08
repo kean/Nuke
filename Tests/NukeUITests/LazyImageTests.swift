@@ -573,6 +573,42 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
+    /// SwiftUI keeps an older value of `onChange` for as long as it compares
+    /// equal to the new one. One that held the image drawn from the memory
+    /// cache would keep it after the view and the cache have let go of it.
+    @Test func memoryCacheHitIsReleasedOnceTheViewLetsGoOfIt() async throws {
+        let second = ImageRequest(url: URL(string: "http://test.com/second.jpeg")!)
+        pipeline.cache[Test.request] = Test.container
+        weak var image: PlatformImage?
+        do {
+            let secondImage = Test.rgbImage(width: 1, height: 1)
+            image = secondImage
+            pipeline.cache[second] = ImageContainer(image: secondImage)
+        }
+
+        let completions = Ref(0)
+        let host = ViewHost(Test.request) { request in
+            LazyImage(request: request) { _ in EmptyView() }
+                .pipeline(pipeline)
+                .onCompletion { _ in completions.value += 1 }
+        }
+        await host.render(until: { completions.value == 1 })
+        await host.update(second, until: { completions.value == 2 })
+        await host.render()
+        #expect(image != nil)
+
+        // The cache lets go of the image, and the view reloads it when it's
+        // back on screen, which drops it from the view model.
+        pipeline.cache[second] = nil
+        dataLoader.isSuspended = true
+        await host.hideContent()
+        await host.showContent(until: { dataLoader.createdTaskCount == 1 })
+        await host.render()
+
+        #expect(image == nil)
+        withExtendedLifetime(host) {}
+    }
+
     @Test func memoryCacheHitIsShownByTheFirstBodyOfTheDefaultContent() async {
         pipeline.cache[Test.request] = ImageContainer(image: Test.rgbImage(width: 8, height: 8))
 

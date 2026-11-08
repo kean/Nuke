@@ -230,9 +230,10 @@ public struct LazyImage<Content: View>: View {
         return true
     }
 
-    /// The view as of an update, compared by what it loads. The action of
-    /// `onChange(of:perform:)` is the closure from the previous update, so the
-    /// view reads its current options from here and not from that `self`.
+    /// The view as of an update, compared by what it loads and the image it
+    /// draws from the memory cache. The action of `onChange(of:perform:)` is
+    /// the closure from the previous update, so the view reads its current
+    /// options from here and not from that `self`.
     private struct Update: Equatable {
         let view: LazyImage
         /// The request with the modifiers applied, made once per update. It
@@ -257,8 +258,14 @@ public struct LazyImage<Content: View>: View {
             self.memoryCacheHit = view.memoryCacheHit(for: context, pipeline: pipeline)
         }
 
+        /// The image counts because SwiftUI keeps an older value for as long
+        /// as it compares equal to the new one, and one that held a hit would
+        /// keep its image after the view model and the cache let go of it. It
+        /// costs an `onChange` after the load that finishes with the hit, which
+        /// finds the request loaded.
         static func == (lhs: Update, rhs: Update) -> Bool {
             lhs.context == rhs.context && lhs.pipeline === rhs.pipeline
+                && lhs.memoryCacheHit?.container.image === rhs.memoryCacheHit?.container.image
         }
     }
 
