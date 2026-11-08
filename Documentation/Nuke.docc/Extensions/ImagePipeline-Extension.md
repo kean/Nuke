@@ -151,3 +151,5 @@ do {
 ### Error Handling
 
 - ``Error``
+- ``FailureCooldown``
+- ``resetFailureCooldown()``
