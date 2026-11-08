@@ -192,9 +192,10 @@ public struct LazyImage<Content: View>: View {
 #endif
     }
 
-    /// Returns the image to draw while the view model hasn't loaded the request
-    /// yet: the memory cache's, if it has one, so that this update already
-    /// shows it and not a placeholder or the previous image.
+    /// Returns the image to draw ahead of the load that follows this update:
+    /// the memory cache's, if it has one, so that this update already shows it
+    /// and not a placeholder, the previous image, or the failure of a load
+    /// that ran before the view went off screen.
     ///
     /// `onAppear` or `onChange` then loads the same image, to report it like
     /// any other load, and passes it along so that it stays even if the cache
@@ -203,10 +204,30 @@ public struct LazyImage<Content: View>: View {
     /// a `@Published` property always notifies, and they are its public API.
     ///
     /// Only the memory cache: it takes about a microsecond, and the disk cache
-    /// takes a read and a decode, which the load does off the main thread.
+    /// takes a read and a decode, which the load does off the main thread. On
+    /// a miss the load looks again, because the view can sit between its body
+    /// and `onAppear` long enough for a prefetcher to put the image there.
     private func memoryCacheHit(for context: LazyImageContext?, pipeline: ImagePipeline) -> ImageResponse? {
-        guard let context, !isLoaded(context, pipeline: pipeline) else { return nil }
-        return viewModel.memoryCacheHit(for: context.request, pipeline: pipeline)
+        guard let context, willLoad(context, pipeline: pipeline) else { return nil }
+        // The request as the load resolves it: the view model's priority is
+        // the request's own by then, and it never has processors of its own.
+        let request = context.request
+        guard let container = pipeline.cache[request], !container.isPreview else { return nil }
+        return ImageResponse(container: container, request: request, cacheType: .memory)
+    }
+
+    /// Returns `true` if `onAppear` or `onChange` loads the request after the
+    /// update. A hit drawn without a load would never be reported, and would
+    /// go as soon as the cache lets go of it.
+    private func willLoad(_ context: LazyImageContext, pipeline: ImagePipeline) -> Bool {
+        guard isLoaded(context, pipeline: pipeline) else {
+            return true // `onChange` loads it, or `onAppear` for a new view
+        }
+        // `onAppear` loads it again, unless it's still loading or already has
+        // the image. A view on screen doesn't load what it has loaded.
+        if viewModel.isOnScreen || viewModel.isLoading { return false }
+        if case .success? = viewModel.result { return false }
+        return true
     }
 
     /// The view as of an update, compared by what it loads. The action of
@@ -256,14 +277,19 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear(_ update: Update) {
+        viewModel.isOnScreen = true
+        // Read again: `.shared` can be assigned between the body and here. The
+        // image the body drew only stands if it came from the same pipeline.
+        let pipeline = resolvedPipeline
+        let memoryCacheHit = pipeline === update.pipeline ? update.memoryCacheHit : nil
         // Unless the disappear behavior is `.cancel`, the request keeps running
         // off screen, and restarting it would discard what it has downloaded.
-        let isStillLoading = viewModel.isLoading && isLoaded(update.context, pipeline: update.pipeline)
-        configure(pipeline: update.pipeline)
+        let isStillLoading = viewModel.isLoading && isLoaded(update.context, pipeline: pipeline)
+        configure(pipeline: pipeline)
         // Undo the priority lowered by the `.lowerPriority` disappear behavior.
         viewModel.priority = update.context?.request.priority
         if !isStillLoading {
-            load(update)
+            viewModel.load(update.context?.request, memoryCacheHit: memoryCacheHit)
         }
     }
 
@@ -275,12 +301,8 @@ public struct LazyImage<Content: View>: View {
         // is all there is to do.
         viewModel.priority = update.context?.request.priority
         if !isAlreadyLoaded {
-            load(update)
+            viewModel.load(update.context?.request, memoryCacheHit: update.memoryCacheHit)
         }
-    }
-
-    private func load(_ update: Update) {
-        viewModel.load(update.context?.request, memoryCacheHit: update.memoryCacheHit?.container)
     }
 
     private func configure(pipeline: ImagePipeline) {
@@ -298,6 +320,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onDisappear() {
+        viewModel.isOnScreen = false
         guard let behavior = onDisappearBehavior else { return }
         switch behavior {
         case .cancel:
@@ -316,7 +339,7 @@ private struct MemoryCacheHit: LazyImageState {
     var result: Result<ImageResponse, ImagePipeline.Error>? { .success(response) }
     var imageContainer: ImageContainer? { response.container }
     var isLoading: Bool { false }
-    var progress: ImageTask.Progress { FetchImage.noProgress }
+    var progress: ImageTask.Progress { ImageTask.Progress(completed: 0, total: 0) }
 }
 
 /// What the `processors` and `priority` modifiers set. `nil` leaves the

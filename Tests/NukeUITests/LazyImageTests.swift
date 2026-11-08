@@ -444,6 +444,135 @@ struct LazyImageTests {
         withExtendedLifetime(host) {}
     }
 
+    /// A cell that scrolls away mid-load cancels it. If the image has reached
+    /// the memory cache by the time the cell is back, it draws it first.
+    ///
+    /// The parent updates while the view is away, so a body runs before
+    /// `onAppear`, as it does for a row whose data changed while it was off
+    /// screen. A row that comes back unchanged doesn't run one.
+    @Test func memoryCacheHitIsShownByTheFirstBodyAfterACancelledLoad() async throws {
+        dataLoader.isSuspended = true
+
+        let tasks = Ref<[ImageTask]>([])
+        let bodies = Ref<[Bool]>([])
+        let result = Ref<Result<ImageResponse, ImagePipeline.Error>?>(nil)
+        let host = ViewHost(0) { _ in
+            LazyImage(request: Test.request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onStart { tasks.value.append($0) }
+            .onCompletion { result.value = $0 }
+        }
+        await host.render(until: { !tasks.value.isEmpty })
+        let imageTask = try #require(tasks.value.first)
+        await host.hideContent(until: { imageTask.isCancelled })
+        await host.render()
+
+        pipeline.cache[Test.request] = Test.container
+        bodies.value = []
+        await host.update(1, until: { true })
+        await host.showContent(until: { result.value != nil })
+        await host.render()
+
+        #expect(bodies.value.first == true)
+        #expect(bodies.value.allSatisfy { $0 })
+        #expect(try #require(result.value?.value).cacheType == .memory)
+        #expect(tasks.value.count == 1)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The same goes for a load that failed: the cell is back, and it shows
+    /// the image rather than the failure.
+    @Test func memoryCacheHitReplacesAFailureByTheFirstBodyAfterTheViewReappears() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        let bodies = Ref<[Bool]>([])
+        let results = Ref<[Result<ImageResponse, ImagePipeline.Error>]>([])
+        let host = ViewHost(0) { _ in
+            LazyImage(request: Test.request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { results.value.append($0) }
+        }
+        await host.render(until: { results.value.count == 1 })
+        await host.hideContent()
+
+        pipeline.cache[Test.request] = Test.container
+        bodies.value = []
+        await host.update(1, until: { true })
+        await host.showContent(until: { results.value.count == 2 })
+        await host.render()
+
+        #expect(results.value.first?.isSuccess == false)
+        #expect(bodies.value.first == true)
+        #expect(bodies.value.allSatisfy { $0 })
+        #expect(try #require(results.value.last?.value).cacheType == .memory)
+        withExtendedLifetime(host) {}
+    }
+
+    /// Nothing loads the request of a view on screen again, so an image that
+    /// reaches the cache after its load failed would be drawn and never
+    /// reported, and would go when the cache lets go of it.
+    @Test func memoryCacheHitIsNotDrawnOverAFailureOnScreen() async throws {
+        dataLoader.results[Test.url] = .failure(NSError(domain: "test", code: 42))
+
+        let bodies = Ref<[Bool]>([])
+        let completions = Ref(0)
+        let host = ViewHost(0) { _ in
+            LazyImage(request: Test.request) { state in
+                let _ = bodies.value.append(state.image != nil)
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { _ in completions.value += 1 }
+        }
+        await host.render(until: { completions.value == 1 })
+
+        pipeline.cache[Test.request] = Test.container
+        bodies.value = []
+        await host.update(1)
+
+        #expect(!bodies.value.isEmpty)
+        #expect(bodies.value.allSatisfy { !$0 })
+        #expect(completions.value == 1)
+        withExtendedLifetime(host) {}
+    }
+
+    /// The first body for a new request draws a response of its own, before
+    /// the view model takes the request's priority.
+    @Test func memoryCacheHitHasThePriorityOfItsRequest() async throws {
+        var first = Test.request
+        first.priority = .low
+        var second = ImageRequest(url: URL(string: "http://test.com/second.jpeg")!)
+        second.priority = .high
+        pipeline.cache[first] = Test.container
+        pipeline.cache[second] = Test.container
+
+        let priorities = Ref<[ImageRequest.Priority?]>([])
+        let completions = Ref(0)
+        let host = ViewHost(first) { request in
+            LazyImage(request: request) { state in
+                if request.url == second.url {
+                    let _ = priorities.value.append(state.result?.value?.request.priority)
+                }
+                EmptyView()
+            }
+            .pipeline(pipeline)
+            .onCompletion { _ in completions.value += 1 }
+        }
+        await host.render(until: { completions.value == 1 })
+        await host.update(second, until: { completions.value == 2 })
+        await host.render()
+
+        #expect(!priorities.value.isEmpty)
+        #expect(priorities.value.allSatisfy { $0 == .high })
+        withExtendedLifetime(host) {}
+    }
+
     @Test func memoryCacheHitIsShownByTheFirstBodyOfTheDefaultContent() async {
         pipeline.cache[Test.request] = ImageContainer(image: Test.rgbImage(width: 8, height: 8))
 

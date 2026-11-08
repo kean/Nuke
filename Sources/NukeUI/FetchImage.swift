@@ -51,7 +51,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         return _progress
     }
 
-    static let noProgress = ImageTask.Progress(completed: 0, total: 0)
+    private static let noProgress = ImageTask.Progress(completed: 0, total: 0)
 
     // Set the first time `progress` is read; see the property for the reason.
     private var isProgressObserved = false
@@ -99,6 +99,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// from an async function.
     var currentRequest: ImageRequest? { loader.state.request }
 
+    /// Whether the `LazyImage` that owns it is on screen: set by its
+    /// `onAppear` and cleared by its `onDisappear`. Not published, because the
+    /// view only reads it in the next body, and changing it draws nothing.
+    var isOnScreen = false
+
     /// Initializes the image. To load an image, use one of the `load()` methods.
     public init() {
         loader.onUpdate = { [weak self] in self?.apply($0) }
@@ -127,15 +132,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     /// Loads the request, and finishes with `memoryCacheHit` if it's set: the
-    /// image that the view has already drawn.
-    func load(_ request: ImageRequest?, memoryCacheHit: ImageContainer?) {
+    /// image that the view has already drawn (see
+    /// ``ImageLoader/load(_:memoryCacheHit:)``).
+    func load(_ request: ImageRequest?, memoryCacheHit: ImageResponse?) {
         loader.load(request, memoryCacheHit: memoryCacheHit)
-    }
-
-    /// Returns what a load of the request from the given pipeline would find
-    /// in the memory cache.
-    func memoryCacheHit(for request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse? {
-        loader.memoryCacheHit(for: request, pipeline: pipeline)
     }
 
     // MARK: Load (Async/Await)
