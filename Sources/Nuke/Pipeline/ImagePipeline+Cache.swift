@@ -131,9 +131,18 @@ extension ImagePipeline.Cache {
         return imageCache[makeImageCacheKey(for: request)]
     }
 
-    /// Returns `true` if the image was stored.
+    /// Stores the image with the expiration of the request.
+    ///
+    /// - returns: `true` if the image was stored.
     @discardableResult
     func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) -> Bool {
+        storeCachedImageInMemoryCache(image, for: request, expiration: request.cacheExpiration)
+    }
+
+    /// - parameter expiration: `nil` leaves it to the cache.
+    /// - returns: `true` if the image was stored.
+    @discardableResult
+    func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest, expiration: ImageRequest.CacheExpiration?) -> Bool {
         guard !request.options.contains(.disableMemoryCacheWrites) else {
             return false
         }
@@ -143,7 +152,19 @@ extension ImagePipeline.Cache {
         guard let imageCache = imageCache(for: request) else {
             return false
         }
-        imageCache[makeImageCacheKey(for: request)] = image
+        let key = makeImageCacheKey(for: request)
+        guard let expiration else {
+            imageCache[key] = image
+            return true
+        }
+        // A cache that doesn't implement expiration would keep this one for
+        // good. The image still replaces what is stored for the key, like one
+        // that doesn't fit in the cache.
+        guard expiration.timeToLive > 0 else {
+            imageCache[key] = nil
+            return false
+        }
+        imageCache.store(image, for: key, expiration: expiration)
         return true
     }
 
