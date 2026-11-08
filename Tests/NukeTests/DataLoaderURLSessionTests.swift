@@ -817,24 +817,8 @@ struct DataLoaderDelegateForwardingTests {
     // MARK: Authentication Routing
     //
     // `DataLoader` implements only the task-level challenge method, so
-    // `URLSession` sends it the session-wide challenges too, and it routes
-    // them the way `URLSession` would.
-
-    @Test func sessionLevelChallengeIsForwardedToDelegate() async {
-        // Given a delegate that implements only the session-level method
-        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = SessionLevelChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then the delegate rejects the server trust challenge
-        #expect(delegate.challengeCount == 1)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
+    // `URLSession` sends it the session-wide challenges too. They all go to the
+    // delegate's task-level method, and the session-level one is never called.
 
     @Test func taskLevelChallengeIsForwardedToDelegate() async {
         // Given a delegate that implements the task-level method
@@ -852,9 +836,16 @@ struct DataLoaderDelegateForwardingTests {
         #expect((recorder.error as? URLError)?.code == .cancelled)
     }
 
-    @Test func sessionWideChallengeGoesToSessionLevelMethodFirst() async {
+    @Test(arguments: [
+        NSURLAuthenticationMethodServerTrust,
+        NSURLAuthenticationMethodClientCertificate,
+        NSURLAuthenticationMethodNTLM,
+        NSURLAuthenticationMethodNegotiate,
+        NSURLAuthenticationMethodHTTPBasic
+    ])
+    func challengeGoesToTaskLevelMethod(authenticationMethod: String) async {
         // Given a delegate that implements both methods
-        let url = StubURLProtocol.registerChallenge(authenticationMethod: NSURLAuthenticationMethodServerTrust) { _, _ in }
+        let url = StubURLProtocol.registerChallenge(authenticationMethod: authenticationMethod) { _, _ in }
         let loader = makeStubLoader()
         let delegate = BothLevelsChallengeDelegate()
         loader.delegate = delegate
@@ -863,32 +854,16 @@ struct DataLoaderDelegateForwardingTests {
         let recorder = LoadRecorder()
         await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
 
-        // Then server trust goes to the session-level method, as with `URLSession`
-        #expect(delegate.sessionLevelCount == 1)
-        #expect(delegate.taskLevelCount == 0)
-        #expect((recorder.error as? URLError)?.code == .cancelled)
-    }
-
-    @Test func taskSpecificChallengeGoesToTaskLevelMethod() async {
-        // Given a delegate that implements both methods
-        let url = StubURLProtocol.registerChallenge { _, _ in }
-        let loader = makeStubLoader()
-        let delegate = BothLevelsChallengeDelegate()
-        loader.delegate = delegate
-
-        // When
-        let recorder = LoadRecorder()
-        await recorder.loadToCompletion(with: loader, request: URLRequest(url: url))
-
-        // Then HTTP Basic never goes to the session-level method
+        // Then
         #expect(delegate.sessionLevelCount == 0)
         #expect(delegate.taskLevelCount == 1)
         #expect((recorder.error as? URLError)?.code == .cancelled)
     }
 
-    @Test func taskSpecificChallengeIsNotForwardedToSessionLevelMethod() async {
+    @Test(arguments: [NSURLAuthenticationMethodServerTrust, NSURLAuthenticationMethodHTTPBasic])
+    func sessionLevelChallengeMethodIsNotCalled(authenticationMethod: String) async {
         // Given a delegate that implements only the session-level method
-        let url = StubURLProtocol.registerChallenge { _, _ in }
+        let url = StubURLProtocol.registerChallenge(authenticationMethod: authenticationMethod) { _, _ in }
         let loader = makeStubLoader()
         let delegate = SessionLevelChallengeDelegate()
         loader.delegate = delegate

@@ -36,6 +36,12 @@ public final class DataLoader: DataLoading, Sendable {
     ///
     /// - note: The delegate is retained.
     ///
+    /// - note: Every authentication challenge goes to the task-level
+    /// `urlSession(_:task:didReceive:completionHandler:)`, server trust and
+    /// client certificate challenges included. The session-level
+    /// `urlSession(_:didReceive:completionHandler:)` is never called, so
+    /// implement certificate pinning in the task-level method.
+    ///
     /// - note: The delegate is read by every session callback on the session's
     /// delegate queue and when each task is created, which can happen on any
     /// thread, so the access is synchronized.
@@ -291,18 +297,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate, Sendable {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @Sendable @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        let delegate = self.delegate
         // `_DataLoader` doesn't implement the session-level method, so `URLSession`
-        // sends session-wide challenges here; route them the way it would: to the
-        // session-level method first, and to the task-level one if it's missing.
-        switch challenge.protectionSpace.authenticationMethod {
-        case NSURLAuthenticationMethodServerTrust, NSURLAuthenticationMethodClientCertificate, NSURLAuthenticationMethodNTLM, NSURLAuthenticationMethodNegotiate:
-            if delegate?.urlSession?(session, didReceive: challenge, completionHandler: completionHandler) != nil {
-                return
-            }
-        default:
-            break
-        }
+        // sends session-wide challenges here too. They all go to the task-level
+        // method, which is where existing delegates handle them.
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didReceive: challenge, completionHandler: completionHandler) ??
         completionHandler(.performDefaultHandling, nil)
     }

@@ -60,6 +60,8 @@ final class YourDelegate: URLSessionTaskDelegate {
 }
 ```
 
+``DataLoader`` sends every authentication challenge to the task-level method, as in this example, server trust and client certificate challenges included. It never calls the session-level `urlSession(_:didReceive:completionHandler:)`, so implement certificate pinning in the task-level method.
+
 ## Resumable Downloads
 
 If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous one left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Both validators are supported: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).

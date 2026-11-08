@@ -233,7 +233,6 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix an image stored in a full `ImageCache` being evicted right away when every cached image had been read – https://github.com/kean/Nuke/pull/1011
 - Fix processed images and thumbnails built from an original in the disk cache never being stored in the disk cache under the `.automatic` and `.storeAll` policies – https://github.com/kean/Nuke/pull/1016
 - Fix `ImageRequest/Options/skipDataLoadingQueue` being ignored when another request for the same resource is already waiting in the queue – https://github.com/kean/Nuke/pull/1005
-- Fix `DataLoader/delegate` never receiving server trust, client certificate, NTLM, and Negotiate challenges in the session-level `urlSession(_:didReceive:completionHandler:)`, which skipped certificate pinning implemented there – https://github.com/kean/Nuke/pull/996
 - Fix `LazyImage` restarting a running request when its priority changes or when the view reappears after `.lowerPriority`, discarding what it had downloaded – https://github.com/kean/Nuke/pull/1034
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
 - Fix `LazyImage` starting a new request with the `pipeline`, `onStart`, and `onCompletion` from when the view last appeared, and ignoring a change of the pipeline alone – https://github.com/kean/Nuke/pull/1037
