@@ -59,7 +59,7 @@ import Nuke
 /// any async function, pass it to ``load(_:)-(()->ImageResponse)``:
 ///
 /// ```swift
-/// loader.load { try await pipeline.image(for: url) }
+/// loader.load { try await pipeline.imageTask(with: url).response }
 /// ```
 @MainActor
 public final class ImageLoader {
