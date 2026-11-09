@@ -42,7 +42,7 @@ grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
 # Queues and prefetchers set by hand, and decoders of your own
-grep -rnE 'maxConcurrentRequestCount|ImageDecoding\b|isAsynchronous' --include='*.swift' .
+grep -rnE 'maxConcurrentRequestCount|didComplete|ImageDecoding\b|isAsynchronous' --include='*.swift' .
 ```
 
 The search can't see through a typealias, or a signature split over lines. Open each file and read it.
@@ -267,9 +267,11 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
+- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request with the same URL (or `imageID`), processors, options, scale, and thumbnail counts as the same image, even if its priority, headers, cache policy, or `userInfo` differ. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
 - `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
 - `LazyImage` draws an image from the memory cache in the first `body` for its request, where 13 drew a placeholder first. In a `content` closure, an `onChange` of `state.image`, `state.imageContainer`, or `state.result` no longer fires for that image, because the value never changes: move the code to `onCompletion`, which still runs. In that `body`, `state` isn't a `FetchImage`, so a cast to it fails, and it doesn't update, so read it in the closure rather than keep it.
+- `ImagePrefetcher.didComplete` also runs when `stopPrefetching()` cancels the last outstanding request. If the closure marks downloads as done, set a flag where the app stops prefetching and check it in the closure.
+- On macOS, `isDecompressionEnabled = true` and a delegate's `shouldDecompress` and `decompress` now take effect. Check a delegate shared with iOS.
 
 Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
 

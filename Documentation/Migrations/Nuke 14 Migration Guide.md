@@ -164,7 +164,7 @@ To change the frames of an animation that goes on playing, use `AnimatedImagePla
 
 ## Removed Deprecated APIs
 
-The APIs deprecated in Nuke 13 have been removed.
+The APIs deprecated in Nuke 13 have been removed, along with two that were not deprecated.
 
 | Removed | Replacement |
 |---|---|
@@ -645,6 +645,27 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
+## `ImageDecoders.Video` Follows the Preview Policy
+
+With `isProgressiveDecodingEnabled`, Nuke 13 showed the first frame of a video while it downloaded, whatever the preview policy. `ImageDecoders.Video` now follows the policy like every other decoder, and the default one, `PreviewPolicy.default(for:)`, is `.disabled` for a video. To keep the first frame, return another policy for videos:
+
+```swift
+// Nuke 13
+ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
+ImagePipeline.shared = ImagePipeline {
+    $0.isProgressiveDecodingEnabled = true // The first frame of a video shows while it downloads
+}
+
+// Nuke 14
+extension VideoPreviewDelegate: ImagePipeline.Delegate {
+    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
+        AssetType(context.data)?.isVideo == true ? .incremental : .default(for: context.data)
+    }
+}
+```
+
+The first frame, in the preview and in the image of a finished video, now comes out upright, with the track's transform applied the way the player shows it. Nuke 13 returned the frame of a portrait video recorded on a phone on its side. Remove any rotation you apply to it.
+
 ## Changed Defaults
 
 These compile without changes. Most apps have nothing to do, but they do change what the pipeline does.
@@ -662,6 +683,11 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `ImageContainer.data` of a GIF with a `thumbnail` | Kept | `nil` |
 | `FetchImage.load(_:)` and `LazyImageView.request` while the same image is loading | Restart the download | Keep the running task and give it the new priority |
 | An image in the memory cache in `LazyImage` | A placeholder for one update | Drawn by the first update |
+| `ImagePrefetcher.didComplete` when `stopPrefetching()` cancels the last request | Not called | Called |
+| A video while it downloads, with `isProgressiveDecodingEnabled` | First-frame preview | No preview, unless the preview policy asks for one |
+| The first frame of a portrait video | On its side | Upright |
+| `isDecompressionEnabled = true`, or a delegate's `shouldDecompress` and `decompress`, on macOS | No effect | Decompresses, and calls them |
+| `URLSessionTask.priority` of a request that isn't `.normal` | Default | Follows `ImageRequest.priority` |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
@@ -681,15 +707,66 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-"The same image" for `FetchImage` and `LazyImageView` means a request that differs only in priority, from the same pipeline. The call doesn't report a new start, so `onStart` isn't called again. A load that has finished starts over.
+"The same image" for `FetchImage` and `LazyImageView` is what `LazyImage` already compared: a request from the same pipeline with the same image ID (the URL, unless you set `imageID`), processors, options, scale, and thumbnail. A request that differs only in its priority, its `URLRequest` headers, cache policy or timeout, or its `userInfo` is the same image: it doesn't replace the running task, and `onStart` isn't called again. To send such a request while the other one is loading, call `cancel()` first. A load that has finished starts over.
+
+```swift
+// Nuke 13
+image.load(ImageRequest(urlRequest: requestWithNewToken)) // Restarts the download
+
+// Nuke 14
+image.cancel()
+image.load(ImageRequest(urlRequest: requestWithNewToken))
+```
 
 A `LazyImage` with an image in the memory cache no longer goes through a state with no image, so an `onChange` of `state.image`, `state.imageContainer`, or `state.result` in its `content` closure doesn't fire for that image. `onCompletion` still does. In that update, `state` isn't a `FetchImage`, and it doesn't change later: read it in the closure rather than keep it.
+
+`ImagePrefetcher.didComplete` now also runs when `stopPrefetching()` cancels the last outstanding request, which Nuke 13 documented it wouldn't. It says the prefetcher ran out of work, not that the images were downloaded. If it marks something as ready, ignore the call that follows a stop:
+
+```swift
+// Nuke 13
+func stop() {
+    prefetcher.stopPrefetching() // Doesn't call `didComplete`
+}
+
+// Nuke 14
+func start(_ urls: [URL]) {
+    isStopped = false
+    prefetcher.didComplete = { [weak self] in
+        guard let self, !self.isStopped else { return }
+        self.showOfflineReady()
+    }
+    prefetcher.startPrefetching(with: urls)
+}
+
+func stop() {
+    isStopped = true
+    prefetcher.stopPrefetching()
+}
+```
+
+On macOS, decompression used to do nothing even when you turned it on, and the delegate's `shouldDecompress` and `decompress` were never called. They now run like on the other platforms. The default is still off on macOS. If you set it in code shared with iOS, keep it off on the Mac:
+
+```swift
+// Nuke 13
+ImagePipeline.shared = ImagePipeline {
+    $0.isDecompressionEnabled = true // Has no effect on macOS
+}
+
+// Nuke 14
+ImagePipeline.shared = ImagePipeline {
+#if !os(macOS)
+    $0.isDecompressionEnabled = true
+#endif
+}
+```
+
+The default `DataLoader` now sets `URLSessionTask.priority` from `ImageRequest.priority`, so a request that isn't `.normal` reaches `URLSession`, and the server, with that priority.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 
 ## `localizedDescription` Describes the Failure
 
-`ImagePipeline.Error` and `DataLoader.Error` now conform to `LocalizedError`. `localizedDescription` used to return the system's generic "The operation couldn't be completed", and it now returns the same technical English sentence as `description`, which can include a URL. If you show it to people, show a message of your own.
+`ImagePipeline.Error` and `DataLoader.Error` now conform to `LocalizedError`. `localizedDescription` used to return the system's generic "The operation couldn't be completed", and it now returns the same technical English sentence as `description`. It can include the URL, without its query, and for a decoding failure the type, the status code, and the first bytes of what the server sent. If you show it to people or send it to analytics, use a message of your own.
 
 ## `LazyImageView.imageTask` is read-only
 
