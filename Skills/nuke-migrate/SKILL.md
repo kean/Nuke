@@ -49,10 +49,10 @@ The search can't see through a typealias, or a signature split over lines. Open 
 
 ## 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have betas, pin one:
+`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-beta.1")
+.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
@@ -233,7 +233,7 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 | A `LazyImage` | A `content` closure that shows `state.image` and no `AnimatedImage` |
 | Every view | `isAnimatedImageParsingEnabled = false` in the pipeline's configuration |
 
-Two more changes reach users on those screens:
+Three more changes reach users on those screens:
 
 - A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.loopCount = .infinite` on the `AnimatedImageView`.
 - Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
