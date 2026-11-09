@@ -33,7 +33,6 @@
 - `init?(data: Data)`: Creates a source from the encoded image data.
 - `init?(data: Data, delays: [TimeInterval], loopCount: Int = 0, size: CGSize, makeFrameDecoder: @escaping @Sendable (AnimatedImageFrameDecodingContext) -> any AnimatedImageFrameDecoding)`: Creates a source for an animation described by the caller.
 - `func makeFrameDecoder(context: AnimatedImageFrameDecodingContext = AnimatedImageFrameDecodingContext()) -> any AnimatedImageFrameDecoding`: Returns what produces the frames of this animation for the given context.
-- `func makeImageSource() -> CGImageSource?`: Creates an image source over `data` for decoding the frames.
 
 ### AssetType
 
@@ -55,6 +54,7 @@
 - `static let jpeg2000: AssetType = "public.jpeg-2000"`: JPEG 2000.
 - `static let jxl: AssetType = "public.jpeg-xl"`: JPEG XL.
 - `static let avif: AssetType = "public.avif"`: AVIF (AV1 Image File Format).
+- `static let pdf: AssetType = "com.adobe.pdf"`: PDF (Portable Document Format).
 - `var utType: UTType?`: The uniform type that `rawValue` identifies, or `nil` if the system doesn't recognize the identifier.
 - `init(_ type: UTType)`: Initializes the asset type with the identifier of the given uniform type.
 - `init?(_ data: Data)`: Determines a type of the image based on the given data.
@@ -137,7 +137,7 @@
 
 ### ImageCache
 
-- `final class ImageCache: ImageCaching`: An LRU memory cache.
+- `final class ImageCache: ImageCaching`: A memory cache that evicts with the CLOCK algorithm, an approximation of LRU.
 - `var costLimit: Int`: The maximum total cost that the cache can hold.
 - `var countLimit: Int`: The maximum number of items that the cache can hold.
 - `var ttl: TimeInterval?`: Default TTL (time to live) for each entry.
@@ -147,11 +147,10 @@
 - `static let shared = ImageCache()`: The shared `ImageCache` instance.
 - `init(costLimit: Int = ImageCache.defaultCostLimit, countLimit: Int = Int.max)`: Initializes an `ImageCache` instance.
 - `static var defaultCostLimit: Int`: Returns a cost limit computed based on the amount of the physical memory available on the device
-- `static var defaultMemoryBudget: Int`: The memory decoded images may occupy overall, in bytes
 - `subscript(key: ImageCacheKey) -> ImageContainer?`
 - `func removeAll()`: Removes all cached images.
-- `func trim(toCost limit: Int)`: Removes least recently used items from the cache until the total cost of the remaining items is less than the given cost limit.
-- `func trim(toCount limit: Int)`: Removes least recently used items from the cache until the total count of the remaining items is less than the given count limit.
+- `func trim(toCost limit: Int)`: Removes the items that weren't read recently from the cache until the total cost of the remaining items is less than the given cost limit.
+- `func trim(toCount limit: Int)`: Removes the items that weren't read recently from the cache until the total count of the remaining items is less than the given count limit.
 
 ### ImageCacheKey
 
@@ -208,7 +207,6 @@
 ### ImageDecoders.Default
 
 - `final class Default: ImageDecoding, Sendable`: A decoder that supports all of the formats natively supported by the system.
-- `var isAsynchronous: Bool`: Returns `true` when thumbnail decoding is requested, because thumbnail generation requires reading image dimensions from disk and must run on the decoding queue rather than blocking the pipeline queue.
 - `init()`: Initializes the decoder with default settings.
 - `init?(context: ImageDecodingContext)`: Initializes the decoder from the given decoding context, reading the request's scale, thumbnail options, and preview policy.
 - `func decode(_ data: Data) throws -> ImageContainer`
@@ -219,15 +217,22 @@
 - `struct Empty: ImageDecoding, Sendable`: A decoder that returns an empty placeholder image and attaches image data to the image container.
 - `let isProgressive: Bool`
 - `let assetType: AssetType?`
-- `var isAsynchronous: Bool`
 - `init(assetType: AssetType? = nil, isProgressive: Bool = false)`: Initializes the decoder.
 - `func decode(_ data: Data) throws -> ImageContainer`
 - `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`
 
+### ImageDecoders.PDF
+
+- `struct PDF: ImageDecoding, Sendable`: A decoder that rasterizes a page of a PDF document with Core Graphics.
+- `var pageIndex = 0`: The zero-based index of the page to draw.
+- `var maxPixelSize: CGFloat = 4096`: The longest side of the image, in pixels.
+- `init()`: Initializes the decoder with default settings.
+- `init?(context: ImageDecodingContext)`: Initializes the decoder from the given decoding context, reading the request's scale and thumbnail options.
+- `func decode(_ data: Data) throws -> ImageContainer`
+
 ### ImageDecoding
 
 - `protocol ImageDecoding: Sendable`: An image decoder.
-- `var isAsynchronous: Bool`: Returns `true` if you want the decoding to be performed on the decoding queue (see `ImagePipeline.Configuration.imageDecodingQueue`).
 - `func decode(_ data: Data) throws -> ImageContainer`: Produces an image from the given image data.
 - `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`: Produces an image from the given partially downloaded image data.
 
@@ -249,13 +254,6 @@
 - `case unknown`
 - `case synchronousDecodingUnsupported`
 - `var description: String`
-
-### ImageDiagnosticsStringEnum
-
-- `protocol ImageDiagnosticsStringEnum: RawRepresentable, Codable, Sendable where RawValue == String`: An enum that encodes as its case name and decodes any name it doesn't know as `.unknown`, so a consumer built against an older schema still opens a newer file.
-- `static var unknown: Self`
-- `init(from decoder: any Decoder) throws`
-- `func encode(to encoder: any Encoder) throws`
 
 ### ImageEncoders
 
@@ -396,8 +394,6 @@
 ### ImagePipeline.Diagnostics
 
 - `struct Diagnostics: Sendable`: The diagnostics of a pipeline.
-- `static let isEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment)`: `true` if the process was launched with `NUKE_DIAGNOSTICS_ENABLED` set to anything but `0`, `no`, `false`, or nothing at all.
-- `static let isLoggingEnabledByEnvironment = isEnabled(in: ProcessInfo.processInfo.environment, key: "NUKE_DIAGNOSTICS_LOG")`: `true` if the process was launched with `NUKE_DIAGNOSTICS_LOG` set to anything but `0`, `no`, `false`, or nothing at all.
 - `var isEnabled: Bool`: A runtime switch.
 - `func snapshot() async -> Snapshot`: What the pipeline is doing right now
 - `var debugDescription: String`: The `ImagePipeline.Diagnostics.snapshot()` for a place that can't `await`, which is where it's needed most
@@ -433,7 +429,7 @@
 
 ### ImagePipeline.Diagnostics.Job.Kind
 
-- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of work a job performs.
+- `enum Kind: String, Sendable`: The kind of work a job performs.
 - `case loadImage`: Produces the processed, decompressed image the request asks for.
 - `case fetchOriginalImage`: Decodes the original image.
 - `case fetchOriginalData`: Fetches the original image data.
@@ -442,7 +438,7 @@
 
 ### ImagePipeline.Diagnostics.Outcome
 
-- `enum Outcome: String, Sendable, ImageDiagnosticsStringEnum`: How a task or a job ended.
+- `enum Outcome: String, Sendable`: How a task or a job ended.
 - `case success`
 - `case failure`
 - `case cancelled`
@@ -476,7 +472,7 @@
 ### ImagePipeline.Diagnostics.Snapshot.ActiveTask
 
 - `struct ActiveTask: Sendable`: A task that hasn't finished.
-- `let taskID: UInt64`: `ImageTask.taskId`.
+- `let taskID: UInt64`: `ImageTask.taskID`.
 - `let kind: ImageTask.Metrics.Kind`
 - `let resource: String?`: The URL with no query, which can carry a token, or the `ImageRequest.imageID` of a request that has no URL.
 - `let priority: ImageRequest.Priority`
@@ -502,7 +498,7 @@
 
 ### ImagePipeline.Diagnostics.Source
 
-- `enum Source: String, Sendable, ImageDiagnosticsStringEnum`: Where an image or its data came from.
+- `enum Source: String, Sendable`: Where an image or its data came from.
 - `case memory`: The memory cache (`ImageCaching`).
 - `case disk`: The disk cache (`DataCaching`).
 - `case network`: The data loader (`DataLoading`).
@@ -543,7 +539,7 @@
 
 ### ImagePipeline.Diagnostics.Stage.Kind
 
-- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of work a stage performs.
+- `enum Kind: String, Sendable`: The kind of work a stage performs.
 - `case memoryLookup`
 - `case diskLookup`
 - `case willLoadData`: `ImagePipeline.Delegate.willLoadData(for:urlRequest:pipeline:)`.
@@ -557,7 +553,7 @@
 
 ### ImagePipeline.Diagnostics.Stage.LookupResult
 
-- `enum LookupResult: String, Sendable, ImageDiagnosticsStringEnum`: The result of a cache lookup.
+- `enum LookupResult: String, Sendable`: The result of a cache lookup.
 - `case hit`
 - `case miss`
 - `case unknown`
@@ -580,7 +576,7 @@
 
 ### ImagePipeline.Diagnostics.URLSessionMetrics.FetchType
 
-- `enum FetchType: String, Sendable, ImageDiagnosticsStringEnum`: `URLSessionTaskMetrics.ResourceFetchType`.
+- `enum FetchType: String, Sendable`: `URLSessionTaskMetrics.ResourceFetchType`.
 - `case networkLoad`
 - `case localCache`: The `URLCache` of the session.
 - `case serverPush`
@@ -677,6 +673,10 @@
 - `static func resize(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) -> ImageProcessors.Resize`: Scales an image to the given height preserving aspect ratio.
 - `static func circle(border: ImageProcessingOptions.Border? = nil) -> ImageProcessors.Circle`: Rounds the corners of an image into a circle.
 - `static func roundedCorners(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) -> ImageProcessors.RoundedCorners`: Rounds the corners of an image to the specified radius.
+- `static func crop(rect: CGRect, unit: ImageProcessingOptions.Unit = .points) -> ImageProcessors.Crop`: Crops an image to the given rectangle, measured from the top-left corner of the image as it's displayed.
+- `static func flip(_ direction: ImageProcessors.Flip.Direction) -> ImageProcessors.Flip`: Mirrors an image as it's displayed.
+- `static func rotate(degrees: CGFloat) -> ImageProcessors.Rotate`: Rotates an image as it's displayed.
+- `static func tint(color: PlatformColor) -> ImageProcessors.Tint`: Paints a color over an image, keeping its alpha.
 - `static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous`: Creates a custom processor with a given closure.
 - `static func coreImageFilter(name: String, parameters: [String: any Sendable], identifier: String) -> ImageProcessors.CoreImageFilter`: Applies Core Image filter – `CIFilter` – to the image.
 - `static func coreImageFilter(name: String) -> ImageProcessors.CoreImageFilter`: Applies Core Image filter – `CIFilter` – to the image.
@@ -778,6 +778,31 @@
 - `case failedToCreateOutputCGImage(extent: CGRect, image: String)`: Failed to render the output image with the given extent into a `CGImage`.
 - `var description: String`
 
+### ImageProcessors.Crop
+
+- `struct Crop: ImageProcessing, Hashable, CustomStringConvertible`: Crops an image to a rectangle.
+- `init(rect: CGRect, unit: ImageProcessingOptions.Unit = .points)`: Initializes the processor with the given rectangle.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `static func == (lhs: Crop, rhs: Crop) -> Bool`
+- `func hash(into hasher: inout Hasher)`
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.Flip
+
+- `struct Flip: ImageProcessing, Hashable, CustomStringConvertible`: Mirrors an image.
+- `init(_ direction: Direction)`: Initializes the processor with the given direction.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.Flip.Direction
+
+- `enum Direction: CustomStringConvertible, Sendable`: The direction to mirror an image in.
+- `case horizontal`: Swaps the left and the right of the image.
+- `case vertical`: Swaps the top and the bottom of the image.
+- `var description: String`
+
 ### ImageProcessors.GaussianBlur
 
 - `struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible`: Blurs an image using a simulated Gaussian blur.
@@ -796,10 +821,28 @@
 - `var identifier: String`
 - `var description: String`
 
+### ImageProcessors.Rotate
+
+- `struct Rotate: ImageProcessing, Hashable, CustomStringConvertible`: Rotates an image clockwise by an angle in degrees.
+- `init(degrees: CGFloat)`: Initializes the processor with the given angle.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `static func == (lhs: Rotate, rhs: Rotate) -> Bool`
+- `func hash(into hasher: inout Hasher)`
+- `var identifier: String`
+- `var description: String`
+
 ### ImageProcessors.RoundedCorners
 
 - `struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible`: Rounds the corners of an image to the specified radius.
 - `init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil)`: Initializes the processor with the given radius.
+- `func process(_ image: PlatformImage) -> PlatformImage?`
+- `var identifier: String`
+- `var description: String`
+
+### ImageProcessors.Tint
+
+- `struct Tint: ImageProcessing, Hashable, CustomStringConvertible`: Paints a color over an image with the `sourceAtop` blend mode.
+- `init(color: PlatformColor)`: Initializes the processor with the given color.
 - `func process(_ image: PlatformImage) -> PlatformImage?`
 - `var identifier: String`
 - `var description: String`
@@ -888,7 +931,7 @@
 
 - `final class ImageTask: Hashable, Identifiable, CustomStringConvertible, Sendable`: A task performed by the `ImagePipeline`.
 - `var metrics: Metrics?`: Where the time of the task went.
-- `let taskId: UInt64`: An identifier that uniquely identifies the task within a given pipeline.
+- `let taskID: UInt64`: An identifier that uniquely identifies the task within a given pipeline.
 - `let request: ImageRequest`: The original request that the task was created with.
 - `var priority: ImageRequest.Priority`: The priority of the task.
 - `var isCancelled: Bool`: Returns `true` if the task was cancelled from the outside
@@ -916,7 +959,7 @@
 - `final class Metrics: Codable, Sendable, CustomStringConvertible`: A record of one task
 - `let schemaVersion: Int`: The version of the JSON the record encodes to.
 - `let pipelineID: UUID`: The pipeline that performed the task.
-- `let taskID: UInt64`: `ImageTask.taskId`.
+- `let taskID: UInt64`: `ImageTask.taskID`.
 - `let kind: Kind`
 - `let label: String?`: The `ImageRequest.label` of the request.
 - `let request: RequestSummary`
@@ -976,7 +1019,7 @@
 
 ### ImageTask.Metrics.Kind
 
-- `enum Kind: String, Sendable, ImageDiagnosticsStringEnum`: The kind of a task.
+- `enum Kind: String, Sendable`: The kind of a task.
 - `case image`: The image loading methods, such as `imageTask(with:)`.
 - `case data`: `ImagePipeline.data(for:)`.
 - `case prefetch`: `ImagePrefetcher`.
@@ -1031,7 +1074,6 @@
 - `var priority: ImageRequest.Priority = .normal`: The priority of the task.
 - `var progress = Progress(completed: 0, total: 0)`: The download progress.
 - `var metrics: Metrics?`: Where the time of the task went.
-- `init()`: Initializes the status describing a task that has just started.
 
 ### TaskQueue
 
@@ -1048,7 +1090,7 @@
 ### AnimatedImage
 
 - `struct AnimatedImage: View`: A SwiftUI view that plays an animated image.
-- `init(_ source: AnimatedImageSource, poster: PlatformImage? = nil)`: Plays the given animated image.
+- `init(_ animation: AnimatedImageSource, poster: PlatformImage? = nil)`: Plays the given animated image.
 - `init(player: AnimatedImagePlayer, poster: PlatformImage? = nil)`: Displays the frames of a player you own.
 - `init?(container: ImageContainer)`: Plays the image if the pipeline recognized it as animated, showing the still image the decoder produced until the first frame is decoded.
 - `consuming func resizable() -> Self`: Lets the animation be resized to the space it is given.
@@ -1061,10 +1103,8 @@
 - `var costLimit: Int`: The memory the decoded frames of every player may occupy, in bytes.
 - `var totalCost: Int`: The memory the decoded frames occupy right now, in bytes.
 - `var playerCount: Int`: The number of players drawing from the pool.
-- `var activePlayerCount: Int`: The number of players filling a window of frames.
 - `var animationCount: Int`: The number of animations the players are drawing from, including the ones nobody is playing any more but whose frames are still kept.
 - `static var defaultCostLimit: Int`: Returns a limit computed from the amount of physical memory on the device
-- `init(costLimit: Int = AnimatedImageFramePool.defaultCostLimit)`: Creates a pool with the given limit.
 - `func reduceMemoryUsage()`: Gives back the frames of every animation nobody is playing and holds the ones being played at the two frames playback needs.
 - `func removeIdleAnimations()`: Gives back the frames of every animation nobody is playing.
 
@@ -1078,7 +1118,7 @@
 ### AnimatedImagePlayer
 
 - `final class AnimatedImagePlayer: ObservableObject`: Plays an animated image
-- `let source: AnimatedImageSource`: The image being played.
+- `let animation: AnimatedImageSource`: The image being played.
 - `let options: Options`: The options the player was created with.
 - `var currentFrameIndex = 0`: The frame currently on screen.
 - `var image: PlatformImage?`: The image of the current frame, or `nil` until the first frame is decoded.
@@ -1088,7 +1128,7 @@
 - `var onFrame: ((PlatformImage) -> Void)?`: Called every time a new frame is ready to be displayed.
 - `var onLoop: ((Int) -> Void)?`: Called with the number of completed loops every time the animation wraps around.
 - `var onFinish: (() -> Void)?`: Called when the animation stops because it has played all of its loops.
-- `convenience init(source: AnimatedImageSource, options: Options = Options())`: Creates a player for the given image.
+- `convenience init(animation: AnimatedImageSource, options: Options = Options())`: Creates a player for the given image.
 - `func play()`: Starts or resumes playback.
 - `func pause()`: Pauses playback on the current frame.
 - `func restart()`: Returns to the first frame and starts playing.
@@ -1140,8 +1180,8 @@
 ### AnimatedImageView
 
 - `final class AnimatedImageView: _PlatformImageView`: An image view that plays animated images.
-- `var animatedImage: AnimatedImageSource?`: The image being played, or `nil` if the view is showing a still image.
-- `var player: AnimatedImagePlayer?`: The player driving `animatedImage`, or `nil` when there is nothing to play.
+- `var animation: AnimatedImageSource?`: The image being played, or `nil` if the view is showing a still image.
+- `var player: AnimatedImagePlayer?`: The player driving `animation`, or `nil` when there is nothing to play.
 - `var playerOptions = AnimatedImagePlayer.Options()`: The options the view creates its players with.
 - `var isPlaybackEnabled = true`: Whether animations play.
 - `var isAutomaticDownsamplingEnabled = true`: Whether the frames are decoded no larger than the view displays them.
@@ -1159,6 +1199,10 @@
 - `override var isHidden: Bool`
 - `override var alphaValue: CGFloat`
 - `override var alpha: CGFloat`
+
+### EnvironmentValues
+
+- `var imagePipeline: ImagePipeline`: The pipeline that `LazyImage` loads images with.
 
 ### FetchImage
 
@@ -1287,7 +1331,7 @@
 - `var imageContainer: ImageContainer?`: Returns the fetched image.
 - `var isLoading: Bool`: Returns `true` if the image is being loaded.
 - `var progress: ImageTask.Progress`: The progress of the image download.
-- `var animatedImage: AnimatedImageSource?`: Returns the fetched image as an animation, if it is one.
+- `var animation: AnimatedImageSource?`: Returns the fetched image as an animation, if it is one.
 - `var error: ImagePipeline.Error?`: Returns the current error.
 - `var image: Image?`: Returns an image view.
 
@@ -1336,6 +1380,10 @@
 - `case fadeIn(duration: TimeInterval)`: Fade-in transition.
 - `case custom(closure: (LazyImageView, ImageContainer) -> Void)`: A custom image view transition.
 
+### View
+
+- `func imagePipeline(_ pipeline: ImagePipeline) -> some View`: Sets the pipeline that `LazyImage` views in this view hierarchy load images with, the way `asyncImageURLSession(_:)` sets the session of `AsyncImage`.
+
 ## NukeVideo
 
 
@@ -1350,9 +1398,8 @@
 ### ImageDecoders.Video
 
 - `final class Video: ImageDecoding, Sendable`: The video decoder.
-- `var isAsynchronous: Bool`: Always `true` — decoding is performed asynchronously to avoid blocking the pipeline.
 - `init?(context: ImageDecodingContext)`: Returns `nil` if the data is not a recognized video format (MP4, M4V, or MOV).
-- `func decode(_ data: Data) throws -> ImageContainer`: Decodes the complete video data and returns an `ImageContainer` with a thumbnail preview and an `AVDataAsset` stored in `ImageContainer.userInfo`.
+- `func decode(_ data: Data) throws -> ImageContainer`: Decodes the complete video data and returns an `ImageContainer` with a thumbnail preview and an `AVAsset` stored in `ImageContainer.userInfo` under `ImageContainer.UserInfoKey.videoAssetKey`.
 - `func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?`: Returns a single thumbnail preview for the first frame of partially downloaded video data, or `nil` if the data is not yet decodable, a preview was already produced, or the preview policy is `ImagePipeline.PreviewPolicy.disabled`.
 
 ### VideoPlayerView
