@@ -149,6 +149,89 @@ struct ImagePipelineDelegateTests {
         #expect(dataCache.writeCount == 0)
     }
 
+    @Test func willCacheDoesNotHoldBackTheImage() async throws {
+        // GIVEN a delegate that suspends in `willCache` until the test lets it return
+        let delegate = SuspendingWillCacheDelegate()
+        let pipeline = pipeline.reconfigured(delegate: delegate)
+
+        // WHEN
+        let delivered = TestExpectation()
+        Task {
+            _ = try await pipeline.image(for: Test.request)
+            delivered.fulfill()
+        }
+
+        // THEN the image arrives while the delegate is suspended, as in Nuke 13
+        await delivered.wait(timeout: .seconds(10))
+        #expect(delegate.calls.count == 1)
+        #expect(dataCache.store.isEmpty)
+
+        // THEN the data is stored once the delegate returns
+        delegate.gate.open()
+        await waitUntil { dataCache.store.count == 1 }
+    }
+
+    @Test func willCacheDoesNotHoldTheDataLoadingSlot() async throws {
+        // GIVEN one data loading slot, and a delegate that suspends in `willCache`
+        let delegate = SuspendingWillCacheDelegate()
+        let pipeline = ImagePipeline(delegate: delegate) {
+            $0.dataLoader = dataLoader
+            $0.dataCache = dataCache
+            $0.imageCache = nil
+            $0.dataLoadingQueue.maxConcurrentTaskCount = 1
+        }
+
+        // WHEN two images load while the first `willCache` is suspended
+        let delivered = TestExpectation()
+        Task {
+            _ = try await pipeline.image(for: URL(string: "https://example.com/a.jpeg")!)
+            _ = try await pipeline.image(for: URL(string: "https://example.com/b.jpeg")!)
+            delivered.fulfill()
+        }
+
+        // THEN the second download doesn't wait for the first `willCache`
+        await delivered.wait(timeout: .seconds(10))
+        delegate.gate.open()
+        await waitUntil { dataCache.store.count == 2 }
+    }
+
+    @Test func willCacheDoesNotHoldTheEncodingQueue() async throws {
+        // GIVEN a delegate that suspends in `willCache`, and two requests that
+        // store processed images, which share the one-slot encoding queue
+        let delegate = SuspendingWillCacheDelegate()
+        let pipeline = pipeline.reconfigured(delegate: delegate)
+
+        // WHEN
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [.resize(width: 44)]))
+        _ = try await pipeline.image(for: ImageRequest(url: Test.url, processors: [.resize(width: 22)]))
+
+        // THEN the second image is encoded while the first `willCache` is suspended
+        await waitUntil { delegate.calls.count == 2 }
+        delegate.gate.open()
+        await waitUntil { dataCache.store.count == 2 }
+    }
+
+    @Test func willCacheThatDoesNotSuspendStoresBeforeTheDataIsDelivered() async throws {
+        // Before `Task.immediate`, the pipeline stores the data right after.
+        guard #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, *) else { return }
+
+        // GIVEN a delegate whose `willCache` returns without suspending
+        let pipeline = pipeline.reconfigured(delegate: delegate) {
+            $0.isDiagnosticsEnabled = true
+        }
+
+        // WHEN
+        let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true)
+        _ = try await task.response
+
+        // THEN the data was stored before the task finished, which is when
+        // its metrics are captured
+        let metrics = try #require(task.metrics)
+        let stage = try #require(metrics.jobs.last?.stages.first { $0.kind == .diskStore })
+        #expect(stage.bytes == Int64(Test.data.count))
+        #expect(dataCache.store.count == 1)
+    }
+
     // MARK: - willLoadData
 
     @Test func willLoadDataIsCalled() async throws {
@@ -290,5 +373,17 @@ struct ImagePipelineDelegateTests {
 
         // THEN willLoadData is NOT called (custom fetch bypasses URL loading)
         #expect(delegate.requests.isEmpty)
+    }
+}
+
+/// Suspends in `willCache` until the test opens the gate.
+private final class SuspendingWillCacheDelegate: ImagePipeline.Delegate, @unchecked Sendable {
+    let gate = AsyncGate()
+    let calls = LockedArray<Data>()
+
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline) async -> Data? {
+        calls.append(data)
+        await gate.wait()
+        return data
     }
 }

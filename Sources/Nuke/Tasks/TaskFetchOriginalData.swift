@@ -140,12 +140,12 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 downloadStage = diagnostics?.beginStage(.download)
             }
             try await loadData(with: urlRequest, dataLoader: dataLoader)
-            await dataTaskDidFinish()
+            dataTaskDidFinish()
         } catch {
             if let error = error as? ImagePipeline.Error {
-                await dataTaskDidFinish(error: error)
+                dataTaskDidFinish(error: error)
             } else {
-                await dataTaskDidFinish(error: .dataLoadingFailed(error: error))
+                dataTaskDidFinish(error: .dataLoadingFailed(error: error))
             }
         }
     }
@@ -278,7 +278,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         send(value: (data, response))
     }
 
-    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) async {
+    private func dataTaskDidFinish(error: ImagePipeline.Error? = nil) {
         guard !isDisposed else { return }
 
         diagnostics?.endStage(downloadStage) { recordTransfer(in: &$0) }
@@ -296,7 +296,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         }
 
         // Store in data cache
-        await storeDataInCacheIfNeeded(data)
+        storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
     }
@@ -341,19 +341,19 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
                 $0.source = .closure
                 $0.bytes = Int64(data.count)
             }
-            await asyncDataDidFinish(data)
+            asyncDataDidFinish(data)
         } catch {
             diagnostics?.endStage(downloadStage) { $0.source = .closure }
             send(error: .dataLoadingFailed(error: error))
         }
     }
 
-    private func asyncDataDidFinish(_ data: Data) async {
+    private func asyncDataDidFinish(_ data: Data) {
         guard !data.isEmpty else {
             send(error: .dataIsEmpty)
             return
         }
-        await storeDataInCacheIfNeeded(data)
+        storeDataInCacheIfNeeded(data)
         send(value: (data, nil), isCompleted: true)
     }
 
@@ -377,22 +377,28 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 }
 
 extension AsyncPipelineTask where Value == (Data, URLResponse?) {
-    func storeDataInCacheIfNeeded(_ data: Data) async {
+    /// Call it before sending the data: whether to store it depends on the
+    /// subscribers, which are gone once the task completes.
+    func storeDataInCacheIfNeeded(_ data: Data) {
         let request = makeSanitizedRequest()
         guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
             return
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
         let stage = diagnostics?.beginStage(.diskStore)
-        guard let data = await pipeline.willCache(data: data, image: nil, for: request) else {
-            diagnostics?.endStage(stage) { $0.cacheKey = diagnosticsDigest(of: key) }
-            return
-        }
-        // Important! Storing directly ignoring `ImageRequest.Options`.
-        dataCache.storeData(data, for: key)
-        diagnostics?.endStage(stage) {
-            $0.cacheKey = diagnosticsDigest(of: key)
-            $0.bytes = Int64(data.count)
+        // If the delegate suspends, the job may finish first, which ends the
+        // stage: the job didn't wait for the rest.
+        pipeline.willCache(data: data, image: nil, for: request) { [diagnostics] data in
+            guard let data else {
+                diagnostics?.endStage(stage) { $0.cacheKey = diagnosticsDigest(of: key) }
+                return
+            }
+            // Important! Storing directly ignoring `ImageRequest.Options`.
+            dataCache.storeData(data, for: key)
+            diagnostics?.endStage(stage) {
+                $0.cacheKey = diagnosticsDigest(of: key)
+                $0.bytes = Int64(data.count)
+            }
         }
     }
 

@@ -194,8 +194,10 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 encoder.encode(response.container, context: context)
             }
             guard let data, !data.isEmpty else { return }
-            guard let data = await pipeline.willCache(data: data, image: response.container, for: request) else { return }
-            dataCache.storeData(data, for: key) // This is instant, writes are async
+            pipeline.willCache(data: data, image: response.container, for: request) { data in
+                guard let data else { return }
+                dataCache.storeData(data, for: key) // This is instant, writes are async
+            }
         }
     }
 

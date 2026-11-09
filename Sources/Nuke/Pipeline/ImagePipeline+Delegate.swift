@@ -84,6 +84,11 @@ extension ImagePipeline {
         ///
         /// The default implementation returns `data` unchanged.
         ///
+        /// Whatever the method awaits doesn't delay the image: the pipeline
+        /// delivers it without waiting, and stores the data once the method
+        /// returns. The method runs on ``ImagePipelineActor``, so move expensive
+        /// work, such as encryption, off it.
+        ///
         /// - parameters:
         ///   - data: Either the original data or the encoded image in case of storing
         ///   a processed or re-encoded image. An animated image isn't re-encoded, so
@@ -188,13 +193,29 @@ extension ImagePipeline {
         return try await delegate.willLoadData(for: request, urlRequest: urlRequest, pipeline: self)
     }
 
-    /// Returns `nil` if the data must not be stored, including when the delegate
-    /// returns empty data.
+    /// Passes the data through the delegate, then calls `store` with what it
+    /// returned, or with `nil` if the data must not be stored, including when
+    /// the delegate returns empty data.
+    ///
+    /// The caller doesn't wait for the delegate, as it didn't in Nuke 13, when
+    /// the method took a completion: whatever `willCache` awaits holds back
+    /// neither the image nor the queue slot of the work that stores it. On OS 26
+    /// and later, the delegate runs inline up to its first suspension, so a
+    /// method that doesn't suspend has the data stored before this returns, as
+    /// a Nuke 13 method that called the completion synchronously did. Before,
+    /// it is stored right after.
     @ImagePipelineActor
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest) async -> Data? {
-        guard !isDefaultDelegate else { return data }
-        let data = await delegate.willCache(data: data, image: image, for: request, pipeline: self)
-        return (data?.isEmpty ?? true) ? nil : data
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, then store: @escaping @ImagePipelineActor @Sendable (Data?) -> Void) {
+        guard !isDefaultDelegate else { return store(data) }
+        let operation: @ImagePipelineActor @Sendable () async -> Void = {
+            let data = await self.delegate.willCache(data: data, image: image, for: request, pipeline: self)
+            store((data?.isEmpty ?? true) ? nil : data)
+        }
+        if #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, *) {
+            Task.immediate(operation: operation)
+        } else {
+            Task(operation: operation)
+        }
     }
 
     nonisolated func imageTaskCreated(_ task: ImageTask, isDataTask: Bool) {

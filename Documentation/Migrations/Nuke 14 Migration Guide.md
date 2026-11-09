@@ -275,7 +275,7 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 }
 ```
 
-The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
+The method runs on `@ImagePipelineActor`, so move expensive work, such as encryption, off it. As in Nuke 13, the pipeline doesn't wait for the method to deliver the image: it stores the data once the method returns.
 
 > Warning: **The Nuke 13 method still compiles, and the pipeline never calls it.** Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code. A delegate that used `willCache` to keep private images off the disk stops doing so, silently. Search your code for `completion: @escaping (Data?) -> Void`.
 

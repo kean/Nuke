@@ -174,7 +174,7 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 }
 ```
 
-If the method does more than decide, such as encrypting the data, keep that logic and return the result. These older methods are dead too:
+If the method does more than decide, such as encrypting the data, keep that logic and return the result, but await the expensive part off `@ImagePipelineActor`, where the method runs. The pipeline doesn't wait for the method to deliver the image. These older methods are dead too:
 
 | Never called | Use, in `imageTask(_:didReceiveEvent:pipeline:)` |
 |---|---|
