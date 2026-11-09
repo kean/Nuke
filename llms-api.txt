@@ -783,8 +783,6 @@
 - `struct Crop: ImageProcessing, Hashable, CustomStringConvertible`: Crops an image to a rectangle.
 - `init(rect: CGRect, unit: ImageProcessingOptions.Unit = .points)`: Initializes the processor with the given rectangle.
 - `func process(_ image: PlatformImage) -> PlatformImage?`
-- `static func == (lhs: Crop, rhs: Crop) -> Bool`
-- `func hash(into hasher: inout Hasher)`
 - `var identifier: String`
 - `var description: String`
 
@@ -826,8 +824,6 @@
 - `struct Rotate: ImageProcessing, Hashable, CustomStringConvertible`: Rotates an image clockwise by an angle in degrees.
 - `init(degrees: CGFloat)`: Initializes the processor with the given angle.
 - `func process(_ image: PlatformImage) -> PlatformImage?`
-- `static func == (lhs: Rotate, rhs: Rotate) -> Bool`
-- `func hash(into hasher: inout Hasher)`
 - `var identifier: String`
 - `var description: String`
 
