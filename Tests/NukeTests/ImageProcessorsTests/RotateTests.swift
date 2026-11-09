@@ -109,6 +109,13 @@ struct ImageProcessorsRotateTests {
         #expect(processor.identifier == expected.identifier)
     }
 
+    @Test func anglesCompareAsNumbersExceptThatNaNEqualsItself() {
+        #expect(ImageProcessors.Rotate(degrees: .nan) == ImageProcessors.Rotate(degrees: .nan))
+        #expect(ImageProcessors.Rotate(degrees: .infinity) == ImageProcessors.Rotate(degrees: .infinity))
+        #expect(ImageProcessors.Rotate(degrees: 0) == ImageProcessors.Rotate(degrees: -0.0))
+        #expect(ImageProcessors.Rotate(degrees: 30) != ImageProcessors.Rotate(degrees: 45))
+    }
+
     @Test(arguments: [.nan, .infinity] as [CGFloat])
     func nonFiniteAngleFails(degrees: CGFloat) {
         #expect(ImageProcessors.Rotate(degrees: degrees).process(PixelGrid(width: 4, height: 3).makeImage()) == nil)

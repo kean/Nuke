@@ -55,6 +55,20 @@ extension ImageProcessors {
             image.processed.byCropping(to: CGRect(x: Double(x), y: Double(y), width: Double(width), height: Double(height)))
         }
 
+        // A NaN has to equal itself, as in `ImageTargetSize`: a processor that
+        // compares unequal to itself makes `LazyImage` reload on every update.
+        public static func == (lhs: Crop, rhs: Crop) -> Bool {
+            func equal(_ a: Float, _ b: Float) -> Bool { a == b || a.bitPattern == b.bitPattern }
+            return equal(lhs.x, rhs.x) && equal(lhs.y, rhs.y) && equal(lhs.width, rhs.width) && equal(lhs.height, rhs.height)
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            hasher.combine(x)
+            hasher.combine(y)
+            hasher.combine(width)
+            hasher.combine(height)
+        }
+
         public var identifier: String {
             "com.github.kean/nuke/crop?x=\(x),y=\(y),width=\(width),height=\(height)"
         }

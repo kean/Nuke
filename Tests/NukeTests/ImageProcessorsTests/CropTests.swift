@@ -16,6 +16,12 @@ struct ImageProcessorsCropTests {
         ImageProcessors.Crop(rect: CGRect(x: x, y: y, width: width, height: height), unit: .pixels)
     }
 
+    @Test func rectsCompareAsNumbersExceptThatNaNEqualsItself() {
+        #expect(crop(.nan, 0, 3, 2) == crop(.nan, 0, 3, 2))
+        #expect(crop(0, 0, 3, 2) == crop(-0.0, 0, 3, 2))
+        #expect(crop(0, 0, 3, 2) != crop(1, 0, 3, 2))
+    }
+
     @Test func rectIsMeasuredFromTheTopLeft() throws {
         let grid = PixelGrid(width: 5, height: 4)
 

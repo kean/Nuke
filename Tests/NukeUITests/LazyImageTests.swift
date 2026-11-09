@@ -1444,6 +1444,22 @@ struct LazyImageTests {
         #expect(starts.value == 1)
     }
 
+    @Test(arguments: [
+        ImageProcessors.Rotate(degrees: .nan),
+        ImageProcessors.Crop(rect: CGRect(x: CGFloat.nan, y: 0, width: 10, height: 10), unit: .pixels)
+    ] as [any ImageProcessing])
+    func noReloadWhenAProcessorHasNaN(processor: any ImageProcessing) async {
+        let starts = Ref(0)
+        let host = ViewHost(0) { _ in
+            LazyImage(request: ImageRequest(url: Test.url, processors: [processor]))
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(1)
+
+        #expect(starts.value == 1)
+    }
+
     @Test func noNewRequestWhenPriorityChanges() async {
         let completions = Ref(0)
         let completed = TestExpectation()
