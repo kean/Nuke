@@ -46,16 +46,6 @@ extension ImageProcessors {
             image.processed.byRotating(degrees: degrees)
         }
 
-        // A NaN has to equal itself, as in `ImageTargetSize`: a processor that
-        // compares unequal to itself makes `LazyImage` reload on every update.
-        public static func == (lhs: Rotate, rhs: Rotate) -> Bool {
-            lhs.degrees == rhs.degrees || lhs.degrees.bitPattern == rhs.degrees.bitPattern
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            hasher.combine(degrees)
-        }
-
         public var identifier: String {
             "com.github.kean/nuke/rotate?degrees=\(degrees)"
         }
