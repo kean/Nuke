@@ -43,7 +43,7 @@ ImageCache.shared.removeAll()
 
 ```swift
 // Configure cache
-DataLoader.sharedUrlCache.diskCapacity = 100
+DataLoader.sharedUrlCache.diskCapacity = 1024 * 1024 * 100 // 100 MB
 DataLoader.sharedUrlCache.memoryCapacity = 0
 
 // Read and write responses
@@ -113,7 +113,7 @@ dataCache.removeAll()
 >
 > ```swift
 > let sharedCacheURL = FileManager.default
->     .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")
+>     .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")!
 >
 > // Main app
 > ImagePipeline.shared = ImagePipeline {

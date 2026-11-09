@@ -59,6 +59,7 @@ ARTICLE_ORDER = [
     "Customization/ImageFormats/supported-image-formats.md",
     "Customization/ImageFormats/image-decoding.md",
     "Customization/ImageFormats/image-encoding.md",
+    "Essentials/objective-c.md",
     "Extensions/ImagePipeline-Extension.md",
     "Extensions/LazyImage-Extensions.md",
     "Extensions/FetchImage-Extensions.md",

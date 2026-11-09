@@ -27,12 +27,12 @@ Alternatively, you can create an ``ImageTask`` and access its ``ImageTask/image`
 
 ```swift
 final class AsyncImageView: UIImageView {
-    func loadImage() async throws {
+    func loadImage(with url: URL) async throws {
         let imageTask = ImagePipeline.shared.imageTask(with: url)
         for await progress in imageTask.progress {
             // Update progress
         }
-        imageView.image = try await imageTask.image
+        image = try await imageTask.image
     }
 }
 ```
