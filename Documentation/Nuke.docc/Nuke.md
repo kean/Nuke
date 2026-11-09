@@ -34,6 +34,7 @@ To install Nuke, use Swift Package Manager.
 - <doc:uikit>
 - <doc:objective-c>
 - <doc:troubleshooting>
+- <doc:coming-from-other-libraries>
 - ``ImagePipeline``
 - ``ImageRequest``
 - ``ImageResponse``
@@ -44,6 +45,7 @@ To install Nuke, use Swift Package Manager.
 
 - <doc:image-processing>
 - <doc:loading-data>
+- <doc:recipes>
 - <doc:image-formats>
 - ``ImagePipeline/Delegate-swift.protocol``
 - ``AnimatedImageSource``
