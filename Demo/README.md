@@ -39,7 +39,7 @@ details worth knowing.
 
 | Screen | Shows |
 |--|--|
-| **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid, with its destination and priority on menus, and a count of the images each cell found in memory or on disk when it asked. The order the prefetcher starts its downloads in shows that at `.low` it works back from the far end of a batch |
+| **Prefetching** | `ImagePrefetcher` driven by `UICollectionViewDataSourcePrefetching` and by a SwiftUI grid, with its destination and priority on menus, and a count of the images each cell found in memory or on disk when it asked. The order the prefetcher starts its downloads in shows a batch starting in order, at any priority |
 | **Decompression** | A grid of 12 MP images, two to a row (three on an iPad), each under a URL of its own, with decompression off, on, on with `isUsingPrepareForDisplay`, and replaced by thumbnails. Auto-Scroll scrolls it at a fixed speed on a new pipeline for each, and each keeps its last run: the frames the main thread dropped, hitch time, the longest frame, the footprint's peak, the images shown, and the probe's decode and decompression times. A memory cache of four images, and cells that let go of theirs as they leave the screen, keep it within what a phone can hold |
 
 ### Integration

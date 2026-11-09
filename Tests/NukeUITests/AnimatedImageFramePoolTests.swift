@@ -621,6 +621,9 @@ struct AnimatedImageFramePoolTests {
         #expect(playing.diagnostics.bufferedFrameCount == 4)
         #expect(pool.animationCount == 2)
         #expect(pool.totalCost <= pool.costLimit)
+        // In Release, the optimizer releases `sources` after its last use, and
+        // the pool lets the two animations go before the test looks at them.
+        withExtendedLifetime(sources) {}
     }
 
     // MARK: Helpers

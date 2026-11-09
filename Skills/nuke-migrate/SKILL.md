@@ -42,17 +42,17 @@ grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
 # Queues and prefetchers set by hand, and decoders of your own
-grep -rnE 'maxConcurrentRequestCount|ImageDecoding\b|isAsynchronous' --include='*.swift' .
+grep -rnE 'maxConcurrentRequestCount|didComplete|ImageDecoding\b|isAsynchronous' --include='*.swift' .
 ```
 
 The search can't see through a typealias, or a signature split over lines. Open each file and read it.
 
 ## 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have betas, pin one:
+`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-beta.1")
+.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
@@ -233,7 +233,7 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 | A `LazyImage` | A `content` closure that shows `state.image` and no `AnimatedImage` |
 | Every view | `isAnimatedImageParsingEnabled = false` in the pipeline's configuration |
 
-Two more changes reach users on those screens:
+Three more changes reach users on those screens:
 
 - A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.loopCount = .infinite` on the `AnimatedImageView`.
 - Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
@@ -267,9 +267,11 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
+- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request with the same URL (or `imageID`), processors, options, scale, and thumbnail counts as the same image, even if its priority, headers, cache policy, or `userInfo` differ. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
 - `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
 - `LazyImage` draws an image from the memory cache in the first `body` for its request, where 13 drew a placeholder first. In a `content` closure, an `onChange` of `state.image`, `state.imageContainer`, or `state.result` no longer fires for that image, because the value never changes: move the code to `onCompletion`, which still runs. In that `body`, `state` isn't a `FetchImage`, so a cast to it fails, and it doesn't update, so read it in the closure rather than keep it.
+- `ImagePrefetcher.didComplete` also runs when `stopPrefetching()` cancels the last outstanding request. If the closure marks downloads as done, set a flag where the app stops prefetching and check it in the closure.
+- On macOS, `isDecompressionEnabled = true` and a delegate's `shouldDecompress` and `decompress` now take effect. Check a delegate shared with iOS.
 
 Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
 

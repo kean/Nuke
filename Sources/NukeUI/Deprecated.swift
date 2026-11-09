@@ -31,7 +31,7 @@ extension LazyImageView {
 // versions after the removal.
 
 extension FetchImage {
-    @available(*, unavailable, message: "Removed in Nuke 14. Use `load(_:)` with an async closure, for example `load { try await pipeline.image(for: url) }`.")
+    @available(*, unavailable, message: "Removed in Nuke 14. Use `load(_:)` with an async closure, for example `load { try await pipeline.imageTask(with: url).response }`.")
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
         fatalError("Removed in Nuke 14")
     }

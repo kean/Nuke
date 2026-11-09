@@ -53,7 +53,7 @@ The same ``DataLoader/delegate`` can be used for modifying data loader behavior,
 // The delegate is retained by the `DataLoader`.
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = YourDelegate()
 
-final class YourDelegate: URLSessionTaskDelegate {
+final class YourDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         // Handle authentication challenge...
     }
@@ -96,7 +96,7 @@ An [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) is availabl
 
 ```swift
 /// Implements data loading using Alamofire framework.
-public class AlamofireDataLoader: Nuke.DataLoading {
+public final class AlamofireDataLoader: Nuke.DataLoading {
     public let session: Alamofire.Session
 
     /// Initializes the receiver with a given Alamofire.SessionManager.

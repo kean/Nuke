@@ -40,7 +40,7 @@ For where the time of a slow task went:
 let pipeline = ImagePipeline { $0.isDiagnosticsEnabled = true }
 let task = pipeline.imageTask(with: url)
 _ = try await task.image
-print(task.metrics!.formatted([.header, .breakdown]))
+print(task.metrics!.formatted([.header, .breakdown, .percentages]))
 ```
 
 ```

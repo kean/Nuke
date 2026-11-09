@@ -145,7 +145,7 @@ LazyImage(url: url) { state in
 .clipped()
 ```
 
-> Note: Unlike `AsyncImage`, `LazyImage` doesn't pass a phase enum to the closure – it passes the state itself, so you can read the download progress or the underlying `ImageResponse` while the view is on screen.
+> Note: Unlike `AsyncImage`, `LazyImage` doesn't pass a phase enum to the closure – it passes the state itself, so you can read the download progress or the underlying `ImageResponse` while the view is on screen. See "Replacing AsyncImage" if you're moving from `AsyncImage`.
 
 ### Transitions
 
@@ -184,14 +184,21 @@ LazyImage(url: url)
 
 ### Using a Custom Pipeline
 
-To use a pipeline other than `ImagePipeline.shared`, set it on the view.
+To use a pipeline other than `ImagePipeline.shared`, set it on the view hierarchy. Every `LazyImage` below the modifier loads with it, the way `asyncImageURLSession(_:)` sets the session of `AsyncImage`.
+
+```swift
+ContentView()
+    .imagePipeline(myPipeline)
+```
+
+A pipeline set on a single view with `pipeline(_:)` takes precedence over the one in the environment.
 
 ```swift
 LazyImage(url: url)
     .pipeline(myPipeline)
 ```
 
-> Tip: There is no environment-based mechanism for this – `pipeline(_:)` is set per view. If most of your app uses a single custom pipeline, assign it to `ImagePipeline.shared` at launch instead of passing it to every view.
+Changing the pipeline reloads the images that are on screen. If your whole app uses a single custom pipeline, you can also assign it to `ImagePipeline.shared` at launch.
 
 ### FetchImage for Custom Views
 
@@ -219,6 +226,155 @@ struct CustomImageView: View {
 ```
 
 `reset()` cancels the in-flight request and clears the loaded image. Use `cancel()` instead if you want to stop the download but keep displaying what was already loaded.
+
+## Replacing AsyncImage
+
+Move from SwiftUI's `AsyncImage` to `LazyImage`, and learn what changes.
+
+### Overview
+
+`LazyImage` is shaped like `AsyncImage`: it takes a URL or a request, and a closure that builds the view for each state. The difference is where the image comes from. `AsyncImage` loads it with a `URLSession`. `LazyImage` loads it with an `ImagePipeline`, so the image is cached in memory, a download that is already running is shared, the decoding happens off the main thread, and the request is canceled when the view goes away.
+
+Most of the move is mechanical. Add `import NukeUI`, rename the view, and replace the `switch` on the phase with a check of the state.
+
+### The Common Case
+
+`AsyncImage` passes the closure a phase. `LazyImage` passes it the state, which has the same three outcomes as properties: `image` for `.success`, `error` for `.failure`, and neither for `.empty`.
+
+```swift
+// AsyncImage
+AsyncImage(url: url) { phase in
+    switch phase {
+    case .success(let image):
+        image.resizable().scaledToFill()
+    case .failure:
+        Image(systemName: "photo")
+    case .empty:
+        ProgressView()
+    @unknown default:
+        EmptyView()
+    }
+}
+
+// LazyImage
+LazyImage(url: url) { state in
+    if let image = state.image {
+        image.resizable().scaledToFill()
+    } else if state.error != nil {
+        Image(systemName: "photo")
+    } else {
+        ProgressView()
+    }
+}
+```
+
+The same goes for the form with a separate placeholder. There is no `placeholder` closure, so the `else` branch is the placeholder.
+
+```swift
+// AsyncImage
+AsyncImage(url: url) { image in
+    image.resizable()
+} placeholder: {
+    ProgressView()
+}
+
+// LazyImage
+LazyImage(url: url) { state in
+    if let image = state.image {
+        image.resizable()
+    } else {
+        ProgressView()
+    }
+}
+```
+
+### Initializers
+
+| AsyncImage | LazyImage |
+|---|---|
+| `AsyncImage(url:)` | `LazyImage(url:)` |
+| `AsyncImage(url:scale:)` | Set `scale` on an `ImageRequest`, as shown below |
+| `AsyncImage(url:scale:content:placeholder:)` | `LazyImage(url:content:)`, with the placeholder in the `else` branch |
+| `AsyncImage(url:scale:transaction:content:)` | `LazyImage(url:transaction:content:)` |
+| `AsyncImage(request:)` and the other `request:` forms, on iOS 27 | `LazyImage(request:)` with `ImageRequest.init(urlRequest:processors:priority:options:)`, from iOS 16 |
+| `.asyncImageURLSession(_:)` | `.imagePipeline(_:)`, as shown below |
+| `phase.image` | `state.image` |
+| `phase.error` | `state.error` |
+
+`AsyncImage` takes a `scale` because `Image` needs to know how many pixels make a point. `LazyImage` takes it from the request, and it is `1` by default, like the `scale` of `AsyncImage`.
+
+```swift
+var request = ImageRequest(url: url)
+request.scale = 3
+
+LazyImage(request: request) { state in
+    if let image = state.image {
+        image
+    }
+}
+```
+
+To load with the headers, the cache policy, or the timeout of a `URLRequest`, pass it to the request.
+
+```swift
+LazyImage(request: ImageRequest(urlRequest: urlRequest)) { state in
+    if let image = state.image {
+        image
+    }
+}
+```
+
+### Setting the Session
+
+`asyncImageURLSession(_:)` sets the session that every `AsyncImage` below it loads with. `imagePipeline(_:)` does the same for `LazyImage`. Nuke builds the session itself, from the configuration of a `DataLoader`, so that's where you put the headers, the timeouts, and the cache.
+
+```swift
+let configuration = DataLoader.defaultConfiguration
+configuration.httpAdditionalHeaders = ["Authorization": "Bearer \(token)"]
+
+let pipeline = ImagePipeline {
+    $0.dataLoader = DataLoader(configuration: configuration)
+}
+
+ContentView()
+    .imagePipeline(pipeline)
+```
+
+A pipeline set on a single view with `pipeline(_:)` takes precedence over the one in the environment. Without either, `LazyImage` loads with `ImagePipeline.shared`. See "Loading Data" for the ways to customize how the data is loaded, including authentication challenges.
+
+### Where the Behavior Differs
+
+A view that is moved over compiles, but a few things work differently.
+
+- **A missing URL is an error.** `LazyImage(url: nil)` doesn't stay in its loading state. It fails with `ImagePipeline.Error.imageRequestMissing`, so `state.error` isn't `nil`. If a missing URL means that there is no image to show, check for it before you create the view.
+- **The error has a type.** `state.error` is an `ImagePipeline.Error`, and `AsyncImagePhase.failure` carries an `any Error`. Use the `dataLoadingFailed(error:)` case to get the error that `URLSession` reported.
+- **Disappearing cancels the load.** The request is canceled when the view disappears, and it starts again when the view comes back. To change that, use `onDisappear(_:)`.
+
+### Code That Takes a Phase
+
+If your views take an `AsyncImagePhase`, for example a shared helper that draws every state in the same way, you don't have to rewrite them. Make a phase from the state.
+
+```swift
+extension LazyImageState {
+    var phase: AsyncImagePhase {
+        if let image {
+            .success(image)
+        } else if let error {
+            .failure(error)
+        } else {
+            .empty
+        }
+    }
+}
+
+LazyImage(url: url) { state in
+    AvatarContent(phase: state.phase)
+}
+```
+
+### What You Get in Return
+
+The phase has no room for most of what the pipeline knows, which is why the closure gets the state. Once you're on `LazyImage`, you can read `progress` and `isLoading`, set the `processors` and the `priority`, and play animated images. See "SwiftUI" for the rest of `LazyImage`, "Image Processing" to resize an image to the size it is displayed at, and "Performance Guide" for the settings that matter in a list.
 
 ## UIKit and AppKit
 
@@ -406,7 +562,7 @@ LazyImage(url: url) { state in
 }
 ```
 
-`AnimatedImage.init(container:)` returns `nil` for everything that isn't animated, which is the signal to display the still image. It also carries the still the decoder produced, which holds the place until the first frame is decoded – without one the view is blank every time an animation appears. `LazyImageState.animatedImage` is the animation on its own, for a view you build yourself.
+`AnimatedImage.init(container:)` returns `nil` for everything that isn't animated, which is the signal to display the still image. It also carries the still the decoder produced, which holds the place until the first frame is decoded – without one the view is blank every time an animation appears. `LazyImageState.animation` is the animation on its own, for a view you build yourself.
 
 Like `Image`, `AnimatedImage` displays at its natural size until you call `AnimatedImage.resizable()`, and it lays out the way an `Image` does after that – `scaledToFit()`, `scaledToFill()`, `frame(width:height:)`, and the rest.
 
@@ -436,7 +592,7 @@ The view plays only while it is in a window, so an animation in a cell that scro
 Create the player yourself when you want to control it – or read its diagnostics:
 
 ```swift
-let player = AnimatedImagePlayer(source: source)
+let player = AnimatedImagePlayer(animation: animation)
 player.play()
 ```
 
@@ -465,9 +621,9 @@ What is published is the playback state changing – it starts, stops, finishes 
 
 `AnimatedImagePlayer.Options` covers the rest: `AnimatedImagePlayer.Options.playbackRate` for speed, and `AnimatedImagePlayer.Options.loopCount` for how many times to play. The default, `AnimatedImagePlayer.LoopCount.image`, honors what the file asks for, which for the vast majority of animations is "forever" – a GIF carrying no Netscape loop extension asks to be played once, and is, the way a browser plays it. `AnimatedImagePlayer.LoopCount.finite(_:)` stops on the last frame and calls `AnimatedImagePlayer.onFinish`.
 
-To show an animation as a still – a list where animations play only after the user asks for them – set `AnimatedImageView.isPlaybackEnabled` to `false`. The first frame is displayed and no frames beyond it are ever decoded.
+To show an animation as a still – a list where animations play only after the user asks for them – set `AnimatedImageView.isPlaybackEnabled` to `false`. The first frame is displayed, and the player holds only it and the frame after it – ready for when playback starts – decoding nothing further. Turning playback off on an animation that has already played pauses it in place and keeps the frames it has.
 
-That is also where Accessibility › Motion › Auto-Play Animated Images lands. `AnimatedImage` reads it from the SwiftUI environment and holds the animation on its first frame while the setting is off. A player you own still plays when something asks it to, so a play button of your own keeps working. UIKit and AppKit publish no equivalent, so an `AnimatedImageView` used outside SwiftUI has to be told.
+Two settings in Accessibility › Motion do the same on their own: Auto-Play Animated Images, from iOS 17, macOS 14, tvOS 17, and watchOS 10, and Reduce Motion. While the first is off or the second is on, `AnimatedImage`, `LazyImage`, `LazyImageView`, and `AnimatedImageView` all show a still. There is nothing to set up. An animation already playing pauses on the frame it is on when a setting changes, and carries on from there when it changes back. A player you own still plays when something asks it to, so a play button of your own keeps working: an `AnimatedImagePlayer` on its own doesn't read either setting, and neither does `AnimatedImagePlayer.play()`.
 
 ### Memory
 
@@ -479,7 +635,7 @@ Which of the two it is falls to `AnimatedImageFramePool`, which every animation 
 AnimatedImageFramePool.shared.costLimit = 32 * 1_048_576
 ```
 
-What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
+What is measured is what the frames cost decoded – the canvas at four bytes a pixel, less whatever downsampling scales away, or the bitmap a frame transform draws into when that is larger – never the size of the file, which says nothing about it: a 500×280 GIF of 22 frames is 400 KB on disk and 12 MB decoded.
 
 When the animations together want more than the limit, the pool gives each one its window first and holds as many of them whole as the rest allows, smallest first – so a wall of stickers and one long GIF keeps every sticker whole and plays the GIF out of a window, where an even split would hold nothing whole. When two the same size compete for the last of it, the one already whole keeps its frames. One thing sits outside the limit: a player always holds two frames, because with one the next frame could only start decoding after the current one was dropped. A hundred animations at once will exceed any limit.
 
@@ -544,6 +700,8 @@ Two cases where an animation deliberately becomes a still:
 
 - **A processed image.** A processor produces a new image, and the encoded animation no longer describes it, so the pipeline drops the data and the animation with it. A processor that implements `ImageProcessing.process(_:context:)` decides for itself and can keep both – one that processes the frames, say. To change the frames of an animation that goes on playing, reach for `AnimatedImagePlayer.Options.frameTransform` instead.
 - **A thumbnail request.** `ImageRequest.thumbnail` exists to avoid decoding the image at full size, and playing the full-size animation would undo that. Neither the data nor the animation is attached.
+
+The disk cache is not one of them: every `ImagePipeline.DataCachePolicy` keeps an animation that reaches it. `ImagePipeline.DataCachePolicy.storeEncodedImages` stores its original data, because an encoder writes a single image.
 
 Also worth knowing: GIF is not an efficient format for what it is usually asked to do. A short, silent, looping MP4 is a fraction of the size and is decoded by dedicated hardware. `NukeVideo` plays those.
 
@@ -661,6 +819,33 @@ ImageRequest(url: url, processors: [
 
 The built-in processors can all be found in the `ImageProcessors` namespace, but the preferred way to create them is by using static factory methods on `ImageProcessing` protocol.
 
+### Cropping, Flipping, and Rotating
+
+Use `ImageProcessing.crop(rect:unit:)`, `ImageProcessing.flip(_:)`, and `ImageProcessing.rotate(degrees:)` to change the geometry of an image.
+
+```swift
+ImageRequest(url: url, processors: [
+    .crop(rect: CGRect(x: 0, y: 0, width: 1200, height: 630), unit: .pixels),
+    .rotate(degrees: 90),
+    .flip(.horizontal)
+])
+```
+
+These act on the image as it's displayed, so a rectangle is measured from the top-left corner of a photo even if the file stores it on its side. Processors run in order, so each one gets the output of the one before it.
+
+- A crop ignores the part of the rectangle outside of the image, and fails the request if nothing is left.
+- A rotation is clockwise. A multiple of 90 degrees moves the pixels without resampling them. Any other angle grows the canvas to fit the rotated image and leaves the corners transparent, so the output has an alpha channel even if the input was opaque.
+
+### Tinting
+
+`ImageProcessing.tint(color:)` paints a color over an image with the `sourceAtop` blend mode, which keeps the alpha of the image. An opaque color turns it into a silhouette, which is the way to color a template icon. A translucent one is laid over it, which is the way to darken a photo under some text.
+
+```swift
+ImageRequest(url: url, processors: [
+    .tint(color: .black.withAlphaComponent(0.4))
+])
+```
+
 ### Custom Processors
 
 Custom processors need to implement `ImageProcessing` protocol. For the basic image processing needs, implement `ImageProcessing.process(_:)` method and create an identifier that uniquely identifies the processor. For processors with no input parameters, return a static string.
@@ -739,12 +924,14 @@ The same `DataLoader.delegate` can be used for modifying data loader behavior, e
 // The delegate is retained by the `DataLoader`.
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = YourDelegate()
 
-final class YourDelegate: URLSessionTaskDelegate {
+final class YourDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         // Handle authentication challenge...
     }
 }
 ```
+
+`DataLoader` sends every authentication challenge to the task-level method, as in this example, server trust and client certificate challenges included. It never calls the session-level `urlSession(_:didReceive:completionHandler:)`, so implement certificate pinning in the task-level method.
 
 ### Resumable Downloads
 
@@ -780,7 +967,7 @@ An [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) is availabl
 
 ```swift
 /// Implements data loading using Alamofire framework.
-public class AlamofireDataLoader: Nuke.DataLoading {
+public final class AlamofireDataLoader: Nuke.DataLoading {
     public let session: Alamofire.Session
 
     /// Initializes the receiver with a given Alamofire.SessionManager.
@@ -835,7 +1022,7 @@ Learn about the memory and disk cache layers.
 
 There are three cache layers:
 
-- `ImageCache` – LRU **memory** cache for processed images
+- `ImageCache` – **memory** cache (CLOCK, an approximation of LRU) for processed images
 - `DataCache` – aggressive LRU **disk** cache
 - [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) – HTTP **disk** cache, which is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system)
 
@@ -843,9 +1030,9 @@ The default pipeline uses a combination of `ImageCache` and [`URLCache`](https:/
 
 #### Memory Cache
 
-`ImageCache` is a **memory** cache with an [LRU cleanup](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)) policy (least recently used are removed first). The pipeline uses it to store processed images that are decompressed and ready to be displayed.
+`ImageCache` is a **memory** cache that evicts with [CLOCK](https://en.wikipedia.org/wiki/Page_replacement_algorithm#Clock), an approximation of LRU: an image that was read since the last sweep gets a second chance, and the ones that weren't are removed first. The pipeline uses it to store processed images that are decompressed and ready to be displayed.
 
-`ImageCache` discards the least recently cached images if either *cost* or *count* limit is reached. The default cost limit represents a number of bytes and is calculated based on the amount of physical memory available on the device. The default count limit is `Int.max`.
+`ImageCache` discards images that weren't read recently if either *cost* or *count* limit is reached. The default cost limit represents a number of bytes and is calculated based on the amount of physical memory available on the device. The default count limit is `Int.max`.
 
 ```swift
 // Configure cache
@@ -872,7 +1059,7 @@ ImageCache.shared.removeAll()
 
 ```swift
 // Configure cache
-DataLoader.sharedUrlCache.diskCapacity = 100
+DataLoader.sharedUrlCache.diskCapacity = 1024 * 1024 * 100 // 100 MB
 DataLoader.sharedUrlCache.memoryCapacity = 0
 
 // Read and write responses
@@ -934,7 +1121,7 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-`DataCache` writes asynchronously: `DataCache.storeData(_:for:)` stages the data and returns immediately, and the disk I/O happens later. To wait until the pending changes are written to disk, use `DataCache.flush()`.
+`DataCache` writes asynchronously: `DataCache.storeData(_:for:)` stages the data and returns immediately, and the disk I/O happens later: about a second later, so that writes batch up, or sooner once more than 16 MB is waiting. The staged data stays in memory until it's written. To wait until the pending changes are written to disk, use `DataCache.flush()`.
 
 > Important: Reads are not asynchronous. `DataCache.cachedData(for:)` and `DataCache.containsData(for:)` return instantly only if the entry is still in the staging area – otherwise they hit the disk synchronously. Avoid calling them from the main thread.
 
@@ -942,7 +1129,7 @@ dataCache.removeAll()
 >
 > ``swift
 > let sharedCacheURL = FileManager.default
->     .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")
+>     .containerURL(forSecurityApplicationGroupIdentifier: "group.com.myapp")!
 >
 > .. Main app
 > ImagePipeline.shared = ImagePipeline {
@@ -1162,7 +1349,7 @@ Images can take a lot of space. When you download an image, it gets cached so th
 
 #### L1. Memory Cache (Default)
 
-The images are stored in a fast in-memory cache: `ImageCache`. It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a strict size limit. It also automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
+The images are stored in a fast in-memory cache: `ImageCache`. It evicts with [CLOCK](https://en.wikipedia.org/wiki/Page_replacement_algorithm#Clock), an approximation of LRU (least recently used) that doesn't reorder entries on a read, and has a strict size limit. It also automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
 
 > Important: The memory cache stores decompressed (bitmapped) images. If your app is loading and displaying high-resolution images, consider downsampling them and/or increasing cache limits. For context, a bitmap for a 6000x4000px image takes 92 MB (assuming it needs 4 bytes per pixel).
 
@@ -1197,7 +1384,7 @@ configuration.dataCachePolicy = .automatic
 ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
-> Tip: To save disk space, see `ImageEncoders.ImageIO` and `ImageEncoder.isHEIFPreferred` option for HEIF support.
+> Tip: To save disk space, see `ImageEncoders.ImageIO` and the `ImageEncoders.Default.isHEIFPreferred` option for HEIF support.
 
 ### Prefetching
 
@@ -1497,28 +1684,29 @@ The pipeline can also drive progressive decoding, animated image rendering, draw
 | JPEG | `AssetType.jpeg` | ✅ | ✅ | Automatic (progressive JPEG) | – |
 | PNG | `AssetType.png` | ✅ | ✅ | Opt-in | ✅ APNG |
 | GIF | `AssetType.gif` | ✅ | ✅ | Automatic (single preview) | ✅ |
-| HEIC | `AssetType.heic` | ✅ | ✅ | Opt-in | ✅ image sequences |
-| WebP | `AssetType.webp` | ✅ | ❌ | Opt-in | ✅ |
-| AVIF | `AssetType.avif` | ✅ | ✅ recent OS only | Opt-in | ✅ image sequences |
-| JPEG XL | `AssetType.jxl` | ✅ iOS 17, macOS 14 | ❌ | Opt-in | – |
+| HEIC | `AssetType.heic` | ✅ | ✅ except watchOS | Opt-in | ✅ image sequences |
+| WebP | `AssetType.webp` | ✅ except watchOS | ❌ | None | ✅ except watchOS |
+| AVIF | `AssetType.avif` | ✅ except stills on watchOS | ✅ recent iOS, macOS, visionOS | Opt-in | ✅ image sequences |
+| JPEG XL | `AssetType.jxl` | ✅ iOS 17, macOS 14, tvOS 17, watchOS 10 | ❌ | Opt-in | ❌ |
 | JPEG 2000 | `AssetType.jpeg2000` | ✅ | ✅ | Opt-in | – |
-| TIFF | `AssetType.tiff` | ✅ | ✅ | Opt-in | – |
+| TIFF | `AssetType.tiff` | ✅ | ✅ | None | – |
 | BMP | `AssetType.bmp` | ✅ | ✅ | Opt-in | – |
-| ICO | `AssetType.ico` | ✅ | ✅ | Opt-in | – |
+| ICO | `AssetType.ico` | ✅ | ✅ 8 square sizes | Opt-in | – |
 | CUR | – | ✅ | ❌ | Opt-in | – |
-| Camera RAW | `AssetType.tiff` or – | ✅ | ❌ | Opt-in (embedded thumbnail) | – |
-| SVG | – | ❌ | ❌ | – | – |
-| MP4, M4V, MOV | `AssetType.mp4`, `AssetType.m4v`, `AssetType.mov` | `NukeVideo` | ❌ | Opt-in (single preview) | ✅ `NukeVideo` |
+| Camera RAW | `AssetType.tiff` or – | ✅ embedded thumbnail for TIFF-based files | ❌ | Opt-in (embedded thumbnail) | – |
+| SVG | – | macOS only | ❌ | – | – |
+| PDF | `AssetType.pdf` | `ImageDecoders.PDF`, except tvOS | ❌ | None | – |
+| MP4, M4V, MOV | `AssetType.mp4`, `AssetType.m4v`, `AssetType.mov` | `NukeVideo`, except watchOS and visionOS | ❌ | Opt-in (single preview) | ✅ `NukeVideo`, except watchOS and visionOS |
 
 Reading the columns:
 
 - **`AssetType`** – the type `AssetType(data)` returns for this format, or `–` if the sniffer doesn't recognize it. A `–` doesn't prevent decoding, it only means `ImageContainer.type` is `nil`.
 - **Decode** – whether `ImageDecoders.Default` produces an image. Formats without a version note are decodable on every supported OS (iOS 16, tvOS 16, macOS 13, watchOS 9, visionOS 1).
-- **Encode** – whether the format can be used with `ImageEncoders.ImageIO`. `ImageEncoders.Default` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder.
-- **Previews** – behavior once `ImagePipeline.Configuration.isProgressiveDecodingEnabled` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via `ImagePipeline.Delegate.previewPolicy(for:pipeline:)`, and whether Image I/O can produce anything from a partial file is format-dependent.
-- **Animation** – whether the pipeline recognizes the format as animated and attaches `ImageContainer.data` so that it can be played. A `–` means the format has no animated flavor. See <doc:supported-image-formats#Animated-Images>.
+- **Encode** – whether the format can be used with `ImageEncoders.ImageIO`. `ImageEncoders.Default` only ever picks JPEG, PNG, or HEIC; the rest need an explicit encoder. ICO only takes a square image of 16, 24, 32, 48, 64, 72, 128, or 256 pixels: anything else encodes to `nil`, even though `ImageEncoders.ImageIO.isSupported(type:)` returns `true`.
+- **Previews** – behavior once `ImagePipeline.Configuration.isProgressiveDecodingEnabled` is on, which it isn't by default. "Automatic" means previews arrive with no further setup; "Opt-in" means you also have to select a policy via `ImagePipeline.Delegate.previewPolicy(for:pipeline:)`, and whether Image I/O can produce anything from a partial file is format-dependent. "None" means Image I/O produced nothing from a partial file under either policy, even with 99% of it.
+- **Animation** – whether the pipeline recognizes the format as animated and attaches `ImageContainer.data` so that it can be played. A `–` means the format has no animated flavor, and ❌ that it has one the pipeline doesn't recognize. See <doc:supported-image-formats#Animated-Images>.
 
-> Tip: The matrix reflects what Apple's frameworks ship today. Both halves are queryable at runtime: `CGImageSourceCopyTypeIdentifiers()` for decoding, `ImageEncoders.ImageIO.isSupported(type:)` for encoding.
+> Tip: The matrix reflects what Apple's frameworks ship today, and its watchOS entries were measured in the simulator. Both halves are queryable at runtime: `CGImageSourceCopyTypeIdentifiers()` for decoding, `ImageEncoders.ImageIO.isSupported(type:)` for encoding.
 
 ### Format Detection
 
@@ -1580,15 +1768,15 @@ To render HEIF images, you can use `UIImageView`/`NSImageView`/`WKInterfaceImage
 
 ### WebP
 
-[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, tvOS 14, and watchOS 7, so it's available on every supported OS version.
+[WebP](https://developers.google.com/speed/webp) is decoded natively via Image I/O – no plugins required. Support landed in macOS 11, iOS 14, and tvOS 14, so it's available on every supported version of those and of visionOS. watchOS has no WebP decoder: an image fails to decode there, animated or not.
 
 Image I/O has no WebP encoder. `ImageEncoders.ImageIO.isSupported(type:)` returns `false` for `AssetType.webp` on every current platform. Animated WebP decodes to its first frame and carries its data, like every other animation – see <doc:supported-image-formats#Animated-Images>.
 
 ### AVIF
 
-[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every supported OS. Files with the `avif` and `avis` major brands sniff as `AssetType.avif`.
+[AVIF](https://en.wikipedia.org/wiki/AVIF) decodes natively on every supported OS except watchOS, which doesn't list `public.avif` as a type it can read: a still fails to decode there, while an image sequence decodes. Files with the `avif` and `avis` major brands sniff as `AssetType.avif`.
 
-AVIF encoding arrived later than decoding and is only available on recent OS versions, so check before using it:
+AVIF encoding arrived later than decoding and is only available on recent versions of iOS, macOS, and visionOS, and not on tvOS or watchOS, so check before using it:
 
 ```swift
 if ImageEncoders.ImageIO.isSupported(type: .avif) {
@@ -1600,7 +1788,7 @@ if ImageEncoders.ImageIO.isSupported(type: .avif) {
 
 ### JPEG XL
 
-[JPEG XL](https://en.wikipedia.org/wiki/JPEG_XL) decodes natively on macOS 14, iOS 17, tvOS 17, and watchOS 10. Both the container signature and the naked codestream sniff as `AssetType.jxl`. There is no encoder.
+[JPEG XL](https://en.wikipedia.org/wiki/JPEG_XL) decodes natively on macOS 14, iOS 17, tvOS 17, and watchOS 10. Both the container signature and the naked codestream sniff as `AssetType.jxl`. There is no encoder. The pipeline doesn't recognize an animated JPEG XL, so it attaches no `ImageContainer.data` for one to play.
 
 Because OS versions older than these are supported, guard any JPEG XL-specific code:
 
@@ -1618,17 +1806,11 @@ Apple's documentation lists `public.jpeg-2000` as a macOS-only identifier, but c
 
 ### Camera RAW
 
-Image I/O decodes RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others. The decoder passes them straight through, so they load without any extra setup.
+Image I/O reads RAW files from most camera vendors – Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax, Leica, Hasselblad, Adobe DNG, and others – on macOS, iOS, and visionOS. tvOS and watchOS have no RAW decoder.
 
 `AssetType` has no RAW constants – there are dozens of vendor-specific identifiers. Most RAW files are TIFF containers under the hood and sniff as `AssetType.tiff`; the rest, such as Canon's ISO-base-media CR3, sniff as `nil`.
 
-RAW files are large and slow to decode at full size. Use `ImageRequest.thumbnail` to have Image I/O read the embedded preview instead of the full sensor data:
-
-```swift
-var request = ImageRequest(url: url)
-request.thumbnail = ImageRequest.ThumbnailOptions(maxPixelSize: 512)
-let image = try await ImagePipeline.shared.image(for: request)
-```
+A TIFF-based file can load as its embedded thumbnail rather than its sensor data. Without a type hint, Image I/O takes it for a plain TIFF and returns the first image in it, and `ImageDecoders.Default` passes no hint: a 3008×2000 NEF loads at 160×120 on every platform, and `ImageRequest.thumbnail` doesn't get you anything larger. To decode the full image, write an `ImageDecoding` that creates its `CGImageSource` with `kCGImageSourceTypeIdentifierHint`, set to a type such as `com.nikon.raw-image` – see "Image Decoding".
 
 ### Animated Images
 
@@ -1660,13 +1842,13 @@ Learn more in "Image Decoding".
 
 **Encoding**
 
-Image I/O can write GIF and APNG, but `ImageEncoders.ImageIO` writes a single frame – it has no way to express an animation.
+Image I/O can write GIF and APNG, but `ImageEncoders.ImageIO` writes a single frame – it has no way to express an animation. With `ImagePipeline.DataCachePolicy.storeEncodedImages`, an animated image skips the encoder, and its original data is stored instead.
 
 ### SVG
 
 **Decoding**
 
-There is currently no built-in support for SVG. Use `ImageDecoders.Empty` to pass the original image data to an SVG-enabled view and render it using an external mechanism.
+On macOS, `NSImage(data:)` reads SVG, so `ImageDecoders.Default` decodes it there. No other platform does, `AssetType` doesn't recognize it, and a request with `ImageRequest.thumbnail` fails because Image I/O can't read it. To render SVG as vectors on any platform, use `ImageDecoders.Empty` to pass the original image data to an SVG-enabled view and render it using an external mechanism.
 
 **Encoding**
 
@@ -1702,6 +1884,59 @@ svgView.center = view.center
 
 > Important: Both [SwiftSVG](https://github.com/mchoe/SwiftSVG) and [SVG](https://github.com/SVGKit/SVGKit) only support a subset of SVG features.
 
+### PDF
+
+**Decoding**
+
+`ImageDecoders.PDF` draws a page of a document into a bitmap with Core Graphics, on every platform except tvOS. It's opt-in, because a PDF parser is a lot to expose to every URL an app loads images from, so you have to register it:
+
+```swift
+ImageDecoderRegistry.shared.register(ImageDecoders.PDF.init)
+```
+
+A page has no pixels of its own, so ask for the size you're going to display. The decoder draws the page once, at that size, which can be larger than the page:
+
+```swift
+var request = ImageRequest(url: url)
+request.thumbnail = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 320), contentMode: .aspectFit)
+let image = try await ImagePipeline.shared.image(for: request)
+```
+
+Without a thumbnail, the image is the size of the page multiplied by `ImageRequest.scale`, so one pixel per point by default. Either way, the longest side stops at `ImageDecoders.PDF.maxPixelSize`, which is 4096 pixels by default.
+
+The decoder draws the first page. To draw another, set `ImageDecoders.PDF.pageIndex` in the registration:
+
+```swift
+ImageDecoderRegistry.shared.register { context in
+    var decoder = ImageDecoders.PDF(context: context)
+    decoder?.pageIndex = context.request.userInfo["pageIndex"] as? Int ?? 0
+    return decoder
+}
+```
+
+The page isn't a part of the cache key, so give the request for each page its own `ImageRequest.imageID`:
+
+```swift
+var request = ImageRequest(url: url)
+request.userInfo["pageIndex"] = 2
+request.imageID = "\(url.absoluteString)#page=3"
+```
+
+A few things are worth knowing:
+
+- **Nothing paints the page white.** Whatever the document doesn't paint stays transparent, so black text on a page with no background needs a light view behind it.
+- **A failure is a decoding failure.** A document that can't be read, one that needs a password, and a page that doesn't exist fail with `ImagePipeline.Error.decodingFailed(decoder:context:error:)`.
+- **tvOS doesn't have the decoder.** On tvOS 27, Core Graphics crashes on a document it can't open instead of reporting a failure, so a damaged file would take the app down.
+- **A document can load without the decoder.** On macOS, `NSImage(data:)` reads it, so `ImageDecoders.Default` does too, at the size of the page. A request with `ImageRequest.thumbnail` goes through Image I/O, which also draws a page on iOS and tvOS, but never larger than the page. Anything else fails to decode.
+
+**Encoding**
+
+None. With the default `ImagePipeline.DataCachePolicy.storeOriginalData`, the disk cache keeps the document, and each thumbnail is drawn from it. `ImagePipeline.DataCachePolicy.storeEncodedImages` stores the drawing as a PNG instead, under the key of the request, and a later request for a larger image can't be any sharper than that PNG.
+
+**Rendering**
+
+A decoded page is a bitmap, so any view can display it.
+
 ### Video
 
 `AssetType` recognizes MP4, M4V, and QuickTime containers, but the `Nuke` module can't decode them. Add the `NukeVideo` product and register its decoder:
@@ -1710,7 +1945,7 @@ svgView.center = view.center
 ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
 ```
 
-`ImageDecoders.Video` generates a still preview and attaches the downloaded data to the container, which `VideoPlayerView` then plays.
+`ImageDecoders.Video` generates a still preview and attaches the downloaded data to the container, which `VideoPlayerView` then plays. The decoder isn't available on watchOS or visionOS.
 
 ## Image Decoding
 
@@ -1720,11 +1955,6 @@ At the core of the decoding infrastructure is the `ImageDecoding` protocol.
 
 ```swift
 public protocol ImageDecoding: Sendable {
-    /// Returns `true` if you want the decoding to be performed on the
-    /// decoding queue. If `false`, decoding is performed synchronously
-    /// on the pipeline's actor. By default, `true`.
-    var isAsynchronous: Bool { get }
-
     /// Produces an image from the given image data.
     func decode(_ data: Data) throws -> ImageContainer
 
@@ -1764,7 +1994,7 @@ The pipeline uses `ImageDecoderRegistry` to find the decoder.  The decoder is cr
 >
 > You can also take advantage of `ImageRequest.userInfo`. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.
 
-The decoding is performed in the background on `ImagePipeline.Configuration.imageDecodingQueue`. There is always only one decoding request at a time. The pipeline doesn't call `ImageDecoding.decodePartiallyDownloadedData(_:)` again until you are finished with the previous chunk.
+The decoding is performed in the background on `ImagePipeline.Configuration.imageDecodingQueue`, which runs two decodes at a time by default. A decoder gets one call at a time: the pipeline doesn't call `ImageDecoding.decodePartiallyDownloadedData(_:)` again until you are finished with the previous chunk. Decoders of different images can run at the same time, so any state they share has to be thread-safe.
 
 ### Registering Decoders
 
@@ -1785,7 +2015,12 @@ extension ImageDecoders {
             let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
             guard isSVG else {
                 return nil // Image format isn't supported.
-            }   
+            }
+        }
+
+        func decode(_ data: Data) throws -> ImageContainer {
+            // A blank image, and the data for a view that renders SVG
+            ImageContainer(image: PlatformImage(), data: data)
         }
     }
 }
@@ -1875,6 +2110,10 @@ You can find all of the built-in decoders in the `ImageDecoders` namespace.
 
 The default `ImageDecoders.Default` also supports progressive decoding via `CGImageSourceCreateIncremental`. It produces previews as data arrives, gated by `ImagePipeline.PreviewPolicy` (`.incremental` for progressive JPEGs and GIFs by default, `.disabled` for other formats).
 
+#### ImageDecoders.PDF
+
+`ImageDecoders.PDF` draws a page of a PDF document into a bitmap, at the size the request asks for. You have to register it, and it isn't available on tvOS: see <doc:supported-image-formats#PDF>.
+
 #### ImageDecoders.Video 
 
 Generates a video preview and attaches downloaded data to the image container.
@@ -1899,6 +2138,8 @@ public protocol ImageEncoding: Sendable {
 
 There is currently no dedicated image encoder registry. Use the pipeline configuration to register custom encoders using `ImagePipeline.Configuration.makeImageEncoder`.
 
+An encoder writes a single image, so the default implementation of the second method returns the original data of an animated image – a GIF, an APNG, an animated WebP, or a HEIC or AVIF sequence – and encodes the image in every other case. A processed animation and a thumbnail of one are stills, and are encoded like any other image.
+
 ### Built-In Image Encoders
 
 You can find all of the built-in encoders in the `ImageEncoders` namespace.
@@ -1915,250 +2156,8 @@ Image I/O is a system framework that allows applications to read and write most 
 
 ```swift
 let image: UIImage
-let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
-let data = encoder.encode(image: image)
-```
-
-## `ImagePipeline`
-
-### Creating a Pipeline
-
-You can start using a `ImagePipeline.shared` pipeline and create a custom one later if needed. To create a custom pipeline, you can use a convenience `ImagePipeline.init(delegate:_:)` initializer:
-
-```swift
-ImagePipeline {
-    $0.dataCache = try? DataCache(name: "com.myapp.datacache")
-    $0.dataCachePolicy = .automatic
-}
-```
-
-You can customize `ImagePipeline` by initializing it with `ImagePipeline.Configuration` and `ImagePipeline.Delegate`. You can provide custom caches, data loaders, add support for new image formats, and more.
-
-> Tip: The pipeline has two cache layers: memory cache and disk cache. By default, only the memory cache is enabled. For caching data persistently, it relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache). There are advantages to enabling a custom disk cache. You can learn more in "Caching".
-
-### Loading Images
-
-Use `ImagePipeline.image(for:)` (or the `ImageRequest` overload) to load an image.
-
-```swift
-let image = try await ImagePipeline.shared.image(for: url)
-```
-
-Alternatively, you can create an `ImageTask` and access its `ImageTask.image` or `ImageTask.response` to fetch the image. You can use `ImageTask` to cancel the request, change the priority of the running task, and observe its progress.
-
-```swift
-final class AsyncImageView: UIImageView {
-    func loadImage() async throws {
-        let imageTask = ImagePipeline.shared.imageTask(with: url)
-        for await progress in imageTask.progress {
-            // Update progress
-        }
-        imageView.image = try await imageTask.image
-    }
-}
-```
-
-> Tip: The recommended way to load images with `ImagePipeline` is by using Async/Await API. But the pipeline also has API that works with closures.
-
-### Caching
-
-The pipeline has two cache layers: memory cache and disk cache.
-
-`ImageCache` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most of the cached images when the app goes to the background or receives a memory pressure warning.
-
-For caching data persistently, by default, the pipeline uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
-
-You can also replace `URLCache` with a custom `DataCache` that ignores HTTP `cache-control` headers using `ImagePipeline.Configuration.withDataCache(name:sizeLimit:)`.
-
-```swift
-ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
-```
-
-`DataCache` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using `ImagePipeline.Configuration.dataCachePolicy`. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
-
-> Tip: To learn more about caching, see "Caching" section.
-
-### Coalescing
-
-The pipeline avoids doing any duplicated work when loading images. Let's take two requests with the same URL but different processors as an example:
-
-```swift
-let url = URL(string: "http://example.com/image")
-async let first = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44)),
-    .gaussianBlur(radius: 8)
-]))
-async let second = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44))
-]))
-let images = try await (first, second)
-```
-
-The pipeline will load the data only once, resize the image once and blur it only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
-
-Coalescing can be disabled using `ImagePipeline.Configuration.isTaskCoalescingEnabled` configuration option.
-
-### Progressive Decoding
-
-If progressive decoding is enabled, the pipeline attempts to produce previews as data arrives. The behavior is controlled by `ImagePipeline.PreviewPolicy`, which the pipeline resolves via `ImagePipeline.Delegate.previewPolicy(for:pipeline:)`.
-
-**Default policy:** `.incremental` for progressive JPEGs and GIFs, `.disabled` for all other formats (baseline JPEGs, PNGs, etc.). This means only formats that benefit from incremental rendering produce previews by default.
-
-**Available policies:**
-- `.incremental` — Uses `CGImageSourceCreateIncremental` to produce a new preview as more data arrives. For JPEGs with large EXIF headers where incremental decoding fails, the decoder automatically falls back to generating a thumbnail.
-- `.thumbnail` — Extracts the embedded EXIF thumbnail (if any), then stops.
-- `.disabled` — No previews.
-
-**Throttling:** The pipeline throttles progressive decoding attempts using `ImagePipeline.Configuration.progressiveDecodingInterval` (default: 0.5s). When data arrives faster than this interval, intermediate chunks are skipped. This prevents excessive decoding work on fast connections.
-
-**Backpressure:** Every preview goes through the same processing and decompression phases as the final image. If a stage can't keep up, the pipeline waits for the current operation to finish before starting the next one. All outstanding progressive operations are canceled when the data is fully downloaded.
-
-### Error Handling
-
-The pipeline fails with a typed `ImagePipeline.Error`. Cancellation is one of its cases, and it's by far the most common one: every image view that scrolls offscreen cancels its request. Use `ImagePipeline.Error.isCancelled` to filter it out before showing an error or reporting it.
-
-```swift
-do {
-    imageView.image = try await pipeline.image(for: url)
-} catch {
-    guard !error.isCancelled else { return }
-    logger.error("Failed to load image: \(error)")
-}
-```
-
-## `LazyImage`
-
-### Using LazyImage
-
-The view is instantiated with a [`URL`](https://developer.apple.com/documentation/foundation/url) or an `ImageRequest`.
-
-```swift
-struct ContainerView: View {
-    var body: some View {
-        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
-    }
-}
-```
-
-The view is called "lazy" because it loads the image only when it appears on the screen. And when it disappears, the current request automatically gets canceled. When the view reappears, the download picks up where it left off, thanks to [resumable downloads](https://kean.blog/post/resumable-downloads). 
-
-> Tip: To change the `onDisappear` behavior, use `LazyImage.onDisappear(_:)`.
-
-Until the image loads, the view displays a standard placeholder that fills the available space, just like [AsyncImage](https://developer.apple.com/documentation/SwiftUI/AsyncImage) does. After the load completes successfully, the view updates to display the image.
-
-
-To gain more control over the loading process and how the image is displayed, use `LazyImage.init(url:transaction:content:)`, which takes a `content` closure that receives a `LazyImageState`.
-
-```swift
-LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
-    if let image = state.image {
-        image.resizable().aspectRatio(contentMode: .fill)
-    } else if state.error != nil {
-        Color.red // Indicates an error
-    } else {
-        Color.blue // Acts as a placeholder
-    }
-}
-```
-
-> Important: You can’t apply image-specific modifiers, like `resizable(capInsets:resizingMode:)`, directly to a `LazyImage`. Instead, apply them to the `Image` instance that your content closure gets when defining the view’s appearance.
-
-When the image is loaded, it is displayed with no animation, which is a recommended option. If you add an animation, it's automatically applied when the image is downloaded, but not when it's retrieved from the memory cache. 
-
-```swift
-LazyImage(url: URL(string: "https://example.com/image.jpeg"), transaction: Transaction(animation: .default)) { state in
-    state.image?.resizable().scaledToFit()
-}
-```
-
-`LazyImage` can be instantiated with an `ImageRequest` or configured using convenience modifiers.
-
-```swift
-LazyImage(request: ImageRequest(
-    url: URL(string: "https://example.com/image.jpeg"),
-    processors: [.resize(width: 44)]
-))
-
-LazyImage(url: URL(string: "https://example.com/image.jpeg"))
-    .processors([.resize(width: 44)])
-    .priority(.high)
-    .pipeline(customPipeline)
-```
-
-> Tip: `LazyImage` is built on top of `FetchImage`. If you want even more control, you can use it directly instead.
-
-## `FetchImage`
-
-### Overview
-
-`FetchImage` is an observable object ([`ObservableObject`](https://developer.apple.com/documentation/combine/observableobject)) that allows you to manage the download of an image and observe the download status. It acts as a ViewModel that manages the image download state making it easy to add image loading to your custom SwiftUI views.
-
-### Creating Custom Views
-
-```swift
-struct ImageView: View {
-    let url: URL
-
-    @StateObject private var image = FetchImage()
-
-    var body: some View {
-        ZStack {
-            Rectangle().fill(Color.gray)
-            image.image?
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .clipped()
-        }
-        .onAppear { image.load(url) }
-        .onChange(of: url) { image.load($0) }
-        .onDisappear { image.reset() }
-    }
-}
-```
-
-`FetchImage` gives you full control over how to manage the download and how to display the image. For example, if you want the download to continue when the view leaves the screen, change the appearance callbacks accordingly.
-
-```swift
-struct ImageView: View {
-    let url: URL
-
-    @StateObject private var image = FetchImage()
-
-    var body: some View {
-        // ...
-        .onAppear {
-            image.priority = .normal
-            image.load(url)
-        }
-        .onDisappear {
-            image.priority = .low
-        }
-    }
-}
-```
-
-## `ImageRequest`
-
-### Image Processing
-
-Set `ImageRequest.processors` to apply one of the built-in processors that can be found in `ImageProcessors` namespace or a custom one.
-
-```swift
-request.processors = [.resize(width: 320)]
-```
-
-> Tip: See "Image Processing" for more information on image processing.
-
-### Cache Policy Options
-
-`ImageRequest.Options` is an `OptionSet` that controls how the pipeline interacts with its cache layers. By default, all caching is active.
-
-```swift
-// Always reload from the network, ignoring the caches
-let request = ImageRequest(url: url, options: [.reloadIgnoringCachedData])
-
-// Only return a cached result; don't go to the network
-let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
+let encoder = ImageEncoders.ImageIO(type: .heic, compressionRatio: 0.8)
+let data = encoder.encode(image)
 ```
 
 ## Objective-C
@@ -2351,6 +2350,255 @@ Swift errors bridge to `NSError` automatically. `ImagePipeline.Error` conforms t
 
 Anything not listed here follows the same rule: keep it in Swift and expose only the result.
 
+## `ImagePipeline`
+
+### Creating a Pipeline
+
+You can start using a `ImagePipeline.shared` pipeline and create a custom one later if needed. To create a custom pipeline, you can use a convenience `ImagePipeline.init(delegate:_:)` initializer:
+
+```swift
+ImagePipeline {
+    $0.dataCache = try? DataCache(name: "com.myapp.datacache")
+    $0.dataCachePolicy = .automatic
+}
+```
+
+You can customize `ImagePipeline` by initializing it with `ImagePipeline.Configuration` and `ImagePipeline.Delegate`. You can provide custom caches, data loaders, add support for new image formats, and more.
+
+> Tip: The pipeline has two cache layers: memory cache and disk cache. By default, only the memory cache is enabled. For caching data persistently, it relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache). There are advantages to enabling a custom disk cache. You can learn more in "Caching".
+
+### Loading Images
+
+Use `ImagePipeline.image(for:)` (or the `ImageRequest` overload) to load an image.
+
+```swift
+let image = try await ImagePipeline.shared.image(for: url)
+```
+
+Alternatively, you can create an `ImageTask` and access its `ImageTask.image` or `ImageTask.response` to fetch the image. You can use `ImageTask` to cancel the request, change the priority of the running task, and observe its progress.
+
+```swift
+final class AsyncImageView: UIImageView {
+    func loadImage(with url: URL) async throws {
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+        }
+        image = try await imageTask.image
+    }
+}
+```
+
+> Tip: The recommended way to load images with `ImagePipeline` is by using Async/Await API. But the pipeline also has API that works with closures.
+
+### Caching
+
+The pipeline has two cache layers: memory cache and disk cache.
+
+`ImageCache` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most of the cached images when the app goes to the background or receives a memory pressure warning.
+
+For caching data persistently, by default, the pipeline uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
+
+You can also replace `URLCache` with a custom `DataCache` that ignores HTTP `cache-control` headers using `ImagePipeline.Configuration.withDataCache(name:sizeLimit:)`.
+
+```swift
+ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
+```
+
+`DataCache` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using `ImagePipeline.Configuration.dataCachePolicy`. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
+
+> Tip: To learn more about caching, see "Caching" section.
+
+### Coalescing
+
+The pipeline avoids doing any duplicated work when loading images. Let's take two requests with the same URL but different processors as an example:
+
+```swift
+let url = URL(string: "http://example.com/image")
+async let first = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44)),
+    .gaussianBlur(radius: 8)
+]))
+async let second = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44))
+]))
+let images = try await (first, second)
+```
+
+The pipeline will load the data only once, resize the image once and blur it only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
+
+Coalescing can be disabled using `ImagePipeline.Configuration.isTaskCoalescingEnabled` configuration option.
+
+### Progressive Decoding
+
+If progressive decoding is enabled, the pipeline attempts to produce previews as data arrives. The behavior is controlled by `ImagePipeline.PreviewPolicy`, which the pipeline resolves via `ImagePipeline.Delegate.previewPolicy(for:pipeline:)`.
+
+**Default policy:** `.incremental` for progressive JPEGs and GIFs, `.disabled` for all other formats (baseline JPEGs, PNGs, etc.). This means only formats that benefit from incremental rendering produce previews by default.
+
+**Available policies:**
+- `.incremental` — Uses `CGImageSourceCreateIncremental` to produce a new preview as more data arrives. For JPEGs with large EXIF headers where incremental decoding fails, the decoder automatically falls back to generating a thumbnail.
+- `.thumbnail` — Extracts the embedded EXIF thumbnail (if any), then stops.
+- `.disabled` — No previews.
+
+**Throttling:** The pipeline throttles progressive decoding attempts using `ImagePipeline.Configuration.progressiveDecodingInterval` (default: 0.5s). When data arrives faster than this interval, intermediate chunks are skipped. This prevents excessive decoding work on fast connections.
+
+**Backpressure:** Every preview goes through the same processing and decompression phases as the final image. If a stage can't keep up, the pipeline waits for the current operation to finish before starting the next one. All outstanding progressive operations are canceled when the data is fully downloaded.
+
+### Error Handling
+
+The pipeline fails with a typed `ImagePipeline.Error`. Cancellation is one of its cases, and it's by far the most common one: every image view that scrolls offscreen cancels its request. Use `ImagePipeline.Error.isCancelled` to filter it out before showing an error or reporting it.
+
+```swift
+do {
+    imageView.image = try await pipeline.image(for: url)
+} catch {
+    guard !error.isCancelled else { return }
+    logger.error("Failed to load image: \(error)")
+}
+```
+
+## `LazyImage`
+
+### Using LazyImage
+
+The view is instantiated with a [`URL`](https://developer.apple.com/documentation/foundation/url) or an `ImageRequest`.
+
+```swift
+struct ContainerView: View {
+    var body: some View {
+        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    }
+}
+```
+
+The view is called "lazy" because it loads the image only when it appears on the screen. And when it disappears, the current request automatically gets canceled. When the view reappears, the download picks up where it left off, thanks to [resumable downloads](https://kean.blog/post/resumable-downloads). 
+
+> Tip: To change the `onDisappear` behavior, use `LazyImage.onDisappear(_:)`.
+
+Until the image loads, the view displays a standard placeholder that fills the available space, just like [AsyncImage](https://developer.apple.com/documentation/SwiftUI/AsyncImage) does. After the load completes successfully, the view updates to display the image. An image that is already in the memory cache is displayed by the first update, with no placeholder before it. The disk cache is read off the main thread, so an image that is only there shows the placeholder first.
+
+
+To gain more control over the loading process and how the image is displayed, use `LazyImage.init(url:transaction:content:)`, which takes a `content` closure that receives a `LazyImageState`.
+
+```swift
+LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
+    if let image = state.image {
+        image.resizable().aspectRatio(contentMode: .fill)
+    } else if state.error != nil {
+        Color.red // Indicates an error
+    } else {
+        Color.blue // Acts as a placeholder
+    }
+}
+```
+
+> Important: You can’t apply image-specific modifiers, like `resizable(capInsets:resizingMode:)`, directly to a `LazyImage`. Instead, apply them to the `Image` instance that your content closure gets when defining the view’s appearance.
+
+When the image is loaded, it is displayed with no animation, which is a recommended option. If you add an animation, it's automatically applied when the image is downloaded, but not when it's retrieved from the memory cache. 
+
+```swift
+LazyImage(url: URL(string: "https://example.com/image.jpeg"), transaction: Transaction(animation: .default)) { state in
+    state.image?.resizable().scaledToFit()
+}
+```
+
+`LazyImage` can be instantiated with an `ImageRequest` or configured using convenience modifiers.
+
+```swift
+LazyImage(request: ImageRequest(
+    url: URL(string: "https://example.com/image.jpeg"),
+    processors: [.resize(width: 44)]
+))
+
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    .processors([.resize(width: 44)])
+    .priority(.high)
+    .pipeline(customPipeline)
+```
+
+To use one pipeline for a whole view hierarchy, set it in the environment with `imagePipeline(_:)` instead of passing it to every view. The view's own `pipeline(_:)` takes precedence.
+
+```swift
+ContentView()
+    .imagePipeline(customPipeline)
+```
+
+> Tip: `LazyImage` is built on top of `FetchImage`. If you want even more control, you can use it directly instead.
+
+## `FetchImage`
+
+### Overview
+
+`FetchImage` is an observable object ([`ObservableObject`](https://developer.apple.com/documentation/combine/observableobject)) that allows you to manage the download of an image and observe the download status. It acts as a ViewModel that manages the image download state making it easy to add image loading to your custom SwiftUI views.
+
+### Creating Custom Views
+
+```swift
+struct ImageView: View {
+    let url: URL
+
+    @StateObject private var image = FetchImage()
+
+    var body: some View {
+        ZStack {
+            Rectangle().fill(Color.gray)
+            image.image?
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .clipped()
+        }
+        .onAppear { image.load(url) }
+        .onChange(of: url) { image.load($0) }
+        .onDisappear { image.reset() }
+    }
+}
+```
+
+`FetchImage` gives you full control over how to manage the download and how to display the image. For example, if you want the download to continue when the view leaves the screen, change the appearance callbacks accordingly.
+
+```swift
+struct ImageView: View {
+    let url: URL
+
+    @StateObject private var image = FetchImage()
+
+    var body: some View {
+        // ...
+        .onAppear {
+            image.priority = .normal
+            image.load(url)
+        }
+        .onDisappear {
+            image.priority = .low
+        }
+    }
+}
+```
+
+## `ImageRequest`
+
+### Image Processing
+
+Set `ImageRequest.processors` to apply one of the built-in processors that can be found in `ImageProcessors` namespace or a custom one.
+
+```swift
+request.processors = [.resize(width: 320)]
+```
+
+> Tip: See "Image Processing" for more information on image processing.
+
+### Cache Policy Options
+
+`ImageRequest.Options` is an `OptionSet` that controls how the pipeline interacts with its cache layers. By default, all caching is active.
+
+```swift
+// Always reload from the network, ignoring the caches
+let request = ImageRequest(url: url, options: [.reloadIgnoringCachedData])
+
+// Only return a cached result; don't go to the network
+let cachedRequest = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
+```
+
 ## Optimizing Nuke
 
 Nuke's defaults come from benchmarks, so the gains are almost always in how the app asks for images, and rarely in its configuration. A 12 MP photo decoded for a 120-point cell costs 46 MB, and no setting makes up for that.
@@ -2387,7 +2635,7 @@ For where the time of a slow task went:
 let pipeline = ImagePipeline { $0.isDiagnosticsEnabled = true }
 let task = pipeline.imageTask(with: url)
 _ = try await task.image
-print(task.metrics!.formatted([.header, .breakdown]))
+print(task.metrics!.formatted([.header, .breakdown, .percentages]))
 ```
 
 ```
@@ -2646,21 +2894,21 @@ struct ResizeStills: ImageProcessing {
 - For a screen full of animations, show stills until someone asks: use `state.image` in the `content` closure of `LazyImage`, or set `isPlaybackEnabled = false` on `AnimatedImageView`.
 - The frames share a pool, `AnimatedImageFramePool`, sized at 5% of the device's memory, up to 128 MB. An animation that doesn't fit plays from a window of three frames, and pays to decode them on every loop.
 
-### Leave these alone
+### What not to do
 
-Each of these has been measured, or exists for a reason. If the code has changed one, find out why, and restore the default unless it's explained.
+Each of these looks like it would make images faster, and doesn't: the defaults have been measured, or exist for a reason. Don't make these changes. If the code already has one, find out why, and restore the default unless there's a reason that still holds.
 
-| Setting | Don't |
+| Don't | Why |
 |---|---|
-| `isTaskCoalescingEnabled` | Turn it off. It's why two views of one image make one download |
-| `isResumableDataEnabled` | Turn it off. It costs nothing unless a download is interrupted |
-| `isDecompressionEnabled`, `.skipDecompression` | Disable them on iOS. The decode moves to the main thread, at the first draw |
-| `isUsingPrepareForDisplay` | Disable it. It made decoding 41–45% faster on an iOS simulator |
-| `dataLoadingQueue` | Raise it past 6. In a simulation with shared bandwidth, 7 slots saved 7% for large images and nothing on HTTP/1.1. Use `reservedTaskCount` instead |
-| `imageProcessingQueue`, `imageDecompressingQueue` | Raise them. They compete with the main thread for CPU |
-| `isProgressiveDecodingEnabled` | Enable it for thumbnails. A progressive JPEG or a GIF gets decoded again every 0.5 s of its download |
-| `isAnimatedImageParsingEnabled` | Disable it for speed. It only runs for animated data |
-| `LazyImage` | Replace it with something hand-written for speed. It costs about 80 µs a cell over a plain `Image`, and the time is elsewhere |
+| Turn off `isTaskCoalescingEnabled` | It's why two views of one image make one download |
+| Turn off `isResumableDataEnabled` | It costs nothing unless a download is interrupted |
+| Turn off `isDecompressionEnabled`, or add `.skipDecompression`, on iOS | The decode moves to the main thread, at the first draw |
+| Turn off `isUsingPrepareForDisplay` | It made decoding 41–45% faster on an iOS simulator |
+| Raise `dataLoadingQueue` past 6 | In a simulation with shared bandwidth, 7 slots saved 7% for large images and nothing on HTTP/1.1. Use `reservedTaskCount` instead |
+| Raise `imageProcessingQueue` or `imageDecompressingQueue` | They compete with the main thread for CPU |
+| Turn on `isProgressiveDecodingEnabled` for thumbnails | A progressive JPEG or a GIF gets decoded again every 0.5 s of its download |
+| Turn off `isAnimatedImageParsingEnabled` for speed | It only runs for animated data |
+| Replace `LazyImage` with a view of your own for speed | It costs about 50 µs a cell over a plain `Image` on an iOS simulator, and the time is elsewhere |
 
 ### Report
 
@@ -2708,17 +2956,17 @@ grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
 # Queues and prefetchers set by hand, and decoders of your own
-grep -rnE 'maxConcurrentRequestCount|ImageDecoding\b|isAsynchronous' --include='*.swift' .
+grep -rnE 'maxConcurrentRequestCount|didComplete|ImageDecoding\b|isAsynchronous' --include='*.swift' .
 ```
 
 The search can't see through a typealias, or a signature split over lines. Open each file and read it.
 
 ### 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have betas, pin one:
+`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-beta.1")
+.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
@@ -2899,10 +3147,11 @@ A processor now drops `ImageContainer.data` and `ImageContainer.animation`, beca
 | A `LazyImage` | A `content` closure that shows `state.image` and no `AnimatedImage` |
 | Every view | `isAnimatedImageParsingEnabled = false` in the pipeline's configuration |
 
-Two more changes reach users on those screens:
+Three more changes reach users on those screens:
 
 - A GIF with no loop count plays once and rests on its last frame. On 13, it showed the first. To keep it moving, set `playerOptions.loopCount = .infinite` on the `AnimatedImageView`.
 - Animations cost more memory. Decoded frames go in `AnimatedImageFramePool`, up to 5% of the device's memory, capped at 128 MB, on top of `ImageCache`, whose limit didn't change. `ImageContainer.data`, which counts against that limit, is now kept for APNG, animated WebP, and HEIC and AVIF sequences as well as GIF. If memory is tight, lower `AnimatedImageFramePool.shared.costLimit`.
+- With `.storeEncodedImages`, those formats are now stored as their original data, like GIF, instead of as their first frame. A `willCache` delegate method is handed that data too.
 
 A third-party GIF view is now dead weight:
 
@@ -2922,7 +3171,7 @@ Don't remove a GIF dependency that the app uses for anything but Nuke's images.
 
 Most apps have nothing to do here. Check these:
 
-- A custom `ImageDecoding` runs on `imageDecodingQueue` unless it sets `isAsynchronous` to `false`, and two of them can now run at once. Look for `static` or global mutable state, and put it behind a lock.
+- Every decode runs on `imageDecodingQueue`, and two of them can run at once. A custom `ImageDecoding` that declares `isAsynchronous` still compiles and the pipeline ignores it: delete the property. Look for `static` or global mutable state in the decoder, and put it behind a lock.
 - `ImageDecoders.Video` follows the preview policy now, and the default one for a video is `.disabled`. An app with `isProgressiveDecodingEnabled` that shows the first frame while a video downloads has to return another policy from `previewPolicy(for:pipeline:)`. The first frame also comes out upright, so remove any rotation the app applies to it.
 - `dataLoadingQueue` runs requests below `.normal` in 3 of its 6 slots, so a prefetcher with `maxConcurrentRequestCount` above 3 slows down. If prefetching has to keep up with fast scrolling, restore it:
 
@@ -2932,8 +3181,11 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request that differs only in priority counts as the same image. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
+- `FetchImage.load(_:)` and `LazyImageView.request` keep the running task when the same image is already loading, where 13 restarted it. A request with the same URL (or `imageID`), processors, options, scale, and thumbnail counts as the same image, even if its priority, headers, cache policy, or `userInfo` differ. The task gets the new priority, and `onStart` isn't called again, so code that counts on a restart has to call `reset()` or `cancel()` first.
 - `isUsingPrepareForDisplay` is on. It keeps the depth of the image on iOS, tvOS, and visionOS, so a 10-bit HEIC or a 16-bit PNG costs twice the memory, and fewer of them fit in `ImageCache`. An app that shows a lot of them can turn it off.
+- `LazyImage` draws an image from the memory cache in the first `body` for its request, where 13 drew a placeholder first. In a `content` closure, an `onChange` of `state.image`, `state.imageContainer`, or `state.result` no longer fires for that image, because the value never changes: move the code to `onCompletion`, which still runs. In that `body`, `state` isn't a `FetchImage`, so a cast to it fails, and it doesn't update, so read it in the closure rather than keep it.
+- `ImagePrefetcher.didComplete` also runs when `stopPrefetching()` cancels the last outstanding request. If the closure marks downloads as done, set a flag where the app stops prefetching and check it in the closure.
+- On macOS, `isDecompressionEnabled = true` and a delegate's `shouldDecompress` and `decompress` now take effect. Check a delegate shared with iOS.
 
 Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
 
@@ -3080,6 +3332,8 @@ Animated images cost memory that Nuke 13 didn't use:
 - **Decoded frames** go in `AnimatedImageFramePool`, which holds up to 5% of the device's memory, capped at 128 MB. That comes on top of `ImageCache`, whose default limit is unchanged at 15%, capped at 768 MB. To give the pool less, set `AnimatedImageFramePool.shared.costLimit`.
 - **Encoded data:** `ImageContainer.data` is now also kept for APNG, animated WebP, and HEIC and AVIF sequences, where Nuke 13 kept it for GIF only. It counts against the `ImageCache` limit along with the bitmap, so these images take up more of the cache, whether they ever play or not.
 
+With `.storeEncodedImages`, these formats are now stored as their original data, where Nuke 13 stored their first frame, so they take up more of the disk cache. A `willCache` delegate method is handed that data too. An encoder that implements `encode(_:context:)` is unaffected.
+
 A GIF with no loop count plays once and rests on its last frame, which is how browsers play it. Nuke 13 showed its first frame. To keep such a GIF moving, set `loopCount`:
 
 ```swift
@@ -3124,7 +3378,7 @@ if response.container.type == .gif, let data = response.container.data {
 
 // Nuke 14
 if let animation = response.container.animation {
-    imageView.animatedImage = animation
+    imageView.animation = animation
 }
 ```
 
@@ -3147,7 +3401,7 @@ gifView.animate(withGIFData: response.container.data!) // Now `nil`
 // Nuke 14
 let response = try await ImagePipeline.shared.imageTask(with: ImageRequest(url: url)).response
 if let animation = response.container.animation {
-    imageView.animatedImage = animation
+    imageView.animation = animation
 }
 ```
 
@@ -3157,7 +3411,7 @@ To change the frames of an animation that goes on playing, use `AnimatedImagePla
 
 ### Removed Deprecated APIs
 
-The APIs deprecated in Nuke 13 have been removed.
+The APIs deprecated in Nuke 13 have been removed, along with two that were not deprecated.
 
 | Removed | Replacement |
 |---|---|
@@ -3322,6 +3576,18 @@ let pipeline = ImagePipeline {
 
 // Nuke 14
 let pipeline = ImagePipeline()
+```
+
+### Renamed `ImageTask.taskId`
+
+`ImageTask.taskId` is now `taskID`, which is how every other identifier in Nuke spells it. The old name is deprecated and keeps working.
+
+```swift
+// Nuke 13
+logger.log("Finished \(task.taskId)")
+
+// Nuke 14
+logger.log("Finished \(task.taskID)")
 ```
 
 ### `ImagePipeline.Delegate` declares its isolation
@@ -3599,6 +3865,54 @@ if status.result == nil, !status.isCancelled {
 }
 ```
 
+### Every Decode Runs on `imageDecodingQueue`
+
+`ImageDecoding.isAsynchronous` is removed. The pipeline used to decode on its own actor when a decoder said `false`, and every image load in the process waited for the decode. Now no decode runs there, whatever the decoder.
+
+A decoder that still declares the property compiles, and the pipeline ignores it. Calling it is an error.
+
+```swift
+// Nuke 13
+struct PixDecoder: ImageDecoding {
+    var isAsynchronous: Bool { false }
+    func decode(_ data: Data) throws -> ImageContainer { /* ... */ }
+}
+
+// Nuke 14
+struct PixDecoder: ImageDecoding {
+    func decode(_ data: Data) throws -> ImageContainer { /* ... */ }
+}
+```
+
+A decode that took microseconds now waits for a free slot of `imageDecodingQueue`, which has two. Behind a slow decode, such as an animation with many frames, a quick one waits too. If that matters, give the pipeline a queue with more slots:
+
+```swift
+ImagePipeline.shared = ImagePipeline {
+    $0.imageDecodingQueue = TaskQueue(maxConcurrentTaskCount: 4)
+}
+```
+
+### `ImageDecoders.Video` Follows the Preview Policy
+
+With `isProgressiveDecodingEnabled`, Nuke 13 showed the first frame of a video while it downloaded, whatever the preview policy. `ImageDecoders.Video` now follows the policy like every other decoder, and the default one, `PreviewPolicy.default(for:)`, is `.disabled` for a video. To keep the first frame, return another policy for videos:
+
+```swift
+// Nuke 13
+ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
+ImagePipeline.shared = ImagePipeline {
+    $0.isProgressiveDecodingEnabled = true // The first frame of a video shows while it downloads
+}
+
+// Nuke 14
+extension VideoPreviewDelegate: ImagePipeline.Delegate {
+    func previewPolicy(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImagePipeline.PreviewPolicy {
+        AssetType(context.data)?.isVideo == true ? .incremental : .default(for: context.data)
+    }
+}
+```
+
+The first frame, in the preview and in the image of a finished video, now comes out upright, with the track's transform applied the way the player shows it. Nuke 13 returned the frame of a portrait video recorded on a phone on its side. Remove any rotation you apply to it.
+
 ### Changed Defaults
 
 These compile without changes. Most apps have nothing to do, but they do change what the pipeline does.
@@ -3615,10 +3929,16 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | `ImageContainer.data` after a processor | Kept | `nil`, and so is `animation` |
 | `ImageContainer.data` of a GIF with a `thumbnail` | Kept | `nil` |
 | `FetchImage.load(_:)` and `LazyImageView.request` while the same image is loading | Restart the download | Keep the running task and give it the new priority |
+| An image in the memory cache in `LazyImage` | A placeholder for one update | Drawn by the first update |
+| `ImagePrefetcher.didComplete` when `stopPrefetching()` cancels the last request | Not called | Called |
+| A video while it downloads, with `isProgressiveDecodingEnabled` | First-frame preview | No preview, unless the preview policy asks for one |
+| The first frame of a portrait video | On its side | Upright |
+| `isDecompressionEnabled = true`, or a delegate's `shouldDecompress` and `decompress`, on macOS | No effect | Decompresses, and calls them |
+| `URLSessionTask.priority` of a request that isn't `.normal` | Default | Follows `ImageRequest.priority` |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
-A custom decoder with `isAsynchronous` set to `true` can now run alongside another one, so state it shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
+Two decoders can now run at the same time, so state that a custom decoder shares between instances has to be thread-safe. An `ImagePrefetcher` with `maxConcurrentRequestCount` above 3 now runs in 3 slots. To give it all of them back:
 
 ```swift
 ImagePipeline.shared = ImagePipeline {
@@ -3634,13 +3954,66 @@ ImagePipeline.shared = ImagePipeline {
 }
 ```
 
-"The same image" for `FetchImage` and `LazyImageView` means a request that differs only in priority, from the same pipeline. The call doesn't report a new start, so `onStart` isn't called again. A load that has finished starts over.
+"The same image" for `FetchImage` and `LazyImageView` is what `LazyImage` already compared: a request from the same pipeline with the same image ID (the URL, unless you set `imageID`), processors, options, scale, and thumbnail. A request that differs only in its priority, its `URLRequest` headers, cache policy or timeout, or its `userInfo` is the same image: it doesn't replace the running task, and `onStart` isn't called again. To send such a request while the other one is loading, call `cancel()` first. A load that has finished starts over.
+
+```swift
+// Nuke 13
+image.load(ImageRequest(urlRequest: requestWithNewToken)) // Restarts the download
+
+// Nuke 14
+image.cancel()
+image.load(ImageRequest(urlRequest: requestWithNewToken))
+```
+
+A `LazyImage` with an image in the memory cache no longer goes through a state with no image, so an `onChange` of `state.image`, `state.imageContainer`, or `state.result` in its `content` closure doesn't fire for that image. `onCompletion` still does. In that update, `state` isn't a `FetchImage`, and it doesn't change later: read it in the closure rather than keep it.
+
+`ImagePrefetcher.didComplete` now also runs when `stopPrefetching()` cancels the last outstanding request, which Nuke 13 documented it wouldn't. It says the prefetcher ran out of work, not that the images were downloaded. If it marks something as ready, ignore the call that follows a stop:
+
+```swift
+// Nuke 13
+func stop() {
+    prefetcher.stopPrefetching() // Doesn't call `didComplete`
+}
+
+// Nuke 14
+func start(_ urls: [URL]) {
+    isStopped = false
+    prefetcher.didComplete = { [weak self] in
+        guard let self, !self.isStopped else { return }
+        self.showOfflineReady()
+    }
+    prefetcher.startPrefetching(with: urls)
+}
+
+func stop() {
+    isStopped = true
+    prefetcher.stopPrefetching()
+}
+```
+
+On macOS, decompression used to do nothing even when you turned it on, and the delegate's `shouldDecompress` and `decompress` were never called. They now run like on the other platforms. The default is still off on macOS. If you set it in code shared with iOS, keep it off on the Mac:
+
+```swift
+// Nuke 13
+ImagePipeline.shared = ImagePipeline {
+    $0.isDecompressionEnabled = true // Has no effect on macOS
+}
+
+// Nuke 14
+ImagePipeline.shared = ImagePipeline {
+#if !os(macOS)
+    $0.isDecompressionEnabled = true
+#endif
+}
+```
+
+The default `DataLoader` now sets `URLSessionTask.priority` from `ImageRequest.priority`, so a request that isn't `.normal` reaches `URLSession`, and the server, with that priority.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 
 ### `localizedDescription` Describes the Failure
 
-`ImagePipeline.Error` and `DataLoader.Error` now conform to `LocalizedError`. `localizedDescription` used to return the system's generic "The operation couldn't be completed", and it now returns the same technical English sentence as `description`, which can include a URL. If you show it to people, show a message of your own.
+`ImagePipeline.Error` and `DataLoader.Error` now conform to `LocalizedError`. `localizedDescription` used to return the system's generic "The operation couldn't be completed", and it now returns the same technical English sentence as `description`. It can include the URL, without its query, and for a decoding failure the type, the status code, and the first bytes of what the server sent. If you show it to people or send it to analytics, use a message of your own.
 
 ### `LazyImageView.imageTask` is read-only
 

@@ -32,6 +32,6 @@ Image I/O is a system framework that allows applications to read and write most 
 
 ```swift
 let image: UIImage
-let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
-let data = encoder.encode(image: image)
+let encoder = ImageEncoders.ImageIO(type: .heic, compressionRatio: 0.8)
+let data = encoder.encode(image)
 ```
