@@ -314,7 +314,10 @@ private struct AnimatedImageRenderer: View {
             }
             // The view is reused when the image behind it changes, and without
             // this it would keep playing the animation it was given first.
-            .onChange(of: identity) { _ in install() }
+            // `onChange(of:perform:)` calls the action of the previous update,
+            // so the renderer travels in the value: `install()` has to read
+            // the new animation and player, not the ones `self` had.
+            .onChange(of: Installation(renderer: self)) { $0.renderer.install() }
             .onChange(of: isPlaybackEnabled) { isEnabled in
                 if isEnabled { model.player?.play() } else { model.player?.pause() }
             }
@@ -324,6 +327,16 @@ private struct AnimatedImageRenderer: View {
         model.setPlayer(player ?? AnimatedImagePlayer(animation: animation))
         if isPlaybackEnabled {
             model.player?.play()
+        }
+    }
+
+    /// The renderer of an update, equal to another when they play the same
+    /// thing.
+    private struct Installation: Equatable {
+        let renderer: AnimatedImageRenderer
+
+        static func == (lhs: Installation, rhs: Installation) -> Bool {
+            lhs.renderer.identity == rhs.renderer.identity
         }
     }
 

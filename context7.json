@@ -28,6 +28,6 @@
     "To find out why an image doesn't load, launch with NUKE_DIAGNOSTICS_LOG=1 and read the log."
   ],
   "previousVersions": [
-    { "tag": "13.2.0" }
+    { "tag": "13.2.3" }
   ]
 }

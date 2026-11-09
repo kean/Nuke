@@ -17,8 +17,8 @@ extension ImageDecoders {
 
     /// A decoder that supports all of the formats natively supported by the system.
     ///
-    /// - note: The decoder automatically sets the scale of the decoded images to
-    /// match the scale of the screen.
+    /// - note: The decoded images have the scale of the request,
+    /// ``ImageRequest/scale``, which is `1` by default.
     ///
     /// - note: The decoder produces previews for the partially downloaded data
     /// according to the ``ImagePipeline/PreviewPolicy`` it is created with:

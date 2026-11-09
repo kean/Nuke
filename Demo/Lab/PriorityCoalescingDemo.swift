@@ -19,7 +19,7 @@ import SwiftUI
 ///
 /// Twenty requests for six photos start together, against a queue of two
 /// slots and a loader that takes a couple of seconds per photo. The counter
-/// comes from the demo's pipeline probe: twenty tasks, six downloads.
+/// comes from the demo's pipeline probe: twenty tasks, seven downloads.
 ///
 /// `TaskQueue` doesn't say what is waiting in it, so the screen works the
 /// waiting line out itself: a download is running from the moment the
@@ -82,7 +82,7 @@ struct PriorityCoalescingDemo: View {
             .init("Priority", "Priority orders only the work that is waiting: the highest first, and first come, first served within a priority. A download whose priority goes up joins the back of its new priority, and one whose priority goes down joins the front of its new one. Once a download has a slot, its priority changes nothing."),
             .init("A download's priority", "A download runs at the highest priority of the requests that share it. #17 asks for `.high`, so download E waits ahead of C and D, which were queued first. Lower #17 to `.normal` and E stays at the front, where the queue puts work whose priority drops. Lowering another row of E changes nothing."),
             .init("What the screen sees", "`TaskQueue` doesn't say what is waiting in it. A download shows as running once the pipeline calls the delegate's `willLoadData`, which it does after the download gets a slot. The waiting line is the queue's rule applied to the requests on screen, and the order the downloads start in is the check on it."),
-            .init("skipDataLoadingQueue", "#20 has the option. The documentation says a request with it gets a download of its own, which would start at once. The pipeline keys downloads by URL and ignores the options, so #20 joins download F and waits in the queue with it – Hold makes it plain – and the counter still reads six downloads. A request with the option that is the first for its URL does skip the queue."),
+            .init("skipDataLoadingQueue", "#20 has the option, and #6 has already queued its URL. A fetch that skips the queue doesn't join a download that is still waiting in it, so #20 starts a download of its own at once – Hold makes it plain – and the counter reads seven downloads. A request with the option that is the first for its URL skips the queue the same way."),
             .init("Cancellation", "Cancelling a request cancels its download only when no other request shares it. Swipe away the rows of one photo, and the download stops with the last one. The slot comes back when the loader calls `completion`, which this screen's loader does for every load, a cancelled one included."),
             .init("Fresh downloads", "Every run adds a `run` query item to the URLs, so it misses what the earlier runs cached and downloads again, and it never resumes a download that an earlier run cancelled. The caches stay on: the pipeline has a memory cache and a `DataCache` of its own, emptied when the screen opens.")
         ]
@@ -289,7 +289,7 @@ private struct PriorityCoalescingList: View {
                     DownloadHeader(download: download)
                 } footer: {
                     if let row = download.rows.first(where: \.skipsQueue) {
-                        Text("#\(row.number) has `.skipDataLoadingQueue`, which the documentation says gives it a download of its own. The pipeline keys downloads by URL, so it joins \(download.letter)'s download and waits in the queue with it.")
+                        Text("#\(row.number) has `.skipDataLoadingQueue`, so it starts a download of its own at once rather than wait in the queue with \(download.letter)'s.")
                     }
                 }
             }
@@ -479,7 +479,7 @@ private final class PriorityCoalescingDemoModel: ObservableObject {
         // The same request as #1.
         plan.append(PlannedRequest(download: 0, variant: .original))
         plan.append(PlannedRequest(download: 2, variant: .blurred))
-        // Asks to skip the queue, and joins F's download instead.
+        // Asks to skip the queue: it doesn't join F's queued download, it starts its own.
         plan.append(PlannedRequest(download: 5, variant: .original, skipsQueue: true))
         return plan
     }()

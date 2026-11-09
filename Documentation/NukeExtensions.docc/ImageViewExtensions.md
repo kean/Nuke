@@ -24,8 +24,9 @@ Before loading a new image, the view is prepared for reuse by canceling any outs
 
 ```swift
 func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    // ...
-NukeExtensions.loadImage(with: url, into: cell.imageView)
+    let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+    NukeExtensions.loadImage(with: urls[indexPath.row], into: cell.imageView!)
+    return cell
 }
 ```
 
@@ -60,12 +61,12 @@ options.placeholder = UIImage(named: "placeholder")
 Image to be displayed when the request fails. `nil` by default.
 
 ```swift
-option.failureImage = UIImage(named: "oopsie")
+options.failureImage = UIImage(named: "oopsie")
 ```
 
 ### Transitions
 
-The image transition animation performed when displaying a loaded image. Only runs when the image was not found in the memory cache (use ``ImageLoadingOptions/alwaysTransition``) to always run the animation). `nil` by default.
+The image transition animation performed when displaying a loaded image. It only runs when the image wasn't found in the memory cache; use ``ImageLoadingOptions/alwaysTransition`` to always run it. `nil` by default.
 
 ```swift
 options.transition = .fadeIn(duration: 0.33)

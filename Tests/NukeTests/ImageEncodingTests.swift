@@ -147,7 +147,7 @@ struct ImageEncodingProtocolTests {
             size: CGSize(width: 8, height: 8),
             makeFrameDecoder: { _ in fatalError("Encoding decodes no frames") }
         )
-        let container = ImageContainer(image: Test.image, animation: try #require(animation))
+        let container = ImageContainer(image: Test.image, animation: animation)
 
         // Then
         #expect(ImageEncoders.Default().encode(container, context: context) == data)

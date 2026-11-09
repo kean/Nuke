@@ -43,7 +43,7 @@ configuration.dataCachePolicy = .automatic
 ImagePipeline.shared = ImagePipeline(configuration: configuration)
 ```
 
-> Tip: To save disk space, see `ImageEncoders.ImageIO` and `ImageEncoder.isHEIFPreferred` option for HEIF support.
+> Tip: To save disk space, see ``ImageEncoders/ImageIO`` and the ``ImageEncoders/Default/isHEIFPreferred`` option for HEIF support.
 
 ## Prefetching
 

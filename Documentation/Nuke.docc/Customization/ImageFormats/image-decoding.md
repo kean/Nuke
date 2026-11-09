@@ -45,7 +45,7 @@ The pipeline uses ``ImageDecoderRegistry`` to find the decoder.  The decoder is 
 >
 > You can also take advantage of ``ImageRequest/userInfo``. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.
 
-The decoding is performed in the background on ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``. There is always only one decoding request at a time. The pipeline doesn't call ``ImageDecoding/decodePartiallyDownloadedData(_:)-9budu`` again until you are finished with the previous chunk.
+The decoding is performed in the background on ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``, which runs two decodes at a time by default. A decoder gets one call at a time: the pipeline doesn't call ``ImageDecoding/decodePartiallyDownloadedData(_:)-9budu`` again until you are finished with the previous chunk. Decoders of different images can run at the same time, so any state they share has to be thread-safe.
 
 ## Registering Decoders
 
@@ -66,7 +66,12 @@ extension ImageDecoders {
             let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
             guard isSVG else {
                 return nil // Image format isn't supported.
-            }   
+            }
+        }
+
+        func decode(_ data: Data) throws -> ImageContainer {
+            // A blank image, and the data for a view that renders SVG
+            ImageContainer(image: PlatformImage(), data: data)
         }
     }
 }
