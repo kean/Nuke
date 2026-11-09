@@ -238,6 +238,10 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix setting `FetchImage/priority` or `LazyImageView/priority` back to `nil` leaving the running task at the overridden priority – https://github.com/kean/Nuke/pull/1034
 - Fix `LazyImage` starting a new request with the `pipeline`, `onStart`, and `onCompletion` from when the view last appeared, and ignoring a change of the pipeline alone – https://github.com/kean/Nuke/pull/1037
 - Fix `FetchImage/isLoading` remaining `true` when the task passed to `onStart` is cancelled directly – https://github.com/kean/Nuke/pull/1039
+- Fix `ImageProcessors/Resize` failing for a thin image whose short side scales below half a pixel instead of producing a one-pixel strip – https://github.com/kean/Nuke/pull/1020
+- Fix `ImageProcessors/Circle` and `ImageProcessors/RoundedCorners` drawing the border at half the requested width – https://github.com/kean/Nuke/pull/1020
+- Fix processors changing the point size of a high-DPI `NSImage` on macOS – https://github.com/kean/Nuke/pull/1020
+- Fix `ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)` sizing the thumbnail of an EXIF-rotated image against the stored pixels on macOS, so it came out too large – https://github.com/kean/Nuke/pull/1020
 - Fix the poster of a portrait video coming out on its side – https://github.com/kean/Nuke/pull/1082
 - Fix `isDecompressionEnabled` and the delegate's decompression methods having no effect on macOS – https://github.com/kean/Nuke/pull/1089
 
