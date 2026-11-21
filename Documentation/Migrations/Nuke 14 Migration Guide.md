@@ -686,6 +686,7 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | The first frame of a portrait video | On its side | Upright |
 | `isDecompressionEnabled = true`, or a delegate's `shouldDecompress` and `decompress`, on macOS | No effect | Decompresses, and calls them |
 | `URLSessionTask.priority` of a request that isn't `.normal` | Default | Follows `ImageRequest.priority` |
+| The `border` of `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` | Half the width you pass | The width you pass |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
@@ -759,6 +760,18 @@ ImagePipeline.shared = ImagePipeline {
 ```
 
 The default `DataLoader` now sets `URLSessionTask.priority` from `ImageRequest.priority`, so a request that isn't `.normal` reaches `URLSession`, and the server, with that priority.
+
+`ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` now draw a `border` as wide as you ask. Nuke 13 clipped the outer half of the stroke, so it looked half as wide. If you picked the width by eye, halve it to keep the look:
+
+```swift
+// Nuke 13
+ImageRequest(url: url, processors: [.circle(border: .init(color: .white, width: 4))]) // Draws 2 points
+
+// Nuke 14
+ImageRequest(url: url, processors: [.circle(border: .init(color: .white, width: 2))])
+```
+
+The width is part of the cache key. If you keep it, and your policy stores processed images (`.automatic`, `.storeEncodedImages`, or `.storeAll`), the images Nuke 13 stored keep the thinner border until they're evicted, so a screen can show both.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 
