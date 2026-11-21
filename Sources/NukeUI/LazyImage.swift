@@ -76,7 +76,7 @@ public struct LazyImage<Content: View>: View {
     ///   - content: The view to show for each of the image loading states.
     ///
     /// ```swift
-    /// LazyImage(request: $0) { state in
+    /// LazyImage(request: request) { state in
     ///     if let image = state.image {
     ///         image // Displays the loaded image.
     ///     } else if state.error != nil {

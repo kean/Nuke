@@ -21,7 +21,7 @@ public protocol ImageDecoding: Sendable {
 ``ImageContainer`` is a struct that wraps the decoded image and (optionally) the original data and some additional information. The decoder decides what to attach to the container.
 
 ```swift
-public struct ImageContainer {
+public struct ImageContainer: Sendable {
     /// Either `UIImage` or `NSImage`, depending on the platform.
     public var image: PlatformImage
     /// An image type.
@@ -33,7 +33,7 @@ public struct ImageContainer {
     /// The animation the data describes, if the image is an animated one.
     public var animation: AnimatedImageSource?
     /// Metadata provided by the user.
-    public var userInfo: [UserInfoKey: Any]
+    public var userInfo: [UserInfoKey: any Sendable]
 }
 ```
 
