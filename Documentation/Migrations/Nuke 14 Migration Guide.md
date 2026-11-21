@@ -2,8 +2,6 @@
 
 This guide eases the transition of the existing apps that use Nuke 13.x to the latest version of the framework.
 
-> Nuke 14 is a work in progress. The guide is updated as the changes land.
-
 ## Minimum Requirements
 
 The minimum supported platforms have been raised.

@@ -49,10 +49,10 @@ The search can't see through a typealias, or a signature split over lines. Open 
 
 ## 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
+Require 14.0.0 or later:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
+.package(url: "https://github.com/kean/Nuke", from: "14.0.0")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
