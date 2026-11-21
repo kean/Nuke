@@ -56,10 +56,10 @@ jobs:
       # Backward compatibility against the oldest supported Xcode. Folded into
       # the (short) macOS job rather than given its own runner, to stay within
       # the 5 concurrent macOS job budget.
-      - name: Re-run on Xcode 26.0
+      - name: Re-run on Xcode 26.2
         if: matrix.group == 'macos'
         env:
-          DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
+          DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
         run: .scripts/ci.sh macos
       # Folded into the shortest job, for the same reason. It's a group of its
       # own because the macos group runs twice, and TSan doesn't need to.

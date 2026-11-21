@@ -7,8 +7,10 @@ This guide eases the transition of the existing apps that use Nuke 13.x to the l
 The minimum supported platforms have been raised.
 
 - iOS 16.0, tvOS 16.0, macOS 13.0, watchOS 9.0, visionOS 1.0
-- Xcode 26.0
-- Swift 6.2
+- Xcode 26.2
+- Swift 6.2.3
+
+Xcode 26.2 is the first whose compiler has `@nonexhaustive`, which the error and diagnostics enums need (see [`switch` Needs `@unknown default`](#switch-needs-unknown-default)). On an earlier one, the build fails with `unknown attribute 'nonexhaustive'`.
 
 Apps that need to support earlier OS versions can stay on Nuke 13.x, which continues to receive fixes.
 

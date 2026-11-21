@@ -542,9 +542,7 @@ extension ImageLoader {
     /// the memory cache report ``finished(_:isSynchronous:)`` only, before
     /// `load` returns, so a reused cell is never cleared before it gets its
     /// image.
-#if hasAttribute(nonexhaustive)
     @nonexhaustive
-#endif
     public enum Event: Sendable {
         /// The load started a task, and the previous load is cancelled.
         /// ``State/imageContainer`` is a preview found in the memory cache, the

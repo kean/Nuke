@@ -16,7 +16,7 @@ grep -rnE 'IPHONEOS_DEPLOYMENT_TARGET|\.iOS\(' --include='*.pbxproj' --include='
 git ls-remote --tags https://github.com/kean/Nuke 'refs/tags/14.*'
 ```
 
-If there's no `Package.resolved`, read the version from `Package.swift`. Nuke 14 needs iOS 16, tvOS 16, macOS 13, watchOS 9, or visionOS 1, and Xcode 26.0 with Swift 6.2. If the app deploys to something lower, stop and ask. The choice is between raising the target and staying on 13.x, which still gets fixes, and it isn't yours to make.
+If there's no `Package.resolved`, read the version from `Package.swift`. Nuke 14 needs iOS 16, tvOS 16, macOS 13, watchOS 9, or visionOS 1, and Xcode 26.2 with Swift 6.2.3. If the app deploys to something lower, stop and ask. The choice is between raising the target and staying on 13.x, which still gets fixes, and it isn't yours to make.
 
 If the app is on 12.x or earlier, read [From Nuke 12 or earlier](#from-nuke-12-or-earlier) as well.
 
