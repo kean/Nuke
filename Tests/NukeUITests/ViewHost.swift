@@ -133,7 +133,14 @@ final class ViewHost<Value, Content: View> {
         }
     }
 
+    /// Whether the host is laying out its content, which is where SwiftUI
+    /// applies the updates it has pending: what happens while this is `true`
+    /// happens inside a view update.
+    private(set) var isLayingOut = false
+
     private func layout() {
+        isLayingOut = true
+        defer { isLayingOut = false }
 #if os(macOS)
         hostingView.layoutSubtreeIfNeeded()
 #else

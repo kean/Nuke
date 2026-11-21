@@ -218,6 +218,9 @@ private struct AnimatedImageRepresentable: _PlatformViewRepresentable {
 
     private func makeView() -> AnimatedImageView {
         let view = AnimatedImageView()
+        // The updates below, and the view joining the window, happen inside a
+        // SwiftUI update, which is no place for the player to publish from.
+        view.defersPlaybackStateUpdates = true
 #if !os(macOS)
         view.clipsToBounds = true
         // Without this the intrinsic size of the first frame wins every layout

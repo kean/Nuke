@@ -64,8 +64,14 @@ public final class AnimatedImageView: _PlatformImageView {
             // not one the view may replace when it grows.
             animationPendingDownsampling = nil
             ownsPlayer = false
-            oldValue?.pause()
-            oldValue?.onFrameForDisplay = nil
+            if let oldValue {
+                if defersPlaybackStateUpdates {
+                    playersToPause.append(oldValue)
+                } else {
+                    oldValue.pause()
+                }
+                oldValue.onFrameForDisplay = nil
+            }
             // `image` rather than `layer.contents`, which would go around the
             // content modes and the aspect-fill drawing. Setting it does
             // invalidate the intrinsic content size on every frame, but frames
@@ -126,6 +132,22 @@ public final class AnimatedImageView: _PlatformImageView {
     var autoPlaySettings = AnimatedImageAutoPlaySettings.shared
 
     private var isFollowingAutoPlaySettings = false
+
+    /// Whether the view starts and stops playback on the next turn of the
+    /// main queue rather than on the spot. ``AnimatedImage`` turns it on.
+    ///
+    /// SwiftUI hands the view its player, and moves it in and out of a window,
+    /// from inside a view update, and a player that something observes must
+    /// not publish ``AnimatedImagePlayer/isPlaying`` from in there: SwiftUI
+    /// logs that as undefined behavior. Playback starts a turn later.
+    var defersPlaybackStateUpdates = false
+
+    /// Whether a deferred update is on its way.
+    private var isPlaybackStateUpdateScheduled = false
+
+    /// The players the view let go of while it was deferring, which the
+    /// deferred update pauses unless the view took them back.
+    private var playersToPause: [AnimatedImagePlayer] = []
 
     /// Whether playback pauses while the view is not on screen – outside a
     /// window, hidden, or fully transparent. `true` by default.
@@ -528,6 +550,27 @@ public final class AnimatedImageView: _PlatformImageView {
     /// Called when something about the view changes, and not for a new frame,
     /// so what it reads doesn't add up with the frame rate.
     func updatePlaybackState() {
+        guard defersPlaybackStateUpdates else {
+            applyPlaybackState()
+            return
+        }
+        guard !isPlaybackStateUpdateScheduled else { return }
+        isPlaybackStateUpdateScheduled = true
+        // Holding on to the view: one SwiftUI has just taken out of the window
+        // and released still has to pause the player, which may be someone
+        // else's and outlive it.
+        DispatchQueue.main.async {
+            self.isPlaybackStateUpdateScheduled = false
+            let players = self.playersToPause
+            self.playersToPause = []
+            for player in players where player !== self.player {
+                player.pause()
+            }
+            self.applyPlaybackState()
+        }
+    }
+
+    private func applyPlaybackState() {
         guard let player else { return }
         let isOnScreen = isVisible || !isPlaybackPausedWhenOffscreen
         if isPlaybackEnabled && autoPlaySettings.allowsPlayback && isOnScreen {
