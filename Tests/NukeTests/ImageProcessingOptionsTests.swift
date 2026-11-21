@@ -80,6 +80,15 @@ struct ImageProcessingOptionsTests {
         #expect(a != b)
     }
 
+    /// A border that isn't equal to itself makes `LazyImage` load the request
+    /// again on every update.
+    @Test func nanBorderWidthIsZero() {
+        let border = ImageProcessingOptions.Border(color: .red, width: .nan, unit: .pixels)
+
+        #expect(border.width == 0)
+        assertHashableEqual(border, ImageProcessingOptions.Border(color: .red, width: 0, unit: .pixels))
+    }
+
     @Test func borderDescriptionForColorOutsideRGBColorSpace() {
         let border = ImageProcessingOptions.Border(color: .black, width: 2, unit: .pixels)
         #expect(border.description == "Border(color: #000000, width: 2.0 pixels)")

@@ -85,6 +85,22 @@ struct ImageProcessorsCropTests {
         #expect(ImageProcessors.Crop(rect: rect, unit: .pixels).process(input) == nil)
     }
 
+    /// A processor that isn't equal to itself makes `LazyImage` load the
+    /// request again on every update.
+    @Test(arguments: [
+        CGRect(x: CGFloat.nan, y: 0, width: 1, height: 1),
+        CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 1),
+        CGRect(x: 0, y: 0, width: 1, height: CGFloat.nan),
+        CGRect(x: 0, y: 0, width: 1e39, height: 1) // Infinity as a `Float`
+    ])
+    func nonFiniteRectIsTheNullRect(rect: CGRect) {
+        let processor = ImageProcessors.Crop(rect: rect, unit: .pixels)
+        let null = ImageProcessors.Crop(rect: .null, unit: .pixels)
+
+        assertHashableEqual(processor, null)
+        #expect(processor.identifier == null.identifier)
+    }
+
     @Test func fractionalRectIsRoundedOut() throws {
         let grid = PixelGrid(width: 5, height: 5)
 

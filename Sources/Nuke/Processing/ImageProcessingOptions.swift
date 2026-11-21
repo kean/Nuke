@@ -49,7 +49,7 @@ public enum ImageProcessingOptions: Sendable {
         ///   - unit: Unit of the width.
         public init(color: UIColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
-            self.width = width.converted(to: unit)
+            self.width = Border.makeWidth(width, unit: unit)
         }
 #else
         public let color: NSColor
@@ -60,9 +60,17 @@ public enum ImageProcessingOptions: Sendable {
         ///   - unit: Unit of the width.
         public init(color: NSColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
-            self.width = width.converted(to: unit)
+            self.width = Border.makeWidth(width, unit: unit)
         }
 #endif
+
+        private static func makeWidth(_ width: CGFloat, unit: Unit) -> CGFloat {
+            let width = width.converted(to: unit)
+            // Not NaN, which would make the border unequal to itself, and
+            // `LazyImage` load the request again on every update. Core Graphics
+            // draws no border with it anyway, as with `0`.
+            return width.isNaN ? 0 : width
+        }
 
         public var description: String {
             // `hex` is `nil` for the colors with no sRGB representation, e.g.

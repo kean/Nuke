@@ -25,7 +25,8 @@ extension ImageProcessors {
     /// box of the rotated image, leaving the corners transparent, so the output
     /// has an alpha channel even if the input was opaque.
     public struct Rotate: ImageProcessing, Hashable, CustomStringConvertible {
-        /// In `0..<360`, so that the same rotation has the same identifier.
+        /// In `0..<360`, so that the same rotation has the same identifier, or
+        /// infinity for an angle that isn't finite.
         private let degrees: CGFloat
 
         /// Initializes the processor with the given angle.
@@ -33,12 +34,19 @@ extension ImageProcessors {
         /// - parameter degrees: The angle, clockwise. Negative angles and the
         /// angles over a full turn are allowed.
         public init(degrees: CGFloat) {
+            guard degrees.isFinite else {
+                // It fails the request either way. Stored as infinity rather
+                // than the NaN the remainder makes of it, which would make the
+                // processor unequal to itself, and `LazyImage` load the request
+                // again on every update.
+                self.degrees = .infinity
+                return
+            }
             // Adding zero turns the `-0.0` of a negative multiple of 360 into
             // `0.0`: they are equal but they don't print the same.
             let remainder = degrees.truncatingRemainder(dividingBy: 360) + 0
             let positive = remainder < 0 ? remainder + 360 : remainder
-            // The sum rounds to 360 for a tiny negative remainder. An angle
-            // that isn't finite stays NaN, which fails the request.
+            // The sum rounds to 360 for a tiny negative remainder.
             self.degrees = positive >= 360 ? 0 : positive
         }
 

@@ -40,6 +40,16 @@ struct ImageProcessorsRoundedCornersTests {
         #expect(pixels.hashableIdentifier == points.hashableIdentifier)
     }
 
+    /// A processor that isn't equal to itself makes `LazyImage` load the
+    /// request again on every update.
+    @Test func nanRadiusIsZero() {
+        let processor = ImageProcessors.RoundedCorners(radius: .nan, unit: .pixels)
+        let zero = ImageProcessors.RoundedCorners(radius: 0, unit: .pixels)
+
+        assertHashableEqual(processor, zero)
+        #expect(processor.identifier == zero.identifier)
+    }
+
     @Test func description() {
         // Given
         let processor = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels)
