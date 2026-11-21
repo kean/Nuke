@@ -378,7 +378,7 @@ def llms_index():
 
 > Nuke is an image loading system for iOS, macOS, tvOS, watchOS, and visionOS: `ImagePipeline` loads, processes, and caches images, and NukeUI displays them with `LazyImage` in SwiftUI and `ImageLoader` in UIKit and AppKit.
 
-These files describe the `main` branch, which is Nuke 14. The latest stable release is Nuke 13, so check `Package.resolved` first: the [migration guide]({migration_url}) lists what differs. A project's own checkout has the same files for the version it uses, at the root of `.build/checkouts/Nuke`, or `SourcePackages/checkouts/Nuke` in Xcode's DerivedData.
+These files describe Nuke 14. Check `Package.resolved` first: for an app on Nuke 13 or earlier, the [migration guide]({migration_url}) lists what differs. A project's own checkout has the same files for the version it uses, at the root of `.build/checkouts/Nuke`, or `SourcePackages/checkouts/Nuke` in Xcode's DerivedData.
 
 What you remember about Nuke is likely out of date. In particular:
 

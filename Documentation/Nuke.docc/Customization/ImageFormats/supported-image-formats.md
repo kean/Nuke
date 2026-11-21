@@ -54,7 +54,7 @@ The sniffer returns one of the types declared on ``AssetType`` and nothing else.
 
 - **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched against the brands in their `ftyp` box, and the bare-HEIF brand isn't in the table – nor, in a file that declares nothing else, is anything after it. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; ``ImageContainer/type`` is just empty.
 - **A sniffed type describes the bytes, not the semantics.** Most camera RAW formats – DNG, CR2, NEF, ARW – are TIFF containers, so they sniff as ``AssetType/tiff``.
-- **A `nil` type is not an error.** Only two places in the pipeline read the type: animation detection in ``ImageDecoders/Default``, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still.
+- **A `nil` type is not an error.** The type only decides the extras: animation detection in ``ImageDecoders/Default``, the default ``ImagePipeline/PreviewPolicy``, which gives previews to progressive JPEGs and GIFs, the default ``ImageEncoding/encode(_:context:)``, which keeps the original data of an animation, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still, and gets no previews unless you choose a policy.
 - **Video types are recognized without `NukeVideo`.** ``AssetType/mp4``, ``AssetType/m4v``, and ``AssetType/mov`` are always sniffable, but only `ImageDecoders.Video` can decode them, and you have to register it yourself.
 
 ## Progressive JPEG

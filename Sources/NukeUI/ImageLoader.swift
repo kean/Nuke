@@ -153,9 +153,11 @@ public final class ImageLoader {
     /// Loads an image with the given request, and cancels what was loading
     /// before it.
     ///
-    /// If the loader is already loading the same image – a request that
-    /// differs only in priority, from the same pipeline – the task keeps
-    /// running, because restarting it would discard what it has downloaded.
+    /// If the loader is already loading the same image – a request from the
+    /// same pipeline with the same URL (or `imageID`), processors, options,
+    /// scale, and thumbnail, whatever its priority, headers, cache policy, or
+    /// `userInfo` – the task keeps running, because restarting it would
+    /// discard what it has downloaded.
     /// The new request only updates its priority, no state is reported, and
     /// the returned handle is to that load. A load that has finished starts
     /// over, which is quick if the image is in the memory cache.

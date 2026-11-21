@@ -851,7 +851,7 @@ ImageRequest(url: url, processors: [
 Custom processors need to implement `ImageProcessing` protocol. For the basic image processing needs, implement `ImageProcessing.process(_:)` method and create an identifier that uniquely identifies the processor. For processors with no input parameters, return a static string.
 
 ```swift
-public protocol ImageProcessing {
+public protocol ImageProcessing: Sendable {
     func process(_ image: PlatformImage) -> PlatformImage?
     var identifier: String { get }
 }
@@ -859,11 +859,11 @@ public protocol ImageProcessing {
 
 > All processing tasks are executed on a dedicated queue (`ImagePipeline.Configuration.imageProcessingQueue`).
 
-If your processor needs to manipulate image metadata (`ImageContainer`) or get access to more information via `ImageProcessingContext`, there is an additional method that you can implement in addition to `ImageProcessing.process(_:context:)`.
+If your processor needs to manipulate image metadata (`ImageContainer`) or get access to more information via `ImageProcessingContext`, there is an additional method that you can implement in addition to `ImageProcessing.process(_:)`.
 
 ```swift
-public protocol ImageProcessing {
-    func process(_ image container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
+public protocol ImageProcessing: Sendable {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 }
 ```
 
@@ -999,11 +999,17 @@ public final class AlamofireDataLoader: Nuke.DataLoading {
             }
         }
         .resume()
-        return task
+        return AlamofireTask(request: task)
     }
 }
 
-extension Alamofire.Request: Nuke.Cancellable {}
+private struct AlamofireTask: Nuke.Cancellable {
+    let request: Alamofire.Request
+
+    func cancel() {
+        request.cancel()
+    }
+}
 ```
 
 ## Caching
@@ -1721,7 +1727,7 @@ The sniffer returns one of the types declared on `AssetType` and nothing else. A
 
 - **HEIF (`mif1`) and CUR decode but sniff as `nil`.** ISO base media files are matched against the brands in their `ftyp` box, and the bare-HEIF brand isn't in the table – nor, in a file that declares nothing else, is anything after it. CUR starts with `00 00 02 00`, one byte away from the ICO signature. The images load; `ImageContainer.type` is just empty.
 - **A sniffed type describes the bytes, not the semantics.** Most camera RAW formats – DNG, CR2, NEF, ARW – are TIFF containers, so they sniff as `AssetType.tiff`.
-- **A `nil` type is not an error.** Only two places in the pipeline read the type: animation detection in `ImageDecoders.Default`, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still.
+- **A `nil` type is not an error.** The type only decides the extras: animation detection in `ImageDecoders.Default`, the default `ImagePipeline.PreviewPolicy`, which gives previews to progressive JPEGs and GIFs, the default `ImageEncoding.encode(_:context:)`, which keeps the original data of an animation, and `AssetType.isVideo` in `NukeVideo`. An unrecognized type means an animated image isn't detected as one and plays as a still, and gets no previews unless you choose a policy.
 - **Video types are recognized without `NukeVideo`.** `AssetType.mp4`, `AssetType.m4v`, and `AssetType.mov` are always sniffable, but only `ImageDecoders.Video` can decode them, and you have to register it yourself.
 
 ### Progressive JPEG
@@ -1970,7 +1976,7 @@ public protocol ImageDecoding: Sendable {
 `ImageContainer` is a struct that wraps the decoded image and (optionally) the original data and some additional information. The decoder decides what to attach to the container.
 
 ```swift
-public struct ImageContainer {
+public struct ImageContainer: Sendable {
     /// Either `UIImage` or `NSImage`, depending on the platform.
     public var image: PlatformImage
     /// An image type.
@@ -1982,7 +1988,7 @@ public struct ImageContainer {
     /// The animation the data describes, if the image is an animated one.
     public var animation: AnimatedImageSource?
     /// Metadata provided by the user.
-    public var userInfo: [UserInfoKey: Any]
+    public var userInfo: [UserInfoKey: any Sendable]
 }
 ```
 
@@ -2952,6 +2958,9 @@ grep -rnE 'onCompletion|onFailure|\.result|state\.error' --include='*.swift' .
 # Views that start playing animations, and repeated loads that used to restart the task
 grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
 
+# Borders drawn by processors
+grep -rnE 'border:' --include='*.swift' .
+
 # Anything that plays, parses, or inspects the encoded data of an image
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
@@ -2963,10 +2972,10 @@ The search can't see through a typealias, or a signature split over lines. Open 
 
 ### 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
+Require 14.0.0 or later:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
+.package(url: "https://github.com/kean/Nuke", from: "14.0.0")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
@@ -2997,6 +3006,8 @@ Widely used removed APIs have a stub, and the compiler error says what to do: fo
 | `[String: Any]` for `coreImageFilter(name:parameters:identifier:)` | `[String: any Sendable]` |
 | `.failedToApplyFilter(filter:)`, `.failedToCreateOutputCGImage(image:)` | `.failedToApplyFilter(name:)`, `.failedToCreateOutputCGImage(extent:image:)` |
 | The static `Configuration.isSignpostLoggingEnabled` | `isDiagnosticsEnabled` on a configuration, which records metrics too. Consider limiting it to debug builds |
+| `.failedToCreateFilter(name:parameters:)` with `[String: Any]`, `.inputImageIsEmpty(inputImage:)` with a `PlatformImage` | The same cases, with a `String` |
+| `NukeUI.ImageRequest` | `ImageRequest`, which `NukeUI` re-exports from `Nuke` |
 
 Two errors don't say what they're about:
 
@@ -3030,7 +3041,7 @@ final class PosterView: UIView, ImageDisplaying {
 }
 ```
 
-These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
+These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `task.taskId` is `task.taskID`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
 
 ```swift
 // Nuke 13
@@ -3088,7 +3099,7 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 }
 ```
 
-If the method does more than decide, such as encrypting the data, keep that logic and return the result. These older methods are dead too:
+If the method does more than decide, such as encrypting the data, keep that logic and return the result, but await the expensive part off `@ImagePipelineActor`, where the method runs. The pipeline doesn't wait for the method to deliver the image. These older methods are dead too:
 
 | Never called | Use, in `imageTask(_:didReceiveEvent:pipeline:)` |
 |---|---|
@@ -3186,8 +3197,9 @@ ImagePipeline.shared = ImagePipeline {
 - `LazyImage` draws an image from the memory cache in the first `body` for its request, where 13 drew a placeholder first. In a `content` closure, an `onChange` of `state.image`, `state.imageContainer`, or `state.result` no longer fires for that image, because the value never changes: move the code to `onCompletion`, which still runs. In that `body`, `state` isn't a `FetchImage`, so a cast to it fails, and it doesn't update, so read it in the closure rather than keep it.
 - `ImagePrefetcher.didComplete` also runs when `stopPrefetching()` cancels the last outstanding request. If the closure marks downloads as done, set a flag where the app stops prefetching and check it in the closure.
 - On macOS, `isDecompressionEnabled = true` and a delegate's `shouldDecompress` and `decompress` now take effect. Check a delegate shared with iOS.
+- `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` draw a `border` at the width passed, where 13 drew half of it. If a design gives the width, keep it. Otherwise halve it to keep what shipped, and tell the owner.
 
-Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
+Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, and the default `DataLoader` sends `ImageRequest.priority` as `URLSessionTask.priority`. The cache keys didn't change, so users keep what's on disk.
 
 ### 6. Verify
 
@@ -3248,8 +3260,6 @@ The older guides are in `Documentation/Migrations` in the checkout. Use them to 
 ## Nuke 14 Migration Guide
 
 This guide eases the transition of the existing apps that use Nuke 13.x to the latest version of the framework.
-
-> Nuke 14 is a work in progress. The guide is updated as the changes land.
 
 ### Minimum Requirements
 
@@ -3522,7 +3532,7 @@ func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pi
 }
 ```
 
-The method runs on `@ImagePipelineActor`, and the pipeline awaits it before storing the data.
+The method runs on `@ImagePipelineActor`, so move expensive work, such as encryption, off it. As in Nuke 13, the pipeline doesn't wait for the method to deliver the image: it stores the data once the method returns.
 
 > Warning: **The Nuke 13 method still compiles, and the pipeline never calls it.** Every delegate method has a default implementation, so nothing requires yours, and the compiler has no way to tell you that it became dead code. A delegate that used `willCache` to keep private images off the disk stops doing so, silently. Search your code for `completion: @escaping (Data?) -> Void`.
 
@@ -3935,6 +3945,7 @@ These compile without changes. Most apps have nothing to do, but they do change 
 | The first frame of a portrait video | On its side | Upright |
 | `isDecompressionEnabled = true`, or a delegate's `shouldDecompress` and `decompress`, on macOS | No effect | Decompresses, and calls them |
 | `URLSessionTask.priority` of a request that isn't `.normal` | Default | Follows `ImageRequest.priority` |
+| The `border` of `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` | Half the width you pass | The width you pass |
 
 See [`LazyImage` and `LazyImageView` Play Animated Images](#lazyimage-and-lazyimageview-play-animated-images) for the animated rows.
 
@@ -4008,6 +4019,18 @@ ImagePipeline.shared = ImagePipeline {
 ```
 
 The default `DataLoader` now sets `URLSessionTask.priority` from `ImageRequest.priority`, so a request that isn't `.normal` reaches `URLSession`, and the server, with that priority.
+
+`ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` now draw a `border` as wide as you ask. Nuke 13 clipped the outer half of the stroke, so it looked half as wide. If you picked the width by eye, halve it to keep the look:
+
+```swift
+// Nuke 13
+ImageRequest(url: url, processors: [.circle(border: .init(color: .white, width: 4))]) // Draws 2 points
+
+// Nuke 14
+ImageRequest(url: url, processors: [.circle(border: .init(color: .white, width: 2))])
+```
+
+The width is part of the cache key. If you keep it, and your policy stores processed images (`.automatic`, `.storeEncodedImages`, or `.storeAll`), the images Nuke 13 stored keep the thinner border until they're evicted, so a screen can show both.
 
 The cache keys didn't change, so the images your users have on disk survive the update.
 

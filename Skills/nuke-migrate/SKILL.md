@@ -38,6 +38,9 @@ grep -rnE 'onCompletion|onFailure|\.result|state\.error' --include='*.swift' .
 # Views that start playing animations, and repeated loads that used to restart the task
 grep -rnE 'LazyImage\(|LazyImageView|FetchImage|onStart' --include='*.swift' .
 
+# Borders drawn by processors
+grep -rnE 'border:' --include='*.swift' .
+
 # Anything that plays, parses, or inspects the encoded data of an image
 grep -rnE 'container\.data|imageContainer\?*\.data|\.type == \.gif|Gifu|FLAnimatedImage|SwiftyGif|SDAnimatedImage|makeImageView' --include='*.swift' .
 
@@ -49,10 +52,10 @@ The search can't see through a typealias, or a signature split over lines. Open 
 
 ## 3. Update the dependency
 
-`from: "14.0.0"` doesn't match a prerelease. If the tags from step 1 only have prereleases, pin the newest one:
+Require 14.0.0 or later:
 
 ```
-.package(url: "https://github.com/kean/Nuke", exact: "14.0.0-rc.1")
+.package(url: "https://github.com/kean/Nuke", from: "14.0.0")
 ```
 
 In an Xcode project, change the version rule of the package, and remove the `Package.resolved` entry if it won't update. The product names are the same.
@@ -83,6 +86,8 @@ Widely used removed APIs have a stub, and the compiler error says what to do: fo
 | `[String: Any]` for `coreImageFilter(name:parameters:identifier:)` | `[String: any Sendable]` |
 | `.failedToApplyFilter(filter:)`, `.failedToCreateOutputCGImage(image:)` | `.failedToApplyFilter(name:)`, `.failedToCreateOutputCGImage(extent:image:)` |
 | The static `Configuration.isSignpostLoggingEnabled` | `isDiagnosticsEnabled` on a configuration, which records metrics too. Consider limiting it to debug builds |
+| `.failedToCreateFilter(name:parameters:)` with `[String: Any]`, `.inputImageIsEmpty(inputImage:)` with a `PlatformImage` | The same cases, with a `String` |
+| `NukeUI.ImageRequest` | `ImageRequest`, which `NukeUI` re-exports from `Nuke` |
 
 Two errors don't say what they're about:
 
@@ -116,7 +121,7 @@ final class PosterView: UIView, ImageDisplaying {
 }
 ```
 
-These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
+These are deprecated and keep working, so fix them when you touch the code. `maxConcurrentOperationCount` is `maxConcurrentTaskCount`. `task.taskId` is `task.taskID`. `isRateLimiterEnabled` does nothing, because the pipeline has no rate limiter, so delete the line. `LazyImageView.isProgressiveImageRenderingEnabled` is `isProgressiveRenderingEnabled`. `task.state` and `task.currentProgress` are `task.status`, which is a struct and not an enum, and `task.progress` is an async sequence:
 
 ```swift
 // Nuke 13
@@ -272,8 +277,9 @@ ImagePipeline.shared = ImagePipeline {
 - `LazyImage` draws an image from the memory cache in the first `body` for its request, where 13 drew a placeholder first. In a `content` closure, an `onChange` of `state.image`, `state.imageContainer`, or `state.result` no longer fires for that image, because the value never changes: move the code to `onCompletion`, which still runs. In that `body`, `state` isn't a `FetchImage`, so a cast to it fails, and it doesn't update, so read it in the closure rather than keep it.
 - `ImagePrefetcher.didComplete` also runs when `stopPrefetching()` cancels the last outstanding request. If the closure marks downloads as done, set a flag where the app stops prefetching and check it in the closure.
 - On macOS, `isDecompressionEnabled = true` and a delegate's `shouldDecompress` and `decompress` now take effect. Check a delegate shared with iOS.
+- `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` draw a `border` at the width passed, where 13 drew half of it. If a design gives the width, keep it. Otherwise halve it to keep what shipped, and tell the owner.
 
-Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time. The cache keys didn't change, so users keep what's on disk.
+Also changed, with nothing to do: `imageDecodingQueue` runs 2 at a time, and the default `DataLoader` sends `ImageRequest.priority` as `URLSessionTask.priority`. The cache keys didn't change, so users keep what's on disk.
 
 ## 6. Verify
 

@@ -128,11 +128,17 @@ public final class AlamofireDataLoader: Nuke.DataLoading {
             }
         }
         .resume()
-        return task
+        return AlamofireTask(request: task)
     }
 }
 
-extension Alamofire.Request: Nuke.Cancellable {}
+private struct AlamofireTask: Nuke.Cancellable {
+    let request: Alamofire.Request
+
+    func cancel() {
+        request.cancel()
+    }
+}
 ```
 
 ## Topics

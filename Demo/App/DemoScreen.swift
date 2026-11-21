@@ -71,7 +71,7 @@ enum DemoScreen: String, CaseIterable, Identifiable {
         case .prefetching: "ImagePrefetcher, and what it had ready in time"
         case .decompression: "Decoded off the main thread, counted in frames"
         case .customDecoder: "A toy format, picked by its first bytes"
-        case .priorityAndCoalescing: "Twenty requests, six downloads, and the queue"
+        case .priorityAndCoalescing: "Twenty requests, seven downloads, and the queue"
         case .scrollStress: "Fast scrolling with every cache disabled"
         case .animationLab: "Up to 36 animations playing from one frame pool"
         case .lazyImageReuse: "Memory cache hits in the first body, across reuse"

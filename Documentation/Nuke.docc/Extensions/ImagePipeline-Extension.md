@@ -144,6 +144,10 @@ do {
 - ``cache-swift.property``
 - ``Cache-swift.struct``
 
+### Diagnostics
+
+- ``diagnostics``
+
 ### Invalidation
 
 - ``invalidate()``

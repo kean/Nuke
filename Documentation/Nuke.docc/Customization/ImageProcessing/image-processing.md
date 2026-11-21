@@ -46,7 +46,7 @@ ImageRequest(url: url, processors: [
 Custom processors need to implement ``ImageProcessing`` protocol. For the basic image processing needs, implement ``ImageProcessing/process(_:)`` method and create an identifier that uniquely identifies the processor. For processors with no input parameters, return a static string.
 
 ```swift
-public protocol ImageProcessing {
+public protocol ImageProcessing: Sendable {
     func process(_ image: PlatformImage) -> PlatformImage?
     var identifier: String { get }
 }
@@ -54,11 +54,11 @@ public protocol ImageProcessing {
 
 > All processing tasks are executed on a dedicated queue (``ImagePipeline/Configuration-swift.struct/imageProcessingQueue``).
 
-If your processor needs to manipulate image metadata (``ImageContainer``) or get access to more information via ``ImageProcessingContext``, there is an additional method that you can implement in addition to ``ImageProcessing/process(_:context:)-26ffb``.
+If your processor needs to manipulate image metadata (``ImageContainer``) or get access to more information via ``ImageProcessingContext``, there is an additional method that you can implement in addition to ``ImageProcessing/process(_:)``.
 
 ```swift
-public protocol ImageProcessing {
-    func process(_ image container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
+public protocol ImageProcessing: Sendable {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 }
 ```
 

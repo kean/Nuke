@@ -15,7 +15,7 @@ import AppKit
 /// For basic processing needs, implement the following method:
 ///
 /// ```swift
-/// func process(image: PlatformImage) -> PlatformImage?
+/// func process(_ image: PlatformImage) -> PlatformImage?
 /// ```
 ///
 /// If your processor needs to manipulate image metadata (``ImageContainer``), or
@@ -23,7 +23,7 @@ import AppKit
 /// there is an additional method that allows you to do that:
 ///
 /// ```swift
-/// func process(image container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
+/// func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 /// ```
 ///
 /// You must implement either one of those methods.

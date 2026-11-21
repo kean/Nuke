@@ -100,7 +100,7 @@ ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33)
 
 ### Other Options
 
-For a complete list of options, see ``ImageLoadingOptions``. Some options, such as ``ImageLoadingOptions/isProgressiveRenderingEnabled`` will be covered later.
+For a complete list of options, see ``ImageLoadingOptions``.
 
 > Built-in extensions for image views are designed to get you up and running as quickly as possible. If you want more control, use `ImagePipeline` directly.
 
@@ -108,7 +108,7 @@ For a complete list of options, see ``ImageLoadingOptions``. Some options, such 
 
 ## Progressive Decoding
 
-Progressive JPEG is supported out of the box.
+To display progressive JPEG previews as the data arrives, turn on `isProgressiveDecodingEnabled` in the pipeline's configuration, which is off by default. The extensions then display each preview in the view; set ``ImageLoadingOptions/isProgressiveRenderingEnabled`` to `false` to show only the final image.
 
 ## Custom Views
 

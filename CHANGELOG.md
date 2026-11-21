@@ -2,6 +2,7 @@
 
 | Version          | Date         | Swift | Xcode | Platforms                                                   |
 |------------------|--------------|-------|-------|-------------------------------------------------------------|
+| [14.0](#nuke-14) | Nov 22, 2026 | 6.2   | 26.0  | iOS 16.0, watchOS 9.0, macOS 13.0, tvOS 16.0, visionOS 1.0  |
 | [13.0](#nuke-13) | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
 | [12.0](#nuke-12) | Mar 4, 2023  | 5.7   | 14.1  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 | [11.0](#nuke-11) | Jul 20, 2022 | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
@@ -19,7 +20,9 @@
 
 # Nuke 14
 
-## WIP
+## Nuke 14.0
+
+*Nov 22, 2026*
 
 Nuke 14 plays animated images, records where every image task spent its time, and loads images into any view with `ImageLoader`. It also fixes more than 10 bugs and raises the minimum iOS, tvOS, macOS, and watchOS versions by one major version.
 
@@ -130,9 +133,9 @@ The test suite more than doubled, and writing it uncovered many of the bugs fixe
 
 | Version         | Source lines | Tests | Test lines | Coverage |
 |-----------------|--------------|-------|------------|----------|
-| Nuke 14         | 8,040        | 1,898 | 23,944     | 98.2%    |
+| Nuke 14         | 8,070        | 1,916 | 24,135     | 98.2%    |
 | Nuke 13.2       | 5,011        | 937   | 10,740     | 96.4%    |
-| NukeUI 14       | 3,315        | 653   | 9,225      | 93.9%    |
+| NukeUI 14       | 3,321        | 653   | 9,226      | 93.9%    |
 | NukeUI 13.2     | 804          | 80    | 978        | 63.4%    |
 
 Measured on macOS. Source and test lines exclude blank lines and comments.
@@ -205,6 +208,11 @@ In Claude Code, you can also install them as a plugin, and they load on their ow
 - Remove `ImageDecoding/isAsynchronous`: every decode runs on `imageDecodingQueue` – https://github.com/kean/Nuke/pull/1066
 - `ImageDecoders/Video` follows the preview policy, which is `.disabled` for a video by default, so a video no longer shows its first frame while it downloads unless the policy asks for it – https://github.com/kean/Nuke/pull/1082
 - The default `DataLoader` sets `URLSessionTask/priority` from the request's priority – https://github.com/kean/Nuke/pull/1085
+- A processor drops `ImageContainer/data` and `ImageContainer/animation`, which describe the image that went in, so a processed GIF is a still – https://github.com/kean/Nuke/pull/958
+- `ImagePipeline/Error`, `DataLoader/Error`, `ImageDecodingError`, and `ImageProcessingError` are now `@nonexhaustive`, so a `switch` over one needs `@unknown default` – https://github.com/kean/Nuke/pull/1052
+- Rename `ImageTask/taskId` to `ImageTask/taskID`. The old name is deprecated – https://github.com/kean/Nuke/pull/1063
+- Rename `LazyImageView/isProgressiveImageRenderingEnabled` to `LazyImageView/isProgressiveRenderingEnabled`. The old name is deprecated – https://github.com/kean/Nuke/pull/1081
+- Add a privacy manifest to `Nuke`. It declares no tracking, no collected data, and no required reason APIs – https://github.com/kean/Nuke/pull/1090
 
 ### Performance
 
@@ -213,7 +221,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - `ImagePipeline/Configuration-swift.struct/dataLoadingQueue` runs the requests below `.normal` priority in at most 3 of its 6 slots to ensure there are always slots available regardless of the number of low-priority tasks, like prefetching – https://github.com/kean/Nuke/pull/981
 - `ImageCache` hits are 5% faster – https://github.com/kean/Nuke/pull/975
 - Loading an image with `ImagePipeline/Configuration-swift.struct/dataCache` set makes 10 fewer allocations per download – https://github.com/kean/Nuke/pull/971
-- `ImagePipeline/Error` is now 8 bytes instead of 97, which shrinks `ImageTask/Event` from 99 bytes to 26 – https://github.com/kean/Nuke/pull/967
+- `ImagePipeline/Error` is now 8 bytes instead of 113, which shrinks `ImageTask/Event` from 115 bytes to 26 – https://github.com/kean/Nuke/pull/967
 - `LazyImage` checks whether its request changed up to 5× faster on every body update when it keeps the same request – https://github.com/kean/Nuke/pull/969
 - Subscribing to `ImageTask/events` no longer spawns a `Task`, which makes it 1.2–1.9× faster – https://github.com/kean/Nuke/pull/980
 - `ImageCache` hits for requests with processors are 1.5× faster – https://github.com/kean/Nuke/pull/972
@@ -241,7 +249,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageProcessors/Resize` failing for a thin image whose short side scales below half a pixel instead of producing a one-pixel strip – https://github.com/kean/Nuke/pull/1020
 - Fix `ImageProcessors/Circle` and `ImageProcessors/RoundedCorners` drawing the border at half the requested width – https://github.com/kean/Nuke/pull/1020
 - Fix processors changing the point size of a high-DPI `NSImage` on macOS – https://github.com/kean/Nuke/pull/1020
-- Fix `ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)` sizing the thumbnail of an EXIF-rotated image against the stored pixels on macOS, so it came out too large – https://github.com/kean/Nuke/pull/1020
+- Fix `ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)` sizing the thumbnail of an EXIF-rotated image against the stored pixels on macOS, so it came out the wrong size – https://github.com/kean/Nuke/pull/1020
 - Fix the poster of a portrait video coming out on its side – https://github.com/kean/Nuke/pull/1082
 - Fix `isDecompressionEnabled` and the delegate's decompression methods having no effect on macOS – https://github.com/kean/Nuke/pull/1089
 
