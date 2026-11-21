@@ -67,7 +67,7 @@ ARTICLE_ORDER = [
 ]
 
 # Landing pages and pages that only curate symbols have nothing to read.
-SKIPPED_ARTICLES = {"Nuke.md", "NukeUI.md", "NukeExtensions.md", "ImageViewExtensions.md"}
+SKIPPED_ARTICLES = {"Nuke.md", "NukeUI.md", "NukeVideo.md", "NukeExtensions.md", "ImageViewExtensions.md"}
 
 
 # MARK: - Articles
