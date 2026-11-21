@@ -18,7 +18,7 @@ extension ImagePipeline {
     ///
     /// ```swift
     /// var configuration = ImagePipeline.shared.configuration
-    /// configuration.imageProcessingQueue.maxConcurrentOperationCount = 1
+    /// configuration.imageProcessingQueue.maxConcurrentTaskCount = 1
     /// // ImagePipeline.shared is now throttled as well
     /// ```
     ///
