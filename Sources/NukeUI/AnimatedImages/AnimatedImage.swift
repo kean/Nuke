@@ -317,7 +317,7 @@ private struct AnimatedImageRenderer: View {
             // `onChange(of:perform:)` calls the action of the previous update,
             // so the renderer travels in the value: `install()` has to read
             // the new animation and player, not the ones `self` had.
-            .onChange(of: Installation(renderer: self)) { $0.renderer.install() }
+            .onChange(of: Installation(renderer: self, identity: identity)) { $0.renderer.install() }
             .onChange(of: isPlaybackEnabled) { isEnabled in
                 if isEnabled { model.player?.play() } else { model.player?.pause() }
             }
@@ -331,12 +331,14 @@ private struct AnimatedImageRenderer: View {
     }
 
     /// The renderer of an update, equal to another when they play the same
-    /// thing.
+    /// thing. The identity is read in `body`, on the main actor, because
+    /// `==` isn't isolated to it.
     private struct Installation: Equatable {
         let renderer: AnimatedImageRenderer
+        let identity: ObjectIdentifier
 
         static func == (lhs: Installation, rhs: Installation) -> Bool {
-            lhs.renderer.identity == rhs.renderer.identity
+            lhs.identity == rhs.identity
         }
     }
 
