@@ -468,6 +468,17 @@ struct ImageRequestScaleKeyTests {
         #expect(TaskFetchOriginalDataKey(lhs) == TaskFetchOriginalDataKey(rhs))
     }
 
+    /// A NaN would make the keys unequal to themselves, and the decoders make
+    /// an image of NaN points.
+    @Test(arguments: [0, -0.0, -2, .nan, .infinity, -.infinity, 1e39, 1e-46] as [CGFloat])
+    func scaleThatIsNotPositiveAndFiniteIsOne(scale: CGFloat) {
+        let request = ImageRequest(url: Test.url).with { $0.scale = scale }
+
+        #expect(request.scale == 1)
+        assertHashableEqual(MemoryCacheKey(request), MemoryCacheKey(ImageRequest(url: Test.url)))
+        #expect(TaskFetchOriginalImageKey(request) == TaskFetchOriginalImageKey(ImageRequest(url: Test.url)))
+    }
+
     @Test func equalScalesProduceEqualKeys() {
         // Given
         let lhs = ImageRequest(url: Test.url).with { $0.scale = 2 }

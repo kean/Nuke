@@ -112,9 +112,18 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     }
 
     /// The display scale of the image. By default, `1`.
+    ///
+    /// A scale that isn't a positive finite number is stored as `1`.
     public var scale: CGFloat {
         get { CGFloat(ref.scale) }
-        set { mutate { $0.scale = Float(newValue) } }
+        set {
+            // Checked after the conversion, which turns a large value into
+            // infinity and a tiny one into zero. A NaN would make the cache
+            // keys unequal to themselves, and the decoders make an image of
+            // NaN points, which SwiftUI on visionOS crashes on.
+            let scale = Float(newValue)
+            mutate { $0.scale = scale.isFinite && scale > 0 ? scale : 1 }
+        }
     }
 
     /// A short name for the role of the request in the app, such as `"feed"`
