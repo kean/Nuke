@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import ImageIO
 @testable import Nuke
 
 @Suite(.timeLimit(.minutes(5)))
@@ -644,6 +645,54 @@ struct ImagePipelineDataCachePolicyTests {
         // THEN it is served from the disk cache
         #expect(freshDataLoader.createdTaskCount == 0)
     }
+
+#if os(macOS)
+    // MARK: Point Size (AppKit)
+
+    /// A processed image keeps the points per pixel of its source, and
+    /// `NSImage(data:)` sizes the data it reads back by its DPI: a high-DPI
+    /// image has to be the same size from the disk cache as it was fresh.
+    @Test(arguments: [ImagePipeline.DataCachePolicy.automatic, .storeEncodedImages, .storeAll])
+    func processedHighDPIImageHasTheSameSizeFromTheDataCache(policy: ImagePipeline.DataCachePolicy) async throws {
+        // GIVEN a 200x200px PNG at 144 DPI, which is 100x100pt, and a request
+        // that processes it, with the default encoder
+        let data = try makePNG(width: 200, height: 200, dpi: 144)
+        dataLoader.results[Test.url] = .success(
+            (data, URLResponse(url: Test.url, mimeType: "png", expectedContentLength: data.count, textEncodingName: nil))
+        )
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.dataCache = dataCache
+            $0.imageCache = nil
+            $0.dataCachePolicy = policy
+        }
+        let request = ImageRequest(url: Test.url, processors: [.circle()])
+
+        // WHEN
+        let image = try await pipeline.image(for: request)
+        await pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+
+        // WHEN a fresh pipeline with no network loads it from the disk cache
+        let offline = MockDataLoader()
+        offline.isSuspended = true
+        let response = try await pipeline.reconfigured { $0.dataLoader = offline }.imageTask(with: request).response
+
+        // THEN
+        #expect(image.size == CGSize(width: 100, height: 100))
+        #expect(response.cacheType == .disk)
+        #expect(response.image.size == image.size)
+        #expect(response.image.sizeInPixels == image.sizeInPixels)
+    }
+
+    private func makePNG(width: Int, height: Int, dpi: Int) throws -> Data {
+        let cgImage = try #require(Test.rgbImage(width: width, height: height).cgImage)
+        let data = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(data as CFMutableData, AssetType.png.rawValue as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, cgImage, [kCGImagePropertyDPIWidth: dpi, kCGImagePropertyDPIHeight: dpi] as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        return data as Data
+    }
+#endif
 
     // MARK: Coalesced Requests
 

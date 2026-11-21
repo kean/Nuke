@@ -5,10 +5,13 @@
 import Testing
 import Foundation
 import CoreGraphics
+import ImageIO
 @testable import Nuke
 
 #if !os(macOS)
 import UIKit
+#else
+import AppKit
 #endif
 
 @Suite(.timeLimit(.minutes(5)))
@@ -195,6 +198,43 @@ struct ImageEncoderTests {
         let actual = try pixelComponents(of: decoded.image, x: 32, y: 24)
         #expect(zip(expected, actual).allSatisfy { abs(Int($0) - Int($1)) <= 4 }, "\(actual) vs \(expected)")
     }
+
+#if os(macOS)
+    // MARK: - Point Size
+
+    /// `NSImage(data:)` sizes an image by its DPI, so the encoder writes the
+    /// points per pixel the image has: a processed high-DPI image read back
+    /// from the disk cache has to be the size it was.
+    @Test(arguments: [AssetType.jpeg, .png, .heic])
+    func encodingPreservesThePointSizeOfHighDPIImage(type: AssetType) throws {
+        // Given a 40x40px image with a size of 20x20pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let image = NSImage(cgImage: cgImage, size: NSSize(width: 20, height: 20))
+
+        // When
+        let data = try #require(ImageEncoders.ImageIO(type: type).encode(image))
+        let decoded = try ImageDecoders.Default().decode(data)
+
+        // Then
+        #expect(decoded.image.size == CGSize(width: 20, height: 20))
+        #expect(decoded.image.sizeInPixels == CGSize(width: 40, height: 40))
+    }
+
+    @Test func encodingWritesNoDPIForOnePointPerPixel() throws {
+        // Given a 40x40px image with a size of 40x40pt
+        let cgImage = try #require(Test.rgbImage(width: 40, height: 40).cgImage)
+        let image = NSImage(cgImage: cgImage, size: NSSize(width: 40, height: 40))
+
+        // When
+        let data = try #require(ImageEncoders.ImageIO(type: .png).encode(image))
+
+        // Then the data is what it was before the encoder wrote any DPI
+        let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
+        let properties = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        #expect(properties[kCGImagePropertyDPIWidth] == nil)
+        #expect(try ImageDecoders.Default().decode(data).image.size == CGSize(width: 40, height: 40))
+    }
+#endif
 
 #if os(iOS) || os(tvOS) || os(visionOS)
     // MARK: - Orientation
