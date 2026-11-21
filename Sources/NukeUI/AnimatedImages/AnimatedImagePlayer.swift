@@ -378,7 +378,12 @@ public final class AnimatedImagePlayer: ObservableObject {
         var advanced = false
         var didLoop = false
         var advanceCount = 0
-        while elapsed >= animation.delays[currentFrameIndex] {
+        // A frame per tick while the system is throttling. The clock is coarser
+        // than the display on purpose then, and a frame shorter than a tick is
+        // one the display could have shown: it gets the tick, and the
+        // animation plays slower instead of skipping it.
+        let maxAdvanceCount = isThrottling ? 1 : Int.max
+        while elapsed >= animation.delays[currentFrameIndex], advanceCount < maxAdvanceCount {
             guard let next = nextFrameIndex else {
                 finish()
                 break
@@ -523,8 +528,12 @@ public final class AnimatedImagePlayer: ObservableObject {
     /// Tells the clock the rate to run at, which the power state can change
     /// while the animation is playing.
     func updateClockRate() {
-        let isThrottling = options.isPowerThrottlingEnabled && power.isThrottling
         clock.preferredFrameRate = AnimatedImagePlayer.preferredFrameRate(for: animation, options: options, isThrottling: isThrottling)
+    }
+
+    /// `true` while the clock is held to the throttled rate.
+    private var isThrottling: Bool {
+        options.isPowerThrottlingEnabled && power.isThrottling
     }
 
     /// The rate to run the clock at, or `0` to let it use its own.
@@ -538,8 +547,9 @@ public final class AnimatedImagePlayer: ObservableObject {
     ///
     /// While the system is throttling, the ceiling is 30 instead and the rate
     /// is clamped to it rather than dropped: a fast animation is deliberately
-    /// run on a clock too coarse for it, which stretches its frames by up to a
-    /// tick and skips none. See ``Options/isPowerThrottlingEnabled``.
+    /// run on a clock too coarse for it, and the player moves on by a frame
+    /// per tick at most, which stretches its frames to a tick and skips none.
+    /// See ``Options/isPowerThrottlingEnabled``.
     private static func preferredFrameRate(for animation: AnimatedImageSource, options: Options, isThrottling: Bool) -> Double {
         let ceiling: Double = isThrottling ? 30 : 60
         guard let shortest = animation.delays.min(), shortest > 0 else {
@@ -633,8 +643,8 @@ extension AnimatedImagePlayer {
         /// ticks a second instead of the two per frame it normally would,
         /// which halves the wakeups an animation costs on battery. It is what
         /// WebKit does for the same two reasons. Nothing is skipped: an
-        /// animation faster than the clock has its frames stretched by up to a
-        /// tick each, so it plays a little slower while the throttling lasts.
+        /// animation faster than the clock shows each of its frames for a
+        /// tick, so a 50 fps GIF plays at 30 fps while the throttling lasts.
         /// Set it to `false` for an animation that has to keep its timing
         /// whatever the state of the device.
         public var isPowerThrottlingEnabled = true
