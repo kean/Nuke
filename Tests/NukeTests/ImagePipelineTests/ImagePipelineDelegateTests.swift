@@ -156,7 +156,7 @@ struct ImagePipelineDelegateTests {
 
         // WHEN
         let delivered = TestExpectation()
-        Task {
+        let task = Task {
             _ = try await pipeline.image(for: Test.request)
             delivered.fulfill()
         }
@@ -169,6 +169,7 @@ struct ImagePipelineDelegateTests {
         // THEN the data is stored once the delegate returns
         delegate.gate.open()
         await waitUntil { dataCache.store.count == 1 }
+        try await task.value
     }
 
     @Test func willCacheDoesNotHoldTheDataLoadingSlot() async throws {
@@ -183,7 +184,7 @@ struct ImagePipelineDelegateTests {
 
         // WHEN two images load while the first `willCache` is suspended
         let delivered = TestExpectation()
-        Task {
+        let task = Task {
             _ = try await pipeline.image(for: URL(string: "https://example.com/a.jpeg")!)
             _ = try await pipeline.image(for: URL(string: "https://example.com/b.jpeg")!)
             delivered.fulfill()
@@ -193,6 +194,7 @@ struct ImagePipelineDelegateTests {
         await delivered.wait(timeout: .seconds(10))
         delegate.gate.open()
         await waitUntil { dataCache.store.count == 2 }
+        try await task.value
     }
 
     @Test func willCacheDoesNotHoldTheEncodingQueue() async throws {
