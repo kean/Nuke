@@ -3,10 +3,30 @@
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import os
 
 /// The most the download buffer reserves up front, however large the server
 /// says the response is. The buffer still grows past it as the bytes arrive.
 private let maximumReservedCapacity: Int64 = 64 * 1024 * 1024
+
+/// The actor schedules jobs by priority. Buffer callbacks together so a higher-QoS
+/// completion cannot overtake bytes already delivered by the loader.
+private struct DataLoadState {
+    var firstChunk: (Data, URLResponse)?
+    var overflow = ContiguousArray<(Data, URLResponse)>()
+    var isCompleted = false
+    var pendingCompletion = false
+    var error: Error?
+    var metrics: URLSessionTaskMetrics?
+    var scheduledPriority: _Concurrency.TaskPriority?
+
+    mutating func scheduleDrain() -> Bool {
+        let priority = Task.currentPriority
+        if let scheduledPriority, scheduledPriority >= priority { return false }
+        scheduledPriority = priority
+        return true
+    }
+}
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
@@ -155,36 +175,75 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private func loadData(with urlRequest: URLRequest, dataLoader: any DataLoading) async throws {
         try await withUnsafeThrowingContinuation { (continuation: UnsafeContinuation<Void, Error>) in
             dataLoadContinuation = continuation
+            let state = OSAllocatedUnfairLock(initialState: DataLoadState())
             let didReceiveData: @Sendable (Data, URLResponse) -> Void = { [weak self] chunk, response in
-                Task { @ImagePipelineActor in
-                    self?.dataTaskDidReceive(chunk: chunk, response: response)
+                let schedule = state.withLock {
+                    guard !$0.isCompleted else { return false }
+                    if $0.firstChunk == nil {
+                        $0.firstChunk = (chunk, response)
+                    } else {
+                        $0.overflow.append((chunk, response))
+                    }
+                    return $0.scheduleDrain()
+                }
+                if schedule {
+                    Task { @ImagePipelineActor [weak self] in self?.drainDataLoad(state) }
                 }
             }
-            // Each branch passes its own completion so that the common one
-            // isn't wrapped in a closure that only exists to drop the metrics.
+            // Match each completion signature directly to avoid a wrapper closure per load.
             if downloadStage != nil, let dataLoader = dataLoader as? DataLoader {
                 // The diagnostics are on: ask for what `URLSession` measured.
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, priority: priority, didReceiveData: didReceiveData) { [weak self] error, metrics in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error, urlSessionMetrics: metrics)
-                    }
+                    self?.completeDataLoad(state, error: error, metrics: metrics)
                 }
                 if let handle = dataLoadCancellable as? URLSessionTaskCancellable {
                     diagnostics?.updateStage(downloadStage) { $0.urlSessionTaskID = handle.task.taskIdentifier }
                 }
             } else if let dataLoader = dataLoader as? DataLoader {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, priority: priority, didReceiveData: didReceiveData) { [weak self] error in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
-                    }
+                    self?.completeDataLoad(state, error: error, metrics: nil)
                 }
             } else {
                 dataLoadCancellable = dataLoader.loadData(with: urlRequest, didReceiveData: didReceiveData) { [weak self] error in
-                    Task { @ImagePipelineActor in
-                        self?.finishDataLoad(error: error)
-                    }
+                    self?.completeDataLoad(state, error: error, metrics: nil)
                 }
             }
+        }
+    }
+
+    private nonisolated func completeDataLoad(_ state: OSAllocatedUnfairLock<DataLoadState>, error: Error?, metrics: URLSessionTaskMetrics?) {
+        let schedule = state.withLock {
+            guard !$0.isCompleted else { return false }
+            $0.isCompleted = true
+            $0.pendingCompletion = true
+            $0.error = error
+            $0.metrics = metrics
+            return $0.scheduleDrain()
+        }
+        if schedule {
+            Task { @ImagePipelineActor [weak self] in self?.drainDataLoad(state) }
+        }
+    }
+
+    /// A live load must allow the next callback to schedule another drain. After
+    /// completion the batch is final, even if an earlier drain is still queued.
+    private func drainDataLoad(_ state: OSAllocatedUnfairLock<DataLoadState>) {
+        let batch = state.withLock {
+            let batch = $0
+            $0.firstChunk = nil
+            $0.overflow = []
+            $0.pendingCompletion = false
+            if !$0.isCompleted { $0.scheduledPriority = nil }
+            return batch
+        }
+        if let (chunk, response) = batch.firstChunk {
+            dataTaskDidReceive(chunk: chunk, response: response)
+        }
+        for (chunk, response) in batch.overflow {
+            dataTaskDidReceive(chunk: chunk, response: response)
+        }
+        if batch.pendingCompletion {
+            finishDataLoad(error: batch.error, urlSessionMetrics: batch.metrics)
         }
     }
 
