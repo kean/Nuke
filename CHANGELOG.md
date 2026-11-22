@@ -2,7 +2,7 @@
 
 | Version          | Date         | Swift | Xcode | Platforms                                                   |
 |------------------|--------------|-------|-------|-------------------------------------------------------------|
-| [14.0](#nuke-14) | Nov 22, 2026 | 6.2   | 26.0  | iOS 16.0, watchOS 9.0, macOS 13.0, tvOS 16.0, visionOS 1.0  |
+| [14.0](#nuke-14) | Nov 22, 2026 | 6.4   | 27.0  | iOS 16.0, watchOS 9.0, macOS 13.0, tvOS 16.0, visionOS 1.0  |
 | [13.0](#nuke-13) | Mar 22, 2026 | 6.2   | 26.0  | iOS 15.0, watchOS 8.0, macOS 12.0, tvOS 15.0, visionOS 1.0  |
 | [12.0](#nuke-12) | Mar 4, 2023  | 5.7   | 14.1  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
 | [11.0](#nuke-11) | Jul 20, 2022 | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0               |
@@ -37,7 +37,7 @@ Nuke 14 requires Swift 6.4 and Xcode 27.0. The [Migration Guide](https://github.
 - Views showing the same animation share one decoder and one set of frames, at the same size or close to it, and start on the same frame
 - Frames are decoded no larger than the view displays them, and a view nobody is watching holds two frames
 
-WebKit, more than any other player, was the reference for how playback behaves. Frames are never skipped, so a stalled main thread stretches the animation instead of making it jump. A delay under 11 ms becomes 0.1 s, and a GIF with no loop count plays once. The clock is held to 30 Hz in Low Power Mode, for the same reasons WebKit does it. See the [Animated Images](https://github.com/kean/Nuke/blob/main/Documentation/NukeUI.docc/AnimatedImages.md) article.
+WebKit, more than any other player, was the reference for how playback behaves. A frame that is late is waited for, not skipped, so a stalled main thread stretches the animation instead of making it jump. A delay under 11 ms becomes 0.1 s, and a GIF with no loop count plays once. The clock is held to 30 Hz in Low Power Mode, for the same reasons WebKit does it. See the [Animated Images](https://github.com/kean/Nuke/blob/main/Documentation/NukeUI.docc/AnimatedImages.md) article.
 
 ```swift
 LazyImage(url: URL(string: "https://example.com/cat.gif"))
@@ -133,9 +133,9 @@ The test suite more than doubled, and writing it uncovered many of the bugs fixe
 
 | Version         | Source lines | Tests | Test lines | Coverage |
 |-----------------|--------------|-------|------------|----------|
-| Nuke 14         | 8,070        | 1,916 | 24,135     | 98.2%    |
+| Nuke 14         | 8,068        | 1,924 | 24,231     | 98.2%    |
 | Nuke 13.2       | 5,011        | 937   | 10,740     | 96.4%    |
-| NukeUI 14       | 3,321        | 653   | 9,226      | 93.9%    |
+| NukeUI 14       | 3,350        | 663   | 9,389      | 94.0%    |
 | NukeUI 13.2     | 804          | 80    | 978        | 63.4%    |
 
 Measured on macOS. Source and test lines exclude blank lines and comments.
@@ -252,6 +252,7 @@ Across the 44 benchmarks comparable with 13.2, `main` is 1.6% faster by geometri
 - Fix `ImageRequest/ThumbnailOptions/init(size:unit:contentMode:)` sizing the thumbnail of an EXIF-rotated image against the stored pixels on macOS, so it came out the wrong size – https://github.com/kean/Nuke/pull/1020
 - Fix the poster of a portrait video coming out on its side – https://github.com/kean/Nuke/pull/1082
 - Fix `isDecompressionEnabled` and the delegate's decompression methods having no effect on macOS – https://github.com/kean/Nuke/pull/1089
+- Fix a `NaN` `ImageRequest/scale` producing an image of `NaN` points and a request that never hits the cache: a scale that isn't positive and finite is now `1`. A `NaN` corner radius or border width in `ImageProcessors/RoundedCorners` is now `0` – https://github.com/kean/Nuke/pull/1121
 
 ### Documentation
 
