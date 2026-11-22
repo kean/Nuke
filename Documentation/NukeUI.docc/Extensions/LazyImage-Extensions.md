@@ -2,7 +2,7 @@
 
 ## Using LazyImage
 
-The view is instantiated with a [`URL`](https://developer.apple.com/documentation/foundation/url) or an ``ImageRequest``.
+The view is instantiated with a [`URL`](https://developer.apple.com/documentation/foundation/url) or an [`ImageRequest`](https://kean-docs.github.io/nuke/documentation/nuke/imagerequest).
 
 ```swift
 struct ContainerView: View {
