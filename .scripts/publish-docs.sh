@@ -11,8 +11,8 @@ set -euo pipefail
 #
 # It stops there, and nothing is pushed or deployed. The site has no versions,
 # so what goes there replaces the docs for everyone, including apps on the last
-# release: deploy at the tag. To deploy, copy the folders over the ones with the
-# same names in kean-docs/kean-docs.github.io, and commit there.
+# release: deploy at the tag, with deploy-docs.sh, which builds this and commits it to
+# kean-docs/kean-docs.github.io.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

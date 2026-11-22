@@ -26,6 +26,8 @@ make snippets                                   # Compile the documentation samp
 make llms                                       # Regenerate llms.txt, llms-full.txt, and llms-api.txt (at the release)
 make release-check                              # Fail if those three are stale
 make docs                                       # Build the docs site in .build/docs. It deploys nothing
+make deploy-docs                                # At a tag: build the docs and commit them to kean-docs.github.io. ARGS="--push" pushes
+make release VERSION=14.0.0                     # Cut a release, confirming each step. Needs a terminal
 make lint                                       # SwiftLint
 ```
 
@@ -49,9 +51,13 @@ CI runs `NukeVideoTests` on macOS and on iOS 27 only, so run the `NukeVideo` sch
 
 ## Releasing
 
-Before tagging a release:
+`make release VERSION=14.0.0` walks the release, and before each step says what it is about to do and waits for a yes, a skip, or a note. The notes go to `.build/release/14.0.0.md`. It needs a terminal: in Claude Code, run `! make release VERSION=14.0.0`. The steps:
 
-1. Run `make llms` and commit the three files it writes, on their own, so the diff of the release shows what changed for agents.
-2. Run `make release-check`, which fails if they are stale. The generator reads the sources it is run on, so run it on the commit you are going to tag.
+1. **Prepare.** The date and the version, then `make llms`, which is committed on its own, so the diff of the release shows what changed for agents. The files are what a project that depends on Nuke has in its checkout, at the version it resolved, so a tag cut without this step ships documentation from the last release.
+2. **Push, and wait for CI** on that commit.
+3. **Pre-release check.** `/nuke-pre-release-testing` for that exact commit: a verdict is for one SHA, so anything committed after it needs another.
+4. **Check.** `.scripts/release.py check 14.0.0` fails on a stale llms file (`make release-check`, which reads the sources it is run on, so it has to run on the commit you are going to tag), a red CI, a tag that exists, or a date that disagrees with the CHANGELOG.
+5. **Tag and GitHub Release**, from the CHANGELOG section.
+6. **Docs.** `.scripts/deploy-docs.sh` builds the site and commits it to `kean-docs.github.io`, and the script pushes it after one more yes. The site has no versions, so deploying replaces the docs for everyone: do it at the tag.
 
-The files are what a project that depends on Nuke has in its checkout, at the version it resolved, so a tag cut without this step ships documentation from the last release.
+The tag, the push, the Release, and the docs push are the four steps that can't be taken back, and the script does none of them without a yes.
