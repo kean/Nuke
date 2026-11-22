@@ -44,6 +44,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.imageCache = nil
         }
@@ -70,6 +71,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.imageCache = nil
         }
@@ -127,6 +129,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -156,6 +159,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -183,6 +187,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -212,6 +217,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -242,6 +248,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -273,6 +280,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -305,6 +313,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -339,6 +348,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -362,6 +372,7 @@ struct ImagePipelinePreviewPolicyTests {
         )
         let pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
+            $0.imageDecodingQueue = dataLoader.decodingQueue
             $0.isProgressiveDecodingEnabled = true
             $0.progressiveDecodingInterval = 0
             $0.imageCache = nil
@@ -380,10 +391,16 @@ struct ImagePipelinePreviewPolicyTests {
 // MARK: - Helpers
 
 /// Serves data in chunks automatically without requiring manual resume calls.
+///
+/// A chunk is served once the pipeline has taken the previous one and decoded
+/// it. The pipeline skips a chunk that arrives while it is decoding another, so
+/// serving them on a timer made the number of policy evaluations depend on how
+/// fast the machine decodes. The pipeline has to use `decodingQueue`.
 private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
     let data: Data
     let chunkCount: Int
     let urlResponse: HTTPURLResponse
+    let decodingQueue = TaskQueue(maxConcurrentTaskCount: 1)
 
     init(data: Data, chunkCount: Int = 3) {
         self.data = data
@@ -399,18 +416,19 @@ private final class MockAutoDataLoader: DataLoading, @unchecked Sendable {
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void,
                   completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
-        nonisolated(unsafe) var chunks = Array(_createChunks(for: data, size: data.count / chunkCount))[...]
+        let chunks = Array(_createChunks(for: data, size: data.count / chunkCount))
         let response = urlResponse
-        // The pipeline decodes a chunk on its decoding queue and skips the ones
-        // that arrive meanwhile, so a chunk waits for the previous one's decode.
-        @Sendable func serve() {
-            guard let chunk = chunks.popFirst() else {
-                return completion(nil)
+        let queue = decodingQueue
+        let task = Task {
+            for chunk in chunks {
+                didReceiveData(chunk, response)
+                // The chunk reaches the task on the pipeline actor, which
+                // queues its decode, and the queue is empty once it is done.
+                await drainPipeline()
+                await queue.waitUntilAllOperationsAreFinished()
             }
-            didReceiveData(chunk, response)
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(5), execute: serve)
+            completion(nil)
         }
-        DispatchQueue.main.async(execute: serve)
-        return AnonymousCancellable {}
+        return AnonymousCancellable { task.cancel() }
     }
 }
