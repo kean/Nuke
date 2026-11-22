@@ -1416,6 +1416,27 @@ struct LazyImageTests {
         #expect(starts.value == 1)
     }
 
+    @Test(arguments: [
+        ImageProcessors.Rotate(degrees: .nan),
+        ImageProcessors.Rotate(degrees: .infinity),
+        ImageProcessors.Crop(rect: CGRect(x: CGFloat.nan, y: 0, width: 10, height: 10), unit: .pixels),
+        ImageProcessors.RoundedCorners(radius: .nan, unit: .pixels),
+        ImageProcessors.RoundedCorners(radius: .infinity, unit: .pixels),
+        ImageProcessors.Circle(border: .init(color: .red, width: .nan, unit: .pixels)),
+        ImageProcessors.Circle(border: .init(color: .red, width: .infinity, unit: .pixels))
+    ] as [any ImageProcessing])
+    func noReloadWhenAProcessorIsNotFinite(processor: any ImageProcessing) async {
+        let starts = Ref(0)
+        let host = ViewHost(0) { _ in
+            LazyImage(request: ImageRequest(url: Test.url, processors: [processor]))
+                .pipeline(pipeline)
+                .onStart { _ in starts.value += 1 }
+        }
+        await host.update(1)
+
+        #expect(starts.value == 1)
+    }
+
     @Test func noReloadWhenScaleChangesToNegativeZero() async {
         let starts = Ref(0)
         let host = ViewHost(CGFloat(0)) { scale in

@@ -45,10 +45,17 @@ extension ImageProcessors {
         public init(rect: CGRect, unit: ImageProcessingOptions.Unit = .points) {
             let rect = rect.standardized
             let scale = CGFloat(1).converted(to: unit)
-            self.x = Float(rect.minX * scale)
-            self.y = Float(rect.minY * scale)
-            self.width = Float(rect.width * scale)
-            self.height = Float(rect.height * scale)
+            let x = Float(rect.minX * scale), y = Float(rect.minY * scale)
+            let width = Float(rect.width * scale), height = Float(rect.height * scale)
+            guard x.isFinite, y.isFinite, width.isFinite, height.isFinite else {
+                // It fails the request either way. Stored as `CGRect.null`
+                // rather than with a NaN, which would make the processor
+                // unequal to itself, and `LazyImage` load the request again on
+                // every update.
+                (self.x, self.y, self.width, self.height) = (.infinity, .infinity, 0, 0)
+                return
+            }
+            (self.x, self.y, self.width, self.height) = (x, y, width, height)
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {

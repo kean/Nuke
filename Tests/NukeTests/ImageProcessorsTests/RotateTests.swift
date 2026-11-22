@@ -109,9 +109,20 @@ struct ImageProcessorsRotateTests {
         #expect(processor.identifier == expected.identifier)
     }
 
-    @Test(arguments: [.nan, .infinity] as [CGFloat])
+    @Test(arguments: [.nan, .infinity, -.infinity] as [CGFloat])
     func nonFiniteAngleFails(degrees: CGFloat) {
         #expect(ImageProcessors.Rotate(degrees: degrees).process(PixelGrid(width: 4, height: 3).makeImage()) == nil)
+    }
+
+    /// A processor that isn't equal to itself makes `LazyImage` load the
+    /// request again on every update.
+    @Test(arguments: [.nan, .infinity, -.infinity] as [CGFloat])
+    func nonFiniteAnglesAreEqual(degrees: CGFloat) {
+        let processor = ImageProcessors.Rotate(degrees: degrees)
+        let nan = ImageProcessors.Rotate(degrees: .nan)
+
+        assertHashableEqual(processor, nan)
+        #expect(processor.identifier == nan.identifier)
     }
 
     // MARK: Any Angle

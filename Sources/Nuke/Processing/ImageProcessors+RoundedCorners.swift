@@ -27,7 +27,12 @@ extension ImageProcessors {
         ///   - unit: Unit of the radius.
         ///   - border: An optional border drawn around the image.
         public init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) {
-            self.radius = radius.converted(to: unit)
+            let radius = radius.converted(to: unit)
+            // A NaN is stored as `0`: it would make the processor unequal to
+            // itself, and `LazyImage` load the request again on every update,
+            // and Core Graphics clips the whole image away with it. An infinite
+            // radius is equal to itself, and rounds the image fully.
+            self.radius = radius.isNaN ? 0 : radius
             self.border = border
         }
 
