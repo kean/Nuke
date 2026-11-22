@@ -58,6 +58,18 @@ extension ImageEncoders {
             ]
 #if canImport(UIKit)
             options[kCGImagePropertyOrientation] = CGImagePropertyOrientation(image.imageOrientation).rawValue
+#else
+            // `NSImage(data:)` sizes an image by its DPI, and a processed image
+            // keeps the points per pixel of its source, so write them: without
+            // them, a high-DPI image comes back from the disk cache at its pixel
+            // size. One point per pixel is 72 DPI, which is what not writing it
+            // means already.
+            let size = image.size
+            if size.width > 0, size.height > 0,
+               CGFloat(source.width) != size.width || CGFloat(source.height) != size.height {
+                options[kCGImagePropertyDPIWidth] = 72 * CGFloat(source.width) / size.width
+                options[kCGImagePropertyDPIHeight] = 72 * CGFloat(source.height) / size.height
+            }
 #endif
             CGImageDestinationAddImage(destination, source, options as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
