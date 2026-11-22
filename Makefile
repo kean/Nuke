@@ -1,4 +1,4 @@
-.PHONY: ci ci-list test test-one build lint spm snippets llms release-check docs help
+.PHONY: ci ci-list test test-one build lint spm snippets llms release-check release docs deploy-docs help
 
 CI := bash .scripts/ci.sh
 
@@ -49,9 +49,17 @@ llms:
 release-check:
 	@python3 .scripts/generate-llms.py --check --fresh
 
+## Cut a release one confirmed step at a time, e.g. make release VERSION=14.0.0 (needs a terminal)
+release:
+	@python3 .scripts/release.py "$(VERSION)"
+
 ## Build the site for kean-docs.github.io in .build/docs, or in OUTPUT. Deploys nothing
 docs:
 	@bash .scripts/publish-docs.sh $(OUTPUT)
+
+## Build the docs and commit them to the kean-docs.github.io checkout, at a tag. ARGS="--push" pushes
+deploy-docs:
+	@bash .scripts/deploy-docs.sh $(ARGS)
 
 ## Show available targets
 help:
