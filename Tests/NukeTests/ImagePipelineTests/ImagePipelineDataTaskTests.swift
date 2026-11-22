@@ -259,10 +259,11 @@ struct ImagePipelineDataTaskTests {
 
     /// The docs: "The maximum response data size in bytes allowed before the
     /// download is automatically cancelled".
-    @Test(arguments: [Int64(4096 * 4), -1])
-    func downloadExceedingTheMaximumSizeIsCancelled(expectedContentLength: Int64) async throws {
+    @Test(arguments: [Int64(4096 * 4), -1], [false, true])
+    func downloadExceedingTheMaximumSizeIsCancelled(expectedContentLength: Int64, higherPriority: Bool) async throws {
         // GIVEN a limit below the size of the response
         let loader = _ScriptedDataLoader(chunks: Array(repeating: Data(count: 4096), count: 4), expectedContentLength: Int(expectedContentLength))
+        loader.completesAtHigherPriority = higherPriority
         let pipeline = ImagePipeline {
             $0.dataLoader = loader
             $0.imageCache = nil
@@ -556,6 +557,60 @@ struct ImagePipelineDataTaskTests {
 
     // MARK: - Data Loader
 
+    @Test(arguments: [false, true]) func completionPreservesChunkOrder(higherPriority: Bool) async throws {
+        let loader = _ScriptedDataLoader(chunks: [Data([1]), Data([2])], expectedContentLength: 2)
+        loader.completesAtHigherPriority = higherPriority
+        let dataCache = MockDataCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = loader
+            $0.dataCache = dataCache
+        }
+
+        let progress = LockedArray<ImageTask.Progress>()
+        let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true) { event, _ in
+            if case .progress(let value) = event { progress.append(value) }
+        }
+        let response = try await task.response
+
+        #expect(progress.values == [.init(completed: 1, total: 2), .init(completed: 2, total: 2)])
+        #expect(response.container.data == Data([1, 2]))
+        #expect(dataCache.store[Test.url.absoluteString] == Data([1, 2]))
+    }
+
+    @Test func higherPriorityCompletionAfterProcessedPrefix() async throws {
+        let loader = _ScriptedDataLoader(chunks: [Data([1]), Data([2])], expectedContentLength: 2)
+        loader.completesAtHigherPriority = true
+        loader.waitsForPrefixProgress = true
+        let cache = MockDataCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = loader
+            $0.dataCache = cache
+        }
+        let task = pipeline.makeStartedImageTask(with: Test.request, isDataTask: true) { event, _ in
+            if case .progress(let value) = event, value.completed == 1 {
+                loader.deliverRemainder?()
+            }
+        }
+        let response = try await task.response
+        #expect(response.container.data == Data([1, 2]))
+        #expect(cache.store[Test.url.absoluteString] == Data([1, 2]))
+    }
+
+    @Test func higherPriorityFailureDiscardsPartialData() async {
+        let loader = _ScriptedDataLoader(chunks: [Data([1])], expectedContentLength: 2)
+        loader.completesAtHigherPriority = true
+        loader.error = URLError(.badServerResponse)
+        let cache = MockDataCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = loader
+            $0.dataCache = cache
+        }
+        await #expect(throws: ImagePipeline.Error.dataLoadingFailed(error: URLError(.badServerResponse))) {
+            try await pipeline.data(for: Test.request)
+        }
+        #expect(cache.writeCount == 0)
+    }
+
     /// The `DataLoading` contract forbids calling back after the completion,
     /// but a loader that does it anyway must not bring the pipeline down.
     @Test func callbacksAfterTheCompletionAreIgnored() async throws {
@@ -625,12 +680,18 @@ struct ImagePipelineDataTaskTests {
 // MARK: - Helpers
 
 /// Sends the given chunks with a single response and completes, all before
-/// returning from `loadData`.
+/// returning from `loadData` unless waiting for prefix progress. It can deliver
+/// background chunks followed by a user-interactive completion.
 private final class _ScriptedDataLoader: DataLoading, @unchecked Sendable {
     let chunks: [Data]
     let expectedContentLength: Int
     /// Sends one more chunk and completes once more after the completion.
     var callsBackAfterCompletion = false
+    var waitsForPrefixProgress = false
+    var deliverRemainder: (@Sendable () -> Void)?
+    var error: URLError?
+    /// Exercises actor scheduling when completion outranks the chunk callbacks.
+    var completesAtHigherPriority = false
 
     var cancelCount: Int { lock.withLock { _cancelCount } }
 
@@ -644,10 +705,32 @@ private final class _ScriptedDataLoader: DataLoading, @unchecked Sendable {
 
     func loadData(with request: URLRequest, didReceiveData: @escaping @Sendable (Data, URLResponse) -> Void, completion: @escaping @Sendable (Error?) -> Void) -> any Cancellable {
         let response = URLResponse(url: request.url!, mimeType: "image/jpeg", expectedContentLength: expectedContentLength, textEncodingName: nil)
-        for chunk in chunks {
-            didReceiveData(chunk, response)
+        if completesAtHigherPriority {
+            let remaining = waitsForPrefixProgress ? chunks.dropFirst() : chunks[...]
+            let deliver: @Sendable () -> Void = { [error] in
+                // Keep the pipeline actor inside loadData until both callbacks have returned.
+                let done = DispatchSemaphore(value: 0)
+                DispatchQueue.global(qos: .background).async {
+                    for chunk in remaining { didReceiveData(chunk, response) }
+                    DispatchQueue.global(qos: .userInteractive).async {
+                        completion(error)
+                        done.signal()
+                    }
+                }
+                done.wait()
+            }
+            if waitsForPrefixProgress, let first = chunks.first {
+                deliverRemainder = deliver
+                didReceiveData(first, response)
+            } else {
+                deliver()
+            }
+        } else {
+            for chunk in chunks {
+                didReceiveData(chunk, response)
+            }
+            completion(nil)
         }
-        completion(nil)
         if callsBackAfterCompletion {
             didReceiveData(Data("late".utf8), response)
             completion(nil)
