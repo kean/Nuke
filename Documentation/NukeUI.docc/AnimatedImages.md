@@ -185,7 +185,7 @@ Frames are decoded at the default priority, the frame a playhead is sitting on a
 
 Each player is driven by a display link of its own, which runs while the player is playing and asks for no more than its animation needs – a 10 fps GIF asks for 20 Hz rather than the 120 the display is capable of. The system folds every link in the process into one wakeup per refresh, so a screen of them costs what one does. On AppKit a link is asked of the view being drawn into, so ``AnimatedImageView`` gets one and a player you build for a view of your own runs on a timer at the animation's own rate instead – as every player does on watchOS, and on macOS before 14.
 
-In Low Power Mode, or on a device hot enough that the system is already throttling it, the clock is held to 30 Hz – the same two reasons WebKit slows its animations down for. A 10 fps GIF is unaffected; a 25 fps one has its frames stretched by up to a tick each and skips none, and the animation plays a little slower until the device recovers. Turn it off with ``AnimatedImagePlayer/Options/isPowerThrottlingEnabled``.
+In Low Power Mode, or on a device hot enough that the system is already throttling it, the clock is held to 30 Hz – the same two reasons WebKit slows its animations down for. A 10 fps GIF is unaffected, and a 25 fps one keeps its pace, each frame changing on the first tick after it is due. A frame shorter than a tick isn't passed over here, because the display could have shown it: a 50 fps GIF shows each of its frames for a tick and plays at 30 fps until the device recovers. Turn it off with ``AnimatedImagePlayer/Options/isPowerThrottlingEnabled``.
 
 ## Topics
 

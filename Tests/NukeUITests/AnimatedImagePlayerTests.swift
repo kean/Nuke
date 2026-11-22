@@ -299,6 +299,60 @@ struct AnimatedImagePlayerTests {
         #expect(player.currentFrameIndex == 2)
     }
 
+    @Test func showsEveryFrameOfAnAnimationFasterThanTheThrottledClock() async {
+        // 20 ms frames on the 30 Hz clock the system's throttling holds a
+        // player to. The display could have shown every one of them, so each
+        // gets a tick: the animation plays at 30 fps instead of 50, and skips
+        // nothing.
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 8, delays: Array(repeating: 0.02, count: 8), power: power)
+        clock.period = 1.0 / 30
+        player.play()
+        await player.waitUntilFull()
+
+        var indexes: [Int] = []
+        for _ in 0..<8 {
+            clock.tick(1.0 / 30)
+            indexes.append(player.currentFrameIndex)
+        }
+
+        #expect(indexes == [1, 2, 3, 4, 5, 6, 7, 0])
+        #expect(player.diagnostics.displayedFrameCount == 9)
+    }
+
+    @Test func passesOverFramesShorterThanATickOnceTheThrottlingStops() async {
+        // GIVEN the same animation, a tick in
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 8, delays: Array(repeating: 0.02, count: 8), power: power)
+        clock.period = 1.0 / 30
+        player.play()
+        await player.waitUntilFull()
+        clock.tick(1.0 / 30)
+        #expect(player.currentFrameIndex == 1)
+
+        // WHEN the system stops throttling, and a tick as coarse arrives
+        // before the clock has sped up
+        power.setThrottling(false)
+        clock.tick(1.0 / 30)
+
+        // THEN a tick passes over what it is too coarse to show again
+        #expect(player.currentFrameIndex == 3)
+    }
+
+    @Test func passesOverFramesShorterThanATickWhenThrottlingIsOff() async {
+        var options = AnimatedImagePlayer.Options()
+        options.isPowerThrottlingEnabled = false
+        let power = AnimatedImagePowerMonitor(isThrottling: true)
+        let (player, clock) = AnimatedImageTest.makePlayer(frameCount: 8, delays: Array(repeating: 0.02, count: 8), options: options, power: power)
+        clock.period = 0.05
+        player.play()
+        await player.waitUntilFull()
+
+        clock.tick(0.05)
+
+        #expect(player.currentFrameIndex == 2)
+    }
+
     @Test func doesNotReplayTimeItSleptThrough() async {
         // A player that comes back from the background gets one enormous tick.
         // It moves on one frame, like any late tick, and counts one second of
