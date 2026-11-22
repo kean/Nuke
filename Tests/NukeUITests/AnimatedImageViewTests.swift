@@ -923,6 +923,106 @@ struct AnimatedImageViewTests {
         #expect(view.image !== first.image)
     }
 
+    // MARK: Deferred Playback
+
+    // What `AnimatedImage` turns on: SwiftUI configures the view, and moves it
+    // in and out of a window, from inside a view update, where a player
+    // something observes must not publish.
+
+    @Test func aViewThatDefersStartsPlayingOnTheNextTurn() async {
+        let host = TestWindow(view: view)
+        view.defersPlaybackStateUpdates = true
+        let player = AnimatedImagePlayer(animation: Test.animatedGIFSource())
+
+        view.player = player
+
+        #expect(player.isPlaying == false)
+        await runMainQueue()
+        #expect(player.isPlaying)
+        host.close()
+    }
+
+    @Test func aViewThatDefersPausesThePlayerItLetGoOfOnTheNextTurn() async {
+        let host = TestWindow(view: view)
+        view.defersPlaybackStateUpdates = true
+        let first = AnimatedImagePlayer(animation: Test.animatedGIFSource())
+        let second = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 6))
+        view.player = first
+        await runMainQueue()
+        #expect(first.isPlaying)
+
+        view.player = second
+
+        #expect(first.isPlaying)
+        #expect(second.isPlaying == false)
+        await runMainQueue()
+        #expect(first.isPlaying == false)
+        #expect(second.isPlaying)
+        host.close()
+    }
+
+    @Test func aViewThatDefersKeepsPlayingAPlayerItTookBack() async {
+        let host = TestWindow(view: view)
+        view.defersPlaybackStateUpdates = true
+        let first = AnimatedImagePlayer(animation: Test.animatedGIFSource())
+        let second = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 6))
+        view.player = first
+        await runMainQueue()
+
+        view.player = second
+        view.player = first
+        await runMainQueue()
+
+        #expect(first.isPlaying)
+        #expect(second.isPlaying == false)
+        host.close()
+    }
+
+    @Test func aViewThatDefersPausesWhenItLeavesTheWindowOnTheNextTurn() async {
+        let host = TestWindow(view: view)
+        view.defersPlaybackStateUpdates = true
+        view.animation = Test.animatedGIFSource()
+        await runMainQueue()
+        let player = view.player
+        #expect(player?.isPlaying == true)
+
+        view.removeFromSuperview()
+
+        #expect(player?.isPlaying == true)
+        await runMainQueue()
+        #expect(player?.isPlaying == false)
+        host.close()
+    }
+
+    @Test func aViewThatDefersPausesThePlayerAfterItIsReleased() async {
+        // SwiftUI takes the view out of the window and lets go of it in one
+        // update, and the player may be someone else's, with nothing else to
+        // stop it.
+        let host = TestWindow()
+        var view: AnimatedImageView? = AnimatedImageView()
+        view?.defersPlaybackStateUpdates = true
+        host.add(view!)
+        let player = AnimatedImagePlayer(animation: Test.animatedGIFSource())
+        view?.player = player
+        await runMainQueue()
+        #expect(player.isPlaying)
+
+        view?.removeFromSuperview()
+        view = nil
+
+        await runMainQueue()
+        #expect(player.isPlaying == false)
+        host.close()
+    }
+
+    /// Waits for what the main queue already has to do, which is where a view
+    /// that defers applies its playback state.
+    private func runMainQueue() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+    }
+
     // MARK: Archiving
 
     @Test func aViewLoadedFromAnArchiveIsSetUpLikeOneMadeInCode() throws {

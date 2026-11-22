@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015-2026 Alexander Grebenyuk (github.com/kean).
 
+import Combine
 import Foundation
 import SwiftUI
 import Testing
@@ -169,6 +170,39 @@ struct AnimatedImageRepresentableTests {
         #expect(player.isPlaying)
     }
 
+    // MARK: Observers
+
+    /// The Demo's transport bar: a control observing the player, beside the
+    /// view showing it. A player that publishes from inside the update that
+    /// hands it to the view, or that moves the view in or out of the window,
+    /// is what SwiftUI reports as undefined behavior.
+    @Test func aPlayerSomethingObservesDoesNotPublishFromInsideAnUpdate() async throws {
+        let first = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 8))
+        let second = AnimatedImagePlayer(animation: Test.animatedGIFSource(frameCount: 6))
+        let host = ViewHost(AnimatedImagePlayer?.none) { player in
+            if let player {
+                HStack {
+                    AnimatedImage(player: player)
+                    PlayButton(player: player)
+                }
+                .allowingPlayback()
+            }
+        }
+        var publishedFromAnUpdate = 0
+        let subscriptions = [first, second].map { player in
+            player.objectWillChange.sink { _ in
+                if host.isLayingOut { publishedFromAnUpdate += 1 }
+            }
+        }
+
+        await host.update(first, until: { first.isPlaying })
+        await host.update(second, until: { second.isPlaying && !first.isPlaying })
+        await host.removeContent(until: { !second.isPlaying })
+
+        #expect(publishedFromAnUpdate == 0)
+        withExtendedLifetime(subscriptions) {}
+    }
+
     // MARK: Auto-Play
 
     /// Accessibility › Motion › Auto-Play Animated Images off: the view shows
@@ -217,6 +251,15 @@ struct AnimatedImageRepresentableTests {
         #expect(view.isPlaybackEnabled)
         #expect(view.player === player)
         #expect(view.isPlaying)
+    }
+}
+
+/// A control that observes the player, the way the Demo's play button does.
+private struct PlayButton: View {
+    @ObservedObject var player: AnimatedImagePlayer
+
+    var body: some View {
+        Text(player.isPlaying ? "Pause" : "Play")
     }
 }
 
