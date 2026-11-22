@@ -26,7 +26,7 @@
 
 Nuke 14 plays animated images, records where every image task spent its time, and loads images into any view with `ImageLoader`. It also fixes more than 10 bugs and raises the minimum iOS, tvOS, macOS, and watchOS versions by one major version.
 
-Nuke 14 requires Swift 6.2 and Xcode 26.0. The [Migration Guide](https://github.com/kean/Nuke/blob/main/Documentation/Migrations/Nuke%2014%20Migration%20Guide.md) covers the upgrade, including what the compiler can't report.
+Nuke 14 requires Swift 6.4 and Xcode 27.0. The [Migration Guide](https://github.com/kean/Nuke/blob/main/Documentation/Migrations/Nuke%2014%20Migration%20Guide.md) covers the upgrade, including what the compiler can't report.
 
 ### Animated Images
 

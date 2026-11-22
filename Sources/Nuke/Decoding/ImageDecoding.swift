@@ -51,9 +51,7 @@ extension AsyncImageDecoding {
     }
 }
 
-#if hasAttribute(nonexhaustive)
 @nonexhaustive
-#endif
 public enum ImageDecodingError: Error, CustomStringConvertible, Sendable {
     case unknown
     @_spi(AsyncImageDecoding)

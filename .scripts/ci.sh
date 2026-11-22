@@ -30,13 +30,16 @@ fi
 # id | group | action | scheme | platform
 #
 # Groups are balanced so that no single GitHub job dominates the critical path.
-# GitHub Free allows only 5 concurrent macOS runners, so there are exactly 5:
-# ios, tvos, macos, platforms (which also runs tsan), and xcode-27.
+# GitHub Free allows only 5 concurrent macOS runners, so there are at most 5:
+# ios, tvos, macos, and platforms (which also runs tsan).
 
 JOBS=(
     "test-nuke-ios|ios|test|Nuke|iOS"
     "test-nukeui-ios|ios|test|NukeUI|iOS"
     "test-nukeextensions-ios|ios|test|NukeExtensions|iOS"
+    # NukeVideo never finished on the Xcode 26.4 simulators, which is why d06a3eca
+    # took it out of this group. It isn't in tvos yet: run it by hand there.
+    "test-nukevideo-ios|ios|test|NukeVideo|iOS"
 
     "test-nuke-tvos|tvos|test|Nuke|tvOS"
     "test-nukeui-tvos|tvos|test|NukeUI|tvOS"
@@ -64,15 +67,6 @@ JOBS=(
     # which fails the job even if a retry passes.
     "test-nuke-tsan|tsan|test|NukeTests|macOS"
     "test-threadsafety-tsan|tsan|test|NukeThreadSafetyTests|macOS"
-
-    # The iOS jobs again, on the Xcode that CI selects for this group. There is
-    # no Xcode 27 on the macOS 26 image, so it can't be a step in the macos job.
-    # NukeVideo is only here: it never finished on the Xcode 26.4 simulators,
-    # which is why d06a3eca took it out of the ios and tvos groups.
-    "test-nuke-ios-xcode-27|xcode-27|test|Nuke|iOS"
-    "test-nukeui-ios-xcode-27|xcode-27|test|NukeUI|iOS"
-    "test-nukeextensions-ios-xcode-27|xcode-27|test|NukeExtensions|iOS"
-    "test-nukevideo-ios-xcode-27|xcode-27|test|NukeVideo|iOS"
 
     "lint|lint|lint|SwiftLint|—"
 )
@@ -570,11 +564,6 @@ fi
 SELECTED=()
 for entry in "${JOBS[@]}"; do
     IFS='|' read -r id group action scheme platform <<< "$entry"
-    # Only by name: `make ci` and `make test` would otherwise run the iOS jobs
-    # twice on the same Xcode.
-    if [ "$group" = "xcode-27" ] && [ "$SELECTOR" != "$group" ] && [ "$SELECTOR" != "$id" ]; then
-        continue
-    fi
     if [ -z "$SELECTOR" ] || [ "$SELECTOR" = "$id" ] || [ "$SELECTOR" = "$group" ] || [ "$SELECTOR" = "$action" ]; then
         SELECTED+=("$entry")
     fi

@@ -23,14 +23,17 @@ jobs:
   # The job matrix lives in .scripts/ci.sh, not here — `make ci` runs exactly
   # what CI runs. Run `make ci-list` to see every job and which group it is in.
   #
-  # GitHub Free allows 5 concurrent macOS runners, so there are exactly 5 macOS
+  # GitHub Free allows 5 concurrent macOS runners, so there are at most 5 macOS
   # jobs, grouped to keep them balanced rather than letting one dominate.
+  #
+  # Nuke 14 requires Xcode 27, and the macOS 26 image only has Xcode 26. The
+  # xcode-27 image is a public preview, and it's the only one that has Xcode 27.
   ci:
     name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runner || 'macOS-26' }}
+    runs-on: xcode-27
     timeout-minutes: 30
     env:
-      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode || '26.4' }}.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     strategy:
       fail-fast: false
       matrix:
@@ -43,26 +46,12 @@ jobs:
             name: Tests (macOS)
           - group: platforms
             name: Build (watchOS, visionOS, Snippets, SPM) + TSan
-          # The macOS 26 image only has Xcode 26. This one is a public preview,
-          # and it's the only image that has Xcode 27.
-          - group: xcode-27
-            name: Tests (Xcode 27)
-            runner: xcode-27
-            xcode: '27.1'
     steps:
       - uses: actions/checkout@v7
       - name: Run ${{ matrix.group }}
         run: .scripts/ci.sh ${{ matrix.group }}
-      # Backward compatibility against the oldest supported Xcode. Folded into
-      # the (short) macOS job rather than given its own runner, to stay within
-      # the 5 concurrent macOS job budget.
-      - name: Re-run on Xcode 26.0
-        if: matrix.group == 'macos'
-        env:
-          DEVELOPER_DIR: /Applications/Xcode_26.0.app/Contents/Developer
-        run: .scripts/ci.sh macos
-      # Folded into the shortest job, for the same reason. It's a group of its
-      # own because the macos group runs twice, and TSan doesn't need to.
+      # Folded into the shortest job, to stay within the concurrent macOS job
+      # budget.
       - name: Run tsan
         if: matrix.group == 'platforms'
         run: .scripts/ci.sh tsan

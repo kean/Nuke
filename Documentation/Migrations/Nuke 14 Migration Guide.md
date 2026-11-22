@@ -7,8 +7,10 @@ This guide eases the transition of the existing apps that use Nuke 13.x to the l
 The minimum supported platforms have been raised.
 
 - iOS 16.0, tvOS 16.0, macOS 13.0, watchOS 9.0, visionOS 1.0
-- Xcode 26.0
-- Swift 6.2
+- Xcode 27.0
+- Swift 6.4
+
+`Package.swift` declares `swift-tools-version:6.4`, so SwiftPM refuses to resolve Nuke on an older toolchain. The error and diagnostics enums are `@nonexhaustive`, which is what lets a 14.x release add a case to them (see [`switch` Needs `@unknown default`](#switch-needs-unknown-default)), and the compiler only has that attribute from Swift 6.2.3.
 
 Apps that need to support earlier OS versions can stay on Nuke 13.x, which continues to receive fixes.
 

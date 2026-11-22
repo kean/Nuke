@@ -1,4 +1,4 @@
-// swift-tools-version:6.2
+// swift-tools-version:6.4
 import PackageDescription
 
 // The hand-written samples from the DocC articles, verbatim.

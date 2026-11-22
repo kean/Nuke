@@ -103,9 +103,7 @@ public struct ImageProcessingContext: Sendable {
 }
 
 /// An error thrown by an ``ImageProcessing`` implementation.
-#if hasAttribute(nonexhaustive)
 @nonexhaustive
-#endif
 public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
     /// The processor failed for an unspecified reason.
     case unknown
