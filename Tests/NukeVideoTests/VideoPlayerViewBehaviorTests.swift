@@ -4,7 +4,7 @@
 
 import Testing
 import AVFoundation
-import NukeVideo
+@testable import NukeVideo
 
 #if !os(watchOS) && !os(visionOS)
 
@@ -152,11 +152,14 @@ struct VideoPlayerViewConfigurationTests {
 
         // Then
         let player = try #require(view.playerLayer.player)
-        #expect(player is AVQueuePlayer)
         #expect(player.isMuted)
         #expect(!player.preventsDisplaySleepDuringVideoPlayback)
-        #expect(player.actionAtItemEnd == .none)
-        #expect(player.currentItem?.asset === asset)
+        await waitUntil { view.looper?.status == .ready }
+        let queue = try #require(player as? AVQueuePlayer)
+        let looper = try #require(view.looper)
+        let currentItem = try #require(queue.currentItem)
+        #expect(looper.loopingPlayerItems.contains { $0 === currentItem })
+        #expect(currentItem.asset === asset)
     }
 
     @Test func playWithLoopingDisabledPausesAtEnd() async throws {
@@ -178,13 +181,19 @@ struct VideoPlayerViewConfigurationTests {
         view.asset = try await makeLongAsset()
         view.play()
         let player = try #require(view.playerLayer.player)
+        await waitUntil { view.looper?.status == .ready }
 
         // When/Then
         view.isLooping = false
+        #expect(view.playerLayer.player === player)
+        #expect(view.looper?.status == .cancelled)
         #expect(player.actionAtItemEnd == .pause)
 
+        player.pause()
         view.isLooping = true
-        #expect(player.actionAtItemEnd == .none)
+        await waitUntil { view.looper?.status == .ready }
+        #expect(view.playerLayer.player !== player)
+        #expect(player.rate == 0)
     }
 
     @Test func playAgainReplacesPlayer() async throws {
@@ -202,7 +211,96 @@ struct VideoPlayerViewConfigurationTests {
         // Then
         let second = try #require(view.playerLayer.player)
         #expect(second !== first)
+        await waitUntil { second.currentItem?.asset === asset }
         #expect(second.currentItem?.asset === asset)
+    }
+
+    @Test func replacesPlaybackWhileDurationIsLoading() async throws {
+        let view = VideoPlayerView()
+        let loader = PendingResourceLoader()
+        let first = AVURLAsset(url: try #require(URL(string: "nuke-test://pending/video.mp4")))
+        first.resourceLoader.setDelegate(loader, queue: .main)
+        let second = try await makeLongAsset()
+        view.asset = first
+        view.play()
+        let superseded = try #require(view.playerLayer.player)
+        await waitUntil { loader.request != nil }
+        #expect(superseded.currentItem == nil)
+
+        view.asset = second
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        loader.request?.finishLoading(with: CocoaError(.fileReadUnknown))
+        await waitUntil { view.looper?.status == .ready }
+
+        #expect(view.playerLayer.player === player)
+        #expect(player.currentItem?.asset === second)
+        #expect(superseded.currentItem == nil)
+        #expect(superseded.rate == 0)
+    }
+
+    @Test func resetWhileDurationIsLoadingDiscardsPendingPlayback() async throws {
+        let view = VideoPlayerView()
+        let asset = try await makeLongAsset()
+        view.asset = asset
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        #expect(player.currentItem == nil)
+
+        view.reset()
+        _ = try await asset.load(.duration)
+
+        #expect(view.playerLayer.player == nil)
+        #expect(view.looper == nil)
+        #expect(player.currentItem == nil)
+        #expect(player.rate == 0)
+        #expect(view.asset === asset)
+    }
+
+    @Test func disablingLoopingWhileDurationIsLoadingStartsOneShotPlayback() async throws {
+        let view = VideoPlayerView()
+        let asset = try await makeShortAsset()
+        view.asset = asset
+        var finishedCount = 0
+        view.onVideoFinished = { finishedCount += 1 }
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        #expect(player.currentItem == nil)
+
+        view.isLooping = false
+        await waitUntil { finishedCount == 1 }
+
+        #expect(view.playerLayer.player === player)
+        #expect(player.currentItem?.asset === asset)
+        #expect(player.rate == 0)
+        #expect(view.looper == nil)
+    }
+
+    @Test func zeroDurationAssetUsesSingleItemPlayback() async throws {
+        let view = VideoPlayerView()
+        let asset = AVMutableComposition()
+        #expect(try await asset.load(.duration) == .zero)
+        view.asset = asset
+
+        view.play()
+
+        let player = try #require(view.playerLayer.player as? AVQueuePlayer)
+        try #require(player.items().count == 1)
+        #expect(player.currentItem?.asset === asset)
+        #expect(view.looper == nil)
+    }
+
+    @Test func unreadableAssetDoesNotCreateLooper() async throws {
+        let view = VideoPlayerView()
+        let asset = AVURLAsset(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4"))
+        view.asset = asset
+        view.onVideoFinished = { Issue.record("An unreadable asset cannot finish playing") }
+
+        view.play()
+
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.currentItem?.status == .failed }
+        #expect(view.looper == nil)
     }
 
     @Test func settingAssetToNilRemovesPlayer() async throws {
@@ -233,7 +331,10 @@ struct VideoPlayerViewConfigurationTests {
         // Then the view can play the same asset again
         #expect(view.playerLayer.player == nil)
         #expect(view.asset === asset)
+        view.restart()
+        #expect(view.playerLayer.player == nil)
         view.play()
+        await waitUntil { view.playerLayer.player?.currentItem?.asset === asset }
         #expect(view.playerLayer.player?.currentItem?.asset === asset)
     }
 }
@@ -269,9 +370,7 @@ struct VideoPlayerViewFinishNotificationTests {
         view.onVideoFinished = { finishedCount += 1 }
         view.play()
         let player = try #require(view.playerLayer.player)
-        // The view seeks the item back to the start, which it can only do once
-        // the item is ready.
-        await waitUntil { player.status == .readyToPlay }
+        await waitUntil { view.looper?.status == .ready }
 
         // When
         postDidPlayToEnd(try #require(player.currentItem))
@@ -434,14 +533,13 @@ struct VideoPlayerViewPlaybackTests {
         host.add(view)
         view.play()
         let player = try #require(view.playerLayer.player)
-        let ends = EndOfItemCounter(item: try #require(player.currentItem))
-        defer { ends.invalidate() }
+        await waitUntil { view.looper?.status == .ready }
+        let looper = try #require(view.looper)
+        let firstItem = try #require(player.currentItem)
 
-        // When
-        await waitUntil { ends.count >= 2 }
-
-        // Then the video reached its end again after the first time, so it
-        // started over, and the view didn't report it as finished
+        await waitUntil { looper.loopCount >= 1 }
+        #expect(player.currentItem !== firstItem)
+        await waitUntil { looper.loopCount >= 2 }
         #expect(finishedCount == 0)
         #expect(player.rate != 0)
     }
@@ -477,16 +575,13 @@ struct VideoPlayerViewPlaybackTests {
         view.play()
         let player = try #require(view.playerLayer.player)
         await waitUntil { finishedCount == 1 }
-        let ends = EndOfItemCounter(item: try #require(player.currentItem))
-        defer { ends.invalidate() }
-
         // When
         view.isLooping = true
 
         // Then it plays again, and keeps playing past the end
-        #expect(player.rate != 0)
-        #expect(player.actionAtItemEnd == .none)
-        await waitUntil { ends.count >= 1 }
+        await waitUntil { (view.looper?.loopCount ?? 0) >= 2 }
+        #expect(view.playerLayer.player?.rate != 0)
+        #expect(player.rate == 0)
         #expect(finishedCount == 1)
     }
 
@@ -497,16 +592,67 @@ struct VideoPlayerViewPlaybackTests {
         var finishedCount = 0
         view.onVideoFinished = { finishedCount += 1 }
         view.play()
-        let player = try #require(view.playerLayer.player)
-        await waitUntil { player.rate != 0 }
+        let player = try #require(view.playerLayer.player as? AVQueuePlayer)
+        await waitUntil { (view.looper?.loopCount ?? 0) >= 1 }
+        let item = try #require(player.currentItem)
+        let otherReplica = try #require(view.looper?.loopingPlayerItems.first { $0 !== item })
 
         // When
         view.isLooping = false
+        postDidPlayToEnd(otherReplica)
 
-        // Then it doesn't restart it, and it stops at the end
+        // Then the current replica finishes without playing any more replicas
+        #expect(finishedCount == 0)
+        #expect(player.currentItem === item)
         #expect(player.rate != 0)
         await waitUntil { finishedCount == 1 }
         #expect(player.rate == 0)
+        #expect(player.currentItem === item)
+        #expect(player.items() == [item])
+        #expect(item.currentTime() == item.duration)
+        postDidPlayToEnd(item)
+        #expect(finishedCount == 1)
+    }
+
+    @Test func enablingLoopingWhilePlayingWaitsForCurrentItem() async throws {
+        let view = VideoPlayerView()
+        view.isLooping = false
+        view.asset = try await makeShortAsset()
+        var finishedCount = 0
+        view.onVideoFinished = { finishedCount += 1 }
+        view.play()
+        let firstPlayer = try #require(view.playerLayer.player)
+        let firstItem = try #require(firstPlayer.currentItem)
+        await waitUntil { firstItem.currentTime() > .zero && firstPlayer.rate != 0 }
+
+        view.isLooping = true
+
+        #expect(view.playerLayer.player === firstPlayer)
+        #expect(firstPlayer.currentItem === firstItem)
+        await waitUntil { (view.looper?.loopCount ?? 0) >= 2 }
+        #expect(firstItem.currentTime() == firstItem.duration)
+        #expect(firstPlayer.rate == 0)
+        #expect(finishedCount == 0)
+    }
+
+    @Test func restartDuringLoopingStartsFreshReplicasFromTheBeginning() async throws {
+        let view = VideoPlayerView()
+        view.asset = try await makeShortAsset()
+        view.onVideoFinished = { Issue.record("Restarting a looping video cannot finish it") }
+        view.play()
+        await waitUntil { (view.looper?.loopCount ?? 0) >= 1 }
+        let oldPlayer = try #require(view.playerLayer.player)
+        let oldLooper = try #require(view.looper)
+
+        view.restart()
+
+        #expect(oldPlayer.rate == 0)
+        #expect(oldLooper.status == .cancelled)
+        #expect(view.playerLayer.player !== oldPlayer)
+        let looper = try #require(view.looper)
+        #expect(looper !== oldLooper)
+        #expect(looper.loopCount == 0)
+        await waitUntil { looper.loopCount >= 2 }
     }
 
     /// `isLooping` only acts on a change: setting the current value doesn't
@@ -563,8 +709,22 @@ struct VideoPlayerViewPlaybackTests {
         #expect(player.rate == 0)
     }
 
-    /// Neither the status observation nor the notification observers keep the
-    /// view or its player alive.
+    @Test func doesNotResumeVideoPausedBeforeWindowRemoval() async throws {
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        view.removeFromSuperview()
+        host.add(view)
+
+        #expect(player.rate == 0)
+    }
+
+    /// The end observer does not keep the view or its player alive.
     @Test func viewAndPlayerAreReleasedAfterPlayback() async throws {
         // Given a view that is playing a video
         weak var weakView: VideoPlayerView?
@@ -594,23 +754,50 @@ struct VideoPlayerViewPlaybackTests {
         postDidPlayToEnd(try #require(lastItem))
     }
 
+    @Test func releasingViewDetachesRetainedLayerAndReleasesLooper() async throws {
+        weak var weakView: VideoPlayerView?
+        weak var weakPlayer: AVPlayer?
+        weak var weakLooper: AVPlayerLooper?
+        let layer: AVPlayerLayer
+        do {
+            let view = VideoPlayerView()
+            view.asset = try await makeShortAsset()
+            view.play()
+            await waitUntil { view.looper?.status == .ready }
+            weakView = view
+            weakPlayer = view.playerLayer.player
+            let looper = try #require(view.looper)
+            weakLooper = looper
+            layer = view.playerLayer
+        }
+
+        await waitUntil { weakView == nil && weakPlayer == nil && weakLooper == nil }
+        #expect(layer.player == nil)
+    }
+
     @Test func resetReleasesPlayer() async throws {
         // Given
         let view = VideoPlayerView()
         view.asset = try await makeLongAsset()
         view.play()
         weak var weakPlayer: AVPlayer?
+        weak var weakLooper: AVPlayerLooper?
+        weak var weakItem: AVPlayerItem?
         do {
             let player = try #require(view.playerLayer.player)
-            await waitUntil { player.rate != 0 }
+            await waitUntil { view.looper?.status == .ready }
             weakPlayer = player
+            let looper = try #require(view.looper)
+            let item = try #require(player.currentItem)
+            weakLooper = looper
+            weakItem = item
         }
 
         // When
         view.reset()
 
         // Then
-        await waitUntil { weakPlayer == nil }
+        await waitUntil { weakPlayer == nil && weakLooper == nil && weakItem == nil }
     }
 }
 
@@ -633,6 +820,7 @@ struct VideoPlayerViewForegroundTests {
         view.play()
         let player = try #require(view.playerLayer.player)
         await waitUntil { player.rate != 0 }
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
         player.pause()
 
         // When
@@ -652,12 +840,28 @@ struct VideoPlayerViewForegroundTests {
         view.play()
         let player = try #require(view.playerLayer.player)
         await waitUntil { player.rate != 0 }
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
         player.pause()
 
         // When
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
 
         // Then
+        #expect(player.rate == 0)
+    }
+
+    @Test func doesNotResumeVideoPausedBeforeLeavingForeground() async throws {
+        let view = VideoPlayerView()
+        view.asset = try await makeLongAsset()
+        host.add(view)
+        view.play()
+        let player = try #require(view.playerLayer.player)
+        await waitUntil { player.rate != 0 }
+        player.pause()
+
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
         #expect(player.rate == 0)
     }
 
@@ -670,6 +874,7 @@ struct VideoPlayerViewForegroundTests {
         view.play()
         let player = try #require(view.playerLayer.player)
         await waitUntil { player.rate != 0 }
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
         player.pause()
         view.reset()
 
@@ -683,6 +888,22 @@ struct VideoPlayerViewForegroundTests {
 #endif
 
 // MARK: - Helpers
+
+/// Holds a read so a test can replace an asset during duration loading.
+@MainActor
+private final class PendingResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
+    private(set) var request: AVAssetResourceLoadingRequest?
+
+    nonisolated func resourceLoader(
+        _ resourceLoader: AVAssetResourceLoader,
+        shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest
+    ) -> Bool {
+        MainActor.assumeIsolated {
+            request = loadingRequest
+        }
+        return true
+    }
+}
 
 /// A 0.3 s video, decoded into an in-memory asset by `ImageDecoders.Video`.
 private func makeShortAsset() async throws -> AVAsset {
@@ -702,7 +923,7 @@ private func makeDecodedAsset(_ fixture: VideoFixture) async throws -> AVAsset {
 
 @MainActor
 private func postDidPlayToEnd(_ item: AVPlayerItem) {
-    NotificationCenter.default.post(name: .AVPlayerItemDidPlayToEndTime, object: item)
+    NotificationCenter.default.post(name: AVPlayerItem.didPlayToEndTimeNotification, object: item)
 }
 
 @MainActor
@@ -723,27 +944,6 @@ private func layoutNow(_ view: VideoPlayerView) {
     view.setNeedsLayout()
     view.layoutIfNeeded()
 #endif
-}
-
-/// Counts the times an item reaches its end.
-@MainActor
-private final class EndOfItemCounter {
-    private(set) var count = 0
-    private var token: (any NSObjectProtocol)?
-
-    init(item: AVPlayerItem) {
-        token = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.count += 1
-            }
-        }
-    }
-
-    func invalidate() {
-        if let token {
-            NotificationCenter.default.removeObserver(token)
-        }
-    }
 }
 
 /// Records the implicit actions a layer looks up, and whether actions were

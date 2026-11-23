@@ -31,18 +31,16 @@ public final class VideoPlayerView: _PlatformBaseView {
     /// `true` by default. If disabled, the video will resize with the frame without animations.
     public var animatesFrameChanges = true
 
-    /// `true` by default. If disabled, the player will only play the video once.
+    /// `true` by default. Turning looping off lets the current iteration finish.
+    /// Turning it on during playback starts looping after the current item ends.
     public var isLooping = true {
         didSet {
             guard isLooping != oldValue else { return }
-            player?.actionAtItemEnd = isLooping ? .none : .pause
-            if isLooping, !(player?.nowPlaying ?? false) {
-                restart()
-            }
+            updateLooping()
         }
     }
 
-    /// A closure called when the video finishes playing.
+    /// A closure called when a video finishes playing with looping disabled.
     public var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization
@@ -87,54 +85,104 @@ public final class VideoPlayerView: _PlatformBaseView {
     }
 #endif
 
-    // MARK: Private
+    // MARK: Playback
 
-    private var player: AVPlayer? {
+    private var player: AVQueuePlayer?
+    private var playbackAsset: AVAsset?
+    private var preparation: Task<Void, Never>?
+    private(set) var looper: AVPlayerLooper?
+    private var loopsAfterCurrentItem = false
+    private var wasPlayingBeforeLeavingWindow = false
+    private var wasPlayingBeforeLeavingForeground = false
+
+    private var finishObservationID = 0
+    private var finishObserver: (any NSObjectProtocol)? {
         didSet {
-            unregisterNotifications()
-            if player != nil {
-                registerNotifications()
+            if let oldValue {
+                NotificationCenter.default.removeObserver(oldValue)
             }
         }
     }
 
-    private var playerObserver: AnyObject?
+    isolated deinit {
+        reset()
+    }
 
     /// Stops playback and removes the current player, releasing associated resources.
     public func reset() {
+        preparation?.cancel()
+        preparation = nil
+        finishObserver = nil
+#if os(iOS) || os(tvOS) || os(visionOS)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+#endif
+        player?.pause()
+        if let looper, looper.status != .cancelled {
+            looper.disableLooping()
+        }
         _playerLayer?.player = nil
+        looper = nil
         player = nil
-        playerObserver = nil
+        playbackAsset = nil
+        loopsAfterCurrentItem = false
+        wasPlayingBeforeLeavingWindow = false
+        wasPlayingBeforeLeavingForeground = false
     }
 
     /// The video asset to play. Setting a new asset prepares the view for playback;
     /// call ``play()`` to start.
     public var asset: AVAsset? {
-        didSet { assetDidChange() }
-    }
-
-    private func assetDidChange() {
-        if asset == nil {
-            reset()
+        didSet {
+            if asset == nil || (preparation != nil && oldValue !== asset) {
+                reset()
+            }
         }
     }
 
-    private func unregisterNotifications() {
-        NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
-#if os(iOS) || os(tvOS) || os(visionOS)
-        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
-#endif
+    /// Returns to the beginning and resumes playback.
+    public func restart() {
+        guard let player, let playbackAsset, preparation == nil else { return }
+        if !isLooping, looper == nil, let item = player.currentItem {
+            observeEnd(of: item, in: player)
+            player.seek(to: .zero)
+            player.play()
+        } else {
+            play(playbackAsset)
+        }
     }
 
-    private func registerNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(playerItemDidPlayToEndTimeNotification(_:)),
-            name: .AVPlayerItemDidPlayToEndTime,
-            object: player?.currentItem
-        )
+    /// Creates a player for the current ``asset`` and starts playback.
+    ///
+    /// The video is muted and set to loop by default. Looping waits for the asset's
+    /// duration to load. Assets without a known, positive duration use single-item playback.
+    public func play() {
+        guard let asset else { return }
+        play(asset)
+    }
+
+    private func play(_ asset: AVAsset) {
+        reset()
+
+        let player = AVQueuePlayer()
+        player.isMuted = true
+#if os(visionOS)
+        player.preventsAutomaticBackgroundingDuringVideoPlayback = false
+#else
+        player.preventsDisplaySleepDuringVideoPlayback = false
+#endif
+        player.actionAtItemEnd = .pause
+        self.player = player
+        playbackAsset = asset
+        playerLayer.player = player
 
 #if os(iOS) || os(tvOS) || os(visionOS)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(applicationWillEnterForeground),
@@ -142,91 +190,131 @@ public final class VideoPlayerView: _PlatformBaseView {
             object: nil
         )
 #endif
+
+        if !isLooping {
+            playOnce(asset, in: player)
+        } else if case .loaded(let duration) = asset.status(of: .duration) {
+            startLooping(asset, duration: duration, in: player)
+        } else {
+            preparation = Task { [weak self, weak player] in
+                guard !Task.isCancelled else { return }
+                let duration = try? await asset.load(.duration)
+                guard !Task.isCancelled, let self, let player, self.player === player else { return }
+                preparation = nil
+                startLooping(asset, duration: duration, in: player)
+            }
+        }
     }
 
-    /// Seeks to the beginning and resumes playback.
-    public func restart() {
-        player?.seek(to: CMTime.zero)
-        player?.play()
-    }
-
-    /// Creates a player for the current ``asset`` and starts playback.
-    ///
-    /// The video is muted and set to loop by default. Playback begins once the
-    /// player item is ready.
-    public func play() {
-        guard let asset else {
+    private func startLooping(_ asset: AVAsset, duration: CMTime?, in player: AVQueuePlayer) {
+        guard let duration, duration.isNumeric, duration > .zero else {
+            playOnce(asset, in: player)
             return
         }
+        looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(asset: asset))
+        player.play()
+    }
 
-        let playerItem = AVPlayerItem(asset: asset)
-        let player = AVQueuePlayer(playerItem: playerItem)
-        player.isMuted = true
-#if os(visionOS)
-            player.preventsAutomaticBackgroundingDuringVideoPlayback = false
-#else
-            player.preventsDisplaySleepDuringVideoPlayback = false
-#endif
-        player.actionAtItemEnd = isLooping ? .none : .pause
-        self.player = player
+    private func playOnce(_ asset: AVAsset, in player: AVQueuePlayer) {
+        let item = AVPlayerItem(asset: asset)
+        player.insert(item, after: nil)
+        observeEnd(of: item, in: player)
+        player.play()
+    }
 
-        playerLayer.player = player
-
-        playerObserver = player.observe(\.status, options: [.new, .initial]) { player, _ in
-            Task { @MainActor in
-                if player.status == .readyToPlay {
-                    player.play()
+    private func updateLooping() {
+        guard let player, let playbackAsset else { return }
+        if isLooping {
+            if finishObserver != nil && player.wantsToPlay {
+                // Let the current one-shot item finish at its existing position.
+                // A fresh queue can then start at the beginning with only replicas.
+                loopsAfterCurrentItem = true
+            } else {
+                play(playbackAsset)
+            }
+        } else {
+            loopsAfterCurrentItem = false
+            if preparation != nil {
+                preparation?.cancel()
+                preparation = nil
+                playOnce(playbackAsset, in: player)
+            } else if let looper, looper.status != .cancelled {
+                looper.disableLooping()
+                // Keep the looper until this queue is replaced. Releasing it
+                // while the last replica is playing can remove that replica.
+                player.actionAtItemEnd = .pause
+                if let item = player.currentItem {
+                    observeEnd(of: item, in: player)
                 }
             }
         }
     }
 
-    @objc private func playerItemDidPlayToEndTimeNotification(_ notification: Notification) {
-        guard let playerItem = notification.object as? AVPlayerItem else {
-            return
-        }
-        if isLooping {
-            playerItem.seek(to: CMTime.zero, completionHandler: nil)
-        } else {
-            onVideoFinished?()
-        }
-    }
-
-    @objc private func applicationWillEnterForeground() {
-        if shouldResumeOnInterruption {
-            player?.play()
+    private func observeEnd(of item: AVPlayerItem, in player: AVQueuePlayer) {
+        finishObservationID &+= 1
+        let id = finishObservationID
+        finishObserver = NotificationCenter.default.addObserver(
+            forName: AVPlayerItem.didPlayToEndTimeNotification,
+            object: item,
+            queue: .main
+        ) { [weak self, weak player, weak item] _ in
+            MainActor.assumeIsolated {
+                guard let self, let player, let item,
+                      self.finishObservationID == id, self.finishObserver != nil,
+                      self.player === player, player.currentItem === item else { return }
+                self.finishObserver = nil
+                if self.loopsAfterCurrentItem, let playbackAsset = self.playbackAsset {
+                    self.play(playbackAsset)
+                } else if !self.isLooping {
+                    self.onVideoFinished?()
+                }
+            }
         }
     }
 
 #if os(iOS) || os(tvOS) || os(visionOS)
+    @objc private func applicationWillResignActive() {
+        wasPlayingBeforeLeavingForeground = player?.wantsToPlay == true
+    }
+
+    @objc private func applicationWillEnterForeground() {
+        let wasPlaying = wasPlayingBeforeLeavingForeground
+        wasPlayingBeforeLeavingForeground = false
+        resumeAfterInterruption(if: wasPlaying)
+    }
+
     override public func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-
-        if newWindow != nil && shouldResumeOnInterruption {
-            player?.play()
-        }
+        updateWindow(isAttached: newWindow != nil)
     }
 #elseif os(macOS)
     override public func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
-
-        if newWindow != nil && shouldResumeOnInterruption {
-            player?.play()
-        }
+        updateWindow(isAttached: newWindow != nil)
     }
 #endif
 
-    private var shouldResumeOnInterruption: Bool {
-        return player?.nowPlaying == false &&
-        player?.status == .readyToPlay &&
-        isLooping
+    private func updateWindow(isAttached: Bool) {
+        if isAttached {
+            let wasPlaying = wasPlayingBeforeLeavingWindow
+            wasPlayingBeforeLeavingWindow = false
+            resumeAfterInterruption(if: wasPlaying)
+        } else {
+            wasPlayingBeforeLeavingWindow = player?.wantsToPlay == true
+        }
+    }
+
+    private func resumeAfterInterruption(if wasPlaying: Bool) {
+        if wasPlaying, isLooping, let player, player.status == .readyToPlay, !player.wantsToPlay {
+            player.play()
+        }
     }
 }
 
 @MainActor
-extension AVPlayer {
-    var nowPlaying: Bool {
-        rate != 0 && error == nil
+private extension AVPlayer {
+    var wantsToPlay: Bool {
+        timeControlStatus != .paused && error == nil
     }
 }
 
